@@ -18,7 +18,7 @@ enum class allocator_types_t {
 // `std::map` and `std::string`.  As a result, if we were to use `tracking_allocator`
 // and `unbounded_allocator` directly, the type of `datum_t` would need to be
 // parameterized by the allocator used, which would suck.
-template <class T, class Allocator=std::allocator<T> >
+template <class T, class Allocator = std::allocator<T> >
 class rethinkdb_allocator_t {
 public:
     typedef T value_type;
@@ -53,7 +53,7 @@ protected:
 
 // Minimal definitions required to use `std::allocator_traits` and also keep track of
 // the amount of memory allocated.
-template <class T, class Allocator=std::allocator<T> >
+template <class T, class Allocator = std::allocator<T> >
 class tracking_allocator_t : public rethinkdb_allocator_t<T, Allocator> {
 public:
     tracking_allocator_t(Allocator _original,
@@ -98,14 +98,14 @@ public:
 
 // Thin shell around the standard allocator.  We need this so the type
 // of `datum_t` doesn't change.
-template <class T, class Allocator=std::allocator<T> >
+template <class T, class Allocator = std::allocator<T> >
 class unbounded_allocator_t : public rethinkdb_allocator_t<T, Allocator> {
 public:
-    unbounded_allocator_t(Allocator _original)
+    explicit unbounded_allocator_t(Allocator _original)
         : rethinkdb_allocator_t<T, Allocator>(_original) {}
-    unbounded_allocator_t(const unbounded_allocator_t<T> &allocator)
+    explicit unbounded_allocator_t(const unbounded_allocator_t<T, Allocator> &allocator)
         : rethinkdb_allocator_t<T, Allocator>(allocator.original) {}
-    unbounded_allocator_t(unbounded_allocator_t<T> &&allocator)
+    explicit unbounded_allocator_t(unbounded_allocator_t<T, Allocator> &&allocator)
         : rethinkdb_allocator_t<T, Allocator>(allocator.original) {}
     virtual ~unbounded_allocator_t() {}
 
@@ -137,7 +137,7 @@ public:
 
 class tracking_allocator_factory_t {
 public:
-    tracking_allocator_factory_t(size_t total_bytes) : available(total_bytes) {}
+    explicit tracking_allocator_factory_t(size_t total_bytes) : available(total_bytes) {}
 
     bool debit(size_t bytes) {
         if (available >= bytes) {
