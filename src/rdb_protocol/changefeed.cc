@@ -1211,7 +1211,6 @@ public:
         return ret;
     }
 
-
     uuid_u uuid;
     int64_t need_init, got_init;
     keyspec_t::limit_t spec;

@@ -782,7 +782,7 @@ changefeed::keyspec_t slice_datum_stream_t::get_spec() {
             return changefeed::keyspec_t(
                 changefeed::keyspec_t::limit_t(*rspec, right));
         }
-     }
+    }
     return wrapper_datum_stream_t::get_spec();
 }
 

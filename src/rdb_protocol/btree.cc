@@ -453,8 +453,8 @@ public:
     void push(func_t f) {
         queue.push(make_counted<caller_t>(std::move(f), this));
     }
-private:
 
+private:
     scoped_ptr_t<superblock_t> superblock;
     scoped_ptr_t<promise_t<superblock_t *> > promise;
     rwlock_t promise_lock;
