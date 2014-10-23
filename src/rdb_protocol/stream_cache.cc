@@ -73,11 +73,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     }
 
     const bool cfeed = entry->stream->is_cfeed();
-    if (cfeed && reject_cfeeds == reject_cfeeds_t::YES) {
-        erase(key);
-        rfail_toplevel(base_exc_t::GENERIC,
-                       "Changefeeds not allowed on this connection.");
-    } else if (entry->stream->is_exhausted() || (res->response_size() == 0 && !cfeed)) {
+    if (entry->stream->is_exhausted() || (res->response_size() == 0 && !cfeed)) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else {

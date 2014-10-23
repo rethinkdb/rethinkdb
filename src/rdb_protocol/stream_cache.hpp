@@ -18,13 +18,10 @@ class env_t;
 
 namespace ql {
 
-enum class reject_cfeeds_t { NO, YES };
 class stream_cache_t {
 public:
-    stream_cache_t(rdb_context_t *_rdb_ctx,
-                   reject_cfeeds_t _reject_cfeeds)
-        : rdb_ctx(_rdb_ctx),
-          reject_cfeeds(_reject_cfeeds) {
+    stream_cache_t(rdb_context_t *_rdb_ctx)
+        : rdb_ctx(_rdb_ctx) {
         rassert(rdb_ctx != NULL);
     }
     MUST_USE bool contains(int64_t key);
@@ -58,7 +55,6 @@ private:
     };
 
     rdb_context_t *const rdb_ctx;
-    const reject_cfeeds_t reject_cfeeds;
     std::map<int64_t, scoped_ptr_t<entry_t> > streams;
     DISABLE_COPYING(stream_cache_t);
 };

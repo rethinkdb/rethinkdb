@@ -29,10 +29,9 @@ template <class> class semilattice_readwrite_view_t;
 class client_context_t {
 public:
     explicit client_context_t(rdb_context_t *rdb_ctx,
-                              ql::reject_cfeeds_t reject_cfeeds,
                               signal_t *_interruptor)
         : interruptor(_interruptor),
-          stream_cache(rdb_ctx, reject_cfeeds) { }
+          stream_cache(rdb_ctx) { }
     // Holy shit, this field gets MODIFIED!
     signal_t *interruptor;
     ql::stream_cache_t stream_cache;
@@ -45,7 +44,7 @@ public:
         explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor),
+            client_ctx(rdb_ctx, &interruptor),
             counter(&rdb_ctx->stats.client_connections) {
         }
 
