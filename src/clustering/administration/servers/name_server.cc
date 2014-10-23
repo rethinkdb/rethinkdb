@@ -32,6 +32,7 @@ server_name_server_t::server_name_server_t(
         permanently_removed_cond.pulse();
     } else {
         my_name = it->second.get_ref().name.get_ref();
+        my_tags = it->second.get_ref().tags.get_ref();
     }
 
     semilattice_subs.reset(semilattice_view);
