@@ -9,7 +9,7 @@ module 'TableView', ->
         template:
             main: Handlebars.templates['shards_container-template']
             status: Handlebars.templates['shard_status-template']
-            data_repartition: Handlebars.templates['data_repartition-template']
+            data_distribution: Handlebars.templates['data_distribution-template']
 
         view_template: Handlebars.templates['view_shards-template']
         edit_template: Handlebars.templates['edit_shards-template']
@@ -21,7 +21,7 @@ module 'TableView', ->
         initialize: (data) =>
             @listenTo @model, 'change:num_available_shards', @render_status
             if @collection?
-                @listenTo @collection, 'update', @render_data_repartition
+                @listenTo @collection, 'update', @render_data_distribution
 
             # Bind listener for the key distribution
 
@@ -32,8 +32,8 @@ module 'TableView', ->
 
         set_distribution: (shards) =>
             @collection = shards
-            @listenTo @collection, 'update', @render_data_repartition
-            @render_data_repartition()
+            @listenTo @collection, 'update', @render_data_distribution
+            @render_data_distribution()
 
 
         # Render the status of sharding
@@ -67,7 +67,7 @@ module 'TableView', ->
 
             @init_chart = false
             setTimeout => # Let the element be inserted in the main DOM tree
-                @render_data_repartition()
+                @render_data_distribution()
             , 0
 
             return @
@@ -86,7 +86,7 @@ module 'TableView', ->
             if @$('.outdated_distribution').css('display') is 'none'
                 @$('.outdated_distribution').slideDown 'fast'
 
-        render_data_repartition: =>
+        render_data_distribution: =>
             if not @collection?
                 return 0
 
