@@ -10,8 +10,8 @@
             <p>{{pluralize_noun collisionType info.ids.length true}} with the name {{info.name}}:</p>
             <ul>
                 {{#each info.ids}}
-                <li><a class="change-route" href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid this}}</span></a>
-                <a id="rename_{{uuid}}" href="#{{pluralize_noun type 2}}/{{uuid}}">
+                <li><a class="change-route" href="#{{pluralize_noun collisionType 2}}/{{this}}"><span class="uuid">{{humanize_uuid this}}</span></a>
+                <a id="rename_{{this}}" href="#{{pluralize_noun collisionType 2}}/{{this}}">
                   rename</a>
                 </li>
                 {{/each}}

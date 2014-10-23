@@ -39,6 +39,7 @@ module 'ResolveIssuesView', ->
             templates = ResolveIssuesView.templates
             viewmodel = @model.toJSON()
             viewmodel.collisionType = @parseCollisionType(viewmodel.type)
+            console.log viewmodel
             if templates[@model.get('type')]?
                 @$el.html templates[@model.get('type')] viewmodel
             else

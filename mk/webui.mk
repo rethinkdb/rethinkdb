@@ -7,8 +7,11 @@ $(TOP)/admin/all: web-assets
 
 ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
 
+ALL_WEB_ASSETS := $(WEB_ASSETS_BUILD_DIR)
+
 $(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
 	$P CP
+	rm -rf $@
 	cp -pRP $< $@
 
 .PHONY: web-assets
@@ -18,13 +21,13 @@ else # Don't use precompiled assets
 
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
-WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js
-BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
+WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
+ALL_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 COFFEE_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/coffee
 # since we don't use requirejs or anything, we list out the dependencies here explicitly in order
-# this means you should use $+ instead of $^ for rules with $(COFFEE_SOURCES) as dependencies since it preserves order!
-COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
+# rather than populating COFFEE_SOURCES with `find` or the like
+COFFEE_SOURCES := $(patsubst %, $(COFFEE_SOURCE_DIR)/%,\
                        util.coffee \
                        body.coffee \
                        ui_components/modals.coffee ui_components/progressbar.coffee \
@@ -62,8 +65,10 @@ HANDLEBARS_FUNCTIONS := $(patsubst $(HANDLEBARS_SOURCE_DIR)/%.handlebars, $(HAND
 HANDLEBARS_KNOWN_HELPERS := if unless each capitalize pluralize-noun humanize_uuid comma_separated links_to_machines \
 	comma_separated_simple pluralize_verb pluralize_verb_to_have
 
+DOCS_JS := $(TOP)/docs/rql/reql_docs.json
+
 .PHONY: web-assets
-web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
+web-assets: $(ALL_WEB_ASSETS)
 
 .PHONY: clean-webobj
 clean-webobj:
@@ -74,16 +79,13 @@ $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_AS
 	cp -pRP $< $@
 
 $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBARS_FUNCTIONS)
-	$P CONCAT $(@F)
-	cat $+ > $@
+	$P CONCAT $@
+	cat $^ > $@
 
-$(HANDLEBARS_OBJ_DIR)/%.handlebars: $(HANDLEBARS_SOURCE_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
-	mkdir -p $(@D)
-	tr -s '[:space:]' < $^ > $@
-
-$(HANDLEBARS_OBJ_DIR)/%.js: $(HANDLEBARS_OBJ_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
+$(HANDLEBARS_OBJ_DIR)/%.js: $(HANDLEBARS_SOURCE_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/. $(HANDLEBARS_BIN_DEP)
 	$P HANDLEBARS $(@F)
-	handlebars -m $(addprefix -k , $(HANDLEBARS_KNOWN_HELPERS)) $^ > $@
+	mkdir -p $(@D)
+	$(HANDLEBARS) -m $(addprefix -k , $(HANDLEBARS_KNOWN_HELPERS)) $^ > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(JS_VERSION_FILE) $(COFFEE_COMPILED_JS) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CONCAT $@
@@ -120,5 +122,9 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JS) | $(WEB_ASSETS_BUILD_DIR)/js/.
+	$P CP
+	cp $< $@
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
