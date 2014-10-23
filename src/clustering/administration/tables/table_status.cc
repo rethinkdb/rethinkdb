@@ -218,6 +218,7 @@ ql::datum_t convert_table_status_shard_to_datum(
     }
 
     bool has_outdated_reader = false;
+    bool is_unfinished = false;
     for (const machine_id_t &replica : shard.replicas) {
         if (already_handled.count(replica) == 1) {
             /* Don't overwrite the director's entry */
@@ -230,9 +231,6 @@ ql::datum_t convert_table_status_shard_to_datum(
             we act as if it wasn't in `shard.replicas`. */
             continue;
         }
-        /* RSI(reql_admin): Currently we don't use `this_one_has_replica`. When we figure
-        out what to do about acks, we'll use it to compute if the table is available for
-        writes. */
         bool this_one_has_replica, this_one_has_outdated_reader;
         array_builder.add(convert_replica_status_to_datum(
             *replica_name,
@@ -243,12 +241,14 @@ ql::datum_t convert_table_status_shard_to_datum(
         if (this_one_has_outdated_reader) {
             has_outdated_reader = true;
         }
+        if (!this_one_has_replica) {
+            is_unfinished = true;
+        }
         already_handled.insert(replica);
     }
 
     std::multimap<name_string_t, machine_id_t> other_names =
         name_client->get_name_to_machine_id_map()->get();
-    bool is_unfinished = false;
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (already_handled.count(it->second) == 1) {
             /* Don't overwrite a director or replica entry */
