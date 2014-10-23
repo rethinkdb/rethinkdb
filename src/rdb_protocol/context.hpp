@@ -58,11 +58,12 @@ public:
     name_string_t director_tag;
 };
 
-enum class table_wait_ready_t {
-    OUTDATED_READS,
-    READS,
-    WRITES,
-    COMPLETELY,
+enum class table_readiness_t {
+    unavailable,
+    outdated_reads,
+    reads,
+    writes,
+    finished
 };
 
 class base_table_t {
@@ -181,7 +182,7 @@ public:
             std::string *error_out) = 0;
     virtual bool table_wait(counted_t<const ql::db_t> db,
             const std::set<name_string_t> &tables,
-            table_wait_ready_t readiness,
+            table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor,
             scoped_ptr_t<ql::val_t> *resp_out,

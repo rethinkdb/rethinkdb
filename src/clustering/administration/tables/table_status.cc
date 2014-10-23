@@ -174,16 +174,46 @@ ql::datum_t convert_nothing_status_to_datum(
     }
 }
 
-enum class table_readiness_t {
-    unavailable,
-    outdated_reads,
-    reads,
-    writes,
-    finished
-};
+table_directory_converter_t::table_directory_converter_t(
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *_directory,
+        namespace_id_t _table_id) :
+    watchable_map_transform_t(_directory),
+    table_id(_table_id) { }
+
+bool table_directory_converter_t::key_1_to_2(
+        const std::pair<peer_id_t, namespace_id_t> &key1,
+        peer_id_t *key2_out) {
+    if (key1.second == table_id) {
+        *key2_out = key1.first;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void table_directory_converter_t::value_1_to_2(
+        const namespace_directory_metadata_t *value1,
+        const namespace_directory_metadata_t **value2_out) {
+    *value2_out = value1;
+}
+
+bool table_directory_converter_t::key_2_to_1(
+        const peer_id_t &key2,
+        std::pair<peer_id_t, namespace_id_t> *key1_out) {
+    key1_out->first = key2;
+    key1_out->second = table_id;
+    return true;
+}
+
+table_readiness_t get_table_readiness(
+        UNUSED const watchable_map_t<peer_id_t, namespace_directory_metadata_t> &dir) {
+    // TODO: write this
+    return table_readiness_t::unavailable;
+}
 
 ql::datum_t convert_table_status_shard_to_datum(
-        namespace_id_t id,
+        namespace_id_t table_id,
         key_range_t range,
         const table_config_t::shard_t &shard,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
@@ -197,7 +227,7 @@ ql::datum_t convert_table_status_shard_to_datum(
     dir->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const namespace_directory_metadata_t *value) {
-            if (key.second != id) {
+            if (key.second != table_id) {
                 return;
             }
             /* Translate peer ID to server ID */
@@ -314,7 +344,7 @@ ql::datum_t convert_table_status_shard_to_datum(
 ql::datum_t convert_table_status_to_datum(
         name_string_t table_name,
         name_string_t db_name,
-        namespace_id_t id,
+        namespace_id_t table_id,
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
@@ -322,7 +352,7 @@ ql::datum_t convert_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("id", convert_uuid_to_datum(id));
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
 
     table_readiness_t readiness = table_readiness_t::finished;
     ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
@@ -330,7 +360,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t this_shard_readiness;
         array_builder.add(
             convert_table_status_shard_to_datum(
-                id,
+                table_id,
                 repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 dir,
@@ -350,6 +380,36 @@ ql::datum_t convert_table_status_to_datum(
         readiness == table_readiness_t::finished));
 
     return std::move(builder).to_datum();
+}
+
+boost::optional<table_readiness_t>
+table_status_artificial_table_backend_t::get_table_readiness(
+        const namespace_id_t &table_id) const {
+    ASSERT_NO_CORO_WAITING;
+    assert_thread();
+    boost::optional<table_readiness_t> readiness;
+
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+        ::const_iterator it;
+    if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
+        const table_replication_info_t &repli_info =
+            it->second.get_ref().replication_info.get_ref();
+
+        readiness = table_readiness_t::finished;
+        for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
+            table_readiness_t this_shard_readiness;
+            convert_table_status_shard_to_datum(
+                table_id,
+                repli_info.shard_scheme.get_shard_range(i),
+                repli_info.config.shards[i],
+                directory_view,
+                name_client,
+                &this_shard_readiness);
+            readiness = std::min(*readiness, this_shard_readiness);
+        }
+    }
+    return readiness;
 }
 
 bool table_status_artificial_table_backend_t::format_row(

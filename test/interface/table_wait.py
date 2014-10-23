@@ -16,12 +16,6 @@ opts = op.parse(sys.argv)
 db = "test"
 tables = ["table1", "table2", "table3"]
 
-def create_tables(conn):
-    r.db_create(db).run(conn)
-    r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
-    r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
-    r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
-
 def check_table_states(conn, ready):
     statuses = r.db(db).table_status(r.args(tables)).run(conn)
     return all(map(lambda s: (s['ready_for_writes'] == ready), statuses))
@@ -29,6 +23,17 @@ def check_table_states(conn, ready):
 def wait_for_table_states(conn, ready):
     while not check_table_states(conn, ready=ready):
         time.sleep(0.1)
+
+def create_tables(conn):
+    r.db_create(db).run(conn)
+    r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
+    r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
+    r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
+    statuses = r.db(db).table_wait().run(conn)
+    if not check_table_states(conn, ready=True):
+        print "Initial wait after reconfigure returned before tables were ready.  Table statuses:"
+        print statuses
+        exit(0)
 
 def spawn_table_wait(port, tbls):
     def do_table_wait(port, tbls, done_event):

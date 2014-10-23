@@ -11,6 +11,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/servers/server_id_to_peer_id.hpp"
+#include "clustering/administration/tables/table_status.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
@@ -157,12 +158,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
  * a std::pair. This class is used to hold a reactor and a watchable that
  * it's watching. */
 class watchable_and_reactor_t :
-        private ack_checker_t,
-        private watchable_map_transform_t<
-            std::pair<peer_id_t, namespace_id_t>,
-            namespace_directory_metadata_t,
-            peer_id_t,
-            namespace_directory_metadata_t> {
+        private ack_checker_t {
 public:
     watchable_and_reactor_t(const base_path_t &_base_path,
                             io_backender_t *io_backender,
@@ -171,7 +167,7 @@ public:
                             const blueprint_t &bp,
                             svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
-        watchable_map_transform_t(parent->directory_view),
+        table_directory(parent->directory_view, namespace_id),
         base_path(_base_path),
         watchable(bp),
         ctx(_ctx),
@@ -220,28 +216,6 @@ public:
     }
 
 private:
-    bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
-                    peer_id_t *key2_out) {
-        if (key1.second == namespace_id_) {
-            *key2_out = key1.first;
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    bool key_2_to_1(const peer_id_t &key2,
-                    std::pair<peer_id_t, namespace_id_t> *key1_out) {
-        key1_out->first = key2;
-        key1_out->second = namespace_id_;
-        return true;
-    }
-
-    void value_1_to_2(const namespace_directory_metadata_t *value1,
-                      const namespace_directory_metadata_t **value2_out) {
-        *value2_out = value1;
-    }
-
     void initialize_reactor(io_backender_t *io_backender) {
         perfmon_collection_repo_t::collections_t *perfmon_collections = parent_->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id_);
         perfmon_collection_t *namespace_collection = &perfmon_collections->namespace_collection;
@@ -256,7 +230,7 @@ private:
             parent_->mbox_manager,
             &parent_->backfill_throttler,
             this,
-            this,
+            &table_directory,
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
@@ -276,6 +250,7 @@ private:
     }
 
 private:
+    table_directory_converter_t table_directory;
     const base_path_t base_path;
 public:
     watchable_variable_t<blueprint_t> watchable;

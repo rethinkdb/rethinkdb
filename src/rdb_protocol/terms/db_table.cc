@@ -381,17 +381,17 @@ private:
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         scoped_ptr_t<val_t> ready_optarg = args->optarg(env, "ready_for");
-        table_wait_ready_t readiness = table_wait_ready_t::WRITES;
+        table_readiness_t readiness = table_readiness_t::writes;
         if (ready_optarg.has()) {
             std::string ready_string = ready_optarg->as_str().to_std();
             if (ready_string == "outdated_reads") {
-                readiness = table_wait_ready_t::OUTDATED_READS;
+                readiness = table_readiness_t::outdated_reads;
             } else if (ready_string == "reads") {
-                readiness = table_wait_ready_t::READS;
+                readiness = table_readiness_t::reads;
             } else if (ready_string == "writes") {
-                readiness = table_wait_ready_t::WRITES;
+                readiness = table_readiness_t::writes;
             } else if (ready_string == "completely") {
-                readiness = table_wait_ready_t::COMPLETELY;
+                readiness = table_readiness_t::finished;
             } else {
                 rfail_target(ready_optarg.get(), base_exc_t::GENERIC,
                              "`ready_for` value (%s) is not recognized ('reads', "

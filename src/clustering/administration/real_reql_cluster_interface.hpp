@@ -69,7 +69,7 @@ public:
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
             const std::set<name_string_t> &tables,
-            table_wait_ready_t readiness,
+            table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
@@ -119,14 +119,20 @@ private:
     bool get_table_ids_for_query(
             counted_t<const ql::db_t> db,
             const std::set<name_string_t> &table_names,
-            std::set<namespace_id_t> *table_ids_out,
+            std::map<namespace_id_t, name_string_t> *table_map_out,
             std::string *error_out);
 
     bool table_meta_read(artificial_table_backend_t *backend,
-            const char *backend_name,
-            const std::set<namespace_id_t> &table_ids,
-            const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            const std::map<namespace_id_t, name_string_t> &table_map,
+            signal_t *interruptor,
+            ql::datum_t *res_out,
+            std::string *error_out);
+
+    bool table_meta_read_by_name(artificial_table_backend_t *backend,
+            counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            signal_t *interruptor,
+            ql::datum_t *res_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);

@@ -261,11 +261,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         wait_for_metadata_to_propagate(metadata, &interruptor2);
 
         std::string error;
-        UNUSED bool wait_res = table_wait(db, std::set<name_string_t>({name}),
-                                          table_wait_ready_t::WRITES,
+        counted_t<const ql::db_t> ct_db =
+            make_counted<const ql::db_t>(db.get()->id, db.get()->name);
+        // This could fail if the table is deleted, but we don't care about that
+        UNUSED bool wait_res = table_wait(ct_db, { name },
+                                          table_readiness_t::writes,
                                           ql::make_counted_backtrace(), &interruptor2,
                                           NULL, &error);
-        rassert(wait_res, "Failed to wait for table readiness: %s", error.c_str());
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
     return true;
@@ -352,12 +354,12 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
 bool real_reql_cluster_interface_t::get_table_ids_for_query(
         counted_t<const ql::db_t> db,
         const std::set<name_string_t> &table_names,
-        std::set<namespace_id_t> *table_ids_out,
+        std::map<namespace_id_t, name_string_t> *table_map_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    table_ids_out->clear();
+    table_map_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
     const_metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
         &ns_metadata->namespaces);
@@ -368,7 +370,7 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
                   it != ns_searcher.end();
                   it = ns_searcher.find_next(++it, pred)) {
             guarantee(!it->second.is_deleted());
-            table_ids_out->insert(it->first);
+            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
         }
     } else {
         for (auto const &name : table_names) {
@@ -378,10 +380,27 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
             if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
                     error_out)) return false;
             guarantee(!it->second.is_deleted());
-            table_ids_out->insert(it->first);
+            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
         }
     }
     return true;
+}
+
+counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
+                                          const char *backend_name,
+                                          const ql::protob_t<const Backtrace> &bt) {
+    return make_counted<ql::table_t>(
+        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
+        make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
+        backend_name, false, bt);
+}
+
+void array_result_to_stream(const ql::datum_t &d,
+                            counted_t<ql::table_t> table,
+                            const ql::protob_t<const Backtrace> &bt,
+                            scoped_ptr_t<ql::val_t> *resp_out) {
+    counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(d, bt);
+    resp_out->init(new ql::val_t(table, stream, bt));
 }
 
 bool real_reql_cluster_interface_t::table_config(
@@ -390,14 +409,16 @@ bool real_reql_cluster_interface_t::table_config(
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::set<namespace_id_t> table_ids;
-    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
+    ql::datum_t datum_result;
+    if (!table_meta_read_by_name(admin_tables->table_config_backend.get(),
+                                 db, tables, interruptor, &datum_result, error_out)) {
         return false;
     }
 
-    return table_meta_read(
-        admin_tables->table_config_backend.get(), "table_config",
-        table_ids, bt, interruptor, resp_out, error_out);
+    counted_t<ql::table_t> backend = make_backend_table(
+        admin_tables->table_config_backend.get(), "table_config", bt);
+    array_result_to_stream(datum_result, backend, bt, resp_out);
+    return true;
 }
 
 bool real_reql_cluster_interface_t::table_status(
@@ -406,14 +427,16 @@ bool real_reql_cluster_interface_t::table_status(
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::set<namespace_id_t> table_ids;
-    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
+    ql::datum_t datum_result;
+    if (!table_meta_read_by_name(admin_tables->table_status_backend.get(),
+            db, tables, interruptor, &datum_result, error_out)) {
         return false;
     }
 
-    return table_meta_read(
-        admin_tables->table_status_backend.get(), "table_status",
-        table_ids, bt, interruptor, resp_out, error_out);
+    counted_t<ql::table_t> backend = make_backend_table(
+        admin_tables->table_status_backend.get(), "table_status", bt);
+    array_result_to_stream(datum_result, backend, bt, resp_out);
+    return true;
 }
 
 class table_waiter_t {
@@ -421,166 +444,155 @@ public:
     table_waiter_t(const namespace_id_t &_table_id,
                    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                                    namespace_directory_metadata_t> *directory,
-                   cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
-                       *_namespaces_watchable) :
+                   table_status_artificial_table_backend_t *_table_status_backend) :
+        deleted(false),
         table_id(_table_id),
         table_directory(directory, table_id),
-        namespaces_watchable(_namespaces_watchable) { }
+        table_status_backend(_table_status_backend) { }
 
     enum class waited_t {
         WAITED,
         IMMEDIATE
     };
 
-    waited_t wait_ready(table_wait_ready_t readiness, signal_t *interruptor) {
+    waited_t wait_ready(table_readiness_t wait_readiness, signal_t *interruptor) {
         int num_checks = 0;
         table_directory.run_all_until_satisfied(
-            [&](watchable_map_t<peer_id_t, namespace_directory_metadata_t> *d) -> bool {
+            [&](watchable_map_t<peer_id_t,
+                                namespace_directory_metadata_t> *d) -> bool {
                 ++num_checks;
-                return do_check(d, readiness);
+                return do_check(d, wait_readiness);
             },
             interruptor);
         return num_checks > 1 ? waited_t::WAITED : waited_t::IMMEDIATE;
     }
 
-    bool check_ready(table_wait_ready_t readiness) {
-        return do_check(&table_directory, readiness);
+    bool check_ready(table_readiness_t wait_readiness) {
+        return do_check(&table_directory, wait_readiness);
+    }
+
+    bool is_deleted() const {
+        return deleted;
     }
 
 private:
-    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
-                  UNUSED table_wait_ready_t readiness) {
-        // First make sure the table was not deleted
-        bool is_deleted;
-        namespaces_watchable->apply_read(
-            [&](const cow_ptr_t<namespaces_semilattice_metadata_t> *ns_md) {
-                guarantee((*ns_md)->namespaces.count(table_id) == 1);
-                is_deleted = (*ns_md)->namespaces.at(table_id).is_deleted();
-            });
-        if (is_deleted) {
-            return true;
+    bool do_check(UNUSED watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
+                  table_readiness_t wait_readiness) {
+        boost::optional<table_readiness_t> actual_readiness =
+            table_status_backend->get_table_readiness(table_id);
+
+        if (!actual_readiness) {
+            deleted = true;
+            return true; // The table was deleted, this is as ready as it's going to be
         }
 
-        // Scan directory to determine readiness
-        std::vector<region_t> regions;
-        dir->read_all(
-            [&](const peer_id_t &, const namespace_directory_metadata_t *metadata) {
-                for (auto const &it : metadata->internal->activities) {
-                    const reactor_business_card_t::primary_t *primary =
-                        boost::get<reactor_business_card_t::primary_t>(&it.second.activity);
-                    if (primary != NULL && primary->master) {
-                        regions.push_back(primary->master.get().region);
-                    }
-                }
-            });
-
-        region_t whole;
-        region_join_result_t res = region_join(regions, &whole);
-        return (res == REGION_JOIN_OK && whole == region_t::universe());
+        return actual_readiness >= wait_readiness;
     }
 
+    bool deleted;
     namespace_id_t table_id;
-
-    // TODO: this is copy/pasta from namespace_interface_repository_t - consolidate?
-    class table_directory_t :
-        public watchable_map_transform_t<
-            std::pair<peer_id_t, namespace_id_t>,
-            namespace_directory_metadata_t,
-            peer_id_t,
-            namespace_directory_metadata_t>
-    {
-    public:
-        table_directory_t(
-                watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                                namespace_directory_metadata_t> *_directory,
-                namespace_id_t _namespace_id) :
-            watchable_map_transform_t(_directory),
-            nid(_namespace_id) { }
-        bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
-                        peer_id_t *key2_out) {
-            if (key1.second == nid) {
-                *key2_out = key1.first;
-                return true;
-            } else {
-                return false;
-            }
-        }
-        void value_1_to_2(const namespace_directory_metadata_t *value1,
-                          const namespace_directory_metadata_t **value2_out) {
-            *value2_out = value1;
-        }
-        bool key_2_to_1(const peer_id_t &key2,
-                        std::pair<peer_id_t, namespace_id_t> *key1_out) {
-            key1_out->first = key2;
-            key1_out->second = nid;
-            return true;
-        }
-        namespace_id_t nid;
-    } table_directory;
-
-    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
-        *namespaces_watchable;
+    table_directory_converter_t table_directory;
+    table_status_artificial_table_backend_t *table_status_backend;
 };
+
+std::string deleted_table_error_message(std::map<namespace_id_t, name_string_t> table_map,
+                                        const ql::datum_t *result_array) {
+    std::string dummy_error;
+    for (size_t i = 0; i < result_array->arr_size(); ++i) {
+        namespace_id_t table_id;
+        if (!convert_uuid_from_datum(result_array->get(i).get_field("uuid"),
+                                     &table_id, &dummy_error)) {
+            return "An unknown table was deleted during the operation.";
+        }
+
+        table_map.erase(table_id);
+    }
+
+    rassert(!table_map.empty());
+    std::string message;
+    for (auto const &pair : table_map) {
+        message += strprintf("%s%s", message.empty() ? "" : ", ",
+                             pair.second.str().c_str());
+    }
+
+    return strprintf("The following table%s deleted during the operation: %s",
+                     table_map.size() == 1 ? " was" : "s were",
+                     message.c_str());
+}
 
 bool real_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
         const std::set<name_string_t> &tables,
-        table_wait_ready_t readiness,
+        table_readiness_t readiness,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    threadnum_t query_thread = get_thread_id();
-    on_thread_t thread_switcher(directory_root_view->home_thread());
-    cross_thread_watchable_map_var_t<std::pair<peer_id_t, namespace_id_t>,
-        namespace_directory_metadata_t>
-            cross_thread_directory_watchable(directory_root_view, query_thread);
-
-    on_thread_t thread_reswitcher(query_thread);
-    std::set<namespace_id_t> table_ids;
-    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
+    std::map<namespace_id_t, name_string_t> table_map;
+    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
         return false;
     }
 
-    std::vector<scoped_ptr_t<table_waiter_t> > waiters;
-    for (auto const &id : table_ids) {
-        waiters.push_back(scoped_ptr_t<table_waiter_t>(
-            new table_waiter_t(id, cross_thread_directory_watchable.get_watchable(),
-                cross_thread_namespace_watchables[get_thread_id().threadnum].get())));
-    }
+    {
+        threadnum_t new_thread = directory_root_view->home_thread();
+        cross_thread_signal_t ct_interruptor(interruptor, new_thread);
+        on_thread_t thread_switcher(new_thread);
+        table_status_artificial_table_backend_t *table_status_backend =
+            admin_tables->table_status_backend.get();
 
-    // Loop until all tables are ready
-    while (true) {
-        bool immediate = true;
-        for (auto const &w : waiters) {
-            table_waiter_t::waited_t res = w->wait_ready(readiness, interruptor);
-            immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
+        rassert(new_thread == table_status_backend->home_thread());
+
+        // Create a waiter object to watch for changes in a table's directory
+        std::vector<scoped_ptr_t<table_waiter_t> > waiters;
+        for (auto const &pair : table_map) {
+            waiters.push_back(scoped_ptr_t<table_waiter_t>(
+                new table_waiter_t(pair.first, directory_root_view,
+                                   table_status_backend)));
         }
 
-        if (!immediate && waiters.size() > 1) {
-            // Do a second pass to make sure no tables changed while we were waiting
-            bool redo = false;
+        // Loop until all tables are ready
+        while (true) {
+            bool immediate = true;
             for (auto const &w : waiters) {
-                if (!w->check_ready(readiness)) {
-                    redo = true;
-                    break;
+                table_waiter_t::waited_t res = w->wait_ready(readiness, &ct_interruptor);
+                immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
+            }
+
+            if (!immediate && waiters.size() > 1) {
+                // Do a second pass to make sure no tables changed while we were waiting
+                bool redo = false;
+                for (auto const &w : waiters) {
+                    if (!w->check_ready(readiness)) {
+                        redo = true;
+                        break;
+                    }
+                }
+
+                if (redo) {
+                    continue;
                 }
             }
-
-            if (redo) {
-                continue;
-            }
+            break;
         }
-        break;
-    } 
-
-    bool res = true;
-    if (resp_out != NULL) {
-        res = table_meta_read(
-            admin_tables->table_status_backend.get(), "table_wait",
-            table_ids, bt, interruptor, resp_out, error_out);
     }
-    return res;
+
+    if (resp_out != NULL) {
+        ql::datum_t datum_result;
+        if (!table_meta_read(admin_tables->table_status_backend.get(),
+                             table_map, interruptor, &datum_result, error_out)) {
+            return false;
+        }
+
+        if (!tables.empty() && tables.size() != datum_result.arr_size()) {
+            *error_out = deleted_table_error_message(table_map, &datum_result);
+            return false;
+        }
+
+        counted_t<ql::table_t> backend = make_backend_table(
+            admin_tables->table_status_backend.get(), "table_status", bt);
+        array_result_to_stream(datum_result, backend, bt, resp_out);
+    }
+    return true;
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
@@ -713,26 +725,49 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 }
 
 bool real_reql_cluster_interface_t::table_meta_read(
-        artificial_table_backend_t *backend, const char *backend_name,
-        const std::set<namespace_id_t> &table_ids,
-        const ql::protob_t<const Backtrace> &bt,
-        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        artificial_table_backend_t *backend,
+        const std::map<namespace_id_t, name_string_t> &table_map,
+        signal_t *interruptor,
+        ql::datum_t *res_out,
         std::string *error_out) {
-    counted_t<ql::table_t> table = make_counted<ql::table_t>(
-        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
-        make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"), backend_name, false, bt);
 
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-    for (auto const &id : table_ids) {
+    for (auto const &pair : table_map) {
         ql::datum_t row;
-        if (!backend->read_row(convert_uuid_to_datum(id), interruptor, &row, error_out)) {
+        if (!backend->read_row(convert_uuid_to_datum(pair.first),
+                               interruptor, &row, error_out)) {
             return false;
         }
-        array_builder.add(row);
+        if (row.has()) {
+            array_builder.add(row);
+        }
     }
-    counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
-        std::move(array_builder).to_datum(), bt);
-    resp_out->init(new ql::val_t(table, stream, bt));
+    *res_out = ql::datum_t(std::move(array_builder.to_datum()));
+    return true;
+}
+
+
+bool real_reql_cluster_interface_t::table_meta_read_by_name(
+        artificial_table_backend_t *backend,
+        counted_t<const ql::db_t> db,
+        const std::set<name_string_t> &tables,
+        signal_t *interruptor,
+        ql::datum_t *res_out,
+        std::string *error_out) {
+    std::map<namespace_id_t, name_string_t> table_map;
+    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+        return false;
+    }
+
+    if (!table_meta_read(backend, table_map, interruptor, res_out, error_out)) {
+        return false;
+    }
+
+    if (!tables.empty() && tables.size() != res_out->arr_size()) {
+        *error_out = deleted_table_error_message(table_map, res_out);
+        return false;
+    }
+
     return true;
 }
 
