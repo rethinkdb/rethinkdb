@@ -289,10 +289,13 @@ private:
 
 class table_meta_read_term_t : public meta_op_term_t {
 public:
-    table_meta_read_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(0, -1)) { }
+    table_meta_read_term_t(compile_env_t *env,
+                           const protob_t<const Term> &term,
+                           const optargspec_t &optargs) :
+        meta_op_term_t(env, term, argspec_t(0, -1), optargs) { }
 protected:
     virtual bool impl(scope_env_t *env,
+                      args_t *args,
                       counted_t<const db_t> db,
                       const std::set<name_string_t> &tables,
                       scoped_ptr_t<val_t> *resp_out,
@@ -325,7 +328,7 @@ private:
 
         std::string error;
         scoped_ptr_t<val_t> resp;
-        if (!impl(env, db, tables, &resp, &error)) {
+        if (!impl(env, args, db, tables, &resp, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return resp;
@@ -335,9 +338,10 @@ private:
 class table_config_term_t : public table_meta_read_term_t {
 public:
     table_config_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_meta_read_term_t(env, term) { }
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
     bool impl(scope_env_t *env, 
+              UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
@@ -351,9 +355,10 @@ private:
 class table_status_term_t : public table_meta_read_term_t {
 public:
     table_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_meta_read_term_t(env, term) { }
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
     bool impl(scope_env_t *env, 
+              UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
@@ -367,15 +372,37 @@ private:
 class table_wait_term_t : public table_meta_read_term_t {
 public:
     table_wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_meta_read_term_t(env, term) { }
+        table_meta_read_term_t(env, term, optargspec_t({"ready_for"})) { }
 private:
     bool impl(scope_env_t *env, 
+              args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
+        scoped_ptr_t<val_t> ready_optarg = args->optarg(env, "ready_for");
+        table_wait_ready_t readiness = table_wait_ready_t::WRITES;
+        if (ready_optarg.has()) {
+            std::string ready_string = ready_optarg->as_str().to_std();
+            if (ready_string == "outdated_reads") {
+                readiness = table_wait_ready_t::OUTDATED_READS;
+            } else if (ready_string == "reads") {
+                readiness = table_wait_ready_t::READS;
+            } else if (ready_string == "writes") {
+                readiness = table_wait_ready_t::WRITES;
+            } else if (ready_string == "completely") {
+                readiness = table_wait_ready_t::COMPLETELY;
+            } else {
+                rfail_target(ready_optarg.get(), base_exc_t::GENERIC,
+                             "`ready_for` value (%s) is not recognized ('reads', "
+                             "'writes', 'outdated_reads', and 'completely' are allowed).",
+                             ready_string.c_str());
+            }
+        }
+
         return env->env->reql_cluster_interface()->table_wait(
-            db, tables, backtrace(), env->env->interruptor, resp_out, error_out);
+            db, tables, readiness, backtrace(),
+            env->env->interruptor, resp_out, error_out);
     }
     virtual const char *name() const { return "table_wait"; }
 };

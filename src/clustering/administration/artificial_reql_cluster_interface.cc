@@ -133,6 +133,7 @@ bool artificial_reql_cluster_interface_t::table_status(
 bool artificial_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
         const std::set<name_string_t> &tables,
+        table_wait_ready_t readiness,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
     if (db->name == database.str()) {
@@ -140,7 +141,7 @@ bool artificial_reql_cluster_interface_t::table_wait(
             "have meaningful status information.", database.c_str());
         return false;
     }
-    return next->table_wait(db, tables, bt, interruptor, resp_out, error_out);
+    return next->table_wait(db, tables, readiness, bt, interruptor, resp_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(

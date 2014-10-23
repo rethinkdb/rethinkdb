@@ -262,7 +262,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         std::string error;
         UNUSED bool wait_res = table_wait(db, std::set<name_string_t>({name}),
-                                          ql::make_counted_backtrace(), &interruptor2, NULL, &error);
+                                          table_wait_ready_t::WRITES,
+                                          ql::make_counted_backtrace(), &interruptor2,
+                                          NULL, &error);
         rassert(wait_res, "Failed to wait for table readiness: %s", error.c_str());
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
@@ -430,23 +432,24 @@ public:
         IMMEDIATE
     };
 
-    waited_t wait_ready(signal_t *interruptor) {
+    waited_t wait_ready(table_wait_ready_t readiness, signal_t *interruptor) {
         int num_checks = 0;
         table_directory.run_all_until_satisfied(
             [&](watchable_map_t<peer_id_t, namespace_directory_metadata_t> *d) -> bool {
                 ++num_checks;
-                return do_check(d);
+                return do_check(d, readiness);
             },
             interruptor);
         return num_checks > 1 ? waited_t::WAITED : waited_t::IMMEDIATE;
     }
 
-    bool check_ready() {
-        return do_check(&table_directory);
+    bool check_ready(table_wait_ready_t readiness) {
+        return do_check(&table_directory, readiness);
     }
 
 private:
-    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir) {
+    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
+                  UNUSED table_wait_ready_t readiness) {
         // First make sure the table was not deleted
         bool is_deleted;
         namespaces_watchable->apply_read(
@@ -458,6 +461,7 @@ private:
             return true;
         }
 
+        // Scan directory to determine readiness
         std::vector<region_t> regions;
         dir->read_all(
             [&](const peer_id_t &, const namespace_directory_metadata_t *metadata) {
@@ -521,6 +525,7 @@ private:
 bool real_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
         const std::set<name_string_t> &tables,
+        table_wait_ready_t readiness,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out,
@@ -548,7 +553,7 @@ bool real_reql_cluster_interface_t::table_wait(
     while (true) {
         bool immediate = true;
         for (auto const &w : waiters) {
-            table_waiter_t::waited_t res = w->wait_ready(interruptor);
+            table_waiter_t::waited_t res = w->wait_ready(readiness, interruptor);
             immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
         }
 
@@ -556,7 +561,7 @@ bool real_reql_cluster_interface_t::table_wait(
             // Do a second pass to make sure no tables changed while we were waiting
             bool redo = false;
             for (auto const &w : waiters) {
-                if (!w->check_ready()) {
+                if (!w->check_ready(readiness)) {
                     redo = true;
                     break;
                 }
@@ -716,27 +721,18 @@ bool real_reql_cluster_interface_t::table_meta_read(
     counted_t<ql::table_t> table = make_counted<ql::table_t>(
         scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
         make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"), backend_name, false, bt);
-    if (table_ids.size() == 1) {
-        ql::datum_t pkey = convert_uuid_to_datum(*table_ids.begin());
+
+    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+    for (auto const &id : table_ids) {
         ql::datum_t row;
-        if (!backend->read_row(pkey, interruptor, &row, error_out)) {
+        if (!backend->read_row(convert_uuid_to_datum(id), interruptor, &row, error_out)) {
             return false;
         }
-        resp_out->init(new ql::val_t(row, pkey, table, bt));
-        return true;
-    } else {
-        ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-        for (auto const &id : table_ids) {
-            ql::datum_t row;
-            if (!backend->read_row(convert_uuid_to_datum(id), interruptor, &row, error_out)) {
-                return false;
-            }
-            array_builder.add(row);
-        }
-        counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
-            std::move(array_builder).to_datum(), bt);
-        resp_out->init(new ql::val_t(table, stream, bt));
-        return true;
+        array_builder.add(row);
     }
+    counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
+        std::move(array_builder).to_datum(), bt);
+    resp_out->init(new ql::val_t(table, stream, bt));
+    return true;
 }
 

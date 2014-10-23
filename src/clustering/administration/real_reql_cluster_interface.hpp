@@ -69,6 +69,7 @@ public:
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
             const std::set<name_string_t> &tables,
+            table_wait_ready_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
