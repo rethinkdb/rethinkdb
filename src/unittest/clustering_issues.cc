@@ -156,23 +156,22 @@ void assert_no_issues(issues_environment_t *env) {
     std::string error;
     cond_t interruptor;
 
-    std::vector<ql::datum_t> keys;
-    bool res = env->issues_backend.read_all_primary_keys(&interruptor, &keys, &error);
+    std::vector<ql::datum_t> rows;
+    bool res = env->issues_backend.read_all_rows_as_vector(&interruptor, &rows, &error);
     ASSERT_TRUE(res);
-    ASSERT_EQ(static_cast<size_t>(0), keys.size());
+    ASSERT_EQ(static_cast<size_t>(0), rows.size());
 }
 
 void assert_one_issue(issues_environment_t *env, ql::datum_t *issue_out) {
     std::string error;
     cond_t interruptor;
 
-    std::vector<ql::datum_t> keys;
-    bool res = env->issues_backend.read_all_primary_keys(&interruptor, &keys, &error);
+    std::vector<ql::datum_t> rows;
+    bool res = env->issues_backend.read_all_rows_as_vector(&interruptor, &rows, &error);
     ASSERT_TRUE(res);
-    ASSERT_EQ(static_cast<size_t>(1), keys.size());
+    ASSERT_EQ(static_cast<size_t>(1), rows.size());
 
-    res = env->issues_backend.read_row(keys[0], &interruptor, issue_out, &error);
-    ASSERT_TRUE(res);
+    *issue_out = rows.front();
 }
 
 TPTEST(ClusteringIssues, ServerDown) {
