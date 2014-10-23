@@ -15,16 +15,9 @@
 #include <stdlib.h>
 #include <cstddef>
 
-namespace geo {
+#include "utils.hpp"
 
-#ifdef OS_EMBEDDED_QNX
-// NOTE(user):
-// The C++ standard says that <stdlib.h> declares both ::foo and std::foo
-// But this isn't done in QNX version 6.3.2 200709062316.
-using std::free;
-using std::malloc;
-using std::realloc;
-#endif
+namespace geo {
 
 template <class C> class scoped_ptr;
 template <class C, class Free> class scoped_ptr_malloc;
@@ -333,10 +326,10 @@ class scoped_ptr_malloc {
   // the reallcation is succesfull.  If the reallocation failed, then
   // the pointer remains in its previous state.
   //
-  // Note: this calls realloc() directly, even if an alternate 'free'
+  // Note: this calls rrealloc() directly, even if an alternate 'free'
   // functor is provided in the template instantiation.
   bool try_realloc(size_t new_size) {
-    C* new_ptr = static_cast<C*>(realloc(ptr_, new_size));
+    C* new_ptr = static_cast<C*>(rrealloc(ptr_, new_size));
     if (new_ptr == NULL) {
       return false;
     }

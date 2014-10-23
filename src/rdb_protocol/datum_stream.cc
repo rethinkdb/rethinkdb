@@ -1120,7 +1120,52 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
 }
 
 bool range_datum_stream_t::is_exhausted() const {
-    return !is_infinite && start >= stop;
+    return !is_infinite && start >= stop && batch_cache_exhausted();
+}
+
+// MAP_DATUM_STREAM_T
+map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
+                                       counted_t<const func_t> &&_func,
+                                       const protob_t<const Backtrace> &bt_src)
+    : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
+      is_array_map(true), is_cfeed_map(false) {
+    for (const auto &stream : streams) {
+        is_array_map &= stream->is_array();
+        is_cfeed_map |= stream->is_cfeed();
+    }
+}
+
+std::vector<datum_t>
+map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    std::vector<datum_t> args;
+    args.reserve(streams.size());
+    while (!is_exhausted()) {
+        args.clear();   // This prevents allocating a new vector every iteration.
+        for (const auto &stream : streams) {
+            args.push_back(stream->next(env, batchspec));
+        }
+
+        datum_t datum = func->call(env, args)->as_datum();
+        batcher.note_el(datum);
+        batch.push_back(std::move(datum));
+        if (batcher.should_send_batch()) {
+            break;
+        }
+    }
+
+    return batch;
+}
+
+bool map_datum_stream_t::is_exhausted() const {
+    for (const auto &stream : streams) {
+        if (stream->is_exhausted()) {
+            return batch_cache_exhausted();
+        }
+    }
+    return false;
 }
 
 } // namespace ql

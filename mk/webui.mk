@@ -14,14 +14,11 @@ $(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
 	rm -rf $@
 	cp -pRP $< $@
 
-.PHONY: web-assets
-web-assets: $(WEB_ASSETS_BUILD_DIR)
-
 else # Don't use precompiled assets
 
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
-WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
+WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js
 ALL_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 COFFEE_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/coffee
@@ -64,8 +61,6 @@ HANDLEBARS_FUNCTIONS := $(patsubst $(HANDLEBARS_SOURCE_DIR)/%.handlebars, $(HAND
 # variable isn't catastrophic, just a tiny bit slower on re-renders
 HANDLEBARS_KNOWN_HELPERS := if unless each capitalize pluralize-noun humanize_uuid comma_separated links_to_machines \
 	comma_separated_simple pluralize_verb pluralize_verb_to_have
-
-DOCS_JS := $(TOP)/docs/rql/reql_docs.json
 
 .PHONY: web-assets
 web-assets: $(ALL_WEB_ASSETS)
@@ -122,9 +117,5 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
-
-$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JS) | $(WEB_ASSETS_BUILD_DIR)/js/.
-	$P CP
-	cp $< $@
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
