@@ -99,6 +99,12 @@ void reactor_t::be_nothing(region_t region,
                 }
             }
 
+            /* It's safe to skip the `nothing_when_safe_t` state because when
+            `reactor_t::is_safe_for_us_to_be_primary()` is looking for a backfiller, it
+            will proceed as long as it can see *some* state for every other node, even if
+            that state is a `nothing_t`. It won't consider us as a backfill source, but
+            that's OK because we don't have any data so we would never be a better
+            backfill source than the primary node itself. */
             if (have_data) {
                 /* We offer backfills while waiting for it to be safe to shutdown in case
                 another peer needs a copy of the data. */
@@ -149,6 +155,9 @@ void reactor_t::be_nothing(region_t region,
             }
         }
 
+        /* It's OK to skip the deletion phase if we don't have any valid data for this
+        range. The `nothing_when_done_erasing_t` state is only for showing the user; the
+        other reactor code treats it the same as `nothing_t`. */
         if (have_data) {
             /* We now know that it's safe to shutdown so we tell the other peers
              * that we are beginning the process of erasing data. */
