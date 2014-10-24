@@ -786,50 +786,55 @@ feed_t::feed_t(client_t *_client,
       point_subs(optional_datum_less_t(reql_version_t::LATEST)),
       num_subs(0),
       detached(false) {
-    read_t read(changefeed_subscribe_t(mailbox.get_address()),
-                profile_bool_t::DONT_PROFILE);
-    read_response_t read_resp;
-    ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
-    auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
+    try {
+        read_t read(changefeed_subscribe_t(mailbox.get_address()),
+                    profile_bool_t::DONT_PROFILE);
+        read_response_t read_resp;
+        ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
+        auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
-    guarantee(resp != NULL);
-    stop_addrs.reserve(resp->addrs.size());
-    for (auto it = resp->addrs.begin(); it != resp->addrs.end(); ++it) {
-        stop_addrs.push_back(std::move(*it));
-    }
-
-    std::set<peer_id_t> peers;
-    for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
-        peers.insert(it->get_peer());
-    }
-    for (auto it = peers.begin(); it != peers.end(); ++it) {
-        disconnect_watchers.push_back(
-            make_scoped<disconnect_watcher_t>(manager, *it));
-    }
-
-    for (auto it = resp->server_uuids.begin(); it != resp->server_uuids.end(); ++it) {
-        auto res = queues.insert(
-            std::make_pair(*it, make_scoped<queue_t>()));
-        guarantee(res.second);
-        res.first->second->next = 0;
-
-        // In debug mode we put some junk messages in the queues to make sure
-        // the queue logic actually does something (since mailboxes are
-        // generally ordered right now).
-#ifndef NDEBUG
-        for (size_t i = 0; i < queues.size()-1; ++i) {
-            res.first->second->map.push(
-                stamped_msg_t(
-                    *it,
-                    std::numeric_limits<uint64_t>::max() - i,
-                    msg_t()));
+        guarantee(resp != NULL);
+        stop_addrs.reserve(resp->addrs.size());
+        for (auto it = resp->addrs.begin(); it != resp->addrs.end(); ++it) {
+            stop_addrs.push_back(std::move(*it));
         }
-#endif
-    }
-    queues_ready.pulse();
 
-    // We spawn now so that the auto drainer lock is acquired immediately.
-    coro_t::spawn_now_dangerously(std::bind(&feed_t::constructor_cb, this));
+        std::set<peer_id_t> peers;
+        for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
+            peers.insert(it->get_peer());
+        }
+        for (auto it = peers.begin(); it != peers.end(); ++it) {
+            disconnect_watchers.push_back(
+                make_scoped<disconnect_watcher_t>(manager, *it));
+        }
+
+        for (const auto &server_uuid : resp->server_uuids) {
+            auto res = queues.insert(
+                std::make_pair(server_uuid, make_scoped<queue_t>()));
+            guarantee(res.second);
+            res.first->second->next = 0;
+
+            // In debug mode we put some junk messages in the queues to make sure
+            // the queue logic actually does something (since mailboxes are
+            // generally ordered right now).
+#ifndef NDEBUG
+            for (size_t i = 0; i < queues.size()-1; ++i) {
+                res.first->second->map.push(
+                    stamped_msg_t(
+                        server_uuid,
+                        std::numeric_limits<uint64_t>::max() - i,
+                        msg_t()));
+            }
+#endif
+        }
+        queues_ready.pulse();
+
+        // We spawn now so that the auto drainer lock is acquired immediately.
+        coro_t::spawn_now_dangerously(std::bind(&feed_t::constructor_cb, this));
+    } catch (...) {
+        detached = true;
+        throw;
+    }
 }
 
 void feed_t::constructor_cb() {
