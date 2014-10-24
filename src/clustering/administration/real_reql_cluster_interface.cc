@@ -11,7 +11,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/val.hpp"
-#include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -260,9 +259,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         wait_for_metadata_to_propagate(metadata, &interruptor2);
 
-        std::string error;
+        // `db` is a single-threaded counted_t, easiest solution is to copy it
         counted_t<const ql::db_t> ct_db =
             make_counted<const ql::db_t>(db.get()->id, db.get()->name);
+        std::string error;
         // This could fail if the table is deleted, but we don't care about that
         UNUSED bool wait_res = table_wait(ct_db, { name },
                                           table_readiness_t::writes,
@@ -533,6 +533,7 @@ bool real_reql_cluster_interface_t::table_wait(
         return false;
     }
 
+    ql::datum_t datum_result;
     {
         threadnum_t new_thread = directory_root_view->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, new_thread);
@@ -574,20 +575,21 @@ bool real_reql_cluster_interface_t::table_wait(
             }
             break;
         }
+
+        if (resp_out != NULL) {
+            if (!table_meta_read(admin_tables->table_status_backend.get(),
+                                 table_map, &ct_interruptor, &datum_result, error_out)) {
+                return false;
+            }
+
+            if (!tables.empty() && tables.size() != datum_result.arr_size()) {
+                *error_out = deleted_table_error_message(table_map, &datum_result);
+                return false;
+            }
+        }
     }
 
     if (resp_out != NULL) {
-        ql::datum_t datum_result;
-        if (!table_meta_read(admin_tables->table_status_backend.get(),
-                             table_map, interruptor, &datum_result, error_out)) {
-            return false;
-        }
-
-        if (!tables.empty() && tables.size() != datum_result.arr_size()) {
-            *error_out = deleted_table_error_message(table_map, &datum_result);
-            return false;
-        }
-
         counted_t<ql::table_t> backend = make_backend_table(
             admin_tables->table_status_backend.get(), "table_status", bt);
         array_result_to_stream(datum_result, backend, bt, resp_out);
