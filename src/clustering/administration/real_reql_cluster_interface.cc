@@ -511,12 +511,12 @@ std::string deleted_table_error_message(std::map<namespace_id_t, name_string_t> 
     rassert(!table_map.empty());
     std::string message;
     for (auto const &pair : table_map) {
-        message += strprintf("%s%s", message.empty() ? "" : ", ",
+        message += strprintf("%s`%s`", message.empty() ? "" : ", ",
                              pair.second.str().c_str());
     }
 
-    return strprintf("The following table%s deleted during the operation: %s",
-                     table_map.size() == 1 ? " was" : "s were",
+    return strprintf("%s deleted during the operation: %s",
+                     table_map.size() == 1 ? "This table was" : "These tables were",
                      message.c_str());
 }
 
