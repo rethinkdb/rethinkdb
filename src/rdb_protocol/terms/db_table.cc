@@ -372,36 +372,16 @@ private:
 class table_wait_term_t : public table_meta_read_term_t {
 public:
     table_wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_meta_read_term_t(env, term, optargspec_t({"ready_for"})) { }
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
     bool impl(scope_env_t *env, 
-              args_t *args,
+              UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
-        scoped_ptr_t<val_t> ready_optarg = args->optarg(env, "ready_for");
-        table_readiness_t readiness = table_readiness_t::writes;
-        if (ready_optarg.has()) {
-            std::string ready_string = ready_optarg->as_str().to_std();
-            if (ready_string == "outdated_reads") {
-                readiness = table_readiness_t::outdated_reads;
-            } else if (ready_string == "reads") {
-                readiness = table_readiness_t::reads;
-            } else if (ready_string == "writes") {
-                readiness = table_readiness_t::writes;
-            } else if (ready_string == "completely") {
-                readiness = table_readiness_t::finished;
-            } else {
-                rfail_target(ready_optarg.get(), base_exc_t::GENERIC,
-                             "`ready_for` value (%s) is not recognized ('reads', "
-                             "'writes', 'outdated_reads', and 'completely' are allowed).",
-                             ready_string.c_str());
-            }
-        }
-
         return env->env->reql_cluster_interface()->table_wait(
-            db, tables, readiness, backtrace(),
+            db, tables, table_readiness_t::finished, backtrace(),
             env->env->interruptor, resp_out, error_out);
     }
     virtual const char *name() const { return "table_wait"; }
