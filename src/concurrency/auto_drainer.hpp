@@ -73,7 +73,7 @@ public:
     void drain();
 
     void rethread(threadnum_t new_thread) {
-        rassert(refcount == 0);
+        guarantee(refcount == 0);
         real_home_thread = new_thread;
         draining.rethread(new_thread);
     }
