@@ -164,7 +164,6 @@ module 'DatabaseView', ->
 
         # Create a modal to renane the database
         rename_database: (event) =>
-            console.log 'bar'
             event.preventDefault()
             if @rename_modal?
                 @rename_modal.remove()
@@ -174,7 +173,6 @@ module 'DatabaseView', ->
 
         # Create a modal to delete the databse
         delete_database: (event) ->
-            console.log 'foo'
             event.preventDefault()
 
             if @remove_database_dialog?

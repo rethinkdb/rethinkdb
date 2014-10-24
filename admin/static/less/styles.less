@@ -820,19 +820,22 @@ TODO: retire this
 
     #cluster_status_container {
         padding: 0;
-        width: 940px;
+        width: 700px;
+        margin-left: auto;
+        margin-right: auto;
         overflow: auto;
         border-collapse: collapse;
-        td{
-            border: thin solid #dfdfdf;
-        }
+        display: flex;
         .panel {
+            border: thin solid #dfdfdf;
+            flex-grow: 1;
             @bad: #e85250;
             @good: #3ba51a;
-            width: 25%;
             vertical-align: top;
             & > div:first-child{
-                margin: 20px;
+                padding: 20px;
+                display: flex;
+                justify-content: center;
             }
             h3 {
                 margin-top: 0;

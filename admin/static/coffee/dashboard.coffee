@@ -133,8 +133,6 @@ module 'DashboardView', ->
                 model: @model
             @cluster_status_reachability = new DashboardView.ClusterStatusReachability
                 model: @model
-            @cluster_status_consistency = new DashboardView.ClusterStatusConsistency
-                model: @model
 
             @stats = new Stats
             @stats_timer = driver.run r.expr(
@@ -162,7 +160,6 @@ module 'DashboardView', ->
             @$('.availability').html @cluster_status_availability.render().$el
             @$('.redundancy').html @cluster_status_redundancy.render().$el
             @$('.reachability').html @cluster_status_reachability.render().$el
-            @$('.consistency').html @cluster_status_consistency.render().$el
 
             @$('#cluster_performance_container').html @cluster_performance.render().$el
             #@$('.recent-log-entries-container').html @logs.render().$el
@@ -362,63 +359,6 @@ module 'DashboardView', ->
                 @show_popup()
 
             @
-
-        remove: =>
-            @stopListening()
-            $(window).off 'mouseup', @remove_popup
-            super()
-
-    class @ClusterStatusConsistency extends Backbone.View
-        className: 'cluster-status-consistency'
-        template: Handlebars.templates['cluster_status-consistency_status-template']
-
-        events:
-            'click .show_details': 'show_popup'
-            'click .close': 'hide_popup'
-
-        initialize: =>
-            # We could eventually properly create a collection from @model.get('shards')
-            # But this is probably not worth the effort for now.
-
-            @listenTo @model, 'change:num_servers', @render
-            @listenTo @model, 'change:num_available_servers', @render
-
-            $(window).on 'mouseup', @hide_popup
-            @$el.on 'click', @stop_propagation
-
-            @display_popup = false
-            @margin = {}
-
-        stop_propagation: (event) ->
-            event.stopPropagation()
-
-        show_popup: (event) =>
-            if event?
-                event.preventDefault()
-
-                @margin.top = event.pageY-60-13
-                @margin.left = event.pageX+12
-
-            @$('.popup_container').show()
-            @$('.popup_container').css 'margin', @margin.top+'px 0px 0px '+@margin.left+'px'
-            @display_popup = true
-
-        hide_popup: (event) =>
-            event.preventDefault()
-            @display_popup = false
-            @$('.popup_container').hide()
-
-        render: =>
-            @$el.html @template
-                has_conflicts: false
-                num_tables: 0
-
-            if @display_popup is true and @model.get('num_issues') > 0
-                # We re-display the pop up only if there are still issues
-                @show_popup()
-
-            @
-
 
         remove: =>
             @stopListening()
