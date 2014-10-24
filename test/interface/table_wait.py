@@ -30,10 +30,8 @@ def create_tables(conn):
     r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
     statuses = r.db(db).table_wait().run(conn)
-    if not check_table_states(conn, ready=True):
-        print "Initial wait after reconfigure returned before tables were ready.  Table statuses:"
-        print statuses
-        exit(0)
+    assert check_table_states(conn, ready=True), \
+        "Wait after reconfigure returned before tables were ready, statuses: %s" % str(statuses)
 
 def spawn_table_wait(port, tbls):
     def do_table_wait(port, tbls, done_event):
@@ -86,9 +84,7 @@ with driver.Metacluster() as metacluster:
 
     # Wait some time to make sure the wait doesn't return early
     waiter_procs[0].join(15)
-    if not all(map(lambda w: w.is_alive(), waiter_procs)):
-        print "Wait returned while a server was still down."
-        exit(1)
+    assert all(map(lambda w: w.is_alive(), waiter_procs)), "Wait returned while a server was still down."
 
     print "Restarting second server..."
     proc2 = driver.Process(cluster, files2, log_path = "serve-output-2",
@@ -97,8 +93,7 @@ with driver.Metacluster() as metacluster:
 
     print "Waiting for table readiness..."
     map(lambda w: w.join(), waiter_procs)
-    if not check_table_states(conn, ready=True):
-        print "`table_wait` returned, but not all tables are ready"
+    assert check_table_states(conn, ready=True), "`table_wait` returned, but not all tables are ready"
 
     cluster.check_and_stop()
 print "Done."
