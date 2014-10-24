@@ -8,6 +8,7 @@
 #include <utility>
 #include <memory>
 
+#include "allocation/utils.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "threading.hpp"
@@ -148,18 +149,11 @@ counted_t<T> make_counted(Args &&... args) {
 
 template <class T, class Alloc, class... Args>
 counted_t<T> make_counted(std::allocator_arg_t, const Alloc &a, Args &&... args) {
-    typedef std::allocator_traits<Alloc> traits;
-    T* result = traits::allocate(a, 1);
-    try {
-        traits::construct(a, result, std::forward<Args>(args)...);
-        counted_set_deleter(result,
-                            std::unique_ptr<deallocator_alloc_t<Alloc> >
-                            (new deallocator_alloc_t<Alloc>(a, result)));
-        return counted_t<T>(result);
-    } catch (...) {
-        traits::deallocate(result, 1);
-        throw;
-    }
+    T* result = make<T>(std::allocator_arg, a, std::forward<Args>(args)...);
+    counted_set_deleter(result,
+                        std::unique_ptr<deallocator_alloc_t<Alloc> >
+                        (new deallocator_alloc_t<Alloc>(a, result)));
+    return counted_t<T>(result);
 }
 
 template <class> class single_threaded_countable_t;
