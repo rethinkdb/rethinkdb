@@ -133,9 +133,11 @@ public:
 template <class Alloc>
 struct deallocator_alloc_t : public deallocator_base_t {
     typedef std::allocator_traits<Alloc> traits;
-    typename traits::pointer object;
     Alloc allocator;
-    deallocator_alloc_t(Alloc allocator_, typename traits::pointer object_)
+    typename traits::pointer object;
+    deallocator_alloc_t(Alloc &allocator_, typename traits::pointer object_)
+        : deallocator_base_t(), allocator(allocator_), object(object_) {}
+    deallocator_alloc_t(Alloc &&allocator_, typename traits::pointer object_)
         : deallocator_base_t(), allocator(allocator_), object(object_) {}
     virtual void deallocate() {
         traits::deallocate(allocator, object, 1);
