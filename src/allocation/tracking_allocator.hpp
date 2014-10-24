@@ -1,5 +1,5 @@
-#ifndef TRACKING_ALLOCATOR_HPP_
-#define TRACKING_ALLOCATOR_HPP_
+#ifndef ALLOCATION_TRACKING_ALLOCATOR_HPP_
+#define ALLOCATION_TRACKING_ALLOCATOR_HPP_
 
 #include <cstddef>
 #include <memory>
@@ -157,11 +157,4 @@ private:
     size_t available;
 };
 
-template <class T, class Allocator, class... Args>
-T* make(std::allocator_arg_t, Allocator &alloc, Args&&... args) {
-    T* result = std::allocator_traits<Allocator>::allocate(alloc, 1);
-    std::allocator_traits<Allocator>::construct(alloc, result, std::forward<Args>(args)...);
-    return result;
-}
-
-#endif /* TRACKING_ALLOCATOR_HPP_ */
+#endif /* ALLOCATION_TRACKING_ALLOCATOR_HPP_ */
