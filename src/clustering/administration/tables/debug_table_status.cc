@@ -1,0 +1,197 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/tables/debug_table_status.hpp"
+
+#include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/servers/name_client.hpp"
+
+/* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
+type without this */
+using reactor_business_card_details::primary_when_safe_t;
+using reactor_business_card_details::primary_t;
+using reactor_business_card_details::secondary_up_to_date_t;
+using reactor_business_card_details::secondary_without_primary_t;
+using reactor_business_card_details::secondary_backfilling_t;
+using reactor_business_card_details::nothing_when_safe_t;
+using reactor_business_card_details::nothing_when_done_erasing_t;
+using reactor_business_card_details::nothing_t;
+
+ql::datum_t convert_debug_store_key_to_datum(
+        const store_key_t &key) {
+    return ql::datum_t::binary(datum_string_t(
+        key.size(),
+        reinterpret_cast<const char *>(key.contents())));
+}
+
+ql::datum_t convert_debug_region_to_datum(
+        const region_t &region) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("hash_min", ql::datum_t(datum_string_t(
+        strprintf("%016" PRIx64, region.beg))));
+    builder.overwrite("hash_max", ql::datum_t(datum_string_t(
+        strprintf("%016" PRIx64, region.end))));
+    builder.overwrite("key_min",
+        convert_debug_store_key_to_datum(region.inner.left));
+    builder.overwrite("key_max",
+        region.inner.right.unbounded
+            ? ql::datum_t::null()
+            : convert_debug_store_key_to_datum(region.inner.right.key));
+    return std::move(builder).to_datum();
+}
+
+ql::datum_t convert_debug_version_range_to_datum(
+        const version_range_t &range) {
+    ql::datum_object_builder_t builder;
+    if (range.is_coherent()) {
+        builder.overwrite("branch", convert_uuid_to_datum(range.earliest.branch));
+        builder.overwrite("timestamp", ql::datum_t(static_cast<double>(
+            range.earliest.timestamp.to_repli_timestamp().longtime)));
+    } else {
+        builder.overwrite("branch_1", convert_uuid_to_datum(range.earliest.branch));
+        builder.overwrite("timestamp_1", ql::datum_t(static_cast<double>(
+            range.earliest.timestamp.to_repli_timestamp().longtime)));
+        builder.overwrite("branch_2", convert_uuid_to_datum(range.latest.branch));
+        builder.overwrite("timestamp_2", ql::datum_t(static_cast<double>(
+            range.latest.timestamp.to_repli_timestamp().longtime)));
+    }
+    return std::move(builder).to_datum();
+}
+
+ql::datum_t convert_debug_version_map_to_datum(
+        const region_map_t<version_range_t> &map) {
+    ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
+    for (const auto &pair : map) {
+        ql::datum_object_builder_t pair_builder;
+        pair_builder.overwrite("region",
+            convert_debug_region_to_datum(pair.first));
+        pair_builder.overwrite("version",
+            convert_debug_version_range_to_datum(pair.second));
+        builder.add(std::move(pair_builder).to_datum());
+    }
+    return std::move(builder).to_datum();
+}
+
+ql::datum_t convert_debug_reactor_activity_to_datum(
+        const reactor_activity_id_t &id,
+        const reactor_activity_entry_t &entry) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("id", convert_uuid_to_datum(id));
+    builder.overwrite("region", convert_debug_region_to_datum(entry.region));
+    class visitor_t : public boost::static_visitor<const char *> {
+    public:
+        const char *operator()(const primary_when_safe_t &) {
+            return "primary_when_safe";
+        }
+        const char *operator()(const primary_t &p) {
+            b->overwrite("branch", convert_uuid_to_datum(p.broadcaster.branch_id));
+            b->overwrite("has_replier", ql::datum_t::boolean(
+                static_cast<bool>(p.replier)));
+            b->overwrite("has_master", ql::datum_t::boolean(
+                static_cast<bool>(p.master)));
+            b->overwrite("has_direct_reader", ql::datum_t::boolean(
+                static_cast<bool>(p.direct_reader)));
+            return "primary";
+        }
+        const char *operator()(const secondary_up_to_date_t &s) {
+            b->overwrite("branch", convert_uuid_to_datum(s.branch_id));
+            return "secondary_up_to_date";
+        }
+        const char *operator()(const secondary_without_primary_t &s) {
+            b->overwrite("version", convert_debug_version_map_to_datum(s.current_state));
+            return "secondary_without_primary";
+        }
+        const char *operator()(const secondary_backfilling_t &) {
+            return "secondary_backfilling";
+        }
+        const char *operator()(const nothing_when_safe_t &n) {
+            b->overwrite("version", convert_debug_version_map_to_datum(n.current_state));
+            return "nothing_when_safe";
+        }
+        const char *operator()(const nothing_when_done_erasing_t &) {
+            return "nothing_when_done_erasing";
+        }
+        const char *operator()(const nothing_t &) {
+            return "nothing";
+        }
+        ql::datum_object_builder_t *b;
+    } visitor;
+    visitor.b = &builder;
+    builder.overwrite("state", ql::datum_t(
+        boost::apply_visitor(visitor, entry.activity)));
+    return std::move(builder).to_datum();
+}
+
+ql::datum_t convert_debug_table_status_to_datum(
+        name_string_t table_name,
+        name_string_t db_name,
+        namespace_id_t uuid,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *dir,
+        server_name_client_t *name_client) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("name", convert_name_to_datum(table_name));
+    builder.overwrite("db", convert_name_to_datum(db_name));
+    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+
+    ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
+    dir->read_all([&](const std::pair<peer_id_t, namespace_id_t> &key,
+                      const namespace_directory_metadata_t *value) {
+            if (key.second != uuid) {
+                return;
+            }
+            boost::optional<machine_id_t> machine_id =
+                name_client->get_machine_id_for_peer_id(key.first);
+            if (!static_cast<bool>(machine_id)) {
+                return;
+            }
+            boost::optional<name_string_t> name =
+                name_client->get_name_for_machine_id(*machine_id);
+            if (!static_cast<bool>(name)) {
+                name = boost::optional<name_string_t>(
+                    name_string_t::guarantee_valid("__no_valid_name__"));
+            }
+            ql::datum_object_builder_t server_builder;
+            server_builder.overwrite("id", convert_uuid_to_datum(*machine_id));
+            server_builder.overwrite("name", convert_name_to_datum(*name));
+            ql::datum_array_builder_t activities_builder(
+                ql::configured_limits_t::unlimited);
+            for (const auto &pair : value->internal->activities) {
+                activities_builder.add(convert_debug_reactor_activity_to_datum(
+                    pair.first, pair.second));
+            }
+            server_builder.overwrite("activities",
+                std::move(activities_builder).to_datum());
+            servers_builder.add(std::move(server_builder).to_datum());
+        });
+    builder.overwrite("servers", std::move(servers_builder).to_datum());
+
+    return std::move(builder).to_datum();
+}
+
+bool debug_table_status_artificial_table_backend_t::format_row(
+        namespace_id_t table_id,
+        name_string_t table_name,
+        name_string_t db_name,
+        UNUSED const namespace_semilattice_metadata_t &metadata,
+        UNUSED signal_t *interruptor,
+        ql::datum_t *row_out,
+        UNUSED std::string *error_out) {
+    assert_thread();
+    *row_out = convert_debug_table_status_to_datum(
+        table_name,
+        db_name,
+        table_id,
+        directory_view,
+        name_client);
+    return true;
+}
+
+bool debug_table_status_artificial_table_backend_t::write_row(
+        UNUSED ql::datum_t primary_key,
+        UNUSED bool pkey_was_autogenerated,
+        UNUSED ql::datum_t new_value,
+        UNUSED signal_t *interruptor,
+        std::string *error_out) {
+    *error_out = "It's illegal to write to the `rethinkdb._debug_table_status` table.";
+    return false;
+}
+
