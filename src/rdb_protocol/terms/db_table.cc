@@ -340,7 +340,7 @@ public:
     table_config_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
-    bool impl(scope_env_t *env, 
+    bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
@@ -357,7 +357,7 @@ public:
     table_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
-    bool impl(scope_env_t *env, 
+    bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,
@@ -374,7 +374,7 @@ public:
     table_wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
-    bool impl(scope_env_t *env, 
+    bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
               const std::set<name_string_t> &tables,

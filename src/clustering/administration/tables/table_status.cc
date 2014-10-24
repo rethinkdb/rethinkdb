@@ -206,12 +206,6 @@ bool table_directory_converter_t::key_2_to_1(
     return true;
 }
 
-table_readiness_t get_table_readiness(
-        UNUSED const watchable_map_t<peer_id_t, namespace_directory_metadata_t> &dir) {
-    // TODO: write this
-    return table_readiness_t::unavailable;
-}
-
 ql::datum_t convert_table_status_shard_to_datum(
         namespace_id_t table_id,
         key_range_t range,
