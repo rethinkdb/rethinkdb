@@ -469,18 +469,15 @@ message Term {
         // the given database; with no argument, returns the config for
         // all tables in the database. (You may omit the first argument
         // to use the default database.)
-        TABLE_CONFIG  = 174; // Database -> StreamSelection |
-                             // Database, String -> SingleSelection |
-                             // -> StreamSelection |
-                             // String -> SingleSelection
+        TABLE_CONFIG  = 174; // Database[, String...] -> StreamSelection
+                             // [String...] -> StreamSelection
         // Like TABLE_CONFIG, except it returns the row in
         // `table_status` instead of `table_config`.
-        TABLE_STATUS  = 175; // Database -> StreamSelection |
-                             // Database, String -> SingleSelection |
-                             // -> StreamSelection |
-                             // String -> SingleSelection
+        TABLE_STATUS  = 175; // Database[, String...] -> StreamSelection
+                             // [String...] -> StreamSelection
         // Waits for table(s) to be fully ready for read/write operations
-        TABLE_WAIT    = 177; // Database[, String...] -> ARRAY
+        TABLE_WAIT    = 177; // Database[, String...] -> StreamSelection
+                             // [String...] -> StreamSelection
         // Generates a new config for the given table.
         RECONFIGURE   = 176; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
 
