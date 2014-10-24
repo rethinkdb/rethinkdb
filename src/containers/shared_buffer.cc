@@ -1,18 +1,29 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/shared_buffer.hpp"
 
-#include <stdlib.h>
+#include <memory>
 
+#include "allocation/tracking_allocator.hpp"
+#include "allocation/unusual_allocator.hpp"
 #include "utils.hpp"
+#include "rdb_protocol/error.hpp"
 
 counted_t<shared_buf_t> shared_buf_t::create(size_t size) {
-    // This allocates size bytes for the data_ field (which is declared as char[1])
-    size_t memory_size = sizeof(shared_buf_t) + size - 1;
-    void *raw_result = ::rmalloc(memory_size);
-    shared_buf_t *result = static_cast<shared_buf_t *>(raw_result);
-    result->refcount_ = 0;
-    result->size_ = size;
+    return counted_t<shared_buf_t>(new(size) shared_buf_t(size));
+}
+
+counted_t<shared_buf_t> shared_buf_t::create(size_t size,
+                                             std::shared_ptr<tracking_allocator_factory_t> f) {
+    unusual_size_allocator_t<shared_buf_t> a(f, size);
+    shared_buf_t *result = make<shared_buf_t>(std::allocator_arg, a, size);
+    counted_set_deleter(result,
+                        std::unique_ptr<deallocator_alloc_t<unusual_size_allocator_t<shared_buf_t> > >
+                        (new deallocator_alloc_t<unusual_size_allocator_t<shared_buf_t> >(a, result)));
     return counted_t<shared_buf_t>(result);
+}
+
+void *shared_buf_t::operator new(size_t size, size_t bytes) {
+    return ::rmalloc(size + bytes);
 }
 
 void shared_buf_t::operator delete(void *p) {
