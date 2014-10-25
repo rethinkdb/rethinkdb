@@ -383,16 +383,16 @@ module 'Modals', ->
             @reset_buttons()
 
 
-        on_success: (response) =>
+        on_success: (response) ->
             if (response)
                 @on_success_with_error()
                 return
 
             # notify the user that we succeeded
             $('#issue-alerts').append @alert_tmpl
-                machine_dead:
-                    machine_name: @machine_to_kill.get("name")
+                server_dead:
+                    server_name: @model.get("name")
+            @remove()
 
-            # Grab the new set of issues (so we don't have to wait)
-            #TODO grab new set of issues
-
+            @model.get('parent').set('fixed', true)
+            @

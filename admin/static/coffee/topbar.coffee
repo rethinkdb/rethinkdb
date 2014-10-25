@@ -143,6 +143,13 @@ module 'TopBar', ->
 
             @listenTo @model, 'change:num_issues', @render
 
+            @collection.on 'change:fixed', =>
+                # an issue was fixed, so re-fetch the issues list from the server
+                query = r.db(system_db).table('issues').coerceTo('ARRAY')
+                driver.run_once query, (err, result) =>
+                    # if we get an error here, we don't really care
+                    # because this will be re-queried in 5000ms
+                    @collection.set(result)
             @collection.each (issue) =>
                 view = new ResolveIssuesView.Issue(model: issue)
                 # The first time, the collection is sorted

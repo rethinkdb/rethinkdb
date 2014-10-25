@@ -34,7 +34,7 @@ module 'ResolveIssuesView', ->
             @listenTo
 
         events:
-            'click .solve-issue': 'solve'
+            'click .remove-server': 'remove_server'
             'click .rename': 'rename'
 
         render: =>
@@ -67,28 +67,15 @@ module 'ResolveIssuesView', ->
                     id: $(event.target).attr('id').match(/rename_(.*)/)[1]
             @modal.render()
 
-        solve: (event) =>
-            console.log event
-            switch @model.get('type')
-                when 'server_down'
-                    console.log @model
-                    @modal = new Modals.RemoveServerModal
-                        model: new Backbone.Model
-                            name: @model.get('info').server
-                            id: @model.get('info').server_id
-                    @modal.render(@model)
-                when 'outdated_index'
-                    #TODO We do not provide a way to fix this issue
-                    console.log 'Cannot fix indexes'
-                when 'no_such_server'
-                    #TODO Create new model
-                    #model =
-                    @modal = new Modals.RemoveServerModal
-                        model: model
-                    @modal.render()
-                else
-                    #TODO Remove once testing is done
-                    debugger
+        remove_server: (event) =>
+            modalModel = new Backbone.Model
+                name: @model.get('info').server
+                id: @model.get('info').server_id
+                parent: @model
+            @modal = new Modals.RemoveServerModal
+                model: modalModel
+
+            @modal.render(@model)
 
         #TODO
         #On solve, we should update the model to "fixed"
