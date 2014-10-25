@@ -127,7 +127,7 @@ mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-#ifndef ndebug
+#ifndef NDEBUG
     for (const auto &pair : mailboxes) {
         debugf("ERROR: stray mailbox %p\n%s\n",
                pair.second, pair.second->bt.lines().c_str());

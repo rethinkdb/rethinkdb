@@ -41,7 +41,7 @@ public:
     struct address_t;
     typedef uint64_t id_t;
 
-#ifndef ndebug
+#ifndef NDEBUG
     lazy_backtrace_formatter_t bt;
 #endif
 
