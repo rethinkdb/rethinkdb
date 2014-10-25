@@ -362,12 +362,12 @@ module 'Modals', ->
 
             if @$('.verification').val().toLowerCase() is 'remove'
                 query = r.db('rethinkdb').table('table_config')
-                    .get(@model.get('id').delete()
+                    .get(@model.get('id')).delete()
                 driver.run_once query, (err, result) =>
-                    if err
-                        @on_success_with_error()
-                    else
-                        @on_success()
+                        if err?
+                            @on_success_with_error()
+                        else
+                            @on_success()
             else
                 @$('.error_verification').slideDown 'fast'
                 @reset_buttons()
