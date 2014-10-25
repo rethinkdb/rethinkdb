@@ -257,7 +257,7 @@ public:
 
 
     MUST_USE std::pair<iterator, bool>
-    insert(std::pair<std::string, std::pair<datum_t, datum_t> > pair) {
+    insert(std::pair<Id, std::pair<Key, Val> > pair) {
         return insert(std::move(pair.first),
                       std::move(pair.second.first),
                       std::move(pair.second.second));
