@@ -46,17 +46,20 @@ class table_t;
 
 namespace changefeed {
 
-typedef std::pair<std::string, std::pair<datum_t, datum_t> > lvec_item_t;
-typedef std::pair<const std::string, std::pair<datum_t, datum_t> > lqueue_item_t;
-typedef std::vector<lvec_item_t> lvec_t;
+// The pairs contain `<Id, <Key, Val> >` where `Id` uniquely identifies an entry
+// (basically a primary key + a tag in the case of a multi-index), `Key` is the
+// primary or secondary value we're sorting by, and `Val` is the actual row.
+typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
+typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
+typedef std::vector<item_t> item_vec_t;
 
-lvec_t mangle_sort_truncate_stream(
+item_vec_t mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        lvec_t start_data;
+        item_vec_t start_data;
 
         limit_start_t() { };
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
@@ -327,8 +330,8 @@ public:
 class limit_order_t {
 public:
     limit_order_t(sorting_t _sorting);
-    bool operator()(const lvec_item_t &, const lvec_item_t &) const;
-    bool operator()(const lqueue_item_t &, const lqueue_item_t &) const;
+    bool operator()(const item_t &, const item_t &) const;
+    bool operator()(const const_item_t &, const const_item_t &) const;
     bool operator()(const datum_t &, const datum_t &) const;
     bool operator()(const std::string &, const std::string &) const;
     template<class T>
@@ -342,7 +345,7 @@ private:
     const sorting_t sorting;
 };
 
-typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> lqueue_t;
+typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> item_queue_t;
 
 struct primary_ref_t {
     env_t *env;
@@ -372,7 +375,7 @@ public:
         client_t::addr_t _parent_client,
         keyspec_t::limit_t _spec,
         limit_order_t _lt,
-        lvec_t &&lvec);
+        item_vec_t &&item_vec);
 
     void add(store_key_t sk, is_primary_t is_primary, datum_t key, datum_t val);
     void del(store_key_t sk, is_primary_t is_primary);
@@ -382,10 +385,10 @@ public:
     const std::string table;
     const uuid_u uuid;
 private:
-    lvec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-                     sorting_t sorting,
-                     const boost::optional<lqueue_t::iterator> &start,
-                     size_t n);
+    item_vec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+                         sorting_t sorting,
+                         const boost::optional<item_queue_t::iterator> &start,
+                         size_t n);
     void send(msg_t &&msg);
 
     server_t *parent;
@@ -393,7 +396,7 @@ private:
 
     keyspec_t::limit_t spec;
     limit_order_t gt;
-    lqueue_t lqueue;
+    item_queue_t item_queue;
 
     std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
     std::vector<std::string> deleted;
@@ -420,7 +423,7 @@ public:
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        lvec_t &&start_data);
+        item_vec_t &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();
