@@ -18,17 +18,6 @@ namespace ql {
 
 namespace changefeed {
 
-template<class M, class T>
-size_t erase1(M *ms, const T &t) {
-    auto it = ms->find(t);
-    if (it != ms->end()) {
-        ms->erase(it);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
@@ -1061,7 +1050,7 @@ public:
                 }
                 debugf("erasing %s\n",
                        (**active_data.begin())->second.first.print().c_str());
-                size_t erased = erase1(&active_data, *active_data.begin());
+                size_t erased = active_data.erase(*active_data.begin());
                 guarantee(erased == 1);
             }
             guarantee(active_data.size() == spec.limit
@@ -1100,7 +1089,7 @@ public:
         if (old_key) {
             auto it = lqueue.find_id(*old_key);
             guarantee(it != lqueue.end());
-            size_t erased = erase1(&active_data, it);
+            size_t erased = active_data.erase(it);
             debugf("Erased %zu\n", erased);
             if (erased != 0) {
                 // The old value was in the set.
@@ -1142,7 +1131,7 @@ public:
             guarantee(new_send && !old_send);
             debugf("___foo___: %s\n", (*last)->second.second.print().c_str());
             old_send = **last;
-            erase1(&active_data, last);
+            active_data.erase(last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
             if (new_send) {
