@@ -14,6 +14,8 @@ module 'UIComponents', ->
             'click .btn-primary': 'abstract_submit'
             'keypress input': 'check_keypress_is_enter'
             'click .alert .close': 'close_error'
+            'click .change-route': 'reroute'
+
 
         close_error: (event) ->
             event.preventDefault()
@@ -61,6 +63,9 @@ module 'UIComponents', ->
         cancel_modal: (e) ->
             @hide_modal()
             e.preventDefault()
+
+        reroute: (e) ->
+            @hide_modal()
 
         check_keypress_is_enter: (event) =>
             if event.which is 13
@@ -142,7 +147,7 @@ module 'UIComponents', ->
             super
             @on_user_success(response)
 
-    # Rename common items (namespaces, machines, datacenters)
+    # Rename common items (tables, databases, servers)
     # The modal takes a few arguments:
     #   - item_uuid: uuid of the element to rename
     #   - item_type: type of the element to rename
@@ -168,8 +173,9 @@ module 'UIComponents', ->
             super
                 type: @item_type
                 old_name: @model.get('name')
-                modal_title: 'Rename ' + @item_type
-                btn_primary_text: 'Rename'
+                id: @model.get('id')
+                modal_title: "Rename #{@item_type}"
+                btn_primary_text: "Rename #{@item_type}"
 
             @$('#focus_new_name').focus()
             

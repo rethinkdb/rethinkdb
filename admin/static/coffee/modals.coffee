@@ -346,26 +346,28 @@ module 'Modals', ->
 
         class: 'declare-machine-dead'
 
-        initialize: ->
+        initialize: (data) ->
+            @model = data.model
             super @template
 
-        render: (_machine_to_kill) ->
-            @machine_to_kill = _machine_to_kill
+        render:  ->
             super
-                machine_name: @machine_to_kill.get("name")
+                machine_name: @model.get("name")
                 modal_title: "Permanently remove the server"
-                btn_primary_text: 'Remove'
+                btn_primary_text: 'Remove ' + @model.get('name')
+            @
 
         on_submit: ->
             super
 
             if @$('.verification').val().toLowerCase() is 'remove'
-                $.ajax
-                    url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
-                    type: 'DELETE'
-                    contentType: 'application/json'
-                    success: @on_success
-                    error: @on_error
+                query = r.db('rethinkdb').table('table_config')
+                    .get(@model.get('id').delete()
+                driver.run_once query, (err, result) =>
+                    if err
+                        @on_success_with_error()
+                    else
+                        @on_success()
             else
                 @$('.error_verification').slideDown 'fast'
                 @reset_buttons()
@@ -392,10 +394,5 @@ module 'Modals', ->
                     machine_name: @machine_to_kill.get("name")
 
             # Grab the new set of issues (so we don't have to wait)
-            $.ajax
-                url: 'ajax/issues'
-                contentType: 'application/json'
-                success: =>
-                    set_issues()
-                    super
+            #TODO grab new set of issues
 

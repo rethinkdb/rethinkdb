@@ -132,6 +132,7 @@ module 'TopBar', ->
         
         events:
             'click .btn-resolve-issues': 'toggle_display'
+            'click .change-route': 'toggle_display'
 
         initialize: (data) =>
             @model = data.model

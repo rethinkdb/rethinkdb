@@ -26,24 +26,23 @@ module 'ResolveIssuesView', ->
 
     class @Issue extends Backbone.View
         className: 'issue-container'
-        templates: @templates
         initialize: (data) =>
             @type = data.model.get 'type'
             @model = data.model
+            @model.set('collisionType', @parseCollisionType @model.get('type'))
             @listenTo @model, 'change', @render
+            @listenTo
 
         events:
-            'click .solve-issue': @solve
+            'click .solve-issue': 'solve'
+            'click .rename': 'rename'
 
         render: =>
             templates = ResolveIssuesView.templates
-            viewmodel = @model.toJSON()
-            viewmodel.collisionType = @parseCollisionType(viewmodel.type)
-            console.log viewmodel
             if templates[@model.get('type')]?
-                @$el.html templates[@model.get('type')] viewmodel
+                @$el.html templates[@model.get('type')] @model.toJSON()
             else
-                @$el.html templates.unknown viewmodel
+                @$el.html templates.unknown @model.toJSON()
             @
 
         parseCollisionType: (fulltype) =>
@@ -56,35 +55,28 @@ module 'ResolveIssuesView', ->
             else
                 match
 
+        rename: (event) =>
+            Type = switch @model.get('collisionType')
+                when 'database' then Database
+                when 'server'   then Server
+                when 'table'    then Table
+
+            @modal = new UIComponents.RenameItemModal
+                model: new Type
+                    name: @model.get('info').name
+                    id: $(event.target).attr('id').match(/rename_(.*)/)[1]
+            @modal.render()
+
         solve: (event) =>
+            console.log event
             switch @model.get('type')
                 when 'server_down'
-                    #TODO Create new model
-                    #model =
+                    console.log @model
                     @modal = new Modals.RemoveServerModal
-                        model: @model
-                    @modal.render()
-                when 'server_ghost'
-                    #TODO Are we shipping something to kill ghosts?
-                    console.log 'Cannot kill ghost'
-                when 'server_name_collision'
-                    #TODO Create new model
-                    #model =
-                    @modal = new UIComponents.RenameItemModal
-                        model: model
-                    @modal.render()
-                when 'db_name_collision'
-                    #TODO Create new model
-                    #model =
-                    @modal = new UIComponents.RenameItemModal
-                        model: model
-                    @modal.render()
-                when 'table_name_collision'
-                    #TODO Create new model
-                    #model =
-                    @modal = new UIComponents.RenameItemModal
-                        model: model
-                    @modal.render()
+                        model: new Backbone.Model
+                            name: @model.get('info').server
+                            id: @model.get('info').server_id
+                    @modal.render(@model)
                 when 'outdated_index'
                     #TODO We do not provide a way to fix this issue
                     console.log 'Cannot fix indexes'
@@ -97,5 +89,6 @@ module 'ResolveIssuesView', ->
                 else
                     #TODO Remove once testing is done
                     debugger
+
         #TODO
         #On solve, we should update the model to "fixed"
