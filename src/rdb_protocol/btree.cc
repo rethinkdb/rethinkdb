@@ -1661,7 +1661,6 @@ void rdb_update_single_sindex(
         }
     }
 
-    using namespace std::placeholders;
     server->foreach_limit(
         sindex->name.name,
         modification->primary_key,
