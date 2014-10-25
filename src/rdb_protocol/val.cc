@@ -132,8 +132,10 @@ counted_t<single_selection_t> single_selection_t::from_slice(
         env, std::move(bt), std::move(table), std::move(err));
 }
 
-table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
-                             sorting_t _sorting, datum_range_t _bounds)
+table_slice_t::table_slice_t(counted_t<table_t> _tbl,
+                             boost::optional<std::string> _idx,
+                             sorting_t _sorting,
+                             datum_range_t _bounds)
     : pb_rcheckable_t(_tbl->backtrace()),
       tbl(std::move(_tbl)), idx(std::move(_idx)),
       sorting(_sorting), bounds(std::move(_bounds)) { }
@@ -141,39 +143,36 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
     env_t *env, const protob_t<const Backtrace> &bt) {
-    return tbl->as_seq(env, idx != "" ? idx : tbl->get_pkey(), bt, bounds, sorting);
+    return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);
 }
 
 counted_t<table_slice_t>
 table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
     rcheck(sorting == sorting_t::UNORDERED, base_exc_t::GENERIC,
            "Cannot perform multiple indexed ORDER_BYs on the same table.");
-    bool idx_legal = idx == "" || idx == _idx;
+    bool idx_legal = idx ? (*idx == _idx) : true;
     r_sanity_check(idx_legal || !bounds.is_universe());
     rcheck(idx_legal, base_exc_t::GENERIC,
            strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
-                     _idx.c_str(), idx.c_str()));
+                     _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
 }
 counted_t<table_slice_t>
 table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
     rcheck(bounds.is_universe(), base_exc_t::GENERIC,
            "Cannot perform multiple BETWEENs on the same table.");
-    bool idx_legal = idx == "" || idx == _idx;
+    bool idx_legal = idx ? (*idx == _idx) : true;
     r_sanity_check(idx_legal || sorting != sorting_t::UNORDERED);
     rcheck(idx_legal, base_exc_t::GENERIC,
            strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
-                     _idx.c_str(), idx.c_str()));
+                     _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(
         tbl, std::move(_idx), sorting, std::move(_bounds));
 }
 
 ql::changefeed::keyspec_t::range_t table_slice_t::get_spec() {
-    boost::optional<std::string> opt_idx;
-    if (idx != "" && idx != tbl->get_pkey()) {
-        opt_idx = idx;
-    }
-    return ql::changefeed::keyspec_t::range_t(opt_idx, sorting, bounds);
+    return ql::changefeed::keyspec_t::range_t(
+        idx && *idx == tbl->get_pkey() ? boost::none : idx, sorting, bounds);
 }
 
 counted_t<datum_stream_t> table_t::as_seq(

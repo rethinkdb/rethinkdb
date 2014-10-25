@@ -357,8 +357,8 @@ private:
         if (sindex.has()) {
             idx = sindex->as_str().to_std();
         } else {
-            std::string old_idx = tbl_slice->get_idx();
-            idx = (old_idx != "") ? old_idx : tbl_slice->get_tbl()->get_pkey();
+            boost::optional<std::string> old_idx = tbl_slice->get_idx();
+            idx = old_idx ? *old_idx : tbl_slice->get_tbl()->get_pkey();
         }
         return new_val(
             tbl_slice->with_bounds(
