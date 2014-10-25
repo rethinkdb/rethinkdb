@@ -234,6 +234,15 @@ private:
     typedef typename decltype(data)::iterator diterator;
     std::set<diterator,
              std::function<bool(const diterator &, const diterator &)> > index;
+
+    void erase(const diterator &it) {
+        guarantee(it != data.end());
+        auto ft = index.find(it);
+        guarantee(ft != index.end());
+        index.erase(ft);
+        data.erase(it);
+        guarantee(data.size() == index.size());
+    }
 public:
     typedef typename decltype(index)::iterator iterator;
 
@@ -280,14 +289,6 @@ public:
     void erase(const iterator &raw_it) {
         guarantee(raw_it != index.end());
         erase(*raw_it);
-    }
-    void erase(const diterator &it) {
-        guarantee(it != data.end());
-        auto ft = index.find(it);
-        guarantee(ft != index.end());
-        index.erase(ft);
-        data.erase(it);
-        guarantee(data.size() == index.size());
     }
     void clear() {
         data.clear();
