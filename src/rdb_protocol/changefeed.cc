@@ -580,10 +580,10 @@ void limit_manager_t::commit(
         }
     }
     deleted.clear();
-    for (const auto &pair : added) {
+    for (auto &&pair : added) {
         bool inserted = lqueue.insert(pair).second;
         guarantee(inserted);
-        inserted = real_added.insert(pair).second;
+        inserted = real_added.insert(std::move(pair)).second;
         guarantee(inserted);
     }
     added.clear();
