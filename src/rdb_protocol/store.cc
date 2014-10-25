@@ -657,7 +657,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 btree_info_t(btree, timestamp, datum_string_t(br.pkey)),
                 superblock,
                 br.keys,
-                ql_env.limits(),
                 &replacer,
                 &sindex_cb,
                 &ql_env,
@@ -668,7 +667,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         ql::env_t ql_env(ctx,
                          interruptor,
                          std::map<std::string, ql::wire_func_t>(),
-                         trace);
+                         trace,
+                         bi.limits);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -684,7 +684,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 btree_info_t(btree, timestamp, datum_string_t(bi.pkey)),
                 superblock,
                 keys,
-                bi.limits,
                 &replacer,
                 &sindex_cb,
                 &ql_env,

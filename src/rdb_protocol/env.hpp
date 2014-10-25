@@ -53,7 +53,8 @@ public:
     env_t(rdb_context_t *ctx,
           signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile::trace_t *trace);
+          profile::trace_t *trace,
+          boost::optional<configured_limits_t> limits = boost::none);
 
     // Used in unittest and for some secondary index environments (hence the
     // reql_version parameter).  (For secondary indexes, the interruptor definitely

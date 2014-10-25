@@ -136,11 +136,15 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
         : scoped_ptr_t<profile::trace_t>();
 }
 
-env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
+env_t::env_t(rdb_context_t *ctx,
+             signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
-             profile::trace_t *_trace)
+             profile::trace_t *_trace,
+             boost::optional<configured_limits_t> _limits)
     : global_optargs_(std::move(optargs)),
-      limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
+      limits_(_limits
+              ? std::move(*_limits)
+              : from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version_(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
