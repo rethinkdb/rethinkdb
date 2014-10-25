@@ -590,7 +590,7 @@ void limit_manager_t::commit(
 
     debugf("a real_added %zu, real_deleted %zu | %zu\n",
            real_added.size(), real_deleted.size(), lqueue.size());
-    std::vector<std::string> truncated = lqueue.truncate(spec.limit);
+    std::vector<std::string> truncated = lqueue.truncate_top(spec.limit);
     for (auto &&id : truncated) {
         auto it = real_added.find_id(id);
         if (it != real_added.end()) {

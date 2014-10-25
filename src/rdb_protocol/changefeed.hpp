@@ -312,7 +312,7 @@ public:
     iterator top() {
         return size() == 0 ? end() : *index.begin();
     }
-    std::vector<Id> truncate(size_t n) {
+    std::vector<Id> truncate_top(size_t n) {
         std::vector<Id> ret;
         while (index.size() > n) {
             ret.push_back((*index.begin())->first);
