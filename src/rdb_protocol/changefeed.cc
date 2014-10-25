@@ -831,13 +831,13 @@ feed_t::feed_t(client_t *_client,
 }
 
 void feed_t::constructor_cb() {
-    auto_drainer_t::lock_t lock(&drainer);
+    auto lock = make_scoped<auto_drainer_t::lock_t>(&drainer);
     {
         wait_any_t any_disconnect;
         for (size_t i = 0; i < disconnect_watchers.size(); ++i) {
             any_disconnect.add(disconnect_watchers[i].get());
         }
-        wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
+        wait_any_t wait_any(&any_disconnect, lock->get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     // Clear the disconnect watchers so we don't keep the watched connections open
@@ -845,6 +845,7 @@ void feed_t::constructor_cb() {
     disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
+        lock.reset(); // Otherwise the `feed_t`'s auto_drainer can never be destroyed.
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
