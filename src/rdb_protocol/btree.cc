@@ -1307,6 +1307,11 @@ void rdb_modification_report_cb_t::on_mod_report(
             boost::optional<std::string>(),
             report.primary_key,
             [&](ql::changefeed::limit_manager_t *lm) {
+                // `env` should never be NULL here.  If it is, though, it's because
+                // there was some race condition where the limit manager exists
+                // while post-construction is going on (or else the unit tests need
+                // to pass in a real environment).
+                guarantee(env != NULL);
                 debugf("1 pkey commit\n");
                 if (!lm->drainer.is_draining()) {
                     auto lock = lm->drainer.lock();
@@ -1670,10 +1675,8 @@ void rdb_update_single_sindex(
             // while post-construction is going on (or else the unit tests need
             // to pass in a real environment).
             guarantee(env != NULL);
-            if (env != NULL) {
-                lm->commit(ql::changefeed::sindex_ref_t{
-                        env, sindex->btree, superblock, &sindex_info});
-            }
+            lm->commit(ql::changefeed::sindex_ref_t{
+                    env, sindex->btree, superblock, &sindex_info});
         });
 }
 
