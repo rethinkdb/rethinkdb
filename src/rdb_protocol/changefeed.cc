@@ -287,9 +287,9 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
     }
     debugf("primary: %s\n", components.primary.c_str());
     for (auto c : components.primary) {
-        // We escape 0 because we don't support null bytes, 1 because we use it
-        // to delineate the start of the tag, and 2 because it's the escape
-        // character.
+        // We escape 0 because there are places where we don't support NULL
+        // bytes, 1 because we use it to delineate the start of the tag, and 2
+        // because it's the escape character.
         if (c == 0 || c == 1 || c == 2) {
             s.push_back(2);
             s.push_back(c+2);
