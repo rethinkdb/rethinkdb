@@ -1665,8 +1665,15 @@ void rdb_update_single_sindex(
         sindex->name.name,
         modification->primary_key,
         [&](ql::changefeed::limit_manager_t *lm) {
-            lm->commit(ql::changefeed::sindex_ref_t{
-                    env, sindex->btree, superblock, &sindex_info});
+            // `env` should never be NULL here.  If it is, though, it's because
+            // there was some race condition where the limit manager exists
+            // while post-construction is going on (or else the unit tests need
+            // to pass in a real environment).
+            guarantee(env != NULL);
+            if (env != NULL) {
+                lm->commit(ql::changefeed::sindex_ref_t{
+                        env, sindex->btree, superblock, &sindex_info});
+            }
         });
 }
 
