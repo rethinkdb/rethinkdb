@@ -982,17 +982,15 @@ public:
 
     void maybe_send_start_msg() {
         debugf("need_init: %ld, got_init: %ld\n", need_init, got_init);
+        // When we later support not always returning the initial set, that
+        // logic should go here.
         if (need_init == got_init) {
-            // When we later support not always returning the initial set, that
-            // logic should go here.
-            if (need_init == got_init) {
-                for (auto &&it : active_data) {
-                    els.push_back(
-                        datum_t(std::map<datum_string_t, datum_t> {
-                                { datum_string_t("old_val"), (*it)->second.second },
+            for (auto &&it : active_data) {
+                els.push_back(
+                    datum_t(std::map<datum_string_t, datum_t> {
+                            { datum_string_t("old_val"), (*it)->second.second },
                                 { datum_string_t("new_val"), (*it)->second.second } }));
-                    maybe_signal_cond();
-                }
+                maybe_signal_cond();
             }
         }
     }
