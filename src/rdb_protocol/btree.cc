@@ -414,8 +414,7 @@ public:
         }
         void operator()() {
             {
-                rwlock_in_line_t spot(&parent->promise_lock, access_t::write);
-                spot.write_signal()->wait_lazily_unordered();
+                new_mutex_in_line_t spot(&parent->promise_lock);
                 superblock_t *sb = parent->promise->wait();
                 guarantee(sb == parent->superblock.get());
                 auto new_promise = make_scoped<promise_t<superblock_t *> >();
@@ -457,7 +456,7 @@ public:
 private:
     scoped_ptr_t<superblock_t> superblock;
     scoped_ptr_t<promise_t<superblock_t *> > promise;
-    rwlock_t promise_lock;
+    new_mutex_t promise_lock;
 
     // These use `counted_t`s because `coro_pool_t` insists on copying.
     struct callback_t : public coro_pool_callback_t<counted_t<caller_t> > {
