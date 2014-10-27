@@ -2559,7 +2559,6 @@ module 'DataExplorerView', ->
 
                     if error?
                         @toggle_executing false
-                        error.message = error.message.replace('Changefeeds not allowed on this connection', 'Changefeeds are not available in the data explorer')
                         if @queries.length > 1
                             @results_view.render_error(@raw_queries[@index-1], error)
                         else
