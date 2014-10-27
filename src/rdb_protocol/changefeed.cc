@@ -479,8 +479,9 @@ public:
             range,
             ref.superblock,
             ref.env,
-            batchspec_t::all().with_at_most(n),
-            std::vector<transform_variant_t>(),
+            batchspec_t::all(),
+            std::vector<transform_variant_t>(limit_read_t{
+                    is_primary_t::YES, n, sorting)),
             boost::optional<terminal_variant_t>(),
             sorting,
             &resp,
