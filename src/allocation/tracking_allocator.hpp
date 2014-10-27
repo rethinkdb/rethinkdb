@@ -5,6 +5,8 @@
 #include <memory>
 #include <functional>
 
+#include "threading.hpp"
+
 class tracking_allocator_factory_t;
 
 enum class allocator_types_t {
@@ -135,11 +137,12 @@ public:
     }
 };
 
-class tracking_allocator_factory_t {
+class tracking_allocator_factory_t : public home_thread_mixin_debug_only_t {
 public:
     explicit tracking_allocator_factory_t(size_t total_bytes) : available(total_bytes) {}
 
     bool debit(size_t bytes) {
+        assert_thread();
         if (available >= bytes) {
             available -= bytes;
             return true;
@@ -148,13 +151,17 @@ public:
         }
     }
     void credit(size_t bytes) {
+        assert_thread();
         available += bytes;
     }
     size_t left() const {
+        assert_thread();
         return available;
     }
 private:
     size_t available;
+
+    DISABLE_COPYING(tracking_allocator_factory_t);
 };
 
 #endif /* ALLOCATION_TRACKING_ALLOCATOR_HPP_ */
