@@ -66,8 +66,8 @@ bool parse_meminfo_line(const std::string &contents, size_t *offset_ref,
 }
 
 bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
-    uint64_t memfree;
-    uint64_t cached;
+    uint64_t memfree = 0;
+    uint64_t cached = 0;
 
     bool seen_memfree = false;
     bool seen_cached = false;
