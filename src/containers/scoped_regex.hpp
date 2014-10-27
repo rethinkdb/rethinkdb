@@ -10,7 +10,6 @@
 
 /* It's safe to reuse the REG_NOMATCH error code constant because it's
    only returned by regexec, not regcomp. */
-const int REG_UNCOMPILED = REG_NOMATCH;
 class scoped_regex_t {
 public:
     static const int default_flags = REG_EXTENDED | REG_NOSUB;
@@ -43,6 +42,8 @@ public:
         }
     }
 private:
+    static const int REG_UNCOMPILED = REG_NOMATCH;
+
     int errcode;
     regex_t r;
     DISABLE_COPYING(scoped_regex_t);
