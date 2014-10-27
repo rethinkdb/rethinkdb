@@ -79,10 +79,10 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
     if not status?
         result = 'N/A'
     else
-        if status.reachable
-            result = "<span class='label label-success'>Reachable</span>"
+        if status.availability == 'available'
+            result = "<span class='label label-success'>Available</span>"
         else
-            result = "<span class='label label-failure'>Unreachable</span>"
+            result = "<span class='label label-failure'>Unavailable</span>"
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_table_reachability', (status) ->

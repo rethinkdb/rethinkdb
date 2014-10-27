@@ -30,14 +30,23 @@ module 'ServersView', ->
 
 
         fetch_servers: =>
-            #TODO Replace later with server_status
-            query = r.db(system_db).table('server_config').merge( (server) ->
+            query = r.db(system_db).table('server_status').merge( (server) ->
                 id: server("uuid")
-                primary_count: r.db(system_db).table('table_config').concatMap( (table) -> table("shards") ).filter( (shard) -> shard("director").eq(server("name")) ).count()
-                secondary_count: r.db(system_db).table('table_config').concatMap( (table) -> table("shards") ).filter( (shard) -> shard("director").ne(server("name")) ).concatMap( (shard) -> shard("replicas")).filter( (replica) -> replica.eq(server("name")) ).count()
+                primary_count:
+                    r.db(system_db).table('table_config')
+                    .concatMap( (table) -> table("shards") )
+                    .filter((shard) -> shard("director").eq(server("name")))
+                    .count()
+                secondary_count:
+                    r.db(system_db).table('table_config')
+                    .concatMap((table) -> table("shards"))
+                    .filter((shard) -> shard("director").ne(server("name")))
+                    .concatMap((shard) -> shard("replicas"))
+                    .filter((replica) -> replica.eq(server("name")))
+                    .count()
                 status:
-                    reachable: true
-                    last_seen: $.timeago(new Date())
+                    availability: server('status')
+                    last_seen: server('time_disconnected')
             )
             @timer = driver.run query, 5000, (error, result) =>
                 uuids = {}

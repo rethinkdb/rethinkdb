@@ -172,7 +172,6 @@ module 'DashboardView', ->
             @cluster_status_availability.remove()
             @cluster_status_redundancy.remove()
             @cluster_status_reachability.remove()
-            @cluster_status_consistency.remove()
             @cluster_performance.remove()
             #@logs.remove()
             super()
