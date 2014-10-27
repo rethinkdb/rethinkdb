@@ -14,13 +14,18 @@ std::string cluster_config_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
 
-bool cluster_config_artificial_table_backend_t::read_all_primary_keys(
-        UNUSED signal_t *interruptor,
-        std::vector<ql::datum_t> *keys_out,
-        UNUSED std::string *error_out) {
-    keys_out->clear();
+bool cluster_config_artificial_table_backend_t::read_all_rows_as_vector(
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        std::string *error_out) {
+    rows_out->clear();
+
     for (auto it = docs.begin(); it != docs.end(); ++it) {
-        keys_out->push_back(ql::datum_t(datum_string_t(it->first)));
+        ql::datum_t row;
+        if (!it->second->read(interruptor, &row, error_out)) {
+            return false;
+        }
+        rows_out->push_back(row);
     }
     return true;
 }

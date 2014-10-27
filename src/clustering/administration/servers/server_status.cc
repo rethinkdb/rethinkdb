@@ -49,20 +49,12 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
     database_sl_view->assert_thread();
 }
 
-bool server_status_artificial_table_backend_t::read_row(
-        ql::datum_t primary_key,
-        UNUSED signal_t *interruptor,
+bool server_status_artificial_table_backend_t::format_row(
+        name_string_t const & server_name,
+        machine_id_t const & server_id,
+        UNUSED machine_semilattice_metadata_t const & machine,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
-    on_thread_t thread_switcher(home_thread());
-    machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    name_string_t server_name;
-    machine_id_t server_id;
-    machine_semilattice_metadata_t *server_sl;
-    if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
-        *row_out = ql::datum_t();
-        return true;
-    }
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(server_name));
     builder.overwrite("uuid", convert_uuid_to_datum(server_id));

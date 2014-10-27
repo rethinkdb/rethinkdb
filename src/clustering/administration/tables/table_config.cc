@@ -141,9 +141,8 @@ bool convert_table_config_shard_from_datum(
     return true;
 }
 
-/* This is separate from `convert_table_config_and_name_to_datum` because it needs to be
-publicly exposed so it can be used to create the return value of `table.reconfigure()`.
-*/
+/* This is separate from `format_row()` because it needs to be publicly exposed so it can
+   be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
         const table_config_t &config,
         server_name_client_t *name_client) {
@@ -157,20 +156,27 @@ ql::datum_t convert_table_config_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_table_config_and_name_to_datum(
-        const table_config_t &config,
+bool table_config_artificial_table_backend_t::format_row(
+        namespace_id_t table_id,
         name_string_t table_name,
         name_string_t db_name,
-        namespace_id_t uuid,
-        const std::string &primary_key,
-        server_name_client_t *name_client) {
-    ql::datum_t start = convert_table_config_to_datum(config, name_client);
+        const namespace_semilattice_metadata_t &metadata,
+        UNUSED signal_t *interruptor,
+        ql::datum_t *row_out,
+        UNUSED std::string *error_out) {
+    assert_thread();
+
+    ql::datum_t start = convert_table_config_to_datum(
+        metadata.replication_info.get_ref().config, name_client);
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
-    builder.overwrite("primary_key", convert_string_to_datum(primary_key));
-    return std::move(builder).to_datum();
+    builder.overwrite("uuid", convert_uuid_to_datum(table_id));
+    builder.overwrite(
+        "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
+    *row_out = std::move(builder).to_datum();
+
+    return true;
 }
 
 bool convert_table_config_and_name_from_datum(
@@ -252,21 +258,6 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    return true;
-}
-
-bool table_config_artificial_table_backend_t::read_row_impl(
-        namespace_id_t table_id,
-        name_string_t table_name,
-        name_string_t db_name,
-        const namespace_semilattice_metadata_t &metadata,
-        UNUSED signal_t *interruptor,
-        ql::datum_t *row_out,
-        UNUSED std::string *error_out) {
-    assert_thread();
-    *row_out = convert_table_config_and_name_to_datum(
-        metadata.replication_info.get_ref().config, table_name, db_name, table_id,
-        metadata.primary_key.get_ref(), name_client);
     return true;
 }
 

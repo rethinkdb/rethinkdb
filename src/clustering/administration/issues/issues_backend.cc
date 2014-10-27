@@ -29,17 +29,21 @@ std::string issues_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
 
-bool issues_artificial_table_backend_t::read_all_primary_keys(UNUSED signal_t *interruptor,
-                                                              std::vector<ql::datum_t> *keys_out,
-                                                              UNUSED std::string *error_out) {
+bool issues_artificial_table_backend_t::read_all_rows_as_vector(
+        UNUSED signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        UNUSED std::string *error_out) {
     on_thread_t rethreader(home_thread());
-    keys_out->clear();
+    rows_out->clear();
 
-    std::vector<scoped_ptr_t<issue_t> > issues = all_issues();
-
-    for (auto const &issue : issues) {
-        keys_out->push_back(convert_uuid_to_datum(issue->get_id()));
+    ql::datum_t row;
+    for (auto const &tracker : trackers) {
+        for (auto const &issue : tracker->get_issues()) {
+            issue->to_datum(cluster_sl_view->get(), &row);
+            rows_out->push_back(row);
+        }
     }
+
     return true;
 }
 
