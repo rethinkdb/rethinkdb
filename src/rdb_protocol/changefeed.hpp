@@ -249,15 +249,7 @@ private:
 public:
     typedef typename decltype(index)::iterator iterator;
 
-    index_queue_t(Gt gt)
-        : index([gt](const diterator &a, const diterator &b) {
-                return gt(a->second.first, b->second.first)
-                    ? true
-                    : (gt(b->second.first, a->second.first)
-                       ? false
-                       : gt(a->first, b->first));
-            }) { }
-
+    index_queue_t(Gt gt) : index(gt) { }
 
     MUST_USE std::pair<iterator, bool>
     insert(std::pair<Id, std::pair<Key, Val> > pair) {

@@ -85,7 +85,10 @@ private:
     virtual bool uses_idx() const { return true; }
     virtual counted_t<val_t> on_idx(
         env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
-        std::string idx_str = idx.has() ? idx->as_str().to_std() : "";
+        boost::optional<std::string> idx_str;
+        if (idx.has()) {
+            idx_str = idx->as_str().to_std();
+        }
         counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
         return term_t::new_val(single_selection_t::from_slice(
             env,
