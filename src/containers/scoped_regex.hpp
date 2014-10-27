@@ -5,7 +5,6 @@
 #include <regex.h>
 #include <string>
 
-#include "containers/scoped.hpp"
 #include "errors.hpp"
 
 /* It's safe to reuse the REG_NOMATCH error code constant because it's

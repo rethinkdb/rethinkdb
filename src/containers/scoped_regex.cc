@@ -1,5 +1,7 @@
 #include "containers/scoped_regex.hpp"
 
+#include "containers/scoped.hpp"
+
 scoped_regex_t::~scoped_regex_t() {
     if (is_compiled()) {
         regfree(&r);
