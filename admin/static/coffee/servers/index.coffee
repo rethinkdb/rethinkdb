@@ -16,10 +16,6 @@ module 'ServersView', ->
             @loading = true # TODO Render that
 
         render: =>
-            @$el.html @template({})
-            return @
-
-        render: =>
             if @loading is true
                 @$el.html @template.loading
                     page: "servers"

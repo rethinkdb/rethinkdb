@@ -2416,6 +2416,8 @@ module 'DataExplorerView', ->
                 @results_view.render_error(@query, err)
 
         abort_query: =>
+            if @state.cursor?
+                @state.cursor.close()
             @driver_handler.close_connection()
             @id_execution++
             @toggle_executing false
@@ -2441,7 +2443,7 @@ module 'DataExplorerView', ->
             # Execute the query
             try
                 if @state.cursor?
-                    @state.cursor.close?
+                    @state.cursor.close()
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
