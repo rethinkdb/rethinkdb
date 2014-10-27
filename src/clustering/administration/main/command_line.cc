@@ -441,6 +441,10 @@ uint64_t get_avail_mem_size() {
         if (get_proc_meminfo_available_memory_size(&memory)) {
             return memory;
         } else {
+            fprintf(stderr,
+                    "ERROR: Could not parse /proc/meminfo, so we will treat "
+                    "cached file memory as if it were unavailable.");
+
             // This just returns what /proc/meminfo would report as "MemFree".
             uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
             return avail_mem_pages * page_size;
