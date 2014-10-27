@@ -5,7 +5,7 @@ module 'DataExplorerView', ->
         query: null
         results: null
         profile: null
-        cursor: null
+        query_result: null
         metadata: null
         cursor_timed_out: true
         view: 'tree'
@@ -19,9 +19,116 @@ module 'DataExplorerView', ->
             profiler: false
         history: []
         focus_on_codemirror: true
-        last_query_has_profile: true
-        #saved_data: {}
 
+    # This class represents the results of a query.
+    #
+    # If there is a profile, `profile` is set
+    #
+    # After a 'sync' event, one of `error`, `value` or `cursor` is always set
+    #
+    # It triggers the following events:
+    #
+    #  * sync: The first response has been received
+    #
+    #  * add: Another row has been received from a cursor
+    #
+    #  * error: An error has been received from a cursor
+    #
+    #  * end: There are no more documents to fetch
+    #
+    #  * discard: The results have been discarded
+    class @QueryResult
+        _.extend @::, Backbone.Events
+
+        constructor: (options) ->
+            @has_profile = options.profile
+            @discard_results = options.discard_results ? false
+            if options.events?
+                for own event, handler of options.events
+                    @on event, handler
+
+        # Can be used as a callback to run
+        set: (error, result) =>
+            if error?
+                @error = error
+            else if not @discard_results
+                if @has_profile
+                    @profile = result.profile
+                    value = result.value
+                else
+                    value = result
+                if typeof value._next is 'function' # if it's a cursor
+                    @results = []
+                    @truncated = false
+                    @cursor = value
+                    @is_feed = @cursor.toString() == '[object Feed]'
+                    @missing = 0
+                    @ended = false
+                    @start_index = 0
+                else
+                    @start_index = 0
+                    @value = value
+                    @ended = true
+            @trigger 'sync', @
+
+        # Remove n elements from the result set of a cursor Waits for
+        # n+1 elements, or the end before returning
+        #
+        # Note: the callbacks are not ordered. In this code, `f` is
+        # never called: `qr.shift 2 f; cb = -> qr.shift 1 cb`
+        shift: (n, k) =>
+            cb = => 
+                if @results.length > n or @ended
+                    @off 'end', cb
+                    ret = @results[0...n]
+                    @results = @results[n...]
+                    @start_index += n
+                    k @, ret
+                else
+                    @once 'add', cb
+                    @more()
+            @once 'end', cb
+            cb()
+
+        # Discard the results
+        discard: =>
+            @trigger 'discard', @
+            @off()
+            @discard_results = true
+            delete @profile
+            delete @value
+            delete @results
+            delete @truncated
+            @cursor?.close()
+            delete @cursor
+
+        # Ask for more results from the cursor
+        more: (n) =>
+            prev_missing = @missing
+            @missing = prev_missing + (n ? 1)
+            if prev_missing <= 0
+                @fetch_next()
+
+        # Gets the next result from the cursor
+        fetch_next: =>
+            if not @ended
+                @cursor.next (error, row) =>
+                    if error?
+                        if error.message is 'No more rows in the cursor.'
+                            @ended = true
+                            @trigger 'end', @
+                        else
+                            @error = error
+                            @trigger 'error', @, error
+                            @discard_results = true
+                    else
+                        if @discard_results
+                            return
+                        @results.push row
+                        @trigger 'add', @, row
+                        @missing--
+                        if @missing >= 0
+                            @fetch_next()
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -520,7 +627,6 @@ module 'DataExplorerView', ->
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
             $(window).mousedown @handle_mousedown
-            @id_execution = 0
             @keep_suggestions_on_blur = false
 
             @render()
@@ -2406,30 +2512,16 @@ module 'DataExplorerView', ->
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             event.preventDefault()
-            @skip_value += @current_results.length
-            try
-                @current_results = []
+            @current_results = []
+            @start_time = new Date()
+            @state.query_result.shift @limit, @next_results_callback
 
-                # If there are more results to show, we had to buffer one row, so we add that one extra row to the current results
-                @current_results.push @extra_row
-                @extra_row = undefined
-
-                @start_time = new Date()
-
-                @id_execution++
-                get_result_callback = @generate_get_result_callback @id_execution
-                @state.cursor.next get_result_callback
-                $(window).scrollTop(@$('.results_container').offset().top)
-            catch err
-                @toggle_executing false
-                # We print the query here (the user just hit `more data`)
-                @results_view.render_error(@query, err)
+            # TODO: there is no indication that anything is loading
+            $(window).scrollTop(@$('.results_container').offset().top)
 
         abort_query: =>
-            if @state.cursor?
-                @state.cursor.close()
+            @state.query_result?.discard()
             @driver_handler.close_connection()
-            @id_execution++
             @toggle_executing false
 
         # Function that execute the queries in a synchronous way.
@@ -2452,8 +2544,7 @@ module 'DataExplorerView', ->
             
             # Execute the query
             try
-                if @state.cursor?
-                    @state.cursor.close()
+                @state.query_result?.discard()
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
@@ -2495,7 +2586,7 @@ module 'DataExplorerView', ->
 
         # A portion is one query of the whole input.
         execute_portion: =>
-            @state.cursor = null
+            @state.query_result = null
             while @queries[@index]?
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
@@ -2516,22 +2607,25 @@ module 'DataExplorerView', ->
 
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
-                    @skip_value = 0
                     @start_time = new Date()
                     @current_results = []
 
-                    @id_execution++ # Update the id_execution and use it to tag the callbacks
-                    rdb_global_callback = @generate_rdb_global_callback @id_execution
-                    # Date are displayed in their raw format for now.
-                    @state.last_query_has_profile = @state.options.profiler
+                    query_result = new DataExplorerView.QueryResult
+                        profile: @state.options.profiler
+                        events:
+                            sync: @query_result_callback
+                            error: (err) =>
+                                @toggle_executing false
+                                @results_view.render_error(@query, err)
+
                     @driver_handler.create_connection (error, connection) =>
                         if (error)
                             @error_on_connect error
                         else
                             rdb_query.private_run connection,
                                 {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler},
-                                rdb_global_callback # @rdb_global_callback can be fired more than once
-                    , @id_execution, @error_on_connect
+                                query_result.set
+                    , @error_on_connect
 
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
@@ -2549,105 +2643,43 @@ module 'DataExplorerView', ->
                             query: @raw_query
                             broken_query: true
 
-        
-        # Create a callback for when a query returns
-        # We tag the callback to make sure that we display the results only of the last query executed by the user
-        generate_rdb_global_callback: (id_execution) =>
-            rdb_global_callback = (error, results) =>
-                if @id_execution is id_execution # We execute the query only if it is the last one
-                    get_result_callback = @generate_get_result_callback id_execution
 
-                    if error?
-                        @toggle_executing false
-                        if @queries.length > 1
-                            @results_view.render_error(@raw_queries[@index-1], error)
-                        else
-                            @results_view.render_error(null, error)
-                        @save_query
-                            query: @raw_query
-                            broken_query: true
-                        return false
+        # Handle the result of a query
+        query_result_callback: (result) =>
+            if result.error?
+                @toggle_executing false
+                if @queries.length > 1
+                    @results_view.render_error(@raw_queries[@index-1], result.error)
+                else
+                    @results_view.render_error(null, result.error)
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+                return false
 
-                    if results?.profile? and @state.last_query_has_profile is true
-                        cursor = results.value
-                        @profile = results.profile
-                        @state.profile = @profile
-                    else
-                        cursor = results
-                        @profile = null # @profile is null if the user deactivated the profiler
-                        @state.profile = @profile
+            @profile = result.profile ? null
+            @state.profile = @profile
 
-                    
-                    if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor? and typeof cursor._next is 'function' # If the result is a cursor
-                            @state.cursor = cursor
-                            @state.cursor.next get_result_callback
-                        else
-                            @toggle_executing false
+            if @index is @queries.length # @index was incremented in execute_portion
+                @state.query_result = result
+                if result.cursor?
 
-                            # Save the last executed query and the last displayed results
-                            @current_results = cursor
-
-                            @state.query = @query
-                            @state.results = @current_results
-                            @state.metadata =
-                                limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
-                                skip_value: @skip_value
-                                execution_time: new Date() - @start_time
-                                query: @query
-                                has_more_data: false
-
-                            @results_view.render_result
-                                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                                metadata: @state.metadata
-                                profile: @profile
-
-                            # Successful query, let's save it in the history
-                            @save_query
-                                query: @raw_query
-                                broken_query: false
-                    else
-                        @execute_portion()
-
-            return rdb_global_callback
-
-        # Create a callback used in cursor.next()
-        # We tag the callback to make sure that we display the results only of the last query executed by the user
-        generate_get_result_callback: (id_execution) =>
-            get_result_callback = (error, data) =>
-                if @id_execution is id_execution
-                    if error?
-                        if error.message isnt 'No more rows in the cursor.'
-                            if @queries.length > 1
-                                @results_view.render_error(@query, error)
-                            else
-                                @results_view.render_error(null, error)
-                            return false
-
-                    if data isnt undefined
-                        if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
-                            @current_results.push data
-                            @extra_row = undefined # We don't know if there's an extra row yet, reset its value to undefined
-                            @state.cursor.next get_result_callback
-                        else if @current_results.length is @limit # If we've reached the limit of results we can show, we still want to know if there are more results available
-                            @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
-                            get_result_callback() # Display results
-                        return true
-
+                    result.shift @limit, @next_results_callback
+                else
                     @toggle_executing false
+                    @current_results = result.value
 
-                    # if data is undefined or @current_results.length is @limit
                     @state.query = @query
                     @state.results = @current_results
                     @state.metadata =
-                        limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
-                        skip_value: @skip_value
+                        limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1
+                        skip_value: 0
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: @extra_row isnt undefined # If we could buffer one more row, it means that there are more results available
+                        has_more_data: false
 
                     @results_view.render_result
-                        results: @current_results # The first parameter is null ( = query, so we don't display it)
+                        results: @current_results
                         metadata: @state.metadata
                         profile: @profile
 
@@ -2655,6 +2687,28 @@ module 'DataExplorerView', ->
                     @save_query
                         query: @raw_query
                         broken_query: false
+            else
+                @execute_portion()
+
+        # Called when there is a new batch of results to display
+        next_results_callback: (result, rows) =>
+
+            @current_results = rows
+
+            @toggle_executing false
+            @state.query = @query
+            @state.results = @current_results
+            @state.metadata =
+                limit_value: @current_results.length
+                skip_value: result.start_index
+                execution_time: new Date() - @start_time
+                query: @query
+                has_more_data: not result.ended
+
+            @results_view.render_result
+                results: @current_results
+                metadata: @state.metadata
+                profile: @profile
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -3559,9 +3613,10 @@ module 'DataExplorerView', ->
                     flatten_attr: flatten_attr
 
         tag_record: (doc, i) =>
-            doc.record = @metadata.skip_value + i
+            doc.record = @metadata.skip_value + 1
 
         render_result: (args) =>
+
             if args? and args.results isnt undefined
                 @results = args.results
                 @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
@@ -3929,22 +3984,16 @@ module 'DataExplorerView', ->
                 driver.close @connection
                 @connection = null
 
-        create_connection: (cb, id_execution, connection_cb) =>
+        create_connection: (cb, connection_cb) =>
             @close_connection()
 
             that = @
-            @id_execution = id_execution
 
-            ((_id_execution) =>
-                driver.connect (error, connection) =>
-                    if _id_execution is @id_execution
-                        connection.removeAllListeners 'error' # See issue 1347
-                        connection.on 'error', connection_cb
-                        @connection = connection
-                        cb(error, connection)
-                    else
-                        driver.close connection
-            )(id_execution)
+            driver.connect (error, connection) =>
+                connection.removeAllListeners 'error' # See issue 1347
+                connection.on 'error', connection_cb
+                @connection = connection
+                cb(error, connection)
 
         remove: =>
             @close_connection()
