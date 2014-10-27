@@ -343,7 +343,6 @@ struct primary_ref_t {
     env_t *env;
     btree_slice_t *btree;
     superblock_t *superblock;
-    promise_t<superblock_t *> *promise;
 };
 
 struct sindex_ref_t {
@@ -360,6 +359,7 @@ public:
     // `foreach_limit`) before calling the constructor or any of the member
     // functions.
     limit_manager_t(
+        rwlock_in_line_t *clients_lock,
         region_t _region,
         std::string _table,
         uuid_u _uuid,
@@ -369,9 +369,16 @@ public:
         limit_order_t _lt,
         item_vec_t &&item_vec);
 
-    void add(store_key_t sk, is_primary_t is_primary, datum_t key, datum_t val);
-    void del(store_key_t sk, is_primary_t is_primary);
-    void commit(const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
+    void add(rwlock_in_line_t *spot,
+             store_key_t sk,
+             is_primary_t is_primary,
+             datum_t key,
+             datum_t val);
+    void del(rwlock_in_line_t *spot,
+             store_key_t sk,
+             is_primary_t is_primary);
+    void commit(rwlock_in_line_t *spot,
+                const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
 
     const region_t region; // TODO: use this when ranges are supported.
     const std::string table;
@@ -427,7 +434,10 @@ public:
     // limit manager.
     void foreach_limit(const boost::optional<std::string> &s,
                        const store_key_t &pkey,
-                       std::function<void(limit_manager_t *)> f);
+                       std::function<void(rwlock_in_line_t *,
+                                          rwlock_in_line_t *,
+                                          rwlock_in_line_t *,
+                                          limit_manager_t *)> f);
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(client_t::addr_t addr);

@@ -1304,36 +1304,39 @@ void rdb_modification_report_cb_t::on_mod_report(
             report.primary_key);
 
         debugf("PKEY commit\n");
-        store_->changefeed_server->foreach_limit(
-            boost::optional<std::string>(),
-            report.primary_key,
-            [&](ql::changefeed::limit_manager_t *lm) {
-                // `env` should never be NULL here.
-                guarantee(env != NULL);
-                debugf("1 pkey commit\n");
-                if (!lm->drainer.is_draining()) {
-                    auto lock = lm->drainer.lock();
-                    queue->push(
-                        [lm, env, btree, report, lock](
-                            superblock_t *superblock,
-                            promise_t<superblock_t *> *promise) {
-                            debugf("2 pkey commit\n");
-                            if (report.info.deleted.first) {
-                                lm->del(report.primary_key, is_primary_t::YES);
-                            }
-                            if (report.info.added.first) {
-                                // The conflicting null values are resolved by
-                                // the primary key.
-                                lm->add(report.primary_key, is_primary_t::YES,
-                                        ql::datum_t::null(), report.info.added.first);
-                            }
-                            lm->commit(ql::changefeed::primary_ref_t{
-                                    env, btree, superblock, promise});
-                            lock.assert_is_holding(&lm->drainer);
-                        });
-                }
-            });
-
+        guarantee(env != NULL);
+        auto store = this->store_;
+        queue->push([env, store, btree, report]
+                    (superblock_t *superblock,
+                     promise_t<superblock_t *> *promise) {
+            store->changefeed_server->foreach_limit(
+                boost::optional<std::string>(),
+                report.primary_key,
+                [&](rwlock_in_line_t *clients_spot,
+                    rwlock_in_line_t *limit_clients_spot,
+                    rwlock_in_line_t *lm_spot,
+                    ql::changefeed::limit_manager_t *lm) {
+                    debugf("2 pkey commit\n");
+                    if (!lm->drainer.is_draining()) {
+                        auto lock = lm->drainer.lock();
+                        guarantee(clients_spot->read_signal()->is_pulsed());
+                        guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                        if (report.info.deleted.first) {
+                            lm->del(lm_spot, report.primary_key, is_primary_t::YES);
+                        }
+                        if (report.info.added.first) {
+                            // The conflicting null values are resolved by
+                            // the primary key.
+                            lm->add(lm_spot, report.primary_key, is_primary_t::YES,
+                                    ql::datum_t::null(), report.info.added.first);
+                        }
+                        lm->commit(lm_spot, ql::changefeed::primary_ref_t{
+                                env, btree, superblock});
+                    }
+                });
+            debugf("Releasing superblock...\n");
+            promise->pulse(superblock);
+        });
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
@@ -1573,9 +1576,14 @@ void rdb_update_single_sindex(
             server->foreach_limit(
                 sindex->name.name,
                 modification->primary_key,
-                [&](ql::changefeed::limit_manager_t *lm) {
+                [&](rwlock_in_line_t *clients_spot,
+                    rwlock_in_line_t *limit_clients_spot,
+                    rwlock_in_line_t *lm_spot,
+                    ql::changefeed::limit_manager_t *lm) {
+                    guarantee(clients_spot->read_signal()->is_pulsed());
+                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
                     for (const auto &pair :keys) {
-                        lm->del(pair.first, is_primary_t::NO);
+                        lm->del(lm_spot, pair.first, is_primary_t::NO);
                     }
                 });
 
@@ -1627,9 +1635,15 @@ void rdb_update_single_sindex(
             server->foreach_limit(
                 sindex->name.name,
                 modification->primary_key,
-                [&](ql::changefeed::limit_manager_t *lm) {
-                    for (const auto &pair : keys) {
-                        lm->add(pair.first, is_primary_t::NO, pair.second, added);
+                [&](rwlock_in_line_t *clients_spot,
+                    rwlock_in_line_t *limit_clients_spot,
+                    rwlock_in_line_t *lm_spot,
+                    ql::changefeed::limit_manager_t *lm) {
+                    guarantee(clients_spot->read_signal()->is_pulsed());
+                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                    for (const auto &pair :keys) {
+                        lm->add(lm_spot, pair.first, is_primary_t::NO,
+                                pair.second, added);
                     }
                 });
             for (auto it = keys.begin(); it != keys.end(); ++it) {
@@ -1667,13 +1681,18 @@ void rdb_update_single_sindex(
     server->foreach_limit(
         sindex->name.name,
         modification->primary_key,
-        [&](ql::changefeed::limit_manager_t *lm) {
+        [&](rwlock_in_line_t *clients_spot,
+            rwlock_in_line_t *limit_clients_spot,
+            rwlock_in_line_t *lm_spot,
+            ql::changefeed::limit_manager_t *lm) {
+            guarantee(clients_spot->read_signal()->is_pulsed());
+            guarantee(limit_clients_spot->read_signal()->is_pulsed());
             // `env` should never be NULL here.  If it is, though, it's because
             // there was some race condition where the limit manager exists
             // while post-construction is going on (or else the unit tests need
             // to pass in a real environment).
             guarantee(env != NULL);
-            lm->commit(ql::changefeed::sindex_ref_t{
+            lm->commit(lm_spot, ql::changefeed::sindex_ref_t{
                     env, sindex->btree, superblock, &sindex_info});
         });
 }

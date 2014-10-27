@@ -128,6 +128,7 @@ void server_t::add_limit_client(
         lspot.read_signal()->wait_lazily_unordered();
         auto *vec = &it->second.limit_clients[spec.range.sindex];
         auto lm = make_scoped<limit_manager_t>(
+            &spot,
             region,
             table,
             client_uuid,
@@ -244,7 +245,10 @@ uuid_u server_t::get_uuid() {
 
 void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                              const store_key_t &pkey,
-                             std::function<void(limit_manager_t *)> f) {
+                             std::function<void(rwlock_in_line_t *,
+                                                rwlock_in_line_t *,
+                                                rwlock_in_line_t *,
+                                                limit_manager_t *)> f) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -261,7 +265,7 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                     auto_drainer_t::lock_t lc_lock(&lc->drainer);
                     rwlock_in_line_t lc_spot(&lc->lock, access_t::write);
                     lc_spot.write_signal()->wait_lazily_unordered();
-                    f(lc.get());
+                    f(&spot, &lspot, &lc_spot, lc.get());
                 }
             }
         }
@@ -400,6 +404,7 @@ void limit_manager_t::send(msg_t &&msg) {
 }
 
 limit_manager_t::limit_manager_t(
+    rwlock_in_line_t *clients_lock,
     region_t _region,
     std::string _table,
     uuid_u _uuid,
@@ -416,6 +421,7 @@ limit_manager_t::limit_manager_t(
       spec(std::move(_spec)),
       gt(std::move(_gt)),
       item_queue(gt) {
+    guarantee(clients_lock->read_signal()->is_pulsed());
     debugf("limit_manager_t::limit_manager_t %zu\n", item_vec.size());
     guarantee(item_queue.size() == 0);
     for (const auto &pair : item_vec) {
@@ -427,7 +433,12 @@ limit_manager_t::limit_manager_t(
 }
 
 void limit_manager_t::add(
-    store_key_t sk, is_primary_t is_primary, datum_t key, datum_t val) {
+    rwlock_in_line_t *spot,
+    store_key_t sk,
+    is_primary_t is_primary,
+    datum_t key,
+    datum_t val) {
+    guarantee(spot->write_signal()->is_pulsed());
     debugf("%p add %s <%s,%s>\n",
            this,
            key_to_mangled_primary(sk, is_primary).c_str(),
@@ -438,7 +449,11 @@ void limit_manager_t::add(
                        std::make_pair(std::move(key), std::move(val))));
 }
 
-void limit_manager_t::del(store_key_t sk, is_primary_t is_primary) {
+void limit_manager_t::del(
+    rwlock_in_line_t *spot,
+    store_key_t sk,
+    is_primary_t is_primary) {
+    guarantee(spot->write_signal()->is_pulsed());
     debugf("%p add %s\n", this, key_to_mangled_primary(sk, is_primary).c_str());
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
@@ -567,7 +582,9 @@ item_vec_t limit_manager_t::read_more(
 }
 
 void limit_manager_t::commit(
+    rwlock_in_line_t *spot,
     const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
+    guarantee(spot->write_signal()->is_pulsed());
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu) | %zu (%p)\n",
            added.size(), deleted.size(), item_queue.size(), this);
@@ -631,10 +648,6 @@ void limit_manager_t::commit(
                 guarantee(ins);
             }
         }
-    }
-    if (auto p = boost::get<primary_ref_t>(&sindex_ref)) {
-        debugf("Releasing superblock.\n");
-        p->promise->pulse(p->superblock);
     }
     debugf("c real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
