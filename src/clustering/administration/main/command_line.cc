@@ -441,22 +441,16 @@ uint64_t get_avail_mem_size() {
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
-    uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
-    int64_t available_mem = get_avail_mem_size();
-
-    // Default to half the available memory minus a gigabyte, to leave room for server
-    // and query overhead, but never default to less than 100 megabytes
-    int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
-    uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
-
+    const uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
     if (exists_option(opts, "--cache-size")) {
-        std::string cache_size_opt = get_single_option(opts, "--cache-size");
-        if (!strtou64_strict(cache_size_opt, 10, &res)) {
+        const std::string cache_size_opt = get_single_option(opts, "--cache-size");
+        uint64_t cache_size_megs;
+        if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
             throw std::runtime_error(strprintf(
                     "ERROR: could not parse cache-size as a number (%s)",
                     cache_size_opt.c_str()));
         }
-        res = res * MEGABYTE;
+        const uint64_t res = cache_size_megs * MEGABYTE;
 
         if (res > cache_limit) {
             throw std::runtime_error(strprintf(
@@ -464,9 +458,17 @@ uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &op
                     "expected upper-bound for this platform (%" PRIu64" MB).",
                     res / 1024 / 1024, cache_limit / 1024 / 1024));
         }
-    }
 
-    return res;
+        return res;
+    } else {
+        const int64_t available_mem = get_avail_mem_size();
+
+        // Default to half the available memory minus a gigabyte, to leave room for server
+        // and query overhead, but never default to less than 100 megabytes
+        const int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
+        const uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
+        return res;
+    }
 }
 
 // Note that this defaults to the peer port if no port is specified
