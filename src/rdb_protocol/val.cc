@@ -2,12 +2,13 @@
 #include "rdb_protocol/val.hpp"
 
 #include "containers/name_string.hpp"
-#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 #include "stl_utils.hpp"
+#include "thread_local.hpp"
 
 namespace ql {
 
@@ -49,18 +50,18 @@ private:
 
 namespace es_helper {
 // We don't want to be recomputing this all the time.
-__thread map_wire_func_t *fptr = NULL;
+TLS_with_init(map_wire_func_t *, fptr, NULL);
 map_wire_func_t map_wire_func() {
-    if (fptr == NULL) {
+    if (TLS_get_fptr() == NULL) {
         auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
         r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
         compile_env_t compile_env((var_visibility_t()));
         func_term_t func_term(&compile_env, map.release_counted());
         var_scope_t var_scope;
         counted_t<const func_t> f = func_term.eval_to_func(var_scope);
-        fptr = new map_wire_func_t(f);
+        TLS_set_fptr(new map_wire_func_t(f));
     }
-    return *fptr;
+    return *TLS_get_fptr();
 }
 } // es_helper
 
