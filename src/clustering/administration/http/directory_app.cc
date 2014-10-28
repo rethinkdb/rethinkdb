@@ -98,7 +98,7 @@ void directory_http_app_t::handle(const http_req_t &req, http_res_t *result, sig
                     return;
                 }
             }
-            *result = http_error_res("Machine not found", HTTP_NOT_FOUND);
+            *result = http_error_res("Server not found", HTTP_NOT_FOUND);
         }
     } catch (const schema_mismatch_exc_t &e) {
         logWRN("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());

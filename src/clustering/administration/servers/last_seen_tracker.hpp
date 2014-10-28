@@ -53,11 +53,11 @@ private:
     semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t servers_view_subs;
     watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t server_id_map_subs;
 
-    /* Machines are only present in this map if they are not connected but not
+    /* Servers are only present in this map if they are not connected but not
     declared dead. */
     std::map<server_id_t, microtime_t> disconnected_times;
 
-    /* Machines are only present in this map if they are connected and not declared
+    /* Servers are only present in this map if they are connected and not declared
     dead. */
     std::map<server_id_t, microtime_t> connected_times;
 

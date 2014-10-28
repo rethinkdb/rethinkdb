@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_ID_TO_PEER_ID_HPP_
-#define CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_ID_TO_PEER_ID_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_SERVER_ID_TO_PEER_ID_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_SERVER_ID_TO_PEER_ID_HPP_
 
 #include <map>
 #include <utility>
@@ -17,4 +17,4 @@ inline peer_id_t server_id_to_peer_id(const server_id_t &input, const std::map<p
     return peer_id_t();
 }
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_ID_TO_PEER_ID_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_ID_TO_PEER_ID_HPP_ */
