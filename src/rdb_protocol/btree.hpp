@@ -109,7 +109,7 @@ batched_replace_response_t rdb_batched_replace(
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
-    ql::env_t *env,
+    ql::configured_limits_t limits,
     profile::trace_t *trace);
 
 void rdb_set(const store_key_t &key, ql::datum_t data,
@@ -313,13 +313,12 @@ public:
 
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        btree_slice_t *btree,
-                       superblock_queue_t *queue,
-                       ql::env_t *env);
+                       superblock_queue_t *queue);
 
     ~rdb_modification_report_cb_t();
 
 private:
-    void on_mod_report_sub(const rdb_modification_report_t &, ql::env_t *, cond_t *);
+    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
 
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
@@ -334,7 +333,6 @@ void rdb_update_sindexes(
     store_t *store,
     const store_t::sindex_access_vector_t &sindexes,
     const rdb_modification_report_t *modification,
-    ql::env_t *env,
     txn_t *txn,
     const deletion_context_t *deletion_context);
 

@@ -64,6 +64,10 @@ public:
         return draining.is_pulsed();
     }
 
+    signal_t *get_drain_signal() {
+        return &draining;
+    }
+
     void drain();
 
     void rethread(threadnum_t new_thread) {

@@ -113,6 +113,8 @@ void server_t::add_limit_client(
     const client_t::addr_t &addr,
     const region_t &region,
     const std::string &table,
+    rdb_context_t *ctx,
+    std::map<std::string, wire_func_t> optargs,
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
     limit_order_t lt,
@@ -131,6 +133,8 @@ void server_t::add_limit_client(
             &spot,
             region,
             table,
+            ctx,
+            std::move(optargs),
             client_uuid,
             this,
             it->first,
@@ -407,6 +411,8 @@ limit_manager_t::limit_manager_t(
     rwlock_in_line_t *clients_lock,
     region_t _region,
     std::string _table,
+    rdb_context_t *ctx,
+    std::map<std::string, wire_func_t> optargs,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -421,8 +427,13 @@ limit_manager_t::limit_manager_t(
       spec(std::move(_spec)),
       gt(std::move(_gt)),
       item_queue(gt) {
-    guarantee(clients_lock->read_signal()->is_pulsed());
     debugf("limit_manager_t::limit_manager_t %zu\n", item_vec.size());
+    guarantee(clients_lock->read_signal()->is_pulsed());
+
+    // The final `NULL` argument means we don't profile any work done with this `env`.
+    env = make_scoped<env_t>(
+        ctx, drainer.get_drain_signal(), std::move(optargs), nullptr);
+
     guarantee(item_queue.size() == 0);
     for (const auto &pair : item_vec) {
         bool inserted = item_queue.insert(pair).second;
@@ -460,11 +471,13 @@ void limit_manager_t::del(
 
 class ref_visitor_t : public boost::static_visitor<item_vec_t> {
 public:
-    ref_visitor_t(key_range_t _pk_range,
+    ref_visitor_t(env_t *_env,
+                  key_range_t _pk_range,
                   sorting_t _sorting,
                   boost::optional<item_queue_t::iterator> _start,
                   size_t _n)
-        : pk_range(std::move(_pk_range)),
+        : env(_env),
+          pk_range(std::move(_pk_range)),
           sorting(_sorting),
           start(std::move(_start)),
           n(_n) { }
@@ -493,7 +506,7 @@ public:
             ref.btree,
             range,
             ref.superblock,
-            ref.env,
+            env,
             batchspec_t::all(),
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
@@ -538,7 +551,7 @@ public:
             srange,
             region_t(srange.to_sindex_keyrange()),
             ref.superblock,
-            ref.env,
+            env,
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
@@ -565,6 +578,7 @@ public:
     }
 
 private:
+    env_t *env;
     key_range_t pk_range;
     sorting_t sorting;
     boost::optional<item_queue_t::iterator> start;
@@ -577,7 +591,7 @@ item_vec_t limit_manager_t::read_more(
     const boost::optional<item_queue_t::iterator> &start,
     size_t n) {
     debugf("~~ READ_MORE\n");
-    ref_visitor_t visitor(region.inner, sorting, start, n);
+    ref_visitor_t visitor(env.get(), region.inner, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
 
@@ -1019,7 +1033,8 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_limit_subscribe_t(*addr, uuid, spec, std::move(table)),
+            read_t(changefeed_limit_subscribe_t(
+                       *addr, uuid, spec, std::move(table), env->get_all_optargs()),
                    profile_bool_t::DONT_PROFILE),
             &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(

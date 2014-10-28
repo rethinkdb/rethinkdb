@@ -340,13 +340,11 @@ private:
 typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> item_queue_t;
 
 struct primary_ref_t {
-    env_t *env;
     btree_slice_t *btree;
     superblock_t *superblock;
 };
 
 struct sindex_ref_t {
-    env_t *env;
     btree_slice_t *btree;
     superblock_t *superblock;
     const sindex_disk_info_t *sindex_info;
@@ -362,6 +360,8 @@ public:
         rwlock_in_line_t *clients_lock,
         region_t _region,
         std::string _table,
+        rdb_context_t *ctx,
+        std::map<std::string, wire_func_t> optargs,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -389,6 +389,8 @@ private:
                          const boost::optional<item_queue_t::iterator> &start,
                          size_t n);
     void send(msg_t &&msg);
+
+    scoped_ptr_t<env_t> env;
 
     server_t *parent;
     client_t::addr_t parent_client;
@@ -419,6 +421,8 @@ public:
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
+        rdb_context_t *ctx,
+        std::map<std::string, wire_func_t> optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,

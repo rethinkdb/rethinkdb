@@ -483,7 +483,6 @@ void do_a_replace_from_batched_replace(
     superblock_queue_t *queue,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
-    ql::env_t *env,
     profile::trace_t *trace,
     std::set<std::string> *conditions)
 {
@@ -503,7 +502,7 @@ void do_a_replace_from_batched_replace(
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
 
-    sindex_cb->on_mod_report(mod_report, info.btree->slice, queue, env);
+    sindex_cb->on_mod_report(mod_report, info.btree->slice, queue);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -512,10 +511,8 @@ batched_replace_response_t rdb_batched_replace(
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
-    ql::env_t *env,
+    ql::configured_limits_t limits,
     profile::trace_t *trace) {
-
-    auto limits = env->limits();
 
     fifo_enforcer_source_t source;
     fifo_enforcer_sink_t sink;
@@ -531,7 +528,7 @@ batched_replace_response_t rdb_batched_replace(
         for (size_t i = 0; i < keys.size(); ++i) {
             queue.push(
                 [&source, &sink, &info, &keys, &limits, &conditions, &stats, &queue,
-                 replacer, sindex_cb, env, trace, i](
+                 replacer, sindex_cb, trace, i](
                     superblock_t *cb_superblock,
                     promise_t<superblock_t *> *promise) {
                     do_a_replace_from_batched_replace(
@@ -546,7 +543,6 @@ batched_replace_response_t rdb_batched_replace(
                         &queue,
                         sindex_cb,
                         &stats,
-                        env,
                         trace,
                         &conditions);
                 });
@@ -1284,8 +1280,7 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &report,
     btree_slice_t *btree,
-    superblock_queue_t *queue,
-    ql::env_t *env) {
+    superblock_queue_t *queue) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
@@ -1293,7 +1288,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         cond_t sindexes_updated_cond;
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
-                      this, report, env, &sindexes_updated_cond));
+                      this, report, &sindexes_updated_cond));
         guarantee(store_->changefeed_server.has());
         store_->changefeed_server->send_all(
             ql::changefeed::msg_t(
@@ -1303,9 +1298,8 @@ void rdb_modification_report_cb_t::on_mod_report(
             report.primary_key);
 
         debugf("PKEY commit\n");
-        guarantee(env != NULL);
         auto store = this->store_;
-        queue->push([env, store, btree, report]
+        queue->push([store, btree, report]
                     (superblock_t *superblock,
                      promise_t<superblock_t *> *promise) {
             store->changefeed_server->foreach_limit(
@@ -1330,7 +1324,7 @@ void rdb_modification_report_cb_t::on_mod_report(
                                     ql::datum_t::null(), report.info.added.first);
                         }
                         lm->commit(lm_spot, ql::changefeed::primary_ref_t{
-                                env, btree, superblock});
+                                btree, superblock});
                     }
                 });
             debugf("Releasing superblock...\n");
@@ -1341,7 +1335,7 @@ void rdb_modification_report_cb_t::on_mod_report(
 }
 
 void rdb_modification_report_cb_t::on_mod_report_sub(
-    const rdb_modification_report_t &mod_report, ql::env_t *env, cond_t *cond) {
+    const rdb_modification_report_t &mod_report, cond_t *cond) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
@@ -1351,7 +1345,6 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     rdb_update_sindexes(store_,
                         sindexes_,
                         &mod_report,
-                        env,
                         sindex_block_->txn(),
                         &deletion_context);
     cond->pulse();
@@ -1541,7 +1534,6 @@ void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
-        ql::env_t *env,
         auto_drainer_t::lock_t) {
     debugf("~~~ RDB_UPDATE_SINGLE_SINDEX\n");
     // Note if you get this error it's likely that you've passed in a default
@@ -1686,20 +1678,14 @@ void rdb_update_single_sindex(
             ql::changefeed::limit_manager_t *lm) {
             guarantee(clients_spot->read_signal()->is_pulsed());
             guarantee(limit_clients_spot->read_signal()->is_pulsed());
-            // `env` should never be NULL here.  If it is, though, it's because
-            // there was some race condition where the limit manager exists
-            // while post-construction is going on (or else the unit tests need
-            // to pass in a real environment).
-            guarantee(env != NULL);
             lm->commit(lm_spot, ql::changefeed::sindex_ref_t{
-                    env, sindex->btree, superblock, &sindex_info});
+                    sindex->btree, superblock, &sindex_info});
         });
 }
 
 void rdb_update_sindexes(store_t *store,
                          const store_t::sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         ql::env_t *env,
                          txn_t *txn, const deletion_context_t *deletion_context) {
     {
         auto_drainer_t drainer;
@@ -1712,7 +1698,6 @@ void rdb_update_sindexes(store_t *store,
                     sindex.get(),
                     deletion_context,
                     modification,
-                    env,
                     auto_drainer_t::lock_t(&drainer)));
         }
     }
@@ -1827,7 +1812,6 @@ public:
             rdb_update_sindexes(store_,
                                 sindexes,
                                 &mod_report,
-                                NULL, // We happen not to need an `env_t` in this case.
                                 wtxn.get(),
                                 &deletion_context);
             store_->btree->stats.pm_keys_set.record();

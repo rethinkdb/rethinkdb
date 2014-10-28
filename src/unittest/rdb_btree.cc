@@ -65,7 +65,6 @@ void insert_rows(int start, int finish, store_t *store) {
             rdb_update_sindexes(store,
                                 sindexes,
                                 &mod_report,
-                                NULL, // We don't need an `env`.
                                 txn.get(),
                                 &deletion_context);
 

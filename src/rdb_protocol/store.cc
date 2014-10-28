@@ -272,7 +272,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
-        ql::env_t env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(), trace);
+        ql::env_t env(ctx, interruptor, s.optargs, trace);
         ql::stream_t stream;
         {
             rget_read_response_t resp;
@@ -311,8 +311,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(
-            s.addr, s.region, s.table, s.uuid, s.spec,
-            ql::changefeed::limit_order_t(s.spec.range.sorting), std::move(lvec));
+            s.addr,
+            s.region,
+            s.table,
+            ctx,
+            s.optargs,
+            s.uuid,
+            s.spec,
+            ql::changefeed::limit_order_t(s.spec.range.sorting),
+            std::move(lvec));
         auto addr = store->changefeed_server->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
@@ -659,16 +666,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 br.keys,
                 &replacer,
                 &sindex_cb,
-                &ql_env,
+                ql_env.limits(),
                 trace);
     }
 
     void operator()(const batched_insert_t &bi) {
-        ql::env_t ql_env(ctx,
-                         interruptor,
-                         std::map<std::string, ql::wire_func_t>(),
-                         trace,
-                         bi.limits);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -686,7 +688,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 keys,
                 &replacer,
                 &sindex_cb,
-                &ql_env,
+                bi.limits,
                 trace);
     }
 
