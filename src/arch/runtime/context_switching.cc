@@ -43,6 +43,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     /* Allocate the stack */
     stack = malloc_aligned(stack_size, getpagesize());
 
+    /* Tell the operating system that it can unmap the stack space
+    (except for the first page, which we are definitely going to need).
+    This is an optimization to keep memory consumption in check. */
+    guarantee(stack_size >= static_cast<size_t>(getpagesize()));
+    madvise(stack, stack_size - getpagesize(), MADV_DONTNEED);
+
     /* Protect the end of the stack so that we crash when we get a stack
     overflow instead of corrupting memory. */
 #ifndef THREADED_COROUTINES
@@ -143,6 +149,18 @@ artificial_stack_t::~artificial_stack_t() {
     /* Undo protections changes */
 #ifndef THREADED_COROUTINES
     mprotect(stack, getpagesize(), PROT_READ | PROT_WRITE);
+#endif
+
+    /* Return the memory to the operating system right away. This makes
+    sense because we keep our own cache of coroutine stacks around and
+    don't need to rely on the allocator to optimize for the case of
+    us quickly re-allocating an object of the same size.
+    On OS X we use MADV_FREE. On Linux MADV_FREE is not available,
+    and we use MADV_DONTNEED instead. */
+#ifdef __MACH__
+    madvise(stack, stack_size, MADV_FREE);
+#else
+    madvise(stack, stack_size, MADV_DONTNEED);
 #endif
 
     /* Release the stack we allocated */
