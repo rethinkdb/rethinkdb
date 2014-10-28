@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+import sys, os, time, traceback, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
 from vcoptparse import *
@@ -25,8 +25,13 @@ with driver.Metacluster() as metacluster:
                           executable_path = executable_path, command_prefix = command_prefix)
     proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    files3 = driver.Files(metacluster, log_path = "create-output-3", machine_name = "never_used",
+                          executable_path = executable_path, command_prefix = command_prefix)
+    proc3 = driver.Process(cluster1, files3, log_path = "serve-output-3",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
+    proc3.wait_until_started_up()
     cluster1.check()
     conn = r.connect("localhost", proc1.driver_port)
 
@@ -59,6 +64,11 @@ with driver.Metacluster() as metacluster:
                 return False
             c_shards = c_row["shards"]
             s_shards = s_row["shards"]
+            # Make sure that servers that have never been involved with the table will
+            # never appear in `table_status`. (See GitHub issue #3101.)
+            for s_shard in s_shards:
+                for doc in s_shard:
+                    assert doc["server"] != "never_used"
             if len(s_shards) != len(c_shards):
                 return False
             for (s_shard, c_shard) in zip(s_shards, c_shards):
@@ -99,12 +109,28 @@ with driver.Metacluster() as metacluster:
                 if time.time() > start_time + 10:
                     raise RuntimeError("Out of time")
         except:
+            sconf = list(r.db("rethinkdb").table("server_config").run(conn))
             config = list(r.db("rethinkdb").table("table_config").run(conn))
             status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
-            print "config =", config
-            print "status =", status
+            print "sconf ="
+            pprint.pprint(sconf)
+            print "config ="
+            pprint.pprint(config)
+            print "status ="
+            pprint.pprint(status)
             raise
+
+    # Make sure that `never_used` will never be picked as a default for a table by
+    # removing the `default` tag.
+    res = r.db("rethinkdb").table("server_config") \
+           .filter({"name": "never_used"}) \
+           .update({"tags": []}) \
+           .run(conn)
+    assert res["replaced"] == 1, res
+    wait_until(lambda:
+        r.db("rethinkdb").table("server_config").filter({"name": "never_used"}) \
+         .nth(0)["tags"].run(conn) == [])
 
     print "Creating a table..."
     r.db_create("test").run(conn)

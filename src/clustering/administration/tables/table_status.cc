@@ -47,7 +47,7 @@ ql::datum_t convert_director_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     *has_director_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
@@ -82,7 +82,7 @@ ql::datum_t convert_replica_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
@@ -109,7 +109,7 @@ ql::datum_t convert_replica_status_to_datum(
             }
         }
     }
-    object_builder.overwrite("state", ql::datum_t(std::move(state)));
+    object_builder.overwrite("state", ql::datum_t(state));
     return std::move(object_builder).to_datum();
 }
 
@@ -117,25 +117,32 @@ ql::datum_t convert_nothing_status_to_datum(
         const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
-    *is_unfinished_out = true;
-    ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
-    object_builder.overwrite("role", ql::datum_t("nothing"));
-    const char *state;
-    if (!status) {
-        state = "missing";
-        /* Don't display all the tables as unfinished just because one server is missing
-        */
+    if (status == nullptr) {
+        /* The server is missing. Don't display the missing server for this table because
+        the config says it shouldn't have data. This is misleading because it might still
+        have data for this table, if the config was changed but it didn't get a chance to
+        offload its data before going missing. But there's nothing we can do. */
         *is_unfinished_out = false;
+        return ql::datum_t();
     } else if (!check_complete_set(*status)) {
-        state = "transitioning";
+       /* The server is still in the process of resharding. Unfortunately, we have no way
+       of knowing if it has data for this table or not. So we omit it. This means that if
+       a server has data for a table but isn't present in the new config, a user watching
+       `table_status` will see a brief period where the server disappears and then
+       reappears. But this is better than every unrelated server mysteriously appearing
+       and then disappearing again. In order to do better we would have to store state so
+       we can remember if a server used to have data for us, and that's a pain. */
+       *is_unfinished_out = false;
+       return ql::datum_t();
     } else {
         size_t tally = count_in_state<nothing_t>(*status);
         if (tally == status->size()) {
+            /* This server doesn't have any data; it shouldn't even appear in the map. */
             *is_unfinished_out = false;
-            /* This server shouldn't even appear in the map */
             return ql::datum_t();
         } else {
+            *is_unfinished_out = true;
+            const char *state;
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
             if (tally == status->size()) {
                 state = "erasing_data";
@@ -147,10 +154,13 @@ ql::datum_t convert_nothing_status_to_datum(
                     state = "transitioning";
                 }
             }
+            ql::datum_object_builder_t object_builder;
+            object_builder.overwrite("server", convert_name_to_datum(name));
+            object_builder.overwrite("role", ql::datum_t("replica"));
+            object_builder.overwrite("state", ql::datum_t(state));
+            return std::move(object_builder).to_datum();
         }
     }
-    object_builder.overwrite("state", ql::datum_t(std::move(state)));
-    return std::move(object_builder).to_datum();
 }
 
 enum class table_readiness_t {
