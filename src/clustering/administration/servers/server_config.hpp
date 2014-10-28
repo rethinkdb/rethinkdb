@@ -39,6 +39,11 @@ private:
             server_semilattice_metadata_t const & server,
             ql::datum_t *row_out,
             std::string *error_out);
+
+    /* All writes to this pseudo-table must acquire this mutex. This makes it impossible
+    for multiple concurrent changes via this one server to cause a name conflict. Name
+    conflicts are still possible if changes are made via multiple servers. */
+    new_mutex_t write_mutex;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_ */

@@ -44,16 +44,9 @@ with driver.Metacluster() as metacluster:
               .nth(0)["id"].run(reql_conn1)
 
     def check_name(uuid, expect_name):
-        timeout = 10
-        for i in xrange(timeout):
-            names = [r.db("rethinkdb").table("server_config").get(uuid)["name"].run(c)
-                     for c in [reql_conn1, reql_conn2]]
-            if names[0] == names[1] == expect_name:
-                break
-            else:
-                time.sleep(1)
-        else:
-            raise RuntimeError("Name isn't as expected even after %d seconds" % timeout)
+        names = [r.db("rethinkdb").table("server_config").get(uuid)["name"].run(c)
+                 for c in [reql_conn1, reql_conn2]]
+        assert names[0] == names[1] == expect_name
 
     print "Checking initial names..."
     check_name(uuid_a, "a")
@@ -86,16 +79,9 @@ with driver.Metacluster() as metacluster:
     cluster.check()
 
     def check_tags(uuid, expect_tags):
-        timeout = 10
-        for i in xrange(timeout):
-            tags = [r.db("rethinkdb").table("server_config").get(uuid)["tags"].run(c)
-                    for c in [reql_conn1, reql_conn2]]
-            if set(tags[0]) == set(tags[1]) == set(expect_tags):
-                break
-            else:
-                time.sleep(1)
-        else:
-            raise RuntimeError("Tags aren't as expected even after %d seconds" % timeout)
+        tags = [r.db("rethinkdb").table("server_config").get(uuid)["tags"].run(c)
+                for c in [reql_conn1, reql_conn2]]
+        assert set(tags[0]) == set(tags[1]) == set(expect_tags)
 
     print "Checking initial tags..."
     check_tags(uuid_a, ["default", "foo"])

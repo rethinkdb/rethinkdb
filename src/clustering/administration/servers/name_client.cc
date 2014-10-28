@@ -124,6 +124,14 @@ bool server_name_client_t::rename_server(
         return false;
     }
 
+    try {
+        /* Don't return until the change is visible in the semilattices */
+        semilattice_view->sync_from(peer, interruptor);
+    } catch (const sync_failed_exc_t &) {
+        *error_out = lost_contact_message;
+        return false;
+    }
+
     return true;
 }
 
@@ -180,6 +188,14 @@ bool server_name_client_t::retag_server(
     wait_interruptible(&waiter, interruptor);
 
     if (!got_reply.is_pulsed()) {
+        *error_out = lost_contact_message;
+        return false;
+    }
+
+    try {
+        /* Don't return until the change is visible in the semilattices */
+        semilattice_view->sync_from(peer, interruptor);
+    } catch (const sync_failed_exc_t &) {
         *error_out = lost_contact_message;
         return false;
     }

@@ -83,6 +83,8 @@ bool server_config_artificial_table_backend_t::write_row(
         std::string *error_out) {
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
+    new_mutex_in_line_t write_mutex_in_line(&write_mutex);
+    wait_interruptible(write_mutex_in_line.acq_signal(), &interruptor2);
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     server_id_t server_id;

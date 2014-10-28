@@ -109,12 +109,9 @@ with driver.Metacluster() as metacluster:
                 if time.time() > start_time + 10:
                     raise RuntimeError("Out of time")
         except:
-            sconf = list(r.db("rethinkdb").table("server_config").run(conn))
             config = list(r.db("rethinkdb").table("table_config").run(conn))
             status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
-            print "sconf ="
-            pprint.pprint(sconf)
             print "config ="
             pprint.pprint(config)
             print "status ="
@@ -128,9 +125,6 @@ with driver.Metacluster() as metacluster:
            .update({"tags": []}) \
            .run(conn)
     assert res["replaced"] == 1, res
-    wait_until(lambda:
-        r.db("rethinkdb").table("server_config").filter({"name": "never_used"}) \
-         .nth(0)["tags"].run(conn) == [])
 
     print "Creating a table..."
     r.db_create("test").run(conn)
