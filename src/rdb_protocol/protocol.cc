@@ -854,6 +854,13 @@ void read_t::unshard(read_response_t *responses, size_t count,
     }
 }
 
+// Only use snapshotting if we're doing a range get.
+bool read_t::use_snapshot() const THROWS_NOTHING {
+    return boost::get<rget_read_t>(&read);
+}
+
+
+
 /* write_t::get_region() implementation */
 
 // TODO: This entire type is suspect, given the performance for
