@@ -428,19 +428,23 @@ uint64_t get_avail_mem_size() {
     uint64_t page_size = sysconf(_SC_PAGESIZE);
 
 #if defined(__MACH__)
-    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
     vm_statistics64_data_t vmstat;
     // We memset this struct to zero because of zero-knowledge paranoia that some old
     // system might use a shorter version of the struct, where it would not set the
     // vmstat.external_page_count field (which is relatively new) that we use below.
+    // (Probably, instead, the host_statistics64 call will fail, because count would
+    // be wrong.)
     memset(&vmstat, 0, sizeof(vmstat));
-    if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+    if (KERN_SUCCESS != host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmstat, &count)) {
         fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
         return 1024 * MEGABYTE;
     }
     // external_page_count is the number of pages that are file-backed (non-swap) --
-    // see /usr/include/mach/vm_statistics.h
-    return (vmstat.free_count + vmstat.external_page_count) * page_size;
+    // see /usr/include/mach/vm_statistics.h, see also vm_stat.c, the implementation
+    // of vm_stat, in Darwin.
+    uint64_t ret = (vmstat.free_count + vmstat.external_page_count) * page_size;
+    return ret;
 #else
     {
         uint64_t memory;
