@@ -1822,6 +1822,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
 RDB_IMPL_ME_SERIALIZABLE_4(
         datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
         left_bound_type, right_bound_type);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(datum_range_t);
+INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(datum_range_t);
 
 } // namespace ql

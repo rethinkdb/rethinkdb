@@ -901,7 +901,7 @@ public:
 private:
     virtual void add_el(const uuid_u &,
                         uint64_t d_stamp,
-                        const datum_t &pkey_val,
+                        DEBUG_VAR const datum_t &pkey_val,
                         datum_t d,
                         const configured_limits_t &) {
         assert_thread();
