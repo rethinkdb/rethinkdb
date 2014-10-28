@@ -31,7 +31,6 @@ module 'ResolveIssuesView', ->
             @model = data.model
             @model.set('collisionType', @parseCollisionType @model.get('type'))
             @listenTo @model, 'change', @render
-            @listenTo
 
         events:
             'click .remove-server': 'remove_server'
@@ -39,8 +38,8 @@ module 'ResolveIssuesView', ->
 
         render: =>
             templates = ResolveIssuesView.templates
-            if templates[@model.get('type')]?
-                @$el.html templates[@model.get('type')] @model.toJSON()
+            if templates[@type]?
+                @$el.html templates[@type] @model.toJSON()
             else
                 @$el.html templates.unknown @model.toJSON()
             @
