@@ -6,6 +6,8 @@
 
 #include "utils.hpp"
 
+#ifndef __MACH__
+
 size_t skip_spaces(const std::string &s, size_t i) {
     while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) {
         ++i;
@@ -119,3 +121,4 @@ bool get_proc_meminfo_available_memory_size(uint64_t *mem_avail_out) {
     return parse_meminfo_file(contents, mem_avail_out);
 }
 
+#endif  // __MACH__
