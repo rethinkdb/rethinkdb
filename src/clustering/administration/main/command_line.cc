@@ -429,12 +429,18 @@ uint64_t get_avail_mem_size() {
 
 #if defined(__MACH__)
     mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
-    vm_statistics_data_t vmstat;
+    vm_statistics64_data_t vmstat;
+    // We memset this struct to zero because of zero-knowledge paranoia that some old
+    // system might use a shorter version of the struct, where it would not set the
+    // vmstat.external_page_count field (which is relatively new) that we use below.
+    memset(&vmstat, 0, sizeof(vmstat));
     if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
         fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
         return 1024 * MEGABYTE;
     }
-    return vmstat.free_count * page_size;
+    // external_page_count is the number of pages that are file-backed (non-swap) --
+    // see /usr/include/mach/vm_statistics.h
+    return (vmstat.free_count + vmstat.external_page_count) * page_size;
 #else
     {
         uint64_t memory;
