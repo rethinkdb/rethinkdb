@@ -11,8 +11,8 @@ import utils
 
 r = utils.import_python_driver()
 
-num_rows = int(sys.argv[2])
 port = int(sys.argv[1])
+num_rows = int(sys.argv[2])
 
 class TestCursor(unittest.TestCase):
 

@@ -13,7 +13,7 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
 // --
 
-var build_dir = process.env.BUILD_DIR || '../../../build/debug' // - ToDo: replace this
+var rethinkdbExe = process.env.RDB_EXE_PATH || '../../../build/debug/rethinkdb' // - ToDo: replace the hard code
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
 var port = null;
@@ -131,7 +131,7 @@ describe('Javascript connection API', function(){
                 server_out_log = fs.openSync('run/server-log.txt', 'a');
                 server_err_log = fs.openSync('run/server-error-log.txt', 'a');
                 cpp_server = spawn(
-                    build_dir + '/rethinkdb',
+                    rethinkdbExe,
                     ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
                     {stdio: ['ignore', 'pipe', 'pipe']});
 
@@ -171,7 +171,8 @@ describe('Javascript connection API', function(){
         });
 
         it("correct authorization key", function(done){
-            spawn(build_dir + '/rethinkdb',
+            spawn(
+                  rethinkdbExe,
                   ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter3'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(function(){
@@ -184,7 +185,8 @@ describe('Javascript connection API', function(){
         });
 
         it("wrong authorization key", function(done){
-            spawn(build_dir + '/rethinkdb',
+            spawn(
+                  rethinkdbExe,
                   ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter4'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
 

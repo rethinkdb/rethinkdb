@@ -50,7 +50,7 @@ def load_groups():
 
 # Take the requirements for the tests, and build a configuration
 def configure(reqs, args):
-    src_root = utils.project_root_dir()
+    src_root = utils.project_root_dir
     if args.build_dir:
         build_dir = args.build_dir
     else:

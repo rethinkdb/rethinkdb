@@ -6,7 +6,7 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-$port = ARGV[0].to_i
+$port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 $c = r.connect(:host => 'localhost', :port => $port).repl
 
 def expect_eq(left, right)

@@ -11,7 +11,7 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
 // --
 
-var port = parseInt(process.argv[2], 10);
+var port = parseInt(process.argv[2] || process.env.RDB_DRIVER_PORT, 10);
 var idValue = Math.floor(Math.random()*1000);
 
 var tableName = "floor" + (Math.floor(Math.random()*1000) + 1);
