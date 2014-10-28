@@ -59,7 +59,6 @@ module 'DataExplorerView', ->
                     value = result
                 if typeof value._next is 'function' # if it's a cursor
                     @results = []
-                    @truncated = false
                     @cursor = value
                     @is_feed = @cursor.toString() == '[object Feed]'
                     @missing = 0
@@ -98,7 +97,6 @@ module 'DataExplorerView', ->
             delete @profile
             delete @value
             delete @results
-            delete @truncated
             @cursor?.close()
             delete @cursor
 
@@ -3613,7 +3611,7 @@ module 'DataExplorerView', ->
                     flatten_attr: flatten_attr
 
         tag_record: (doc, i) =>
-            doc.record = @metadata.skip_value + 1
+            doc.record = @metadata.skip_value + i
 
         render_result: (args) =>
 
