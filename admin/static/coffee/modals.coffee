@@ -340,11 +340,11 @@ module 'Modals', ->
             @remove()
 
     class @RemoveServerModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['declare_machine_dead-modal-template']
+        template: Handlebars.templates['declare_server_dead-modal-template']
         alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
         template_issue_error: Handlebars.templates['fail_solve_issue-template']
 
-        class: 'declare-machine-dead'
+        class: 'declare-server-dead'
 
         initialize: (data) ->
             @model = data.model
@@ -352,7 +352,7 @@ module 'Modals', ->
 
         render:  ->
             super
-                machine_name: @model.get("name")
+                server_name: @model.get("name")
                 modal_title: "Permanently remove the server"
                 btn_primary_text: 'Remove ' + @model.get('name')
             @

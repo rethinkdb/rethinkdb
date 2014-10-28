@@ -157,8 +157,8 @@ module 'LogView', ->
             
         parse_log: (log_data_from_server) =>
             @max_timestamp = 0
-            for machine_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[machine_uuid]?
+            for server_uuid, log_entries of log_data_from_server
+                if @filter? and not @filter[server_uuid]?
                     continue
 
                 if log_entries.length > 0
@@ -181,7 +181,7 @@ module 'LogView', ->
                         for log, i in @current_logs
                             if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                                 entry = new LogEntry json
-                                entry.set('machine_uuid',machine_uuid)
+                                entry.set('server_uuid',server_uuid)
                                 @current_logs.splice i, 0, entry
                                 log_saved = true
                                 break
@@ -189,7 +189,7 @@ module 'LogView', ->
                     # If it's not, just add it ad the end
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('machine_uuid',machine_uuid)
+                        entry.set('server_uuid',server_uuid)
                         @current_logs.push entry
 
             if @current_logs.length <= @displayed_logs
@@ -223,8 +223,8 @@ module 'LogView', ->
 
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
-                    for machine_uuid, log_entries of log_data_from_server
-                        if @filter? and not @filter[machine_uuid]?
+                    for server_uuid, log_entries of log_data_from_server
+                        if @filter? and not @filter[server_uuid]?
                             continue
                         @num_new_entries += log_entries.length
                     @render_header()
@@ -240,7 +240,7 @@ module 'LogView', ->
                 to_date: new XDate(@current_logs[@displayed_logs-1]?.get('timestamp')*1000).toString("MMMM d, yyyy 'at' HH:mm:ss")
                 logs_for:
                     general:    @type is 'general'
-                    machine:    @type is 'machine'
+                    server:    @type is 'server'
                     datacenter: @type is 'datacenter'
 
         update_log_entries: (event) =>
@@ -253,8 +253,8 @@ module 'LogView', ->
                 $.getJSON route, @parse_new_log
 
         parse_new_log: (log_data_from_server) =>
-            for machine_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[machine_uuid]?
+            for server_uuid, log_entries of log_data_from_server
+                if @filter? and not @filter[server_uuid]?
                     continue
 
 
@@ -263,14 +263,14 @@ module 'LogView', ->
                     for log, i in @current_logs
                         if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                             entry = new LogEntry json
-                            entry.set('machine_uuid',machine_uuid)
+                            entry.set('server_uuid',server_uuid)
                             @current_logs.splice i, 0, entry
                             log_saved = true
                             break
 
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('machine_uuid',machine_uuid)
+                        entry.set('server_uuid',server_uuid)
                         @current_logs.push entry
 
             for i in [@num_new_entries-1..0]
@@ -299,7 +299,7 @@ module 'LogView', ->
         template_small: Handlebars.templates['log-entry-small_template']
 
         log_single_value_template: Handlebars.templates['log-single_value-template']
-        log_machines_values_template: Handlebars.templates['log-machines_values-template']
+        log_servers_values_template: Handlebars.templates['log-servers_values-template']
         log_datacenters_values_template: Handlebars.templates['log-datacenters_values-template']
         log_shards_values_template: Handlebars.templates['log-shards_values-template']
         log_shards_list_values_template: Handlebars.templates['log-shards_list_values-template']
@@ -318,7 +318,7 @@ module 'LogView', ->
         log_new_datacenter_small_template: Handlebars.templates['log-new_datacenter-small_template']
         log_new_database_small_template: Handlebars.templates['log-new_database-small_template']
         log_namespace_value_small_template: Handlebars.templates['log-namespace_value-small_template']
-        log_machine_value_small_template: Handlebars.templates['log-machine_value-small_template']
+        log_server_value_small_template: Handlebars.templates['log-server_value-small_template']
         log_datacenter_value_small_template: Handlebars.templates['log-datacenter_value-small_template']
         log_database_value_small_template: Handlebars.templates['log-database_value-small_template']
 
@@ -369,7 +369,7 @@ module 'LogView', ->
                 json = _.extend @model.toJSON(), @format_msg(@model)
 
             json = _.extend json,
-                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
+                server_name: if servers.get(@model.get('server_uuid'))? then servers.get(@model.get('server_uuid')).get('name') else 'Unknown server'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
 
             if compact
@@ -473,9 +473,9 @@ module 'LogView', ->
                                                 if json_data[group][namespace_id][attribute][shard]?
                                                     shards.push
                                                         shard: shard
-                                                        machine_id:  json_data[group][namespace_id][attribute][shard]
-                                                        machine_name: if machines.get(json_data[group][namespace_id][attribute][shard])? then  machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else '[machine no longer exists]'
-                                                        machine_exists: machines.get(json_data[group][namespace_id][attribute][shard])?
+                                                        server_id:  json_data[group][namespace_id][attribute][shard]
+                                                        server_name: if servers.get(json_data[group][namespace_id][attribute][shard])? then  servers.get(json_data[group][namespace_id][attribute][shard]).get('name') else '[server no longer exists]'
+                                                        server_exists: servers.get(json_data[group][namespace_id][attribute][shard])?
                                                 else
                                                     shards.push
                                                         shard: shard
@@ -490,16 +490,16 @@ module 'LogView', ->
                                         else if attribute is 'secondary_pinnings'
                                             shards = []
                                             for shard of json_data[group][namespace_id][attribute]
-                                                _machines = []
-                                                for machine_id in json_data[group][namespace_id][attribute][shard]
-                                                    if machine_id?
-                                                        _machines.push
-                                                            id: machine_id
-                                                            name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
-                                                            exists: machines.get(machine_id)?
+                                                _servers = []
+                                                for server_id in json_data[group][namespace_id][attribute][shard]
+                                                    if server_id?
+                                                        _servers.push
+                                                            id: server_id
+                                                            name: if servers.get(server_id)? then servers.get(server_id).get 'name' else '[server no longer exists]'
+                                                            exists: servers.get(server_id)?
                                                 shards.push
                                                     shard: shard
-                                                    machines: _machines
+                                                    servers: _servers
                                             msg += @log_shards_list_values_template
                                                 namespace_id: namespace_id
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
@@ -517,21 +517,21 @@ module 'LogView', ->
                                                 attribute: attribute
                                                 shards: _.map(value, (shard) -> JSON.stringify(shard).replace(/\\"/g,'"'))
                                                 value: JSON.stringify(value).replace(/\\"/g,'"')
-                    else if group is 'machines'
-                        for machine_id of json_data[group]
-                            if json_data[group][machine_id] is null
+                    else if group is 'servers'
+                        for server_id of json_data[group]
+                            if json_data[group][server_id] is null
                                 msg += @log_delete_something_template
-                                    type: 'machine'
-                                    id: machine_id
+                                    type: 'server'
+                                    id: server_id
                             else
-                                for attribute of json_data[group][machine_id]
+                                for attribute of json_data[group][server_id]
                                     if attribute is 'name'
                                         msg += @log_server_new_name_template
-                                            name: json_data[group][machine_id][attribute]
-                                            machine_id: machine_id
-                                            machine_id_trunked: machine_id.slice 24
+                                            name: json_data[group][server_id][attribute]
+                                            server_id: server_id
+                                            server_id_trunked: server_id.slice 24
                                     else if attribute is 'datacenter_uuid'
-                                        datacenter_id = json_data[group][machine_id][attribute]
+                                        datacenter_id = json_data[group][server_id][attribute]
                                         if datacenter_id is universe_datacenter.get('id')
                                             datacenter_name = universe_datacenter.get 'name'
                                         else if datacenters.get(datacenter_id)?
@@ -539,9 +539,9 @@ module 'LogView', ->
                                         else
                                             datacenter_name = 'a removed datacenter'
                                         msg += @log_server_set_datacenter_template
-                                            machine_id: machine_id
-                                            machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else '[machine no longer exists]'
-                                            machine_exists: machines.get(machine_id)?
+                                            server_id: server_id
+                                            server_name: if servers.get(server_id)? then servers.get(server_id).get('name') else '[server no longer exists]'
+                                            server_exists: servers.get(server_id)?
                                             datacenter_id: datacenter_id
                                             datacenter_name: datacenter_name
                     else if group is 'datacenters'
@@ -627,11 +627,11 @@ module 'LogView', ->
                                     namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
                                     namespace_exists: namespaces.get(namespace_id)?
                                     attribute: value
-                    else if group is 'machines'
-                        for machine_id of json_data[group]
-                            for attribute of json_data[group][machine_id]
+                    else if group is 'servers'
+                        for server_id of json_data[group]
+                            for attribute of json_data[group][server_id]
                                 attributes = []
-                                for attribute of json_data[group][machine_id]
+                                for attribute of json_data[group][server_id]
                                     attributes.push attribute
 
                                 value = ''
@@ -640,10 +640,10 @@ module 'LogView', ->
                                     if i isnt attributes.length-1
                                         value += ', '
 
-                                msg += @log_machine_value_small_template
-                                    machine_id: machine_id
-                                    machine_name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
-                                    machine_exists: machines.get(machine_id)?
+                                msg += @log_server_value_small_template
+                                    server_id: server_id
+                                    server_name: if servers.get(server_id)? then servers.get(server_id).get 'name' else '[server no longer exists]'
+                                    server_exists: servers.get(server_id)?
                                     attribute: value
 
                     else if group is 'datacenters'

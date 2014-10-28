@@ -30,12 +30,12 @@
                 <ul>
                     {{#each datacenters_with_issues}}
                     {{#if datacenter_removed}}
-                    <li>A removed datacenter (id: <a href="#datacenters/{{datacenter_id}}">{{datacenter_id_small}}</a>): {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    <li>A removed datacenter (id: <a href="#datacenters/{{datacenter_id}}">{{datacenter_id_small}}</a>): {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_servers}} {{pluralize_noun "server" this.num_servers}} available.</li>
                     {{else}}
                     {{#if is_universe}}
-                    <li>Whole cluster: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    <li>Whole cluster: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_servers}} {{pluralize_noun "server" this.num_servers}} available.</li>
                     {{else}}
-                    <li>Datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a>: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    <li>Datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a>: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_servers}} {{pluralize_noun "server" this.num_servers}} available.</li>
                     {{/if}}
                     {{/if}}
                     {{/each}}

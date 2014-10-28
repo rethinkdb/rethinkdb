@@ -12,10 +12,10 @@
                 <li class="pretty_logs_li">{{shard}}: <span class="fake-link">null</span></li>
             {{else}}
                 <li class="pretty_logs_li">{{shard}}: 
-                {{#if machine_exists}}
-                    <a href="#servers/{{machine_id}}">{{machine_name}}</a>
+                {{#if server_exists}}
+                    <a href="#servers/{{server_id}}">{{server_name}}</a>
                 {{else}}
-                    [machine no longer exists]
+                    [server no longer exists]
                 {{/if}}
                 </li>
             {{/if}}

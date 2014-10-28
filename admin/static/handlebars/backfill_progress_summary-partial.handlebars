@@ -1,4 +1,4 @@
 
-  {{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.backfiller_machines}} from {{#comma_separated backfill_progress.backfiller_machines}}<a href="/#servers/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
+  {{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.backfiller_servers}} from {{#comma_separated backfill_progress.backfiller_servers}}<a href="/#servers/{{server_id}}">{{server_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
 
 

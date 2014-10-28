@@ -17,15 +17,15 @@ Handlebars.registerHelper 'comma_separated_simple', (context) ->
         out += ", " if i isnt context.length-1
     return out
 
-# Returns a list to links to machine
-Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
+# Returns a list to links to servers
+Handlebars.registerHelper 'links_to_servers', (servers, safety) ->
     out = ""
-    for i in [0...machines.length]
-        if machines[i].exists
-            out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+    for i in [0...servers.length]
+        if servers[i].exists
+            out += '<a href="#servers/'+servers[i].id+'" class="links_to_other_view">'+servers[i].name+'</a>'
         else
-            out += machines[i].name
-        out += ", " if i isnt machines.length-1
+            out += servers[i].name
+        out += ", " if i isnt servers.length-1
     if safety? and safety is false
         return out
     return new Handlebars.SafeString(out)
@@ -75,7 +75,7 @@ Handlebars.registerHelper 'humanize_uuid', (str) ->
         "NULL"
 
 # Helpers for printing reachability
-Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
+Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     if not status?
         result = 'N/A'
     else

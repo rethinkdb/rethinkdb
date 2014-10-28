@@ -8,7 +8,7 @@
     {{else}}
     <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from
     {{/if}}
-        <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
+        <strong>{{this.num_replicas}}</strong> to <strong>{{num_servers}}</strong>
             {{#if this.change_ack}}
             <br /><strong>Warning</strong>: The number of acks will be lowered too.
             {{/if}}
