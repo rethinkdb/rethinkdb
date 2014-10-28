@@ -18,7 +18,7 @@ except NameError:
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir, 'common'))
 import driver, utils
 
-logFile = tempfile.NamedTemporaryFile()
+logFile = tempfile.NamedTemporaryFile('w+')
 server = driver.Process(console_output=logFile.name)
 
 r = utils.import_python_driver()

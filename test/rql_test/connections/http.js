@@ -19,8 +19,7 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
 // --
 
-var build_dir = process.env.BUILD_DIR || '../../../build/debug' // - ToDo: replace this
-var port = parseInt(process.env.TEST_PORT, 10)
+var port = parseInt(process.env.RDB_DRIVER_PORT, 10)
 
 var withConnection = function(f){
     return function(done){

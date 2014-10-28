@@ -4,9 +4,8 @@ $test_count = 0
 $failure_count = 0
 $success_count = 0
 
-JSPORT = ARGV[0]
-CPPPORT = ARGV[1]
-DB_AND_TABLE_NAME = ARGV[2]
+DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+DB_AND_TABLE_NAME = ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME'] || 'no_table_specified'
 
 # -- import the rethinkdb driver
 
@@ -37,6 +36,10 @@ end
 
 def uuid
   AnyUUID
+end
+
+def shard
+  # do nothing in Ruby tests
 end
 
 def err(type, message, backtrace=[])
@@ -197,7 +200,7 @@ end
 def eval_env; binding; end
 $defines = eval_env
 
-$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => CPPPORT)
+$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
 begin
   r.db_create('test').run($cpp_conn)
 rescue

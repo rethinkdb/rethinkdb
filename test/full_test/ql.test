@@ -1,6 +1,6 @@
 # Test the query language
 
-run_prefix = '"$RETHINKDB"/test/rql_test/test-runner -b "$RETHINKDB_BUILD_DIR" '
+run_prefix = '"$RETHINKDB"/test/rql_test/test-runner -b "$RETHINKDB_BUILD_DIR/rethinkdb" '
 
 generate_test(
     run_prefix + "-i js connections/connection",

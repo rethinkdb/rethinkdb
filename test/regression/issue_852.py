@@ -21,7 +21,7 @@ with driver.Metacluster() as metacluster:
     files1 = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", command_prefix=command_prefix)
     files2 = driver.Files(metacluster, db_path="db-2", console_output="create-output-2", command_prefix=command_prefix)
     if opts["fast-workload"]:
-        print "Fast workload mode--starting processes in release mode."
+        print("Fast workload mode--starting processes in release mode.")
         process1 = driver.Process(cluster, files1, console_output="serve-output-1-fast")
         process2 = driver.Process(cluster, files2, console_output="serve-output-2-fast")
     else:
@@ -50,7 +50,7 @@ with driver.Metacluster() as metacluster:
         print("Stopping release-mode processes.")
         process1.check_and_stop()
         process2.check_and_stop()
-        print "Starting original-mode processes."
+        print("Starting original-mode processes.")
         process1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
         process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
         process1.wait_until_started_up()

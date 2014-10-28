@@ -21,7 +21,7 @@ def synchronized(lock):
 def checkedCall(command):
 	'''wrapper on subprocess.check_call to handle collecting stdout/stderr for errors'''
 	
-	output = tempfile.TemporaryFile()
+	output = tempfile.TemporaryFile('w+')
 	try:
 		subprocess.check_call(command, stdout=output, stderr=output)
 	except subprocess.CalledProcessError as e:
@@ -161,7 +161,7 @@ class ChangefeedsTest_Base(unittest.TestCase):
 		cls.servers = []
 		cluster = None
 		for i in range (cls.serversToStart):
-			logfile = tempfile.NamedTemporaryFile()
+			logfile = tempfile.NamedTemporaryFile('w+')
 			server = driver.Process(cluster=cluster, console_output=logfile.name)
 			server.wait_until_started_up()
 			cluster = server.cluster

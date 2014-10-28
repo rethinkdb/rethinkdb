@@ -7,9 +7,9 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
 // --
 
-var JSPORT = process.argv[2]
-var CPPPORT = process.argv[3]
-var DB_AND_TABLE_NAME = process.argv[4]
+// all argument numbers are +1 because the script is #1
+var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT
+var DB_AND_TABLE_NAME = process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME || 'no_table_specified'
 
 var TRACE_ENABLED = false;
 
@@ -172,7 +172,7 @@ process.on(
 )
 
 // Connect first to cpp server
-r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
+r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
             
     if(cpp_conn_err){
         console.log("Failed to connect to server:", cpp_conn_err);
@@ -291,7 +291,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     if (cpp_err) {
                         if (exp_fun.isErr) {
                             if (!exp_fun(cpp_err)) {
-                                printTestFailure(testName, src, ["Error running test on CPP server not equal to expected err:", "\n\tERROR: ", JSON.stringify(cpp_err), "\n\tEXPECTED ", exp_val]);
+                                printTestFailure(testName, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(cpp_err), "\n\tEXPECTED ", exp_val]);
                             }
                         } else {
                             var info;
@@ -306,7 +306,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             if (cpp_err.stack) {
                                 info += "\n\nStack:\n" + cpp_err.stack.toString();
                             }
-                            printTestFailure(testName, src, ["Error running test on CPP server:", "\n\tERROR: ", info]);
+                            printTestFailure(testName, src, ["Error running test on server:", "\n\tERROR: ", info]);
                         }
                     } else if (!exp_fun(cpp_res)) {
                         printTestFailure(testName, src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(cpp_res), "\n\tEXPECTED: ", exp_val]);

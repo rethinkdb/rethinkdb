@@ -32,7 +32,7 @@ def cleanupAtExit():
 
 # -- setup server folder
 
-subprocess.check_call([serverExecutable, 'create', '-d', serverFolder], stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
+subprocess.check_call([serverExecutable, 'create', '-d', serverFolder], stdout=tempfile.TemporaryFile('w+'), stderr=subprocess.STDOUT)
 
 # -- start the server
 
