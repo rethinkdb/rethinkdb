@@ -744,7 +744,7 @@ bool real_reql_cluster_interface_t::table_meta_read(
             array_builder.add(row);
         }
     }
-    *res_out = ql::datum_t(std::move(array_builder.to_datum()));
+    *res_out = ql::datum_t(std::move(array_builder).to_datum());
     return true;
 }
 
