@@ -47,7 +47,7 @@ ql::datum_t convert_director_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     *has_director_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
@@ -82,7 +82,7 @@ ql::datum_t convert_replica_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
@@ -117,7 +117,7 @@ ql::datum_t convert_nothing_status_to_datum(
         const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
-    if (!status) {
+    if (status == nullptr) {
         /* The server is missing. Don't display the missing server for this table because
         the config says it shouldn't have data. This is misleading because it might still
         have data for this table, if the config was changed but it didn't get a chance to
