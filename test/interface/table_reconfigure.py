@@ -103,7 +103,7 @@ with driver.Metacluster() as metacluster:
         del row["name"]
         del row["db"]
         del row["primary_key"]
-        del row["uuid"]
+        del row["id"]
         return row
     prev_config = get_config()
     new_config = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",

@@ -46,13 +46,13 @@ with driver.Metacluster() as metacluster:
     def check_status_matches_config():
         config = list(r.db("rethinkdb").table("table_config").run(conn))
         status = list(r.db("rethinkdb").table("table_status").run(conn))
-        uuids = set(row["uuid"] for row in config)
+        uuids = set(row["id"] for row in config)
         if not (len(uuids) == len(config) == len(status)):
             return False
-        if uuids != set(row["uuid"] for row in status):
+        if uuids != set(row["id"] for row in status):
             return False
         for c_row in config:
-            s_row = [row for row in status if row["uuid"] == c_row["uuid"]][0]
+            s_row = [row for row in status if row["id"] == c_row["id"]][0]
             if c_row["db"] != s_row["db"]:
                 return False
             if c_row["name"] != s_row["name"]:

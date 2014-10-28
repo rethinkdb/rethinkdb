@@ -31,7 +31,7 @@ with driver.Metacluster() as metacluster:
 
     rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 1 and rows[0]["name"] == "foo"
-    foo_uuid = rows[0]["uuid"]
+    foo_uuid = rows[0]["id"]
     assert r.db("rethinkdb").table("db_config").get(foo_uuid).run(conn)["name"] == "foo"
 
     res = r.db("rethinkdb").table("db_config").get(foo_uuid).update({"name": "foo2"}) \
@@ -46,7 +46,7 @@ with driver.Metacluster() as metacluster:
 
     rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
-    bar_uuid = [row["uuid"] for row in rows if row["name"] == "bar"][0]
+    bar_uuid = [row["id"] for row in rows if row["name"] == "bar"][0]
 
     res = r.db("rethinkdb").table("db_config").get(bar_uuid).update({"name": "foo2"}) \
            .run(conn)

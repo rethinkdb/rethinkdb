@@ -39,9 +39,9 @@ with driver.Metacluster() as metacluster:
 
     assert r.db("rethinkdb").table("server_config").count().run(reql_conn1) == 2
     uuid_a = r.db("rethinkdb").table("server_config").filter({"name":"a"}) \
-              .nth(0)["uuid"].run(reql_conn1)
+              .nth(0)["id"].run(reql_conn1)
     uuid_b = r.db("rethinkdb").table("server_config").filter({"name":"b"}) \
-              .nth(0)["uuid"].run(reql_conn1)
+              .nth(0)["id"].run(reql_conn1)
 
     def check_name(uuid, expect_name):
         timeout = 10
