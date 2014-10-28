@@ -46,11 +46,13 @@ ql::datum_t convert_debug_version_range_to_datum(
         builder.overwrite("timestamp", ql::datum_t(static_cast<double>(
             range.earliest.timestamp.to_repli_timestamp().longtime)));
     } else {
-        builder.overwrite("branch_1", convert_uuid_to_datum(range.earliest.branch));
-        builder.overwrite("timestamp_1", ql::datum_t(static_cast<double>(
+        builder.overwrite("branch_earliest",
+            convert_uuid_to_datum(range.earliest.branch));
+        builder.overwrite("timestamp_earliest", ql::datum_t(static_cast<double>(
             range.earliest.timestamp.to_repli_timestamp().longtime)));
-        builder.overwrite("branch_2", convert_uuid_to_datum(range.latest.branch));
-        builder.overwrite("timestamp_2", ql::datum_t(static_cast<double>(
+        builder.overwrite("branch_latest",
+            convert_uuid_to_datum(range.latest.branch));
+        builder.overwrite("timestamp_latest", ql::datum_t(static_cast<double>(
             range.latest.timestamp.to_repli_timestamp().longtime)));
     }
     return std::move(builder).to_datum();
