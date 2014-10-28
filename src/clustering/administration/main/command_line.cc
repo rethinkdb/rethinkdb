@@ -37,6 +37,7 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/options.hpp"
+#include "clustering/administration/main/meminfo.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
@@ -435,28 +436,34 @@ uint64_t get_avail_mem_size() {
     }
     return vmstat.free_count * page_size;
 #else
-    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
-    return avail_mem_pages * page_size;
+    {
+        uint64_t memory;
+        if (get_proc_meminfo_available_memory_size(&memory)) {
+            return memory;
+        } else {
+            fprintf(stderr,
+                    "ERROR: Could not parse /proc/meminfo, so we will treat "
+                    "cached file memory as if it were unavailable.");
+
+            // This just returns what /proc/meminfo would report as "MemFree".
+            uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+            return avail_mem_pages * page_size;
+        }
+    }
 #endif
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
-    uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
-    int64_t available_mem = get_avail_mem_size();
-
-    // Default to half the available memory minus a gigabyte, to leave room for server
-    // and query overhead, but never default to less than 100 megabytes
-    int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
-    uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
-
+    const uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
     if (exists_option(opts, "--cache-size")) {
-        std::string cache_size_opt = get_single_option(opts, "--cache-size");
-        if (!strtou64_strict(cache_size_opt, 10, &res)) {
+        const std::string cache_size_opt = get_single_option(opts, "--cache-size");
+        uint64_t cache_size_megs;
+        if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
             throw std::runtime_error(strprintf(
                     "ERROR: could not parse cache-size as a number (%s)",
                     cache_size_opt.c_str()));
         }
-        res = res * MEGABYTE;
+        const uint64_t res = cache_size_megs * MEGABYTE;
 
         if (res > cache_limit) {
             throw std::runtime_error(strprintf(
@@ -464,9 +471,17 @@ uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &op
                     "expected upper-bound for this platform (%" PRIu64" MB).",
                     res / 1024 / 1024, cache_limit / 1024 / 1024));
         }
-    }
 
-    return res;
+        return res;
+    } else {
+        const int64_t available_mem = get_avail_mem_size();
+
+        // Default to half the available memory minus a gigabyte, to leave room for server
+        // and query overhead, but never default to less than 100 megabytes
+        const int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
+        const uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
+        return res;
+    }
 }
 
 // Note that this defaults to the peer port if no port is specified
@@ -782,10 +797,10 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     // Provide some warnings if the cache size or available memory seem inadequate
     // We can't *really* tell what could go wrong given that we don't know how much data
     // or what kind of queries will be run, so these are just somewhat reasonable values.
-    uint64_t available_memory = get_avail_mem_size();
-    if (total_cache_size > get_avail_mem_size()) {
+    const uint64_t available_memory = get_avail_mem_size();
+    if (total_cache_size > available_memory) {
         logWRN("Requested cache size is larger than available memory.");
-    } else if (total_cache_size + GIGABYTE > get_avail_mem_size()) {
+    } else if (total_cache_size + GIGABYTE > available_memory) {
         logWRN("Cache size does not leave much memory for server and query "
                "overhead (available memory: %" PRIu64 " MB).",
                available_memory / static_cast<uint64_t>(MEGABYTE));
