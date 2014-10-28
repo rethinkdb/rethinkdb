@@ -857,12 +857,12 @@ void read_t::unshard(read_response_t *responses, size_t count,
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const { return false; }
     bool operator()(const rget_read_t &) const { return true; }
-    bool operator()(const intersecting_geo_read_t &) const { return false; }
-    bool operator()(const nearest_geo_read_t &) const { return false; }
+    bool operator()(const intersecting_geo_read_t &) const { return true; }
+    bool operator()(const nearest_geo_read_t &) const { return true; }
     bool operator()(const changefeed_subscribe_t &) const { return false; }
     bool operator()(const changefeed_stamp_t &) const { return false; }
     bool operator()(const changefeed_point_stamp_t &) const { return false; }
-    bool operator()(const distribution_read_t &) const { return false; }
+    bool operator()(const distribution_read_t &) const { return true; }
     bool operator()(const sindex_list_t &) const { return false; }
     bool operator()(const sindex_status_t &) const { return false; }
 };
