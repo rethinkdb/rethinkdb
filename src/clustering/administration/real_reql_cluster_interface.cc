@@ -230,14 +230,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         /* RSI(reql_admin): These should be passed by the user. */
-        table_generate_config_params_t config_params;
-        config_params.num_shards = 1;
-        config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
-        config_params.director_tag = name_string_t::guarantee_valid("default");
+        table_generate_config_params_t config_params =
+            table_generate_config_params_t::make_default();
         if (!table_generate_config(
                 server_name_client, nil_uuid(), nullptr, server_usage,
-                config_params, repli_info.shard_scheme, &interruptor2,
+                config_params, table_shard_scheme_t(), &interruptor2,
                 &repli_info.config, error_out)) {
+            *error_out = "When generating configuration for new table: " + *error_out;
             return false;
         }
 

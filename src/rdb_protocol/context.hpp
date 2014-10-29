@@ -53,6 +53,13 @@ class env_t;
 
 class table_generate_config_params_t {
 public:
+    static table_generate_config_params_t make_default() {
+        table_generate_config_params_t p;
+        p.num_shards = 1;
+        p.director_tag = name_string_t::guarantee_valid("default");
+        p.num_replicas[p.director_tag] = 1;
+        return p;
+    }
     size_t num_shards;
     std::map<name_string_t, size_t> num_replicas;
     name_string_t director_tag;
