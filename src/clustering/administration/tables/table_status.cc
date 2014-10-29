@@ -38,6 +38,19 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
     return count;
 }
 
+template <class T>
+static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status,
+                             const std::function<bool(const T&)> &predicate) {
+    int count = 0;
+    for (const reactor_activity_entry_t &entry : status) {
+        const T *role = boost::get<T>(&entry.activity);
+        if (role != NULL && predicate(*role)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 ql::datum_t convert_director_status_to_datum(
         const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status,
@@ -52,13 +65,17 @@ ql::datum_t convert_director_status_to_datum(
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
-        size_t tally = count_in_state<primary_t>(*status);
-        if (tally == status->size()) {
+        size_t masters = count_in_state<primary_t>(*status,
+            [&](const reactor_business_card_t::primary_t &primary) -> bool {
+                return static_cast<bool>(primary.master);
+            });
+        if (masters == status->size()) {
             state = "ready";
             *has_director_out = true;
         } else {
-            tally += count_in_state<primary_when_safe_t>(*status);
-            if (tally == status->size()) {
+            size_t all_primaries = count_in_state<primary_t>(*status) +
+                count_in_state<primary_when_safe_t>(*status);
+            if (all_primaries == status->size()) {
                 state = "backfilling_data";
             } else {
                 state = "transitioning";
