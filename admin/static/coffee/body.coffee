@@ -41,9 +41,9 @@ module 'MainView', ->
 
         fetch_data: =>
             query = r.expr
-                databases: r.db(system_db).table('db_config').merge({id: r.row("uuid")}).pluck('name', 'id').coerceTo("ARRAY")
-                tables: r.db(system_db).table('table_config').merge({id: r.row("uuid")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
-                servers: r.db(system_db).table('server_config').merge({id: r.row("uuid")}).pluck('name', 'id').coerceTo("ARRAY")
+                databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
+                tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
+                servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 issues: r.db(system_db).table('issues').coerceTo("ARRAY")
                 num_issues: r.db(system_db).table('issues').count()
                 me: "TODO"

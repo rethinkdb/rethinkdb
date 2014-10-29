@@ -1,15 +1,12 @@
-
-    <div class="row-fluid">
-        <div class="span9">
-            {{print_safe msg}}
-            <p class="from-server">Posted by <a href="#servers/{{server_uuid}}">{{server_name}}</a></p>
-        </div>
-        <div class="span3">
-            <p class="datetime">{{datetime}}</p>
-        </div>
+<div class="row-fluid">
+    <div class="span9">
+        {{print_safe msg}}
+        <p class="from-server">Posted by <a href="#servers/{{server_id}}">{{server_name}}</a></p>
     </div>
-    {{#if raw_data}}    
-        <pre class="details">{{raw_data}}</pre>
-    {{/if}}
-
-
+    <div class="span3">
+        <p class="datetime">{{datetime}}</p>
+    </div>
+</div>
+{{#if raw_data}}    
+    <pre class="details">{{raw_data}}</pre>
+{{/if}}

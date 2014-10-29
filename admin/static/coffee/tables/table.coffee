@@ -43,14 +43,14 @@ module 'TableView', ->
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
                                     director:
-                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("uuid")
+                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
                                     replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
                                         replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director"))
                                     ).map (name) ->
-                                        id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("uuid")
+                                        id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("id")
                                         name: name
-                                id: table("uuid")
+                                id: table("id")
                             ).do( (table) ->
                                 r.branch( # We must be sure that the table is ready before retrieving the indexes
                                     table("num_available_shards").eq(table("num_shards")), #TODO Is that a sufficient condition?

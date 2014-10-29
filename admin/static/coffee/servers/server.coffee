@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Server view
+# Machine view
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
         template:
@@ -9,7 +9,7 @@ module 'ServerView', ->
 
         initialize: (id) =>
             @id = id
-            @loading = true #TODO render
+            @loading = true
             @server = null
 
             @fetch_server()
@@ -33,12 +33,12 @@ module 'ServerView', ->
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
                         ).merge( (table) ->
-                            id: table("uuid")
+                            id: table("id")
                         ).coerceTo("ARRAY")
                     )
                 )
             ).merge
-                id: r.row 'uuid'
+                id: r.row 'id'
 
             @timer = driver.run query, 5000, (error, result) =>
                 # We should call render only once to avoid blowing all the sub views
@@ -176,7 +176,7 @@ module 'ServerView', ->
             # TODO: Implement when logs will be available
             #@logs = new LogView.Container
             #    route: "ajax/log/"+@model.get('id')+"?"
-            #    type: 'server'
+            #    type: 'machine'
             #@$('.recent-log-entries').html @logs.render().$el
             @
 
@@ -189,8 +189,8 @@ module 'ServerView', ->
                 @rename_modal.remove()
 
     class @Title extends Backbone.View
-        className: 'server-info-view'
-        template: Handlebars.templates['server_view_title-template']
+        className: 'machine-info-view'
+        template: Handlebars.templates['machine_view_title-template']
         initialize: =>
             @listenTo @model, 'change:name', @render
 
@@ -204,8 +204,8 @@ module 'ServerView', ->
             super()
 
     class @Profile extends Backbone.View
-        className: 'server-info-view'
-        template: Handlebars.templates['server_view_profile-template']
+        className: 'machine-info-view'
+        template: Handlebars.templates['machine_view_profile-template']
         initialize: =>
             @listenTo @model, 'change', @render
             @listenTo @collection, 'add', @render

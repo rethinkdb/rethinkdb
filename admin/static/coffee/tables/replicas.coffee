@@ -68,7 +68,7 @@ module 'TableView', ->
                 return 1
 
             query = r.db(@model.get('db')).table(@model.get('name')).reconfigure(
-                r.db(system_db).table('table_config').get(@model.get('uuid'))('shards').count(),
+                r.db(system_db).table('table_config').get(@model.get('id'))('shards').count(),
                 new_num_replicas
             )
             driver.run_once query, (error, result) =>
@@ -116,7 +116,7 @@ module 'TableView', ->
                 if not @timer?
                     ignore = (shard) -> shard('role').ne('nothing')
                     query =
-                        r.db(system_db).table('table_status').get(@model.get('uuid')).do( (table) ->
+                        r.db(system_db).table('table_status').get(@model.get('id')).do( (table) ->
                             r.branch(
                                 table.eq(null),
                                 null,

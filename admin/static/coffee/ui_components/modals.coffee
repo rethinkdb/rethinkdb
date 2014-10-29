@@ -149,7 +149,7 @@ module 'UIComponents', ->
 
     # Rename common items (tables, databases, servers)
     # The modal takes a few arguments:
-    #   - item_uuid: uuid of the element to rename
+    #   - item_id: id of the element to rename
     #   - item_type: type of the element to rename
     #   - on_success: function to perform on successful rename
     #   - options:

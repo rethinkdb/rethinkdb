@@ -322,7 +322,7 @@ module 'TableView', ->
             ignore = (shard) -> shard('role').ne('nothing')
             query = r.db(@model.get('db')).table(@model.get('name')).reconfigure(
                 new_num_shards,
-                r.db(system_db).table('table_status').get(@model.get('uuid'))('shards').nth(0).filter(ignore).count()
+                r.db(system_db).table('table_status').get(@model.get('id'))('shards').nth(0).filter(ignore).count()
             )
             driver.run_once query, (error, result) =>
                 if error?

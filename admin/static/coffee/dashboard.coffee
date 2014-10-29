@@ -392,14 +392,14 @@ module 'DashboardView', ->
                     for old_log_entry, i in @log_entries
                         if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
                             entry = new LogEntry new_log_entry
-                            entry.set('server_uuid', server_id)
+                            entry.set('server_id', server_id)
                             @log_entries.splice i, 0, entry
                             need_render = true
                             break
 
                     if @log_entries.length < @max_entry_logs
                         entry = new LogEntry new_log_entry
-                        entry.set('server_uuid', server_id)
+                        entry.set('server_id', server_id)
                         @log_entries.push entry
                         need_render = true
                     else if @log_entries.length > @max_entry_logs

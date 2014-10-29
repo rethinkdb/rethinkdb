@@ -157,8 +157,8 @@ module 'LogView', ->
             
         parse_log: (log_data_from_server) =>
             @max_timestamp = 0
-            for server_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[server_uuid]?
+            for server_id, log_entries of log_data_from_server
+                if @filter? and not @filter[server_id]?
                     continue
 
                 if log_entries.length > 0
@@ -181,7 +181,7 @@ module 'LogView', ->
                         for log, i in @current_logs
                             if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                                 entry = new LogEntry json
-                                entry.set('server_uuid',server_uuid)
+                                entry.set('server_id',server_id)
                                 @current_logs.splice i, 0, entry
                                 log_saved = true
                                 break
@@ -189,7 +189,7 @@ module 'LogView', ->
                     # If it's not, just add it ad the end
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('server_uuid',server_uuid)
+                        entry.set('server_id', server_id)
                         @current_logs.push entry
 
             if @current_logs.length <= @displayed_logs
@@ -223,8 +223,8 @@ module 'LogView', ->
 
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
-                    for server_uuid, log_entries of log_data_from_server
-                        if @filter? and not @filter[server_uuid]?
+                    for server_id, log_entries of log_data_from_server
+                        if @filter? and not @filter[server_id]?
                             continue
                         @num_new_entries += log_entries.length
                     @render_header()
@@ -253,8 +253,8 @@ module 'LogView', ->
                 $.getJSON route, @parse_new_log
 
         parse_new_log: (log_data_from_server) =>
-            for server_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[server_uuid]?
+            for server_id, log_entries of log_data_from_server
+                if @filter? and not @filter[server_id]?
                     continue
 
 
@@ -263,14 +263,14 @@ module 'LogView', ->
                     for log, i in @current_logs
                         if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                             entry = new LogEntry json
-                            entry.set('server_uuid',server_uuid)
+                            entry.set('server_id', server_id)
                             @current_logs.splice i, 0, entry
                             log_saved = true
                             break
 
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('server_uuid',server_uuid)
+                        entry.set('server_id', server_id)
                         @current_logs.push entry
 
             for i in [@num_new_entries-1..0]
@@ -369,7 +369,7 @@ module 'LogView', ->
                 json = _.extend @model.toJSON(), @format_msg(@model)
 
             json = _.extend json,
-                server_name: if servers.get(@model.get('server_uuid'))? then servers.get(@model.get('server_uuid')).get('name') else 'Unknown server'
+                server_name: if servers.get(@model.get('server_id'))? then servers.get(@model.get('server_id')).get('name') else 'Unknown server'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
 
             if compact
@@ -398,17 +398,17 @@ module 'LogView', ->
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
                                 #TODO datacenter name
-                                if datacenters.get(json_data[group]['new']['primary_uuid'])?
-                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_uuid']).get 'name'
-                                else if json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
+                                if datacenters.get(json_data[group]['new']['primary_id'])?
+                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_id']).get 'name'
+                                else if json_data[group]['new']['primary_id'] is universe_datacenter.get('id')
                                     datacenter_name = universe_datacenter.get('name')
                                 else
                                     datacenter_name = 'a removed datacenter'
                                 msg += @log_new_namespace_template
                                     namespace_name: json_data[group]['new']['name']
-                                    datacenter_id: json_data[group]['new']['primary_uuid']
+                                    datacenter_id: json_data[group]['new']['primary_id']
                                     datacenter_name: datacenter_name
-                                    is_universe: json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
+                                    is_universe: json_data[group]['new']['primary_id'] is universe_datacenter.get('id')
                             else
                                 if json_data[group][namespace_id] is null
                                     msg += @log_delete_something_template
@@ -451,7 +451,7 @@ module 'LogView', ->
                                                 namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]
-                                        else if attribute is 'primary_uuid'
+                                        else if attribute is 'primary_id'
                                             datacenter_id = json_data[group][namespace_id][attribute]
                                             if datacenter_id is universe_datacenter.get('id')
                                                 datacenter_name = universe_datacenter.get 'name'
@@ -530,7 +530,7 @@ module 'LogView', ->
                                             name: json_data[group][server_id][attribute]
                                             server_id: server_id
                                             server_id_trunked: server_id.slice 24
-                                    else if attribute is 'datacenter_uuid'
+                                    else if attribute is 'datacenter_id'
                                         datacenter_id = json_data[group][server_id][attribute]
                                         if datacenter_id is universe_datacenter.get('id')
                                             datacenter_name = universe_datacenter.get 'name'

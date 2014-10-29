@@ -38,7 +38,7 @@ module 'TablesView', ->
             @add_table_dialog.render()
 
         delete_tables: (event) =>
-            # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
+            # Make sure the button isn't disabled, and pass the list of table ids selected
             if not $(event.currentTarget).is ':disabled'
                 selected_tables = []
                 @$('.checkbox-table:checked').each () ->
@@ -78,13 +78,13 @@ module 'TablesView', ->
                 db("name").ne('rethinkdb')
             ).map (db) ->
                 name: db("name")
-                id: db("uuid")
+                id: db("id")
                 tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
                     .filter({db: db("name")}).merge( (table) ->
                         shards: table("shards").count()
                         replicas: table("shards").nth(0).count()
                     ).merge( (table) ->
-                        id: table("uuid")
+                        id: table("id")
                     )
 
             @fetch_data()

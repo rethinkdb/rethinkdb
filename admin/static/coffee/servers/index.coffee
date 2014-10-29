@@ -27,7 +27,7 @@ module 'ServersView', ->
 
         fetch_servers: =>
             query = r.db(system_db).table('server_status').merge( (server) ->
-                id: server("uuid")
+                id: server("id")
                 primary_count:
                     r.db(system_db).table('table_config')
                     .concatMap( (table) -> table("shards") )
@@ -45,15 +45,15 @@ module 'ServersView', ->
                     last_seen: server('time_disconnected')
             )
             @timer = driver.run query, 5000, (error, result) =>
-                uuids = {}
+                ids = {}
                 for server, index in result
                     @servers.add new Server(server)
-                    uuids[server.id] = true
+                    ids[server.id] = true
 
                 # Clean  removed servers
                 toDestroy = []
                 for server in @servers.models
-                    if uuids[server.get('id')] isnt true
+                    if ids[server.get('id')] isnt true
                         toDestroy.push server
                 for server in toDestroy
                     server.destroy()

@@ -251,7 +251,7 @@ module 'Modals', ->
                                     shards: 1
                                     replicas: 1
                                     ready_completely: "N/A"
-                                    id: result.generated_keys[0] #TODO Replace when uuid will be renamed id...
+                                    id: result.generated_keys[0]
 
                             # We suppose that after one second, the data will be available
                             # So the yellow light will be replaced with a green one

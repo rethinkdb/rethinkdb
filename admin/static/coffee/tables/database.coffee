@@ -39,10 +39,10 @@ module 'DatabaseView', ->
                             num_replicas: table("shards").nth(0).filter( (shard) ->
                                 shard("role").ne("nothing")
                             ).count()
-                            id: table("uuid")
+                            id: table("id")
                             ready_completely: table("ready_completely")
             ).merge
-                id: r.row 'uuid'
+                id: r.row 'id'
 
             @timer = driver.run query, 5000, (error, result) =>
                 if error?

@@ -1,39 +1,36 @@
-
-    {{#if status_is_ok}}
-        <div class="status no-problems-detected">
-            <h3>Availability</h3>
-            <p class="message"><span class="good">0</span> issues detected</p>
-            <p class="details"><span class="good">{{num_directors}}/{{num_directors}}</span> directors are online</p>
-        </div>
-    {{else}}
-        <div class="status problems-detected">
-            <h3>Availability</h3>
-            <p class="message"><span class="bad">{{num_non_available_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-            <p class="details"><span class="bad">{{num_non_available_directors}}/{{num_directors}}</span> <a href="#" class="show_details">directors</a> not available</p>
-        </div>
-    {{/if}}
-    <div class="popup_container">
-        <a class="close" href="#">&times;</a>
-        <div class="arrow_left"></div>
-        <div class="arrow_left_overlay"></div>
-        <div class="inner_content">
-            <h4>List of directors not available</h4>
-            <ul class="ul_first_level">
-                {{#each tables_with_directors_not_ready}}
-                <li class="li_first_level">Table <a href="#tables/{{uuid}}">{{db}}.{{name}}</a>:
-                <ul class="ul_second_level">
-                    {{#each shards}}
-                    <li class="li_second_level">
-                        Shard {{position}}/{{num_shards}}<br/>
-                        Expected director: <a href="#servers/{{server_id}}">{{server}}</a><br/>
-                        Status/Goal: {{state}} / ready
-                    </li>
-                    {{/each}}
-                </ul>
+{{#if status_is_ok}}
+    <div class="status no-problems-detected">
+        <h3>Availability</h3>
+        <p class="message"><span class="good">0</span> issues detected</p>
+        <p class="details"><span class="good">{{num_directors}}/{{num_directors}}</span> directors are online</p>
+    </div>
+{{else}}
+    <div class="status problems-detected">
+        <h3>Availability</h3>
+        <p class="message"><span class="bad">{{num_non_available_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+        <p class="details"><span class="bad">{{num_non_available_directors}}/{{num_directors}}</span> <a href="#" class="show_details">directors</a> not available</p>
+    </div>
+{{/if}}
+<div class="popup_container">
+    <a class="close" href="#">&times;</a>
+    <div class="arrow_left"></div>
+    <div class="arrow_left_overlay"></div>
+    <div class="inner_content">
+        <h4>List of directors not available</h4>
+        <ul class="ul_first_level">
+            {{#each tables_with_directors_not_ready}}
+            <li class="li_first_level">Table <a href="#tables/{{id}}">{{db}}.{{name}}</a>:
+            <ul class="ul_second_level">
+                {{#each shards}}
+                <li class="li_second_level">
+                    Shard {{position}}/{{num_shards}}<br/>
+                    Expected director: <a href="#servers/{{server_id}}">{{server}}</a><br/>
+                    Status/Goal: {{state}} / ready
                 </li>
                 {{/each}}
             </ul>
-        </div>
+            </li>
+            {{/each}}
+        </ul>
     </div>
-
-
+</div>
