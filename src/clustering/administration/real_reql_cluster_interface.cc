@@ -176,7 +176,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
-    namespace_id_t namespace_id;
     {
         cross_thread_signal_t interruptor2(interruptor,
             semilattice_root_view->home_thread());
@@ -251,22 +250,16 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
         (void)hard_durability;
 
-        namespace_id = generate_uuid();
+        namespace_id_t table_id = generate_uuid();
         ns_change.get()->namespaces.insert(
-            std::make_pair(namespace_id, make_deletable(table_metadata)));
+            std::make_pair(table_id, make_deletable(table_metadata)));
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        // `db` is a single-threaded counted_t, easiest solution is to copy it
-        counted_t<const ql::db_t> ct_db =
-            make_counted<const ql::db_t>(db.get()->id, db.get()->name);
-        std::string error;
-        // This could fail if the table is deleted, but we don't care about that
-        UNUSED bool wait_res = table_wait(ct_db, { name },
-                                          table_readiness_t::writes,
-                                          ql::make_counted_backtrace(), &interruptor2,
-                                          NULL, &error);
+        table_waiter_t waiter(table_id, directory_root_view,
+                              admin_tables->table_status_backend.get());
+        waiter.wait_ready(table_readiness_t::finished, &interruptor2);
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
     return true;
