@@ -23,7 +23,7 @@ class common_server_artificial_table_backend_t :
     public artificial_table_backend_t {
 public:
     common_server_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_read_view_t<
+            boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
             server_name_client_t *_name_client) :
         servers_sl_view(_servers_sl_view),
@@ -62,7 +62,7 @@ protected:
             server_id_t *server_id_out,
             server_semilattice_metadata_t **server_out);
 
-    boost::shared_ptr< semilattice_read_view_t<
+    boost::shared_ptr< semilattice_readwrite_view_t<
         servers_semilattice_metadata_t> > servers_sl_view;
     server_name_client_t *name_client;
 };
