@@ -174,38 +174,6 @@ ql::datum_t convert_nothing_status_to_datum(
     }
 }
 
-table_directory_converter_t::table_directory_converter_t(
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *_directory,
-        namespace_id_t _table_id) :
-    watchable_map_transform_t(_directory),
-    table_id(_table_id) { }
-
-bool table_directory_converter_t::key_1_to_2(
-        const std::pair<peer_id_t, namespace_id_t> &key1,
-        peer_id_t *key2_out) {
-    if (key1.second == table_id) {
-        *key2_out = key1.first;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void table_directory_converter_t::value_1_to_2(
-        const namespace_directory_metadata_t *value1,
-        const namespace_directory_metadata_t **value2_out) {
-    *value2_out = value1;
-}
-
-bool table_directory_converter_t::key_2_to_1(
-        const peer_id_t &key2,
-        std::pair<peer_id_t, namespace_id_t> *key1_out) {
-    key1_out->first = key2;
-    key1_out->second = table_id;
-    return true;
-}
-
 ql::datum_t convert_table_status_shard_to_datum(
         namespace_id_t table_id,
         key_range_t range,
