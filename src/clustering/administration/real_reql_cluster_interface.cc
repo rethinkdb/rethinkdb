@@ -257,9 +257,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        table_waiter_t waiter(table_id, directory_root_view,
-                              admin_tables->table_status_backend.get());
-        waiter.wait_ready(table_readiness_t::finished, &interruptor2);
+        wait_for_table_readiness(table_id, 
+                                 table_readiness_t::finished,
+                                 admin_tables->table_status_backend.get(),
+                                 &interruptor2);
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
     return true;
@@ -457,27 +458,24 @@ bool real_reql_cluster_interface_t::table_wait(
         on_thread_t thread_switcher(new_thread);
         table_status_artificial_table_backend_t *table_status_backend =
             admin_tables->table_status_backend.get();
-
         rassert(new_thread == table_status_backend->home_thread());
-
-        // Create a waiter object to watch for changes in a table's directory
-        std::vector<scoped_ptr_t<table_waiter_t> > waiters;
-        for (auto const &pair : table_map) {
-            waiters.push_back(scoped_ptr_t<table_waiter_t>(
-                new table_waiter_t(pair.first, directory_root_view,
-                                   table_status_backend)));
-        }
 
         // Loop until all tables are ready - we have to check all tables again
         // if a table was not immediately ready
         bool immediate;
         do {
             immediate = true;
-            for (auto const &w : waiters) {
-                table_waiter_t::waited_t res = w->wait_ready(readiness, &ct_interruptor);
-                immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
+            for (auto const &pair : table_map) {
+                table_wait_result_t res = wait_for_table_readiness(
+                    pair.first, readiness, table_status_backend, &ct_interruptor);
+                immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
+                if (res == table_wait_result_t::DELETED && tables.size() != 0) {
+                    *error_out = strprintf("Table `%s.%s` does not exist.",
+                                           db->name.c_str(), pair.second.str().c_str());
+                    return false;
+                }
             }
-        } while (!immediate && waiters.size() != 1);
+        } while (!immediate && table_map.size() != 1);
 
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
@@ -626,23 +624,6 @@ void real_reql_cluster_interface_t::get_databases_metadata(
                       ph::_1, out));
 }
 
-std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
-        std::map<namespace_id_t, name_string_t> table_map,
-        const std::vector<ql::datum_t> &result) {
-    std::string error;
-    for (auto const &row : result) {
-        namespace_id_t table_id;
-        guarantee(convert_uuid_from_datum(row.get_field("id"), &table_id, &error));
-        table_map.erase(table_id);
-    }
-
-    // Only report the 'first' missing table to keep some consistency
-    // with other error messages
-    rassert(!table_map.empty());
-    return strprintf("Table `%s.%s` does not exist.",
-                     db->name.c_str(), table_map.begin()->second.str().c_str());
-}
-
 bool real_reql_cluster_interface_t::table_meta_read(
         artificial_table_backend_t *backend,
         const counted_t<const ql::db_t> &db,
@@ -661,7 +642,8 @@ bool real_reql_cluster_interface_t::table_meta_read(
         if (row.has()) {
             res_out->push_back(row);
         } else if (error_on_missing) {
-            *error_out = deleted_table_error_message(db, table_map, *res_out);
+            *error_out = strprintf("Table `%s.%s` does not exist.",
+                                   db->name.c_str(), pair.second.str().c_str());
             return false;
         }
     }
