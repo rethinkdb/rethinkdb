@@ -6,7 +6,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 std::string common_table_artificial_table_backend_t::get_primary_key_name() {
-    return "uuid";
+    return "id";
 }
 
 bool common_table_artificial_table_backend_t::read_all_rows_as_vector(

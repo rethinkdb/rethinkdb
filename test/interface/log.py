@@ -30,7 +30,7 @@ with driver.Metacluster() as metacluster:
     print
     time.sleep(10)
     print "Trying to access its log..."
-    log = access.get_log(access.machines.keys()[0], max_length = num_entries + 100)
+    log = access.get_log(access.servers.keys()[0], max_length = num_entries + 100)
     print "Log is %d lines" % len(log)
     assert len(log) >= num_entries
     cluster.check_and_stop()

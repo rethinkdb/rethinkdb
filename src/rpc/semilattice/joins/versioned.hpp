@@ -11,7 +11,7 @@
 
 /* A `versioned_t` is used in the semilattices to track a setting that the user is
 allowed to update. If the setting is updated in two places simultaneously, the
-semilattice join will pick the one that came later as measured by the machines' clocks.
+semilattice join will pick the one that came later as measured by the servers' clocks.
 */
 
 template<class T>

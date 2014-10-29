@@ -40,8 +40,8 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", proxy_process.http_port)])
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     ns = scenario_common.prepare_table_for_workload(http, primary=dc)
     http.wait_until_blueprint_satisfied(ns)
 

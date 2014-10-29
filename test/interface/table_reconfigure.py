@@ -21,7 +21,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up %d processes..." % num_servers
     files = [driver.Files(metacluster,
                           log_path = "create-output-%d" % (i+1),
-                          machine_name = "s%d" % (i+1),
+                          server_name = "s%d" % (i+1),
                           server_tags = ["tag_%d" % (i+1)],
                           executable_path = executable_path,
                           command_prefix = command_prefix)
@@ -103,7 +103,7 @@ with driver.Metacluster() as metacluster:
         del row["name"]
         del row["db"]
         del row["primary_key"]
-        del row["uuid"]
+        del row["id"]
         return row
     prev_config = get_config()
     new_config = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",

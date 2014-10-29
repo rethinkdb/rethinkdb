@@ -17,13 +17,13 @@ void issue_t::to_datum(const metadata_t &metadata,
 }
 
 const std::string issue_t::get_server_name(const issue_t::metadata_t &metadata,
-                                           const machine_id_t &server_id) {
-    auto machine_it = metadata.machines.machines.find(server_id);
-    if (machine_it == metadata.machines.machines.end() ||
-        machine_it->second.is_deleted()) {
+                                           const server_id_t &server_id) {
+    auto server_it = metadata.servers.servers.find(server_id);
+    if (server_it == metadata.servers.servers.end() ||
+        server_it->second.is_deleted()) {
         return std::string("__deleted_server__");
     }
-    return machine_it->second.get_ref().name.get_ref().str();
+    return server_it->second.get_ref().name.get_ref().str();
 }
 
 std::string issue_t::item_to_str(const name_string_t &str) {

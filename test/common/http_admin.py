@@ -224,7 +224,7 @@ class ClusterAccess(object):
             assert isinstance(http_port, int)
         self.addresses = addresses
 
-        self.machines = {}
+        self.servers = {}
         self.datacenters = {}
         self.tables = {}
         self.databases = {}
@@ -264,8 +264,8 @@ class ClusterAccess(object):
 
     def __str__(self):
         retval = "Machines:"
-        for i in self.machines.iterkeys():
-            retval += "\n%s: %s" % (i, self.machines[i])
+        for i in self.servers.iterkeys():
+            retval += "\n%s: %s" % (i, self.servers[i])
         retval += "\nDatacenters:"
         for i in self.datacenters.iterkeys():
             retval += "\n%s: %s" % (i, self.datacenters[i])
@@ -277,9 +277,9 @@ class ClusterAccess(object):
             retval += "\n%s: %s" % (i, self.tables[i])
         return retval
 
-    def print_machines(self):
-        for i in self.machines.iterkeys():
-            print "%s: %s" % (i, self.machines[i])
+    def print_servers(self):
+        for i in self.servers.iterkeys():
+            print "%s: %s" % (i, self.servers[i])
 
     def print_tables(self):
         for i in self.tables.iterkeys():
@@ -330,8 +330,8 @@ class ClusterAccess(object):
         else:
             raise TypeError("Can't interpret %r as a %s" % (what, type_str))
 
-    def find_machine(self, what):
-        return self._find_thing(what, Machine, "machine", self.machines)
+    def find_server(self, what):
+        return self._find_thing(what, Machine, "server", self.servers)
 
     def find_datacenter(self, what):
         return self._find_thing(what, Datacenter, "data center", self.datacenters)
@@ -347,8 +347,8 @@ class ClusterAccess(object):
     def get_directory(self):
         return self.do_query("GET", "/ajax/directory")
 
-    def get_log(self, machine_id, max_length = 100):
-        log = self.do_query("GET", "/ajax/log/%s?max_length=%d" % (machine_id, max_length))[machine_id]
+    def get_log(self, server_id, max_length = 100):
+        log = self.do_query("GET", "/ajax/log/%s?max_length=%d" % (server_id, max_length))[server_id]
         if isinstance(log, basestring):
             raise BadServerResponse(200, log)
         assert isinstance(log, list)
@@ -357,17 +357,17 @@ class ClusterAccess(object):
     def get_stat(self, query):
         return self.do_query("GET", "/ajax/stat?%s" % query)
 
-    def declare_machine_dead(self, machine):
-        machine = self.find_machine(machine)
-        del self.machines[machine.uuid]
-        self.do_query("DELETE", "/ajax/semilattice/machines/" + machine.uuid)
+    def declare_server_dead(self, server):
+        server = self.find_server(server)
+        del self.servers[server.uuid]
+        self.do_query("DELETE", "/ajax/semilattice/servers/" + server.uuid)
         self.update_cluster_data(10)
 
     def move_server_to_datacenter(self, serv, datacenter):
-        serv = self.find_machine(serv)
+        serv = self.find_server(serv)
         datacenter = self.find_datacenter(datacenter)
         serv.datacenter_uuid = datacenter.uuid
-        self.do_query("POST", "/ajax/semilattice/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
+        self.do_query("POST", "/ajax/semilattice/servers/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
         self.update_cluster_data(10)
 
     def move_table_to_datacenter(self, table, primary):
@@ -459,7 +459,7 @@ class ClusterAccess(object):
     def rename(self, target, name):
         types = {
             Table: (self.tables, "rdb_namespaces"),
-            Machine: (self.machines, "machines"),
+            Machine: (self.servers, "servers"),
             Datacenter: (self.datacenters, "datacenters")
         }
         assert types[type(target)][0][target.uuid] is target
@@ -475,7 +475,7 @@ class ClusterAccess(object):
         assert value in conflict.values
         types = {
             Table: (self.tables, "rdb_namespaces"),
-            Machine: (self.machines, "machines"),
+            Machine: (self.servers, "servers"),
             Datacenter: (self.datacenters, "datacenters")
         }
         assert types[type(conflict.target)][conflict.target.uuid] is conflict.target
@@ -592,7 +592,7 @@ class ClusterAccess(object):
                 local_data[uuid] = data_type(uuid, cluster_data[uuid])
         assert len(cluster_data) == len(local_data)
 
-    # Get the list of machines/tables from the cluster, verify that it is consistent across each machine
+    # Get the list of servers/tables from the cluster, verify that it is consistent across each server
     def _verify_consistent_cluster(self, timeout):
         timeout = max(1, timeout)
         last_error = ("", "")
@@ -621,7 +621,7 @@ class ClusterAccess(object):
             for key in d.keys():
                 if d[key] is None:
                     del d[key]
-        remove_nones(expected[u"machines"])
+        remove_nones(expected[u"servers"])
         remove_nones(expected[u"datacenters"])
         remove_nones(expected[u"rdb_namespaces"])
         return expected
@@ -636,7 +636,7 @@ class ClusterAccess(object):
                         if isinstance(obj, Table):
                             path = "rdb_namespaces"
                         elif isinstance(obj, Machine):
-                            path = "machine"
+                            path = "server"
                         elif isinstance(obj, Datacenter):
                             path = "datacenter"
                         resolve_data = self.do_query("GET", "/ajax/semilattice/%s/%s/%s/resolve" % (path, obj.uuid, field))
@@ -649,13 +649,13 @@ class ClusterAccess(object):
 
     # Check the data from the server against our data
     def _verify_cluster_data(self, data):
-        self._verify_cluster_data_chunk(self.machines, data[u"machines"])
+        self._verify_cluster_data_chunk(self.servers, data[u"servers"])
         self._verify_cluster_data_chunk(self.datacenters, data[u"datacenters"])
         self._verify_cluster_data_chunk(self.tables, data[u"rdb_namespaces"])
 
     def update_cluster_data(self, timeout):
         data = self._verify_consistent_cluster(timeout)
-        self._pull_cluster_data(data[u"machines"], self.machines, Machine)
+        self._pull_cluster_data(data[u"servers"], self.servers, Machine)
         self._pull_cluster_data(data[u"datacenters"], self.datacenters, Datacenter)
         self._pull_cluster_data(data[u"rdb_namespaces"], self.tables, Table)
         self._verify_cluster_data(data)

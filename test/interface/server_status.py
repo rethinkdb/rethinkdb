@@ -18,11 +18,11 @@ with driver.Metacluster() as metacluster:
     print "Spinning up two processes..."
     files1 = driver.Files(
         metacluster, db_path = "db-1", log_path = "create-output-1",
-        machine_name = "a", server_tags = ["foo"],
+        server_name = "a", server_tags = ["foo"],
         executable_path = executable_path, command_prefix = command_prefix)
     files2 = driver.Files(
         metacluster, db_path = "db-2", log_path = "create_output-2",
-        machine_name = "b", server_tags = ["foo", "bar"],
+        server_name = "b", server_tags = ["foo", "bar"],
         executable_path = executable_path, command_prefix = command_prefix)
     process1 = driver.Process(cluster, files1, log_path="serve-output-1",
         executable_path = executable_path, command_prefix = command_prefix,

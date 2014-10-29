@@ -4,12 +4,12 @@
 
 #include <map>
 
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 
-/* This is like `blueprint_t`, except that it is indexed by `machine_id_t`
+/* This is like `blueprint_t`, except that it is indexed by `server_id_t`
 instead of `peer_id_t`. This is important because peer IDs chan change when a
-node restarts, but machine IDs do not. So data structures that contain peer IDs,
+node restarts, but server IDs do not. So data structures that contain peer IDs,
 such as `blueprint_t`, should not be persisted. */
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(blueprint_role_t *);
@@ -23,12 +23,12 @@ public:
     //though.
 
     typedef std::map<region_t, blueprint_role_t> region_to_role_map_t;
-    typedef std::map<machine_id_t, region_to_role_map_t> role_map_t;
+    typedef std::map<server_id_t, region_to_role_map_t> role_map_t;
 
-    role_map_t machines_roles;
+    role_map_t servers_roles;
 
     bool operator==(const persistable_blueprint_t &other) const {
-        return machines_roles == other.machines_roles;
+        return servers_roles == other.servers_roles;
     }
 };
 

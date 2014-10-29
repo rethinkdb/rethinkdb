@@ -24,8 +24,8 @@ with driver.Metacluster() as metacluster:
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     db = http.add_database("test")
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     ns = http.add_table(primary = dc, name = "stress", database = db)
     time.sleep(3)
     host, port = driver.get_table_host(processes)

@@ -25,8 +25,8 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     db = http.add_database(name="test")
     ns = http.add_table(primary = dc, name="test", primary_key="foo")
     time.sleep(10)

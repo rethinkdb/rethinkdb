@@ -38,6 +38,19 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
     return count;
 }
 
+template <class T>
+static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status,
+                             const std::function<bool(const T&)> &predicate) {
+    int count = 0;
+    for (const reactor_activity_entry_t &entry : status) {
+        const T *role = boost::get<T>(&entry.activity);
+        if (role != NULL && predicate(*role)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 ql::datum_t convert_director_status_to_datum(
         const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status,
@@ -47,22 +60,23 @@ ql::datum_t convert_director_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     *has_director_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
-        size_t tally = count_in_state<primary_t>(*status);
-        if (tally == status->size()) {
+        size_t masters = count_in_state<primary_t>(*status,
+            [&](const reactor_business_card_t::primary_t &primary) -> bool {
+                return static_cast<bool>(primary.master);
+            });
+        if (masters == status->size()) {
             state = "ready";
             *has_director_out = true;
         } else {
-            tally += count_in_state<primary_when_safe_t>(*status);
-            if (tally == status->size()) {
+            size_t all_primaries = count_in_state<primary_t>(*status) +
+                count_in_state<primary_when_safe_t>(*status);
+            if (all_primaries == status->size()) {
                 state = "backfilling_data";
-                /* RSI(reql_admin): Implement backfill progress */
-                object_builder.overwrite("backfill_progress",
-                    ql::datum_t("not_implemented"));
             } else {
                 state = "transitioning";
             }
@@ -82,7 +96,7 @@ ql::datum_t convert_replica_status_to_datum(
     object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
-    if (!status) {
+    if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
@@ -100,16 +114,13 @@ ql::datum_t convert_replica_status_to_datum(
                 tally += count_in_state<secondary_backfilling_t>(*status);
                 if (tally == status->size()) {
                     state = "backfilling_data";
-                    /* RSI(reql_admin): Implement backfill progress */
-                    object_builder.overwrite("backfill_progress",
-                        ql::datum_t("not_implemented"));
                 } else {
                     state = "transitioning";
                 }
             }
         }
     }
-    object_builder.overwrite("state", ql::datum_t(std::move(state)));
+    object_builder.overwrite("state", ql::datum_t(state));
     return std::move(object_builder).to_datum();
 }
 
@@ -117,25 +128,32 @@ ql::datum_t convert_nothing_status_to_datum(
         const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
-    *is_unfinished_out = true;
-    ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
-    object_builder.overwrite("role", ql::datum_t("nothing"));
-    const char *state;
-    if (!status) {
-        state = "missing";
-        /* Don't display all the tables as unfinished just because one machine is missing
-        */
+    if (status == nullptr) {
+        /* The server is missing. Don't display the missing server for this table because
+        the config says it shouldn't have data. This is misleading because it might still
+        have data for this table, if the config was changed but it didn't get a chance to
+        offload its data before going missing. But there's nothing we can do. */
         *is_unfinished_out = false;
+        return ql::datum_t();
     } else if (!check_complete_set(*status)) {
-        state = "transitioning";
+       /* The server is still in the process of resharding. Unfortunately, we have no way
+       of knowing if it has data for this table or not. So we omit it. This means that if
+       a server has data for a table but isn't present in the new config, a user watching
+       `table_status` will see a brief period where the server disappears and then
+       reappears. But this is better than every unrelated server mysteriously appearing
+       and then disappearing again. In order to do better we would have to store state so
+       we can remember if a server used to have data for us, and that's a pain. */
+       *is_unfinished_out = false;
+       return ql::datum_t();
     } else {
         size_t tally = count_in_state<nothing_t>(*status);
         if (tally == status->size()) {
+            /* This server doesn't have any data; it shouldn't even appear in the map. */
             *is_unfinished_out = false;
-            /* This machine shouldn't even appear in the map */
             return ql::datum_t();
         } else {
+            *is_unfinished_out = true;
+            const char *state;
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
             if (tally == status->size()) {
                 state = "erasing_data";
@@ -147,10 +165,13 @@ ql::datum_t convert_nothing_status_to_datum(
                     state = "transitioning";
                 }
             }
+            ql::datum_object_builder_t object_builder;
+            object_builder.overwrite("server", convert_name_to_datum(name));
+            object_builder.overwrite("role", ql::datum_t("replica"));
+            object_builder.overwrite("state", ql::datum_t(state));
+            return std::move(object_builder).to_datum();
         }
     }
-    object_builder.overwrite("state", ql::datum_t(std::move(state)));
-    return std::move(object_builder).to_datum();
 }
 
 enum class table_readiness_t {
@@ -162,7 +183,7 @@ enum class table_readiness_t {
 };
 
 ql::datum_t convert_table_status_shard_to_datum(
-        namespace_id_t uuid,
+        namespace_id_t id,
         key_range_t range,
         const table_config_t::shard_t &shard,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
@@ -172,17 +193,17 @@ ql::datum_t convert_table_status_shard_to_datum(
     /* `server_states` will contain one entry per connected server. That entry will be a
     vector with the current state of each hash-shard on the server whose key range
     matches the expected range. */
-    std::map<machine_id_t, std::vector<reactor_activity_entry_t> > server_states;
+    std::map<server_id_t, std::vector<reactor_activity_entry_t> > server_states;
     dir->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const namespace_directory_metadata_t *value) {
-            if (key.second != uuid) {
+            if (key.second != id) {
                 return;
             }
-            /* Translate peer ID to machine ID */
-            boost::optional<machine_id_t> machine_id =
-                name_client->get_machine_id_for_peer_id(key.first);
-            if (!static_cast<bool>(machine_id)) {
+            /* Translate peer ID to server ID */
+            boost::optional<server_id_t> server_id =
+                name_client->get_server_id_for_peer_id(key.first);
+            if (!static_cast<bool>(server_id)) {
                 /* This can occur as a race condition if the peer has just connected or just
                 disconnected */
                 return;
@@ -196,15 +217,15 @@ ql::datum_t convert_table_status_shard_to_datum(
                     server_state.push_back(pair.second);
                 }
             }
-            server_states[*machine_id] = std::move(server_state);
+            server_states[*server_id] = std::move(server_state);
         });
 
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-    std::set<machine_id_t> already_handled;
+    std::set<server_id_t> already_handled;
 
     bool has_director = false;
     boost::optional<name_string_t> director_name =
-        name_client->get_name_for_machine_id(shard.director);
+        name_client->get_name_for_server_id(shard.director);
     if (static_cast<bool>(director_name)) {
         array_builder.add(convert_director_status_to_datum(
             *director_name,
@@ -219,13 +240,13 @@ ql::datum_t convert_table_status_shard_to_datum(
 
     bool has_outdated_reader = false;
     bool is_unfinished = false;
-    for (const machine_id_t &replica : shard.replicas) {
+    for (const server_id_t &replica : shard.replicas) {
         if (already_handled.count(replica) == 1) {
             /* Don't overwrite the director's entry */
             continue;
         }
         boost::optional<name_string_t> replica_name =
-            name_client->get_name_for_machine_id(replica);
+            name_client->get_name_for_server_id(replica);
         if (!static_cast<bool>(replica_name)) {
             /* Replica was permanently removed. It won't show up in `table_config`. So
             we act as if it wasn't in `shard.replicas`. */
@@ -247,8 +268,8 @@ ql::datum_t convert_table_status_shard_to_datum(
         already_handled.insert(replica);
     }
 
-    std::multimap<name_string_t, machine_id_t> other_names =
-        name_client->get_name_to_machine_id_map()->get();
+    std::multimap<name_string_t, server_id_t> other_names =
+        name_client->get_name_to_server_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (already_handled.count(it->second) == 1) {
             /* Don't overwrite a director or replica entry */
@@ -293,7 +314,7 @@ ql::datum_t convert_table_status_shard_to_datum(
 ql::datum_t convert_table_status_to_datum(
         name_string_t table_name,
         name_string_t db_name,
-        namespace_id_t uuid,
+        namespace_id_t id,
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
@@ -301,7 +322,7 @@ ql::datum_t convert_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+    builder.overwrite("id", convert_uuid_to_datum(id));
 
     table_readiness_t readiness = table_readiness_t::finished;
     ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
@@ -309,7 +330,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t this_shard_readiness;
         array_builder.add(
             convert_table_status_shard_to_datum(
-                uuid,
+                id,
                 repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 dir,

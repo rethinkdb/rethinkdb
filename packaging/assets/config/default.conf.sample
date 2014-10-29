@@ -41,7 +41,7 @@
 ## Default: all local addresses
 # bind=127.0.0.1
 
-## Address that other rethinkdb instances will use to connect to this machine.
+## Address that other rethinkdb instances will use to connect to this server.
 ## It can be specified multiple times
 # canonical-address=
 
@@ -97,6 +97,6 @@
 
 ### Meta
 
-## The name for this machine (as will appear in the metadata).
+## The name for this server (as will appear in the metadata).
 ## If not specified, it will be randomly chosen from a short list of names.
-# machine-name=server1
+# server-name=server1

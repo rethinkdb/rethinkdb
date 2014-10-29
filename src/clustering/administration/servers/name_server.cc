@@ -3,13 +3,13 @@
 
 server_name_server_t::server_name_server_t(
         mailbox_manager_t *_mailbox_manager,
-        machine_id_t _my_machine_id,
+        server_id_t _my_server_id,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
+        boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
             _semilattice_view) :
     mailbox_manager(_mailbox_manager),
-    my_machine_id(_my_machine_id),
+    my_server_id(_my_server_id),
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
     rename_mailbox(mailbox_manager,
@@ -22,16 +22,17 @@ server_name_server_t::server_name_server_t(
         on_semilattice_change();
         })
 {
-    /* Find our entry in the machines semilattice map and determine our current name from
+    /* Find our entry in the servers semilattice map and determine our current name from
     it. */
-    machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    auto it = sl_metadata.machines.find(my_machine_id);
-    guarantee(it != sl_metadata.machines.end(), "We should already have an entry in the "
+    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
+    auto it = sl_metadata.servers.find(my_server_id);
+    guarantee(it != sl_metadata.servers.end(), "We should already have an entry in the "
         "semilattices");
     if (it->second.is_deleted()) {
         permanently_removed_cond.pulse();
     } else {
         my_name = it->second.get_ref().name.get_ref();
+        my_tags = it->second.get_ref().tags.get_ref();
     }
 
     semilattice_subs.reset(semilattice_view);
@@ -51,9 +52,9 @@ void server_name_server_t::on_rename_request(UNUSED signal_t *interruptor,
         logINF("Changed server's name from `%s` to `%s`.",
             my_name.c_str(), new_name.c_str());
         my_name = new_name;
-        machines_semilattice_metadata_t metadata = semilattice_view->get();
-        deletable_t<machine_semilattice_metadata_t> *entry =
-            &metadata.machines.at(my_machine_id);
+        servers_semilattice_metadata_t metadata = semilattice_view->get();
+        deletable_t<server_semilattice_metadata_t> *entry =
+            &metadata.servers.at(my_server_id);
         if (!entry->is_deleted()) {
             entry->get_mutable()->name.set(new_name);
             semilattice_view->join(metadata);
@@ -81,9 +82,9 @@ void server_name_server_t::on_retag_request(UNUSED signal_t *interruptor,
         }
         logINF("Changed server's tags to: %s", tag_str.c_str());
         my_tags = new_tags;
-        machines_semilattice_metadata_t metadata = semilattice_view->get();
-        deletable_t<machine_semilattice_metadata_t> *entry =
-            &metadata.machines.at(my_machine_id);
+        servers_semilattice_metadata_t metadata = semilattice_view->get();
+        deletable_t<server_semilattice_metadata_t> *entry =
+            &metadata.servers.at(my_server_id);
         if (!entry->is_deleted()) {
             entry->get_mutable()->tags.set(new_tags);
             semilattice_view->join(metadata);
@@ -96,11 +97,11 @@ void server_name_server_t::on_retag_request(UNUSED signal_t *interruptor,
 
 void server_name_server_t::on_semilattice_change() {
     ASSERT_FINITE_CORO_WAITING;
-    machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    guarantee(sl_metadata.machines.count(my_machine_id) == 1);
+    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
+    guarantee(sl_metadata.servers.count(my_server_id) == 1);
 
     /* Check if we've been permanently removed */
-    if (sl_metadata.machines.at(my_machine_id).is_deleted()) {
+    if (sl_metadata.servers.at(my_server_id).is_deleted()) {
         if (!permanently_removed_cond.is_pulsed()) {
             logERR("This server has been permanently removed from the cluster. Please "
                 "stop the process, erase its data files, and start a fresh RethinkDB "

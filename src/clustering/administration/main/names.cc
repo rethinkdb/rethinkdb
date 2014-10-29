@@ -97,7 +97,7 @@ static const char* names[] = {
     "Worldsmith"
 };
 
-std::string get_random_machine_name() {
+std::string get_random_server_name() {
     int index = randint(sizeof(names) / sizeof(char *));
     return std::string(names[index]);
 }
@@ -111,12 +111,12 @@ char rand_alnum() {
     return (rand_val < 10) ? ('0' + rand_val) : ('a' + rand_val - 10);
 }
 
-std::string get_machine_name() {
+std::string get_server_name() {
     char h[64];
     h[sizeof(h) - 1] = '\0';
 
     if (gethostname(h, sizeof(h) - 1) != 0 || strlen(h) == 0) {
-        return get_random_machine_name();
+        return get_random_server_name();
     }
 
     std::string sanitized(h);

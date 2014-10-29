@@ -8,7 +8,7 @@
 template <typename T>
 void add_issues_from_server(const std::vector<T> &source,
                             std::vector<T> *dest,
-                            const machine_id_t &server) {
+                            const server_id_t &server) {
     size_t original_size = dest->size();
     std::copy(source.begin(), source.end(), std::back_inserter(*dest));
     
@@ -23,16 +23,16 @@ remote_issue_tracker_t::remote_issue_tracker_t(
             change_tracking_map_t<peer_id_t, local_issues_t> > >
                 &_issues_view,
         const clone_ptr_t<watchable_t<
-            change_tracking_map_t<peer_id_t, machine_id_t> > >
-                &_machine_id_translation_table) :
+            change_tracking_map_t<peer_id_t, server_id_t> > >
+                &_server_id_translation_table) :
     issues_view(_issues_view),
-    machine_id_translation_table(_machine_id_translation_table) { }
+    server_id_translation_table(_server_id_translation_table) { }
 
 std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues() const {
     std::map<peer_id_t, local_issues_t> issues_by_peer =
         issues_view->get().get_inner();
-    std::map<peer_id_t, machine_id_t> translation_table =
-        machine_id_translation_table->get().get_inner();
+    std::map<peer_id_t, server_id_t> translation_table =
+        server_id_translation_table->get().get_inner();
 
     local_issues_t local_issues;
     for (auto const &peer_it : issues_by_peer) {

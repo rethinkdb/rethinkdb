@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+import sys, os, time, traceback, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
 from vcoptparse import *
@@ -17,16 +17,21 @@ with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, log_path = "create-output-1", machine_name = "a",
+    files1 = driver.Files(metacluster, log_path = "create-output-1", server_name = "a",
                           executable_path = executable_path, command_prefix = command_prefix)
     proc1 = driver.Process(cluster1, files1, log_path = "serve-output-1",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, log_path = "create-output-2", machine_name = "b",
+    files2 = driver.Files(metacluster, log_path = "create-output-2", server_name = "b",
                           executable_path = executable_path, command_prefix = command_prefix)
     proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    files3 = driver.Files(metacluster, log_path = "create-output-3", machine_name = "never_used",
+                          executable_path = executable_path, command_prefix = command_prefix)
+    proc3 = driver.Process(cluster1, files3, log_path = "serve-output-3",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
+    proc3.wait_until_started_up()
     cluster1.check()
     conn = r.connect("localhost", proc1.driver_port)
 
@@ -46,19 +51,24 @@ with driver.Metacluster() as metacluster:
     def check_status_matches_config():
         config = list(r.db("rethinkdb").table("table_config").run(conn))
         status = list(r.db("rethinkdb").table("table_status").run(conn))
-        uuids = set(row["uuid"] for row in config)
+        uuids = set(row["id"] for row in config)
         if not (len(uuids) == len(config) == len(status)):
             return False
-        if uuids != set(row["uuid"] for row in status):
+        if uuids != set(row["id"] for row in status):
             return False
         for c_row in config:
-            s_row = [row for row in status if row["uuid"] == c_row["uuid"]][0]
+            s_row = [row for row in status if row["id"] == c_row["id"]][0]
             if c_row["db"] != s_row["db"]:
                 return False
             if c_row["name"] != s_row["name"]:
                 return False
             c_shards = c_row["shards"]
             s_shards = s_row["shards"]
+            # Make sure that servers that have never been involved with the table will
+            # never appear in `table_status`. (See GitHub issue #3101.)
+            for s_shard in s_shards:
+                for doc in s_shard:
+                    assert doc["server"] != "never_used"
             if len(s_shards) != len(c_shards):
                 return False
             for (s_shard, c_shard) in zip(s_shards, c_shards):
@@ -102,9 +112,19 @@ with driver.Metacluster() as metacluster:
             config = list(r.db("rethinkdb").table("table_config").run(conn))
             status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
-            print "config =", config
-            print "status =", status
+            print "config ="
+            pprint.pprint(config)
+            print "status ="
+            pprint.pprint(status)
             raise
+
+    # Make sure that `never_used` will never be picked as a default for a table by
+    # removing the `default` tag.
+    res = r.db("rethinkdb").table("server_config") \
+           .filter({"name": "never_used"}) \
+           .update({"tags": []}) \
+           .run(conn)
+    assert res["replaced"] == 1, res
 
     print "Creating a table..."
     r.db_create("test").run(conn)

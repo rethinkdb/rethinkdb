@@ -10,7 +10,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_common.hpp"
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -23,7 +23,7 @@ class server_status_artificial_table_backend_t :
 public:
     server_status_artificial_table_backend_t(
             boost::shared_ptr< semilattice_read_view_t<
-                machines_semilattice_metadata_t> > _servers_sl_view,
+                servers_semilattice_metadata_t> > _servers_sl_view,
             server_name_client_t *_name_client,
             clone_ptr_t< watchable_t< change_tracking_map_t<
                 peer_id_t, cluster_directory_metadata_t> > > _directory_view,
@@ -42,8 +42,8 @@ public:
 private:
     bool format_row(
             name_string_t const & name,
-            machine_id_t const & machine_id,
-            machine_semilattice_metadata_t const & machine,
+            server_id_t const & server_id,
+            server_semilattice_metadata_t const & server,
             ql::datum_t *row_out,
             std::string *error_out);
 

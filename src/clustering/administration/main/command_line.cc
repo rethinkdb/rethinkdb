@@ -667,22 +667,22 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 
 
 void run_rethinkdb_create(const base_path_t &base_path,
-                          const name_string_t &machine_name,
-                          const std::set<name_string_t> &machine_tags,
+                          const name_string_t &server_name,
+                          const std::set<name_string_t> &server_tags,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
-    machine_id_t our_machine_id = generate_uuid();
+    server_id_t our_server_id = generate_uuid();
 
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
 
-    machine_semilattice_metadata_t machine_semilattice_metadata;
-    machine_semilattice_metadata.name =
-        versioned_t<name_string_t>(machine_name);
-    machine_semilattice_metadata.tags =
-        versioned_t<std::set<name_string_t> >(machine_tags);
-    cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
+    server_semilattice_metadata_t server_semilattice_metadata;
+    server_semilattice_metadata.name =
+        versioned_t<name_string_t>(server_name);
+    server_semilattice_metadata.tags =
+        versioned_t<std::set<name_string_t> >(server_tags);
+    cluster_metadata.servers.servers.insert(std::make_pair(our_server_id, make_deletable(server_semilattice_metadata)));
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
@@ -696,13 +696,13 @@ void run_rethinkdb_create(const base_path_t &base_path,
         metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&io_backender,
                                                                               get_cluster_metadata_filename(base_path),
                                                                               &metadata_perfmon_collection,
-                                                                              our_machine_id,
+                                                                              our_server_id,
                                                                               cluster_metadata);
         metadata_persistence::auth_persistent_file_t auth_metadata_file(&io_backender,
                                                                         get_auth_metadata_filename(base_path),
                                                                         &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
-        logNTC("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+        logNTC("Our server ID: %s\n", uuid_to_str(our_server_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
@@ -729,7 +729,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
                          const uint64_t total_cache_size,
-                         const machine_id_t *our_machine_id,
+                         const server_id_t *our_server_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
@@ -769,12 +769,12 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     try {
         scoped_ptr_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
         scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
-        if (our_machine_id && cluster_metadata) {
+        if (our_server_id && cluster_metadata) {
             cluster_metadata_file.init(
                 new metadata_persistence::cluster_persistent_file_t(&io_backender,
                                                                     get_cluster_metadata_filename(base_path),
                                                                     &metadata_perfmon_collection,
-                                                                    *our_machine_id,
+                                                                    *our_server_id,
                                                                     *cluster_metadata));
             auth_metadata_file.init(
                 new metadata_persistence::auth_persistent_file_t(&io_backender,
@@ -815,7 +815,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 }
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
-                             const name_string_t &machine_name,
+                             const name_string_t &server_name,
                              const std::set<name_string_t> &server_tag_names,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
@@ -832,16 +832,16 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     } else {
         logNTC("Initializing directory %s\n", base_path.path().c_str());
 
-        machine_id_t our_machine_id = generate_uuid();
+        server_id_t our_server_id = generate_uuid();
 
         cluster_semilattice_metadata_t cluster_metadata;
 
-        machine_semilattice_metadata_t our_machine_metadata;
-        our_machine_metadata.name =
-            versioned_t<name_string_t>(machine_name);
-        our_machine_metadata.tags =
+        server_semilattice_metadata_t our_server_metadata;
+        our_server_metadata.name =
+            versioned_t<name_string_t>(server_name);
+        our_server_metadata.tags =
             versioned_t<std::set<name_string_t> >(server_tag_names);
-        cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
+        cluster_metadata.servers.servers.insert(std::make_pair(our_server_id, make_deletable(our_server_metadata)));
 
         if (serve_info->joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
@@ -863,7 +863,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
-                            &our_machine_id, &cluster_metadata,
+                            &our_server_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
 }
@@ -882,13 +882,13 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
     }
 }
 
-options::help_section_t get_machine_options(std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Machine name options");
-    options_out->push_back(options::option_t(options::names_t("--machine-name", "-n"),
+options::help_section_t get_server_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Server name options");
+    options_out->push_back(options::option_t(options::names_t("--server-name", "-n"),
                                              options::OPTIONAL,
-                                             get_machine_name()));
-    help.add("-n [ --machine-name ] arg",
-             "the name for this machine (as will appear in the metadata).  If not"
+                                             get_server_name()));
+    help.add("-n [ --server-name ] arg",
+             "the name for this server (as will appear in the metadata).  If not"
              " specified, it will be randomly chosen from a short list of names.");
     options_out->push_back(options::option_t(options::names_t("--server-tag", "-t"),
                                              options::OPTIONAL_REPEAT));
@@ -1130,7 +1130,7 @@ options::help_section_t get_help_options(std::vector<options::option_t> *options
 void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out,
                                   std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
-    help_out->push_back(get_machine_options(options_out));
+    help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
@@ -1164,7 +1164,7 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
                                      std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
-    help_out->push_back(get_machine_options(options_out));
+    help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
@@ -1263,10 +1263,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        std::string machine_name_str = get_single_option(opts, "--machine-name");
-        name_string_t machine_name;
-        if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
+        std::string server_name_str = get_single_option(opts, "--server-name");
+        name_string_t server_name;
+        if (!server_name.assign_value(server_name_str)) {
+            fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
+                    server_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -1297,7 +1298,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
-                                     machine_name,
+                                     server_name,
                                      server_tag_names,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
@@ -1433,7 +1434,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
-                                     static_cast<machine_id_t*>(NULL),
+                                     static_cast<server_id_t*>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
                                      &data_directory_lock,
                                      &result),
@@ -1596,10 +1597,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        std::string machine_name_str = get_single_option(opts, "--machine-name");
-        name_string_t machine_name;
-        if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
+        std::string server_name_str = get_single_option(opts, "--server-name");
+        name_string_t server_name;
+        if (!server_name.assign_value(server_name_str)) {
+            fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
+                    server_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -1669,7 +1671,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_porcelain,
                                      base_path,
-                                     machine_name,
+                                     server_name,
                                      server_tag_names,
                                      direct_io_mode,
                                      max_concurrent_io_requests,

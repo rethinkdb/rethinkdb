@@ -24,7 +24,7 @@ with driver.Metacluster() as metacluster:
     print "Creating two tables with the same name..."
     datacenter = access.add_datacenter()
     database = access.add_database(name="Germany")
-    access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
+    access.move_server_to_datacenter(next(iter(access.servers)), datacenter)
     database = access.add_database("test")
     namespace1 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
     namespace2 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")

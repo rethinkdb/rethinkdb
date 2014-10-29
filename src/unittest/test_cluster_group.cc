@@ -154,10 +154,10 @@ bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) cons
     return acks.size() >= 1;
 }
 
-test_cluster_group_t::test_cluster_group_t(int n_machines)
+test_cluster_group_t::test_cluster_group_t(int n_servers)
     : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)),
       balancer(new dummy_cache_balancer_t(GIGABYTE)) {
-    for (int i = 0; i < n_machines; i++) {
+    for (int i = 0; i < n_servers; i++) {
         files.push_back(make_scoped<temp_file_t>());
         filepath_file_opener_t file_opener(files[i]->name(), io_backender.get());
         standard_serializer_t::create(&file_opener,
@@ -242,7 +242,7 @@ void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
 
 scoped_ptr_t<cluster_namespace_interface_t>
 test_cluster_group_t::make_namespace_interface(int i) {
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > region_to_primary_maps;
     auto ret = make_scoped<cluster_namespace_interface_t>(
             &test_clusters[i]->mailbox_manager,
             &region_to_primary_maps,

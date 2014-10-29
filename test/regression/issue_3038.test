@@ -48,17 +48,17 @@ adminConn.add_table_shard(tableName, splitPoint) # ToDo: replace this with prope
 
 # == pin the shards
 
-machines = adminConn.machines.values()
+servers = adminConn.servers.values()
 
 command = [
 	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
-	'pin', 'shard', '%s.%s' % (databaseName, tableName), '-%s' % splitPoint.replace('#', r'\23'), '--master', machines[0].name
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '-%s' % splitPoint.replace('#', r'\23'), '--master', servers[0].name
 ]
 subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
 
 command = [
 	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
-	'pin', 'shard', '%s.%s' % (databaseName, tableName), '%s-' % splitPoint.replace('#', r'\23'), '--master', machines[1].name
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '%s-' % splitPoint.replace('#', r'\23'), '--master', servers[1].name
 ]
 subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
 

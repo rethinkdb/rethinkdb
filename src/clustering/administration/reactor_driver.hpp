@@ -8,7 +8,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -125,10 +125,10 @@ private:
 
     semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
         ::subscription_t semilattice_subscription;
-    watchable_t< std::multimap<name_string_t, machine_id_t> >::subscription_t
-        name_to_machine_id_subscription;
-    watchable_t< std::map<machine_id_t, peer_id_t> >::subscription_t
-        machine_id_to_peer_id_subscription;
+    watchable_t< std::multimap<name_string_t, server_id_t> >::subscription_t
+        name_to_server_id_subscription;
+    watchable_t< std::map<server_id_t, peer_id_t> >::subscription_t
+        server_id_to_peer_id_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
     //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;

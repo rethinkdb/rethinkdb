@@ -212,7 +212,7 @@ listener_t::listener_t(const base_path_t &base_path,
     there. That's why it's OK to just take the maximum of all the timestamps
     that we see.
     TODO: If we change the way we shard such that each listener_t maps to a
-    single B-tree on the same machine, then replace this loop with a strict
+    single B-tree on the same server, then replace this loop with a strict
     assertion that requires everything to be at the same timestamp. */
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
     for (region_map_t<version_range_t>::const_iterator it = backfill_end_point.begin();

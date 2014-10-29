@@ -34,7 +34,7 @@ class cluster_namespace_interface_t : public namespace_interface_t {
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+            const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
                 *region_to_primary_maps_,
             watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
             const namespace_id_t &namespace_id_,
@@ -150,7 +150,7 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+    const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
         *region_to_primary_maps;
     watchable_map_t<peer_id_t, namespace_directory_metadata_t> *directory_view;
     namespace_id_t namespace_id;

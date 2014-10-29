@@ -12,7 +12,7 @@
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "containers/cow_ptr.hpp"
@@ -29,7 +29,7 @@ public:
 
     cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
-    machines_semilattice_metadata_t machines;
+    servers_semilattice_metadata_t servers;
     databases_semilattice_metadata_t databases;
 };
 
@@ -60,7 +60,7 @@ public:
 
     cluster_directory_metadata_t() { }
     cluster_directory_metadata_t(
-            machine_id_t _server_id,
+            server_id_t _server_id,
             peer_id_t _peer_id,
             const std::string &_version,
             uint64_t _cache_size,
@@ -74,7 +74,7 @@ public:
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(_server_id),
+        server_id(_server_id),
         peer_id(_peer_id),
         version(_version),
         cache_size(_cache_size),
@@ -98,7 +98,7 @@ public:
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
         /* We have to define this manually instead of using `= default` because older
         versions of `boost::optional` don't support moving */
-        machine_id = other.machine_id;
+        server_id = other.server_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
         cache_size = other.cache_size;
@@ -116,7 +116,7 @@ public:
         return *this;
     }
 
-    machine_id_t machine_id;
+    server_id_t server_id;
 
     /* this is redundant, since a directory entry is always associated with a peer */
     peer_id_t peer_id;

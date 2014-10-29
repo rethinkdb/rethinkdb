@@ -276,7 +276,7 @@ struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
-    // machines and don't synchronize with each other.)
+    // servers and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
@@ -285,7 +285,7 @@ struct changefeed_point_stamp_response_t {
     changefeed_point_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
-    // machines and don't synchronize with each other.)
+    // servers and don't synchronize with each other.)
     std::pair<uuid_u, uint64_t> stamp;
     ql::datum_t initial_val;
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -902,7 +902,7 @@ region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 namespace rdb_protocol {
 /* TODO: This might be redundant. I thought that `key_tester_t` was only
 originally necessary because in v1.1.x the hashing scheme might be different
-between the source and destination machines. */
+between the source and destination servers. */
 struct range_key_tester_t : public key_tester_t {
     explicit range_key_tester_t(const region_t *_delete_range) : delete_range(_delete_range) { }
     virtual ~range_key_tester_t() { }

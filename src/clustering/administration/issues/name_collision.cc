@@ -39,7 +39,7 @@ ql::datum_t build_server_db_info(const name_string_t &name,
 
 datum_string_t build_server_db_description(const std::string &type,
                                            const name_string_t &name,
-                                           const std::vector<machine_id_t> &ids) {
+                                           const std::vector<server_id_t> &ids) {
     std::string ids_str;
     for (auto it = ids.begin(); it != ids.end(); ++it) {
         ids_str += strprintf("%s%s",
@@ -51,7 +51,7 @@ datum_string_t build_server_db_description(const std::string &type,
 
 server_name_collision_issue_t::server_name_collision_issue_t(
         const name_string_t &_name,
-        const std::vector<machine_id_t> &_collided_ids) :
+        const std::vector<server_id_t> &_collided_ids) :
     name_collision_issue_t(from_hash(base_issue_id, _name),
                           _name,
                           _collided_ids) { }
@@ -182,7 +182,7 @@ std::vector<scoped_ptr_t<issue_t> > name_collision_issue_tracker_t::get_issues()
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     std::vector<scoped_ptr_t<issue_t> > issues;
 
-    find_duplicates<server_name_collision_issue_t>(metadata.machines.machines, &issues);
+    find_duplicates<server_name_collision_issue_t>(metadata.servers.servers, &issues);
     find_duplicates<db_name_collision_issue_t>(metadata.databases.databases, &issues);
     find_table_duplicates(metadata.rdb_namespaces->namespaces, &issues);
 

@@ -28,8 +28,8 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     ns = http.add_table(primary = dc)
     time.sleep(10)
     host, port = driver.get_table_host(processes)
@@ -54,7 +54,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking backfill progress... ",
     progress = http.get_progress()
-    for machine_id, temp1 in progress.iteritems():
+    for server_id, temp1 in progress.iteritems():
         for namespace_id, temp2 in temp1.iteritems():
             for activity_id, temp3 in temp2.iteritems():
                 for region, progress_val in temp3.iteritems():

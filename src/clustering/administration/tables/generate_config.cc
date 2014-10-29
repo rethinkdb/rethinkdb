@@ -34,15 +34,15 @@ private:
 // The concrete value of these doesn't matter, only their ratio
 // (float)PRIMARY_USAGE_COST/(float)SECONDARY_USAGE_COST is important.
 // As long as PRIMARY_USAGE_COST > SECONDARY_USAGE_COST, this is a solution to
-// https://github.com/rethinkdb/rethinkdb/issues/344 (if the machine roles are
+// https://github.com/rethinkdb/rethinkdb/issues/344 (if the server roles are
 // otherwise equal).
 #define PRIMARY_USAGE_COST  10
 #define SECONDARY_USAGE_COST  8
 void calculate_server_usage(
         const table_config_t &config,
-        std::map<machine_id_t, int> *usage) {
+        std::map<server_id_t, int> *usage) {
     for (const table_config_t::shard_t &shard : config.shards) {
-        for (const machine_id_t &server : shard.replicas) {
+        for (const server_id_t &server : shard.replicas) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
         (*usage)[shard.director] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
@@ -52,8 +52,8 @@ void calculate_server_usage(
 /* `validate_params()` checks if `params` are legal. */
 static bool validate_params(
         const table_generate_config_params_t &params,
-        const std::map<name_string_t, std::set<machine_id_t> > &servers_with_tags,
-        const std::map<machine_id_t, name_string_t> &server_names,
+        const std::map<name_string_t, std::set<server_id_t> > &servers_with_tags,
+        const std::map<server_id_t, name_string_t> &server_names,
         std::string *error_out) {
     if (params.num_shards <= 0) {
         *error_out = "Every table must have at least one shard.";
@@ -71,12 +71,12 @@ static bool validate_params(
             params.director_tag.c_str());
         return false;
     }
-    std::map<machine_id_t, name_string_t> servers_claimed;
+    std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
         if (it->second == 0) {
             continue;
         }
-        for (const machine_id_t &server : servers_with_tags.at(it->first)) {
+        for (const server_id_t &server : servers_with_tags.at(it->first)) {
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
@@ -92,7 +92,7 @@ static bool validate_params(
 }
 
 /* `estimate_cost_to_get_up_to_date()` returns a number that describes how much trouble
-we expect it to be to get the given machine into an up-to-date state.
+we expect it to be to get the given server into an up-to-date state.
 
 This takes O(shards) time, since `business_card` probably contains O(shards) activities.
 */
@@ -149,7 +149,7 @@ the given shard.
 `other_usage_cost`. `self_usage_cost` is the sum of `PRIMARY_USAGE_COST` and
 `SECONDARY_USAGE_COST` for other shards in the same table on that server;
 `other_usage_cost` is for shards of other tables on the server. `backfill_cost` is the
-cost to copy data to the given machine, as computed by
+cost to copy data to the given server, as computed by
 `estimate_cost_to_get_up_to_date()`. When comparing two pairings, we first prioritize
 `self_usage_cost`, then `backfill_cost`, then `other_usage_cost`.
 
@@ -174,7 +174,7 @@ public:
     int self_usage_cost;
     std::multiset<pairing_t> pairings;
     int other_usage_cost;
-    machine_id_t server;
+    server_id_t server;
 };
 
 bool operator<(const pairing_t &x, const pairing_t &y) {
@@ -207,7 +207,7 @@ void pick_best_pairings(
         int usage_cost,
         long_calculation_yielder_t *yielder,
         signal_t *interruptor,
-        const std::function<void(size_t, machine_id_t)> &callback) {
+        const std::function<void(size_t, server_id_t)> &callback) {
     std::vector<size_t> shard_replicas(num_shards, 0);
     size_t total_replicas = 0;
     while (total_replicas < num_shards * num_replicas) {
@@ -233,8 +233,7 @@ bool table_generate_config(
         namespace_id_t table_id,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *directory_view,
-        const std::map<machine_id_t, int> &server_usage,
-
+        const std::map<server_id_t, int> &server_usage,
         const table_generate_config_params_t &params,
         const table_shard_scheme_t &shard_scheme,
 
@@ -247,19 +246,19 @@ bool table_generate_config(
     /* First, make local copies of the server name map and the list of servers with each
     tag. We have to make local copies because the values returned by `name_client` could
     change at any time, but we need the values to be consistent. */
-    std::map<machine_id_t, name_string_t> server_names =
-        name_client->get_machine_id_to_name_map()->get();
-    std::map<name_string_t, std::set<machine_id_t> > servers_with_tags;
+    std::map<server_id_t, name_string_t> server_names =
+        name_client->get_server_id_to_name_map()->get();
+    std::map<name_string_t, std::set<server_id_t> > servers_with_tags;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        std::set<machine_id_t> machines = name_client->get_servers_with_tag(it->first);
+        std::set<server_id_t> servers = name_client->get_servers_with_tag(it->first);
         auto pair = servers_with_tags.insert(
-            std::make_pair(it->first, std::set<machine_id_t>()));
-        for (const machine_id_t &machine : machines) {
+            std::make_pair(it->first, std::set<server_id_t>()));
+        for (const server_id_t &server : servers) {
             /* It's possible that due to a race condition, a server might appear in
             `servers_with_tags` but not `server_names`. We filter such servers out so
             that the code below us sees consistent data. */
-            if (server_names.count(machine) == 1) {
-                pair.first->second.insert(machine);
+            if (server_names.count(server) == 1) {
+                pair.first->second.insert(server);
             }
         }
     }
@@ -269,26 +268,26 @@ bool table_generate_config(
     }
 
     /* Fetch reactor information for all of the servers */
-    std::map<machine_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
+    std::map<server_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
     if (table_id != nil_uuid()) {
-        std::set<machine_id_t> missing;
+        std::set<server_id_t> missing;
         for (auto it = servers_with_tags.begin();
                   it != servers_with_tags.end();
                 ++it) {
             for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                machine_id_t machine_id = *jt;
+                server_id_t server_id = *jt;
                 boost::optional<peer_id_t> peer_id =
-                    name_client->get_peer_id_for_machine_id(machine_id);
+                    name_client->get_peer_id_for_server_id(server_id);
                 if (!static_cast<bool>(peer_id)) {
-                    missing.insert(machine_id);
+                    missing.insert(server_id);
                     continue;
                 }
                 directory_view->read_key(std::make_pair(*peer_id, table_id),
                     [&](const namespace_directory_metadata_t *metadata) {
                         if (metadata != nullptr) {
-                            directory_metadata[machine_id] = metadata->internal;
+                            directory_metadata[server_id] = metadata->internal;
                         } else {
-                            missing.insert(machine_id);
+                            missing.insert(server_id);
                         }
                     });
             }
@@ -324,8 +323,8 @@ bool table_generate_config(
         }
 
         /* Compute the desirability of each shard/server pair */
-        std::map<machine_id_t, server_pairings_t> pairings;
-        for (const machine_id_t &server : servers_with_tags.at(server_tag)) {
+        std::map<server_id_t, server_pairings_t> pairings;
+        for (const server_id_t &server : servers_with_tags.at(server_tag)) {
             server_pairings_t sp;
             sp.server = server;
             sp.self_usage_cost = 0;
@@ -388,7 +387,7 @@ bool table_generate_config(
                 PRIMARY_USAGE_COST,
                 &yielder,
                 interruptor,
-                [&](size_t shard, const machine_id_t &server) {
+                [&](size_t shard, const server_id_t &server) {
                     guarantee(config_out->shards[shard].director.is_unset());
                     config_out->shards[shard].replicas.insert(server);
                     config_out->shards[shard].director = server;
@@ -422,7 +421,7 @@ bool table_generate_config(
             SECONDARY_USAGE_COST,
             &yielder,
             interruptor,
-            [&](size_t shard, const machine_id_t &server) {
+            [&](size_t shard, const server_id_t &server) {
                 config_out->shards[shard].replicas.insert(server);
             });
     }

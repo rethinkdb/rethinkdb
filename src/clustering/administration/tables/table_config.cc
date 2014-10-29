@@ -9,11 +9,11 @@
 bool lookup_server(
         name_string_t name,
         server_name_client_t *name_client,
-        machine_id_t *machine_id_out,
+        server_id_t *server_id_out,
         std::string *error_out) {
     bool ok;
-    name_client->get_name_to_machine_id_map()->apply_read(
-        [&](const std::multimap<name_string_t, machine_id_t> *map) {
+    name_client->get_name_to_server_id_map()->apply_read(
+        [&](const std::multimap<name_string_t, server_id_t> *map) {
             if (map->count(name) == 0) {
                 *error_out = strprintf("Server `%s` does not exist.", name.c_str());
                 ok = false;
@@ -22,7 +22,7 @@ bool lookup_server(
                     "servers with that name.", name.c_str());
                 ok = false;
             } else {
-                *machine_id_out = map->find(name)->second;
+                *server_id_out = map->find(name)->second;
                 ok = true;
             }
         });
@@ -35,11 +35,11 @@ ql::datum_t convert_table_config_shard_to_datum(
     ql::datum_object_builder_t builder;
 
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
-    for (const machine_id_t &replica : shard.replicas) {
+    for (const server_id_t &replica : shard.replicas) {
         boost::optional<name_string_t> name =
-            name_client->get_name_for_machine_id(replica);
-        /* If a machine in the config was declared dead, then just omit it from here.
-        Consumers of the `table_config_t` will ignore entries for machines that have
+            name_client->get_name_for_server_id(replica);
+        /* If a server in the config was declared dead, then just omit it from here.
+        Consumers of the `table_config_t` will ignore entries for servers that have
         been declared dead, for consistency. */
         if (static_cast<bool>(name)) {
             replicas_builder.add(convert_name_to_datum(*name));
@@ -48,12 +48,12 @@ ql::datum_t convert_table_config_shard_to_datum(
     builder.overwrite("replicas", std::move(replicas_builder).to_datum());
 
     boost::optional<name_string_t> director_name =
-        name_client->get_name_for_machine_id(shard.director);
+        name_client->get_name_for_server_id(shard.director);
     if (static_cast<bool>(director_name)) {
         builder.overwrite("director", convert_name_to_datum(*director_name));
     } else {
         /* If the previous director was declared dead, just display `null`. The user will
-        have to change this to a new machine before the table will come back online. */
+        have to change this to a new server before the table will come back online. */
         builder.overwrite("director", ql::datum_t::null());
     }
 
@@ -87,12 +87,12 @@ bool convert_table_config_shard_from_datum(
             *error_out = "In `replicas`: " + *error_out;
             return false;
         }
-        machine_id_t machine_id;
-        if (!lookup_server(name, name_client, &machine_id, error_out)) {
+        server_id_t server_id;
+        if (!lookup_server(name, name_client, &server_id, error_out)) {
             *error_out = "In `replicas`: " + *error_out;
             return false;
         }
-        auto pair = shard_out->replicas.insert(machine_id);
+        auto pair = shard_out->replicas.insert(server_id);
         if (!pair.second) {
             *error_out = strprintf("In `replicas`: Server `%s` is listed more than "
                 "once.", name.c_str());
@@ -171,7 +171,7 @@ bool table_config_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(table_id));
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite(
         "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
     *row_out = std::move(builder).to_datum();
@@ -184,11 +184,11 @@ bool convert_table_config_and_name_from_datum(
         server_name_client_t *name_client,
         name_string_t *table_name_out,
         name_string_t *db_name_out,
-        namespace_id_t *uuid_out,
+        namespace_id_t *id_out,
         table_config_t *config_out,
         std::string *primary_key_out,
         std::string *error_out) {
-    /* In practice, the input will always be an object and the `uuid` field will always
+    /* In practice, the input will always be an object and the `id` field will always
     be valid, because `artificial_table_t` will check those thing before passing the
     row to `table_config_artificial_table_backend_t`. But we check them anyway for
     consistency. */
@@ -215,12 +215,12 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    ql::datum_t uuid_datum;
-    if (!converter.get("uuid", &uuid_datum, error_out)) {
+    ql::datum_t id_datum;
+    if (!converter.get("id", &id_datum, error_out)) {
         return false;
     }
-    if (!convert_uuid_from_datum(uuid_datum, uuid_out, error_out)) {
-        *error_out = "In `uuid`: " + *error_out;
+    if (!convert_uuid_from_datum(id_datum, id_out, error_out)) {
+        *error_out = "In `id`: " + *error_out;
         return false;
     }
 

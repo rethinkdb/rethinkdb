@@ -8,7 +8,7 @@
 bool convert_server_config_and_name_from_datum(
         ql::datum_t datum,
         name_string_t *name_out,
-        machine_id_t *machine_id_out,
+        server_id_t *server_id_out,
         std::set<name_string_t> *tags_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
@@ -25,12 +25,12 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
-    ql::datum_t uuid_datum;
-    if (!converter.get("uuid", &uuid_datum, error_out)) {
+    ql::datum_t id_datum;
+    if (!converter.get("id", &id_datum, error_out)) {
         return false;
     }
-    if (!convert_uuid_from_datum(uuid_datum, machine_id_out, error_out)) {
-        *error_out = "In `uuid`: " + *error_out;
+    if (!convert_uuid_from_datum(id_datum, server_id_out, error_out)) {
+        *error_out = "In `id`: " + *error_out;
         return false;
     }
 
@@ -59,14 +59,14 @@ bool convert_server_config_and_name_from_datum(
 
 bool server_config_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
-        machine_id_t const & server_id,
-        machine_semilattice_metadata_t const & server_sl,
+        server_id_t const & server_id,
+        server_semilattice_metadata_t const & server_sl,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
 
     builder.overwrite("name", convert_name_to_datum(server_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_uuid_to_datum(server_id));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum, server_sl.tags.get_ref()));
 
@@ -83,10 +83,12 @@ bool server_config_artificial_table_backend_t::write_row(
         std::string *error_out) {
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
-    machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
+    new_mutex_in_line_t write_mutex_in_line(&write_mutex);
+    wait_interruptible(write_mutex_in_line.acq_signal(), &interruptor2);
+    servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
-    machine_id_t server_id;
-    machine_semilattice_metadata_t *server_sl;
+    server_id_t server_id;
+    server_semilattice_metadata_t *server_sl;
     if (!new_value.has()) {
         /* We give this error even if the row didn't already exist. This is a little
         strange but unlikely to happen in practice. */
@@ -101,7 +103,7 @@ bool server_config_artificial_table_backend_t::write_row(
         return false;
     }
     name_string_t new_server_name;
-    machine_id_t new_server_id;
+    server_id_t new_server_id;
     std::set<name_string_t> new_tags;
     if (!convert_server_config_and_name_from_datum(new_value,
             &new_server_name, &new_server_id, &new_tags, error_out)) {

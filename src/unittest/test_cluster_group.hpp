@@ -53,7 +53,7 @@ public:
 
     rdb_context_t ctx;
 
-    explicit test_cluster_group_t(int n_machines);
+    explicit test_cluster_group_t(int n_servers);
     ~test_cluster_group_t();
 
     void construct_all_reactors(const blueprint_t &bp);
