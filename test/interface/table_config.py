@@ -200,10 +200,13 @@ with driver.Metacluster() as metacluster:
 
     print "Testing that we can create a table through table_config..."
     def test_create(doc, pkey):
-        res = r.db("rethinkdb").table("table_config").insert(doc).run(conn)
+        res = r.db("rethinkdb").table("table_config") \
+               .insert(doc, return_changes=True).run(conn)
         assert res["errors"] == 0, repr(res)
         assert res["inserted"] == 1, repr(res)
         assert doc["name"] in r.table_list().run(conn)
+        assert res["changes"][0]["new_val"]["primary_key"] == pkey
+        assert "shards" in res["changes"][0]["new_val"]
         for i in xrange(10):
             try:
                 r.table(doc["name"]).insert({}).run(conn)
