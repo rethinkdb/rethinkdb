@@ -495,29 +495,22 @@ private:
     table_status_artificial_table_backend_t *table_status_backend;
 };
 
-std::string deleted_table_error_message(std::map<namespace_id_t, name_string_t> table_map,
-                                        const ql::datum_t *result_array) {
+std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
+        std::map<namespace_id_t, name_string_t> table_map,
+        const ql::datum_t *result_array) {
     std::string dummy_error;
     for (size_t i = 0; i < result_array->arr_size(); ++i) {
         namespace_id_t table_id;
-        if (!convert_uuid_from_datum(result_array->get(i).get_field("uuid"),
-                                     &table_id, &dummy_error)) {
-            return "An unknown table was deleted during the operation.";
-        }
-
+        guarantee(convert_uuid_from_datum(result_array->get(i).get_field("id"),
+                                          &table_id, &dummy_error));
         table_map.erase(table_id);
     }
 
+    // Only report the 'first' missing table to keep some consistency
+    // with other error messages
     rassert(!table_map.empty());
-    std::string message;
-    for (auto const &pair : table_map) {
-        message += strprintf("%s`%s`", message.empty() ? "" : ", ",
-                             pair.second.str().c_str());
-    }
-
-    return strprintf("%s deleted during the operation: %s",
-                     table_map.size() == 1 ? "This table was" : "These tables were",
-                     message.c_str());
+    return strprintf("Table `%s.%s` does not exist.",
+                     db->name.c_str(), table_map.begin()->second.str().c_str());
 }
 
 bool real_reql_cluster_interface_t::table_wait(
@@ -583,7 +576,7 @@ bool real_reql_cluster_interface_t::table_wait(
             }
 
             if (!tables.empty() && tables.size() != datum_result.arr_size()) {
-                *error_out = deleted_table_error_message(table_map, &datum_result);
+                *error_out = deleted_table_error_message(db, table_map, &datum_result);
                 return false;
             }
         }
@@ -766,7 +759,7 @@ bool real_reql_cluster_interface_t::table_meta_read_by_name(
     }
 
     if (!tables.empty() && tables.size() != res_out->arr_size()) {
-        *error_out = deleted_table_error_message(table_map, res_out);
+        *error_out = deleted_table_error_message(db, table_map, res_out);
         return false;
     }
 
