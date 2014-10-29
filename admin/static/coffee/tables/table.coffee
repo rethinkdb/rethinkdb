@@ -30,19 +30,20 @@ module 'TableView', ->
                             null,
                             table.merge(
                                 num_shards: table("shards").count()
+                                # TODO: replace with primary once "director" is out
                                 num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
                                 num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                                 num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                                 num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                 max_replicas: num_servers
                                 num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
-                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: Replace with the real API
+                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: 
                                     num_keys: r.random(0, 300000).add(400000)
                                     id: position
                                 )
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
-                                    director:
+                                    primary:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
                                     replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
@@ -129,10 +130,10 @@ module 'TableView', ->
                                     start_shard: true
 
                                 shards_assignments.push
-                                    id: "shard_director_#{shard.id}"
-                                    director: true
+                                    id: "shard_primary_#{shard.id}"
+                                    primary: true
                                     shard_id: shard.id
-                                    data: shard.director
+                                    data: shard.primary
 
                                 for replica, position in shard.replicas
                                     shards_assignments.push

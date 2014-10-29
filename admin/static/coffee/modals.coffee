@@ -232,6 +232,7 @@ module 'Modals', ->
                                 name: @formdata.name
                                 primary_key: primary_key
                                 shards: [
+                                    #TODO: replace with primary once api changes
                                     director: server
                                     replicas: [server]
                                 ]

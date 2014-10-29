@@ -24,8 +24,8 @@ module 'DashboardView', ->
                 r.db(system_db).table('table_status').coerceTo("ARRAY"),
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
-                    num_directors: table_config('shards').concatMap(identity)("director").count()
-                    num_available_directors: table_status('shards')
+                    num_primaries: table_config('shards').concatMap(identity)("director").count()
+                    num_available_primaries: table_status('shards')
                         .concatMap(identity)
                         .concatMap(identity)
                         .filter({role: "director", state: "ready"})
@@ -39,7 +39,7 @@ module 'DashboardView', ->
                                 assignment("role").eq("replica").or(assignment("role").eq("director"))
                             )
                         ).count()
-                    tables_with_directors_not_ready: table_status.merge( (table) ->
+                    tables_with_primaries_not_ready: table_status.merge( (table) ->
                         shards: table("shards").indexesOf( () -> true ).map( (position) ->
                             table("shards").nth(position).merge
                                 id: r.add(
@@ -82,7 +82,7 @@ module 'DashboardView', ->
                     servers_non_available: server_status.filter (server) ->
                         server("status").ne("available")
             ).merge
-                num_non_available_tables: r.row("tables_with_directors_not_ready").count()
+                num_non_available_tables: r.row("tables_with_primaries_not_ready").count()
 
             @timer = driver.run query, 5000, (error, result) =>
                 if error?
@@ -189,8 +189,8 @@ module 'DashboardView', ->
             # We could eventually properly create a collection from @model.get('shards')
             # But this is probably not worth the effort for now.
 
-            @listenTo @model, 'change:num_directors', @render
-            @listenTo @model, 'change:num_available_directors', @render
+            @listenTo @model, 'change:num_primaries', @render
+            @listenTo @model, 'change:num_available_primaries', @render
 
             $(window).on 'mouseup', @hide_popup
             @$el.on 'click', @stop_propagation
@@ -220,15 +220,15 @@ module 'DashboardView', ->
 
         render: =>
             @$el.html @template
-                status_is_ok: @model.get('num_available_directors') is @model.get('num_directors')
-                num_directors: @model.get 'num_directors'
-                num_available_directors: @model.get 'num_available_directors'
-                num_non_available_directors: @model.get('num_directors')-@model.get('num_available_directors')
+                status_is_ok: @model.get('num_available_primaries') is @model.get('num_primaries')
+                num_primaries: @model.get 'num_primaries'
+                num_available_primaries: @model.get 'num_available_primaries'
+                num_non_available_primaries: @model.get('num_primaries')-@model.get('num_available_primaries')
                 num_non_available_tables: @model.get 'num_non_available_tables'
                 num_tables: @model.get 'num_tables'
-                tables_with_directors_not_ready: @model.get('tables_with_directors_not_ready')
+                tables_with_primaries_not_ready: @model.get('tables_with_primaries_not_ready')
 
-            if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
+            if @display_popup is true and @model.get('num_available_primaries') isnt @model.get('num_primaries')
                 # We re-display the pop up only if there are still issues
                 @show_popup()
 

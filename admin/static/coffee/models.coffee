@@ -51,9 +51,9 @@ class ShardAssignments extends Backbone.Collection
                 return 1
             else if b.get('end_shard') is true
                 return -1
-            else if a.get('director') is true and b.get('replica') is true
+            else if a.get('primary') is true and b.get('replica') is true
                 return -1
-            else if a.get('replica') is true and b.get('director') is true
+            else if a.get('replica') is true and b.get('primary') is true
                 return 1
             else if a.get('replica') is true and  b.get('replica') is true
                 if a.get('replica_position') < b.get('replica_position')

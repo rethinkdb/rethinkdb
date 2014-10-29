@@ -1,24 +1,18 @@
-
-    <div class="summary">
-        <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_table_reachability status}}</span></p>
-        </div>
-        <div class="stat-row">
-            {{#if total_keys_available}}
-            <p class="documents"><span class="big">About {{total_keys}} </span>documents</p>
-            {{else}}
-            <p class="documents"><span class="big">N/A </span>documents</p>
-            {{/if}}
-        </div>
-        <div class="stat-row">
-            <p class="masters"><span class="big">{{num_available_shards}}/{{num_shards}} </span> masters reachable</p>
-        </div>
-        <div class="stat-row">
-            <p class="replicas"><span class="big">{{num_available_replicas}}/{{num_replicas}} </span> replicas reachable</p>
-        </div>
+<div class="summary">
+    <div class="stat-row first">
+        <p class="availability"><span class="big">{{humanize_table_reachability status}}</span></p>
     </div>
-
-
-
-
-
+    <div class="stat-row">
+        {{#if total_keys_available}}
+        <p class="documents"><span class="big">About {{total_keys}} </span>documents</p>
+        {{else}}
+        <p class="documents"><span class="big">N/A </span>documents</p>
+        {{/if}}
+    </div>
+    <div class="stat-row">
+        <p class="masters"><span class="big">{{num_available_shards}}/{{num_shards}} </span> primary replicas reachable</p>
+    </div>
+    <div class="stat-row">
+        <p class="replicas"><span class="big">{{num_available_replicas}}/{{num_replicas}} </span> replicas reachable</p>
+    </div>
+</div>
