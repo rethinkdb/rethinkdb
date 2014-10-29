@@ -1,54 +1,31 @@
-
-    <div class="results_header">
-        <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
-            <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
-            <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
-            <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
-        </ul>
-        <p class="metadata">
-            {{#if show_query_warning}}Results from the previous query:{{/if}}
-            {{#if execution_time_pretty}}Executed in <span title="Queries originating from the web UI incur additional HTTP round-trip latency." class="execution_time">{{execution_time_pretty}}</span>.{{/if}}
-            {{#if no_results}}No results returned.{{/if}}
-            {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
-                {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
-            {{else}}
-                {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
-            {{/if}}
-            {{#if show_more_data}}more available {{/if}}
-        </p>
-    </div>
-    <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
-    <div class="tab-content">  
-        <div class="results profile_view_container">
-            <div class="results_wrap profile_view">
-                <div class="profile_summary_container"></div>
-                <button class="btn copy_profile">Copy to clipboard</button>
-                <div class="profile_container"></div>
-            </div>
-        </div>
-        <div class="results tree_view_container">
-            <div class="results_wrap tree_view"><div class="json_tree_container"></div>
-            </div>
-        </div>
-        <div class="results table_view_container">
-            <div class="results_wrap table_view"></div>
-        </div>
-        <div class="results raw_view_container">
-            <div class="raw_view_container raw_view">
-                <textarea class="raw_view_textarea"></textarea>
-            </div>
-        </div>
-    </div>
-    {{#if show_more_data}}
-    <div class="info more_results">
-        <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
-    </div>
-    {{else}}
-        {{#if cursor_timed_out_template}}
-            <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
+<div class="results_header">
+    <ul class="nav nav-tabs change_view_container">
+        <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
+        <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
+        <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+        <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
+    </ul>
+    <p class="metadata">
+        {{#if show_query_warning ~}}Results from the previous query:{{/if}}
+        {{#if execution_time_pretty}}Executed in <span title="Queries originating from the web UI incur additional HTTP round-trip latency." class="execution_time">{{execution_time_pretty}}</span>.{{/if}}
+        {{#if no_results}}No results returned.{{/if}}
+        {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
+            {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
+        {{else}}
+            {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
         {{/if}}
+        {{#if show_more_data}}more available {{/if}}
+    </p>
+</div>
+<div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
+<div class="tab-content"></div>
+{{#if show_more_data}}
+<div class="info more_results">
+    <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
+</div>
+{{!ATN: move the button inside the raw, table and tree views}}
+{{else}}
+    {{#if cursor_timed_out_template}}
+        <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
     {{/if}}
-
-
-
+{{/if}}

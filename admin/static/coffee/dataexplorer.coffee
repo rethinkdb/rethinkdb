@@ -37,7 +37,7 @@ module 'DataExplorerView', ->
     #  * end: There are no more documents to fetch
     #
     #  * discard: The results have been discarded
-    class @QueryResult
+    class QueryResult
         _.extend @::, Backbone.Events
 
         constructor: (options) ->
@@ -613,20 +613,19 @@ module 'DataExplorerView', ->
                 [/\[/g, '\\[']
             ]
 
-            @results_view = new DataExplorerView.ResultView
+            @results_view = new ResultParentView
                 container: @
-                limit: @limit
                 view: @state.view
 
-            @options_view = new DataExplorerView.OptionsView
+            @options_view = new OptionsView
                 container: @
                 options: @state.options
 
-            @history_view = new DataExplorerView.HistoryView
+            @history_view = new HistoryView
                 container: @
                 history: @state.history
 
-            @driver_handler = new DataExplorerView.DriverHandler
+            @driver_handler = new DriverHandler
                 container: @
 
             # One callback to rule them all
@@ -734,7 +733,6 @@ module 'DataExplorerView', ->
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
                 @handle_keypress()
-            @results_view.expand_raw_textarea()
 
             @draft = @codemirror.getValue()
 
@@ -2616,7 +2614,7 @@ module 'DataExplorerView', ->
                     @start_time = new Date()
                     @current_results = []
 
-                    query_result = new DataExplorerView.QueryResult
+                    query_result = new QueryResult
                         profile: @state.options.profiler
                         events:
                             sync: @query_result_callback
@@ -2634,7 +2632,7 @@ module 'DataExplorerView', ->
                     , @error_on_connect
 
                     return true
-                else if rdb_query instanceof DataExplorerView.DriverHandler
+                else if rdb_query instanceof DriverHandler
                     # Nothing to do
                     return true
                 else
@@ -2706,7 +2704,7 @@ module 'DataExplorerView', ->
             @state.results = @current_results
             @state.metadata =
                 limit_value: @current_results.length
-                skip_value: result.start_index
+                skip_value: result.start_index - rows.length
                 execution_time: new Date() - @start_time
                 query: @query
                 has_more_data: not result.ended
@@ -2921,53 +2919,323 @@ module 'DataExplorerView', ->
             driver.stop_timer @timer
             # We do not destroy the cursor, because the user might come back and use it.
             super()
-    
-    class @SharedResultView extends Backbone.View
-        template_json_tree:
-            'large_container' : Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
-            'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
-            'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
-            'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
-            'url': Handlebars.templates['dataexplorer_result_json_tree_url-template']
-            'email': Handlebars.templates['dataexplorer_result_json_tree_email-template']
-            'object': Handlebars.templates['dataexplorer_result_json_tree_object-template']
-            'array': Handlebars.templates['dataexplorer_result_json_tree_array-template']
 
-        template_json_table:
-            'container' : Handlebars.templates['dataexplorer_result_json_table_container-template']
-            'tr_attr': Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
-            'td_attr': Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
-            'tr_value': Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
-            'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
-            'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
-            'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+    # JavaScript doesn't let us set a timezone
+    # So we create a date shifted of the timezone difference
+    # Then replace the timezone of the JS date with the one from the ReQL object
+    date_to_string = (date) ->
+        timezone = date.timezone
+        
+        # Extract data from the timezone
+        timezone_array = date.timezone.split(':')
+        sign = timezone_array[0][0] # Keep the sign
+        timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
 
-        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
-        mouse_down: false
+        # Save the timezone in minutes
+        timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+        if sign is '-'
+            timezone_int = -1*timezone_int
+
+        # d = real date with user's timezone
+        d = new Date(date.epoch_time*1000)
+
+        # Add the user local timezone
+        timezone_int += d.getTimezoneOffset()*60
+
+        # d_shifted = date shifted with the difference between the two timezones
+        # (user's one and the one in the ReQL object)
+        d_shifted = new Date((date.epoch_time+timezone_int)*1000)
+
+        # If the timezone between the two dates is not the same,
+        # it means that we changed time between (e.g because of daylight savings)
+        if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
+            # d_shifted_bis = date shifted with the timezone of d_shifted and not d
+            d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
+
+            if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
+                # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
+                # Let's create the date outselves...
+                str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
+                hours = parseInt(str_pieces[5])
+                hours++
+                if hours.toString().length is 1
+                    hours = "0"+hours.toString()
+                else
+                    hours = hours.toString()
+                #Note str_pieces[0] is the whole string
+                raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
+            else
+                raw_date_str = d_shifted_bis.toString()
+        else
+            raw_date_str = d_shifted.toString()
+
+        # Remove the timezone and replace it with the good one
+        return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
+
+    prettify_duration = (duration) ->
+        if duration < 1
+            return '<1ms'
+        else if duration < 1000
+            return duration.toFixed(0)+"ms"
+        else if duration < 60*1000
+            return (duration/1000).toFixed(2)+"s"
+        else # We do not expect query to last one hour.
+            minutes = Math.floor(duration/(60*1000))
+            return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
+
+    binary_to_string = (bin) ->
+        # We print the size of the binary, not the size of the base 64 string
+        # We suppose something stronger than the RFC 2045:
+        # We suppose that there is ONLY one CRLF every 76 characters
+        blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
+        leftover = bin.data.length-blocks_of_76*78
+
+        base64_digits = 76*blocks_of_76+leftover
+
+        blocks_of_4 = Math.floor(base64_digits/4)
+
+        end = bin.data.slice(-2)
+        if end is '=='
+            number_of_equals = 2
+        else if end.slice(-1) is '='
+            number_of_equals = 1
+        else
+            number_of_equals = 0
+
+        size = 3*blocks_of_4-number_of_equals
+
+        if size >= 1073741824
+            sizeStr = (size/1073741824).toFixed(1)+'GB'
+        else if size >= 1048576
+            sizeStr = (size/1048576).toFixed(1)+'MB'
+        else if size >= 1024
+            sizeStr = (size/1024).toFixed(1)+'KB'
+        else if size is 1
+            sizeStr = size+' byte'
+        else
+            sizeStr = size+' bytes'
+
+
+        # Compute a snippet and return the <binary, size, snippet> result
+        if size is 0
+            return "<binary, #{sizeStr}>"
+        else
+            str = atob bin.data.slice(0, 8)
+            snippet = ''
+            for char, i  in str
+                next = str.charCodeAt(i).toString(16)
+                if next.length is 1
+                    next = "0" + next
+                snippet += next
+
+                if i isnt str.length-1
+                    snippet += " "
+            if size > str.length
+                snippet += "..."
+
+            return "<binary, #{sizeStr}, \"#{snippet}\">"
+
+
+    # An abstract base class
+    class ResultView extends Backbone.View
+        tree_large_container_template: Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
+        tree_container_template: Handlebars.templates['dataexplorer_result_json_tree_container-template']
 
         events: ->
-            'click .link_to_profile_view': 'show_profile'
-            'click .link_to_tree_view': 'show_tree'
-            'click .link_to_table_view': 'show_table'
-            'click .link_to_raw_view': 'show_raw'
-            # For Tree view
             'click .jt_arrow': 'toggle_collapse'
-            # For Table view
-            'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
 
-        expand_raw_textarea: =>
-            if $('.raw_view_textarea').length > 0
-                height = $('.raw_view_textarea')[0].scrollHeight
-                $('.raw_view_textarea').height(height)
+        initialize: (args) =>
+            @parent = args.parent
 
+        current_result: []
+        max_datum_threshold: 1000
+
+        # Return whether there are too many datums
+        # If there are too many, we will disable syntax highlighting to avoid freezing the page
+        has_too_many_datums: (result) ->
+            if @has_too_many_datums_helper(result) > @max_datum_threshold
+                return true
+            return false
+
+        json_to_tree: (result) =>
+            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
+            if @has_too_many_datums(result)
+                return @tree_large_container_template
+                    json_data: JSON.stringify(result, null, 4)
+            else
+                return @tree_container_template
+                    tree: json_to_node(result)
+
+        # Return the number of datums if there are less than @max_datum_threshold
+        # Or return a number greater than @max_datum_threshold
+        has_too_many_datums_helper: (result) ->
+            if Object::toString.call(result) is '[object Object]'
+                count = 0
+                for key of result
+                    count += @has_too_many_datums_helper result[key]
+                    if count > @max_datum_threshold
+                        return count
+                return count
+            else if Array.isArray(result)
+                count = 0
+                for element in result
+                    count += @has_too_many_datums_helper element
+                    if count > @max_datum_threshold
+                        return count
+                return count
+
+            return 1
+
+        copy_parent_results: =>
+            @results = @parent.results
+            @results_array = @parent.results_array
+            @profile = @parent.profile
+            @metadata = @parent.metadata
 
         toggle_collapse: (event) =>
             @$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
             @$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
             @$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @$(event.target).toggleClass('jt_arrow_hidden')
-            @set_scrollbar()
+            @parent.set_scrollbar()
+
+        expand_tree_in_table: (event) =>
+            dom_element = @$(event.target).parent()
+            @$(event.target).remove()
+            data = dom_element.data('json_data')
+            result = @json_to_tree data
+            dom_element.html result
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
+            $('.'+classname_to_change).css 'max-width', 'none'
+            classname_to_change = dom_element.parent().parent().attr('class')
+            $('.'+classname_to_change).css 'max-width', 'none'
+            dom_element.css 'max-width', 'none'
+            @parent.set_scrollbar()
+
+    # Render a datum as a pretty tree
+    json_to_node = do ->
+        template =
+            span: Handlebars.templates['dataexplorer_result_json_tree_span-template']
+            span_with_quotes: Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
+            url: Handlebars.templates['dataexplorer_result_json_tree_url-template']
+            email: Handlebars.templates['dataexplorer_result_json_tree_email-template']
+            object: Handlebars.templates['dataexplorer_result_json_tree_object-template']
+            array: Handlebars.templates['dataexplorer_result_json_tree_array-template']
+
+        # We build the tree in a recursive way
+        json_to_node = (value) ->
+            value_type = typeof value
+            
+            output = ''
+            if value is null
+                return template.span
+                    classname: 'jt_null'
+                    value: 'null'
+            else if Object::toString.call(value) is '[object Array]'
+                if value.length is 0
+                    return '[ ]'
+                else
+                    sub_values = []
+                    for element in value
+                        sub_values.push
+                            value: json_to_node element
+                        if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
+                            sub_values[sub_values.length-1]['no_comma'] = true
+
+
+                    sub_values[sub_values.length-1]['no_comma'] = true
+                    return template.array
+                        values: sub_values
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
+                return template.span
+                    classname: 'jt_date'
+                    value: date_to_string(value)
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                return template.span
+                    classname: 'jt_bin'
+                    value: binary_to_string(value)
+
+            else if value_type is 'object'
+                sub_keys = []
+                for key of value
+                    sub_keys.push key
+                sub_keys.sort()
+
+                sub_values = []
+                for key in sub_keys
+                    last_key = key
+                    sub_values.push
+                        key: key
+                        value: json_to_node value[key]
+                    # We don't add a coma for url and emails, because we put it in value (value = url, >>)
+                    if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
+                        sub_values[sub_values.length-1]['no_comma'] = true
+
+                if sub_values.length isnt 0
+                    sub_values[sub_values.length-1]['no_comma'] = true
+
+                data =
+                    no_values: false
+                    values: sub_values
+
+                if sub_values.length is 0
+                    data.no_value = true
+
+                return template.object data
+            else if value_type is 'number'
+                return template.span
+                    classname: 'jt_num'
+                    value: value
+            else if value_type is 'string'
+                if /^(http|https):\/\/[^\s]+$/i.test(value)
+                    return template.url
+                        url: value
+                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                    return template.email
+                        email: value
+                else
+                    return template.span_with_quotes
+                        classname: 'jt_string'
+                        value: value
+            else if value_type is 'boolean'
+                return template.span
+                    classname: 'jt_bool'
+                    value: if value then 'true' else 'false'
+
+    class TreeView extends ResultView
+        className: 'results tree_view_container'
+        template: Handlebars.templates['dataexplorer_result_tree-template']
+
+        render: =>
+            @copy_parent_results()
+            @$el.html @template
+                tree: @json_to_tree @results
+            @
+
+    class TableView extends ResultView
+        className: 'results table_view_container'
+
+        templates:
+            wrapper: Handlebars.templates['dataexplorer_result_table-template']
+            container: Handlebars.templates['dataexplorer_result_json_table_container-template']
+            tr_attr: Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
+            td_attr: Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
+            tr_value: Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
+            td_value: Handlebars.templates['dataexplorer_result_json_table_td_value-template']
+            td_value_content: Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
+            data_inline: Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+        mouse_down: false
+
+        events: -> _.extend super(),
+            'mousedown .click_detector': 'handle_mousedown'
+
+        initialize: (args) =>
+            super args
+            @last_keys = @parent.container.state.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @parent.container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
         handle_mousedown: (event) =>
             if event?.target?.className is 'click_detector'
@@ -2979,8 +3247,8 @@ module 'DataExplorerView', ->
 
         handle_mousemove: (event) =>
             if @mouse_down
-                @container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
-                @resize_column @col_resizing, @container.state.last_columns_size[@col_resizing] # Resize
+                @parent.container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @parent.container.state.last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
             @$('.col-'+col).css 'max-width', size
@@ -2998,126 +3266,8 @@ module 'DataExplorerView', ->
             if @mouse_down is true
                 @mouse_down = false
                 $('body').toggleClass('resizing', false)
-                @set_scrollbar()
+                @parent.set_scrollbar()
 
-
-
-        # Expand a JSON object in a table. We just call the @json_to_tree
-        expand_tree_in_table: (event) =>
-            dom_element = @$(event.target).parent()
-            @$(event.target).remove()
-            data = dom_element.data('json_data')
-            result = @json_to_tree data
-            dom_element.html result
-            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
-            $('.'+classname_to_change).css 'max-width', 'none'
-            classname_to_change = dom_element.parent().parent().attr('class')
-            $('.'+classname_to_change).css 'max-width', 'none'
-            dom_element.css 'max-width', 'none'
-            @set_scrollbar()
-
-
-
-        show_tree: (event) =>
-            event.preventDefault()
-            @set_view 'tree'
-        show_profile: (event) =>
-            event.preventDefault()
-            @set_view 'profile'
-        show_table: (event) =>
-            event.preventDefault()
-            @set_view 'table'
-        show_raw: (event) =>
-            event.preventDefault()
-            @set_view 'raw'
-
-        set_view: (view) =>
-            @view = view
-            @container.state.view = view
-            @render_result()
-
-
-
-        # We build the tree in a recursive way
-        json_to_node: (value) =>
-            value_type = typeof value
-            
-            output = ''
-            if value is null
-                return @template_json_tree.span
-                    classname: 'jt_null'
-                    value: 'null'
-            else if Object::toString.call(value) is '[object Array]'
-                if value.length is 0
-                    return '[ ]'
-                else
-                    sub_values = []
-                    for element in value
-                        sub_values.push
-                            value: @json_to_node element
-                        if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
-                            sub_values[sub_values.length-1]['no_comma'] = true
-
-
-                    sub_values[sub_values.length-1]['no_comma'] = true
-                    return @template_json_tree.array
-                        values: sub_values
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-                return @template_json_tree.span
-                    classname: 'jt_date'
-                    value: @date_to_string(value)
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-                return @template_json_tree.span
-                    classname: 'jt_bin'
-                    value: @binary_to_string(value)
-
-            else if value_type is 'object'
-                sub_keys = []
-                for key of value
-                    sub_keys.push key
-                sub_keys.sort()
-
-                sub_values = []
-                for key in sub_keys
-                    last_key = key
-                    sub_values.push
-                        key: key
-                        value: @json_to_node value[key]
-                    # We don't add a coma for url and emails, because we put it in value (value = url, >>)
-                    if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
-                        sub_values[sub_values.length-1]['no_comma'] = true
-
-                if sub_values.length isnt 0
-                    sub_values[sub_values.length-1]['no_comma'] = true
-
-                data =
-                    no_values: false
-                    values: sub_values
-
-                if sub_values.length is 0
-                    data.no_value = true
-
-                return @template_json_tree.object data
-            else if value_type is 'number'
-                return @template_json_tree.span
-                    classname: 'jt_num'
-                    value: value
-            else if value_type is 'string'
-                if /^(http|https):\/\/[^\s]+$/i.test(value)
-                    return @template_json_tree.url
-                        url: value
-                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
-                    return @template_json_tree.email
-                        email: value
-                else
-                    return @template_json_tree.span_with_quotes
-                        classname: 'jt_string'
-                        value: value
-            else if value_type is 'boolean'
-                return @template_json_tree.span
-                    classname: 'jt_bool'
-                    value: if value then 'true' else 'false'
- 
         ###
         keys =
             primitive_value_count: <int>
@@ -3184,39 +3334,6 @@ module 'DataExplorerView', ->
             if keys.primitive_value_count > 0
                 keys.sorted_keys.unshift @primitive_key
 
-        # Build the table
-        # We order by the most frequent keys then by alphabetic order
-        json_to_table: (result) =>
-            # While an Array type is never returned by the driver, we still build an Array in the data explorer
-            # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or result.constructor isnt Array
-                result = [result]
-
-            keys_count =
-                primitive_value_count: 0
-
-            for result_entry in result
-                @build_map_keys
-                    keys_count: keys_count
-                    result: result_entry
-            @compute_occurrence keys_count
-
-            @order_keys keys_count
-
-            flatten_attr = []
-
-            @get_all_attr # fill attr[]
-                keys_count: keys_count
-                attr: flatten_attr
-                prefix: []
-                prefix_str: ''
-            for value, index in flatten_attr
-                value.col = index
-
-            flatten_attr: flatten_attr
-            result: result
-
-
         # Flatten the object returns by build_map_keys().
         # We get back an array of keys
         get_all_attr: (args) =>
@@ -3248,48 +3365,8 @@ module 'DataExplorerView', ->
                             prefix_str: prefix_str
                             key: key
 
-
-        # Return whether there are too many datums
-        # If there are too many, we will disable syntax highlighting to avoid freezing the page
-        has_too_many_datums: (result) ->
-            if @has_too_many_datums_helper(result) > @max_datum_threshold
-                return true
-            return false
-
-
-        # Return the number of datums if there are less than @max_datum_threshold
-        # Or return a number greater than @max_datum_threshold
-        has_too_many_datums_helper: (result) ->
-            if Object::toString.call(result) is '[object Object]'
-                count = 0
-                for key of result
-                    count += @has_too_many_datums_helper result[key]
-                    if count > @max_datum_threshold
-                        return count
-                return count
-            else if Array.isArray(result)
-                count = 0
-                for element in result
-                    count += @has_too_many_datums_helper element
-                    if count > @max_datum_threshold
-                        return count
-                return count
-
-            return 1
-
-
-        json_to_tree: (result) =>
-            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
-            if @has_too_many_datums(result)
-                return @template_json_tree.large_container
-                    too_many_datums: true
-                    json_data: JSON.stringify(result, null, 4)
-            else
-                return @template_json_tree.container
-                    tree: @json_to_node(result)
-
         json_to_table_get_attr: (flatten_attr) =>
-            return @template_json_table.tr_attr
+            return @templates.tr_attr
                 attr: flatten_attr
 
         json_to_table_get_values: (args) =>
@@ -3313,15 +3390,15 @@ module 'DataExplorerView', ->
                     new_document.cells.push @json_to_table_get_td_value value, col
                 @tag_record new_document, i
                 document_list.push new_document
-            return @template_json_table.tr_value
+            return @templates.tr_value
                 document: document_list
 
         json_to_table_get_td_value: (value, col) =>
             data = @compute_data_for_type(value, col)
 
-            return @template_json_table.td_value
+            return @templates.td_value
                 col: col
-                cell_content: @template_json_table.td_value_content data
+                cell_content: @templates.td_value_content data
             
         compute_data_for_type: (value,  col) =>
             data =
@@ -3343,10 +3420,10 @@ module 'DataExplorerView', ->
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
             else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-                data['value'] = @date_to_string(value)
+                data['value'] = date_to_string(value)
                 data['classname'] = 'jta_date'
             else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-                data['value'] = @binary_to_string value
+                data['value'] = binary_to_string value
                 data['classname'] = 'jta_bin'
             else if Object::toString.call(value) is '[object Object]'
                 data['value'] = '{ ... }'
@@ -3375,9 +3452,244 @@ module 'DataExplorerView', ->
                 if i isnt data.length-1
                     data_cell['need_comma'] = true
 
-                result += @template_json_table.data_inline data_cell
+                result += @templates.data_inline data_cell
                  
             return result
+
+        # Build the table
+        # We order by the most frequent keys then by alphabetic order
+        json_to_table: (result) =>
+            # While an Array type is never returned by the driver, we still build an Array in the data explorer
+            # when a cursor is returned (since we just print @limit results)
+            if not result.constructor? or result.constructor isnt Array
+                result = [result]
+
+            keys_count =
+                primitive_value_count: 0
+
+            for result_entry in result
+                @build_map_keys
+                    keys_count: keys_count
+                    result: result_entry
+            @compute_occurrence keys_count
+
+            @order_keys keys_count
+
+            flatten_attr = []
+
+            @get_all_attr # fill attr[]
+                keys_count: keys_count
+                attr: flatten_attr
+                prefix: []
+                prefix_str: ''
+            for value, index in flatten_attr
+                value.col = index
+
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @parent.container.state.last_keys = @last_keys
+
+
+            return @templates.container
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
+
+        tag_record: (doc, i) =>
+            doc.record = @metadata.skip_value + i
+
+        render: =>
+            @copy_parent_results()
+
+            previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+            if Object::toString.call(@results) is '[object Array]' 
+                if @results.length is 0
+                    @$el.html @templates.wrapper content: @template_no_result()
+                else
+                    @$el.html @templates.wrapper content: @json_to_table @results
+            else
+                if not @results_array?
+                    @results_array = []
+                    @results_array.push @results
+                @$el.html @templates.wrapper content: @json_to_table @results_array
+
+            # Check if the keys are the same
+            if @parent.container.state.last_keys.length isnt previous_keys.length
+                same_keys = false
+            else
+                same_keys = true
+                for keys, index in @parent.container.state.last_keys
+                    if @parent.container.state.last_keys[index] isnt previous_keys[index]
+                        same_keys = false
+
+            # TODO we should just check if previous_keys is included in last_keys
+            # If the keys are the same, we are going to resize the columns as they were before
+            if same_keys is true
+                for col, value of @parent.container.state.last_columns_size
+                    @resize_column col, value
+            else
+                # Reinitialize @last_columns_size
+                @last_column_size = {}
+
+            # Let's try to expand as much as we can
+            extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
+            if extra_size_table > 0 # The table doesn't take the full width
+                expandable_columns = []
+                for index in [0..@last_keys.length-1] # We skip the column record
+                    real_size = 0
+                    @$('.col-'+index).children().children().children().each((i, bloc) ->
+                        $bloc = $(bloc)
+                        if real_size<$bloc.width()
+                            real_size = $bloc.width()
+                    )
+                    if real_size? and real_size is real_size and real_size > @default_size_column
+                        expandable_columns.push
+                            col: index
+                            size: real_size+20 # 20 for padding
+                while expandable_columns.length > 0
+                    expandable_columns.sort (a, b) ->
+                        return a.size-b.size
+                    if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
+                        extra_size_table = extra_size_table-(expandable_columns[0]['size']-@$('.col-'+expandable_columns[0].col).width())
+
+                        @$('.col-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']
+                        @$('.value-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']-20
+                        expandable_columns.shift()
+                    else
+                        max_size = extra_size_table/expandable_columns.length
+                        for column in expandable_columns
+                            current_size = @$('.col-'+expandable_columns[0].col).width()
+                            @$('.col-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size
+                            @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
+                        expandable_columns = []
+
+            @
+
+    class RawView extends ResultView
+        className: 'results raw_view_container'
+
+        template: Handlebars.templates['dataexplorer_result_raw-template']
+
+        init_after_dom_rendered: => 
+            height = @$('.raw_view_textarea')[0].scrollHeight
+            if height > 0
+                @$('.raw_view_textarea').height(height)
+
+        render: =>
+            @$el.html @template JSON.stringify(@parent.results)
+            @
+
+    class ProfileView extends ResultView
+        className: 'results profile_view_container'
+
+        template:
+            Handlebars.templates['dataexplorer_result_profile-template']
+        
+        initialize: (args) =>
+            super args
+            ZeroClipboard.setDefaults
+                moviePath: 'js/ZeroClipboard.swf'
+                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
+            @clip = new ZeroClipboard()
+
+        compute_total_duration: (profile) ->
+            total_duration = 0
+            for task in profile
+                if task['duration(ms)']?
+                    total_duration += task['duration(ms)']
+                else if task['mean_duration(ms)']?
+                    total_duration += task['mean_duration(ms)']
+
+            total_duration
+
+        compute_num_shard_accesses: (profile) ->
+            num_shard_accesses = 0
+            for task in profile
+                if task['description'] is 'Perform read on shard.'
+                    num_shard_accesses += 1
+                if Object::toString.call(task['sub_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
+                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
+
+                # In parallel tasks, we get arrays of tasks instead of a super task
+                if Object::toString.call(task) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task
+
+            return num_shard_accesses
+
+        render: =>
+            @copy_parent_results()
+            
+            if @profile is null
+                @$el.html @template
+                    profile: null
+            else
+                @$el.html @template
+                    profile:
+                        clipboard_text: JSON.stringify @profile, null, 2
+                        tree: @json_to_tree @profile
+                        total_duration: @metadata.execution_time_pretty
+                        server_duration: prettify_duration @compute_total_duration @profile
+                        num_shard_accesses: @compute_num_shard_accesses @profile
+
+                @clip.glue(@$('button.copy_profile'))
+                @delegateEvents()
+            @
+
+    class ResultParentView extends Backbone.View
+        className: 'result_view'
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
+
+        views:
+            tree: TreeView
+            table: TableView
+            profile: ProfileView
+            raw: RawView
+
+        events: ->
+            'click .link_to_profile_view': 'show_profile'
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
+            'click .activate_profiler': 'activate_profiler'
+
+        initialize: (args) =>
+            @container = args.container
+
+            if args.view?
+                @view = args.view
+            else
+                @view = 'tree'
+
+        show_tree: (event) =>
+            event.preventDefault()
+            @set_view 'tree'
+        show_profile: (event) =>
+            event.preventDefault()
+            @set_view 'profile'
+        show_table: (event) =>
+            event.preventDefault()
+            @set_view 'table'
+        show_raw: (event) =>
+            event.preventDefault()
+            @set_view 'raw'
+
+        set_view: (view) =>
+            @view = view
+            @container.state.view = view
+            @$(".link_to_#{@view}_view").addClass 'active'
+            @$(".link_to_#{@view}_view").parent().addClass 'active'
+            @render_result()
 
         set_scrollbar: =>
             if @view is 'table'
@@ -3432,149 +3744,6 @@ module 'DataExplorerView', ->
                 $(window).resize ->
                     position_scrollbar()
 
- 
-        # JavaScript doesn't let us set a timezone
-        # So we create a date shifted of the timezone difference
-        # Then replace the timezone of the JS date with the one from the ReQL object
-        date_to_string: (date) =>
-            timezone = date.timezone
-            
-            # Extract data from the timezone
-            timezone_array = date.timezone.split(':')
-            sign = timezone_array[0][0] # Keep the sign
-            timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
-
-            # Save the timezone in minutes
-            timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
-            if sign is '-'
-                timezone_int = -1*timezone_int
-
-            # d = real date with user's timezone
-            d = new Date(date.epoch_time*1000)
-
-            # Add the user local timezone
-            timezone_int += d.getTimezoneOffset()*60
-
-            # d_shifted = date shifted with the difference between the two timezones
-            # (user's one and the one in the ReQL object)
-            d_shifted = new Date((date.epoch_time+timezone_int)*1000)
-
-            # If the timezone between the two dates is not the same,
-            # it means that we changed time between (e.g because of daylight savings)
-            if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
-                # d_shifted_bis = date shifted with the timezone of d_shifted and not d
-                d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
-
-                if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
-                    # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
-                    # Let's create the date outselves...
-                    str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
-                    hours = parseInt(str_pieces[5])
-                    hours++
-                    if hours.toString().length is 1
-                        hours = "0"+hours.toString()
-                    else
-                        hours = hours.toString()
-                    #Note str_pieces[0] is the whole string
-                    raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
-                else
-                    raw_date_str = d_shifted_bis.toString()
-            else
-                raw_date_str = d_shifted.toString()
-
-            # Remove the timezone and replace it with the good one
-            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
-
-
-        binary_to_string: (bin) =>
-            # We print the size of the binary, not the size of the base 64 string
-            # We suppose something stronger than the RFC 2045:
-            # We suppose that there is ONLY one CRLF every 76 characters
-            blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
-            leftover = bin.data.length-blocks_of_76*78
-
-            base64_digits = 76*blocks_of_76+leftover
-
-            blocks_of_4 = Math.floor(base64_digits/4)
-
-            end = bin.data.slice(-2)
-            if end is '=='
-                number_of_equals = 2
-            else if end.slice(-1) is '='
-                number_of_equals = 1
-            else
-                number_of_equals = 0
-
-            size = 3*blocks_of_4-number_of_equals
-
-            if size >= 1073741824
-                sizeStr = (size/1073741824).toFixed(1)+'GB'
-            else if size >= 1048576
-                sizeStr = (size/1048576).toFixed(1)+'MB'
-            else if size >= 1024
-                sizeStr = (size/1024).toFixed(1)+'KB'
-            else if size is 1
-                sizeStr = size+' byte'
-            else
-                sizeStr = size+' bytes'
-
-
-            # Compute a snippet and return the <binary, size, snippet> result
-            if size is 0
-                return "<binary, #{sizeStr}>"
-            else
-                str = atob bin.data.slice(0, 8)
-                snippet = ''
-                for char, i  in str
-                    next = str.charCodeAt(i).toString(16)
-                    if next.length is 1
-                        next = "0" + next
-                    snippet += next
-
-                    if i isnt str.length-1
-                        snippet += " "
-                if size > str.length
-                    snippet += "..."
-
-                return "<binary, #{sizeStr}, \"#{snippet}\">"
-
-    class @ResultView extends DataExplorerView.SharedResultView
-        className: 'result_view'
-        template: Handlebars.templates['dataexplorer_result_container-template']
-        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
-        option_template: Handlebars.templates['dataexplorer-option_page-template']
-        error_template: Handlebars.templates['dataexplorer-error-template']
-        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
-        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
-        profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
-        escape_template: Handlebars.templates['escape-template']
-        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
-
-        events: ->
-            _.extend super,
-                'click .activate_profiler': 'activate_profiler'
-
-        current_result: []
-        max_datum_threshold: 1000
-
-        initialize: (args) =>
-            @container = args.container
-            @limit = args.limit
-            @skip = 0
-            if args.view?
-                @view = args.view
-            else
-                @view = 'tree'
-
-            @last_keys = @container.state.last_keys # Arrays of the last keys displayed
-            @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
-
-            ZeroClipboard.setDefaults
-                moviePath: 'js/ZeroClipboard.swf'
-                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
-            @clip = new ZeroClipboard()
-
         activate_profiler: (event) =>
             event.preventDefault()
             if @container.options_view.state is 'hidden'
@@ -3593,33 +3762,12 @@ module 'DataExplorerView', ->
                 @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
                 @container.options_view.$('.profiler_enabled').slideDown 'fast'
 
-
-
         render_error: (query, err, js_error) =>
             @$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
                 js_error: js_error is true
             return @
-
-        json_to_table: (result) =>
-            {flatten_attr, result} = super result
-
-            @last_keys = flatten_attr.map (attr, i) ->
-                if attr.prefix_str isnt ''
-                    return attr.prefix_str+attr.key
-                return attr.key
-            @container.state.last_keys = @last_keys
-
-
-            return @template_json_table.container
-                table_attr: @json_to_table_get_attr flatten_attr
-                table_data: @json_to_table_get_values
-                    result: result
-                    flatten_attr: flatten_attr
-
-        tag_record: (doc, i) =>
-            doc.record = @metadata.skip_value + i
 
         render_result: (args) =>
 
@@ -3637,7 +3785,7 @@ module 'DataExplorerView', ->
                 @container.state.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
-                    @metadata.execution_time_pretty = @prettify_duration args.metadata.execution_time
+                    @metadata.execution_time_pretty = prettify_duration args.metadata.execution_time
 
             num_results = @metadata.skip_value
             if @metadata.has_more_data isnt true
@@ -3654,126 +3802,20 @@ module 'DataExplorerView', ->
                 no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
                 num_results: num_results
 
-
-            # Set the text to copy
-            @$('.copy_profile').attr('data-clipboard-text', JSON.stringify(@profile, null, 2))
-
-            if @view is 'profile'
-                @$('.more_results').hide()
-                @$('.profile_summary').show()
-            else
-                @$('.more_results').show()
-                @$('.profile_summary').hide()
-                @$('.copy_profile').hide()
-
-            switch @view
-                when 'profile'
-                    if @profile is null
-                        @$('.profile_container').html @no_profile_template()
-                        @$('.copy_profile').hide()
-                    else
-                        @$('.profile_container').html @json_to_tree @profile
-                        @$('.copy_profile').show()
-                        @$('.profile_summary_container').html @profile_header_template
-                            total_duration: @metadata.execution_time_pretty
-                            server_duration: @prettify_duration @compute_total_duration @profile
-                            num_shard_accesses: @compute_num_shard_accesses @profile
-
-                        @clip.glue($('button.copy_profile'))
-
-                    @$('.results').hide()
-                    @$('.profile_view_container').show()
-                    @$('.link_to_profile_view').addClass 'active'
-                    @$('.link_to_profile_view').parent().addClass 'active'
-                when 'tree'
-                    @$('.json_tree_container').html @json_to_tree @results
-                    @$('.results').hide()
-                    @$('.tree_view_container').show()
-                    @$('.link_to_tree_view').addClass 'active'
-                    @$('.link_to_tree_view').parent().addClass 'active'
-                when 'table'
-                    previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    if Object::toString.call(@results) is '[object Array]'
-                        if @results.length is 0
-                            @$('.table_view').html @template_no_result()
-                        else
-                            @$('.table_view').html @json_to_table @results
-                    else
-                        if not @results_array?
-                            @results_array = []
-                            @results_array.push @results
-                        @$('.table_view').html @json_to_table @results_array
-                    @$('.results').hide()
-                    @$('.table_view_container').show()
-                    @$('.link_to_table_view').addClass 'active'
-                    @$('.link_to_table_view').parent().addClass 'active'
-
-                    # Check if the keys are the same
-                    if @container.state.last_keys.length isnt previous_keys.length
-                        same_keys = false
-                    else
-                        same_keys = true
-                        for keys, index in @container.state.last_keys
-                            if @container.state.last_keys[index] isnt previous_keys[index]
-                                same_keys = false
-
-                    # TODO we should just check if previous_keys is included in last_keys
-                    # If the keys are the same, we are going to resize the columns as they were before
-                    if same_keys is true
-                        for col, value of @container.state.last_columns_size
-                            @resize_column col, value
-                    else
-                        # Reinitialize @last_columns_size
-                        @last_column_size = {}
-
-                    # Let's try to expand as much as we can
-                    extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
-                    if extra_size_table > 0 # The table doesn't take the full width
-                        expandable_columns = []
-                        for index in [0..@last_keys.length-1] # We skip the column record
-                            real_size = 0
-                            @$('.col-'+index).children().children().children().each((i, bloc) ->
-                                $bloc = $(bloc)
-                                if real_size<$bloc.width()
-                                    real_size = $bloc.width()
-                            )
-                            if real_size? and real_size is real_size and real_size > @default_size_column
-                                expandable_columns.push
-                                    col: index
-                                    size: real_size+20 # 20 for padding
-                        while expandable_columns.length > 0
-                            expandable_columns.sort (a, b) ->
-                                return a.size-b.size
-                            if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
-                                extra_size_table = extra_size_table-(expandable_columns[0]['size']-@$('.col-'+expandable_columns[0].col).width())
-
-                                @$('.col-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']
-                                @$('.value-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']-20
-                                expandable_columns.shift()
-                            else
-                                max_size = extra_size_table/expandable_columns.length
-                                for column in expandable_columns
-                                    current_size = @$('.col-'+expandable_columns[0].col).width()
-                                    @$('.col-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size
-                                    @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
-                                expandable_columns = []
-                when 'raw'
-                    @$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
-                    @$('.results').hide()
-                    @$('.raw_view_container').show()
-                    @expand_raw_textarea()
-                    @$('.link_to_raw_view').addClass 'active'
-                    @$('.link_to_raw_view').parent().addClass 'active'
+            @view_object?.remove()
+            @view_object = new @views[@view] parent: @
+            @$('.tab-content').html @view_object.render().$el
+            @view_object.init_after_dom_rendered?()
 
             @set_scrollbar()
             @delegateEvents()
+
             @$('.execution_time').tooltip
                 for_dataexplorer: true
                 trigger: 'hover'
                 placement: 'bottom'
             return @
  
-           
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.state.cursor_timed_out = true
@@ -3787,52 +3829,18 @@ module 'DataExplorerView', ->
         render_default: =>
             return @
 
-        prettify_duration: (duration) ->
-            if duration < 1
-                return '<1ms'
-            else if duration < 1000
-                return duration.toFixed(0)+"ms"
-            else if duration < 60*1000
-                return (duration/1000).toFixed(2)+"s"
-            else # We do not expect query to last one hour.
-                minutes = Math.floor(duration/(60*1000))
-                return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
-
-        compute_total_duration: (profile) ->
-            total_duration = 0
-            for task in profile
-                if task['duration(ms)']?
-                    total_duration += task['duration(ms)']
-                else if task['mean_duration(ms)']?
-                    total_duration += task['mean_duration(ms)']
-
-            total_duration
-
-
-        compute_num_shard_accesses: (profile) ->
-            num_shard_accesses = 0
-            for task in profile
-                if task['description'] is 'Perform read on shard.'
-                    num_shard_accesses += 1
-                if Object::toString.call(task['sub_tasks']) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
-                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
-
-                # In parallel tasks, we get arrays of tasks instead of a super task
-                if Object::toString.call(task) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task
-
-            return num_shard_accesses
-
-
-
         remove: =>
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
             super()
 
-    class @OptionsView extends Backbone.View
+        handle_mouseup: (event) =>
+            @view_object?.handle_mouseup?(event)
+
+        handle_mousemove: (event) =>
+            @view_object?.handle_mousedown?(event)
+
+    class OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
         className: 'options_view'
 
@@ -3863,7 +3871,7 @@ module 'DataExplorerView', ->
             @delegateEvents()
             return @
 
-    class @HistoryView extends Backbone.View
+    class HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
         className: 'history_container'
@@ -3981,7 +3989,7 @@ module 'DataExplorerView', ->
                 move_arrow: 'show'
                 is_at_bottom: 'true'
 
-    class @DriverHandler
+    class DriverHandler
         # This class does a little more than window.Driver
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
