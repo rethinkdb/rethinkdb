@@ -387,14 +387,6 @@ counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
         backend_name, false, bt);
 }
 
-void array_result_to_stream(const ql::datum_t &d,
-                            counted_t<ql::table_t> table,
-                            const ql::protob_t<const Backtrace> &bt,
-                            scoped_ptr_t<ql::val_t> *resp_out) {
-    counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(d, bt);
-    resp_out->init(new ql::val_t(table, stream, bt));
-}
-
 bool real_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
         const std::set<name_string_t> &tables,
@@ -406,15 +398,17 @@ bool real_reql_cluster_interface_t::table_config(
         return false;
     }
 
-    ql::datum_t datum_result;
+    std::vector<ql::datum_t> result_array;
     if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_map,
-                         true, interruptor, &datum_result, error_out)) {
+                         true, interruptor, &result_array, error_out)) {
         return false;
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
         admin_tables->table_config_backend.get(), "table_config", bt);
-    array_result_to_stream(datum_result, backend, bt, resp_out);
+    counted_t<ql::datum_stream_t> stream =
+        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+    resp_out->init(new ql::val_t(backend, stream, bt));
     return true;
 }
 
@@ -429,15 +423,17 @@ bool real_reql_cluster_interface_t::table_status(
         return false;
     }
 
-    ql::datum_t datum_result;
+    std::vector<ql::datum_t> result_array;
     if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
-                         true, interruptor, &datum_result, error_out)) {
+                         true, interruptor, &result_array, error_out)) {
         return false;
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
         admin_tables->table_status_backend.get(), "table_status", bt);
-    array_result_to_stream(datum_result, backend, bt, resp_out);
+    counted_t<ql::datum_stream_t> stream =
+        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+    resp_out->init(new ql::val_t(backend, stream, bt));
     return true;
 }
 
@@ -454,7 +450,7 @@ bool real_reql_cluster_interface_t::table_wait(
         return false;
     }
 
-    ql::datum_t datum_result;
+    std::vector<ql::datum_t> result_array;
     {
         threadnum_t new_thread = directory_root_view->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, new_thread);
@@ -488,14 +484,16 @@ bool real_reql_cluster_interface_t::table_wait(
         ASSERT_FINITE_CORO_WAITING;
         if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
                              tables.size() != 0, // A db-level wait should not error if a table is deleted
-                             &ct_interruptor, &datum_result, error_out)) {
+                             &ct_interruptor, &result_array, error_out)) {
             return false;
         }
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
         admin_tables->table_status_backend.get(), "table_status", bt);
-    array_result_to_stream(datum_result, backend, bt, resp_out);
+    counted_t<ql::datum_stream_t> stream =
+        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+    resp_out->init(new ql::val_t(backend, stream, bt));
     return true;
 }
 
@@ -630,12 +628,11 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 
 std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
         std::map<namespace_id_t, name_string_t> table_map,
-        const ql::datum_t *result_array) {
-    std::string dummy_error;
-    for (size_t i = 0; i < result_array->arr_size(); ++i) {
+        const std::vector<ql::datum_t> &result) {
+    std::string error;
+    for (auto const &row : result) {
         namespace_id_t table_id;
-        guarantee(convert_uuid_from_datum(result_array->get(i).get_field("id"),
-                                          &table_id, &dummy_error));
+        guarantee(convert_uuid_from_datum(row.get_field("id"), &table_id, &error));
         table_map.erase(table_id);
     }
 
@@ -652,9 +649,8 @@ bool real_reql_cluster_interface_t::table_meta_read(
         const std::map<namespace_id_t, name_string_t> &table_map,
         bool error_on_missing,
         signal_t *interruptor,
-        ql::datum_t *res_out,
+        std::vector<ql::datum_t> *res_out,
         std::string *error_out) {
-    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     for (auto const &pair : table_map) {
         ql::datum_t row;
         if (!backend->read_row(convert_uuid_to_datum(pair.first),
@@ -663,13 +659,12 @@ bool real_reql_cluster_interface_t::table_meta_read(
         }
 
         if (row.has()) {
-            array_builder.add(row);
+            res_out->push_back(row);
         } else if (error_on_missing) {
-            *error_out = deleted_table_error_message(db, table_map, res_out);
+            *error_out = deleted_table_error_message(db, table_map, *res_out);
             return false;
         }
     }
-    *res_out = ql::datum_t(std::move(array_builder).to_datum());
     return true;
 }
 

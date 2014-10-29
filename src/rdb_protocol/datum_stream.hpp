@@ -580,6 +580,25 @@ private:
     scoped_ptr_t<reader_t> reader;
 };
 
+class vector_datum_stream_t : public eager_datum_stream_t
+{
+public:
+    vector_datum_stream_t(
+            const protob_t<const Backtrace> &bt_source,
+            std::vector<datum_t> &&_rows);
+private:
+    datum_t next(env_t *env, const batchspec_t &bs);
+    datum_t next_impl(env_t *);
+    std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
+
+    bool is_exhausted() const;
+    bool is_cfeed() const;
+    bool is_array();
+
+    std::vector<datum_t> rows;
+    size_t index;
+};
+
 } // namespace ql
 
 #endif // RDB_PROTOCOL_DATUM_STREAM_HPP_

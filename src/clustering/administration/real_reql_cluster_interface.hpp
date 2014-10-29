@@ -127,7 +127,7 @@ private:
             const std::map<namespace_id_t, name_string_t> &table_map,
             bool error_on_missing,
             signal_t *interruptor,
-            ql::datum_t *res_out,
+            std::vector<ql::datum_t> *res_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
