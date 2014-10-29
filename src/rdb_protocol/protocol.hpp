@@ -544,8 +544,9 @@ struct read_t {
         : read(std::forward<T>(_read)), profile(_profile) { }
 
 
-    // Only use snapshotting if we're doing a range get.
-    bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
+    // We use snapshotting for queries that acquire-and-hold large portions of the
+    // table, so that they don't block writes.
+    bool use_snapshot() const THROWS_NOTHING;
 
     // Returns true if this read should be sent to every replica.
     bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
