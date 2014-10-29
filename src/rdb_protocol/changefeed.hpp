@@ -60,11 +60,9 @@ struct msg_t {
     struct limit_start_t {
         uuid_u sub;
         item_vec_t start_data;
-
         limit_start_t() { };
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
-
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct limit_change_t {
@@ -85,8 +83,11 @@ struct msg_t {
                         : "NONE");
             return s;
         }
-
         RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct limit_stop_t {
+        uuid_u sub;
+        exc_t exc;
     };
     struct change_t {
         change_t() { };
@@ -113,11 +114,12 @@ struct msg_t {
     }
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, change_t, limit_start_t, limit_change_t> op;
+    boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 };
 
 RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
 RDB_SERIALIZE_OUTSIDE(msg_t::limit_change_t);
+RDB_DECLARE_SERIALIZABLE(msg_t::limit_stop_t);
 RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
 RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
@@ -380,10 +382,14 @@ public:
     void commit(rwlock_in_line_t *spot,
                 const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
 
+    void abort(exc_t e);
+    bool is_aborted() { return aborted; }
+
     const region_t region; // TODO: use this when ranges are supported.
     const std::string table;
     const uuid_u uuid;
 private:
+    // Can throw `exc_t` exceptions if an error occurs while reading from disk.
     item_vec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
                          sorting_t sorting,
                          const boost::optional<item_queue_t::iterator> &start,
@@ -401,6 +407,8 @@ private:
 
     std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
     std::vector<std::string> deleted;
+
+    bool aborted;
 public:
     rwlock_t lock;
     auto_drainer_t drainer;
@@ -471,6 +479,13 @@ private:
         scoped_ptr_t<rwlock_t> limit_clients_lock;
     };
     std::map<client_t::addr_t, client_info_t> clients;
+
+    void prune_dead_limit(
+        auto_drainer_t::lock_t *stealable_lock,
+        scoped_ptr_t<rwlock_in_line_t> *stealable_clients_read_lock,
+        client_info_t *info,
+        boost::optional<std::string> sindex,
+        size_t offset);
 
     void send_one_with_lock(const auto_drainer_t::lock_t &lock,
                             std::pair<const client_t::addr_t, client_info_t> *client,

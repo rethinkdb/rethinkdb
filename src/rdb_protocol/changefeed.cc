@@ -48,7 +48,7 @@ void server_t::limit_stop_mailbox_cb(client_t::addr_t addr,
                                      boost::optional<std::string> sindex,
                                      uuid_u limit_uuid) {
     debugf("limit_stop_mailbox_cb\n");
-    scoped_ptr_t<limit_manager_t> outer_lm;
+    std::vector<scoped_ptr_t<limit_manager_t> > destroyable_lms;
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -63,16 +63,27 @@ void server_t::limit_stop_mailbox_cb(client_t::addr_t addr,
         lspot.read_signal()->wait_lazily_unordered();
         auto vec_it = it->second.limit_clients.find(sindex);
         if (vec_it != it->second.limit_clients.end()) {
-            for (auto &&lm : vec_it->second) {
-                guarantee(lm.has());
-                if (lm->uuid == limit_uuid) {
+            for (size_t i = 0; i < vec_it->second.size(); ++i) {
+                auto *lm = &vec_it->second[i];
+                guarantee((*lm).has());
+                if ((*lm)->is_aborted()) {
+                    continue;
+                } else if ((*lm)->uuid == limit_uuid) {
                     lspot.write_signal()->wait_lazily_unordered();
-                    std::swap(lm, vec_it->second.back());
-                    // No need to hold onto the lock while we're freeing the
-                    // limit manager.
-                    std::swap(outer_lm, vec_it->second.back());
-                    debugf("DEL_LIMIT_CLIENT %p\n", outer_lm.get());
-                    vec_it->second.pop_back();
+                    auto *vec = &vec_it->second;
+                    while (i < vec->size()) {
+                        if (vec->back()->is_aborted()) {
+                            vec->pop_back();
+                        } else {
+                            std::swap((*lm), vec->back());
+                            // No need to hold onto the locks while we're
+                            // freeing the limit managers.
+                            debugf("DEL_LIMIT_CLIENT %p\n", vec->back().get());
+                            destroyable_lms.push_back(std::move(vec->back()));
+                            vec->pop_back();
+                            break;
+                        }
+                    }
                     if (vec_it->second.size() == 0) {
                         it->second.limit_clients.erase(vec_it);
                     }
@@ -254,25 +265,86 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                                                 rwlock_in_line_t *,
                                                 limit_manager_t *)> f) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
+    auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
+    spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
         // We don't need a drainer lock here because we're still holding a read
         // lock on `clients_lock`.
         rwlock_in_line_t lspot(client.second.limit_clients_lock.get(), access_t::read);
-        spot.read_signal()->wait_lazily_unordered();
-        auto it = client.second.limit_clients.find(sindex);
-        if (it != client.second.limit_clients.end()) {
-            for (auto &&lc : it->second) {
-                guarantee(lc.has());
-                if (lc->region.inner.contains_key(pkey)) {
-                    auto_drainer_t::lock_t lc_lock(&lc->drainer);
-                    rwlock_in_line_t lc_spot(&lc->lock, access_t::write);
-                    lc_spot.write_signal()->wait_lazily_unordered();
-                    f(&spot, &lspot, &lc_spot, lc.get());
-                }
+        lspot.read_signal()->wait_lazily_unordered();
+        client_info_t *info = &client.second;
+        auto it = info->limit_clients.find(sindex);
+        if (it == info->limit_clients.end()) {
+            continue;
+        }
+        for (size_t i = 0; i < it->second.size(); ++i) {
+            auto *lc = &it->second[i];
+            guarantee((*lc).has());
+            if ((*lc)->is_aborted() || !(*lc)->region.inner.contains_key(pkey)) {
+                continue;
+            }
+            auto_drainer_t::lock_t lc_lock(&(*lc)->drainer);
+            rwlock_in_line_t lc_spot(&(*lc)->lock, access_t::write);
+            lc_spot.write_signal()->wait_lazily_unordered();
+            try {
+                f(spot.get(), &lspot, &lc_spot, (*lc).get());
+            } catch (const exc_t &e) {
+                (*lc)->abort(e);
+                auto_drainer_t::lock_t sub_lock(lock);
+                auto sub_spot = make_scoped<rwlock_in_line_t>(
+                    &clients_lock, access_t::read);
+                guarantee(sub_spot->read_signal()->is_pulsed());
+                // We spawn immediately so it can steal our locks.
+                coro_t::spawn_now_dangerously(
+                    std::bind(&server_t::prune_dead_limit,
+                              this, &sub_lock, &sub_spot, info, sindex, i));
+                guarantee(!sub_lock.has_lock());
+                guarantee(!sub_spot.has());
             }
         }
+    }
+}
+
+// We do this stealable stuff rather than an rvalue reference because I can't
+// find a way to pass one through `bind`, and you can't pass one through a
+// lambda until C++14.
+void server_t::prune_dead_limit(
+    auto_drainer_t::lock_t *stealable_lock,
+    scoped_ptr_t<rwlock_in_line_t> *stealable_clients_read_lock,
+    client_info_t *info,
+    boost::optional<std::string> sindex,
+    size_t offset) {
+    std::vector<scoped_ptr_t<limit_manager_t> > destroyable_lms;
+
+    auto_drainer_t::lock_t lock;
+    stealable_lock->assert_is_holding(&drainer);
+    std::swap(lock, *stealable_lock);
+    scoped_ptr_t<rwlock_in_line_t> spot;
+    guarantee(stealable_clients_read_lock->has());
+    std::swap(spot, *stealable_clients_read_lock);
+    guarantee(spot->read_signal()->is_pulsed());
+    rwlock_in_line_t lspot(info->limit_clients_lock.get(), access_t::write);
+    lspot.write_signal()->wait_lazily_unordered();
+
+    auto it = info->limit_clients.find(sindex);
+    if (it == info->limit_clients.end()) {
+        return;
+    }
+    auto *vec = &it->second;
+    while (offset < vec->size()) {
+        if (vec->back()->is_aborted()) {
+            vec->pop_back();
+        } else if ((*vec)[offset]->is_aborted()) {
+            std::swap((*vec)[offset], vec->back());
+            // No need to hold onto the locks while we're freeing the limit
+            // managers.
+            destroyable_lms.push_back(std::move(vec->back()));
+            vec->pop_back();
+            break;
+        }
+    }
+    if (vec->size() == 0) {
+        info->limit_clients.erase(sindex);
     }
 }
 
@@ -401,10 +473,12 @@ bool limit_order_t::operator()(const std::string &a, const std::string &b) const
 }
 
 void limit_manager_t::send(msg_t &&msg) {
-    auto_drainer_t::lock_t drain_lock(&parent->drainer);
-    auto it = parent->clients.find(parent_client);
-    guarantee(it != parent->clients.end());
-    parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
+    if (!parent->drainer.is_draining()) {
+        auto_drainer_t::lock_t drain_lock(&parent->drainer);
+        auto it = parent->clients.find(parent_client);
+        guarantee(it != parent->clients.end());
+        parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
+    }
 }
 
 limit_manager_t::limit_manager_t(
@@ -426,7 +500,8 @@ limit_manager_t::limit_manager_t(
       parent_client(std::move(_parent_client)),
       spec(std::move(_spec)),
       gt(std::move(_gt)),
-      item_queue(gt) {
+      item_queue(gt),
+      aborted(false) {
     debugf("limit_manager_t::limit_manager_t %zu\n", item_vec.size());
     guarantee(clients_lock->read_signal()->is_pulsed());
 
@@ -518,10 +593,7 @@ public:
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
-            // I *think* that the only way this can happen is if somehow an
-            // operation using the reference gets run after e.g. resharding starts.
-            rassert(exc == NULL);
-            return item_vec_t();
+            throw *exc;
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
@@ -565,10 +637,7 @@ public:
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
-            // I *think* that the only way this can happen is if somehow an
-            // operation using the reference gets run after e.g. resharding starts.
-            rassert(exc == NULL);
-            return item_vec_t();
+            throw *exc;
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
@@ -646,11 +715,23 @@ void limit_manager_t::commit(
         }
         debugf("Reading %zu - %zu = %zu\n",
                spec.limit, item_queue.size(), spec.limit - item_queue.size());
-        item_vec_t s = read_more(
-            sindex_ref,
-            spec.range.sorting,
-            start,
-            spec.limit - item_queue.size());
+        item_vec_t s;
+        boost::optional<exc_t> exc;
+        try {
+            s = read_more(
+                sindex_ref,
+                spec.range.sorting,
+                start,
+                spec.limit - item_queue.size());
+        } catch (const exc_t &e) {
+            exc = e;
+        }
+        // We need to do it this way because we can't do anything
+        // coroutine-related in an exception handler.
+        if (exc) {
+            abort(*exc);
+            return;
+        }
         debugf("got %zu\n", s.size());
         guarantee(s.size() <= spec.limit - item_queue.size());
         for (auto &&pair : s) {
@@ -710,14 +791,21 @@ void limit_manager_t::commit(
     debugf("\n**********************************************************************\n");
 }
 
+void limit_manager_t::abort(exc_t e) {
+    aborted = true;
+    send(msg_t(msg_t::limit_stop_t{uuid, std::move(e)}));
+}
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
 RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
+RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
+
+RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
@@ -732,7 +820,7 @@ public:
                        std::string table,
                        namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
-    void stop(const std::string &msg, detach_t should_detach);
+    void stop(std::exception_ptr exc, detach_t should_detach);
 protected:
     explicit subscription_t(feed_t *_feed);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1256,6 +1344,13 @@ public:
             msg.sub,
             [&msg](limit_sub_t *sub) { sub->note_change(msg.old_key, msg.new_val); });
     }
+    void operator()(const msg_t::limit_stop_t &msg) const {
+        feed->on_limit_sub(
+            msg.sub,
+            [&msg](limit_sub_t *sub) {
+                sub->stop(std::make_exception_ptr(msg.exc), detach_t::NO);
+            });
+    }
     void operator()(const msg_t::change_t &change) const {
         datum_t null = datum_t::null();
         configured_limits_t default_limits;
@@ -1288,7 +1383,11 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::NO));
+        feed->each_sub(std::bind(&subscription_t::stop,
+                                 ph::_1,
+                                 std::make_exception_ptr(
+                                     datum_exc_t(base_exc_t::GENERIC, msg)),
+                                 detach_t::NO));
     }
 private:
     feed_t *feed;
@@ -1377,14 +1476,12 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
-
-
-void subscription_t::stop(const std::string &msg, detach_t detach) {
+void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
     assert_thread();
     if (detach == detach_t::YES) {
         feed = NULL;
     }
-    exc = std::make_exception_ptr(datum_exc_t(base_exc_t::GENERIC, msg));
+    exc = std::move(_exc);
     maybe_signal_cond();
 }
 
@@ -1399,7 +1496,10 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
 
 void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING {
     // This error is only sent if we're getting destroyed while blocking.
-    stop("Subscription destroyed (shutting down?).", detach_t::NO);
+    stop(std::make_exception_ptr(
+             datum_exc_t(base_exc_t::GENERIC,
+                         "Subscription destroyed (shutting down?).")),
+         detach_t::NO);
     if (feed != NULL) {
         debugf("destructor_cleanup del_sub\n");
         del_sub();
@@ -1758,7 +1858,11 @@ void feed_t::constructor_cb() {
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
-            each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::YES));
+            each_sub(std::bind(&subscription_t::stop,
+                               ph::_1,
+                               std::make_exception_ptr(
+                                   datum_exc_t(base_exc_t::GENERIC, msg)),
+                               detach_t::YES));
             num_subs = 0;
         } else {
             // We only get here if we were removed before we were detached.

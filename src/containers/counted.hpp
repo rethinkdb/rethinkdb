@@ -278,7 +278,6 @@ private:
 };
 
 // Extends an arbitrary object with a slow_atomic_countable_t
-// RSI: Is this safe if T has a non-virtual destructor?
 template<class T>
 class countable_wrapper_t : public T,
                             public slow_atomic_countable_t<countable_wrapper_t<T> > {
