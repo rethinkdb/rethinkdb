@@ -110,23 +110,31 @@ module 'DataExplorerView', ->
         # Gets the next result from the cursor
         fetch_next: =>
             if not @ended
-                @cursor.next (error, row) =>
-                    if error?
-                        if error.message is 'No more rows in the cursor.'
-                            @ended = true
-                            @trigger 'end', @
+                try
+                    @cursor.next (error, row) =>
+                        if error?
+                            if error.message is 'No more rows in the cursor.'
+                                @ended = true
+                                @trigger 'end', @
+                            else
+                                @set_error error
                         else
-                            @error = error
-                            @trigger 'error', @, error
-                            @discard_results = true
-                    else
-                        if @discard_results
-                            return
-                        @results.push row
-                        @trigger 'add', @, row
-                        @missing--
-                        if @missing >= 0
-                            @fetch_next()
+                            if @discard_results
+                                return
+                            @results.push row
+                            @trigger 'add', @, row
+                            @missing--
+                            if @missing >= 0
+                                @fetch_next()
+                catch error
+                    @set_error error
+
+        set_error: (error) =>
+            @error = error
+            @trigger 'error', @, error
+            @discard_results = true
+
+                    
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
