@@ -427,7 +427,7 @@ public:
         superblock_queue_t *parent;
     };
 
-    superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
+    explicit superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
         : superblock(std::move(_superblock)),
           pool(8 /*max concurrent jobs*/, &queue, &callback),
           running(0),

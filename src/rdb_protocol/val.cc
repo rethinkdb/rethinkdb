@@ -63,7 +63,7 @@ map_wire_func_t map_wire_func() {
     }
     return *TLS_get_fptr();
 }
-} // es_helper
+} // namespace es_helper
 
 class extreme_selection_t : public single_selection_t {
 public:

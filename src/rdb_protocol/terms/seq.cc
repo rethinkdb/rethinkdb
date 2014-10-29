@@ -285,7 +285,7 @@ private:
 struct rcheck_spec_visitor_t : public pb_rcheckable_t,
                                public boost::static_visitor<void> {
     template<class... Args>
-    rcheck_spec_visitor_t(Args &&... args)
+    explicit rcheck_spec_visitor_t(Args &&... args)
         : pb_rcheckable_t(std::forward<Args...>(args)...) { }
     void operator()(const changefeed::keyspec_t::range_t &range) const {
         rcheck(range.range.is_universe(), base_exc_t::GENERIC,
