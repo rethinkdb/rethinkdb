@@ -258,8 +258,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        wait_for_metadata_to_propagate(metadata, &interruptor2);
-
         // `db` is a single-threaded counted_t, easiest solution is to copy it
         counted_t<const ql::db_t> ct_db =
             make_counted<const ql::db_t>(db.get()->id, db.get()->name);
@@ -440,62 +438,6 @@ bool real_reql_cluster_interface_t::table_status(
     return true;
 }
 
-class table_waiter_t {
-public:
-    table_waiter_t(const namespace_id_t &_table_id,
-                   watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                                   namespace_directory_metadata_t> *directory,
-                   table_status_artificial_table_backend_t *_table_status_backend) :
-        deleted(false),
-        table_id(_table_id),
-        table_directory(directory, table_id),
-        table_status_backend(_table_status_backend) { }
-
-    enum class waited_t {
-        WAITED,
-        IMMEDIATE
-    };
-
-    waited_t wait_ready(table_readiness_t wait_readiness, signal_t *interruptor) {
-        int num_checks = 0;
-        table_directory.run_all_until_satisfied(
-            [&](watchable_map_t<peer_id_t,
-                                namespace_directory_metadata_t> *d) -> bool {
-                ++num_checks;
-                return do_check(d, wait_readiness);
-            },
-            interruptor);
-        return num_checks > 1 ? waited_t::WAITED : waited_t::IMMEDIATE;
-    }
-
-    bool check_ready(table_readiness_t wait_readiness) {
-        return do_check(&table_directory, wait_readiness);
-    }
-
-    bool is_deleted() const {
-        return deleted;
-    }
-
-private:
-    bool do_check(UNUSED watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
-                  table_readiness_t wait_readiness) {
-        boost::optional<table_readiness_t> actual_readiness =
-            table_status_backend->get_table_readiness(table_id);
-
-        if (!actual_readiness) {
-            deleted = true;
-            return true; // The table was deleted, this is as ready as it's going to be
-        }
-
-        return actual_readiness >= wait_readiness;
-    }
-
-    bool deleted;
-    namespace_id_t table_id;
-    table_directory_converter_t table_directory;
-    table_status_artificial_table_backend_t *table_status_backend;
-};
-
 std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
         std::map<namespace_id_t, name_string_t> table_map,
         const ql::datum_t *result_array) {
@@ -557,7 +499,7 @@ bool real_reql_cluster_interface_t::table_wait(
                 // Do a second pass to make sure no tables changed while we were waiting
                 bool redo = false;
                 for (auto const &w : waiters) {
-                    if (!w->check_ready(readiness)) {
+                    if (!w->is_ready(readiness)) {
                         redo = true;
                         break;
                     }

@@ -344,36 +344,6 @@ ql::datum_t convert_table_status_to_datum(
     return std::move(builder).to_datum();
 }
 
-boost::optional<table_readiness_t>
-table_status_artificial_table_backend_t::get_table_readiness(
-        const namespace_id_t &table_id) const {
-    ASSERT_NO_CORO_WAITING;
-    assert_thread();
-    boost::optional<table_readiness_t> readiness;
-
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-        ::const_iterator it;
-    if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
-        const table_replication_info_t &repli_info =
-            it->second.get_ref().replication_info.get_ref();
-
-        readiness = table_readiness_t::finished;
-        for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
-            table_readiness_t this_shard_readiness;
-            convert_table_status_shard_to_datum(
-                table_id,
-                repli_info.shard_scheme.get_shard_range(i),
-                repli_info.config.shards[i],
-                directory_view,
-                name_client,
-                &this_shard_readiness);
-            readiness = std::min(*readiness, this_shard_readiness);
-        }
-    }
-    return readiness;
-}
-
 bool table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
@@ -403,3 +373,69 @@ bool table_status_artificial_table_backend_t::write_row(
     return false;
 }
 
+table_waiter_t::table_waiter_t(const namespace_id_t &_table_id,
+               watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                               namespace_directory_metadata_t> *directory,
+               table_status_artificial_table_backend_t *_table_status_backend) :
+    deleted(false),
+    table_id(_table_id),
+    table_directory(directory, table_id),
+    table_status_backend(_table_status_backend) { }
+
+table_waiter_t::waited_t table_waiter_t::wait_ready(
+        table_readiness_t wait_readiness, signal_t *interruptor) {
+    int num_checks = 0;
+    table_directory.run_all_until_satisfied(
+        [&](watchable_map_t<peer_id_t,
+                            namespace_directory_metadata_t> *d) -> bool {
+            ++num_checks;
+            return do_check(d, wait_readiness);
+        },
+        interruptor);
+    return num_checks > 1 ? waited_t::WAITED : waited_t::IMMEDIATE;
+}
+
+bool table_waiter_t::is_ready(table_readiness_t wait_readiness) {
+    return do_check(&table_directory, wait_readiness);
+}
+
+bool table_waiter_t::is_deleted() const {
+    return deleted;
+}
+
+bool table_waiter_t::do_check(
+        UNUSED watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
+        table_readiness_t wait_readiness) {
+    ASSERT_NO_CORO_WAITING;
+    table_status_backend->assert_thread();
+    boost::optional<table_readiness_t> actual_readiness;
+
+    cow_ptr_t<namespaces_semilattice_metadata_t> md =
+        table_status_backend->table_sl_view->get();
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+        ::const_iterator it;
+    if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
+        const table_replication_info_t &repli_info =
+            it->second.get_ref().replication_info.get_ref();
+
+        actual_readiness = table_readiness_t::finished;
+        for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
+            table_readiness_t this_shard_readiness;
+            convert_table_status_shard_to_datum(
+                table_id,
+                repli_info.shard_scheme.get_shard_range(i),
+                repli_info.config.shards[i],
+                table_status_backend->directory_view,
+                table_status_backend->name_client,
+                &this_shard_readiness);
+            actual_readiness = std::min(*actual_readiness, this_shard_readiness);
+        }
+    }
+
+    if (!actual_readiness) {
+        deleted = true;
+        return true; // The table was deleted, this is as ready as it's going to be
+    }
+
+    return actual_readiness >= wait_readiness;
+}

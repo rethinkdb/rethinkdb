@@ -10,10 +10,12 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "concurrency/watchable.hpp"
 
 class server_name_client_t;
+class table_waiter_t;
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -38,8 +40,6 @@ public:
             signal_t *interruptor,
             std::string *error_out);
 
-    boost::optional<table_readiness_t> get_table_readiness(const namespace_id_t &table_id) const;
-
 private:
     bool format_row(
             namespace_id_t table_id,
@@ -50,9 +50,38 @@ private:
             ql::datum_t *row_out,
             std::string *error_out);
 
+    friend class table_waiter_t;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;
     server_name_client_t *name_client;
+};
+
+// Utility class to wait for table readiness through the `table_status` backend
+class table_waiter_t {
+public:
+    table_waiter_t(const namespace_id_t &_table_id,
+                   watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                                   namespace_directory_metadata_t> *directory,
+                   table_status_artificial_table_backend_t *_table_status_backend);
+
+    enum class waited_t {
+        WAITED,
+        IMMEDIATE
+    };
+
+    waited_t wait_ready(table_readiness_t wait_readiness, signal_t *interruptor);
+
+    bool is_ready(table_readiness_t wait_readiness);
+    bool is_deleted() const;
+
+private:
+    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir,
+                  table_readiness_t wait_readiness);
+
+    bool deleted;
+    namespace_id_t table_id;
+    table_directory_converter_t table_directory;
+    table_status_artificial_table_backend_t *table_status_backend;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */
