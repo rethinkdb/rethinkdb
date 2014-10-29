@@ -480,31 +480,20 @@ bool real_reql_cluster_interface_t::table_wait(
                                    table_status_backend)));
         }
 
-        // Loop until all tables are ready
-        while (true) {
-            bool immediate = true;
+        // Loop until all tables are ready - we have to check all tables again
+        // if a table was not immediately ready
+        bool immediate;
+        do {
+            immediate = true;
             for (auto const &w : waiters) {
                 table_waiter_t::waited_t res = w->wait_ready(readiness, &ct_interruptor);
                 immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
             }
+        } while (!immediate && waiters.size() != 1);
 
-            if (!immediate && waiters.size() > 1) {
-                // Do a second pass to make sure no tables changed while we were waiting
-                bool redo = false;
-                for (auto const &w : waiters) {
-                    if (!w->is_ready(readiness)) {
-                        redo = true;
-                        break;
-                    }
-                }
-
-                if (redo) {
-                    continue;
-                }
-            }
-            break;
-        }
-
+        // It is important for correctness that nothing runs in-between the wait and the
+        // `table_status` read.
+        ASSERT_FINITE_CORO_WAITING;
         if (resp_out != NULL) {
             if (!table_meta_read(admin_tables->table_status_backend.get(),
                                  table_map, &ct_interruptor, &datum_result, error_out)) {
