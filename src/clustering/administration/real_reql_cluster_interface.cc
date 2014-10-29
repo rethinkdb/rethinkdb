@@ -401,9 +401,14 @@ bool real_reql_cluster_interface_t::table_config(
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
+    std::map<namespace_id_t, name_string_t> table_map;
+    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+        return false;
+    }
+
     ql::datum_t datum_result;
-    if (!table_meta_read_by_name(admin_tables->table_config_backend.get(),
-                                 db, tables, interruptor, &datum_result, error_out)) {
+    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_map,
+                         true, interruptor, &datum_result, error_out)) {
         return false;
     }
 
@@ -419,9 +424,14 @@ bool real_reql_cluster_interface_t::table_status(
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
+    std::map<namespace_id_t, name_string_t> table_map;
+    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+        return false;
+    }
+
     ql::datum_t datum_result;
-    if (!table_meta_read_by_name(admin_tables->table_status_backend.get(),
-            db, tables, interruptor, &datum_result, error_out)) {
+    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+                         true, interruptor, &datum_result, error_out)) {
         return false;
     }
 
@@ -429,24 +439,6 @@ bool real_reql_cluster_interface_t::table_status(
         admin_tables->table_status_backend.get(), "table_status", bt);
     array_result_to_stream(datum_result, backend, bt, resp_out);
     return true;
-}
-
-std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
-        std::map<namespace_id_t, name_string_t> table_map,
-        const ql::datum_t *result_array) {
-    std::string dummy_error;
-    for (size_t i = 0; i < result_array->arr_size(); ++i) {
-        namespace_id_t table_id;
-        guarantee(convert_uuid_from_datum(result_array->get(i).get_field("id"),
-                                          &table_id, &dummy_error));
-        table_map.erase(table_id);
-    }
-
-    // Only report the 'first' missing table to keep some consistency
-    // with other error messages
-    rassert(!table_map.empty());
-    return strprintf("Table `%s.%s` does not exist.",
-                     db->name.c_str(), table_map.begin()->second.str().c_str());
 }
 
 bool real_reql_cluster_interface_t::table_wait(
@@ -494,24 +486,16 @@ bool real_reql_cluster_interface_t::table_wait(
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        if (resp_out != NULL) {
-            if (!table_meta_read(admin_tables->table_status_backend.get(),
-                                 table_map, &ct_interruptor, &datum_result, error_out)) {
-                return false;
-            }
-
-            if (!tables.empty() && tables.size() != datum_result.arr_size()) {
-                *error_out = deleted_table_error_message(db, table_map, &datum_result);
-                return false;
-            }
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+                             tables.size() != 0, // A db-level wait should not error if a table is deleted
+                             &ct_interruptor, &datum_result, error_out)) {
+            return false;
         }
     }
 
-    if (resp_out != NULL) {
-        counted_t<ql::table_t> backend = make_backend_table(
-            admin_tables->table_status_backend.get(), "table_status", bt);
-        array_result_to_stream(datum_result, backend, bt, resp_out);
-    }
+    counted_t<ql::table_t> backend = make_backend_table(
+        admin_tables->table_status_backend.get(), "table_status", bt);
+    array_result_to_stream(datum_result, backend, bt, resp_out);
     return true;
 }
 
@@ -644,13 +628,32 @@ void real_reql_cluster_interface_t::get_databases_metadata(
                       ph::_1, out));
 }
 
+std::string deleted_table_error_message(const counted_t<const ql::db_t> &db,
+        std::map<namespace_id_t, name_string_t> table_map,
+        const ql::datum_t *result_array) {
+    std::string dummy_error;
+    for (size_t i = 0; i < result_array->arr_size(); ++i) {
+        namespace_id_t table_id;
+        guarantee(convert_uuid_from_datum(result_array->get(i).get_field("id"),
+                                          &table_id, &dummy_error));
+        table_map.erase(table_id);
+    }
+
+    // Only report the 'first' missing table to keep some consistency
+    // with other error messages
+    rassert(!table_map.empty());
+    return strprintf("Table `%s.%s` does not exist.",
+                     db->name.c_str(), table_map.begin()->second.str().c_str());
+}
+
 bool real_reql_cluster_interface_t::table_meta_read(
         artificial_table_backend_t *backend,
+        const counted_t<const ql::db_t> &db,
         const std::map<namespace_id_t, name_string_t> &table_map,
+        bool error_on_missing,
         signal_t *interruptor,
         ql::datum_t *res_out,
         std::string *error_out) {
-
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     for (auto const &pair : table_map) {
         ql::datum_t row;
@@ -658,36 +661,15 @@ bool real_reql_cluster_interface_t::table_meta_read(
                                interruptor, &row, error_out)) {
             return false;
         }
+
         if (row.has()) {
             array_builder.add(row);
+        } else if (error_on_missing) {
+            *error_out = deleted_table_error_message(db, table_map, res_out);
+            return false;
         }
     }
     *res_out = ql::datum_t(std::move(array_builder).to_datum());
-    return true;
-}
-
-
-bool real_reql_cluster_interface_t::table_meta_read_by_name(
-        artificial_table_backend_t *backend,
-        counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
-        signal_t *interruptor,
-        ql::datum_t *res_out,
-        std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
-        return false;
-    }
-
-    if (!table_meta_read(backend, table_map, interruptor, res_out, error_out)) {
-        return false;
-    }
-
-    if (!tables.empty() && tables.size() != res_out->arr_size()) {
-        *error_out = deleted_table_error_message(db, table_map, res_out);
-        return false;
-    }
-
     return true;
 }
 

@@ -123,14 +123,9 @@ private:
             std::string *error_out);
 
     bool table_meta_read(artificial_table_backend_t *backend,
+            const counted_t<const ql::db_t> &db,
             const std::map<namespace_id_t, name_string_t> &table_map,
-            signal_t *interruptor,
-            ql::datum_t *res_out,
-            std::string *error_out);
-
-    bool table_meta_read_by_name(artificial_table_backend_t *backend,
-            counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            bool error_on_missing,
             signal_t *interruptor,
             ql::datum_t *res_out,
             std::string *error_out);
