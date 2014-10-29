@@ -885,8 +885,7 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
 options::help_section_t get_server_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Server name options");
     options_out->push_back(options::option_t(options::names_t("--server-name", "-n"),
-                                             options::OPTIONAL,
-                                             get_server_name()));
+                                             options::OPTIONAL));
     help.add("-n [ --server-name ] arg",
              "the name for this server (as will appear in the metadata).  If not"
              " specified, it will be randomly chosen from a short list of names.");
@@ -1263,12 +1262,17 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        std::string server_name_str = get_single_option(opts, "--server-name");
+        boost::optional<std::string> server_name_str =
+            get_optional_option(opts, "--server-name");
         name_string_t server_name;
-        if (!server_name.assign_value(server_name_str)) {
-            fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
-                    server_name_str.c_str(), name_string_t::valid_char_msg);
-            return EXIT_FAILURE;
+        if (static_cast<bool>(server_name_str)) {
+            if (!server_name.assign_value(*server_name_str)) {
+                fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
+                        server_name_str->c_str(), name_string_t::valid_char_msg);
+                return EXIT_FAILURE;
+            }
+        } else {
+            server_name = get_server_name();
         }
 
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
@@ -1597,14 +1601,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        std::string server_name_str = get_single_option(opts, "--server-name");
-        name_string_t server_name;
-        if (!server_name.assign_value(server_name_str)) {
-            fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
-                    server_name_str.c_str(), name_string_t::valid_char_msg);
-            return EXIT_FAILURE;
-        }
-
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
 
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
@@ -1641,6 +1637,26 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
+
+        boost::optional<std::string> server_name_str =
+            get_optional_option(opts, "--server-name");
+        name_string_t server_name;
+        if (is_new_directory) {
+            if (static_cast<bool>(server_name_str)) {
+                if (!server_name.assign_value(*server_name_str)) {
+                    fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
+                            server_name_str->c_str(), name_string_t::valid_char_msg);
+                    return EXIT_FAILURE;
+                }
+            } else {
+                server_name = get_server_name();
+            }
+        } else {
+            if (static_cast<bool>(server_name_str)) {
+                fprintf(stderr, "WARNING: ignoring --server-name because this server "
+                    "already has a name.\n");
+            }
+        }
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
