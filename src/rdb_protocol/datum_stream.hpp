@@ -46,10 +46,10 @@ public:
     counted_t<datum_stream_t> ordered_distinct();
 
     // Returns false or NULL respectively if stream is lazy.
-    virtual bool is_array() = 0;
+    virtual bool is_array() const = 0;
     virtual datum_t as_array(env_t *env) = 0;
 
-    bool is_grouped() { return grouped; }
+    bool is_grouped() const { return grouped; }
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
@@ -89,7 +89,7 @@ protected:
 private:
     enum class done_t { YES, NO };
 
-    virtual bool is_array() = 0;
+    virtual bool is_array() const = 0;
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt);
@@ -110,7 +110,7 @@ protected:
     explicit wrapper_datum_stream_t(counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(_source->backtrace()), source(_source) { }
 private:
-    virtual bool is_array() { return source->is_array(); }
+    virtual bool is_array() const { return source->is_array(); }
     virtual datum_t as_array(env_t *env) {
         return source->is_array() && !source->is_grouped()
             ? eager_datum_stream_t::as_array(env)
@@ -156,7 +156,7 @@ public:
     virtual bool is_cfeed() const;
 
 private:
-    virtual bool is_array();
+    virtual bool is_array() const;
     virtual datum_t as_array(env_t *env) {
         return is_array()
             ? (ops_to_do() ? eager_datum_stream_t::as_array(env) : arr)
@@ -221,7 +221,7 @@ public:
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
-    virtual bool is_array();
+    virtual bool is_array() const;
     virtual datum_t as_array(env_t *env);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
@@ -245,7 +245,7 @@ public:
     virtual std::vector<datum_t>
     next_raw_batch(env_t *, const batchspec_t &batchspec);
 
-    virtual bool is_array() {
+    virtual bool is_array() const {
         return false;
     }
     virtual bool is_exhausted() const;
@@ -267,7 +267,7 @@ public:
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
-    virtual bool is_array() {
+    virtual bool is_array() const {
         return is_array_map;
     }
     virtual bool is_exhausted() const;
@@ -555,7 +555,7 @@ public:
         scoped_ptr_t<reader_t> &&_reader,
         const protob_t<const Backtrace> &bt_src);
 
-    virtual bool is_array() { return false; }
+    virtual bool is_array() const { return false; }
     virtual datum_t as_array(UNUSED env_t *env) {
         return datum_t();  // Cannot be converted implicitly.
     }
@@ -593,7 +593,7 @@ private:
 
     bool is_exhausted() const;
     bool is_cfeed() const;
-    bool is_array();
+    bool is_array() const;
 
     std::vector<datum_t> rows;
     size_t index;
