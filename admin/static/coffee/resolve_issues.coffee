@@ -74,7 +74,7 @@ module 'ResolveIssuesView', ->
             @modal = new Modals.RemoveServerModal
                 model: modalModel
 
-            @modal.render(@model)
+            @modal.render()
 
         #TODO
         #On solve, we should update the model to "fixed"
