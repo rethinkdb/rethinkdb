@@ -60,9 +60,6 @@ ql::datum_t convert_director_status_to_datum(
             tally += count_in_state<primary_when_safe_t>(*status);
             if (tally == status->size()) {
                 state = "backfilling_data";
-                /* RSI(reql_admin): Implement backfill progress */
-                object_builder.overwrite("backfill_progress",
-                    ql::datum_t("not_implemented"));
             } else {
                 state = "transitioning";
             }
@@ -100,9 +97,6 @@ ql::datum_t convert_replica_status_to_datum(
                 tally += count_in_state<secondary_backfilling_t>(*status);
                 if (tally == status->size()) {
                     state = "backfilling_data";
-                    /* RSI(reql_admin): Implement backfill progress */
-                    object_builder.overwrite("backfill_progress",
-                        ql::datum_t("not_implemented"));
                 } else {
                     state = "transitioning";
                 }
