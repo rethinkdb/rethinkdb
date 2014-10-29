@@ -846,7 +846,7 @@ private:
 class flat_sub_t : public subscription_t {
 public:
     template<class... Args>
-    flat_sub_t(Args &&... args)
+    explicit flat_sub_t(Args &&... args)
         : subscription_t(std::forward<Args>(args)...) { }
     virtual void add_el(
         const uuid_u &uuid,
@@ -1142,9 +1142,8 @@ public:
         maybe_send_start_msg();
     }
 
-    void init(
-        const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
-            &start_data) {
+    void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
+              &start_data) {
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
@@ -1175,7 +1174,7 @@ public:
                           && active_data.size() == item_queue.size()));
         }
         maybe_send_start_msg();
-    };
+    }
 
     virtual void note_change(
         const boost::optional<std::string> &old_key,

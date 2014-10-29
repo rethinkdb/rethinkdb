@@ -60,7 +60,7 @@ struct msg_t {
     struct limit_start_t {
         uuid_u sub;
         item_vec_t start_data;
-        limit_start_t() { };
+        limit_start_t() { }
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -90,7 +90,7 @@ struct msg_t {
         exc_t exc;
     };
     struct change_t {
-        change_t() { };
+        change_t() { }
         change_t(datum_t _old_val, datum_t _new_val)
             : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
         datum_t old_val, new_val;
@@ -251,7 +251,7 @@ private:
 public:
     typedef typename decltype(index)::iterator iterator;
 
-    index_queue_t(Gt gt) : index(gt) { }
+    explicit index_queue_t(Gt gt) : index(gt) { }
 
     MUST_USE std::pair<iterator, bool>
     insert(std::pair<Id, std::pair<Key, Val> > pair) {
@@ -323,7 +323,7 @@ public:
 
 class limit_order_t {
 public:
-    limit_order_t(sorting_t _sorting);
+    explicit limit_order_t(sorting_t _sorting);
     bool operator()(const item_t &, const item_t &) const;
     bool operator()(const const_item_t &, const const_item_t &) const;
     bool operator()(const datum_t &, const datum_t &) const;

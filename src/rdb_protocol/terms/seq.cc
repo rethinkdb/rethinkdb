@@ -285,14 +285,21 @@ private:
 struct rcheck_spec_visitor_t : public pb_rcheckable_t,
                                public boost::static_visitor<void> {
     template<class... Args>
-    explicit rcheck_spec_visitor_t(Args &&... args)
-        : pb_rcheckable_t(std::forward<Args...>(args)...) { }
+    explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
+        : pb_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
     void operator()(const changefeed::keyspec_t::range_t &range) const {
         rcheck(range.range.is_universe(), base_exc_t::GENERIC,
                "Cannot call `changes` on a range.");
     }
-    void operator()(const changefeed::keyspec_t::limit_t &) const { }
+    void operator()(const changefeed::keyspec_t::limit_t &spec) const {
+        rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+               strprintf(
+                   "Array size limit `%zu` exceeded.  (`.limit(X).changes()` is illegal "
+                   "if X is larger than the array size limit.)",
+                   env->limits().array_size_limit()));
+    }
     void operator()(const changefeed::keyspec_t::point_t &) const { }
+    env_t *env;
 };
 
 class changes_term_t : public op_term_t {
@@ -308,7 +315,9 @@ private:
             counted_t<table_t> tbl = selection->table;
             counted_t<datum_stream_t> seq = selection->seq;
             auto spec = seq->get_spec();
-            boost::apply_visitor(rcheck_spec_visitor_t(backtrace()), spec.spec);
+            boost::apply_visitor(
+                rcheck_spec_visitor_t(env->env, backtrace()),
+                spec.spec);
             return new_val(
                 env->env,
                 tbl->tbl->read_changes(
