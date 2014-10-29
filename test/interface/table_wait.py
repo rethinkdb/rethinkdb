@@ -15,6 +15,7 @@ opts = op.parse(sys.argv)
 
 db = "test"
 tables = ["table1", "table2", "table3"]
+delete_table = "delete"
 
 def check_table_states(conn, ready):
     statuses = r.db(db).table_status(r.args(tables)).run(conn)
@@ -27,7 +28,8 @@ def wait_for_table_states(conn, ready):
 def create_tables(conn):
     r.db_create(db).run(conn)
     r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
-    r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
+    r.db(db).table_create(delete_table).run(conn) # An extra table to be deleted during a wait
+    r.db(db).table_list().for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
     statuses = r.db(db).table_wait().run(conn)
     assert check_table_states(conn, ready=True), \
@@ -71,7 +73,7 @@ with driver.Metacluster() as metacluster:
 
     conn = r.connect("localhost", proc1.driver_port)
 
-    print "Creating %d tables..." % len(tables)
+    print "Creating %d tables..." % (len(tables) + 1)
     create_tables(conn)
 
     print "Killing second server..."
@@ -81,6 +83,20 @@ with driver.Metacluster() as metacluster:
     waiter_procs = [ spawn_table_wait(proc1.driver_port, [tables[0]]),            # Wait for one table
                      spawn_table_wait(proc1.driver_port, [tables[1], tables[2]]), # Wait for two tables
                      spawn_table_wait(proc1.driver_port, []) ]                    # Wait for all tables
+
+    def wait_for_deleted_table(port, db, table):
+        c = r.connect("localhost", port)
+        try:
+            r.db(db).table_wait(table).run(c)
+            raise RuntimeError("`table_wait` did not error when waiting on a deleted table.")
+        except r.RqlRuntimeError as ex:
+            assert ex.message == "Table `%s.%s` does not exist." % (db, table), \
+                "Unexpected error when waiting for a deleted table: %s" % ex.message
+
+    error_wait_proc = multiprocessing.Process(target=wait_for_deleted_table, args=(proc1.driver_port, db, delete_table))
+    error_wait_proc.start()
+    r.db(db).table_drop(delete_table).run(conn)
+    error_wait_proc.join()
 
     # Wait some time to make sure the wait doesn't return early
     waiter_procs[0].join(15)
