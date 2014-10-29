@@ -469,6 +469,7 @@ bool real_reql_cluster_interface_t::table_wait(
                 table_wait_result_t res = wait_for_table_readiness(
                     pair.first, readiness, table_status_backend, &ct_interruptor);
                 immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
+                // Error out if a table was deleted and it was explicitly waited on
                 if (res == table_wait_result_t::DELETED && tables.size() != 0) {
                     *error_out = strprintf("Table `%s.%s` does not exist.",
                                            db->name.c_str(), pair.second.str().c_str());
