@@ -36,10 +36,14 @@ bool issues_artificial_table_backend_t::read_all_rows_as_vector(
     on_thread_t rethreader(home_thread());
     rows_out->clear();
 
+    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     ql::datum_t row;
     for (auto const &tracker : trackers) {
         for (auto const &issue : tracker->get_issues()) {
-            issue->to_datum(cluster_sl_view->get(), &row);
+            if (issue->is_spurious(metadata)) {
+                continue;
+            }
+            issue->to_datum(metadata, &row);
             rows_out->push_back(row);
         }
     }

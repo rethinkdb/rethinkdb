@@ -29,6 +29,12 @@ public:
     virtual const datum_string_t &get_name() const = 0;
     issue_id_t get_id() const { return issue_id; }
 
+    /* Use this to filter out issues with a predicate that depends on the current cluster
+    configuration. */
+    virtual bool is_spurious(const metadata_t &) const {
+        return false;
+    }
+
     static const std::string get_server_name(const metadata_t &metadata,
                                              const server_id_t &server_id);
 

@@ -69,6 +69,12 @@ public:
     const datum_string_t &get_name() const { return server_down_issue_type; }
     bool is_critical() const { return true; }
 
+    /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
+    brief window of time before the `server_down_issue_t` is destroyed. During that time,
+    if the user reads from `rethinkdb.issues`, we don't want to show them an issue saying
+    "__deleted_server__ is still connected". So we filter it out with `is_spurious()`. */
+    bool is_spurious(const metadata_t &metadata) const;
+
     server_id_t down_server_id;
 private:
     ql::datum_t build_info(const metadata_t &metadata) const;
@@ -84,12 +90,17 @@ RDB_DECLARE_EQUALITY_COMPARABLE(server_down_issue_t);
 class server_ghost_issue_t : public local_issue_t {
 public:
     server_ghost_issue_t();
-    explicit server_ghost_issue_t(const server_id_t &_ghost_server_id);
+    server_ghost_issue_t(const server_id_t &_ghost_server_id,
+                         const std::string &_hostname,
+                         int64_t _pid);
 
     const datum_string_t &get_name() const { return server_ghost_issue_type; }
     bool is_critical() const { return false; }
 
     server_id_t ghost_server_id;
+    std::string hostname;
+    int64_t pid;
+
 private:
     ql::datum_t build_info(const metadata_t &metadata) const;
     datum_string_t build_description(const ql::datum_t &info) const;

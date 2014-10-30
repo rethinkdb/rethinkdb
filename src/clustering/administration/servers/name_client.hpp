@@ -46,8 +46,7 @@ public:
         return out;
     }
 
-    /* This map contains all known servers, not counting permanently removed ones. If a
-    server is not connected, it will have a nil `peer_id_t`. */
+    /* This map contains all connected servers, including permanently removed ones. */
     clone_ptr_t<watchable_t<std::map<server_id_t, peer_id_t> > >
     get_server_id_to_peer_id_map() {
         return server_id_to_peer_id_map.get_watchable();
@@ -66,7 +65,7 @@ public:
         return out;
     }
 
-    /* This map contains all connected servers, not counting permanently removed ones. */
+    /* This map contains all connected servers, including permanently removed ones. */
     clone_ptr_t<watchable_t<std::map<peer_id_t, server_id_t> > >
     get_peer_id_to_server_id_map() {
         return peer_id_to_server_id_map.get_watchable();

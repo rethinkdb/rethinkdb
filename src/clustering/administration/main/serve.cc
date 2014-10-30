@@ -179,12 +179,15 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
-        server_issue_tracker_t server_issue_tracker(
-            &local_issue_aggregator,
-            semilattice_manager_cluster.get_root_view(),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::server_id)));
+        scoped_ptr_t<server_issue_tracker_t> server_issue_tracker;
+        if (i_am_a_server) {
+            server_issue_tracker.init(new server_issue_tracker_t(
+                &local_issue_aggregator,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_map_view(),
+                &server_name_client,
+                server_name_server.get()));
+        }
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 

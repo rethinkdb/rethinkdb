@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
+import sys, os, time, pprint, socket
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common, utils
 from vcoptparse import *
@@ -28,6 +28,10 @@ with driver.Metacluster() as metacluster:
     king_hamlet.wait_until_started_up()
     cluster.check()
     conn = r.connect("localhost", prince_hamlet.driver_port)
+    king_hamlet_id = r.db("rethinkdb").table("server_config") \
+                      .filter({"name": "KingHamlet"}).nth(0)["id"].run(conn)
+    prince_hamlet_id = r.db("rethinkdb").table("server_config") \
+                        .filter({"name": "PrinceHamlet"}).nth(0)["id"].run(conn)
 
     print "Creating two tables..."
     r.db_create("test").run(conn)
@@ -65,10 +69,15 @@ with driver.Metacluster() as metacluster:
 
     print "Checking that the other has an issue..."
     issues = list(r.db("rethinkdb").table("issues").run(conn))
+    pprint.pprint(issues)
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_down"
+    assert issues[0]["critical"]
+    assert "KingHamlet" in issues[0]["description"]
     assert issues[0]["info"]["server"] == "KingHamlet"
+    assert issues[0]["info"]["server_id"] == king_hamlet_id
     assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
+    assert issues[0]["info"]["affected_server_ids"] == [prince_hamlet_id]
 
     test_status, test2_status = r.table_status("test", "test2").run(conn)
     assert test_status["ready_for_writes"], test_status
@@ -125,8 +134,13 @@ with driver.Metacluster() as metacluster:
 
     print "Checking that there is an issue..."
     issues = list(r.db("rethinkdb").table("issues").run(conn))
+    pprint.pprint(issues)
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_ghost"
+    assert not issues[0]["critical"]
+    assert issues[0]["info"]["server_id"] == king_hamlet_id
+    assert issues[0]["info"]["hostname"] == socket.gethostname()
+    assert issues[0]["info"]["pid"] == ghost_of_king_hamlet.process.pid
 
     print "Checking table contents..."
     assert r.table("test").count().run(conn) == 100
