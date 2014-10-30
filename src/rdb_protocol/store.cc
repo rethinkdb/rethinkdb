@@ -292,6 +292,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     is_primary_t::YES, s.spec.limit, s.spec.range.sorting};
             }
             rget.sorting = s.spec.range.sorting;
+            // RSI: hold onto superblock until we've called `add_limit_client`.
             do_read(&env, store, btree, superblock, rget, &resp);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
             if (gs == NULL) {

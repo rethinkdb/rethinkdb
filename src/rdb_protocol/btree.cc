@@ -388,91 +388,6 @@ private:
     const size_t index;
 };
 
-// This class is a little bit complicated because sometimes the calls to
-// `do_a_replace_from_batched_replace` requires doing more work that involves
-// re-aquiring the superblock, but this happens long after the superblock could
-// normally be released, so we don't want to just hold onto it for the whole time.
-class superblock_queue_t {
-public:
-    typedef std::function<void(
-        superblock_t *, promise_t<superblock_t *> *)> func_t;
-    class caller_t : public single_threaded_countable_t<caller_t> {
-    public:
-        caller_t(func_t _f, superblock_queue_t *_parent)
-            : f(std::move(_f)), parent(_parent) {
-            debugf("caller_t()\n");
-            parent->running += 1;
-        }
-        ~caller_t() {
-            debugf("~caller_t()\n");
-            parent->running -= 1;
-            if (parent->running == 0 && parent->drainer_cond != NULL) {
-                debugf("maybe draining\n");
-                parent->drainer_cond->pulse();
-                parent->drainer_cond = NULL;
-            }
-        }
-        void operator()() {
-            {
-                new_mutex_in_line_t spot(&parent->promise_lock);
-                superblock_t *sb = parent->promise->wait();
-                guarantee(sb == parent->superblock.get());
-                auto new_promise = make_scoped<promise_t<superblock_t *> >();
-                parent->promise.swap(new_promise);
-            }
-            f(parent->superblock.get(), parent->promise.get());
-        }
-    private:
-        func_t f;
-        superblock_queue_t *parent;
-    };
-
-    explicit superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
-        : superblock(std::move(_superblock)),
-          pool(8 /*max concurrent jobs*/, &queue, &callback),
-          running(0),
-          drainer_cond(NULL) {
-        promise.init(new promise_t<superblock_t *>());
-        promise->pulse(superblock.get());
-    }
-    ~superblock_queue_t() {
-        if (running != 0) {
-            debugf("waiting\n");
-            cond_t drain;
-            drainer_cond = &drain;
-            drain.wait_lazily_unordered();
-        }
-        // It's OK for a job to add another job, but it's **not** OK for a job
-        // to spawn a coroutine (or something) that later adds another job.
-        // I.e., when running hits 0, it's there for good.
-        guarantee(running == 0);
-        debugf("done waiting\n");
-        guarantee(queue.size() == 0);
-    }
-    void push(func_t f) {
-        queue.push(make_counted<caller_t>(std::move(f), this));
-    }
-
-private:
-    scoped_ptr_t<superblock_t> superblock;
-    scoped_ptr_t<promise_t<superblock_t *> > promise;
-    new_mutex_t promise_lock;
-
-    // These use `counted_t`s because `coro_pool_t` insists on copying.
-    struct callback_t : public coro_pool_callback_t<counted_t<caller_t> > {
-        virtual void coro_pool_callback(counted_t<caller_t> caller, signal_t *) {
-            (*caller)();
-        }
-    } callback;
-    unlimited_fifo_queue_t<counted_t<caller_t> > queue;
-    coro_pool_t<counted_t<caller_t> > pool;
-
-    // We use this rather than an auto drainer because we need to be able to add
-    // more tasks while "draining".
-    size_t running;
-    cond_t *drainer_cond;
-};
-
 void do_a_replace_from_batched_replace(
     auto_drainer_t::lock_t,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,
@@ -496,13 +411,12 @@ void do_a_replace_from_batched_replace(
         trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
 
-    // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
-    // I guess so.
-
-    // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
+    // We wait to make sure we acquire `acq` in the same order we were
+    // originally called.
     exiter.wait();
+    scoped_ptr_t<new_mutex_in_line_t> acq = sindex_cb->get_in_line();
 
-    sindex_cb->on_mod_report(mod_report);
+    sindex_cb->on_mod_report(mod_report, acq.get());
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1323,16 +1237,22 @@ void rdb_modification_report_cb_t::finish(
         });
 }
 
+scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line() {
+    return store_->get_in_line_for_sindex_queue(sindex_block_);
+}
+
 void rdb_modification_report_cb_t::on_mod_report(
-    const rdb_modification_report_t &report) {
+    const rdb_modification_report_t &report,
+    new_mutex_in_line_t *spot) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond;
+        spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
-                      this, report, &sindexes_updated_cond));
+                      this, report, &sindexes_updated_cond, spot));
         guarantee(store_->changefeed_server.has());
         store_->changefeed_server->send_all(
             ql::changefeed::msg_t(
@@ -1370,12 +1290,10 @@ void rdb_modification_report_cb_t::on_mod_report(
 }
 
 void rdb_modification_report_cb_t::on_mod_report_sub(
-    const rdb_modification_report_t &mod_report, cond_t *cond) {
-    scoped_ptr_t<new_mutex_in_line_t> acq =
-        store_->get_in_line_for_sindex_queue(sindex_block_);
-
-    store_->sindex_queue_push(mod_report, acq.get());
-
+    const rdb_modification_report_t &mod_report,
+    cond_t *cond,
+    new_mutex_in_line_t *spot) {
+    store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
                         sindexes_,
