@@ -315,8 +315,8 @@ bool table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            *error_out = strprintf("You requested %zu replicas on servers with the tag "
-                "`%s`, but there are only %zu servers with the tag `%s`. It's "
+            *error_out = strprintf("Can't put %zu replicas on servers with the tag "
+                "`%s` because there are only %zu servers with the tag `%s`. It's "
                 "impossible to have more replicas of the data than there are servers.",
                 it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
             return false;

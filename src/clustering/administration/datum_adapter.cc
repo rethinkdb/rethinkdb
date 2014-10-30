@@ -107,6 +107,10 @@ void converter_from_datum_object_t::get_optional(
     *value_out = datum.get_field(key, ql::NOTHROW);
 }
 
+bool converter_from_datum_object_t::has(const char *key) {
+    return datum.get_field(key, ql::NOTHROW).has();
+}
+
 bool converter_from_datum_object_t::check_no_extra_keys(std::string *error_out) {
     if (!extra_keys.empty()) {
         *error_out = "Unexpected key(s):";
