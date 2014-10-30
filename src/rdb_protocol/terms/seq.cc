@@ -275,7 +275,8 @@ public:
     reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0)->as_seq(env->env)->run_terminal(
             env->env, reduce_wire_func_t(args->arg(env, 1)->as_func()));
     }

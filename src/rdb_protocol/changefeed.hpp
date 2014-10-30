@@ -445,11 +445,12 @@ public:
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
     void foreach_limit(const boost::optional<std::string> &s,
-                       const store_key_t &pkey,
+                       const store_key_t *pkey, // NULL if none
                        std::function<void(rwlock_in_line_t *,
                                           rwlock_in_line_t *,
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f);
+    bool has_limit(const boost::optional<std::string> &s);
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(client_t::addr_t addr);

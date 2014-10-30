@@ -258,8 +258,26 @@ uuid_u server_t::get_uuid() {
     return uuid;
 }
 
+bool server_t::has_limit(const boost::optional<std::string> &sindex) {
+    auto_drainer_t::lock_t lock(&drainer);
+    auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
+    spot->read_signal()->wait_lazily_unordered();
+    for (auto &&client : clients) {
+        // We don't need a drainer lock here because we're still holding a read
+        // lock on `clients_lock`.
+        rwlock_in_line_t lspot(client.second.limit_clients_lock.get(), access_t::read);
+        lspot.read_signal()->wait_lazily_unordered();
+        client_info_t *info = &client.second;
+        auto it = info->limit_clients.find(sindex);
+        if (it != info->limit_clients.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void server_t::foreach_limit(const boost::optional<std::string> &sindex,
-                             const store_key_t &pkey,
+                             const store_key_t *pkey,
                              std::function<void(rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
@@ -280,7 +298,8 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
         for (size_t i = 0; i < it->second.size(); ++i) {
             auto *lc = &it->second[i];
             guarantee((*lc).has());
-            if ((*lc)->is_aborted() || !(*lc)->region.inner.contains_key(pkey)) {
+            if ((*lc)->is_aborted()
+                || (pkey && !(*lc)->region.inner.contains_key(*pkey))) {
                 continue;
             }
             auto_drainer_t::lock_t lc_lock(&(*lc)->drainer);
@@ -428,7 +447,7 @@ bool limit_order_t::subop(
     const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
     const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const {
     int cmp = a_pair.first.cmp(reql_version_t::LATEST, b_pair.first);
-    debugf("item_vec %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
+    // debugf("item_vec %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
     switch (sorting) {
     case sorting_t::ASCENDING:
         return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a_str, b_str));
@@ -461,8 +480,8 @@ bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
 }
 
 bool limit_order_t::operator()(const std::string &a, const std::string &b) const {
-    debugf("str %s %s\n", a.c_str(), b.c_str());
-    debugf("str %d lt %d\n", sorting == sorting_t::ASCENDING, a < b);
+    // debugf("str %s %s\n", a.c_str(), b.c_str());
+    // debugf("str %d lt %d\n", sorting == sorting_t::ASCENDING, a < b);
     switch (sorting) {
     case sorting_t::ASCENDING: return a > b;
     case sorting_t::DESCENDING: return a < b;
@@ -671,6 +690,10 @@ void limit_manager_t::commit(
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu) | %zu (%p)\n",
            added.size(), deleted.size(), item_queue.size(), this);
+    if (added.size() == 0 && deleted.size() == 0) {
+        debugf("Aborting commit early (no changes).\n");
+        return;
+    }
     item_queue_t real_added(gt);
     std::set<std::string> real_deleted;
     for (auto &&id : deleted) {
@@ -682,6 +705,18 @@ void limit_manager_t::commit(
     }
     deleted.clear();
     for (auto &&pair : added) {
+        auto it = item_queue.find_id(pair.first);
+        if (it != item_queue.end()) {
+            // We can enter this branch if we're doing a batched update and the
+            // same row is changed multiple times.  We use the later row.
+            debugf("Second real_added, replacing.\n");
+            auto sub_it = real_added.find_id(pair.first);
+            guarantee(sub_it != real_added.end());
+            item_queue.erase(it);
+            real_added.erase(sub_it);
+        } else {
+            debugf("First real_added.\n");
+        }
         bool inserted = item_queue.insert(pair).second;
         guarantee(inserted);
         inserted = real_added.insert(std::move(pair)).second;
@@ -1274,8 +1309,7 @@ public:
         guarantee(active_data.size() == spec.limit
                   || active_data.size() == item_queue.size());
 
-        if ((old_send || new_send)
-            && ((*old_send).first != ((*new_send).first))) {
+        if ((old_send || new_send) && (*old_send != *new_send)) {
             datum_t d =
                 datum_t(std::map<datum_string_t, datum_t> {
                     { datum_string_t("old_val"),

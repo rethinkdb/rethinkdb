@@ -474,13 +474,13 @@ private:
 };
 
 void do_a_replace_from_batched_replace(
+    auto_drainer_t::lock_t,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
     const btree_loc_info_t &info,
     const one_replace_t one_replace,
     const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
-    superblock_queue_t *queue,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
     profile::trace_t *trace,
@@ -502,7 +502,7 @@ void do_a_replace_from_batched_replace(
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
 
-    sindex_cb->on_mod_report(mod_report, info.btree->slice, queue);
+    sindex_cb->on_mod_report(mod_report);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -524,28 +524,51 @@ batched_replace_response_t rdb_batched_replace(
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
     {
-        superblock_queue_t queue(std::move(*superblock));
-        for (size_t i = 0; i < keys.size(); ++i) {
-            queue.push(
-                [&source, &sink, &info, &keys, &limits, &conditions, &stats, &queue,
-                 replacer, sindex_cb, trace, i](
-                    superblock_t *cb_superblock,
-                    promise_t<superblock_t *> *promise) {
-                    do_a_replace_from_batched_replace(
+        unlimited_fifo_queue_t<std::function<void()> > coro_queue;
+        struct callback_t : public coro_pool_callback_t<std::function<void()> > {
+            virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
+                f();
+            }
+        } callback;
+        const size_t MAX_CONCURRENT_REPLACES = 8;
+        coro_pool_t<std::function<void()> > coro_pool(
+            MAX_CONCURRENT_REPLACES, &coro_queue, &callback);
+        // We release the superblock either before or after draining on all the
+        // write operations depending on the presence of limit changefeeds.
+        scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+        bool needs_finishing = sindex_cb->needs_finishing();
+        {
+            auto_drainer_t drainer;
+            for (size_t i = 0; i < keys.size(); ++i) {
+                promise_t<superblock_t *> superblock_promise;
+                // RSI: We need to make sure the `on_mod_report_cb` is called in
+                // the correct order for all of these jobs.
+                coro_queue.push(
+                    std::bind(
+                        &do_a_replace_from_batched_replace,
+                        auto_drainer_t::lock_t(&drainer),
                         &sink,
                         source.enter_write(),
 
-                        btree_loc_info_t(&info, cb_superblock, &keys[i]),
+                        btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
                         one_replace_t(replacer, i),
                         limits,
-
-                        promise,
-                        &queue,
+                        &superblock_promise,
                         sindex_cb,
                         &stats,
                         trace,
-                        &conditions);
-                });
+                        &conditions));
+                current_superblock.init(superblock_promise.wait());
+            }
+            if (!needs_finishing) {
+                current_superblock.reset(); // Release the superblock early if
+                                            // we don't need to finish.
+            }
+        }
+        // This needs to happen after draining.
+        if (needs_finishing) {
+            guarantee(current_superblock.has());
+            sindex_cb->finish(info.slice, current_superblock.get());
         }
     }
 
@@ -1277,10 +1300,31 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
+bool rdb_modification_report_cb_t::needs_finishing() {
+    return store_->changefeed_server->has_limit(boost::optional<std::string>());
+}
+
+void rdb_modification_report_cb_t::finish(
+    btree_slice_t *btree, superblock_t *superblock) {
+    store_->changefeed_server->foreach_limit(
+        boost::optional<std::string>(),
+        nullptr,
+        [&](rwlock_in_line_t *clients_spot,
+            rwlock_in_line_t *limit_clients_spot,
+            rwlock_in_line_t *lm_spot,
+            ql::changefeed::limit_manager_t *lm) {
+            debugf("Finishing...\n");
+            if (!lm->drainer.is_draining()) {
+                auto lock = lm->drainer.lock();
+                guarantee(clients_spot->read_signal()->is_pulsed());
+                guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                lm->commit(lm_spot, ql::changefeed::primary_ref_t{btree, superblock});
+            }
+        });
+}
+
 void rdb_modification_report_cb_t::on_mod_report(
-    const rdb_modification_report_t &report,
-    btree_slice_t *btree,
-    superblock_queue_t *queue) {
+    const rdb_modification_report_t &report) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
@@ -1298,38 +1342,29 @@ void rdb_modification_report_cb_t::on_mod_report(
             report.primary_key);
 
         debugf("PKEY commit\n");
-        auto store = this->store_;
-        queue->push([store, btree, report]
-                    (superblock_t *superblock,
-                     promise_t<superblock_t *> *promise) {
-            store->changefeed_server->foreach_limit(
-                boost::optional<std::string>(),
-                report.primary_key,
-                [&](rwlock_in_line_t *clients_spot,
-                    rwlock_in_line_t *limit_clients_spot,
-                    rwlock_in_line_t *lm_spot,
-                    ql::changefeed::limit_manager_t *lm) {
-                    debugf("2 pkey commit\n");
-                    if (!lm->drainer.is_draining()) {
-                        auto lock = lm->drainer.lock();
-                        guarantee(clients_spot->read_signal()->is_pulsed());
-                        guarantee(limit_clients_spot->read_signal()->is_pulsed());
-                        if (report.info.deleted.first) {
-                            lm->del(lm_spot, report.primary_key, is_primary_t::YES);
-                        }
-                        if (report.info.added.first) {
-                            // The conflicting null values are resolved by
-                            // the primary key.
-                            lm->add(lm_spot, report.primary_key, is_primary_t::YES,
-                                    ql::datum_t::null(), report.info.added.first);
-                        }
-                        lm->commit(lm_spot, ql::changefeed::primary_ref_t{
-                                btree, superblock});
+        store_->changefeed_server->foreach_limit(
+            boost::optional<std::string>(),
+            &report.primary_key,
+            [&](rwlock_in_line_t *clients_spot,
+                rwlock_in_line_t *limit_clients_spot,
+                rwlock_in_line_t *lm_spot,
+                ql::changefeed::limit_manager_t *lm) {
+                debugf("2 pkey commit\n");
+                if (!lm->drainer.is_draining()) {
+                    auto lock = lm->drainer.lock();
+                    guarantee(clients_spot->read_signal()->is_pulsed());
+                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                    if (report.info.deleted.first) {
+                        lm->del(lm_spot, report.primary_key, is_primary_t::YES);
                     }
-                });
-            debugf("Releasing superblock...\n");
-            promise->pulse(superblock);
-        });
+                    if (report.info.added.first) {
+                        // The conflicting null values are resolved by
+                        // the primary key.
+                        lm->add(lm_spot, report.primary_key, is_primary_t::YES,
+                                ql::datum_t::null(), report.info.added.first);
+                    }
+                }
+            });
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
@@ -1566,7 +1601,7 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
             server->foreach_limit(
                 sindex->name.name,
-                modification->primary_key,
+                &modification->primary_key,
                 [&](rwlock_in_line_t *clients_spot,
                     rwlock_in_line_t *limit_clients_spot,
                     rwlock_in_line_t *lm_spot,
@@ -1625,7 +1660,7 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, added, sindex_info, &keys);
             server->foreach_limit(
                 sindex->name.name,
-                modification->primary_key,
+                &modification->primary_key,
                 [&](rwlock_in_line_t *clients_spot,
                     rwlock_in_line_t *limit_clients_spot,
                     rwlock_in_line_t *lm_spot,
@@ -1671,7 +1706,7 @@ void rdb_update_single_sindex(
 
     server->foreach_limit(
         sindex->name.name,
-        modification->primary_key,
+        &modification->primary_key,
         [&](rwlock_in_line_t *clients_spot,
             rwlock_in_line_t *limit_clients_spot,
             rwlock_in_line_t *lm_spot,
