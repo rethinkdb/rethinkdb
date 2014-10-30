@@ -1,0 +1,136 @@
+#!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
+import sys, os, time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, http_admin, scenario_common, utils
+from vcoptparse import *
+r = utils.import_python_driver()
+
+op = OptParser()
+scenario_common.prepare_option_parser_mode_flags(op)
+opts = op.parse(sys.argv)
+
+with driver.Metacluster() as metacluster:
+    cluster = driver.Cluster(metacluster)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    print "Spinning up two processes..."
+    prince_hamlet_files = driver.Files(metacluster, server_name = "PrinceHamlet", db_path = "prince-hamlet-db",
+                                       log_path = "prince-hamlet-create-output",
+                                       executable_path = executable_path, command_prefix = command_prefix)
+    prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    king_hamlet_files = driver.Files(metacluster, server_name = "KingHamlet", db_path = "king-hamlet-db",
+                                     log_path = "king-hamlet-create-output",
+                                     executable_path = executable_path, command_prefix = command_prefix)
+    king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    prince_hamlet.wait_until_started_up()
+    king_hamlet.wait_until_started_up()
+    cluster.check()
+    conn = r.connect("localhost", prince_hamlet.driver_port)
+
+    print "Creating two tables..."
+    r.db_create("test").run(conn)
+    res = r.db("rethinkdb").table("table_config").insert([
+        {
+            "db": "test",
+            "name": "test",
+            "primary_key": "id",
+            "shards": [{
+                "director": "PrinceHamlet",
+                "replicas": ["PrinceHamlet", "KingHamlet"]
+                }]
+        },
+        {
+            "db": "test",
+            "name": "test2",
+            "primary_key": "id",
+            "shards": [{
+                "director": "KingHamlet",
+                "replicas": ["PrinceHamlet", "KingHamlet"]
+                }]
+        }
+        ]).run(conn)
+    assert res["inserted"] == 2, res
+    r.table_wait("test", "test2").run(conn)
+    res = r.table("test").insert([{}]*100).run(conn)
+    assert res["inserted"] == 100
+    res = r.table("test2").insert([{}]*100).run(conn)
+    assert res["inserted"] == 100
+
+    print "Killing one of them..."
+    king_hamlet.close()
+    time.sleep(1)
+    cluster.check()
+
+    print "Checking that the other has an issue..."
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    assert len(issues) == 1, issues
+    assert issues[0]["type"] == "server_down"
+    assert issues[0]["info"]["server"] == "KingHamlet"
+    assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
+
+    test_status, test2_status = r.table_status("test", "test2").run(conn)
+    assert test_status["ready_for_writes"], test_status
+    assert not test_status["ready_completely"], test_status
+    assert test2_status["ready_for_outdated_reads"], test2_status
+    assert not test2_status["ready_for_reads"], test2_status
+
+    print "Permanently removing the dead one..."
+    res = r.db("rethinkdb").table("server_config").filter({"name": "KingHamlet"}) \
+           .delete().run(conn)
+    assert res["deleted"] == 1
+    assert res["errors"] == 0
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    # TODO: There shouldn't be any missing-server issues, but there should be issues
+    # about the `test2` table lacking a director.
+    assert len(issues) == 0, issues
+
+    test_status, test2_status = r.table_status("test", "test2").run(conn)
+    assert test_status["ready_completely"]
+    assert test2_status["ready_for_outdated_reads"]
+    assert not test2_status["ready_for_reads"]
+    assert r.table_config("test").nth(0)["shards"].run(conn) == [{
+        "director": "PrinceHamlet",
+        "replicas": ["PrinceHamlet"]
+        }]
+    assert r.table_config("test2").nth(0)["shards"].run(conn) == [{
+        "director": None,
+        "replicas": ["PrinceHamlet"]
+        }]
+    # Before we fix it, see if we can rename it without `"director": None` causing any
+    # trouble
+    res = r.table_config("test2").update({"name": "test3"}).run(conn)
+    assert res["errors"] == 0
+    res = r.table_config("test3").update({"name": "test2"}).run(conn)
+    assert res["errors"] == 0
+    assert r.table_config("test2").nth(0)["shards"].run(conn) == [{
+        "director": None,
+        "replicas": ["PrinceHamlet"]
+        }]
+
+    print "Fixing the table that lost its primary..."
+    res = r.table_config("test2").update({
+        "shards": [{"director": "PrinceHamlet", "replicas": ["PrinceHamlet"]}]
+        }).run(conn)
+    assert res["errors"] == 0
+    r.table_wait("test2").run(conn)
+
+    print "Bringing the dead server back as a ghost..."
+    ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files,
+        log_path = "king-hamlet-ghost-log",
+        executable_path = executable_path, command_prefix = command_prefix)
+    ghost_of_king_hamlet.wait_until_started_up()
+    cluster.check()
+
+    print "Checking that there is an issue..."
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    assert len(issues) == 1, issues
+    assert issues[0]["type"] == "server_ghost"
+
+    print "Checking table contents..."
+    assert r.table("test").count().run(conn) == 100
+    assert r.table("test2").count().run(conn) == 100
+
+    cluster.check_and_stop()
+print "Done."
