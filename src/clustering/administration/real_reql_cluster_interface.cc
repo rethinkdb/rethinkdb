@@ -345,13 +345,13 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::get_table_ids_for_query(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &table_names,
-        std::map<namespace_id_t, name_string_t> *table_map_out,
+        const std::vector<name_string_t> &table_names,
+        std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    table_map_out->clear();
+    tables_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
     const_metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
         &ns_metadata->namespaces);
@@ -362,7 +362,7 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
                   it != ns_searcher.end();
                   it = ns_searcher.find_next(++it, pred)) {
             guarantee(!it->second.is_deleted());
-            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
+            tables_out->push_back({ it->first, it->second.get_ref().name.get_ref() });
         }
     } else {
         for (auto const &name : table_names) {
@@ -372,7 +372,7 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
             if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
                     error_out)) return false;
             guarantee(!it->second.is_deleted());
-            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
+            tables_out->push_back({ it->first, it->second.get_ref().name.get_ref() });
         }
     }
     return true;
@@ -389,17 +389,17 @@ counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
 
 bool real_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_map,
+    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_ids,
                          true, interruptor, &result_array, error_out)) {
         return false;
     }
@@ -414,17 +414,17 @@ bool real_reql_cluster_interface_t::table_config(
 
 bool real_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
                          true, interruptor, &result_array, error_out)) {
         return false;
     }
@@ -439,14 +439,14 @@ bool real_reql_cluster_interface_t::table_status(
 
 bool real_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         table_readiness_t readiness,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
@@ -464,23 +464,29 @@ bool real_reql_cluster_interface_t::table_wait(
         bool immediate;
         do {
             immediate = true;
-            for (auto const &pair : table_map) {
+            for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
                 table_wait_result_t res = wait_for_table_readiness(
-                    pair.first, readiness, table_status_backend, &ct_interruptor);
+                    it->first, readiness, table_status_backend, &ct_interruptor);
                 immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
                 // Error out if a table was deleted and it was explicitly waited on
-                if (res == table_wait_result_t::DELETED && tables.size() != 0) {
-                    *error_out = strprintf("Table `%s.%s` does not exist.",
-                                           db->name.c_str(), pair.second.str().c_str());
-                    return false;
+                if (res == table_wait_result_t::DELETED) {
+                    if (tables.size() != 0) {
+                        *error_out = strprintf("Table `%s.%s` does not exist.",
+                                               db->name.c_str(),
+                                               it->second.str().c_str());
+                        return false;
+                    } else {
+                        table_ids.erase(it);
+                        break;
+                    }
                 }
             }
-        } while (!immediate && table_map.size() != 1);
+        } while (!immediate && table_ids.size() != 1);
 
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
                              tables.size() != 0, // A db-level wait should not error if a table is deleted
                              &ct_interruptor, &result_array, error_out)) {
             return false;
@@ -695,12 +701,12 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 bool real_reql_cluster_interface_t::table_meta_read(
         artificial_table_backend_t *backend,
         const counted_t<const ql::db_t> &db,
-        const std::map<namespace_id_t, name_string_t> &table_map,
+        const std::vector<std::pair<namespace_id_t, name_string_t> > &table_ids,
         bool error_on_missing,
         signal_t *interruptor,
         std::vector<ql::datum_t> *res_out,
         std::string *error_out) {
-    for (auto const &pair : table_map) {
+    for (auto const &pair : table_ids) {
         ql::datum_t row;
         if (!backend->read_row(convert_uuid_to_datum(pair.first),
                                interruptor, &row, error_out)) {

@@ -58,17 +58,17 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
@@ -124,13 +124,13 @@ private:
 
     bool get_table_ids_for_query(
             counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &table_names,
-            std::map<namespace_id_t, name_string_t> *table_map_out,
+            const std::vector<name_string_t> &table_names,
+            std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
             std::string *error_out);
 
     bool table_meta_read(artificial_table_backend_t *backend,
             const counted_t<const ql::db_t> &db,
-            const std::map<namespace_id_t, name_string_t> &table_map,
+            const std::vector<std::pair<namespace_id_t, name_string_t> > &tables,
             bool error_on_missing,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
