@@ -313,8 +313,9 @@ public:
 
     scoped_ptr_t<new_mutex_in_line_t> get_in_line();
     void on_mod_report(const rdb_modification_report_t &mod_report,
+                       bool update_pkey_cfeeds,
                        new_mutex_in_line_t *spot);
-    bool needs_finishing();
+    bool has_pkey_cfeeds();
     void finish(btree_slice_t *btree, superblock_t *superblock);
 
     ~rdb_modification_report_cb_t();

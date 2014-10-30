@@ -397,6 +397,7 @@ void do_a_replace_from_batched_replace(
     const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
+    bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
     profile::trace_t *trace,
     std::set<std::string> *conditions)
@@ -416,7 +417,7 @@ void do_a_replace_from_batched_replace(
     exiter.wait();
     scoped_ptr_t<new_mutex_in_line_t> acq = sindex_cb->get_in_line();
 
-    sindex_cb->on_mod_report(mod_report, acq.get());
+    sindex_cb->on_mod_report(mod_report, update_pkey_cfeeds, acq.get());
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -450,7 +451,7 @@ batched_replace_response_t rdb_batched_replace(
         // We release the superblock either before or after draining on all the
         // write operations depending on the presence of limit changefeeds.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-        bool needs_finishing = sindex_cb->needs_finishing();
+        bool update_pkey_cfeeds = sindex_cb->has_pkey_cfeeds();
         {
             auto_drainer_t drainer;
             for (size_t i = 0; i < keys.size(); ++i) {
@@ -461,24 +462,24 @@ batched_replace_response_t rdb_batched_replace(
                         auto_drainer_t::lock_t(&drainer),
                         &sink,
                         source.enter_write(),
-
                         btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
                         one_replace_t(replacer, i),
                         limits,
                         &superblock_promise,
                         sindex_cb,
+                        update_pkey_cfeeds,
                         &stats,
                         trace,
                         &conditions));
                 current_superblock.init(superblock_promise.wait());
             }
-            if (!needs_finishing) {
+            if (!update_pkey_cfeeds) {
                 current_superblock.reset(); // Release the superblock early if
                                             // we don't need to finish.
             }
         }
         // This needs to happen after draining.
-        if (needs_finishing) {
+        if (update_pkey_cfeeds) {
             guarantee(current_superblock.has());
             sindex_cb->finish(info.slice, current_superblock.get());
         }
@@ -1212,7 +1213,7 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
-bool rdb_modification_report_cb_t::needs_finishing() {
+bool rdb_modification_report_cb_t::has_pkey_cfeeds() {
     return store_->changefeed_server->has_limit(boost::optional<std::string>());
 }
 
@@ -1241,6 +1242,7 @@ scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line() {
 
 void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &report,
+    bool update_pkey_cfeeds,
     new_mutex_in_line_t *spot) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
@@ -1259,30 +1261,34 @@ void rdb_modification_report_cb_t::on_mod_report(
                     report.info.added.first)),
             report.primary_key);
 
-        debugf("PKEY commit\n");
-        store_->changefeed_server->foreach_limit(
-            boost::optional<std::string>(),
-            &report.primary_key,
-            [&](rwlock_in_line_t *clients_spot,
-                rwlock_in_line_t *limit_clients_spot,
-                rwlock_in_line_t *lm_spot,
-                ql::changefeed::limit_manager_t *lm) {
-                debugf("2 pkey commit\n");
-                if (!lm->drainer.is_draining()) {
-                    auto lock = lm->drainer.lock();
-                    guarantee(clients_spot->read_signal()->is_pulsed());
-                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
-                    if (report.info.deleted.first) {
-                        lm->del(lm_spot, report.primary_key, is_primary_t::YES);
+        if (update_pkey_cfeeds) {
+            debugf("PKEY commit\n");
+            store_->changefeed_server->foreach_limit(
+                boost::optional<std::string>(),
+                &report.primary_key,
+                [&](rwlock_in_line_t *clients_spot,
+                    rwlock_in_line_t *limit_clients_spot,
+                    rwlock_in_line_t *lm_spot,
+                    ql::changefeed::limit_manager_t *lm) {
+                    debugf("2 pkey commit\n");
+                    if (!lm->drainer.is_draining()) {
+                        auto lock = lm->drainer.lock();
+                        guarantee(clients_spot->read_signal()->is_pulsed());
+                        guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                        if (report.info.deleted.first) {
+                            lm->del(lm_spot, report.primary_key, is_primary_t::YES);
+                        }
+                        if (report.info.added.first) {
+                            // The conflicting null values are resolved by
+                            // the primary key.
+                            lm->add(lm_spot, report.primary_key, is_primary_t::YES,
+                                    ql::datum_t::null(), report.info.added.first);
+                        }
                     }
-                    if (report.info.added.first) {
-                        // The conflicting null values are resolved by
-                        // the primary key.
-                        lm->add(lm_spot, report.primary_key, is_primary_t::YES,
-                                ql::datum_t::null(), report.info.added.first);
-                    }
-                }
-            });
+                });
+        } else {
+            debugf("Skipping PKEY commit\n");
+        }
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
