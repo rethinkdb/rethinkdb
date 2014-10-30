@@ -135,10 +135,13 @@ module 'DashboardView', ->
                 model: @model
 
             @stats = new Stats
-            @stats_timer = driver.run r.expr(
-                keys_read: r.random(2000, 3000)
-                keys_set: r.random(1500, 2500)
-            ), 1000, @stats.on_result
+            @stats_timer = driver.run(
+                r.db('rethinkdb_mock')
+                .table('stats').get(['cluster'])
+                .do((stat) ->
+                    keys_read: stat('query_engine')('read_docs_per_sec')
+                    keys_set: stat('query_engine')('written_docs_per_sec')
+                ), 1000, @stats.on_result)
 
             @cluster_performance = new Vis.OpsPlot(@stats.get_stats,
                 width:  833             # width in pixels
