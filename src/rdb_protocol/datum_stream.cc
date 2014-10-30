@@ -774,16 +774,16 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
-changefeed::keyspec_t slice_datum_stream_t::get_spec() {
+changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
     if (left == 0) {
-        changefeed::keyspec_t subspec = source->get_spec();
+        changefeed::keyspec_t subspec = source->get_change_spec();
         auto rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
         if (rspec != NULL) {
             return changefeed::keyspec_t(
                 changefeed::keyspec_t::limit_t(*rspec, right));
         }
     }
-    return wrapper_datum_stream_t::get_spec();
+    return wrapper_datum_stream_t::get_change_spec();
 }
 
 std::vector<datum_t>

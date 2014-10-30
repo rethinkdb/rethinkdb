@@ -150,7 +150,7 @@ public:
     bool is_cfeed() const { return false; }
 
 private:
-    virtual changefeed::keyspec_t get_spec() {
+    virtual changefeed::keyspec_t get_change_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
     }
     std::vector<datum_t> next_page(env_t *env);

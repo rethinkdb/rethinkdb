@@ -29,7 +29,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
-    virtual changefeed::keyspec_t get_spec() = 0;
+    virtual changefeed::keyspec_t get_change_spec() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -85,7 +85,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 protected:
-    virtual changefeed::keyspec_t get_spec() {
+    virtual changefeed::keyspec_t get_change_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
 
@@ -178,7 +178,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual changefeed::keyspec_t get_spec();
+    virtual changefeed::keyspec_t get_change_spec();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -231,7 +231,7 @@ public:
     virtual bool is_cfeed() const;
 
 private:
-    virtual changefeed::keyspec_t get_spec() {
+    virtual changefeed::keyspec_t get_change_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
     }
     std::vector<datum_t >
@@ -283,7 +283,7 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    changefeed::keyspec_t::range_t get_spec() const {
+    changefeed::keyspec_t::range_t get_change_spec() const {
         // TODO: include transforms in the spec when we support other changefeed
         // types.
         return changefeed::keyspec_t::range_t(
@@ -375,8 +375,8 @@ public:
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
 
-    changefeed::keyspec_t::range_t get_spec() {
-        return readgen->get_spec();
+    changefeed::keyspec_t::range_t get_change_spec() {
+        return readgen->get_change_spec();
     }
 private:
     // Returns `true` if there's data in `items`.
@@ -414,8 +414,8 @@ public:
     bool is_exhausted() const;
     virtual bool is_cfeed() const;
 private:
-    virtual changefeed::keyspec_t get_spec() {
-        return changefeed::keyspec_t(reader.get_spec());
+    virtual changefeed::keyspec_t get_change_spec() {
+        return changefeed::keyspec_t(reader.get_change_spec());
     }
 
     std::vector<datum_t >

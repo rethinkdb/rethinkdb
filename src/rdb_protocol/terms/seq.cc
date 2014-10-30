@@ -315,7 +315,7 @@ private:
             counted_t<selection_t> selection = v->as_selection(env->env);
             counted_t<table_t> tbl = selection->table;
             counted_t<datum_stream_t> seq = selection->seq;
-            auto spec = seq->get_spec();
+            auto spec = seq->get_change_spec();
             boost::apply_visitor(
                 rcheck_spec_visitor_t(env->env, backtrace()),
                 spec.spec);
