@@ -250,6 +250,9 @@ class Connection extends events.EventEmitter
     use: ar (db) ->
         @db = db
 
+    isOpen: () ->
+        @open
+
     _start: (term, cb, opts) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."
 
