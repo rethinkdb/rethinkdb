@@ -6,10 +6,10 @@
 
 #include "arch/timing.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rdb_protocol/wait_for_readiness.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
@@ -120,43 +120,10 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     switch back. In destruction we need to do the reverse. Fortunately RAII works really
     nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    class picker_watchable_map_t :
-        public watchable_map_transform_t<
-            std::pair<peer_id_t, namespace_id_t>,
-            namespace_directory_metadata_t,
-            peer_id_t,
-            namespace_directory_metadata_t>
-    {
-    public:
-        picker_watchable_map_t(
-                watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                                namespace_directory_metadata_t> *_directory,
-                namespace_id_t _namespace_id) :
-            watchable_map_transform_t(_directory),
-            nid(_namespace_id) { }
-        bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
-                        peer_id_t *key2_out) {
-            if (key1.second == nid) {
-                *key2_out = key1.first;
-                return true;
-            } else {
-                return false;
-            }
-        }
-        void value_1_to_2(const namespace_directory_metadata_t *value1,
-                          const namespace_directory_metadata_t **value2_out) {
-            *value2_out = value1;
-        }
-        bool key_2_to_1(const peer_id_t &key2,
-                        std::pair<peer_id_t, namespace_id_t> *key1_out) {
-            key1_out->first = key2;
-            key1_out->second = nid;
-            return true;
-        }
-        namespace_id_t nid;
-    } picker(directory, namespace_id);
+
+    table_directory_converter_t table_directory(directory, namespace_id);
     cross_thread_watchable_map_var_t<peer_id_t, namespace_directory_metadata_t>
-        cross_thread_watchable(&picker, thread);
+        cross_thread_watchable(&table_directory, thread);
     on_thread_t switch_back(thread);
 
     cluster_namespace_interface_t namespace_interface(

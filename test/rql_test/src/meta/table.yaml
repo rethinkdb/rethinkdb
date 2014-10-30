@@ -179,12 +179,12 @@ tests:
 
     - cd: >
           r.db('rethinkdb').table('table_'+'config').filter({'name':'testA'}).nth(0)
-          .eq(r.table_config('testA'))
+          .eq(r.table_config('testA').nth(0))
       ot: True
 
     - cd: >
           r.db('rethinkdb').table('table_'+'status').filter({'name':'testA'}).nth(0)
-          .eq(r.table_status('testA'))
+          .eq(r.table_status('testA').nth(0))
       ot: True
 
     - cd: db.table_drop('testA')

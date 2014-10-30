@@ -287,78 +287,104 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
-class table_config_or_status_term_t : public meta_op_term_t {
+class table_meta_read_term_t : public meta_op_term_t {
 public:
-    table_config_or_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(0, 2)) { }
+    table_meta_read_term_t(compile_env_t *env,
+                           const protob_t<const Term> &term,
+                           const optargspec_t &optargs) :
+        meta_op_term_t(env, term, argspec_t(0, -1), optargs) { }
 protected:
     virtual bool impl(scope_env_t *env,
-                      const boost::optional<name_string_t> name,
+                      args_t *args,
                       counted_t<const db_t> db,
+                      const std::set<name_string_t> &tables,
                       scoped_ptr_t<val_t> *resp_out,
                       std::string *error_out) const = 0;
 private:
+    counted_t<const db_t> get_db_optarg(scope_env_t *env, args_t *args) const {
+        scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
+        r_sanity_check(dbv);
+        return dbv->as_db();
+    }
+
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v0, v1;
-        if (args->num_args() > 0) {
-            v0 = args->arg(env, 0);
-        }
-        if (args->num_args() > 1) {
-            v1 = args->arg(env, 1);
-        }
-
         counted_t<const db_t> db;
-        bool db_arg_present = args->num_args() == 2 ||
-            (args->num_args() == 1 && v0->get_type().is_convertible(val_t::type_t::DB));
-        if (db_arg_present) {
-            db = v0->as_db();
-        } else {
-            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
-            r_sanity_check(dbv);
-            db = dbv->as_db();
+        std::set<name_string_t> tables;
+
+        if (args->num_args() > 0) {
+            for (size_t i = 0; i < args->num_args(); ++i) {
+                scoped_ptr_t<val_t> arg = args->arg(env, i);
+                if (i == 0 && arg->get_type().is_convertible(val_t::type_t::DB)) {
+                    db = arg->as_db();
+                } else {
+                    tables.insert(get_name(arg, this, "Table"));
+                }
+            }
         }
 
-        boost::optional<name_string_t> name;
-        if (args->num_args() > (db_arg_present ? 1 : 0)) {
-            name = boost::optional<name_string_t>(
-                get_name((db_arg_present ? v1 : v0), this, "Table"));
+        if (!db.has()) {
+            db = get_db_optarg(env, args);
         }
 
         std::string error;
         scoped_ptr_t<val_t> resp;
-        if (!impl(env, name, db, &resp, &error)) {
+        if (!impl(env, args, db, tables, &resp, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return resp;
     }
 };
 
-class table_config_term_t : public table_config_or_status_term_t {
+class table_config_term_t : public table_meta_read_term_t {
 public:
     table_config_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_config_or_status_term_t(env, term) { }
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
-    bool impl(scope_env_t *env, const boost::optional<name_string_t> name,
-            counted_t<const db_t> db, scoped_ptr_t<val_t> *resp_out,
-            std::string *error_out) const {
-        return env->env->reql_cluster_interface()->table_config(name, db, backtrace(),
-            env->env->interruptor, resp_out, error_out);
+    bool impl(scope_env_t *env,
+              UNUSED args_t *args,
+              counted_t<const db_t> db,
+              const std::set<name_string_t> &tables,
+              scoped_ptr_t<val_t> *resp_out,
+              std::string *error_out) const {
+        return env->env->reql_cluster_interface()->table_config(
+            db, tables, backtrace(), env->env->interruptor, resp_out, error_out);
     }
     virtual const char *name() const { return "table_config"; }
 };
 
-class table_status_term_t : public table_config_or_status_term_t {
+class table_status_term_t : public table_meta_read_term_t {
 public:
     table_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_config_or_status_term_t(env, term) { }
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
 private:
-    bool impl(scope_env_t *env, const boost::optional<name_string_t> name,
-            counted_t<const db_t> db, scoped_ptr_t<val_t> *resp_out,
-            std::string *error_out) const {
-        return env->env->reql_cluster_interface()->table_status(name, db, backtrace(),
-            env->env->interruptor, resp_out, error_out);
+    bool impl(scope_env_t *env,
+              UNUSED args_t *args,
+              counted_t<const db_t> db,
+              const std::set<name_string_t> &tables,
+              scoped_ptr_t<val_t> *resp_out,
+              std::string *error_out) const {
+        return env->env->reql_cluster_interface()->table_status(
+            db, tables, backtrace(), env->env->interruptor, resp_out, error_out);
     }
     virtual const char *name() const { return "table_status"; }
+};
+
+class table_wait_term_t : public table_meta_read_term_t {
+public:
+    table_wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
+        table_meta_read_term_t(env, term, optargspec_t({})) { }
+private:
+    bool impl(scope_env_t *env,
+              UNUSED args_t *args,
+              counted_t<const db_t> db,
+              const std::set<name_string_t> &tables,
+              scoped_ptr_t<val_t> *resp_out,
+              std::string *error_out) const {
+        return env->env->reql_cluster_interface()->table_wait(
+            db, tables, table_readiness_t::finished, backtrace(),
+            env->env->interruptor, resp_out, error_out);
+    }
+    virtual const char *name() const { return "table_wait"; }
 };
 
 class reconfigure_term_t : public meta_op_term_t {
@@ -557,6 +583,10 @@ counted_t<term_t> make_table_config_term(compile_env_t *env, const protob_t<cons
 
 counted_t<term_t> make_table_status_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_status_term_t>(env, term);
+}
+
+counted_t<term_t> make_table_wait_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<table_wait_term_t>(env, term);
 }
 
 counted_t<term_t> make_reconfigure_term(compile_env_t *env, const protob_t<const Term> &term) {

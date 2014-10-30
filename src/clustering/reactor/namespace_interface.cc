@@ -360,7 +360,7 @@ void cluster_namespace_interface_t::update_registrant(
 }
 
 boost::optional<boost::optional<master_business_card_t> >
-cluster_namespace_interface_t:: extract_master_business_card(
+cluster_namespace_interface_t::extract_master_business_card(
         const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t> > ret;

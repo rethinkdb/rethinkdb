@@ -450,7 +450,7 @@ public:
     stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
         : eager_datum_stream_t(std::forward<Args...>(args...)),
           sub(std::move(_sub)) { }
-    virtual bool is_array() { return false; }
+    virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
     virtual std::vector<datum_t>

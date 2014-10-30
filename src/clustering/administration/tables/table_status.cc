@@ -174,16 +174,8 @@ ql::datum_t convert_nothing_status_to_datum(
     }
 }
 
-enum class table_readiness_t {
-    unavailable,
-    outdated_reads,
-    reads,
-    writes,
-    finished
-};
-
 ql::datum_t convert_table_status_shard_to_datum(
-        namespace_id_t id,
+        namespace_id_t table_id,
         key_range_t range,
         const table_config_t::shard_t &shard,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
@@ -197,7 +189,7 @@ ql::datum_t convert_table_status_shard_to_datum(
     dir->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const namespace_directory_metadata_t *value) {
-            if (key.second != id) {
+            if (key.second != table_id) {
                 return;
             }
             /* Translate peer ID to server ID */
@@ -314,7 +306,7 @@ ql::datum_t convert_table_status_shard_to_datum(
 ql::datum_t convert_table_status_to_datum(
         name_string_t table_name,
         name_string_t db_name,
-        namespace_id_t id,
+        namespace_id_t table_id,
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
@@ -322,7 +314,7 @@ ql::datum_t convert_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("id", convert_uuid_to_datum(id));
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
 
     table_readiness_t readiness = table_readiness_t::finished;
     ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
@@ -330,7 +322,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t this_shard_readiness;
         array_builder.add(
             convert_table_status_shard_to_datum(
-                id,
+                table_id,
                 repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 dir,
@@ -379,5 +371,58 @@ bool table_status_artificial_table_backend_t::write_row(
         std::string *error_out) {
     *error_out = "It's illegal to write to the `rethinkdb.table_status` table.";
     return false;
+}
+
+table_wait_result_t wait_for_table_readiness(
+        const namespace_id_t &table_id,
+        table_readiness_t wait_readiness,
+        table_status_artificial_table_backend_t *table_status_backend,
+        signal_t *interruptor) {
+    int num_checks = 0;
+    bool deleted = false;
+    table_directory_converter_t table_directory(table_status_backend->directory_view,
+                                                table_id);
+
+    table_directory.run_all_until_satisfied(
+        [&](UNUSED watchable_map_t<peer_id_t,
+                                   namespace_directory_metadata_t> *d) -> bool {
+            ASSERT_NO_CORO_WAITING;
+            ++num_checks;
+            table_status_backend->assert_thread();
+            boost::optional<table_readiness_t> actual_readiness;
+
+            cow_ptr_t<namespaces_semilattice_metadata_t> md =
+                table_status_backend->table_sl_view->get();
+            std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+                ::const_iterator it;
+            if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
+                const table_replication_info_t &repli_info =
+                    it->second.get_ref().replication_info.get_ref();
+
+                actual_readiness = table_readiness_t::finished;
+                for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
+                    table_readiness_t this_shard_readiness;
+                    convert_table_status_shard_to_datum(
+                        table_id,
+                        repli_info.shard_scheme.get_shard_range(i),
+                        repli_info.config.shards[i],
+                        table_status_backend->directory_view,
+                        table_status_backend->name_client,
+                        &this_shard_readiness);
+                    actual_readiness = std::min(*actual_readiness, this_shard_readiness);
+                }
+            }
+
+            if (!actual_readiness) {
+                deleted = true;
+                return true; // The table was deleted, this is as ready as it's going to be
+            }
+
+            return actual_readiness >= wait_readiness;
+        },
+        interruptor);
+    return deleted ? table_wait_result_t::DELETED :
+                     num_checks > 1 ? table_wait_result_t::WAITED :
+                                      table_wait_result_t::IMMEDIATE;
 }
 

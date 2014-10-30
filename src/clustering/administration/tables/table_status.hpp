@@ -10,10 +10,25 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "concurrency/watchable.hpp"
+#include "rdb_protocol/context.hpp"
 
 class server_name_client_t;
+class table_status_artificial_table_backend_t;
+
+// Utility function to wait for table readiness through the `table_status` backend
+enum class table_wait_result_t {
+    WAITED,    // The table is ready after waiting for it
+    IMMEDIATE, // The table was already ready
+    DELETED,   // The table has been deleted
+};
+table_wait_result_t wait_for_table_readiness(
+        const namespace_id_t &table_id,
+        table_readiness_t readiness,
+        table_status_artificial_table_backend_t *table_status_backend,
+        signal_t *interruptor);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -47,6 +62,10 @@ private:
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out);
+
+    friend table_wait_result_t wait_for_table_readiness(
+        const namespace_id_t &, table_readiness_t,
+        table_status_artificial_table_backend_t *, signal_t *);
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;
