@@ -213,14 +213,15 @@ void do_read(ql::env_t *env,
              btree_slice_t *btree,
              superblock_t *superblock,
              const rget_read_t &rget,
-             rget_read_response_t *res) {
+             rget_read_response_t *res,
+             release_superblock_t release_superblock) {
     debugf("do_read\n");
     if (rget.sindex) debugf("sindex: %s\n", (*rget.sindex).id.c_str());
     if (!rget.sindex) {
         // Normal rget
         rdb_rget_slice(btree, rget.region.inner, superblock,
                        env, rget.batchspec, rget.transforms, rget.terminal,
-                       rget.sorting, res, release_superblock_t::RELEASE);
+                       rget.sorting, res, release_superblock);
     } else {
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -292,8 +293,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     is_primary_t::YES, s.spec.limit, s.spec.range.sorting};
             }
             rget.sorting = s.spec.range.sorting;
-            // RSI: hold onto superblock until we've called `add_limit_client`.
-            do_read(&env, store, btree, superblock, rget, &resp);
+            // The superblock will instead be released in `store_t::read`
+            // shortly after this function returns.
+            do_read(&env, store, btree, superblock, rget, &resp,
+                    release_superblock_t::KEEP);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
             if (gs == NULL) {
                 auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -454,7 +457,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
-        do_read(&ql_env, store, btree, superblock, rget, res);
+        do_read(&ql_env, store, btree, superblock, rget, res,
+                release_superblock_t::RELEASE);
     }
 
     void operator()(const distribution_read_t &dg) {
