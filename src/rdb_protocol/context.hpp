@@ -58,6 +58,14 @@ public:
     name_string_t director_tag;
 };
 
+enum class table_readiness_t {
+    unavailable,
+    outdated_reads,
+    reads,
+    writes,
+    finished
+};
+
 class base_table_t {
 public:
     virtual const std::string &get_pkey() = 0;
@@ -160,13 +168,24 @@ public:
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out) = 0;
-    virtual bool table_config(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+    virtual bool table_config(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor,
+            scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
-    virtual bool table_status(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+    virtual bool table_status(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor,
+            scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out) = 0;
+    virtual bool table_wait(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            table_readiness_t readiness,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor,
+            scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
 
     /* From the user's point of view, this is a method on the table object. The reason

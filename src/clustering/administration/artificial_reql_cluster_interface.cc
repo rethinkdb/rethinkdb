@@ -105,7 +105,8 @@ bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
 }
 
 bool artificial_reql_cluster_interface_t::table_config(
-        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        counted_t<const ql::db_t> db,
+        const std::set<name_string_t> &target_tables,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
     if (db->name == database.str()) {
@@ -113,11 +114,12 @@ bool artificial_reql_cluster_interface_t::table_config(
             "tables in it.", database.c_str());
         return false;
     }
-    return next->table_config(name, db, bt, interruptor, resp_out, error_out);
+    return next->table_config(db, target_tables, bt, interruptor, resp_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_status(
-        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        counted_t<const ql::db_t> db,
+        const std::set<name_string_t> &target_tables,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
     if (db->name == database.str()) {
@@ -125,7 +127,22 @@ bool artificial_reql_cluster_interface_t::table_status(
             "have meaningful status information.", database.c_str());
         return false;
     }
-    return next->table_status(name, db, bt, interruptor, resp_out, error_out);
+    return next->table_status(db, target_tables, bt, interruptor, resp_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::table_wait(
+        counted_t<const ql::db_t> db,
+        const std::set<name_string_t> &target_tables,
+        table_readiness_t readiness,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; the system tables in it are "
+            "always available and don't need to be waited on.", database.c_str());
+        return false;
+    }
+    return next->table_wait(db, target_tables, readiness,
+                            bt, interruptor, resp_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(

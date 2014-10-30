@@ -2,56 +2,6 @@
 
 #include "rdb_protocol/datum_stream.hpp"
 
-class artificial_table_datum_stream_t :
-    public ql::eager_datum_stream_t
-{
-public:
-    artificial_table_datum_stream_t(
-            const ql::protob_t<const Backtrace> &bt_source,
-            std::vector<ql::datum_t> &&_rows) :
-        ql::eager_datum_stream_t(bt_source),
-        rows(std::move(_rows)), index(0) { }
-private:
-    ql::datum_t next(ql::env_t *env, const ql::batchspec_t &bs) {
-        if (ops_to_do()) {
-            return datum_stream_t::next(env, bs);
-        }
-        return next_impl(env);
-    }
-
-    ql::datum_t next_impl(ql::env_t *) {
-        if (index < rows.size()) {
-            return std::move(rows[index++]);
-        } else {
-            return ql::datum_t();
-        }
-    }
-
-    std::vector<ql::datum_t> next_raw_batch(ql::env_t *env, const ql::batchspec_t &bs) {
-        std::vector<ql::datum_t> v;
-        ql::batcher_t batcher = bs.to_batcher();
-        ql::datum_t d;
-        while (d = next_impl(env), d.has()) {
-            batcher.note_el(d);
-            v.push_back(std::move(d));
-            if (batcher.should_send_batch()) {
-                break;
-            }
-        }
-        return v;
-    }
-
-    bool is_exhausted() const {
-        return index == rows.size();
-    }
-
-    bool is_cfeed() const { return false; }
-    bool is_array() { return false; }
-
-    std::vector<ql::datum_t> rows;
-    size_t index;
-};
-
 bool artificial_table_backend_t::read_all_rows_as_stream(
         const ql::protob_t<const Backtrace> &bt,
         const datum_range_t &range,
@@ -100,7 +50,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
             });
     }
 
-    *rows_out = make_counted<artificial_table_datum_stream_t>(bt, std::move(rows));
+    *rows_out = make_counted<ql::vector_datum_stream_t>(bt, std::move(rows));
     return true;
 }
 
