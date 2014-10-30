@@ -37,7 +37,7 @@ module 'TableView', ->
                                 num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                 max_replicas: num_servers
                                 num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
-                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: 
+                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: waiting for #2980 to get dist info
                                     num_keys: r.random(0, 300000).add(400000)
                                     id: position
                                 )
