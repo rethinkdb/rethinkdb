@@ -176,7 +176,7 @@ module 'ServerView', ->
             # TODO: Implement when logs will be available
             #@logs = new LogView.Container
             #    route: "ajax/log/"+@model.get('id')+"?"
-            #    type: 'machine'
+            #    type: 'server'
             #@$('.recent-log-entries').html @logs.render().$el
             @
 
@@ -189,8 +189,8 @@ module 'ServerView', ->
                 @rename_modal.remove()
 
     class @Title extends Backbone.View
-        className: 'machine-info-view'
-        template: Handlebars.templates['machine_view_title-template']
+        className: 'server-info-view'
+        template: Handlebars.templates['server_view_title-template']
         initialize: =>
             @listenTo @model, 'change:name', @render
 
@@ -204,8 +204,8 @@ module 'ServerView', ->
             super()
 
     class @Profile extends Backbone.View
-        className: 'machine-info-view'
-        template: Handlebars.templates['machine_view_profile-template']
+        className: 'server-info-view'
+        template: Handlebars.templates['server_view_profile-template']
         initialize: =>
             @listenTo @model, 'change', @render
             @listenTo @collection, 'add', @render
