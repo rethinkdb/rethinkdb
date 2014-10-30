@@ -253,6 +253,7 @@ private:
         case Term::TABLE_LIST:
         case Term::TABLE_CONFIG:
         case Term::TABLE_STATUS:
+        case Term::TABLE_WAIT:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
@@ -377,6 +378,7 @@ private:
         case Term::TABLE_LIST:
         case Term::TABLE_CONFIG:
         case Term::TABLE_STATUS:
+        case Term::TABLE_WAIT:
         case Term::RECONFIGURE:
         case Term::SYNC:
         case Term::INDEX_CREATE:

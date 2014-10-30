@@ -943,6 +943,9 @@ class DB(RqlTopLevelQuery):
     def table_status(self, *args):
         return TableStatus(self, *args)
 
+    def table_wait(self, *args):
+        return TableWait(self, *args)
+
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
 
@@ -1227,6 +1230,14 @@ class TableStatus(RqlMethodQuery):
 class TableStatusTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_STATUS
     st = "table_status"
+
+class TableWait(RqlMethodQuery):
+    tt = pTerm.TABLE_WAIT
+    st = "table_wait"
+
+class TableWaitTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_WAIT
+    st = "table_wait"
 
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE

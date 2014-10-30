@@ -11,6 +11,7 @@
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/servers/server_status.hpp"
 #include "clustering/administration/tables/db_config.hpp"
+#include "clustering/administration/tables/debug_table_status.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
@@ -63,12 +64,20 @@ public:
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
-    bool table_config(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_config(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
-    bool table_status(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_status(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out);
+    bool table_wait(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            table_readiness_t readiness,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
@@ -107,8 +116,6 @@ public:
         return reql_cluster_interface.get();
     }
 
-    scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
-
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend;
@@ -116,6 +123,11 @@ public:
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;
+
+    scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
+    scoped_ptr_t<debug_table_status_artificial_table_backend_t>
+        debug_table_status_backend;
+
     scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;
 };
 

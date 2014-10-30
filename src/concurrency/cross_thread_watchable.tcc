@@ -37,12 +37,13 @@ template<class key_t, class value_t>
 cross_thread_watchable_map_var_t<key_t, value_t>::cross_thread_watchable_map_var_t(
         watchable_map_t<key_t, value_t> *input,
         threadnum_t _output_thread) :
+    output_var(input->get_all()),
     input_thread(get_thread_id()), output_thread(_output_thread), coro_running(false),
     rethreader(this),
     subs(input,
         [this](const key_t &key, const value_t *new_value) {
             this->on_change(key, new_value);
-        }, true)
+        }, false)
     { }
 
 template<class key_t, class value_t>

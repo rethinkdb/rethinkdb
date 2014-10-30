@@ -57,12 +57,20 @@ public:
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
-    bool table_config(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_config(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
-    bool table_status(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_status(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out);
+    bool table_wait(counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &tables,
+            table_readiness_t readiness,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
@@ -108,10 +116,18 @@ private:
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
-    bool table_config_or_status(artificial_table_backend_t *backend,
-            const char *backend_name, const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+    bool get_table_ids_for_query(
+            counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &table_names,
+            std::map<namespace_id_t, name_string_t> *table_map_out,
+            std::string *error_out);
+
+    bool table_meta_read(artificial_table_backend_t *backend,
+            const counted_t<const ql::db_t> &db,
+            const std::map<namespace_id_t, name_string_t> &table_map,
+            bool error_on_missing,
+            signal_t *interruptor,
+            std::vector<ql::datum_t> *res_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);

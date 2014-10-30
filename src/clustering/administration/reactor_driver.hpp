@@ -32,6 +32,26 @@ class multistore_ptr_t;
 
 class rdb_context_t;
 
+// Used to turn the directory watchable into a watchable for just one table
+class table_directory_converter_t :
+    public watchable_map_transform_t<std::pair<peer_id_t, namespace_id_t>,
+                                     namespace_directory_metadata_t,
+                                     peer_id_t,
+                                     namespace_directory_metadata_t>
+{
+public:
+    table_directory_converter_t(watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                                                namespace_directory_metadata_t> *_directory,
+                                namespace_id_t _table_id);
+    bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
+                    peer_id_t *key2_out);
+    void value_1_to_2(const namespace_directory_metadata_t *value1,
+                      const namespace_directory_metadata_t **value2_out);
+    bool key_2_to_1(const peer_id_t &key2,
+                    std::pair<peer_id_t, namespace_id_t> *key1_out);
+    namespace_id_t table_id;
+};
+
 // This type holds some store_t objects, and doesn't let anybody _casually_ touch them.
 class stores_lifetimer_t {
 public:

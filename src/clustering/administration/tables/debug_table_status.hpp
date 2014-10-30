@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
-#define CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
+#define CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 
 #include <string>
 #include <vector>
@@ -10,31 +10,16 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "concurrency/watchable.hpp"
-#include "rdb_protocol/context.hpp"
 
 class server_name_client_t;
-class table_status_artificial_table_backend_t;
 
-// Utility function to wait for table readiness through the `table_status` backend
-enum class table_wait_result_t {
-    WAITED,    // The table is ready after waiting for it
-    IMMEDIATE, // The table was already ready
-    DELETED,   // The table has been deleted
-};
-table_wait_result_t wait_for_table_readiness(
-        const namespace_id_t &table_id,
-        table_readiness_t readiness,
-        table_status_artificial_table_backend_t *table_status_backend,
-        signal_t *interruptor);
-
-class table_status_artificial_table_backend_t :
+class debug_table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
 {
 public:
-    table_status_artificial_table_backend_t(
+    debug_table_status_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
@@ -63,14 +48,10 @@ private:
             ql::datum_t *row_out,
             std::string *error_out);
 
-    friend table_wait_result_t wait_for_table_readiness(
-        const namespace_id_t &, table_readiness_t,
-        table_status_artificial_table_backend_t *, signal_t *);
-
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;
     server_name_client_t *name_client;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_ */
 

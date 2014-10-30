@@ -420,8 +420,8 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
 }
 
 bool test_rdb_env_t::instance_t::table_config(
-        UNUSED const boost::optional<name_string_t> &name,
         UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::set<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
         UNUSED scoped_ptr_t<ql::val_t> *resp_out,
@@ -431,13 +431,25 @@ bool test_rdb_env_t::instance_t::table_config(
 }
 
 bool test_rdb_env_t::instance_t::table_status(
-        UNUSED const boost::optional<name_string_t> &name,
         UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::set<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
         UNUSED scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::set<name_string_t> &target_tables,
+        UNUSED table_readiness_t readiness,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_wait()";
     return false;
 }
 

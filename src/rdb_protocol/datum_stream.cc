@@ -857,7 +857,7 @@ array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     return v;
 }
 
-bool array_datum_stream_t::is_array() {
+bool array_datum_stream_t::is_array() const {
     return !is_grouped();
 }
 
@@ -1028,7 +1028,7 @@ void union_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     }
 }
 
-bool union_datum_stream_t::is_array() {
+bool union_datum_stream_t::is_array() const {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
         if (!(*it)->is_array()) {
             return false;
@@ -1165,6 +1165,55 @@ bool map_datum_stream_t::is_exhausted() const {
             return batch_cache_exhausted();
         }
     }
+    return false;
+}
+
+vector_datum_stream_t::vector_datum_stream_t(
+        const protob_t<const Backtrace> &bt_source,
+        std::vector<datum_t> &&_rows) :
+    eager_datum_stream_t(bt_source),
+    rows(std::move(_rows)), index(0) { }
+
+datum_t vector_datum_stream_t::next(
+        env_t *env, const batchspec_t &bs) {
+    if (ops_to_do()) {
+        return datum_stream_t::next(env, bs);
+    }
+    return next_impl(env);
+}
+
+datum_t vector_datum_stream_t::next_impl(env_t *) {
+    if (index < rows.size()) {
+        return std::move(rows[index++]);
+    } else {
+        return datum_t();
+    }
+}
+
+std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
+        env_t *env, const batchspec_t &bs) {
+    std::vector<datum_t> v;
+    batcher_t batcher = bs.to_batcher();
+    datum_t d;
+    while (d = next_impl(env), d.has()) {
+        batcher.note_el(d);
+        v.push_back(std::move(d));
+        if (batcher.should_send_batch()) {
+            break;
+        }
+    }
+    return v;
+}
+
+bool vector_datum_stream_t::is_exhausted() const {
+    return index == rows.size();
+}
+
+bool vector_datum_stream_t::is_cfeed() const {
+    return false;
+}
+
+bool vector_datum_stream_t::is_array() const {
     return false;
 }
 

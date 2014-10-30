@@ -60,6 +60,9 @@ def table_config(*args):
 def table_status(*args):
     return TableStatusTL(*args)
 
+def table_wait(*args):
+    return TableWaitTL(*args)
+
 def branch(*args):
     return Branch(*args)
 
