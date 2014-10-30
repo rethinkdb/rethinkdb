@@ -158,6 +158,7 @@ table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
                      _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
 }
+
 counted_t<table_slice_t>
 table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
     rcheck(bounds.is_universe(), base_exc_t::GENERIC,
