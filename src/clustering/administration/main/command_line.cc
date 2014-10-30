@@ -944,6 +944,22 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
     return joins;
 }
 
+name_string_t parse_server_name_option(
+        const std::map<std::string, options::values_t> &opts) {
+    boost::optional<std::string> server_name_str =
+        get_optional_option(opts, "--server-name");
+    if (static_cast<bool>(server_name_str)) {
+        name_string_t server_name;
+        if (!server_name.assign_value(*server_name_str)) {
+            throw std::runtime_error(strprintf("server-name '%s' is invalid.  (%s)\n",
+                    server_name_str->c_str(), name_string_t::valid_char_msg));
+        }
+        return server_name;
+    } else {
+        return get_server_name();
+    }
+}
+
 std::set<name_string_t> parse_server_tag_options(
         const std::map<std::string, options::values_t> &opts) {
     std::set<name_string_t> server_tag_names;
@@ -1262,19 +1278,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        boost::optional<std::string> server_name_str =
-            get_optional_option(opts, "--server-name");
-        name_string_t server_name;
-        if (static_cast<bool>(server_name_str)) {
-            if (!server_name.assign_value(*server_name_str)) {
-                fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
-                        server_name_str->c_str(), name_string_t::valid_char_msg);
-                return EXIT_FAILURE;
-            }
-        } else {
-            server_name = get_server_name();
-        }
-
+        name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
 
         int max_concurrent_io_requests;
@@ -1638,21 +1642,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
 
-        boost::optional<std::string> server_name_str =
-            get_optional_option(opts, "--server-name");
         name_string_t server_name;
         if (is_new_directory) {
-            if (static_cast<bool>(server_name_str)) {
-                if (!server_name.assign_value(*server_name_str)) {
-                    fprintf(stderr, "ERROR: server-name '%s' is invalid.  (%s)\n",
-                            server_name_str->c_str(), name_string_t::valid_char_msg);
-                    return EXIT_FAILURE;
-                }
-            } else {
-                server_name = get_server_name();
-            }
+            server_name = parse_server_name_option(opts);
         } else {
-            if (static_cast<bool>(server_name_str)) {
+            if (static_cast<bool>(get_optional_option(opts, "--server-name"))) {
                 fprintf(stderr, "WARNING: ignoring --server-name because this server "
                     "already has a name.\n");
             }
