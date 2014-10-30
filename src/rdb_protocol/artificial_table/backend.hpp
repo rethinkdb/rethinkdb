@@ -64,7 +64,7 @@ public:
     be set to `true` only if `primary_key` is a newly-generated UUID created for the
     purpose of this insert. If the backend makes additional changes to the row before
     inserting it (such as filling in omitted fields) then it can write to
-    `*new_value_inout`, but it cannot change an empty datum to a non-empty datum or vis
+    `*new_value_inout`, but it cannot change an empty datum to a non-empty datum or vice
     versa. */
     virtual bool write_row(
         ql::datum_t primary_key,
