@@ -455,8 +455,6 @@ batched_replace_response_t rdb_batched_replace(
             auto_drainer_t drainer;
             for (size_t i = 0; i < keys.size(); ++i) {
                 promise_t<superblock_t *> superblock_promise;
-                // RSI: We need to make sure the `on_mod_report_cb` is called in
-                // the correct order for all of these jobs.
                 coro_queue.push(
                     std::bind(
                         &do_a_replace_from_batched_replace,
