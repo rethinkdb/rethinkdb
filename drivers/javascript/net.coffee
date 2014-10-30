@@ -306,6 +306,8 @@ class Connection extends events.EventEmitter
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.CONTINUE
             token: token
@@ -313,6 +315,8 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _endQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.STOP
             token: token
