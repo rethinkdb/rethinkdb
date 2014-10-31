@@ -613,7 +613,8 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
     const std::map<store_key_t, int64_t> &counts =
         boost::get<distribution_read_response_t>(resp.response).key_counts;
 
-    /* Match the results of the distribution query against the given shard boundaries */
+    /* Match the results of the distribution query against the table's shard boundaries
+    */
     const table_shard_scheme_t &shard_scheme =
         ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme;
     std::vector<int64_t> doc_counts(shard_scheme.num_shards(), 0);
