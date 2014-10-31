@@ -510,6 +510,28 @@ tests:
     - rb: tbl.order_by('id').group('a').max('b')
       ot: ({0=>{"a"=>0, "b"=>0, "id"=>12}, 2=>{"a"=>2, "b"=>20, "id"=>14}, 3=>{"a"=>3, "b"=>30, "id"=>11}})
 
+    - cd: tbl.min()
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='id')
+      rb: tbl.min(index:'id')
+      js: tbl.min({index:'id'})
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='a')
+      rb: tbl.min(index:'a')
+      js: tbl.min({index:'a'})
+      ot: ({'a':0,'id':0})
+
+    - cd: tbl.max().without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='id').without('b')
+      rb: tbl.max(index:'id').without('b')
+      js: tbl.max({index:'id'}).without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='a').without('b')
+      rb: tbl.max(index:'a').without('b')
+      js: tbl.max({index:'a'}).without('b')
+      ot: ({'a':3,'id':99})
+
     # Clean up
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})

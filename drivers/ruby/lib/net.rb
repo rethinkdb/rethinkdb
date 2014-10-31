@@ -94,7 +94,9 @@ module RethinkDB
         @more = false
         q = [Query::QueryType::STOP]
         res = @conn.run_internal(q, @opts, @token)
-        if res['t'] != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
+        if ((res['t'] != Response::ResponseType::SUCCESS_SEQUENCE &&
+             res['t'] != Response::ResponseType::SUCCESS_FEED) ||
+            res['r'] != [])
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
         return true

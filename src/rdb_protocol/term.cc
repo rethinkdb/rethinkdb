@@ -389,7 +389,9 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
     env->env->maybe_yield();
     INC_DEPTH;
 
+#ifdef INSTRUMENT
     try {
+#endif // INSTRUMENT
         try {
             scoped_ptr_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
@@ -400,46 +402,13 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
             DBG("%s THREW\n", name());
             rfail(e.get_type(), "%s", e.what());
         }
+#ifdef INSTRUMENT
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
         throw;
     }
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d) const {
-    return make_scoped<val_t>(d, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    datum_t orig_key,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, orig_key, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(env_t *env,
-                                    counted_t<datum_stream_t> s) const {
-    return make_scoped<val_t>(env, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                    counted_t<table_t> d) const {
-    return make_scoped<val_t>(d, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
-    return make_scoped<val_t>(db, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<table_t> t) const {
-    return make_scoped<val_t>(t, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
-    return make_scoped<val_t>(f, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val_bool(bool b) const {
-    return new_val(datum_t::boolean(b));
+#endif // INSTRUMENT
 }
 
 } // namespace ql

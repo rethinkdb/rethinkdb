@@ -43,7 +43,9 @@ module RethinkDB
       :distance => -1,
       :circle => -1,
       :get_intersecting => -1,
-      :get_nearest => -1
+      :get_nearest => -1,
+      :min => -1,
+      :max => -1
     }
     @@method_aliases = {
       :lt => :<,

@@ -360,15 +360,15 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> query_arg = args->arg(env, 1);
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
-        if (!index.has()) {
-            rfail(base_exc_t::GENERIC, "get_intersecting requires an index argument.");
-        }
+        rcheck(index.has(), base_exc_t::GENERIC,
+               "get_intersecting requires an index argument.");
         std::string index_str = index->as_str().to_std();
-
+        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+               "get_intersecting cannot use the primary index.");
         counted_t<datum_stream_t> stream = table->get_intersecting(
             env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
             this);
-        return new_val(stream, table);
+        return new_val(make_counted<selection_t>(table, stream));
     }
     virtual const char *name() const { return "get_intersecting"; }
 };
@@ -401,10 +401,11 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> center_arg = args->arg(env, 1);
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
-        if (!index.has()) {
-            rfail(base_exc_t::GENERIC, "get_nearest requires an index argument.");
-        }
+        rcheck(index.has(), base_exc_t::GENERIC,
+               "get_nearest requires an index argument.");
         std::string index_str = index->as_str().to_std();
+        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+               "get_nearest cannot use the primary index.");
         lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t dist_unit = pick_dist_unit(env, args);
@@ -430,7 +431,7 @@ private:
 
         datum_t results = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
-                dist_unit, index_str, this, env->env->limits());
+                dist_unit, index_str, env->env->limits());
         return new_val(results);
     }
     virtual const char *name() const { return "get_nearest"; }

@@ -16,7 +16,7 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/func.hpp"
+//#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -26,12 +26,14 @@ namespace ql {
 
 class env_t;
 class scope_env_t;
+class func_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
 
+    virtual changefeed::keyspec_t get_change_spec() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -85,6 +87,11 @@ protected:
         : datum_stream_t(bt) { }
     virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
+
+protected:
+    virtual changefeed::keyspec_t get_change_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
+    }
 
 private:
     enum class done_t { YES, NO };
@@ -175,6 +182,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
+    virtual changefeed::keyspec_t get_change_spec();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -227,7 +235,10 @@ public:
     virtual bool is_cfeed() const;
 
 private:
-    std::vector<datum_t>
+    virtual changefeed::keyspec_t get_change_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
+    }
+    std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     std::vector<counted_t<datum_stream_t> > streams;
@@ -316,11 +327,13 @@ public:
         const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange() const = 0;
-    virtual std::string sindex_name() const = 0; // Used for error checking.
+    virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
+
+    virtual changefeed::keyspec_t::range_t get_change_spec() const = 0;
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
@@ -347,6 +360,12 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
+    virtual changefeed::keyspec_t::range_t get_change_spec() const {
+        // TODO: include transforms in the spec when we support other changefeed
+        // types.
+        return changefeed::keyspec_t::range_t(
+            sindex_name(), sorting, original_datum_range);
+    }
 private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
@@ -365,14 +384,6 @@ public:
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
 
-    virtual boost::optional<read_t> sindex_sort_read(
-        const key_range_t &active_range,
-        const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
@@ -383,6 +394,14 @@ private:
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<std::string> sindex_name() const;
 };
 
 class sindex_readgen_t : public rget_readgen_t {
@@ -401,7 +420,7 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
+    virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
@@ -444,7 +463,13 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
+    virtual boost::optional<std::string> sindex_name() const;
+
+    virtual changefeed::keyspec_t::range_t get_change_spec() const {
+        rfail_datum(base_exc_t::GENERIC,
+                    "%s", "Cannot call `changes` on an intersection read.");
+        unreachable();
+    }
 private:
     intersecting_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
@@ -474,6 +499,8 @@ public:
     virtual std::vector<datum_t> next_batch(env_t *env,
                                             const batchspec_t &batchspec) = 0;
     virtual bool is_finished() const = 0;
+
+    virtual changefeed::keyspec_t::range_t get_change_spec() const = 0;
 };
 
 // For reads that generate read_response_t results
@@ -483,13 +510,15 @@ public:
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
-    virtual void add_transformation(transform_variant_t &&tv);
-    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    // Overwrite this in an implementation
+    void add_transformation(transform_variant_t &&tv);
+    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
-    virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
-    virtual bool is_finished() const;
+    std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    bool is_finished() const;
 
+    virtual changefeed::keyspec_t::range_t get_change_spec() const {
+        return readgen->get_change_spec();
+    }
 protected:
     // Returns `true` if there's data in `items`.
     // Overwrite this in an implementation
@@ -563,7 +592,11 @@ public:
     bool is_exhausted() const;
     virtual bool is_cfeed() const;
 private:
-    std::vector<datum_t>
+    virtual changefeed::keyspec_t get_change_spec() {
+        return changefeed::keyspec_t(reader->get_change_spec());
+    }
+
+    std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     virtual void add_transformation(transform_variant_t &&tv,

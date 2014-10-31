@@ -17,6 +17,14 @@
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
 
+enum class sorting_t {
+    UNORDERED,
+    ASCENDING,
+    DESCENDING
+};
+// UNORDERED sortings aren't reversed
+bool reversed(sorting_t sorting);
+
 // Fast string compare
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 

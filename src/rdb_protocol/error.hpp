@@ -71,7 +71,7 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-    protob_t<const Backtrace> backtrace() const { return bt_src; }
+    const protob_t<const Backtrace> &backtrace() const { return bt_src; }
 
 protected:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
@@ -140,6 +140,10 @@ private:
 #define rfail_typed_target(target, args...) do {                  \
         rcheck_typed_target(target, false, strprintf(args));      \
         unreachable();                                            \
+    } while (0)
+#define rfail_src(src, type, args...) do {                       \
+        rcheck_src(src, false, type, strprintf(args));            \
+        unreachable();                                           \
     } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
