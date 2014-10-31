@@ -992,6 +992,8 @@ void data_block_manager_t::start_gc() {
         return;
     }
 
+    // JEROEN
+
     const size_t goal_num_active_gcs = compute_gc_concurrency();
     while (active_gcs.size() < goal_num_active_gcs) {
         gc_state_t *new_gc_state = new gc_state_t();

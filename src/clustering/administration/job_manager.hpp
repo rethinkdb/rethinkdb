@@ -11,28 +11,28 @@
 
 class job_manager_business_card_t {
 public:
-    typedef mailbox_t<void(std::vector<job_desc_t>)> return_mailbox_t;
-    typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_descs_mailbox_t;
+    typedef mailbox_t<void(std::vector<job_wire_entry_t>)> return_mailbox_t;
+    typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_wire_entries_mailbox_t;
 
-    get_job_descs_mailbox_t::address_t get_job_descs_mailbox_address;
+    get_job_wire_entries_mailbox_t::address_t get_job_wire_entries_mailbox_address;
 };
+RDB_DECLARE_SERIALIZABLE(job_manager_business_card_t);
 
 class job_manager_t {
 public:
-    typedef job_manager_business_card_t b_card_t;
+    typedef job_manager_business_card_t business_card_t;
 
     explicit job_manager_t(mailbox_manager_t* mailbox_manager);
 
     job_manager_business_card_t get_business_card();
 
 private:
-    void on_get_job_descs(const b_card_t::return_mailbox_t::address_t& reply_address,
-                          auto_drainer_t::lock_t);
+    void on_get_job_wire_entries(
+            UNUSED signal_t *interruptor,
+            const business_card_t::return_mailbox_t::address_t& reply_address);
 
     mailbox_manager_t *mailbox_manager;
-    auto_drainer_t drainer;
-
-    b_card_t::get_job_descs_mailbox_t get_job_descs_mailbox;
+    business_card_t::get_job_wire_entries_mailbox_t get_job_wire_entries_mailbox;
 
     DISABLE_COPYING(job_manager_t);
 };

@@ -214,7 +214,7 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    job_sentry_t job_sentry("query");
+    job_sentry_t job_sentry(job_type_t::QUERY);
     wait_any_t combined_interruptor(interruptor, job_sentry.get_interruptor_signal());
 
     int64_t token = q->token();

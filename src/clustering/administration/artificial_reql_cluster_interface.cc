@@ -274,6 +274,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
+        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         boost::shared_ptr< semilattice_readwrite_view_t<
@@ -357,6 +358,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());
+
+    jobs_backend.init(new jobs_artificial_table_backend_t(
+        mailbox_manager, _directory_view));
+    backends[name_string_t::guarantee_valid("jobs")] =
+        jobs_backend.get();
 
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),

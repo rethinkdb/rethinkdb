@@ -66,7 +66,8 @@ store_t::store_t(serializer_t *serializer,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 outdated_index_report_t *_index_report)
+                 outdated_index_report_t *_index_report,
+                 namespace_id_t _namespace_id)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -75,7 +76,8 @@ store_t::store_t(serializer_t *serializer,
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
                         : new ql::changefeed::server_t(ctx->manager)),
-      index_report(_index_report)
+      index_report(_index_report),
+      namespace_id(_namespace_id)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));

@@ -135,6 +135,7 @@ void post_construct_and_drain_queue(
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
+    // JEROEN
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
 
     rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);

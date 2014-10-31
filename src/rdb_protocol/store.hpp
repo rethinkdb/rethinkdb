@@ -95,7 +95,8 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            outdated_index_report_t *_index_report);
+            outdated_index_report_t *_index_report,
+            namespace_id_t namespace_id);
     ~store_t();
 
     void note_reshard();
@@ -409,6 +410,8 @@ public:
                          const region_map_t<binary_blob_t> &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
+    const namespace_id_t &get_namespace_id() const;
+
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
@@ -435,6 +438,10 @@ public:
     // any time the set of outdated indexes for this table changes
     outdated_index_report_t *index_report;
 
+private:
+    namespace_id_t namespace_id;
+
+public:
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write
     // lock on this and stays there for as long as it's running. It does not

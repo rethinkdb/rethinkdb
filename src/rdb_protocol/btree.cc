@@ -1841,6 +1841,8 @@ void post_construct_secondary_indexes(
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
+    // JEROEN
+
     cond_t local_interruptor;
 
     wait_any_t wait_any(&local_interruptor, interruptor);

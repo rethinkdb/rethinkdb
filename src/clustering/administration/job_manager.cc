@@ -4,34 +4,28 @@
 #include <functional>
 
 #include "concurrency/watchable.hpp"
-#include "perfmon/archive.hpp"
-#include "perfmon/collect.hpp"
-#include "perfmon/filter.hpp"
 #include "stl_utils.hpp"
+
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(job_manager_business_card_t,
+                                    get_job_wire_entries_mailbox_address);
 
 job_manager_t::job_manager_t(mailbox_manager_t* mm) :
     mailbox_manager(mm),
-    get_job_descs_mailbox(mailbox_manager,
-                          std::bind(&job_manager_t::on_get_job_descs,
-                                    this, ph::_1, drainer.lock()))
+    get_job_wire_entries_mailbox(mailbox_manager,
+                          std::bind(&job_manager_t::on_get_job_wire_entries,
+                                    this, ph::_1, ph::_2))
     { }
 
 job_manager_business_card_t job_manager_t::get_business_card() {
-    b_card_t b_card;
-    b_card.get_job_descs_mailbox_address = get_job_descs_mailbox.get_address();
-    return b_card;
+    business_card_t business_card;
+    business_card.get_job_wire_entries_mailbox_address =
+        get_job_wire_entries_mailbox.get_address();
+    return business_card;
 }
 
-void job_manager_t::on_get_job_descs(const b_card_t::return_mailbox_t::address_t& reply_address,
-                                     auto_drainer_t::lock_t) {
-    std::vector<job_desc_t> job_descs = get_job_descriptions();
-    send(mailbox_manager, reply_address, job_descs);
+void job_manager_t::on_get_job_wire_entries(
+        UNUSED signal_t *interruptor,
+        const business_card_t::return_mailbox_t::address_t& reply_address) {
+    std::vector<job_wire_entry_t> job_wire_entries = get_job_wire_entries();
+    send(mailbox_manager, reply_address, job_wire_entries);
 }
-
-/* void job_manager_t::perform_stats_request(const return_address_t& reply_address, const std::set<std::string>& requested_stats, auto_drainer_t::lock_t) {
-    perfmon_filter_t request(requested_stats);
-    scoped_ptr_t<perfmon_result_t> perfmon_result(perfmon_get_stats());
-    request.filter(&perfmon_result);
-    guarantee(perfmon_result.has());
-    send(mailbox_manager, reply_address, *perfmon_result);
-} */

@@ -15,6 +15,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
+#include "clustering/administration/jobs_backend.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/in_memory.hpp"
@@ -137,6 +138,7 @@ class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
             real_reql_cluster_interface_t *_next_reql_cluster_interface,
+            mailbox_manager_t *mailbox_manager,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
@@ -170,6 +172,7 @@ public:
         debug_table_status_backend;
 
     scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;
+    scoped_ptr_t<jobs_artificial_table_backend_t> jobs_backend;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_ */

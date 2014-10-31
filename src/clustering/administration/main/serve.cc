@@ -11,6 +11,7 @@
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
+#include "clustering/administration/job_manager.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -142,9 +143,10 @@ bool do_serve(io_backender_t *io_backender,
                 &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
 
-        // Initialize the stat manager before the directory manager so that we
+        // Initialize the stat and job manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
-        // stat_manager mailbox address
+        // job_manager and stat_manager mailbox address
+        job_manager_t job_manager(&mailbox_manager);
         stat_manager_t stat_manager(&mailbox_manager);
 
         cluster_directory_metadata_t initial_directory(
@@ -163,6 +165,7 @@ bool do_serve(io_backender_t *io_backender,
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
+            job_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
             i_am_a_server
@@ -282,6 +285,7 @@ bool do_serve(io_backender_t *io_backender,
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
+                &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),

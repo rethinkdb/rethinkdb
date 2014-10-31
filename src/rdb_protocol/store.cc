@@ -150,8 +150,10 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     }
 
     if (!sindexes_to_update.empty()) {
+        std::cout << "help_construct_bring_sindexes_up_to_date\n";
         rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                 &sindex_block);
+        std::cout << "~help_construct_bring_sindexes_up_to_date\n";
     }
 }
 
@@ -960,6 +962,8 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
                        buf_lock_t *sindex_block,
                        traversal_progress_combiner_t *progress,
                        signal_t *interruptor) THROWS_NOTHING {
+    // JEROEN
+
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
@@ -1163,4 +1167,8 @@ void store_t::delayed_clear_sindex(
         /* Ignore. The sindex deletion will continue when the store
         is next started up. */
     }
+}
+
+const namespace_id_t &store_t::get_namespace_id() const {
+    return namespace_id;
 }
