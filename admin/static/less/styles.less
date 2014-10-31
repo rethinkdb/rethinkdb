@@ -1676,17 +1676,24 @@ TODO: retire this
                     width: 100%;
                     .history_list{
                         margin: 0px 15px 0px 0px;
-                        display: block;
-                        clear: both;
                         list-style: none;
                         padding: 0px;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
                         .query_history{
                             margin: 0px;
                             padding: 0px;
                             overflow: auto;
                             border-bottom: 1px solid #e4e4e4;
+                            width: 100%;
+                            color: #999;
+                            &:hover{
+                                color: #444;
+                            }
                             &.displayed{
-                                display: block;
+                                display: auto;
                             }
                             &.hidden{
                                 display: none;
@@ -1695,30 +1702,32 @@ TODO: retire this
                                 margin: 0px;
                                 border-bottom: 0px;
                             }
-                            color: #999;
-                            &:hover{
-                                color: #444;
-                            }
                             .query_history_content{
                                 overflow: auto;
-                                word-break: break-word;
-                                white-space: pre;
-                                margin: -40px 0px 0px 30px;
-                                padding: 11px 4px;
+                                //word-break: break-word;
+                                margin: 10px;
+                                display: flex;
+                                flex-direction: row;
+                                justify-content: space-between;
                                 .right_container{
-                                    float: right;
+                                    width: 100%;
+                                    display: flex;
+                                    justify-content: flex-end;
+                                    align-items: flex-end;
+                                    .btn{
+                                        padding: 2px 10px;
+                                        margin: 10px;
+                                        .box-shadow(~"0px 0px 0px 0px #fff");
+                                    }
                                 }
-                                .btn{
-                                    padding: 2px 10px;
-                                    float: right;
-                                    margin: -8px 12px 0px 0px;
-                                    top: 5px;
-                                    .box-shadow(~"0px 0px 0px 0px #fff");
+                                .query {
+                                    font-size: 12pt;
+                                    margin: 0px;
+                                    font-family: Inconsolata, monospace;
+                                    width: 100%;
                                 }
                                 .broken_query{
-                                    float: right;
-                                    margin: 0px 12px 0px 0px;
-                                    top: 5px;
+                                    margin: 10px;
                                     visibility: hidden;
                                     height: 19px;
                                     width: 22px;
@@ -1726,8 +1735,8 @@ TODO: retire this
                                 }
                             }
                             .query_id{
-                                padding: 11px 0px;
-                                width: 28px;
+                                margin-right: 1em;
+                                width: 4em;
                                 text-align: center;
                             }
                             .btn{
