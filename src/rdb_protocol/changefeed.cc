@@ -1133,18 +1133,25 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
-    void maybe_send_start_msg() {
+    void maybe_start() {
         debugf("need_init: %ld, got_init: %ld\n", need_init, got_init);
         // When we later support not always returning the initial set, that
         // logic should go here.
         if (need_init == got_init) {
+            ASSERT_NO_CORO_WAITING;
             for (auto &&it : active_data) {
                 els.push_back(
                     datum_t(std::map<datum_string_t, datum_t> {
                             { datum_string_t("old_val"), (*it)->second.second },
                                 { datum_string_t("new_val"), (*it)->second.second } }));
-                maybe_signal_cond();
             }
+            decltype(queued_changes) changes;
+            changes.swap(queued_changes);
+            for (auto &&pair : changes) {
+                note_change(pair.first, pair.second);
+            }
+            guarantee(queued_changes.size() == 0);
+            maybe_signal_cond();
         }
     }
 
@@ -1174,11 +1181,14 @@ public:
         need_init = resp->shards;
         stop_addrs = std::move(resp->limit_addrs);
         guarantee(need_init > 0);
-        maybe_send_start_msg();
+        maybe_start();
     }
 
     void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
               &start_data) {
+#ifndef NDEBUG
+        nap(rand() % 250); // Nap up to 250ms to test queueing
+#endif
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
@@ -1208,13 +1218,13 @@ public:
                       || (active_data.size() < spec.limit
                           && active_data.size() == item_queue.size()));
         }
-        maybe_send_start_msg();
+        maybe_start();
     }
 
     virtual void note_change(
         const boost::optional<std::string> &old_key,
-        const boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > >
-            &new_val) {
+        const boost::optional<item_t> &new_val) {
+        ASSERT_NO_CORO_WAITING;
         debugf("%p note_change:\nold_key: %s\nnew_val: %s\n",
                this,
                old_key ? (*old_key).c_str() : "NONE",
@@ -1224,6 +1234,15 @@ public:
                            (*new_val).second.first.print().c_str(),
                            (*new_val).second.second.print().c_str()).c_str()
                : "NONE");
+
+        // If we aren't done initializing yet, just queue up the change.  It
+        // will be sent in `maybe_start`.
+        if (need_init != got_init) {
+            debugf("need_init (%ld) != got_init (%ld)\n", need_init, got_init);
+            queued_changes.push_back(std::make_pair(old_key, new_val));
+            return;
+        }
+        debugf("need_init (%ld) == got_init (%ld)\n", need_init, got_init);
 
         std::string s;
         for (const auto &jt : active_data) {
@@ -1309,7 +1328,8 @@ public:
         guarantee(active_data.size() == spec.limit
                   || active_data.size() == item_queue.size());
 
-        if ((old_send || new_send) && (*old_send != *new_send)) {
+        if ((old_send || new_send)
+            && !(old_send && new_send && (*old_send == *new_send))) {
             datum_t d =
                 datum_t(std::map<datum_string_t, datum_t> {
                     { datum_string_t("old_val"),
@@ -1329,15 +1349,8 @@ public:
                 debugf("___no_new_send___\n");
             }
             debugf("___d___: %s\n", d.print().c_str());
-            if (need_init != got_init) {
-                debugf("queueing...\n");
-                queued_els.push_back(d);
-            } else {
-                debugf("non-queueing...\n");
-                std::move(queued_els.begin(), queued_els.end(), std::back_inserter(els));
-                queued_els.clear();
-                els.push_back(d);
-            }
+            debugf("non-queueing...\n");
+            els.push_back(d);
             maybe_signal_cond();
         }
     }
@@ -1360,7 +1373,9 @@ public:
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
     std::set<data_it_t, data_it_lt_t> active_data;
 
-    std::deque<datum_t> queued_els, els;
+    std::deque<datum_t> els;
+    std::vector<std::pair<boost::optional<std::string>, boost::optional<item_t> > >
+        queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
 };
 
