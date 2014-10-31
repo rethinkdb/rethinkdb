@@ -236,8 +236,10 @@ class Connection(object):
                 self.close(noreply_wait=False)
                 raise RqlDriverError("Connection is closed.")
             res += chunk
+        return res
 
     def _sock_sendall(self, data):
+        offset = 0
         while offset < len(data):
             try:
                 offset += self.socket.send(data)
