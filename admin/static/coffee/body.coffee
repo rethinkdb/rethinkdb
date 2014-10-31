@@ -7,6 +7,7 @@ module 'MainView', ->
         
         initialize: =>
             @fetch_data()
+            @fetch_ajax_data()
 
             @databases = new Databases
             @tables = new Tables
@@ -39,6 +40,17 @@ module 'MainView', ->
 
             @navbar.init_typeahead()
 
+        fetch_ajax_data: =>
+            $.ajax({
+                contentType: 'application/json'
+                url: 'ajax/me'
+                dataType: 'json'
+                success: (response) =>
+                    @dashboard.set('me', response)
+                error: (response) =>
+                    @dashboard.set('me', "UNKNOWN!")
+            })
+
         fetch_data: =>
             query = r.expr
                 databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
@@ -46,7 +58,6 @@ module 'MainView', ->
                 servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 issues: r.db(system_db).table('issues').coerceTo("ARRAY")
                 num_issues: r.db(system_db).table('issues').count()
-                me: "TODO"
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
                     server("status").eq("available")
