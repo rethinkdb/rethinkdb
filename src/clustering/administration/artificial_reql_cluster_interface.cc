@@ -162,6 +162,20 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         new_config_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *doc_counts_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *doc_counts_out = ql::datum_t::null();
+        return true;
+    }
+    return next->table_estimate_doc_counts(db, name, interruptor,
+        doc_counts_out, error_out);
+}
+
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
         boost::shared_ptr< semilattice_readwrite_view_t<

@@ -573,6 +573,80 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     return true;
 }
 
+bool real_reql_cluster_interface_t::table_estimate_doc_counts(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *doc_counts_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t interruptor2(interruptor,
+        semilattice_root_view->home_thread());
+    on_thread_t thread_switcher(semilattice_root_view->home_thread());
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    const_metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &metadata.rdb_namespaces->namespaces);
+    namespace_predicate_t pred(&name, &db->id);
+    metadata_search_status_t status;
+    auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+            error_out)) return false;
+
+    /* Perform a distribution query against the database */
+    namespace_interface_access_t ns_if_access =
+        namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor);
+    static const int depth = 2;
+    static const int limit = 128;
+    distribution_read_t inner_read(depth, limit);
+    read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+    read_response_t resp;
+    try {
+        ns_if_access.get()->read_outdated(read, &resp, &interruptor2);
+    } catch (cannot_perform_query_exc_t) {
+        *error_out = "Could not estimate document counts because table is not available "
+            "for reading.";
+        return false;
+    }
+    const std::map<store_key_t, int64_t> &counts =
+        boost::get<distribution_read_response_t>(resp.response).key_counts;
+
+    /* Match the results of the distribution query against the given shard boundaries */
+    const table_shard_scheme_t &shard_scheme =
+        ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme;
+    std::vector<int64_t> doc_counts(shard_scheme.num_shards(), 0);
+    for (auto it = counts.begin(); it != counts.end(); ++it) {
+        /* Calculate the range of shards that this key-range overlaps with */
+        size_t left_shard = shard_scheme.find_shard_for_key(it->first);
+        auto jt = it;
+        ++jt;
+        size_t right_shard;
+        if (jt == counts.end()) {
+            right_shard = shard_scheme.num_shards() - 1;
+        } else {
+            store_key_t right_key = jt->first;
+            bool ok = right_key.decrement();
+            guarantee(ok, "jt->first cannot be the leftmost key");
+            right_shard = shard_scheme.find_shard_for_key(right_key);
+        }
+        /* We assume that every shard that this key-range overlaps with has an equal
+        share of the keys in the key-range. This is shitty but oh well. */
+        for (size_t shard = left_shard; shard <= right_shard; ++shard) {
+            doc_counts[shard] += it->second / (right_shard - left_shard + 1);
+        }
+    }
+
+    /* Convert result to a datum */
+    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+    for (int64_t i : doc_counts) {
+        array_builder.add(ql::datum_t(static_cast<double>(i)));
+    }
+    *doc_counts_out = std::move(array_builder).to_datum();
+    return true;
+}
+
 /* Checks that divisor is indeed a divisor of multiple. */
 template <class T>
 bool is_joined(const T &multiple, const T &divisor) {

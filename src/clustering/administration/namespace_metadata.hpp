@@ -103,6 +103,14 @@ public:
                 key_range_t::none, store_key_t());
         }
     }
+
+    size_t find_shard_for_key(const store_key_t &key) const {
+        size_t ix = 0;
+        while (ix < split_points.size() && key >= split_points[ix]) {
+            ++ix;
+        }
+        return ix;
+    }
 };
 
 RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);

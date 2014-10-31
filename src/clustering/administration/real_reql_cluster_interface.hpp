@@ -82,6 +82,12 @@ public:
             signal_t *interruptor,
             ql::datum_t *new_config_out,
             std::string *error_out);
+    bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *doc_counts_out,
+            std::string *error_out);
 
     /* `calculate_split_points_with_distribution` needs access to the underlying
     `namespace_interface_t` */

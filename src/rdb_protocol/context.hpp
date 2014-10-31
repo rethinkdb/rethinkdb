@@ -195,9 +195,9 @@ public:
             scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
 
-    /* From the user's point of view, this is a method on the table object. The reason
-    it's internally defined on `reql_cluster_interface_t` rather than `base_table_t` is
-    because its implementation fits much better with the implementations of the other
+    /* From the user's point of view, these are methods on the table object. The reason
+    they're internally defined on `reql_cluster_interface_t` rather than `base_table_t`
+    is because their implementations fits better with the implementations of the other
     methods of `reql_cluster_interface_t` than `base_table_t`. */
     virtual bool table_reconfigure(
             counted_t<const ql::db_t> db,
@@ -206,6 +206,12 @@ public:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *new_config_out,
+            std::string *error_out) = 0;
+    virtual bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *doc_counts_out,
             std::string *error_out) = 0;
 
 protected:
