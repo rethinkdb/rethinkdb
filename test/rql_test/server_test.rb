@@ -126,7 +126,7 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     ensure
       $dispatch_hook = nil
     end
-    assert_equal({'t' => 16, 'b' => [], 'r' => ["Client is buggy (failed to deserialize query)."]},
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1)))
