@@ -246,7 +246,7 @@ private:
                     datum_t::extract_secondary(key_to_unescaped_str(last->key));
                 // We need to do this because the truncated sindex keys might be
                 // different sizes depending on the length of the primary key.
-                // (Also, I hate literally everything about or on-disk key format.)
+                // (Also, I hate literally everything about our on-disk key format.)
                 size_t minlen = std::min(cur.size(), (*start_sindex).size());
                 if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
                     seen_distinct = true;
