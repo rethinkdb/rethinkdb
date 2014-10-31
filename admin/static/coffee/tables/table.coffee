@@ -37,10 +37,17 @@ module 'TableView', ->
                                 num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                 max_replicas: num_servers
                                 num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
-                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: waiting for #2980 to get dist info
-                                    num_keys: r.random(0, 300000).add(400000)
-                                    id: position
-                                )
+                                distribution: r.db(table('db'))
+                                    .table(table('name'))
+                                    .info()('doc_count_estimates')\
+                                    .default([100, 200, 300])
+                                    # This do-wrap is a work-around for #3273
+                                    .do((doc_counts) ->
+                                        doc_counts.map(r.range(doc_counts.count()),
+                                            (num_keys, position) ->
+                                                num_keys: num_keys
+                                                id: position
+                                            ).coerceTo('array'))
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
                                     primary:
@@ -72,11 +79,6 @@ module 'TableView', ->
                 )
 
             @timer = driver.run query, 5000, (error, result) =>
-                ###
-                console.log '---- err, result -----'
-                console.log error
-                console.log JSON.stringify(result, null, 2)
-                ###
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     # TODO: Handle when the table is deleted
