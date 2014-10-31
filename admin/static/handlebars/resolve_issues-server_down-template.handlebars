@@ -4,15 +4,18 @@
           Permanently remove
         </button>
         <p class="issue-type">Server down</p>
-        <p class="message">{{info.server}} is inaccessible</p>
+        <p class="message">
+         <a class="change-route" href="#servers/{{info.server_id}}"> {{info.server}}</a>
+          is inaccessible</p>
         {{!-- Uncomment this when the time attribute is re-added
         <p class="datetime"><abbr class="timeago" title="{{time}}">{{time}}</abbr></p>
         --}}
     </div>
     <hr />
     <div class="issue-details">
-      <p>{{description}}</p>
-      <p>Affected servers:</p>
+      <p>
+        Server <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_name}}</a>
+      </p>
       <ul>
         {{#each info.affected_servers}}
         <li>{{this}}</li>
