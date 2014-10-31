@@ -1187,7 +1187,7 @@ public:
     void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
               &start_data) {
 #ifndef NDEBUG
-        nap(rand() % 250); // Nap up to 250ms to test queueing
+        nap(rand() % 250); // Nap up to 250ms to test queueing.
 #endif
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
