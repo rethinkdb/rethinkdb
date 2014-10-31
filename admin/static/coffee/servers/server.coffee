@@ -215,16 +215,22 @@ module 'ServerView', ->
             @listenTo @collection, 'remove', @render
 
         render: =>
-            # TODO Try with a release/clean version
-            version = @model.get('version').split(' ')[1].split('-')[0]
+            if @model.get('status') != 'available'
+                last_seen = $.timeago(@model.get('time_disconnected')).slice(0, -4)
+                uptime = null
+                version = "unknown"
+            else
+                last_seen = null
+                uptime = $.timeago(@model.get('time_started')).slice(0, -4)
+                version = @model.get('version')?.split(' ')[1].split('-')[0]
+
             @$el.html @template
                 main_ip: @model.get 'hostname'
-                uptime: $.timeago(@model.get('time_started')).slice(0, -4)
+                uptime: uptime
                 version: version
                 num_shards: @collection.length
-                reachability:
-                    reachable: @model.get('status') is 'available'
-                    last_seen: $.timeago(@model.get('time_disconnected')).slice(0, -4) if @model.get('status') isnt 'available'
+                status: @model.get('status')
+                last_seen: last_seen
             @
 
         remove: =>
