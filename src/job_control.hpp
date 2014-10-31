@@ -54,7 +54,17 @@ public:
     uuid_u id;
     microtime_t start_time;
 };
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_desc_t);
+
+class job_wire_entry_t {
+public:
+    job_wire_entry_t();
+    job_wire_entry_t(const job_entry_t &entry);
+
+    job_type_t type;
+    uuid_u id;
+    double duration;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_wire_entry_t);
 
 class job_wire_entry_t {
 public:

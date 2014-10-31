@@ -22,7 +22,6 @@ job_entry_t::job_entry_t(job_type_t _type,
       start_time(_start_time)
 {
 }
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(job_desc_t, description, uuid, start_time);
 
 job_wire_entry_t::job_wire_entry_t() {
 }

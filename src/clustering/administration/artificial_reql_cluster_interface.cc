@@ -347,6 +347,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
 
+    jobs_backend.init(new jobs_artificial_table_backend_t(
+        mailbox_manager, _directory_view));
+    backends[name_string_t::guarantee_valid("jobs")] =
+        jobs_backend.get();
+
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =
         std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
