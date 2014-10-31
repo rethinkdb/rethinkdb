@@ -215,8 +215,6 @@ void do_read(ql::env_t *env,
              const rget_read_t &rget,
              rget_read_response_t *res,
              release_superblock_t release_superblock) {
-    debugf("do_read\n");
-    if (rget.sindex) debugf("sindex: %s\n", (*rget.sindex).id.c_str());
     if (!rget.sindex) {
         // Normal rget
         rdb_rget_slice(btree, rget.region.inner, superblock,

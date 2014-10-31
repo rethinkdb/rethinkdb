@@ -189,9 +189,8 @@ release mode. */
 #define THROWS_NOTHING
 #define THROWS_ONLY(...)
 #else
-// RSI: remove
-#define THROWS_NOTHING //throw ()
-#define THROWS_ONLY(...) // throw (__VA_ARGS__)
+#define THROWS_NOTHING throw ()
+#define THROWS_ONLY(...) throw (__VA_ARGS__)
 #endif
 
 // This is a workaround for old versions of boost causing a compilation error

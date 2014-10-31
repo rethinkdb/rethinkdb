@@ -47,7 +47,6 @@ void server_t::stop_mailbox_cb(client_t::addr_t addr) {
 void server_t::limit_stop_mailbox_cb(client_t::addr_t addr,
                                      boost::optional<std::string> sindex,
                                      uuid_u limit_uuid) {
-    debugf("limit_stop_mailbox_cb\n");
     std::vector<scoped_ptr_t<limit_manager_t> > destroyable_lms;
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
@@ -78,7 +77,6 @@ void server_t::limit_stop_mailbox_cb(client_t::addr_t addr,
                             std::swap((*lm), vec->back());
                             // No need to hold onto the locks while we're
                             // freeing the limit managers.
-                            debugf("DEL_LIMIT_CLIENT %p\n", vec->back().get());
                             destroyable_lms.push_back(std::move(vec->back()));
                             vec->pop_back();
                             break;
@@ -152,7 +150,6 @@ void server_t::add_limit_client(
             spec,
             std::move(lt),
             std::move(item_vec));
-        debugf("ADD_LIMIT_CLIENT %p\n", lm.get());
         lspot.write_signal()->wait_lazily_unordered();
         vec->push_back(std::move(lm));
     }
@@ -384,7 +381,6 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
     } else {
         components = datum_t::extract_all(raw_str);
     }
-    debugf("primary: %s\n", components.primary.c_str());
     for (auto c : components.primary) {
         // We escape 0 because there are places where we don't support NULL
         // bytes, 1 because we use it to delineate the start of the tag, and 2
@@ -402,7 +398,6 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
         // Shamelessly stolen from datum.cc.
         s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(uint64_t) * 2), u);
     }
-    debugf("MANGLE: %s\n", s.c_str());
     return s;
 }
 
@@ -447,7 +442,6 @@ bool limit_order_t::subop(
     const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
     const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const {
     int cmp = a_pair.first.cmp(reql_version_t::LATEST, b_pair.first);
-    // debugf("item_vec %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
     switch (sorting) {
     case sorting_t::ASCENDING:
         return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a_str, b_str));
@@ -469,7 +463,6 @@ bool limit_order_t::operator()(const const_item_t &a, const const_item_t &b) con
 
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
     int cmp = a.cmp(reql_version_t::LATEST, b);
-    debugf("datum %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
     switch (sorting) {
     case sorting_t::ASCENDING: return cmp > 0;
     case sorting_t::DESCENDING: return cmp < 0;
@@ -480,8 +473,6 @@ bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
 }
 
 bool limit_order_t::operator()(const std::string &a, const std::string &b) const {
-    // debugf("str %s %s\n", a.c_str(), b.c_str());
-    // debugf("str %d lt %d\n", sorting == sorting_t::ASCENDING, a < b);
     switch (sorting) {
     case sorting_t::ASCENDING: return a > b;
     case sorting_t::DESCENDING: return a < b;
@@ -521,7 +512,6 @@ limit_manager_t::limit_manager_t(
       gt(std::move(_gt)),
       item_queue(gt),
       aborted(false) {
-    debugf("limit_manager_t::limit_manager_t %zu\n", item_vec.size());
     guarantee(clients_lock->read_signal()->is_pulsed());
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
@@ -534,7 +524,6 @@ limit_manager_t::limit_manager_t(
         guarantee(inserted);
     }
     send(msg_t(msg_t::limit_start_t(uuid, std::move(item_vec))));
-    debugf("item_queue: %zu (%p)\n", item_queue.size(), this);
 }
 
 void limit_manager_t::add(
@@ -544,11 +533,6 @@ void limit_manager_t::add(
     datum_t key,
     datum_t val) {
     guarantee(spot->write_signal()->is_pulsed());
-    debugf("%p add %s <%s,%s>\n",
-           this,
-           key_to_mangled_primary(sk, is_primary).c_str(),
-           key.print().c_str(),
-           val.print().c_str());
     added.push_back(
         std::make_pair(key_to_mangled_primary(sk, is_primary),
                        std::make_pair(std::move(key), std::move(val))));
@@ -559,7 +543,6 @@ void limit_manager_t::del(
     store_key_t sk,
     is_primary_t is_primary) {
     guarantee(spot->write_signal()->is_pulsed());
-    debugf("%p add %s\n", this, key_to_mangled_primary(sk, is_primary).c_str());
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
 
@@ -678,7 +661,6 @@ item_vec_t limit_manager_t::read_more(
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
     size_t n) {
-    debugf("~~ READ_MORE\n");
     ref_visitor_t visitor(env.get(), region.inner, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
@@ -687,11 +669,7 @@ void limit_manager_t::commit(
     rwlock_in_line_t *spot,
     const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
     guarantee(spot->write_signal()->is_pulsed());
-    debugf("\n**********************************************************************\n");
-    debugf("COMMIT (added %zu, deleted %zu) | %zu (%p)\n",
-           added.size(), deleted.size(), item_queue.size(), this);
     if (added.size() == 0 && deleted.size() == 0) {
-        debugf("Aborting commit early (no changes).\n");
         return;
     }
     item_queue_t real_added(gt);
@@ -709,13 +687,10 @@ void limit_manager_t::commit(
         if (it != item_queue.end()) {
             // We can enter this branch if we're doing a batched update and the
             // same row is changed multiple times.  We use the later row.
-            debugf("Second real_added, replacing.\n");
             auto sub_it = real_added.find_id(pair.first);
             guarantee(sub_it != real_added.end());
             item_queue.erase(it);
             real_added.erase(sub_it);
-        } else {
-            debugf("First real_added.\n");
         }
         bool inserted = item_queue.insert(pair).second;
         guarantee(inserted);
@@ -724,8 +699,6 @@ void limit_manager_t::commit(
     }
     added.clear();
 
-    debugf("a real_added %zu, real_deleted %zu | %zu\n",
-           real_added.size(), real_deleted.size(), item_queue.size());
     std::vector<std::string> truncated = item_queue.truncate_top(spec.limit);
     for (auto &&id : truncated) {
         auto it = real_added.find_id(id);
@@ -736,10 +709,7 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
-    debugf("b real_added %zu, real_deleted %zu\n",
-           real_added.size(), real_deleted.size());
     if (item_queue.size() < spec.limit) {
-        debugf("Expanding data...\n");
         auto data_it = item_queue.begin();
         datum_t begin = (data_it == item_queue.end())
             ? datum_t()
@@ -748,8 +718,6 @@ void limit_manager_t::commit(
         if (data_it != item_queue.end()) {
             start = data_it;
         }
-        debugf("Reading %zu - %zu = %zu\n",
-               spec.limit, item_queue.size(), spec.limit - item_queue.size());
         item_vec_t s;
         boost::optional<exc_t> exc;
         try {
@@ -767,7 +735,6 @@ void limit_manager_t::commit(
             abort(*exc);
             return;
         }
-        debugf("got %zu\n", s.size());
         guarantee(s.size() <= spec.limit - item_queue.size());
         for (auto &&pair : s) {
             bool ins = item_queue.insert(pair).second;
@@ -779,8 +746,6 @@ void limit_manager_t::commit(
             }
         }
     }
-    debugf("c real_added %zu, real_deleted %zu\n",
-           real_added.size(), real_deleted.size());
     std::set<std::string> remaining_deleted;
     for (auto &&id : real_deleted) {
         auto it = real_added.find_id(id);
@@ -790,7 +755,6 @@ void limit_manager_t::commit(
             msg.old_key = id;
             msg.new_val = std::move(**it);
             real_added.erase(it);
-            debugf("PAIR send %s\n", msg.print().c_str());
             send(msg_t(std::move(msg)));
         } else {
             remaining_deleted.insert(std::move(id));
@@ -807,23 +771,16 @@ void limit_manager_t::commit(
             msg.new_val = std::move(**it);
             real_added.erase(it);
         }
-        debugf("DEL send %s\n", msg.print().c_str());
         send(msg_t(std::move(msg)));
     }
 
-    debugf("d real_added %zu, real_deleted %zu\n",
-           real_added.size(), real_deleted.size());
     for (auto &&it : real_added) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
         msg.new_val = std::move(*it);
-        debugf("ADD send %s\n", msg.print().c_str());
         send(msg_t(std::move(msg)));
     }
     real_added.clear();
-    debugf("e real_added %zu, real_deleted %zu\n",
-           real_added.size(), real_deleted.size());
-    debugf("\n**********************************************************************\n");
 }
 
 void limit_manager_t::abort(exc_t e) {
@@ -1129,12 +1086,10 @@ public:
         feed->add_limit_sub(this, uuid);
     }
     virtual ~limit_sub_t() {
-        debugf("~limit_sub_t\n");
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
     void maybe_start() {
-        debugf("need_init: %ld, got_init: %ld\n", need_init, got_init);
         // When we later support not always returning the initial set, that
         // logic should go here.
         if (need_init == got_init) {
@@ -1159,7 +1114,6 @@ public:
                        std::string table,
                        namespace_interface_t *nif,
                        client_t::addr_t *addr) {
-        debugf("Starting!\n");
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -1177,7 +1131,6 @@ public:
             throw *err;
         }
         guarantee(need_init == -1);
-        debugf("need_init: %zu\n", resp->shards);
         need_init = resp->shards;
         stop_addrs = std::move(resp->limit_addrs);
         guarantee(need_init > 0);
@@ -1190,27 +1143,14 @@ public:
         nap(rand() % 250); // Nap up to 250ms to test queueing.
 #endif
         got_init += 1;
-        debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
-            debugf("%s\n%s\n%s\n",
-                   pair.first.c_str(),
-                   pair.second.first.print().c_str(),
-                   pair.second.second.print().c_str());
             auto it = item_queue.insert(pair).first;
             active_data.insert(it);
             if (active_data.size() > spec.limit) {
-                debugf("\nXXX\nsnapshot:\n");
                 auto old_ft = active_data.begin();
                 for (auto ft = active_data.begin(); ft != active_data.end(); ++ft) {
-                    debugf("gt(%s, %s) = %d\n",
-                           (**old_ft)->second.first.print().c_str(),
-                           (**ft)->second.first.print().c_str(),
-                           gt((**old_ft)->second.first, (**ft)->second.first));
-                    debugf("%s\n", (**ft)->second.first.print().c_str());
                     old_ft = ft;
                 }
-                debugf("erasing %s\n",
-                       (**active_data.begin())->second.first.print().c_str());
                 size_t erased = active_data.erase(*active_data.begin());
                 guarantee(erased == 1);
             }
@@ -1225,42 +1165,19 @@ public:
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
-        debugf("%p note_change:\nold_key: %s\nnew_val: %s\n",
-               this,
-               old_key ? (*old_key).c_str() : "NONE",
-               new_val
-               ? strprintf("%s <%s,%s>",
-                           (*new_val).first.c_str(),
-                           (*new_val).second.first.print().c_str(),
-                           (*new_val).second.second.print().c_str()).c_str()
-               : "NONE");
 
         // If we aren't done initializing yet, just queue up the change.  It
         // will be sent in `maybe_start`.
         if (need_init != got_init) {
-            debugf("need_init (%ld) != got_init (%ld)\n", need_init, got_init);
             queued_changes.push_back(std::make_pair(old_key, new_val));
             return;
         }
-        debugf("need_init (%ld) == got_init (%ld)\n", need_init, got_init);
-
-        std::string s;
-        for (const auto &jt : active_data) {
-            s += (*jt)->first + " ";
-        }
-        debugf("active %s\n", s.c_str());
-        s = "";
-        for (const auto &jt : item_queue) {
-            s += jt->first + " ";
-        }
-        debugf("item_queue %s\n", s.c_str());
 
         boost::optional<item_t> old_send, new_send;
         if (old_key) {
             auto it = item_queue.find_id(*old_key);
             guarantee(it != item_queue.end());
             size_t erased = active_data.erase(it);
-            debugf("Erased %zu\n", erased);
             if (erased != 0) {
                 // The old value was in the set.
                 old_send = **it;
@@ -1268,27 +1185,19 @@ public:
             item_queue.erase(it);
         }
         if (new_val) {
-            debugf("new_val...\n");
             auto pair = item_queue.insert(*new_val);
             auto it = pair.first;
             guarantee(pair.second);
             bool insert;
             if (active_data.size() == 0) {
-                debugf("no cmp (empty active_data)\n");
                 insert = false;
             } else {
                 datum_t a = (*it)->second.first;
                 guarantee(active_data.size() != 0);
                 datum_t b = (**active_data.begin())->second.first;
                 insert = !gt(a, b);
-                debugf("cmp %s < %s = %d\n",
-                       a.print().c_str(), b.print().c_str(), insert);
-                debugf("%s %s\n",
-                       (**active_data.begin())->second.first.print().c_str(),
-                       (**active_data.crbegin())->second.first.print().c_str());
             }
             if (insert) {
-                debugf("new_val active!\n");
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
                 new_send = **it;
@@ -1299,7 +1208,6 @@ public:
             // value has to leave the set to make room.
             auto last = *active_data.begin();
             guarantee(new_send && !old_send);
-            debugf("___foo___: %s\n", (*last)->second.second.print().c_str());
             old_send = **last;
             active_data.erase(last);
         } else if (active_data.size() < spec.limit) {
@@ -1310,19 +1218,14 @@ public:
             } else if (active_data.size() < item_queue.size()) {
                 // The set is too small because the new value wasn't in the old
                 // set bounds, so we need to add the next best element.
-                debugf("Plan omega.\n");
                 auto it = active_data.size() == 0
                     ? item_queue.end()
                     : *active_data.begin();
 
                 guarantee(it != item_queue.begin());
                 --it;
-                debugf("%zu\n", active_data.size());
                 active_data.insert(it);
-                debugf("%zu\n", active_data.size());
                 new_send = **it;
-            } else {
-                debugf("Plan what?\n");
             }
         }
         guarantee(active_data.size() == spec.limit
@@ -1336,20 +1239,6 @@ public:
                       old_send ? (*old_send).second.second : datum_t::null() },
                     { datum_string_t("new_val"),
                       new_send ? (*new_send).second.second : datum_t::null() } });
-            if (old_send) {
-                debugf("___old_send___: %s\n",
-                       (*old_send).second.second.print().c_str());
-            } else {
-                debugf("___no_old_send___\n");
-            }
-            if (new_send) {
-                debugf("___new_send___: %s\n",
-                       (*new_send).second.second.print().c_str());
-            } else {
-                debugf("___no_new_send___\n");
-            }
-            debugf("___d___: %s\n", d.print().c_str());
-            debugf("non-queueing...\n");
             els.push_back(d);
             maybe_signal_cond();
         }
@@ -1515,7 +1404,6 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     } else {
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
-            debugf("___EL___: %s\n", el.print().c_str());
             batcher->note_el(el);
             v.push_back(std::move(el));
         }
@@ -1549,10 +1437,8 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
                          "Subscription destroyed (shutting down?).")),
          detach_t::NO);
     if (feed != NULL) {
-        debugf("destructor_cleanup del_sub\n");
         del_sub();
     } else {
-        debugf("destructor_cleanup guarantee\n");
         // We only get here if we were detached.
         guarantee(exc);
     }
@@ -1669,11 +1555,8 @@ void feed_t::add_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTH
 
 // Can't throw because it's called in a destructor.
 void feed_t::del_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
-    debugf("del_limit_sub\n");
     del_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
-            debugf("del_sub_with_lock %zu\n", sub->stop_addrs.size());
             for (const auto &addr : sub->stop_addrs) {
-                debugf("sending...\n");
                 send(manager, addr,
                      mailbox.get_address(), sub->spec.range.sindex, sub->uuid);
             }
@@ -1985,7 +1868,6 @@ client_t::new_feed(env_t *env,
                     return new range_sub_t(feed, range);
                 }
                 subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-                    debugf("limit index `%s`\n", opt_or(limit.range.sindex, "").c_str());
                     return new limit_sub_t(feed, limit);
                 }
                 subscription_t *operator()(const keyspec_t::point_t &point) const {

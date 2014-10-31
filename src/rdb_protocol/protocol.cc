@@ -572,7 +572,6 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
             shards += res->shards;
             std::move(res->limit_addrs.begin(), res->limit_addrs.end(),
                       std::back_inserter(limit_addrs));
-            debugf("%zu %zu\n", res->limit_addrs.size(), limit_addrs.size());
         }
     }
     guarantee(count != 0);

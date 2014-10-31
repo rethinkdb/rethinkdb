@@ -1226,7 +1226,6 @@ void rdb_modification_report_cb_t::finish(
             rwlock_in_line_t *limit_clients_spot,
             rwlock_in_line_t *lm_spot,
             ql::changefeed::limit_manager_t *lm) {
-            debugf("Finishing...\n");
             if (!lm->drainer.is_draining()) {
                 auto lock = lm->drainer.lock();
                 guarantee(clients_spot->read_signal()->is_pulsed());
@@ -1244,7 +1243,6 @@ void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &report,
     bool update_pkey_cfeeds,
     new_mutex_in_line_t *spot) {
-    // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
@@ -1262,7 +1260,6 @@ void rdb_modification_report_cb_t::on_mod_report(
             report.primary_key);
 
         if (update_pkey_cfeeds) {
-            debugf("PKEY commit\n");
             store_->changefeed_server->foreach_limit(
                 boost::optional<std::string>(),
                 &report.primary_key,
@@ -1270,7 +1267,6 @@ void rdb_modification_report_cb_t::on_mod_report(
                     rwlock_in_line_t *limit_clients_spot,
                     rwlock_in_line_t *lm_spot,
                     ql::changefeed::limit_manager_t *lm) {
-                    debugf("2 pkey commit\n");
                     if (!lm->drainer.is_draining()) {
                         auto lock = lm->drainer.lock();
                         guarantee(clients_spot->read_signal()->is_pulsed());
@@ -1286,8 +1282,6 @@ void rdb_modification_report_cb_t::on_mod_report(
                         }
                     }
                 });
-        } else {
-            debugf("Skipping PKEY commit\n");
         }
         sindexes_updated_cond.wait_lazily_unordered();
     }
@@ -1492,7 +1486,6 @@ void rdb_update_single_sindex(
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
         auto_drainer_t::lock_t) {
-    debugf("~~~ RDB_UPDATE_SINGLE_SINDEX\n");
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this

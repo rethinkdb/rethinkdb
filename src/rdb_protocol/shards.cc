@@ -224,7 +224,6 @@ private:
     }
 
     virtual bool should_send_batch() {
-        debugf("should_send_batch %zu %zu %d\n", seen, n, seen_distinct);
         return seen >= n && seen_distinct;
     }
     virtual bool accumulate(env_t *env,
@@ -241,11 +240,8 @@ private:
             }
         } else {
             guarantee(stream->size() > 0);
-            debugf("ARBITRARY %zu vs. %zu\n", n, stream->size());
-            debugf("foofoofoo %s\n", el.print().c_str());
             rget_item_t *last = &stream->back();
             if (start_sindex) {
-                debugf("a\n");
                 std::string cur =
                     datum_t::extract_secondary(key_to_unescaped_str(last->key));
                 // We need to do this because the truncated sindex keys might be
@@ -253,19 +249,14 @@ private:
                 // (Also, I hate literally everything about or on-disk key format.)
                 size_t minlen = std::min(cur.size(), (*start_sindex).size());
                 if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
-                    debugf("aa\n");
                     seen_distinct = true;
                 }
             } else {
-                debugf("b\n");
                 if (seen >= n) {
-                    debugf("ba\n");
                     if (datum_t::key_is_truncated(last->key)) {
-                        debugf("baa\n");
                         start_sindex =
                             datum_t::extract_secondary(key_to_unescaped_str(last->key));
                     } else {
-                        debugf("bab\n");
                         seen_distinct = true;
                     }
                 }

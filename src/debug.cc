@@ -122,11 +122,3 @@ microtime_t debug_timer_t::tick(const std::string &tag) {
                      name.c_str(), tag.c_str(), last, last - start, last - prev);
     return last - start;
 }
-
-std::string strip_as(std::string s) {
-    std::string out;
-    for (auto c : s) {
-        if (c != 'a') out += c;
-    }
-    return out;
-}
