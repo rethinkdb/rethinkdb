@@ -196,8 +196,9 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
                 database.c_str(), name.c_str());
             return false;
         }
+    } else {
+        return next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
     }
-    return next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
 }
 
 admin_artificial_tables_t::admin_artificial_tables_t(
