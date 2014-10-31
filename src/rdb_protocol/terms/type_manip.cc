@@ -353,12 +353,16 @@ private:
                 bool ok = name.assign_value(table->name);
                 guarantee(ok, "table->name should have been a valid name");
                 std::string error;
-                datum_t doc_counts;
+                std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
-                        table->db, name, env->env->interruptor, &doc_counts, &error)) {
+                        table->db, name, env->env, &doc_counts, &error)) {
                     rfail(base_exc_t::GENERIC, "%s", error.c_str());
                 }
-                b |= info.add("doc_count_estimates", doc_counts);
+                datum_array_builder_t arr(configured_limits_t::unlimited);
+                for (int64_t i : doc_counts) {
+                    arr.add(datum_t(static_cast<double>(i)));
+                }
+                b |= info.add("doc_count_estimates", std::move(arr).to_datum());
             }
         } break;
         case SELECTION_TYPE: {

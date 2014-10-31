@@ -576,12 +576,12 @@ bool real_reql_cluster_interface_t::table_reconfigure(
 bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        signal_t *interruptor,
-        ql::datum_t *doc_counts_out,
+        ql::env_t *env,
+        std::vector<int64_t> *doc_counts_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t interruptor2(interruptor,
+    cross_thread_signal_t interruptor2(env->interruptor,
         semilattice_root_view->home_thread());
     on_thread_t thread_switcher(semilattice_root_view->home_thread());
 
@@ -597,7 +597,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 
     /* Perform a distribution query against the database */
     namespace_interface_access_t ns_if_access =
-        namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor);
+        namespace_repo.get_namespace_interface(ns_metadata_it->first, &interruptor2);
     static const int depth = 2;
     static const int limit = 128;
     distribution_read_t inner_read(depth, limit);
@@ -617,7 +617,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
     */
     const table_shard_scheme_t &shard_scheme =
         ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme;
-    std::vector<int64_t> doc_counts(shard_scheme.num_shards(), 0);
+    *doc_counts_out = std::vector<int64_t>(shard_scheme.num_shards(), 0);
     for (auto it = counts.begin(); it != counts.end(); ++it) {
         /* Calculate the range of shards that this key-range overlaps with */
         size_t left_shard = shard_scheme.find_shard_for_key(it->first);
@@ -635,16 +635,9 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         /* We assume that every shard that this key-range overlaps with has an equal
         share of the keys in the key-range. This is shitty but oh well. */
         for (size_t shard = left_shard; shard <= right_shard; ++shard) {
-            doc_counts[shard] += it->second / (right_shard - left_shard + 1);
+            doc_counts_out->at(shard) += it->second / (right_shard - left_shard + 1);
         }
     }
-
-    /* Convert result to a datum */
-    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-    for (int64_t i : doc_counts) {
-        array_builder.add(ql::datum_t(static_cast<double>(i)));
-    }
-    *doc_counts_out = std::move(array_builder).to_datum();
     return true;
 }
 

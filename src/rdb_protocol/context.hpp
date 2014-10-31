@@ -210,8 +210,8 @@ public:
     virtual bool table_estimate_doc_counts(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            signal_t *interruptor,
-            ql::datum_t *doc_counts_out,
+            ql::env_t *env,
+            std::vector<int64_t> *doc_counts_out,
             std::string *error_out) = 0;
 
 protected:

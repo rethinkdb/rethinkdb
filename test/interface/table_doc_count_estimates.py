@@ -67,6 +67,11 @@ with driver.Metacluster() as metacluster:
     assert res["doc_count_estimates"][0] <= N/4
     assert N/fudge <= res["doc_count_estimates"][1] <= N*fudge
 
+    # Check to make sure that system tables work too
+    res = r.db("rethinkdb").table("server_config").info().run(conn)
+    pprint.pprint(res)
+    assert res["doc_count_estimates"] == [2]
+
     cluster1.check_and_stop()
 print "Done."
 
