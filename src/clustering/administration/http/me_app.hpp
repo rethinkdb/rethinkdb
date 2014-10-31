@@ -4,7 +4,7 @@
 
 #include "http/http.hpp"
 
-/* This is an `http_app_t` that returns the server ID of the server procesing the
+/* This is an `http_app_t` that returns the server ID of the server processing the
 request. */
 class me_http_app_t : public http_app_t {
 public:
