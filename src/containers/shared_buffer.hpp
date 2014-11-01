@@ -27,7 +27,7 @@ public:
 
     size_t size() const;
 
-    shared_buf_t(size_t size) : size_(size) {}
+    shared_buf_t(size_t size) : refcount_(0), size_(size) {}
 private:
 
     // We duplicate the implementation of slow_atomic_countable_t here for the

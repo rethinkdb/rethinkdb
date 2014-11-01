@@ -947,7 +947,6 @@ void ls_block_token_pointee_t::do_destroy() {
     serializer_->assert_thread();
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
-    delete this;
 }
 
 void debug_print(printf_buffer_t *buf,
