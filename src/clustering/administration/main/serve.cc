@@ -376,6 +376,7 @@ bool do_serve(io_backender_t *io_backender,
                             new administrative_http_server_manager_t(
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
+                                server_id,
                                 &mailbox_manager,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
