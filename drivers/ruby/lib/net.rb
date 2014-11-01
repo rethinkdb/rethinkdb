@@ -51,10 +51,10 @@ module RethinkDB
 
     def inspect # :nodoc:
       preview_res = @results[0...10]
-      if (@results.size > 10 || @more)
+      if @results.size > 10 or @more
         preview_res << (dots = "..."; class << dots; def inspect; "..."; end; end; dots)
       end
-      preview = preview_res.inspect
+      preview = PP.pp(preview_res, "")
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} is closed.)" : ""
       "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
@@ -76,7 +76,7 @@ module RethinkDB
     def each (&block) # :nodoc:
       raise RqlRuntimeError, "Can only iterate over Query_Results once!" if @run
       @run = true
-      raise RqlRuntimeError, "Connection is closed." if out_of_date
+      raise RqlRuntimeError, "Connection is closed." if @more and out_of_date
       while true
         @results.each(&block)
         return self if !@more
@@ -146,7 +146,7 @@ module RethinkDB
     end
 
     def set_opts(token, opts)
-      @listener_mutex.synchronize{@opts[token] = opts}
+      @listener_mutex.synchronize{ @opts[token] = opts }
     end
     def run_internal(q, opts, token)
       set_opts(token, opts)
@@ -156,8 +156,8 @@ module RethinkDB
       noreply ? nil : wait(token)
     end
     def run(msg, opts, &b)
-      reconnect(:noreply_wait => false) if (@auto_reconnect and not self.is_open())
-      raise RqlRuntimeError, "Error: Connection Closed." if not self.is_open()
+      reconnect(:noreply_wait => false) if @auto_reconnect and not self.is_open()
+      raise RqlRuntimeError, "Connection is closed." if not self.is_open()
 
       global_optargs = {}
       all_opts = @default_opts.merge(opts)
@@ -210,7 +210,7 @@ module RethinkDB
     end
 
     def dispatch(msg, token)
-      raise RqlDriverError, "Internal driver error - token already in use." if @waiters.has_key?(token)
+      raise RqlDriverError, "Internal driver error, token already in use." if @waiters.has_key?(token)
       @waiters[token] = ConditionVariable.new
       payload = Shim.dump_json(msg).force_encoding('BINARY')
       prefix = [token, payload.bytesize].pack('Q<L<')
@@ -222,10 +222,12 @@ module RethinkDB
       begin
         res = nil
         @listener_mutex.synchronize {
+          puts "No token in waiters"
           raise RqlRuntimeError, "Connection is closed." if not @waiters.has_key?(token)
           @waiters[token].wait(@listener_mutex)
           res = @data.delete(token)
         }
+        puts "Connection had been closed, waiter was woken"
         raise RqlRuntimeError, "Connection is closed." if not self.is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
         return res
@@ -288,7 +290,7 @@ module RethinkDB
       end
       opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
 
-      self.noreply_wait() if (opts[:noreply_wait] and self.is_open())
+      self.noreply_wait() if opts[:noreply_wait] and self.is_open()
       if not @listener.nil?
         @listener.terminate
         @listener.join
