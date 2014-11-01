@@ -22,13 +22,24 @@ module 'ServerView', ->
                     server.merge( (server) ->
                         responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
-                                shards: table("shards").indexesOf( () -> true ).map( (index) ->
-                                    table("shards").nth(index).merge({num_keys: "TODO", index: index.add(1), num_shards: table("shards").count()}).filter( (replica) ->
-                                        replica('server').eq(server("name"))
+                                shards: table("shards").map(r.range(table('shards').count()), (shard, index) ->
+                                    shard.merge(
+                                        num_keys: r.db(table('db')) \
+                                            .table(table('name')) \
+                                            .info()('doc_count_estimates') \
+                                            # this default line can be removed after #2980 is merged
+                                            .default([100, 200, 300, 400]) \
+                                            (index)
+                                        index: index.add(1)
+                                        num_shards: table('shards').count()
+                                        ).filter( (replica) ->
+                                            replica('server').eq(server("name"))
                                     )
                                 ).filter( (shard) ->
                                     shard.isEmpty().not()
-                                ).concatMap( (roles) -> roles )
+                                ).concatMap( (roles) -> roles
+                                ).coerceTo('array')
+
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
@@ -65,6 +76,7 @@ module 'ServerView', ->
                                 is_table: true
                                 db: table.db
                                 table: table.name
+                                table_id: table.id
                                 id: table.db+"."+table.name
 
                             for shard in table.shards
