@@ -160,7 +160,10 @@ bool calculate_split_points_with_distribution(
 store_key_t key_for_uuid(uint64_t first_8_bytes) {
     uuid_u uuid;
     bzero(uuid.data(), uuid_u::kStaticSize);
-    *reinterpret_cast<int64_t *>(uuid.data()) = first_8_bytes;
+    for (size_t i = 0; i < 8; i++) {
+        /* Copy one byte at a time to avoid endianness issues */
+        uuid.data()[i] = (first_8_bytes >> (7 - i)) & 0xFF;
+    }
     return store_key_t(ql::datum_t(datum_string_t(uuid_to_str(uuid))).print_primary());
 }
 
