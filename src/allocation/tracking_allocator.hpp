@@ -20,13 +20,12 @@ enum class allocator_types_t {
 // `std::map` and `std::string`.  As a result, if we were to use `tracking_allocator`
 // and `unbounded_allocator` directly, the type of `datum_t` would need to be
 // parameterized by the allocator used, which would suck.
-template <class T, class Allocator = std::allocator<T> >
+template <class T>
 class rethinkdb_allocator_t {
 public:
     typedef T value_type;
-    typedef std::allocator_traits<rethinkdb_allocator_t<T, Allocator> > traits;
+    typedef std::allocator_traits<rethinkdb_allocator_t<T> > traits;
 
-    explicit rethinkdb_allocator_t(Allocator _original) : original(_original) {}
     virtual ~rethinkdb_allocator_t() {}
 
     virtual T* allocate(size_t n) = 0;
@@ -38,8 +37,8 @@ public:
         traits::deallocate(*this, ptr, 1);
     }
 
-    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const = 0;
-    bool operator!=(const rethinkdb_allocator_t<T, Allocator> &other) const {
+    virtual bool operator==(const rethinkdb_allocator_t<T> &other) const = 0;
+    bool operator!=(const rethinkdb_allocator_t<T> &other) const {
         return !(*this == other);
     }
 
@@ -49,41 +48,37 @@ public:
 
     // function interface
     void operator() (T *ptr) { deallocate(ptr, 1); }
-protected:
-    Allocator original;
 };
 
 // Minimal definitions required to use `std::allocator_traits` and also keep track of
 // the amount of memory allocated.
-template <class T, class Allocator = std::allocator<T> >
-class tracking_allocator_t : public rethinkdb_allocator_t<T, Allocator> {
+template <class T>
+class tracking_allocator_t : public rethinkdb_allocator_t<T> {
 public:
-    tracking_allocator_t(Allocator _original,
-                       std::shared_ptr<tracking_allocator_factory_t> _parent)
-        : rethinkdb_allocator_t<T, Allocator>(_original), parent(_parent) {}
-    tracking_allocator_t(Allocator _original,
-                       std::weak_ptr<tracking_allocator_factory_t> _parent)
-        : rethinkdb_allocator_t<T, Allocator>(_original), parent(_parent) {}
-    explicit tracking_allocator_t(const tracking_allocator_t<T, Allocator> &allocator)
-        : rethinkdb_allocator_t<T, Allocator>(allocator), parent(allocator._parent) {}
-    explicit tracking_allocator_t(tracking_allocator_t<T, Allocator> &&allocator)
-        : rethinkdb_allocator_t<T, Allocator>(allocator), parent(allocator._parent) {}
+    explicit tracking_allocator_t(std::shared_ptr<tracking_allocator_factory_t> _parent)
+        : parent(_parent) {}
+    explicit tracking_allocator_t(std::weak_ptr<tracking_allocator_factory_t> _parent)
+        : parent(_parent) {}
+    explicit tracking_allocator_t(const tracking_allocator_t<T> &allocator)
+        : parent(allocator._parent) {}
+    explicit tracking_allocator_t(tracking_allocator_t<T> &&allocator)
+        : parent(allocator._parent) {}
     virtual ~tracking_allocator_t() {}
 
     virtual T* allocate(size_t n);
     virtual T* allocate(size_t n, const void *hint);
     virtual void deallocate(T* region, size_t n);
 
-    bool operator==(const tracking_allocator_t<T, Allocator> &other) const {
+    bool operator==(const tracking_allocator_t<T> &other) const {
         return parent.lock() == other.parent.lock();
     }
-    bool operator!=(const tracking_allocator_t<T, Allocator> &other) const {
+    bool operator!=(const tracking_allocator_t<T> &other) const {
         return parent.lock() != other.parent.lock();
     }
-    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const {
+    virtual bool operator==(const rethinkdb_allocator_t<T> &other) const {
         if (other.type() == allocator_types_t::TRACKING) {
             return parent.lock() ==
-                static_cast<const tracking_allocator_t<T, Allocator> &>(other)
+                static_cast<const tracking_allocator_t<T> &>(other)
                 .parent.lock();
         } else {
             return false;
@@ -100,33 +95,29 @@ public:
 
 // Thin shell around the standard allocator.  We need this so the type
 // of `datum_t` doesn't change.
-template <class T, class Allocator = std::allocator<T> >
-class unbounded_allocator_t : public rethinkdb_allocator_t<T, Allocator> {
+template <class T>
+class unbounded_allocator_t : public rethinkdb_allocator_t<T> {
 public:
-    explicit unbounded_allocator_t(Allocator _original)
-        : rethinkdb_allocator_t<T, Allocator>(_original) {}
-    explicit unbounded_allocator_t(const unbounded_allocator_t<T, Allocator> &allocator)
-        : rethinkdb_allocator_t<T, Allocator>(allocator.original) {}
-    explicit unbounded_allocator_t(unbounded_allocator_t<T, Allocator> &&allocator)
-        : rethinkdb_allocator_t<T, Allocator>(allocator.original) {}
+    unbounded_allocator_t() {}
+    explicit unbounded_allocator_t(const unbounded_allocator_t<T> &) {}
+    explicit unbounded_allocator_t(unbounded_allocator_t<T> &&) {}
     virtual ~unbounded_allocator_t() {}
 
     virtual T* allocate(size_t n) {
-        return this->original.allocate(n);
+        return std::allocator<T>().allocate(n);
     }
     virtual T* allocate(size_t n, const void *hint) {
-        return this->original.allocate(n, hint);
+        return std::allocator<T>().allocate(n, hint);
     }
     virtual void deallocate(T* region, size_t n) {
-        this->original.deallocate(region, n);
+        std::allocator<T>().deallocate(region, n);
     }
 
-    bool operator==(const tracking_allocator_t<T, Allocator> &) const { return true; }
-    bool operator!=(const tracking_allocator_t<T, Allocator> &) const { return false; }
-    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const
+    bool operator==(const unbounded_allocator_t<T> &) const { return true; }
+    bool operator!=(const unbounded_allocator_t<T> &) const { return false; }
+    virtual bool operator==(const rethinkdb_allocator_t<T> &other) const
     {
-        if (other.type()
-            == rethinkdb_allocator_t<T, Allocator>::allocator_types::UNBOUNDED)
+        if (other.type() == allocator_types_t::UNBOUNDED)
             return true;
         else
             return false;
