@@ -162,8 +162,9 @@ store_key_t key_for_uuid(uint64_t first_8_bytes) {
     bzero(uuid.data(), uuid_u::kStaticSize);
     for (size_t i = 0; i < 8; i++) {
         /* Copy one byte at a time to avoid endianness issues */
-        uuid.data()[i] = (first_8_bytes >> (7 - i)) & 0xFF;
+        uuid.data()[i] = (first_8_bytes >> (8 * (7 - i))) & 0xFF;
     }
+    debugf("key_for_uuid %" PRIu64 " -> %s\n", first_8_bytes, uuid_to_str(uuid).c_str());
     return store_key_t(ql::datum_t(datum_string_t(uuid_to_str(uuid))).print_primary());
 }
 
@@ -189,10 +190,13 @@ the range of UUIDs evenly. */
 void calculate_split_points_for_uuids(
         size_t num_shards,
         table_shard_scheme_t *split_points_out) {
+    debugf("calculate_split_points_for_uuids\n");
     split_points_out->split_points.clear();
     for (size_t i = 0; i < num_shards-1; ++i) {
         split_points_out->split_points.push_back(key_for_uuid(
             (std::numeric_limits<uint64_t>::max() / num_shards) * (i+1)));
+        guarantee(i == 0 ||
+            split_points_out->split_points[i] > split_points_out->split_points[i-1]);
     }
 }
 
