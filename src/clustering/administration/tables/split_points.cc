@@ -164,25 +164,7 @@ store_key_t key_for_uuid(uint64_t first_8_bytes) {
         /* Copy one byte at a time to avoid endianness issues */
         uuid.data()[i] = (first_8_bytes >> (8 * (7 - i))) & 0xFF;
     }
-    debugf("key_for_uuid %" PRIu64 " -> %s\n", first_8_bytes, uuid_to_str(uuid).c_str());
     return store_key_t(ql::datum_t(datum_string_t(uuid_to_str(uuid))).print_primary());
-}
-
-/* `check_distribution_might_be_uuids` checks if the given key counts are consistent with
-the hypothesis that the primary keys are all UUIDs. */
-bool check_distribution_might_be_uuids(
-        const std::map<store_key_t, int64_t> &counts) {
-    for (auto it = counts.begin(); it != counts.end();) {
-        auto jt = it;
-        ++it;
-        if (jt->second != 0) {
-            if (jt->first > key_for_uuid(std::numeric_limits<uint64_t>::max()) ||
-                    (it != counts.end() && it->first < key_for_uuid(0))) {
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 /* `calculate_split_points_for_uuids` generates a set of split points that will divide
@@ -190,7 +172,6 @@ the range of UUIDs evenly. */
 void calculate_split_points_for_uuids(
         size_t num_shards,
         table_shard_scheme_t *split_points_out) {
-    debugf("calculate_split_points_for_uuids\n");
     split_points_out->split_points.clear();
     for (size_t i = 0; i < num_shards-1; ++i) {
         split_points_out->split_points.push_back(key_for_uuid(
@@ -251,15 +232,11 @@ bool calculate_split_points_intelligently(
         }
         std::string dummy_error;
         if (!calculate_split_points_with_distribution(
-                counts, num_shards, split_points_out, error_out)) {
-            /* There aren't enough documents to calculate distribution. We'll have to
-            fall back on something else. */
-            if (check_distribution_might_be_uuids(counts)) {
-                calculate_split_points_for_uuids(num_shards, split_points_out);
-            } else {
-                calculate_split_points_by_interpolation(
-                    num_shards, old_split_points, split_points_out);
-            }
+                counts, num_shards, split_points_out, &dummy_error)) {
+            /* There aren't enough documents to calculate distribution. We'll just assume
+            the user is going to use UUID primary keys. If we got it wrong, they will end
+            up with horribly unbalanced data, but it's the best we can do. */
+            calculate_split_points_for_uuids(num_shards, split_points_out);
         }
     } else if (num_shards == old_split_points.num_shards()) {
         *split_points_out = old_split_points;

@@ -30,11 +30,6 @@ bool calculate_split_points_with_distribution(
         table_shard_scheme_t *split_points_out,
         std::string *error_out);
 
-/* `check_distribution_might_be_uuids` checks if the given key counts are consistent with
-the hypothesis that the primary keys are all UUIDs. */
-bool check_distribution_might_be_uuids(
-        const std::map<store_key_t, int64_t> &counts);
-
 /* `calculate_split_points_for_uuids` generates a set of split points that will divide
 the range of UUIDs evenly. */
 void calculate_split_points_for_uuids(
