@@ -43,7 +43,7 @@ with driver.Metacluster() as metacluster:
     res = r.table("uuid_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
-        assert 50 < num < 150
+        assert 50 < num < 200
 
     print "Testing down-sharding existing balanced shards..."
     r.table("uuid_pkey").reconfigure(2, 1).run(conn)
@@ -51,7 +51,7 @@ with driver.Metacluster() as metacluster:
     res = r.table("uuid_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
-        assert 300 < num < 700
+        assert 250 < num < 750
 
     print "Testing sharding of existing inserted data..."
     res = r.table_create("numeric_pkey").run(conn)
@@ -63,7 +63,7 @@ with driver.Metacluster() as metacluster:
     res = r.table("numeric_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
-        assert 50 < num < 150
+        assert 50 < num < 200
 
     # RSI(reql_admin): Once #2896 is implemented, create an unbalanced table and make
     # sure the system gives us an issue.
