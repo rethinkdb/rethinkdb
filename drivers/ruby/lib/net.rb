@@ -105,7 +105,7 @@ module RethinkDB
     end
 
     def fetch_batch
-      @conn.set_opts(@token, @opts)
+      @conn.register_query(@token, @opts)
       @conn.dispatch([Query::QueryType::CONTINUE], @token)
     end
   end
@@ -145,15 +145,19 @@ module RethinkDB
       @token_cnt_mutex.synchronize{@token_cnt += 1}
     end
 
-    def set_opts(token, opts)
-      @listener_mutex.synchronize{ @opts[token] = opts }
+    def register_query(token, opts)
+      if not opts[:noreply]
+        @listener_mutex.synchronize{
+          raise RqlDriverError, "Internal driver error, token already in use." if @waiters.has_key?(token)
+          @waiters[token] = ConditionVariable.new
+          @opts[token] = opts
+        }
+      end
     end
     def run_internal(q, opts, token)
-      set_opts(token, opts)
-      noreply = opts[:noreply]
-
+      register_query(token, opts)
       dispatch(q, token)
-      noreply ? nil : wait(token)
+      opts[:noreply] ? nil : wait(token)
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect and not self.is_open()
@@ -210,8 +214,6 @@ module RethinkDB
     end
 
     def dispatch(msg, token)
-      raise RqlDriverError, "Internal driver error, token already in use." if @waiters.has_key?(token)
-      @waiters[token] = ConditionVariable.new
       payload = Shim.dump_json(msg).force_encoding('BINARY')
       prefix = [token, payload.bytesize].pack('Q<L<')
       send(prefix + payload)
@@ -222,12 +224,10 @@ module RethinkDB
       begin
         res = nil
         @listener_mutex.synchronize {
-          puts "No token in waiters"
           raise RqlRuntimeError, "Connection is closed." if not @waiters.has_key?(token)
           @waiters[token].wait(@listener_mutex)
           res = @data.delete(token)
         }
-        puts "Connection had been closed, waiter was woken"
         raise RqlRuntimeError, "Connection is closed." if not self.is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
         return res
@@ -332,7 +332,6 @@ module RethinkDB
     end
 
     def note_error(token, e) # Synchronize around this!
-      puts "note_error: #{e.inspect}"
       data = {
         't' => Response::ResponseType::CLIENT_ERROR,
         'r' => [e.inspect],
