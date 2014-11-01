@@ -15,6 +15,7 @@ for interface_test_name in [
         'server_status',
         'stat',
         'table_config',
+        'table_doc_count_estimates',
         'table_wait',
         'table_reconfigure',
         'unsatisfiable_goals_issue']:

@@ -89,6 +89,12 @@ public:
             signal_t *interruptor,
             ql::datum_t *new_config_out,
             std::string *error_out);
+    bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            ql::env_t *env,
+            std::vector<int64_t> *doc_counts_out,
+            std::string *error_out);
 
 private:
     name_string_t database;
