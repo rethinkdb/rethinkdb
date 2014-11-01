@@ -39,7 +39,7 @@ with driver.Metacluster() as metacluster:
     pprint.pprint(res)
     assert res["doc_count_estimates"] == [0]
 
-    N = 30
+    N = 100
     fudge = 2
 
     res = r.table("test").insert([{"id": "a%d" % i} for i in xrange(N)]).run(conn)
@@ -75,7 +75,7 @@ with driver.Metacluster() as metacluster:
 
     res = r.table("test").info().run(conn)
     pprint.pprint(res)
-    assert res["doc_count_estimates"][0] <= N/4
+    assert res["doc_count_estimates"][0] <= N/fudge
     assert N/fudge <= res["doc_count_estimates"][1] <= N*fudge
 
     # Check to make sure that system tables work too
