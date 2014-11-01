@@ -605,9 +605,9 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
     read_response_t resp;
     try {
         ns_if_access.get()->read_outdated(read, &resp, &interruptor2);
-    } catch (cannot_perform_query_exc_t) {
+    } catch (const cannot_perform_query_exc_t &exc) {
         *error_out = "Could not estimate document counts because table is not available "
-            "for reading.";
+            "for reading: " + std::string(exc.what());
         return false;
     }
     const std::map<store_key_t, int64_t> &counts =

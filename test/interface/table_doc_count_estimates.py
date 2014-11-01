@@ -6,8 +6,8 @@ import driver, scenario_common, utils
 from vcoptparse import *
 r = utils.import_python_driver()
 
-"""The `interface.table_status_num_docs` test checks that the `num_docs` fields on
-`rethinkdb.table_status` behave as expected."""
+"""The `interface.table_status_num_docs` test checks that the `doc_count_estimates`
+field on `r.table(...).info()` behaves as expected."""
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -52,7 +52,18 @@ with driver.Metacluster() as metacluster:
     assert N*2/fudge <= res["doc_count_estimates"][0] <= N*2*fudge
 
     r.table("test").reconfigure(2, 1).run(conn)
-    r.table_wait("test").run(conn)
+    res = list(r.table_wait("test").run(conn))
+    pprint.pprint(res)
+
+    res = r.table("test").info().run(conn)
+    pprint.pprint(res)
+    assert N/fudge <= res["doc_count_estimates"][0] <= N*fudge
+    assert N/fudge <= res["doc_count_estimates"][1] <= N*fudge
+
+    # Make sure that oversharding doesn't break distribution queries
+    r.table("test").reconfigure(2, 2).run(conn)
+    res = list(r.table_wait("test").run(conn))
+    pprint.pprint(res)
 
     res = r.table("test").info().run(conn)
     pprint.pprint(res)
