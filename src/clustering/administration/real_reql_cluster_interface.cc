@@ -168,6 +168,48 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
     return true;
 }
 
+bool real_reql_cluster_interface_t::db_config(const std::set<name_string_t> &db_names,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+    std::map<database_id_t, name_string_t> db_map;
+    databases_semilattice_metadata_t db_metadata = get_databases_metadata();
+    const_metadata_searcher_t<database_semilattice_metadata_t> db_searcher(
+        &db_metadata->databases);
+
+    if (db_names.empty()) {
+        for (auto it = db_searcher.find_next(ns_searcher.begin());
+                  it != db_searcher.end();
+                  it = db_searcher.find_next(++it)) {
+            guarantee(!it->second.is_deleted());
+            db_map.insert({ it->first, it->second.get_ref().name.get_ref() });
+        }
+    } else {
+        for (auto const &name : db_names) {
+            namespace_predicate_t pred(&name, &db->id);
+            metadata_search_status_t status;
+            auto it = ns_searcher.find_uniq(pred, &status);
+            if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+                    error_out)) return false;
+            guarantee(!it->second.is_deleted());
+            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
+        }
+    }
+
+    std::vector<ql::datum_t> result_array;
+    if (!table_meta_read(admin_tables->table_config_backend.get(), table_map,
+                         strprintf("Table `%s.%%s` does not exist.", db->name.c_str()),
+                         interruptor, &result_array, error_out)) {
+        return false;
+    }
+
+    counted_t<ql::table_t> backend = make_backend_table(
+        admin_tables->table_config_backend.get(), "table_config", bt);
+    counted_t<ql::datum_stream_t> stream =
+        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+    resp_out->init(new ql::val_t(backend, stream, bt));
+    return true;
+}
+
 bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db,
         UNUSED const boost::optional<name_string_t> &primary_dc,
@@ -399,8 +441,9 @@ bool real_reql_cluster_interface_t::table_config(
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_map,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(admin_tables->table_config_backend.get(), table_map,
+                         strprintf("Table `%s.%%s` does not exist.", db->name.c_str()),
+                         interruptor, &result_array, error_out)) {
         return false;
     }
 
@@ -424,8 +467,9 @@ bool real_reql_cluster_interface_t::table_status(
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(admin_tables->table_status_backend.get(), table_map,
+                         strprintf("Table `%s.%%s` does not exist.", db->name.c_str()),
+                         interruptor, &result_array, error_out)) {
         return false;
     }
 
@@ -481,7 +525,12 @@ bool real_reql_cluster_interface_t::table_wait(
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
         if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
-                             tables.size() != 0, // A db-level wait should not error if a table is deleted
+                             tables.empty()
+                                // A db-level wait should not error if a table is deleted
+                                ? boost::optional<std::string>() 
+                                : boost::optional<std::string>(
+                                    strprintf("Table `%s.%%s` does not exist.",
+                                        db->name.c_str())),
                              &ct_interruptor, &result_array, error_out)) {
             return false;
         }
@@ -694,13 +743,12 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 
 bool real_reql_cluster_interface_t::table_meta_read(
         artificial_table_backend_t *backend,
-        const counted_t<const ql::db_t> &db,
-        const std::map<namespace_id_t, name_string_t> &table_map,
-        bool error_on_missing,
+        const std::map<uuid_u, name_string_t> &entity_map,
+        const boost::optional<std::string> &missing_msg,
         signal_t *interruptor,
         std::vector<ql::datum_t> *res_out,
         std::string *error_out) {
-    for (auto const &pair : table_map) {
+    for (auto const &pair : entity_map) {
         ql::datum_t row;
         if (!backend->read_row(convert_uuid_to_datum(pair.first),
                                interruptor, &row, error_out)) {
@@ -709,9 +757,8 @@ bool real_reql_cluster_interface_t::table_meta_read(
 
         if (row.has()) {
             res_out->push_back(row);
-        } else if (error_on_missing) {
-            *error_out = strprintf("Table `%s.%s` does not exist.",
-                                   db->name.c_str(), pair.second.str().c_str());
+        } else if (static_cast<bool>(missing_msg)) {
+            *error_out = strprintf(missing_msg->c_str(), pair.second.str().c_str());
             return false;
         }
     }

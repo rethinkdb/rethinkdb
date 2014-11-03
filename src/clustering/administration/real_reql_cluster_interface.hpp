@@ -44,6 +44,10 @@ public:
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out);
+    bool db_config(const std::set<name_string_t> &db_names,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out);
 
     bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
             const boost::optional<name_string_t> &primary_dc, bool hard_durability,
@@ -128,10 +132,14 @@ private:
             std::map<namespace_id_t, name_string_t> *table_map_out,
             std::string *error_out);
 
+    /* For each UUID in `entity_map`, reads the row with that primary key from `backend`,
+    and returns a vector of all the rows. If `missing_msg` is absent, missing rows will
+    be silently ignored; otherwise, `missing_msg` must be a string with a single `%s`
+    format specifier in it, which will be used to format an error message with the name
+    of the missing entity. */
     bool table_meta_read(artificial_table_backend_t *backend,
-            const counted_t<const ql::db_t> &db,
-            const std::map<namespace_id_t, name_string_t> &table_map,
-            bool error_on_missing,
+            const std::map<uuid_u, name_string_t> &entity_map,
+            const boost::optional<std::string> &missing_msg,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
             std::string *error_out);
