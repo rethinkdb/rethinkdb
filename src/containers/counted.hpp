@@ -6,9 +6,7 @@
 #include <stdint.h>
 
 #include <utility>
-#include <memory>
 
-#include "allocation/utils.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "threading.hpp"
@@ -38,13 +36,13 @@ public:
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
-    counted_t(counted_t &&movee) noexcept : p_(std::move(movee.p_)) {
-        movee.p_ = nullptr;
+    counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
+        movee.p_ = NULL;
     }
 
     template <class U>
-    counted_t(counted_t<U> &&movee) noexcept : p_(std::move(movee.p_)) {
-        movee.p_ = nullptr;
+    counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
+        movee.p_ = NULL;
     }
 
 // Avoid a spurious warning when building on Saucy. See issue #1674
@@ -124,38 +122,9 @@ private:
     T *p_;
 };
 
-struct deallocator_base_t {
-public:
-    virtual ~deallocator_base_t() {}
-    virtual void deallocate() = 0;
-};
-
-template <class Alloc>
-struct deallocator_alloc_t : public deallocator_base_t {
-    typedef std::allocator_traits<Alloc> traits;
-    Alloc allocator;
-    typename traits::pointer object;
-    deallocator_alloc_t(Alloc &allocator_, typename traits::pointer object_)
-        : deallocator_base_t(), allocator(allocator_), object(object_) {}
-    deallocator_alloc_t(Alloc &&allocator_, typename traits::pointer object_)
-        : deallocator_base_t(), allocator(allocator_), object(object_) {}
-    virtual void deallocate() {
-        traits::deallocate(allocator, object, 1);
-    }
-};
-
 template <class T, class... Args>
 counted_t<T> make_counted(Args &&... args) {
     return counted_t<T>(new T(std::forward<Args>(args)...));
-}
-
-template <class T, class Alloc, class... Args>
-counted_t<T> make_counted(std::allocator_arg_t, const Alloc &a, Args &&... args) {
-    T* result = make<T>(std::allocator_arg, a, std::forward<Args>(args)...);
-    counted_set_deleter(result,
-                        std::unique_ptr<deallocator_alloc_t<Alloc> >
-                        (new deallocator_alloc_t<Alloc>(a, result)));
-    return counted_t<T>(result);
 }
 
 template <class> class single_threaded_countable_t;
@@ -165,15 +134,12 @@ inline void counted_add_ref(const single_threaded_countable_t<T> *p);
 template <class T>
 inline void counted_release(const single_threaded_countable_t<T> *p);
 template <class T>
-inline void counted_set_deleter(single_threaded_countable_t<T> *p,
-                                std::unique_ptr<deallocator_base_t> &&d);
-template <class T>
 inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p);
 
 template <class T>
 class single_threaded_countable_t : private home_thread_mixin_debug_only_t {
 public:
-    single_threaded_countable_t() : refcount_(0), deleter_() { }
+    single_threaded_countable_t() : refcount_(0) { }
 
 protected:
     counted_t<T> counted_from_this() {
@@ -196,12 +162,9 @@ protected:
 private:
     friend void counted_add_ref<T>(const single_threaded_countable_t<T> *p);
     friend void counted_release<T>(const single_threaded_countable_t<T> *p);
-    friend void counted_set_deleter<T>(single_threaded_countable_t<T> *p,
-                                       std::unique_ptr<deallocator_base_t> &&d);
     friend intptr_t counted_use_count<T>(const single_threaded_countable_t<T> *p);
 
     mutable intptr_t refcount_;
-    std::unique_ptr<deallocator_base_t> deleter_;
     DISABLE_COPYING(single_threaded_countable_t);
 };
 
@@ -218,19 +181,8 @@ inline void counted_release(const single_threaded_countable_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
-        T *realptr = static_cast<T *>(const_cast<single_threaded_countable_t<T> *>(p));
-        if (p->deleter_) {
-            p->deleter_->deallocate();
-        } else {
-            delete realptr;
-        }
+        delete static_cast<T *>(const_cast<single_threaded_countable_t<T> *>(p));
     }
-}
-
-template <class T>
-inline void counted_set_deleter(single_threaded_countable_t<T> *p,
-                                std::unique_ptr<deallocator_base_t> &&d) {
-    p->deleter_ = std::move(d);
 }
 
 template <class T>
@@ -245,9 +197,6 @@ template <class T>
 inline void counted_add_ref(const slow_atomic_countable_t<T> *p);
 template <class T>
 inline void counted_release(const slow_atomic_countable_t<T> *p);
-template <class T>
-inline void counted_set_deleter(const slow_atomic_countable_t<T> *p,
-                                std::unique_ptr<deallocator_base_t> &&d);
 template <class T>
 inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p);
 
@@ -274,12 +223,9 @@ protected:
 private:
     friend void counted_add_ref<T>(const slow_atomic_countable_t<T> *p);
     friend void counted_release<T>(const slow_atomic_countable_t<T> *p);
-    friend void counted_set_deleter<T>(const slow_atomic_countable_t<T> *p,
-                                       std::unique_ptr<deallocator_base_t> &&d);
     friend intptr_t counted_use_count<T>(const slow_atomic_countable_t<T> *p);
 
     mutable intptr_t refcount_;
-    std::unique_ptr<deallocator_base_t> deleter_;
     DISABLE_COPYING(slow_atomic_countable_t);
 };
 
@@ -294,19 +240,8 @@ inline void counted_release(const slow_atomic_countable_t<T> *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        T *realptr = static_cast<T *>(const_cast<slow_atomic_countable_t<T> *>(p));
-        if (p->deleter_) {
-            p->deleter_->deallocate();
-        } else {
-            delete realptr;
-        }
+        delete static_cast<T *>(const_cast<slow_atomic_countable_t<T> *>(p));
     }
-}
-
-template <class T>
-inline void counted_set_deleter(slow_atomic_countable_t<T> *p,
-                                std::unique_ptr<deallocator_base_t> &&d) {
-    p->deleter = std::move(d);
 }
 
 template <class T>

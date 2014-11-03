@@ -2,7 +2,6 @@
 #ifndef CONTAINERS_SHARED_BUFFER_HPP_
 #define CONTAINERS_SHARED_BUFFER_HPP_
 
-#include "allocation/tracking_allocator.hpp"
 #include "containers/counted.hpp"
 #include "errors.hpp"
 
@@ -11,15 +10,9 @@ You can have multiple `shared_buf_ref_t`s pointing to different offsets in
 the same `shared_buffer_t`. */
 class shared_buf_t {
 public:
-    static counted_t<shared_buf_t> create(size_t _size);
-    static counted_t<shared_buf_t> create(size_t _size,
-                                          std::shared_ptr<tracking_allocator_factory_t> f);
+    shared_buf_t() = delete;
 
-    // shared_buffer_t has an arbitrary length array in it, so we need
-    // to define our own new / delete.  It's wrong to call new without
-    // the new arguments, so we delete that.
-    static void *operator new(size_t count, size_t bytes);
-    static void *operator new(size_t count) = delete;
+    static counted_t<shared_buf_t> create(size_t _size);
     static void operator delete(void *p);
 
     char *data(size_t offset = 0);
@@ -27,29 +20,24 @@ public:
 
     size_t size() const;
 
-    shared_buf_t(size_t size) : refcount_(0), size_(size) {}
 private:
-
     // We duplicate the implementation of slow_atomic_countable_t here for the
     // sole purpose of having full control over the layout of fields. This
     // is required because we manually allocate memory for the data field,
     // and C++ doesn't guarantee any specific field memory layout under inheritance
     // (as far as I know).
     friend void counted_add_ref(const shared_buf_t *p);
-    friend void counted_set_deleter(shared_buf_t *p,
-                                    std::unique_ptr<deallocator_base_t> &&d);
     friend void counted_release(const shared_buf_t *p);
     friend intptr_t counted_use_count(const shared_buf_t *p);
 
     mutable intptr_t refcount_;
-    std::unique_ptr<deallocator_base_t> deleter_;
 
     // The size of data_, for boundary checking.
     size_t size_;
 
     // We actually allocate more memory than this.
     // It's crucial that this field is the last one in this class.
-    char data_[];
+    char data_[1];
 
     DISABLE_COPYING(shared_buf_t);
 };
@@ -108,20 +96,11 @@ inline void counted_add_ref(const shared_buf_t *p) {
     rassert(res > 0);
 }
 
-inline void counted_set_deleter(shared_buf_t *p,
-                                std::unique_ptr<deallocator_base_t> &&d) {
-    p->deleter_ = std::move(d);
-}
-
 inline void counted_release(const shared_buf_t *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        if (p->deleter_) {
-            p->deleter_->deallocate();
-        } else {
-            delete const_cast<shared_buf_t *>(p);
-        }
+        delete const_cast<shared_buf_t *>(p);
     }
 }
 
