@@ -20,20 +20,16 @@ public:
     explicit issue_t(const issue_id_t &_issue_id) : issue_id(_issue_id) { }
     virtual ~issue_t() { }
 
-    // to_datum has to generate info and description data, which depends on the
-    // current cluster configuration
+    /* `to_datum()` has to generate info and description data, which depends on the
+    current cluster configuration, so it takes the cluster configuration as a parameter.
+    Based on the cluster configuration, it may decide that the issue is no longer
+    relevant, in which case `to_datum()` will return `false`. */
     typedef cluster_semilattice_metadata_t metadata_t;
-    void to_datum(const metadata_t &metadata, ql::datum_t *datum_out) const;
+    bool to_datum(const metadata_t &metadata, ql::datum_t *datum_out) const;
 
     virtual bool is_critical() const = 0;
     virtual const datum_string_t &get_name() const = 0;
     issue_id_t get_id() const { return issue_id; }
-
-    /* Use this to filter out issues with a predicate that depends on the current cluster
-    configuration. */
-    virtual bool is_spurious(const metadata_t &) const {
-        return false;
-    }
 
     static const std::string get_server_name(const metadata_t &metadata,
                                              const server_id_t &server_id);
@@ -47,6 +43,9 @@ public:
     issue_id_t issue_id;
 
 protected:
+    /* Note that `build_info()` can return an empty `ql::datum_t` if it decided that the
+    issue is no longer relevant based on the contents of the metadata. If it returns an
+    empty `ql::datum_t`, the user will not see the issue. */
     virtual ql::datum_t build_info(const metadata_t &metadata) const = 0;
     virtual datum_string_t build_description(const ql::datum_t &info) const = 0;
 

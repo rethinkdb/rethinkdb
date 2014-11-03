@@ -69,12 +69,6 @@ public:
     const datum_string_t &get_name() const { return server_down_issue_type; }
     bool is_critical() const { return true; }
 
-    /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
-    brief window of time before the `server_down_issue_t` is destroyed. During that time,
-    if the user reads from `rethinkdb.issues`, we don't want to show them an issue saying
-    "__deleted_server__ is still connected". So we filter it out with `is_spurious()`. */
-    bool is_spurious(const metadata_t &metadata) const;
-
     server_id_t down_server_id;
 private:
     ql::datum_t build_info(const metadata_t &metadata) const;
