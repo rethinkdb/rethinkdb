@@ -225,8 +225,12 @@ module RethinkDB
         res = nil
         @listener_mutex.synchronize {
           raise RqlRuntimeError, "Connection is closed." if not @waiters.has_key?(token)
-          @waiters[token].wait(@listener_mutex)
           res = @data.delete(token)
+          if res == nil
+            @waiters[token].wait(@listener_mutex)
+            res = @data.delete(token)
+          end
+          @waiters.delete(token)
         }
         raise RqlRuntimeError, "Connection is closed." if not self.is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
@@ -327,7 +331,7 @@ module RethinkDB
       raise RqlDriverError, "Unknown token in response." if not @waiters.has_key?(token)
       @data[token] = data
       @opts.delete(token)
-      w = @waiters.delete(token)
+      w = @waiters[token]
       w.signal if not w.nil?
     end
 
