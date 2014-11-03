@@ -93,7 +93,7 @@ bool fetch_distribution(
         const namespace_id_t &table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         signal_t *interruptor,
-        std::map<store_key_t, int64_t> *counts,
+        std::map<store_key_t, int64_t> *counts_out,
         std::string *error_out) {
     namespace_interface_access_t ns_if_access =
         reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
@@ -110,7 +110,7 @@ bool fetch_distribution(
             "currently available for reading.";
         return false;
     }
-    *counts = std::move(
+    *counts_out = std::move(
         boost::get<distribution_read_response_t>(resp.response).key_counts);
     return true;
 }
@@ -159,7 +159,7 @@ bool calculate_split_points_with_distribution(
 
 store_key_t key_for_uuid(uint64_t first_8_bytes) {
     uuid_u uuid;
-    bzero(uuid.data(), uuid_u::kStaticSize);
+    bzero(uuid.data(), uuid_u::static_size());
     for (size_t i = 0; i < 8; i++) {
         /* Copy one byte at a time to avoid endianness issues */
         uuid.data()[i] = (first_8_bytes >> (8 * (7 - i))) & 0xFF;
