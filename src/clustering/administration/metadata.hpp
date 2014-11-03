@@ -70,6 +70,7 @@ public:
             uint16_t _cluster_port,
             uint16_t _reql_port,
             boost::optional<uint16_t> _http_admin_port,
+            std::set<host_and_port_t> _canonical_addresses,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
@@ -84,6 +85,7 @@ public:
         cluster_port(_cluster_port),
         reql_port(_reql_port),
         http_admin_port(_http_admin_port),
+        canonical_addresses(_canonical_addresses),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
         server_name_business_card(nsbc),
@@ -108,6 +110,7 @@ public:
         cluster_port = other.cluster_port;
         reql_port = other.reql_port;
         http_admin_port = other.http_admin_port;
+        canonical_addresses = std::move(other.canonical_addresses);
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         log_mailbox = other.log_mailbox;
         server_name_business_card = other.server_name_business_card;
@@ -129,6 +132,7 @@ public:
     std::string hostname;
     uint16_t cluster_port, reql_port;
     boost::optional<uint16_t> http_admin_port;
+    std::set<host_and_port_t> canonical_addresses;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;

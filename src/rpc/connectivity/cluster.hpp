@@ -159,7 +159,7 @@ public:
         its work in the background). */
         void join(const peer_address_t &address) THROWS_NOTHING;
 
-        std::set<ip_and_port_t> get_ips() const;
+        std::set<host_and_port_t> get_canonical_addresses();
         int get_port();
 
     private:

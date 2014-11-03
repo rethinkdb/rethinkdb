@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, datetime, socket
+import sys, os, time, datetime, socket, pprint
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
@@ -53,7 +53,8 @@ with driver.Metacluster() as metacluster:
                 .run(reql_conn1)
 
     st = get_status("a")
-    print "Status for a connected table:", st
+    print "Status for a connected server:"
+    pprint.pprint(st)
 
     assert st["status"] == "available"
 
@@ -65,45 +66,30 @@ with driver.Metacluster() as metacluster:
     assert isinstance(st["cache_size_mb"], int)
     assert st["cache_size_mb"] < 1024*100
 
-    assert st["hostname"] == socket.gethostname()
-    assert st["reql_port"] == process1.driver_port
-    assert st["cluster_port"] == process1.cluster_port
-    assert st["http_admin_port"] == process1.http_port
+    assert st["network"]["hostname"] == socket.gethostname()
+    assert st["network"]["reql_port"] == process1.driver_port
+    assert st["network"]["cluster_port"] == process1.cluster_port
+    assert st["network"]["http_admin_port"] == process1.http_port
+    assert st["network"]["canonical_addresses"][0]["port"] == process1.cluster_port
 
-    now = datetime.datetime.now(st["time_started"].tzinfo)
-    assert st["time_started"] <= now
-    assert st["time_started"] > now - datetime.timedelta(minutes=1)
-    assert st["time_connected"] <= now
-    assert st["time_connected"] >= st["time_started"]
-    assert st["time_disconnected"] is None
-
-    assert st["tables"] == []
-    res = r.db_create("foo").run(reql_conn1)
-    assert res == {"created":1}
-    res = r.db("foo").table_create("bar").run(reql_conn1)
-    assert res == {"created":1}
-    r.db("foo").table_config("bar") \
-     .update({"shards": [{"replicas": ["a"], "directors": ["a"]}]}) \
-     .run(reql_conn1)
-    def tables_are_as_expected():
-        a_st, b_st = get_status("a"), get_status("b")
-        if a_st["tables"] != [{"db": "foo", "table": "bar"}]:
-            return False
-        if b_st["tables"] != []:
-            return False
-        return True
-    wait_for(tables_are_as_expected)
+    now = datetime.datetime.now(st["availability"]["start_time"].tzinfo)
+    assert st["availability"]["start_time"] <= now
+    assert st["availability"]["start_time"] > now - datetime.timedelta(minutes=1)
+    assert st["availability"]["connect_time"] <= now
+    assert st["availability"]["connect_time"] >= st["availability"]["start_time"]
+    assert st["availability"]["disconnect_time"] is None
 
     assert get_status("b")["status"] == "available"
     process2.check_and_stop()
     wait_for(lambda: get_status("b")["status"] == "unavailable")
     st2 = get_status("b")
-    print "Status for a disconnected table:", st2
+    print "Status for a disconnected server:"
+    pprint.pprint(st2)
 
-    now = datetime.datetime.now(st2["time_disconnected"].tzinfo)
-    assert st2["time_connected"] is None
-    assert st2["time_disconnected"] <= now
-    assert st2["time_disconnected"] >= now - datetime.timedelta(minutes=1)
+    now = datetime.datetime.now(st2["availability"]["disconnect_time"].tzinfo)
+    assert st2["availability"]["connect_time"] is None
+    assert st2["availability"]["disconnect_time"] <= now
+    assert st2["availability"]["disconnect_time"] >= now - datetime.timedelta(minutes=1)
 
     cluster.check_and_stop()
 
