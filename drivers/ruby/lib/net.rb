@@ -313,7 +313,7 @@ module RethinkDB
     end
 
     def noreply_wait
-      raise RqlRuntimeError, "Error: Connection Closed." if not self.is_open()
+      raise RqlRuntimeError, "Connection is closed." if not self.is_open()
       q = [Query::QueryType::NOREPLY_WAIT]
       res = run_internal(q, {noreply: false}, new_token)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
@@ -367,10 +367,10 @@ module RethinkDB
       end
       response = response[0...-1]
       if response != "SUCCESS"
-        raise RqlRuntimeError,"Server dropped connection with message: \"#{response}\""
+        raise RqlRuntimeError, "Server dropped connection with message: \"#{response}\""
       end
 
-      raise RqlDriverError,"Listener already started." if not @listener.nil?
+      raise RqlDriverError, "Internal driver error, listener already started." if not @listener.nil?
       @listener = Thread.new {
         while true
           begin
@@ -386,14 +386,16 @@ module RethinkDB
             end
             @listener_mutex.synchronize{note_data(token, data)}
           rescue Exception => e
-            if token == -1
-              @listener_mutex.synchronize { @waiters.keys.each{ |k| note_error(k, e) } }
-              @listener = nil
-              Thread.current.terminate
-              abort("unreachable")
-            else
-              @listener_mutex.synchronize{ note_error(token, e) }
-            end
+            @listener_mutex.synchronize {
+              if @waiters.has_key?(token)
+                note_error(token, e)
+              else
+                @waiters.keys.each{ |k| note_error(k, e) }
+                @listener = nil
+                Thread.current.terminate
+                abort("unreachable")
+              end
+            }
           end
         end
       }
