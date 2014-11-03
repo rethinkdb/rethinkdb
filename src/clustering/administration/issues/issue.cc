@@ -3,10 +3,12 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 
-void issue_t::to_datum(const metadata_t &metadata,
+bool issue_t::to_datum(const metadata_t &metadata,
                        ql::datum_t *datum_out) const {
     ql::datum_t info = build_info(metadata);
-
+    if (!info.has()) {
+        return false;
+    }
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(issue_id));
     builder.overwrite("type", ql::datum_t(get_name()));
@@ -14,6 +16,7 @@ void issue_t::to_datum(const metadata_t &metadata,
     builder.overwrite("description", ql::datum_t(build_description(info)));
     builder.overwrite("info", info);
     *datum_out = std::move(builder).to_datum();
+    return true;
 }
 
 const std::string issue_t::get_server_name(const issue_t::metadata_t &metadata,

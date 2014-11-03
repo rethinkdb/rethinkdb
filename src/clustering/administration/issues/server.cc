@@ -41,19 +41,17 @@ server_down_issue_t::server_down_issue_t(const server_id_t &_down_server_id) :
     local_issue_t(from_hash(base_issue_id, _down_server_id)),
     down_server_id(_down_server_id) { }
 
-bool server_down_issue_t::is_spurious(const metadata_t &metadata) const {
-    auto it = metadata.servers.servers.find(down_server_id);
-    if (it == metadata.servers.servers.end()) {
-        return true;
-    }
-    if (it->second.is_deleted()) {
-        return true;
-    }
-    return false;
-}
-
 ql::datum_t server_down_issue_t::build_info(const metadata_t &metadata) const {
-    const std::string name = get_server_name(metadata, down_server_id);
+    /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
+    brief window of time before the `server_down_issue_t` is destroyed. During that time,
+    if the user reads from `rethinkdb.issues`, we don't want to show them an issue saying
+    "__deleted_server__ is still connected". So we return an empty datum in this case. */
+    auto it = metadata.servers.servers.find(down_server_id);
+    if (it == metadata.servers.servers.end() || it->second.is_deleted()) {
+        return ql::datum_t();
+    }
+    const std::string name = it->second.get_ref().name.get_ref().str();
+
     const std::vector<std::string> affected_server_names =
         look_up_servers(metadata, affected_server_ids);
 
@@ -104,8 +102,9 @@ datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &) cons
     return datum_string_t(strprintf(
         "The server process with hostname `%s` and PID %" PRId64 " was deleted from the "
         "`rethinkdb.server_config` table, but the process is still running. Once a "
-        "server has been deleted from `rethinkdb.server_config`, it cannot be used any "
-        "more. Please stop the process and delete its data files.",
+        "server has been deleted from `rethinkdb.server_config`, the data files "
+        "for that RethinkDB instance cannot be used any more; you must start a new "
+        "RethinkDB instance with an empty data directory.",
         hostname.c_str(), 
         pid));
 }
