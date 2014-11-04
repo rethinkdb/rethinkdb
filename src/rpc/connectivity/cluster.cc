@@ -253,9 +253,9 @@ connectivity_cluster_t::run_t::~run_t() {
     */
 }
 
-std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
+std::set<host_and_port_t> connectivity_cluster_t::run_t::get_canonical_addresses() {
     parent->assert_thread();
-    return routing_table.at(parent->me).ips();
+    return routing_table.at(parent->me).hosts();
 }
 
 int connectivity_cluster_t::run_t::get_port() {
