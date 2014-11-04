@@ -229,14 +229,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         /* RSI(reql_admin): These should be passed by the user. */
-        table_generate_config_params_t config_params;
-        config_params.num_shards = 1;
-        config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
-        config_params.director_tag = name_string_t::guarantee_valid("default");
+        table_generate_config_params_t config_params =
+            table_generate_config_params_t::make_default();
         if (!table_generate_config(
                 server_name_client, nil_uuid(), nullptr, server_usage,
-                config_params, repli_info.shard_scheme, &interruptor2,
+                config_params, table_shard_scheme_t(), &interruptor2,
                 &repli_info.config, error_out)) {
+            *error_out = "When generating configuration for new table: " + *error_out;
             return false;
         }
 
@@ -346,13 +345,13 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::get_table_ids_for_query(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &table_names,
-        std::map<namespace_id_t, name_string_t> *table_map_out,
+        const std::vector<name_string_t> &table_names,
+        std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    table_map_out->clear();
+    tables_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
     const_metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
         &ns_metadata->namespaces);
@@ -363,7 +362,7 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
                   it != ns_searcher.end();
                   it = ns_searcher.find_next(++it, pred)) {
             guarantee(!it->second.is_deleted());
-            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
+            tables_out->push_back({ it->first, it->second.get_ref().name.get_ref() });
         }
     } else {
         for (auto const &name : table_names) {
@@ -373,7 +372,7 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
             if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
                     error_out)) return false;
             guarantee(!it->second.is_deleted());
-            table_map_out->insert({ it->first, it->second.get_ref().name.get_ref() });
+            tables_out->push_back({ it->first, it->second.get_ref().name.get_ref() });
         }
     }
     return true;
@@ -390,17 +389,17 @@ counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
 
 bool real_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_map,
+    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_ids,
                          true, interruptor, &result_array, error_out)) {
         return false;
     }
@@ -415,17 +414,17 @@ bool real_reql_cluster_interface_t::table_config(
 
 bool real_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
                          true, interruptor, &result_array, error_out)) {
         return false;
     }
@@ -440,14 +439,14 @@ bool real_reql_cluster_interface_t::table_status(
 
 bool real_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &tables,
+        const std::vector<name_string_t> &tables,
         table_readiness_t readiness,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
-    std::map<namespace_id_t, name_string_t> table_map;
-    if (!get_table_ids_for_query(db, tables, &table_map, error_out)) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_ids;
+    if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
     }
 
@@ -465,23 +464,31 @@ bool real_reql_cluster_interface_t::table_wait(
         bool immediate;
         do {
             immediate = true;
-            for (auto const &pair : table_map) {
+            for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
                 table_wait_result_t res = wait_for_table_readiness(
-                    pair.first, readiness, table_status_backend, &ct_interruptor);
+                    it->first, readiness, table_status_backend, &ct_interruptor);
                 immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
                 // Error out if a table was deleted and it was explicitly waited on
-                if (res == table_wait_result_t::DELETED && tables.size() != 0) {
-                    *error_out = strprintf("Table `%s.%s` does not exist.",
-                                           db->name.c_str(), pair.second.str().c_str());
-                    return false;
+                if (res == table_wait_result_t::DELETED) {
+                    if (tables.size() != 0) {
+                        *error_out = strprintf("Table `%s.%s` does not exist.",
+                                               db->name.c_str(),
+                                               it->second.str().c_str());
+                        return false;
+                    } else {
+                        // We erase the table_id here to avoid getting a DELETED result
+                        // every loop, so that `immediate` is never true
+                        table_ids.erase(it);
+                        break;
+                    }
                 }
             }
-        } while (!immediate && table_map.size() != 1);
+        } while (!immediate && table_ids.size() != 1);
 
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
                              tables.size() != 0, // A db-level wait should not error if a table is deleted
                              &ct_interruptor, &result_array, error_out)) {
             return false;
@@ -574,6 +581,74 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     return true;
 }
 
+bool real_reql_cluster_interface_t::table_estimate_doc_counts(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        ql::env_t *env,
+        std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t interruptor2(env->interruptor,
+        semilattice_root_view->home_thread());
+    on_thread_t thread_switcher(semilattice_root_view->home_thread());
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    const_metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &metadata.rdb_namespaces->namespaces);
+    namespace_predicate_t pred(&name, &db->id);
+    metadata_search_status_t status;
+    auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+            error_out)) return false;
+
+    /* Perform a distribution query against the database */
+    namespace_interface_access_t ns_if_access =
+        namespace_repo.get_namespace_interface(ns_metadata_it->first, &interruptor2);
+    static const int depth = 2;
+    static const int limit = 128;
+    distribution_read_t inner_read(depth, limit);
+    read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+    read_response_t resp;
+    try {
+        ns_if_access.get()->read_outdated(read, &resp, &interruptor2);
+    } catch (const cannot_perform_query_exc_t &exc) {
+        *error_out = "Could not estimate document counts because table is not available "
+            "for reading: " + std::string(exc.what());
+        return false;
+    }
+    const std::map<store_key_t, int64_t> &counts =
+        boost::get<distribution_read_response_t>(resp.response).key_counts;
+
+    /* Match the results of the distribution query against the table's shard boundaries
+    */
+    const table_shard_scheme_t &shard_scheme =
+        ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme;
+    *doc_counts_out = std::vector<int64_t>(shard_scheme.num_shards(), 0);
+    for (auto it = counts.begin(); it != counts.end(); ++it) {
+        /* Calculate the range of shards that this key-range overlaps with */
+        size_t left_shard = shard_scheme.find_shard_for_key(it->first);
+        auto jt = it;
+        ++jt;
+        size_t right_shard;
+        if (jt == counts.end()) {
+            right_shard = shard_scheme.num_shards() - 1;
+        } else {
+            store_key_t right_key = jt->first;
+            bool ok = right_key.decrement();
+            guarantee(ok, "jt->first cannot be the leftmost key");
+            right_shard = shard_scheme.find_shard_for_key(right_key);
+        }
+        /* We assume that every shard that this key-range overlaps with has an equal
+        share of the keys in the key-range. This is shitty but oh well. */
+        for (size_t shard = left_shard; shard <= right_shard; ++shard) {
+            doc_counts_out->at(shard) += it->second / (right_shard - left_shard + 1);
+        }
+    }
+    return true;
+}
+
 /* Checks that divisor is indeed a divisor of multiple. */
 template <class T>
 bool is_joined(const T &multiple, const T &divisor) {
@@ -628,12 +703,12 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 bool real_reql_cluster_interface_t::table_meta_read(
         artificial_table_backend_t *backend,
         const counted_t<const ql::db_t> &db,
-        const std::map<namespace_id_t, name_string_t> &table_map,
+        const std::vector<std::pair<namespace_id_t, name_string_t> > &table_ids,
         bool error_on_missing,
         signal_t *interruptor,
         std::vector<ql::datum_t> *res_out,
         std::string *error_out) {
-    for (auto const &pair : table_map) {
+    for (auto const &pair : table_ids) {
         ql::datum_t row;
         if (!backend->read_row(convert_uuid_to_datum(pair.first),
                                interruptor, &row, error_out)) {

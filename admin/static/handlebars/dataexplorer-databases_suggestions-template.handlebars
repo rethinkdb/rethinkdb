@@ -1,0 +1,10 @@
+
+    <p>
+    {{#if no_database}}
+        No database found. Use dbCreate() to create a new database first.
+    {{else}}
+        List of databases available: <strong>{{comma_separated_simple databases_available}}</strong>
+    {{/if}}
+    </p>
+    <div class="separation"></div>
+

@@ -25,11 +25,11 @@ bool table_generate_config(
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
         const std::map<server_id_t, int> &server_usage,
-
         /* `table_generate_config()` will validate `params`, so there's no need for the
         caller to do so. */
         const table_generate_config_params_t &params,
-        /* What the new sharding scheme for the table will be */
+        /* What the new sharding scheme for the table will be. If `table_id` is
+        `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
 
         signal_t *interruptor,

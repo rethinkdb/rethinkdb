@@ -421,7 +421,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
 
 bool test_rdb_env_t::instance_t::table_config(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::set<name_string_t> &target_tables,
+        UNUSED const std::vector<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
         UNUSED scoped_ptr_t<ql::val_t> *resp_out,
@@ -432,7 +432,7 @@ bool test_rdb_env_t::instance_t::table_config(
 
 bool test_rdb_env_t::instance_t::table_status(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::set<name_string_t> &target_tables,
+        UNUSED const std::vector<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
         UNUSED scoped_ptr_t<ql::val_t> *resp_out,
@@ -443,7 +443,7 @@ bool test_rdb_env_t::instance_t::table_status(
 
 bool test_rdb_env_t::instance_t::table_wait(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::set<name_string_t> &target_tables,
+        UNUSED const std::vector<name_string_t> &target_tables,
         UNUSED table_readiness_t readiness,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
@@ -462,6 +462,16 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
         UNUSED ql::datum_t *new_config_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::env_t *local_env,
+        UNUSED std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support info()";
     return false;
 }
 

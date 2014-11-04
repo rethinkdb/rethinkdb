@@ -53,6 +53,13 @@ class env_t;
 
 class table_generate_config_params_t {
 public:
+    static table_generate_config_params_t make_default() {
+        table_generate_config_params_t p;
+        p.num_shards = 1;
+        p.director_tag = name_string_t::guarantee_valid("default");
+        p.num_replicas[p.director_tag] = 1;
+        return p;
+    }
     size_t num_shards;
     std::map<name_string_t, size_t> num_replicas;
     name_string_t director_tag;
@@ -169,28 +176,28 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out) = 0;
     virtual bool table_config(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor,
             scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
     virtual bool table_status(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor,
             scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
     virtual bool table_wait(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor,
             scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out) = 0;
 
-    /* From the user's point of view, this is a method on the table object. The reason
-    it's internally defined on `reql_cluster_interface_t` rather than `base_table_t` is
-    because its implementation fits much better with the implementations of the other
+    /* From the user's point of view, these are methods on the table object. The reason
+    they're internally defined on `reql_cluster_interface_t` rather than `base_table_t`
+    is because their implementations fits better with the implementations of the other
     methods of `reql_cluster_interface_t` than `base_table_t`. */
     virtual bool table_reconfigure(
             counted_t<const ql::db_t> db,
@@ -199,6 +206,12 @@ public:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *new_config_out,
+            std::string *error_out) = 0;
+    virtual bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            ql::env_t *env,
+            std::vector<int64_t> *doc_counts_out,
             std::string *error_out) = 0;
 
 protected:

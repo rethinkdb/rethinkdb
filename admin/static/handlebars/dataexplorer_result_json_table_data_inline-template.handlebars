@@ -1,0 +1,12 @@
+
+    {{#if data_to_expand}}
+        <span data-json_data="{{data_to_expand}}" class="jta_object">
+            <span class="jta_arrow jta_arrow_v"></span>
+            {{#unless is_inline}}<span class="jta_arrow jta_arrow_h"></span>{{/unless}}
+            <strong>{{print_safe value}}</strong>
+            {{#if need_comma}}, {{/if}}
+        </span>
+    {{else}}
+        <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
+    {{/if}}
+

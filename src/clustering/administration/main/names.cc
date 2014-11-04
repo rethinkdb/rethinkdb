@@ -97,9 +97,9 @@ static const char* names[] = {
     "Worldsmith"
 };
 
-std::string get_random_server_name() {
+name_string_t get_random_server_name() {
     int index = randint(sizeof(names) / sizeof(char *));
-    return std::string(names[index]);
+    return name_string_t::guarantee_valid(names[index]);
 }
 
 bool is_invalid_char(char ch) {
@@ -111,7 +111,7 @@ char rand_alnum() {
     return (rand_val < 10) ? ('0' + rand_val) : ('a' + rand_val - 10);
 }
 
-std::string get_server_name() {
+name_string_t get_server_name() {
     char h[64];
     h[sizeof(h) - 1] = '\0';
 
@@ -122,6 +122,8 @@ std::string get_server_name() {
     std::string sanitized(h);
     std::replace_if(sanitized.begin(), sanitized.end(), is_invalid_char, '_');
 
-    return strprintf("%s_%c%c%c", sanitized.c_str(),
-                     rand_alnum(), rand_alnum(), rand_alnum());
+    return name_string_t::guarantee_valid(
+        strprintf("%s_%c%c%c",
+            sanitized.c_str(),
+            rand_alnum(), rand_alnum(), rand_alnum()).c_str());
 }

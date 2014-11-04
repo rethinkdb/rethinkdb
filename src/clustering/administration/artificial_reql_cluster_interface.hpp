@@ -65,17 +65,17 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
@@ -88,6 +88,12 @@ public:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *new_config_out,
+            std::string *error_out);
+    bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            ql::env_t *env,
+            std::vector<int64_t> *doc_counts_out,
             std::string *error_out);
 
 private:

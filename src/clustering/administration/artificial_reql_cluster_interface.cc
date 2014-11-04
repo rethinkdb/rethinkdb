@@ -106,7 +106,7 @@ bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
 
 bool artificial_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &target_tables,
+        const std::vector<name_string_t> &target_tables,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
     if (db->name == database.str()) {
@@ -119,7 +119,7 @@ bool artificial_reql_cluster_interface_t::table_config(
 
 bool artificial_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &target_tables,
+        const std::vector<name_string_t> &target_tables,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
     if (db->name == database.str()) {
@@ -132,7 +132,7 @@ bool artificial_reql_cluster_interface_t::table_status(
 
 bool artificial_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
-        const std::set<name_string_t> &target_tables,
+        const std::vector<name_string_t> &target_tables,
         table_readiness_t readiness,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
@@ -160,6 +160,45 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
     }
     return next->table_reconfigure(db, name, params, dry_run, interruptor,
         new_config_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        ql::env_t *env,
+        std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        auto it = tables.find(name);
+        if (it != tables.end()) {
+            counted_t<ql::datum_stream_t> docs;
+            if (!it->second->read_all_rows_as_stream(
+                    ql::protob_t<const Backtrace>(),
+                    datum_range_t::universe(),
+                    sorting_t::UNORDERED,
+                    env->interruptor,
+                    &docs,
+                    error_out)) {
+                *error_out = "When estimating doc count: " + *error_out;
+                return false;
+            }
+            try {
+                scoped_ptr_t<ql::val_t> count =
+                    docs->run_terminal(env, ql::count_wire_func_t());
+                *doc_counts_out = std::vector<int64_t>({ count->as_int<int64_t>() });
+            } catch (const ql::base_exc_t &msg) {
+                *error_out = "When estimating doc count: " + std::string(msg.what());
+                return false;
+            }
+            return true;
+        } else {
+            *error_out = strprintf("Table `%s.%s` does not exist.",
+                database.c_str(), name.c_str());
+            return false;
+        }
+    } else {
+        return next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
+    }
 }
 
 admin_artificial_tables_t::admin_artificial_tables_t(

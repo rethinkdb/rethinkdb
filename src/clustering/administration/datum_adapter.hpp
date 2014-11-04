@@ -133,6 +133,7 @@ public:
              std::string *error_out);
     void get_optional(const char *key,
                       ql::datum_t *value_out);
+    bool has(const char *key);
     bool check_no_extra_keys(std::string *error_out);
 private:
     ql::datum_t datum;

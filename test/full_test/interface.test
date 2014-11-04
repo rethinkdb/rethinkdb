@@ -13,8 +13,10 @@ for interface_test_name in [
         'resources',
         'server_config',
         'server_status',
+        'shard_balancing',
         'stat',
         'table_config',
+        'table_doc_count_estimates',
         'table_wait',
         'table_reconfigure',
         'unsatisfiable_goals_issue']:

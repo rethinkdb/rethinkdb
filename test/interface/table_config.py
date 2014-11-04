@@ -25,7 +25,7 @@ with driver.Metacluster() as metacluster:
                           executable_path = executable_path, command_prefix = command_prefix)
     proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files3 = driver.Files(metacluster, log_path = "create-output-3", machine_name = "never_used",
+    files3 = driver.Files(metacluster, log_path = "create-output-3", server_name = "never_used",
                           executable_path = executable_path, command_prefix = command_prefix)
     proc3 = driver.Process(cluster1, files3, log_path = "serve-output-3",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
@@ -140,48 +140,53 @@ with driver.Metacluster() as metacluster:
         [("test", "foo"), ("test", "bar"), ("test2", "bar2")]))
     wait_until(check_status_matches_config)
 
-    print "Testing that we can write to table_config..."
-    def test(shards):
-        print "Reconfiguring:", shards
+    print "Testing that we can move around data by writing to table_config..."
+    def test_shards(shards):
+        print "Reconfiguring:", {"shards": shards}
         res = r.table_config("foo").update({"shards": shards}).run(conn)
         assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
         print "OK"
-    test(
+    test_shards(
         [{"replicas": ["a"], "director": "a"}])
-    test(
+    test_shards(
         [{"replicas": ["b"], "director": "b"}])
-    test(
+    test_shards(
         [{"replicas": ["a", "b"], "director": "a"}])
-    test(
+    test_shards(
         [{"replicas": ["a"], "director": "a"},
          {"replicas": ["b"], "director": "b"}])
-    test(
+    test_shards(
         [{"replicas": ["a", "b"], "director": "a"},
          {"replicas": ["a", "b"], "director": "b"}])
-    test(
+    test_shards(
         [{"replicas": ["a"], "director": "a"}])
 
     print "Testing that table_config rejects invalid input..."
-    def test_invalid(shards):
-        print "Reconfiguring:", shards
-        res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}).update(
-                {"shards": shards}).run(conn)
+    def test_invalid(conf):
+        print "Reconfiguring:", conf
+        res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}) \
+               .replace(conf).run(conn)
         assert res["errors"] == 1
         print "Error, as expected"
-    test_invalid([])
-    test_invalid("this is a string")
-    test_invalid(
-        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}])
-    test_invalid(
-        [{"replicas": [], "director": None}])
-    test_invalid(
-        [{"replicas": ["a"], "director": "b"}])
-    test_invalid(
-        [{"replicas": ["a"], "director": "b"},
-         {"replicas": ["b"], "director": "a"}])
+    test_invalid(r.row.merge({"shards": []}))
+    test_invalid(r.row.merge({"shards": "this is a string"}))
+    test_invalid(r.row.merge({"shards":
+        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": [], "director": None}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": ["a"], "director": "b"}]}))
+    test_invalid(r.row.merge(
+        {"shards": [{"replicas": ["a"], "director": "b"},
+                    {"replicas": ["b"], "director": "a"}]}))
+    test_invalid(r.row.merge({"primary_key": "new_primary_key"}))
+    test_invalid(r.row.merge({"db": "new_db"}))
+    test_invalid(r.row.merge({"extra_key": "extra_value"}))
+    test_invalid(r.row.without("name"))
+    test_invalid(r.row.without("primary_key"))
+    test_invalid(r.row.without("db"))
+    test_invalid(r.row.without("shards"))
 
     print "Testing that we can rename tables through table_config..."
     res = r.table_config("bar").update({"name": "bar2"}).run(conn)
@@ -194,26 +199,40 @@ with driver.Metacluster() as metacluster:
     assert res["errors"] == 1
 
     print "Testing that we can create a table through table_config..."
-    res = r.db("rethinkdb").table("table_config").insert({
+    def test_create(doc, pkey):
+        res = r.db("rethinkdb").table("table_config") \
+               .insert(doc, return_changes=True).run(conn)
+        assert res["errors"] == 0, repr(res)
+        assert res["inserted"] == 1, repr(res)
+        assert doc["name"] in r.table_list().run(conn)
+        assert res["changes"][0]["new_val"]["primary_key"] == pkey
+        assert "shards" in res["changes"][0]["new_val"]
+        for i in xrange(10):
+            try:
+                r.table(doc["name"]).insert({}).run(conn)
+            except r.RqlRuntimeError:
+                time.sleep(1)
+            else:
+                break
+        else:
+            raise ValueError("Table took too long to become available")
+        rows = list(r.table(doc["name"]).run(conn))
+        assert len(rows) == 1 and list(rows[0].keys()) == [pkey]
+    test_create({
         "name": "baz",
         "db": "test",
         "primary_key": "frob",
         "shards": [{"replicas": ["a"], "director": "a"}]
-        }).run(conn)
-    assert res["errors"] == 0, repr(res)
-    assert res["inserted"] == 1, repr(res)
-    assert "baz" in r.table_list().run(conn)
-    for i in xrange(10):
-        try:
-            r.table("baz").insert({}).run(conn)
-        except r.RqlRuntimeError:
-            time.sleep(1)
-        else:
-            break
-    else:
-        raise ValueError("Table took too long to become available")
-    rows = list(r.table("baz").run(conn))
-    assert len(rows) == 1 and list(rows[0].keys()) == ["frob"]
+        }, "frob")
+    test_create({
+        "name": "baz2",
+        "db": "test",
+        "shards": [{"replicas": ["a"], "director": "a"}]
+        }, "id")
+    test_create({
+        "name": "baz3",
+        "db": "test"
+        }, "id")
 
     print "Testing that we can delete a table through table_config..."
     res = r.table_config("baz").delete().run(conn)
