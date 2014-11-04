@@ -26,7 +26,7 @@ with driver.Metacluster() as metacluster:
         executable_path = executable_path, command_prefix = command_prefix)
     process1 = driver.Process(cluster, files1, log_path="serve-output-1",
         executable_path = executable_path, command_prefix = command_prefix,
-        extra_options = serve_options)
+        extra_options = serve_options + ["--cache-size", "123"])
     time.sleep(3)
     process2 = driver.Process(cluster, files2, log_path="serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix,
@@ -63,8 +63,7 @@ with driver.Metacluster() as metacluster:
 
     assert st["process"]["pid"] == process1.process.pid
 
-    assert isinstance(st["process"]["cache_size_mb"], int)
-    assert st["process"]["cache_size_mb"] < 1024*100
+    assert st["process"]["cache_size_mb"] == 123
 
     assert st["network"]["hostname"] == socket.gethostname()
     assert st["network"]["reql_port"] == process1.driver_port
