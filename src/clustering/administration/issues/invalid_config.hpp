@@ -8,7 +8,7 @@
 
 class invalid_config_issue_t : public issue_t {
 public:
-    invalid_config_issue_t(const issue_id_t &issue_id, const table_id_t &table_id);
+    invalid_config_issue_t(const issue_id_t &issue_id, const namespace_id_t &table_id);
     bool is_critical() const { return true; }
 protected:
     virtual datum_string_t build_description(
@@ -23,7 +23,7 @@ private:
 class need_primary_issue_t : public invalid_config_issue_t {
 public:
     need_primary_issue_t(const namespace_id_t &_table_id);
-    const datum_string_t &get_name() { return need_primary_issue_type; }
+    const datum_string_t &get_name() const { return need_primary_issue_type; }
 private:
     static const datum_string_t need_primary_issue_type;
     static const issue_id_t base_issue_id;
@@ -35,7 +35,7 @@ private:
 class data_loss_issue_t : public invalid_config_issue_t {
 public:
     data_loss_issue_t(const namespace_id_t &_table_id);
-    const datum_string_t &get_name() { return data_loss_issue_type; }
+    const datum_string_t &get_name() const { return data_loss_issue_type; }
 private:
     static const datum_string_t data_loss_issue_type;
     static const issue_id_t base_issue_id;

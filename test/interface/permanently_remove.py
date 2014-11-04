@@ -36,6 +36,7 @@ with driver.Metacluster() as metacluster:
     print "Creating two tables..."
     r.db_create("test").run(conn)
     res = r.db("rethinkdb").table("table_config").insert([
+        # The `test` table will remain readable when `KingHamlet` is removed.
         {
             "db": "test",
             "name": "test",
@@ -45,6 +46,7 @@ with driver.Metacluster() as metacluster:
                 "replicas": ["PrinceHamlet", "KingHamlet"]
                 }]
         },
+        # The `test2` table will raise a `table_needs_primary` issue
         {
             "db": "test",
             "name": "test2",
@@ -53,6 +55,15 @@ with driver.Metacluster() as metacluster:
                 "director": "KingHamlet",
                 "replicas": ["PrinceHamlet", "KingHamlet"]
                 }]
+        },
+        # The `test3` table will raise a `data_lost` issue
+        {
+            "db": "test",
+            "name": "test3",
+            "primary_key": "id",
+            "shards": [{
+                "director": "KingHamlet",
+                "replicas": ["KingHamlet"]
         }
         ]).run(conn)
     assert res["inserted"] == 2, res
@@ -60,6 +71,8 @@ with driver.Metacluster() as metacluster:
     res = r.table("test").insert([{}]*100).run(conn)
     assert res["inserted"] == 100
     res = r.table("test2").insert([{}]*100).run(conn)
+    assert res["inserted"] == 100
+    res = r.table("test3").insert([{}]*100).run(conn)
     assert res["inserted"] == 100
 
     print "Killing one of them..."
@@ -79,26 +92,42 @@ with driver.Metacluster() as metacluster:
     assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
     assert issues[0]["info"]["affected_server_ids"] == [prince_hamlet_id]
 
-    test_status, test2_status = r.table_status("test", "test2").run(conn)
+    test_status, test2_status, test3_status =
+        r.table_status("test", "test2", "test3").run(conn)
     assert test_status["ready_for_writes"], test_status
     assert not test_status["ready_completely"], test_status
     assert test2_status["ready_for_outdated_reads"], test2_status
     assert not test2_status["ready_for_reads"], test2_status
+    assert not test3_status["ready_for_outdated_reads"], test3_status
 
     print "Permanently removing the dead one..."
     res = r.db("rethinkdb").table("server_config").filter({"name": "KingHamlet"}) \
            .delete().run(conn)
     assert res["deleted"] == 1
     assert res["errors"] == 0
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
-    # TODO: There shouldn't be any missing-server issues, but there should be issues
-    # about the `test2` table lacking a director.
-    assert len(issues) == 0, issues
 
-    test_status, test2_status = r.table_status("test", "test2").run(conn)
+    print "Checking the issues that were generated..."
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    assert len(issues) == 2, issues
+    if issues[0]["type"] == "data_lost":
+        dl_issue, np_issue = issues
+    else:
+        np_issue, dl_issue = issues
+
+    assert np_issue["type"] == "table_needs_primary"
+    assert np_issue["info"]["table"] == "test2"
+    assert "no primary replica" in np_issue["description"]
+
+    assert dl_issue["type"] == "data_lost"
+    assert dl_issue["info"]["table"] == "test3"
+    assert "Some data has probably been lost permanently" in dl_issue["description"]
+
+    test_status, test2_status, test3_status =
+        r.table_status("test", "test2", "test3").run(conn)
     assert test_status["ready_completely"]
     assert test2_status["ready_for_outdated_reads"]
     assert not test2_status["ready_for_reads"]
+    assert not test3_status["ready_for_outdated_reads"]
     assert r.table_config("test").nth(0)["shards"].run(conn) == [{
         "director": "PrinceHamlet",
         "replicas": ["PrinceHamlet"]
@@ -107,23 +136,34 @@ with driver.Metacluster() as metacluster:
         "director": None,
         "replicas": ["PrinceHamlet"]
         }]
-    # Before we fix it, see if we can rename it without `"director": None` causing any
-    # trouble
-    res = r.table_config("test2").update({"name": "test3"}).run(conn)
+    assert r.table_config("test3").nth(0)["shards"].run(conn) == [{
+        "director": None,
+        "replicas": []
+        }]
+
+    print "Testing that it's possible to write `\"director\": None`..."
+    res = r.table_config("test2").update({"name": "test2x"}).run(conn)
     assert res["errors"] == 0
-    res = r.table_config("test3").update({"name": "test2"}).run(conn)
+    res = r.table_config("test2x").update({"name": "test2"}).run(conn)
     assert res["errors"] == 0
     assert r.table_config("test2").nth(0)["shards"].run(conn) == [{
         "director": None,
         "replicas": ["PrinceHamlet"]
         }]
 
-    print "Fixing the table that lost its primary..."
+    print "Fixing table `test2`..."
     res = r.table_config("test2").update({
         "shards": [{"director": "PrinceHamlet", "replicas": ["PrinceHamlet"]}]
         }).run(conn)
     assert res["errors"] == 0
     r.table_wait("test2").run(conn)
+
+    print "Fixing table `test3`..."
+    res = r.table_config("test3").update({
+        "shards": [{"director": "PrinceHamlet", "replicas": ["PrinceHamlet"]}]
+        }).run(conn)
+    assert res["errors"] == 0
+    r.table_wait("test3").run(conn)
 
     print "Bringing the dead server back as a ghost..."
     ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files,
@@ -145,6 +185,7 @@ with driver.Metacluster() as metacluster:
     print "Checking table contents..."
     assert r.table("test").count().run(conn) == 100
     assert r.table("test2").count().run(conn) == 100
+    assert r.table("test3").count().run(conn) == 0
 
     cluster.check_and_stop()
 print "Done."

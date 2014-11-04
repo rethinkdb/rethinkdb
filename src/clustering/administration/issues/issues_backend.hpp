@@ -11,8 +11,9 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
-#include "clustering/administration/issues/remote.hpp"
+#include "clustering/administration/issues/invalid_config.hpp"
 #include "clustering/administration/issues/name_collision.hpp"
+#include "clustering/administration/issues/remote.hpp"
 
 
 class issues_artificial_table_backend_t :
@@ -54,6 +55,7 @@ private:
     // Global issues are tracked here, local issues are collected by
     // the remote_issue_tracker out of the directory metadata
     remote_issue_tracker_t remote_issue_tracker;
+    invalid_config_issue_tracker_t invalid_config_issue_tracker;
     name_collision_issue_tracker_t name_collision_issue_tracker;
 };
 
