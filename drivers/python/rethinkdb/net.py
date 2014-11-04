@@ -79,6 +79,11 @@ class Cursor(object):
         if len(self.responses) == 1 and not self.end_flag:
             self.conn._async_continue_cursor(self)
 
+    def _error(self, message):
+        self.end_flag = True
+        self.responses.append(Response(self.query.token, \
+            {'t': pResponse.RUNTIME_ERROR, 'r': [message]}))
+
     def _it(self):
         while True:
             if len(self.responses) == 0 and not self.conn.is_open():
@@ -113,7 +118,7 @@ class Cursor(object):
 
     def close(self):
         if not self.end_flag:
-            self.end_flag = True
+            self._error("Cursor is closed.")
             self.conn._end_cursor(self)
 
 class Connection(object):
@@ -198,7 +203,7 @@ class Connection(object):
             self.socket.close()
             self.socket = None
         for token, cursor in dict_items(self.cursor_cache):
-            cursor.end_flag = True
+            cursor._error("Connection is closed.")
         self.cursor_cache = { }
 
     def noreply_wait(self):
@@ -294,7 +299,6 @@ class Connection(object):
 
         query = Query(pQuery.STOP, cursor.query.token, None, None)
         self._send_query(query, async=True)
-        self._handle_cursor_response(self._read_response(cursor.query.token))
 
     def _read_response(self, token):
         # We may get an async continue result, in which case we save it and read the next response
