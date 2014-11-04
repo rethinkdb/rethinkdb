@@ -154,22 +154,17 @@ server_issue_tracker_t::~server_issue_tracker_t() {
 }
 
 void server_issue_tracker_t::recompute() {
-    debugf("recompute\n");
     std::vector<server_down_issue_t> down_list;
     std::vector<server_ghost_issue_t> ghost_list;
     for (auto const &pair : cluster_sl_view->get().servers.servers) {
         boost::optional<peer_id_t> peer_id =
             name_client->get_peer_id_for_server_id(pair.first);
-        debugf("%s %d %d\n", uuid_to_str(pair.first).c_str(),
-            int(static_cast<bool>(peer_id)),
-            int(pair.second.is_deleted()));
         if (!pair.second.is_deleted() && !static_cast<bool>(peer_id)) {
             if (name_server->get_permanently_removed_signal()->is_pulsed()) {
                 /* We are a ghost server. Ghost servers don't make disconnection reports.
                 */
                 continue;
             }
-            debugf("make server down issue\n");
             down_list.push_back(server_down_issue_t(pair.first));
         } else if (pair.second.is_deleted() && static_cast<bool>(peer_id)) {
             directory_view->read_key(*peer_id,
@@ -179,7 +174,6 @@ void server_issue_tracker_t::recompute() {
                         servers but hasn't appeared in the directory yet. */
                         return;
                     }
-                    debugf("make server ghost issue\n");
                     ghost_list.push_back(server_ghost_issue_t(
                         pair.first, md->hostname, md->pid));
                 });

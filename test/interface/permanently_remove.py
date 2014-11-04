@@ -64,10 +64,11 @@ with driver.Metacluster() as metacluster:
             "shards": [{
                 "director": "KingHamlet",
                 "replicas": ["KingHamlet"]
+                }]
         }
         ]).run(conn)
-    assert res["inserted"] == 2, res
-    r.table_wait("test", "test2").run(conn)
+    assert res["inserted"] == 3, res
+    r.table_wait("test", "test2", "test3").run(conn)
     res = r.table("test").insert([{}]*100).run(conn)
     assert res["inserted"] == 100
     res = r.table("test2").insert([{}]*100).run(conn)
@@ -92,7 +93,7 @@ with driver.Metacluster() as metacluster:
     assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
     assert issues[0]["info"]["affected_server_ids"] == [prince_hamlet_id]
 
-    test_status, test2_status, test3_status =
+    test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
     assert test_status["ready_for_writes"], test_status
     assert not test_status["ready_completely"], test_status
@@ -122,7 +123,7 @@ with driver.Metacluster() as metacluster:
     assert dl_issue["info"]["table"] == "test3"
     assert "Some data has probably been lost permanently" in dl_issue["description"]
 
-    test_status, test2_status, test3_status =
+    test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
     assert test_status["ready_completely"]
     assert test2_status["ready_for_outdated_reads"]

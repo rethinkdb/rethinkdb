@@ -23,6 +23,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     name_collision_issue_tracker(cluster_sl_view)
 {
     trackers.insert(&remote_issue_tracker);
+    trackers.insert(&invalid_config_issue_tracker);
     trackers.insert(&name_collision_issue_tracker);
 }
 

@@ -91,7 +91,7 @@ std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues()
     const_metadata_searcher_t<namespace_semilattice_metadata_t> searcher(
         &md.rdb_namespaces->namespaces);
     for (auto it = searcher.find_next(searcher.begin()); it != searcher.end();
-            it = searcher.find_next(it)) {
+            it = searcher.find_next(++it)) {
         const table_config_t &config =
             it->second.get_ref().replication_info.get_ref().config;
         bool need_primary = false, data_loss = false;
