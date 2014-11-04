@@ -311,10 +311,7 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
     template<class... Args>
     explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
         : pb_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
-    void operator()(const changefeed::keyspec_t::range_t &range) const {
-        rcheck(range.range.is_universe(), base_exc_t::GENERIC,
-               "Cannot call `changes` on a range.");
-    }
+    void operator()(const changefeed::keyspec_t::range_t &) const { }
     void operator()(const changefeed::keyspec_t::limit_t &spec) const {
         rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                strprintf(

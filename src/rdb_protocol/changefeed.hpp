@@ -76,9 +76,7 @@ struct msg_t {
         exc_t exc;
     };
     struct change_t {
-        change_t() { }
-        change_t(datum_t _old_val, datum_t _new_val)
-            : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
+        std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -141,6 +139,7 @@ struct keyspec_t {
         datum_t key;
     };
 
+    keyspec_t() { }
     keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
     template<class T>
     explicit keyspec_t(T &&t) : spec(std::move(t)) { }
@@ -151,8 +150,6 @@ struct keyspec_t {
     keyspec_t &operator=(const keyspec_t &) = default;
 
     boost::variant<range_t, limit_t, point_t> spec;
-private:
-    keyspec_t() { }
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
@@ -438,6 +435,7 @@ public:
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f);
     bool has_limit(const boost::optional<std::string> &s);
+    std::vector<std::string> sindexes;
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);

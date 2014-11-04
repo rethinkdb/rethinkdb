@@ -65,6 +65,9 @@ void insert_rows(int start, int finish, store_t *store) {
             rdb_update_sindexes(store,
                                 sindexes,
                                 &mod_report,
+                                NULL,
+                                NULL,
+                                NULL,
                                 txn.get(),
                                 &deletion_context);
 
