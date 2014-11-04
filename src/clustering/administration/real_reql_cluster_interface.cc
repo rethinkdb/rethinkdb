@@ -476,6 +476,8 @@ bool real_reql_cluster_interface_t::table_wait(
                                                it->second.str().c_str());
                         return false;
                     } else {
+                        // We erase the table_id here to avoid getting a DELETED result
+                        // every loop, so that `immediate` is never true
                         table_ids.erase(it);
                         break;
                     }
