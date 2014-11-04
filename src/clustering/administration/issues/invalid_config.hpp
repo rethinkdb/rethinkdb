@@ -6,6 +6,10 @@
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
 
+/* A `need_primary_issue_t` is created when a table's primary replica for a shard was
+permanently removed. A `data_loss_issue_t` is created when all of a table's replicas for
+a shard are permanently removed. */
+
 class invalid_config_issue_t : public issue_t {
 public:
     invalid_config_issue_t(const issue_id_t &issue_id, const namespace_id_t &table_id);
