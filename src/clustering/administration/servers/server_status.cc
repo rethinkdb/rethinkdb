@@ -90,36 +90,38 @@ bool server_status_artificial_table_backend_t::format_row(
         builder.overwrite("status", ql::datum_t("unavailable"));
     }
 
-    ql::datum_object_builder_t avail_builder;
+    ql::datum_object_builder_t conn_builder;
     if (directory) {
-        avail_builder.overwrite("start_time",
-            convert_microtime_to_datum(directory->time_started));
         microtime_t connected_time =
             last_seen_tracker.get_connected_time(server_id);
-        avail_builder.overwrite("connect_time",
+        conn_builder.overwrite("time_connected",
             convert_microtime_to_datum(connected_time));
-        avail_builder.overwrite("disconnect_time", ql::datum_t::null());
+        conn_builder.overwrite("time_disconnected", ql::datum_t::null());
     } else {
-        avail_builder.overwrite("start_time", ql::datum_t::null());
-        avail_builder.overwrite("connect_time", ql::datum_t::null());
+        conn_builder.overwrite("time_connected", ql::datum_t::null());
         microtime_t disconnected_time =
             last_seen_tracker.get_disconnected_time(server_id);
-        avail_builder.overwrite("disconnect_time",
+        conn_builder.overwrite("time_disconnected",
             convert_microtime_to_datum(disconnected_time));
     }
-    builder.overwrite("availability", std::move(avail_builder).to_datum());
+    builder.overwrite("connection", std::move(conn_builder).to_datum());
 
+    ql::datum_object_builder_t proc_builder;
     if (directory) {
-        builder.overwrite("version",
+        proc_builder.overwrite("time_started",
+            convert_microtime_to_datum(directory->time_started));
+        proc_builder.overwrite("version",
             ql::datum_t(datum_string_t(directory->version)));
-        builder.overwrite("cache_size_mb",
+        proc_builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
-        builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
+        proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
     } else {
-        builder.overwrite("version", ql::datum_t::null());
-        builder.overwrite("cache_size_mb", ql::datum_t::null());
-        builder.overwrite("pid", ql::datum_t::null());
+        proc_builder.overwrite("time_started", ql::datum_t::null());
+        proc_builder.overwrite("version", ql::datum_t::null());
+        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
+        proc_builder.overwrite("pid", ql::datum_t::null());
     }
+    builder.overwrite("process", std::move(proc_builder).to_datum());
 
     ql::datum_object_builder_t net_builder;
     if (directory) {
@@ -137,7 +139,6 @@ bool server_status_artificial_table_backend_t::format_row(
             convert_set_to_datum<host_and_port_t>(
                 &convert_host_and_port_to_datum,
                 directory->canonical_addresses));
-            
     } else {
         net_builder.overwrite("hostname", ql::datum_t::null());
         net_builder.overwrite("cluster_port", ql::datum_t::null());

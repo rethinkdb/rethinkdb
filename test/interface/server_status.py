@@ -58,13 +58,13 @@ with driver.Metacluster() as metacluster:
 
     assert st["status"] == "available"
 
-    assert isinstance(st["version"], basestring)
-    assert st["version"].startswith("rethinkdb")
+    assert isinstance(st["process"]["version"], basestring)
+    assert st["process"]["version"].startswith("rethinkdb")
 
-    assert st["pid"] == process1.process.pid
+    assert st["process"]["pid"] == process1.process.pid
 
-    assert isinstance(st["cache_size_mb"], int)
-    assert st["cache_size_mb"] < 1024*100
+    assert isinstance(st["process"]["cache_size_mb"], int)
+    assert st["process"]["cache_size_mb"] < 1024*100
 
     assert st["network"]["hostname"] == socket.gethostname()
     assert st["network"]["reql_port"] == process1.driver_port
@@ -72,12 +72,12 @@ with driver.Metacluster() as metacluster:
     assert st["network"]["http_admin_port"] == process1.http_port
     assert st["network"]["canonical_addresses"][0]["port"] == process1.cluster_port
 
-    now = datetime.datetime.now(st["availability"]["start_time"].tzinfo)
-    assert st["availability"]["start_time"] <= now
-    assert st["availability"]["start_time"] > now - datetime.timedelta(minutes=1)
-    assert st["availability"]["connect_time"] <= now
-    assert st["availability"]["connect_time"] >= st["availability"]["start_time"]
-    assert st["availability"]["disconnect_time"] is None
+    now = datetime.datetime.now(st["process"]["time_started"].tzinfo)
+    assert st["process"]["time_started"] <= now
+    assert st["process"]["time_started"] > now - datetime.timedelta(minutes=1)
+    assert st["connection"]["time_connected"] <= now
+    assert st["connection"]["time_connected"] >= st["process"]["time_started"]
+    assert st["connection"]["time_disconnected"] is None
 
     assert get_status("b")["status"] == "available"
     process2.check_and_stop()
@@ -86,10 +86,10 @@ with driver.Metacluster() as metacluster:
     print "Status for a disconnected server:"
     pprint.pprint(st2)
 
-    now = datetime.datetime.now(st2["availability"]["disconnect_time"].tzinfo)
-    assert st2["availability"]["connect_time"] is None
-    assert st2["availability"]["disconnect_time"] <= now
-    assert st2["availability"]["disconnect_time"] >= now - datetime.timedelta(minutes=1)
+    now = datetime.datetime.now(st2["connection"]["time_disconnected"].tzinfo)
+    assert st2["connection"]["time_connected"] is None
+    assert st2["connection"]["time_disconnected"] <= now
+    assert st2["connection"]["time_disconnected"] >= now - datetime.timedelta(minutes=1)
 
     cluster.check_and_stop()
 
