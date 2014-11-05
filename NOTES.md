@@ -15,6 +15,8 @@ Bug fix update.
   registered and unregistered (#3205)
 * Changed the `r.point` constructor to be deterministic, allowing it to be used
   in secondary index functions (#3287)
+* Fixed an incompatibility problem between Python 3.4 and the `import` command
+  (#3259)
 
 ---
 
