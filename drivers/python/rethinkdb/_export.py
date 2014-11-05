@@ -21,9 +21,9 @@ try:
 except NameError:
     long = int
 try:
-    from multiprocessing.queues import SimpleQueue
-except NameError:
     from multiprocessing import SimpleQueue
+except ImportError:
+    from multiprocessing.queues import SimpleQueue
 	
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
