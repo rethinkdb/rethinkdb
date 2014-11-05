@@ -1259,7 +1259,7 @@ public:
 
     limit_order_t gt;
     item_queue_t item_queue;
-    typedef decltype(item_queue)::iterator data_it_t;
+    typedef item_queue_t::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
     std::set<data_it_t, data_it_lt_t> active_data;
 

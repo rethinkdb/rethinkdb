@@ -263,6 +263,7 @@ public:
     template<class T>
     bool operator<(const T &t) {
         static_assert(sizeof(t) == 0, "Use `cmp`.");
+        unreachable();
     }
 
     // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.

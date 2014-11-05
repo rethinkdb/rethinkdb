@@ -221,7 +221,7 @@ template<class Id, class Key, class Val, class Gt>
 class index_queue_t {
 private:
     std::map<Id, std::pair<Key, Val> > data;
-    typedef typename decltype(data)::iterator diterator;
+    typedef typename std::map<Id, std::pair<Key, Val> >::iterator diterator;
     std::set<diterator,
              std::function<bool(const diterator &, const diterator &)> > index;
 
@@ -234,7 +234,9 @@ private:
         guarantee(data.size() == index.size());
     }
 public:
-    typedef typename decltype(index)::iterator iterator;
+    typedef typename
+    std::set<diterator, std::function<bool(const diterator &,
+                                           const diterator &)> >::iterator iterator;
 
     explicit index_queue_t(Gt gt) : index(gt) { }
 
