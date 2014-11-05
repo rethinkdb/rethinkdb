@@ -82,7 +82,7 @@ class Cursor(object):
     def _error(self, message):
         self.end_flag = True
         self.responses.append(Response(self.query.token, \
-            {'t': pResponse.RUNTIME_ERROR, 'r': [message]}))
+            json.dumps({'t': pResponse.RUNTIME_ERROR, 'r': [message]})))
 
     def _it(self):
         while True:
@@ -125,6 +125,7 @@ class Cursor(object):
 class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
+        self.closing = False
         self.host = host
         self.next_token = 1
         self.db = db
@@ -191,13 +192,14 @@ class Connection(object):
         self.socket.settimeout(None)
 
     def is_open(self):
-        return self.socket is not None
+        return (self.socket is not None) and not self.closing
 
     def close(self, noreply_wait=True):
+        self.closing = True
         if self.socket is not None:
-            if noreply_wait:
-                self.noreply_wait()
             try:
+                if noreply_wait:
+                    self.noreply_wait()
                 self.socket.shutdown(socket.SHUT_RDWR)
             except socket.error:
                 pass
@@ -206,6 +208,7 @@ class Connection(object):
         for token, cursor in dict_items(self.cursor_cache):
             cursor._error("Connection is closed.")
         self.cursor_cache = { }
+        self.closing = False
 
     def noreply_wait(self):
         token = self.next_token
