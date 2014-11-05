@@ -35,10 +35,12 @@ void runtime_fail(base_exc_t::type_t type,
     throw datum_exc_t(type, msg);
 }
 
-void runtime_sanity_check_failed() {
+void runtime_sanity_check_failed(const char *file, int line, const char *test) {
     lazy_backtrace_formatter_t bt;
     throw exc_t(base_exc_t::GENERIC,
-                "SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
+                strprintf("SANITY CHECK `%s` FAILED AT `%s:%d` (server is buggy)."
+                          "Backtrace:\n%s",
+                          test, file, line, bt.addrs().c_str()),
                 backtrace_t());
 }
 
