@@ -1,13 +1,16 @@
 # Release 1.15.2 (Lawrence of Arabia)
 
-Released on 2014-11-06
+Released on 2014-11-07
 
 Bug fix update.
 
 * Added packages for Ubuntu 14.10 "Utopic Unicorn" (#3237)
 * Fix a bug with memory handling in S2 (#3201)
 * Fixed a bug handling paged results in the Data Explorer (#3111)
-* Fixed a bug that caused a crash on exit if a joined server with an open changefeed has crashed (#3038)
+* Fixed a bug that caused a crash on exit if a joined server with an open
+  changefeed has crashed (#3038)
+* Fixed a bug that caused a crash when unsharding discards more rows than
+  expected when batching results (#3264)
 
 ---
 
@@ -17,11 +20,15 @@ Released on 2014-10-07
 
 Bug fix update.
 
-* Fixed a bug where tables were always created with hard durability, regardless of the `durability` option (#3128)
+* Fixed a bug where tables were always created with hard durability, regardless
+  of the `durability` option (#3128)
 * Fixed a bug that caused HTTPS access with `r.http` to fail under OS X (#3112)
-* Fixed a bug in the Python driver that caused pickling/unpickling of time objects to fail (#3024)
-* Changed the Data Explorer autocomplete to not override Ctrl+Tab on Firefox (#2959)
-* Fixed a bug that caused a crash when a non-directory file was specified as RethinkDB's startup directory (#3036)
+* Fixed a bug in the Python driver that caused pickling/unpickling of time
+  objects to fail (#3024)
+* Changed the Data Explorer autocomplete to not override Ctrl+Tab on Firefox
+  (#2959)
+* Fixed a bug that caused a crash when a non-directory file was specified as
+  RethinkDB's startup directory (#3036)
 * Added native packages for Debian (#3125, #3107)
 * Fixed a compilation error on ARM CPUs (#3116)
 * Support building with Protobuf 2.6.0 (#3137)
