@@ -5,6 +5,8 @@
 #include <list>
 #include <string>
 
+#include "errors.hpp"
+
 #include "containers/archive/archive.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -40,7 +42,8 @@ void runtime_fail(base_exc_t::type_t type,
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
-void runtime_sanity_check_failed() NORETURN;
+void runtime_sanity_check_failed(
+    const char *file, int line, const char *test) NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -170,7 +173,8 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 #else
 #define r_sanity_check(test) do {                       \
         if (!(test)) {                                  \
-            ::ql::runtime_sanity_check_failed();        \
+            ::ql::runtime_sanity_check_failed(          \
+                __FILE__, __LINE__, stringify(test));   \
         }                                               \
     } while (0)
 #endif // NDEBUG
