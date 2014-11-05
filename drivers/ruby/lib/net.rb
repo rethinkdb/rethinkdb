@@ -54,7 +54,7 @@ module RethinkDB
       if @results.size > 10 or @more
         preview_res << (dots = "..."; class << dots; def inspect; "..."; end; end; dots)
       end
-      preview = PP.pp(preview_res, "")
+      preview = preview_res.pretty_inspect[0...-1]
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} is closed.)" : ""
       "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
@@ -76,10 +76,10 @@ module RethinkDB
     def each (&block) # :nodoc:
       raise RqlRuntimeError, "Can only iterate over Query_Results once!" if @run
       @run = true
-      raise RqlRuntimeError, "Connection is closed." if @more and out_of_date
       while true
         @results.each(&block)
         return self if !@more
+        raise RqlRuntimeError, "Connection is closed." if @more and out_of_date
         res = @conn.wait(@token)
         @results = Shim.response_to_native(res, @msg, @opts)
         if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
@@ -232,7 +232,7 @@ module RethinkDB
           end
           @waiters.delete(token)
         }
-        raise RqlRuntimeError, "Connection is closed." if not self.is_open()
+        raise RqlRuntimeError, "Connection is closed." if res.nil? and not self.is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
         return res
       rescue @abort_module::Abort => e
@@ -306,10 +306,11 @@ module RethinkDB
         @listener_mutex.synchronize {
           @opts.clear
           @data.clear
-          @waiters.keys.each{ |w| w.signal }
+          @waiters.values.each{ |w| w.signal }
           @waiters.clear
         }
       end
+      self
     end
 
     def noreply_wait
@@ -383,6 +384,10 @@ module RethinkDB
             rescue Exception => e
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
+            end
+            if token == -1
+              token = nil
+              raise RqlRuntimeError, "Protocol error, connection closed."
             end
             @listener_mutex.synchronize{note_data(token, data)}
           rescue Exception => e
