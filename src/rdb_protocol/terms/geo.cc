@@ -29,9 +29,9 @@ public:
                const argspec_t &argspec, optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, term, argspec, optargspec) { }
 private:
-    // All geo terms are non-deterministic, because they typically depend on
-    // floating point results that might diverge between machines / compilers /
-    // libraries.
+    // With the exception of r.point(), all geo terms are non-deterministic
+    // because they typically depend on floating point results that might
+    // diverge between machines / compilers / libraries.
     // Even seemingly harmless things such as r.line() are affected because they
     // perform geometric validation.
     bool is_deterministic() const { return false; }
@@ -115,6 +115,15 @@ public:
     point_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
+    // point_term_t is deterministic because it doesn't perform any complex
+    // arithmetics. It only checks the range of the values as part of
+    // `validate_geojson()`.
+    // Note that this is *only* true because S2 doesn't perform any additional
+    // checks on the S2Point constructed in validate_geojson(). The construction
+    // of the S2Point itself depends on the M_PI constant which could be system
+    // dependent. Therefore if anything in validate_geojson() starts using
+    // the constructed S2Point some day, determinism will need to be reconsidered.
+    bool is_deterministic() const { return true; }
     scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         double lon = args->arg(env, 0)->as_num();
         double lat = args->arg(env, 1)->as_num();
