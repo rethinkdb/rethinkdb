@@ -954,47 +954,62 @@ slice_datum_stream_t::slice_datum_stream_t(
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
 std::vector<datum_t>
-slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) {
+slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     if (left >= right || index >= right) {
         return std::vector<datum_t>();
     }
 
-    const batchspec_t batchspec = _batchspec.with_at_most(right - index);
-
+    batcher_t batcher = batchspec.to_batcher();
     profile::sampler_t sampler("Slicing eagerly.", env->trace);
+
+    std::vector<datum_t> ret;
+
     while (index < left) {
         sampler.new_sample();
-        std::vector<datum_t> v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v =
+            source->next_batch(env, batchspec.with_at_most(right - index));
         if (v.size() == 0) {
-            return v;
+            return ret;
         }
         index += v.size();
         if (index > right) {
             v.resize(v.size() - (index - right));
             index = right;
         }
+
         if (index > left) {
-            std::vector<datum_t> ret;
+            auto start = v.end() - (index - left);
+            for (auto it = start; it != v.end(); ++it) {
+                batcher.note_el(*it);
+            }
             ret.reserve(index - left);
-            std::move(v.end() - (index - left), v.end(), std::back_inserter(ret));
-            return ret;
+            std::move(start, v.end(), std::back_inserter(ret));
         }
     }
 
-    while (index < right) {
+    while (index < right && !batcher.should_send_batch()) {
         sampler.new_sample();
-        std::vector<datum_t> v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v =
+            source->next_batch(env, batchspec.with_at_most(right - index));
         if (v.size() == 0) {
-            break;
+            return ret;
         }
         index += v.size();
         if (index > right) {
             v.resize(v.size() - (index - right));
+            index = right;
         }
-        return v;
+
+        for (const auto &d : v) {
+            batcher.note_el(d);
+        }
+        ret.reserve(ret.size() + v.size());
+        std::move(v.begin(), v.end(), std::back_inserter(ret));
     }
 
-    return std::vector<datum_t>();
+    r_sanity_check(index >= left);
+    r_sanity_check(index <= right);
+    return ret;
 }
 
 bool slice_datum_stream_t::is_exhausted() const {
