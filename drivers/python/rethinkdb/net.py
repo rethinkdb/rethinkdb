@@ -87,7 +87,7 @@ class Cursor(object):
     def _it(self):
         while True:
             if len(self.responses) == 0 and not self.conn.is_open():
-                raise RqlDriverError("Connection closed, cannot read cursor")
+                raise RqlDriverError("Connection closed, cannot read cursor.")
             if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
             if len(self.responses) == 1 and not self.end_flag:
@@ -100,7 +100,7 @@ class Cursor(object):
             if self.responses[0].type != pResponse.SUCCESS_PARTIAL and \
                self.responses[0].type != pResponse.SUCCESS_SEQUENCE and \
                self.responses[0].type != pResponse.SUCCESS_FEED:
-                raise RqlDriverError("Unexpected response type received for cursor")
+                raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
             del self.responses[0]
@@ -119,7 +119,8 @@ class Cursor(object):
     def close(self):
         if not self.end_flag:
             self._error("Cursor is closed.")
-            self.conn._end_cursor(self)
+            if self.conn.is_open():
+                self.conn._end_cursor(self)
 
 class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
