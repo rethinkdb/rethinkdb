@@ -93,6 +93,7 @@ module RethinkDB
     def close
       if @more
         @more = false
+        @conn.wait(@token) # Ignore the response - TODO: do this asynchronously
         q = [Query::QueryType::STOP]
         res = @conn.run_internal(q, @opts, @token)
         if ((res['t'] != Response::ResponseType::SUCCESS_SEQUENCE &&
