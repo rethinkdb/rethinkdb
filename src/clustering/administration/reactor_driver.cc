@@ -197,6 +197,7 @@ public:
                             namespace_id_t namespace_id,
                             const blueprint_t &blueprint,
                             const table_replication_info_t &repli_info,
+                            const servers_semilattice_metadata_t &server_md,
                             svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
         table_directory(parent->directory_view, namespace_id),
@@ -207,7 +208,7 @@ public:
         namespace_id_(namespace_id),
         svs_by_namespace_(svs_by_namespace)
     {
-        update_repli_info(blueprint, repli_info);
+        update_repli_info(blueprint, repli_info, server_md);
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t::initialize_reactor, this, io_backender));
     }
 
@@ -237,64 +238,29 @@ public:
     }
 
     void update_repli_info(const blueprint_t &blueprint,
-                           const table_replication_info_t &repli_info) {
+                           const table_replication_info_t &repli_info,
+                           const servers_semilattice_metadata_t &server_md) {
         watchable.set_value(blueprint);
-
-        cached_write_ack_config.clear();
-        const write_ack_config_t &wac = repli_info.config.write_ack_config;
-        if (wac.mode == write_ack_config_t::mode_t::complex) {
-            for (const write_ack_config_t::req_t &req : wac.complex_reqs) {
-                size_t largest_overlap = 0;
-                for (const table_config_t::shard_t &shard : repli_info.config.shards) {
-                    size_t overlap = 0;
-                    for (const server_id_t &replica : shard.replicas) {
-                        if (req.replicas.count(replica) == 1) {
-                            ++overlap;
-                        }
-                    }
-                    largest_overlap = std::max(overlap, largest_overlap);
-                }
-                size_t acks = (largest_overlap + 2) / 2;
-                cached_write_ack_config.push_back(std::make_pair(req.replicas, acks));
-            }
-        } else {
-            std::set<server_id_t> replicas;
-            for (const table_config_t::shard_t &shard : repli_info.config.shards) {
-                replicas.insert(shard.replicas.begin(), shard.replicas.end());
-            }
-            size_t acks;
-            if (wac.mode == write_ack_config_t::mode_t::single) {
-                acks = 1;
-            } else {
-                size_t largest_factor = 0;
-                for (const table_config_t::shard_t &shard : repli_info.config.shards) {
-                    largest_factor = std::max(largest_factor, shard.replicas.size());
-                }
-                acks = (largest_factor + 2) / 2;
-            }
-            cached_write_ack_config.push_back(std::make_pair(replicas, acks));
-        }
+        cached_write_ack_config =
+            make_scoped<write_ack_config_checker_t>(repli_info.config, server_md);
     }
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        for (const std::pair<std::set<server_id_t>, size_t> &pair :
-                cached_write_ack_config) {
-            size_t count = 0;
-            for (const peer_id_t &p : acks) {
-                boost::optional<server_id_t> s =
-                    parent_->server_name_client->get_server_id_for_peer_id(p);
-                if (!static_cast<bool>(s)) {
-                    /* This could happen due to a race condition if the peer acknowledged
-                    the write but then disconnected, etc. */
-                    continue;
-                }
-                count += pair.first.count(*s);
+        std::set<server_id_t> server_ids;
+        for (const peer_id_t &p : acks) {
+            boost::optional<server_id_t> s =
+                parent_->server_name_client->get_server_id_for_peer_id(p);
+            if (!static_cast<bool>(s)) {
+                /* This could happen due to a race condition if the peer acknowledged the
+                write but then disconnected, etc. We ignore the ack in this case because
+                there's no convenient way to find the `server_id_t`. This could result in
+                a few writes not being acked that could have been acked when a server has
+                just gone down, but it's not worth worrying about. */
+                continue;
             }
-            if (count < pair.second) {
-                return false;
-            }
+            server_ids.insert(*s);
         }
-        return true;
+        return cached_write_ack_config->check_acks(server_ids);
     }
 
     write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
@@ -347,7 +313,7 @@ private:
     const namespace_id_t namespace_id_;
     svs_by_namespace_t *const svs_by_namespace_;
 
-    std::vector<std::pair<std::set<server_id_t>, size_t> > cached_write_ack_config;
+    scoped_ptr_t<write_ack_config_checker_t> cached_write_ack_config;
 
     stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t> svs_;
@@ -368,8 +334,8 @@ reactor_driver_t::reactor_driver_t(
         namespace_directory_metadata_t
         > *_directory_view,
     branch_history_manager_t *_branch_history_manager,
-    boost::shared_ptr< semilattice_readwrite_view_t< cow_ptr_t<
-        namespaces_semilattice_metadata_t> > > _namespaces_view,
+    boost::shared_ptr< semilattice_readwrite_view_t<
+        cluster_semilattice_metadata_t> > _semilattice_view,
     server_name_client_t *_server_name_client,
     signal_t *_we_were_permanently_removed,
     svs_by_namespace_t *_svs_by_namespace,
@@ -380,13 +346,13 @@ reactor_driver_t::reactor_driver_t(
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
-      namespaces_view(_namespaces_view),
+      semilattice_view(_semilattice_view),
       server_name_client(_server_name_client),
       we_were_permanently_removed(_we_were_permanently_removed),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
       semilattice_subscription(
-        boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
+        boost::bind(&reactor_driver_t::on_change, this), semilattice_view),
       name_to_server_id_subscription(
         boost::bind(&reactor_driver_t::on_change, this)),
       server_id_to_peer_id_subscription(
@@ -424,10 +390,11 @@ void reactor_driver_t::delete_reactor_data(
 }
 
 void reactor_driver_t::on_change() {
-    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces = namespaces_view->get();
+    cluster_semilattice_metadata_t md = semilattice_view->get();
 
-    for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator
-             it = namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
+    for (auto it = md.rdb_namespaces->namespaces.begin();
+            it != md.rdb_namespaces->namespaces.end();
+            ++it) {
         if ((it->second.is_deleted() || we_were_permanently_removed->is_pulsed()) &&
                 std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
@@ -476,10 +443,10 @@ void reactor_driver_t::on_change() {
                 reactor_data.insert(std::make_pair(tmp,
                     make_scoped<watchable_and_reactor_t>(
                         base_path, io_backender, this, it->first, bp,
-                        *repli_info, svs_by_namespace, ctx)));
+                        *repli_info, md.servers, svs_by_namespace, ctx)));
             } else {
                 reactor_data.find(it->first)->second->update_repli_info(
-                    bp, *repli_info);
+                    bp, *repli_info, md.servers);
             }
         }
     }

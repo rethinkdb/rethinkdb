@@ -151,4 +151,19 @@ RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
 typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > namespace_directory_metadata_t;
 
+/* `write_ack_config_checker_t` is used for checking if a set of acks satisfies the
+requirements in the given `table_config_t`. The reason it needs the `table_config_t` and
+the `servers_semilattice_metadata_t` is because the meaning of the `write_ack_config_t`
+may depend on how many replicas the shards have and on which servers have been
+permanently removed. The reason it's an object instead of a function is that it caches
+intermediate results for best performance. */
+class write_ack_config_checker_t {
+public:
+    write_ack_config_checker_t(const table_config_t &config,
+                               const servers_semilattice_metadata_t &servers);
+    bool check_acks(const std::set<server_id_t> &acks) const;
+private:
+    std::vector<std::pair<std::set<server_id_t>, size_t> > reqs;
+};
+
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_ */

@@ -95,8 +95,8 @@ public:
             namespace_directory_metadata_t
             > *directory_view,
          branch_history_manager_t *branch_history_manager,
-         boost::shared_ptr< semilattice_readwrite_view_t< cow_ptr_t<
-            namespaces_semilattice_metadata_t> > > namespaces_view,
+         boost::shared_ptr< semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > semilattice_view,
          server_name_client_t *server_name_client,
          signal_t *we_were_permanently_removed,
          svs_by_namespace_t *svs_by_namespace,
@@ -130,7 +130,8 @@ private:
         namespace_directory_metadata_t
         > *directory_view;
     branch_history_manager_t *branch_history_manager;
-    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        semilattice_view;
     server_name_client_t *server_name_client;
     signal_t *we_were_permanently_removed;
     rdb_context_t *ctx;
@@ -143,8 +144,8 @@ private:
 
     auto_drainer_t drainer;
 
-    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
-        ::subscription_t semilattice_subscription;
+    semilattice_read_view_t<cluster_semilattice_metadata_t>::subscription_t
+        semilattice_subscription;
     watchable_t< std::multimap<name_string_t, server_id_t> >::subscription_t
         name_to_server_id_subscription;
     watchable_t< std::map<server_id_t, peer_id_t> >::subscription_t
