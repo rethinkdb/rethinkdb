@@ -30,23 +30,147 @@ bool lookup_server(
     return ok;
 }
 
+ql::datum_t convert_replica_list_to_datum(
+        const std::set<server_id_t> &replicas,
+        server_name_client_t *name_client) {
+    ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
+    for (const server_id_t &replica : replicas) {
+        boost::optional<name_string_t> name =
+            name_client->get_name_for_server_id(replica);
+        if (static_cast<bool>(name)) {
+            replicas_builder.add(convert_name_to_datum(*name));
+        }
+    }
+    return std::move(replicas_builder).to_datum();
+}
+
+bool convert_replica_list_from_datum(
+        const ql::datum_t &datum,
+        server_name_client_t *name_client,
+        std::set<server_id_t> *replicas_out,
+        std::string *error_out) {
+    if (datum.get_type() != ql::datum_t::R_ARRAY) {
+        *error_out = "Expected an array, got " + datum.print();
+        return false;
+    }
+    replicas_out->clear();
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
+        name_string_t name;
+        if (!convert_name_from_datum(datum.get(i), "server name", &name, error_out)) {
+            return false;
+        }
+        server_id_t server_id;
+        if (!lookup_server(name, name_client, &server_id, error_out)) {
+            return false;
+        }
+        auto pair = replicas_out->insert(server_id);
+        if (!pair.second) {
+            *error_out = strprintf("Server `%s` is listed more than once.",
+                name.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+ql::datum_t convert_write_ack_config_req_to_datum(
+        const write_ack_config_t::req_t &req,
+        server_name_client_t *name_client) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("replicas",
+        convert_replica_list_to_datum(req.replicas, name_client));
+    const char *acks =
+        (req.mode == write_ack_config_t::mode_t::majority) ? "majority" : "single";
+    builder.overwrite("acks", ql::datum_t(acks));
+    return std::move(builder).to_datum();
+}
+
+bool convert_write_ack_config_req_from_datum(
+        const ql::datum_t &datum,
+        server_name_client_t *name_client,
+        write_ack_config_t::req_t *req_out,
+        std::string *error_out) {
+    converter_from_datum_object_t converter;
+    if (!converter.init(datum, error_out)) {
+        return false;
+    }
+
+    ql::datum_t replica_names_datum;
+    if (!converter.get("replicas", &replica_names_datum, error_out)) {
+        return false;
+    }
+    if (!convert_replica_list_from_datum(replica_names_datum, name_client,
+            &req_out->replicas, error_out)) {
+        return false;
+    }
+
+    ql::datum_t acks_datum;
+    if (!converter.get("acks", &acks_datum, error_out)) {
+        return false;
+    }
+    if (acks_datum == ql::datum_t("single")) {
+        req_out->mode = write_ack_config_t::mode_t::single;
+    } else if (acks_datum == ql::datum_t("majority")) {
+        req_out->mode = write_ack_config_t::mode_t::majority;
+    } else {
+        *error_out = "In `acks`: Expected 'single' or 'majority', got: " +
+            acks_datum.print();
+    }
+
+    if (!converter.check_no_extra_keys(error_out)) {
+        return false;
+    }
+
+    return true;
+}
+
+ql::datum_t convert_write_ack_config_to_datum(
+        const write_ack_config_t &config,
+        server_name_client_t *name_client) {
+    if (config.mode == write_ack_config_t::mode_t::single) {
+        return ql::datum_t("single");
+    } else if (config.mode == write_ack_config_t::mode_t::majority) {
+        return ql::datum_t("majority");
+    } else {
+        return convert_vector_to_datum<write_ack_config_t::req_t>(
+            [&](const write_ack_config_t::req_t &req) {
+                return convert_write_ack_config_req_to_datum(req, name_client);
+            }, config.complex_reqs);
+    }
+}
+
+bool convert_write_ack_config_from_datum(
+        const ql::datum_t &datum,
+        server_name_client_t *name_client,
+        write_ack_config_t *config_out,
+        std::string *error_out) {
+    if (datum == ql::datum_t("single")) {
+        config_out->mode = write_ack_config_t::mode_t::single;
+        config_out->complex_reqs.clear();
+    } else if (datum == ql::datum_t("majority")) {
+        config_out->mode = write_ack_config_t::mode_t::majority;
+        config_out->complex_reqs.clear();
+    } else if (datum.get_type() == ql::datum_t::R_ARRAY) {
+        config_out->mode = write_ack_config_t::mode_t::complex;
+        if (!convert_vector_from_datum<write_ack_config_t::req_t>(
+                [&](const ql::datum_t &datum_2, write_ack_config_t::req_t *req_out,
+                        std::string *error_out_2) {
+                    return convert_write_ack_config_req_from_datum(
+                        datum_2, name_client, req_out, error_out_2);
+                }, datum, &config_out->complex_reqs, error_out)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
 
-    ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
-    for (const server_id_t &replica : shard.replicas) {
-        boost::optional<name_string_t> name =
-            name_client->get_name_for_server_id(replica);
-        /* If a server in the config was declared dead, then just omit it from here.
-        Consumers of the `table_config_t` will ignore entries for servers that have
-        been declared dead, for consistency. */
-        if (static_cast<bool>(name)) {
-            replicas_builder.add(convert_name_to_datum(*name));
-        }
-    }
-    builder.overwrite("replicas", std::move(replicas_builder).to_datum());
+    builder.overwrite("replicas",
+        convert_replica_list_to_datum(shard.replicas, name_client));
 
     boost::optional<name_string_t> director_name =
         name_client->get_name_for_server_id(shard.director);
@@ -75,30 +199,10 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("replicas", &replica_names_datum, error_out)) {
         return false;
     }
-    if (replica_names_datum.get_type() != ql::datum_t::R_ARRAY) {
-        *error_out = "In `replicas`: Expected an array, got " +
-            replica_names_datum.print();
+    if (!convert_replica_list_from_datum(replica_names_datum, name_client,
+            &shard_out->replicas, error_out)) {
+        *error_out = "In `replicas`: " + *error_out;
         return false;
-    }
-    shard_out->replicas.clear();
-    for (size_t i = 0; i < replica_names_datum.arr_size(); ++i) {
-        name_string_t name;
-        if (!convert_name_from_datum(replica_names_datum.get(i), "server name", &name,
-                error_out)) {
-            *error_out = "In `replicas`: " + *error_out;
-            return false;
-        }
-        server_id_t server_id;
-        if (!lookup_server(name, name_client, &server_id, error_out)) {
-            *error_out = "In `replicas`: " + *error_out;
-            return false;
-        }
-        auto pair = shard_out->replicas.insert(server_id);
-        if (!pair.second) {
-            *error_out = strprintf("In `replicas`: Server `%s` is listed more than "
-                "once.", name.c_str());
-            return false;
-        }
     }
     if (shard_out->replicas.empty()) {
         *error_out = "You must specify at least one replica for each shard.";
@@ -154,6 +258,8 @@ ql::datum_t convert_table_config_to_datum(
                 return convert_table_config_shard_to_datum(shard, name_client);
             },
             config.shards));
+    builder.overwrite("write_acks",
+        convert_write_ack_config_to_datum(config.write_ack_config, name_client));
     return std::move(builder).to_datum();
 }
 
@@ -278,6 +384,21 @@ bool convert_table_config_and_name_from_datum(
             *error_out = "When generating configuration for new table: " + *error_out;
             return false;
         }
+    }
+
+    if (existed_before || converter.has("write_acks")) {
+        ql::datum_t write_acks_datum;
+        if (!converter.get("write_acks", &write_acks_datum, error_out)) {
+            return false;
+        }
+        if (!convert_write_ack_config_from_datum(write_acks_datum, name_client,
+                &config_out->write_ack_config, error_out)) {
+            *error_out = "In `write_acks`: " + *error_out;
+            return false;
+        }
+    } else {
+        config_out->write_ack_config.mode = write_ack_config_t::mode_t::majority;
+        config_out->write_ack_config.complex_reqs.clear();
     }
 
     if (!converter.check_no_extra_keys(error_out)) {

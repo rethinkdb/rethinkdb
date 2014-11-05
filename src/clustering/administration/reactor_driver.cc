@@ -195,17 +195,19 @@ public:
                             io_backender_t *io_backender,
                             reactor_driver_t *parent,
                             namespace_id_t namespace_id,
-                            const blueprint_t &bp,
+                            const blueprint_t &blueprint,
+                            const table_replication_info_t &repli_info,
                             svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
         table_directory(parent->directory_view, namespace_id),
         base_path(_base_path),
-        watchable(bp),
+        watchable(blueprint_t()),
         ctx(_ctx),
         parent_(parent),
         namespace_id_(namespace_id),
         svs_by_namespace_(svs_by_namespace)
     {
+        update_repli_info(blueprint, repli_info);
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t::initialize_reactor, this, io_backender));
     }
 
@@ -234,10 +236,65 @@ public:
         parent_->watchable_var.delete_key(namespace_id_);
     }
 
+    void update_repli_info(const blueprint_t &blueprint,
+                           const table_replication_info_t &repli_info) {
+        watchable.set_value(blueprint);
+
+        cached_write_ack_config.clear();
+        const write_ack_config_t &wac = repli_info.config.write_ack_config;
+        if (wac.mode == write_ack_config_t::mode_t::complex) {
+            for (const write_ack_config_t::req_t &req : wac.complex_reqs) {
+                size_t largest_overlap = 0;
+                for (const table_config_t::shard_t &shard : repli_info.config.shards) {
+                    size_t overlap = 0;
+                    for (const server_id_t &replica : shard.replicas) {
+                        if (req.replicas.count(replica) == 1) {
+                            ++overlap;
+                        }
+                    }
+                    largest_overlap = std::max(overlap, largest_overlap);
+                }
+                size_t acks = (largest_overlap + 2) / 2;
+                cached_write_ack_config.push_back(std::make_pair(req.replicas, acks));
+            }
+        } else {
+            std::set<server_id_t> replicas;
+            for (const table_config_t::shard_t &shard : repli_info.config.shards) {
+                replicas.insert(shard.replicas.begin(), shard.replicas.end());
+            }
+            size_t acks;
+            if (wac.mode == write_ack_config_t::mode_t::single) {
+                acks = 1;
+            } else {
+                size_t largest_factor = 0;
+                for (const table_config_t::shard_t &shard : repli_info.config.shards) {
+                    largest_factor = std::max(largest_factor, shard.replicas.size());
+                }
+                acks = (largest_factor + 2) / 2;
+            }
+            cached_write_ack_config.push_back(std::make_pair(replicas, acks));
+        }
+    }
+
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        /* RSI(reql_admin): This is temporary. When we figure out how to handle ack
-        expectations in the new ReQL admin API, we'll change it. */
-        return !acks.empty();
+        for (const std::pair<std::set<server_id_t>, size_t> &pair :
+                cached_write_ack_config) {
+            size_t count = 0;
+            for (const peer_id_t &p : acks) {
+                boost::optional<server_id_t> s =
+                    parent_->server_name_client->get_server_id_for_peer_id(p);
+                if (!static_cast<bool>(s)) {
+                    /* This could happen due to a race condition if the peer acknowledged
+                    the write but then disconnected, etc. */
+                    continue;
+                }
+                count += pair.first.count(*s);
+            }
+            if (count < pair.second) {
+                return false;
+            }
+        }
+        return true;
     }
 
     write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
@@ -280,20 +337,17 @@ private:
         reactor_has_been_initialized_.pulse();
     }
 
-private:
     table_directory_converter_t table_directory;
     const base_path_t base_path;
-public:
-    watchable_variable_t<blueprint_t> watchable;
-
-    rdb_context_t *const ctx;
-
-private:
     cond_t reactor_has_been_initialized_;
+    watchable_variable_t<blueprint_t> watchable;
+    rdb_context_t *const ctx;
 
     reactor_driver_t *const parent_;
     const namespace_id_t namespace_id_;
     svs_by_namespace_t *const svs_by_namespace_;
+
+    std::vector<std::pair<std::set<server_id_t>, size_t> > cached_write_ack_config;
 
     stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t> svs_;
@@ -419,22 +473,13 @@ void reactor_driver_t::on_change() {
              * existing reactor. */
             if (!std_contains(reactor_data, it->first)) {
                 namespace_id_t tmp = it->first;
-                reactor_data.insert(
-                        std::make_pair(tmp,
-                                       make_scoped<watchable_and_reactor_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx)));
+                reactor_data.insert(std::make_pair(tmp,
+                    make_scoped<watchable_and_reactor_t>(
+                        base_path, io_backender, this, it->first, bp,
+                        *repli_info, svs_by_namespace, ctx)));
             } else {
-                struct op_closure_t {
-                    static bool apply(const blueprint_t &_bp,
-                                      blueprint_t *bp_ref) {
-                        const bool blueprint_changed = (*bp_ref != _bp);
-                        if (blueprint_changed) {
-                            *bp_ref = _bp;
-                        }
-                        return blueprint_changed;
-                    }
-                };
-
-                reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
+                reactor_data.find(it->first)->second->update_repli_info(
+                    bp, *repli_info);
             }
         }
     }

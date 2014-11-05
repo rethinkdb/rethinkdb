@@ -42,7 +42,19 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
 RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
 RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
 
-RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
+RDB_IMPL_SERIALIZABLE_2(write_ack_config_t::req_t, replicas, mode);
+template void serialize<cluster_version_t::v1_15_is_latest>(
+            write_message_t *, const write_ack_config_t::req_t &);
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
+            read_stream_t *, write_ack_config_t::req_t *);
+RDB_IMPL_EQUALITY_COMPARABLE_2(write_ack_config_t::req_t, replicas, mode);
+
+RDB_IMPL_SERIALIZABLE_2(write_ack_config_t, mode, complex_reqs);
+template void serialize<cluster_version_t::v1_15_is_latest>(
+            write_message_t *, const write_ack_config_t &);
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
+            read_stream_t *, write_ack_config_t *);
+RDB_IMPL_EQUALITY_COMPARABLE_2(write_ack_config_t, mode, complex_reqs);
 
 RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
                         replicas, director);
@@ -53,12 +65,12 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
                                replicas, director);
 
-RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
+RDB_IMPL_SERIALIZABLE_2(table_config_t, shards, write_ack_config);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_1(table_config_t, shards);
+RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t, shards, write_ack_config);
 
 RDB_IMPL_SERIALIZABLE_1(table_shard_scheme_t, split_points);
 template void serialize<cluster_version_t::v1_15_is_latest>(
@@ -131,31 +143,6 @@ RDB_IMPL_SERIALIZABLE_16_FOR_CLUSTER(cluster_directory_metadata_t,
      server_name_business_card,
      local_issues,
      peer_type);
-
-bool ack_expectation_t::operator==(ack_expectation_t other) const {
-    return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
-}
-
-void debug_print(printf_buffer_t *buf, const ack_expectation_t &x) {
-    buf->appendf("ack_expectation{durability=%s, acks=%" PRIu32 "}",
-                 x.is_hardly_durable() ? "hard" : "soft", x.expectation());
-}
-
-// json adapter concept for ack_expectation_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["expectation"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint32_t>(&target->expectation_));
-    res["hard_durability"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool>(&target->hard_durability_));
-    return res;
-}
-cJSON *render_as_json(ack_expectation_t *target) {
-    return render_as_directory(target);
-}
-
-void apply_json_to(cJSON *change, ack_expectation_t *target) {
-    apply_as_directory(change, target);
-}
-
 
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
