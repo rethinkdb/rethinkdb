@@ -11,6 +11,10 @@ Bug fix update.
   changefeed has crashed (#3038)
 * Fixed a bug that caused a crash when unsharding discards more rows than
   expected when batching results (#3264)
+* Fixed a bug that could lead to crashes when changefeeds are frequently
+  registered and unregistered (#3205)
+* Changed the `r.point` constructor to be deterministic, allowing it to be used
+  in secondary index functions (#3287)
 
 ---
 
