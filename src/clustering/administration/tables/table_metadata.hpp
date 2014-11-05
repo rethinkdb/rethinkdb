@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
-#define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_
 
 #include <map>
 #include <set>
@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "clustering/administration/database_metadata.hpp"
+#include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
@@ -110,7 +110,7 @@ RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_scheme_t);
 
 /* `table_replication_info_t` exists because the `table_config_t` needs to be under the
-same vector clock as `chosen_directors`. */
+same `versioned_t` as `table_shard_scheme_t`. */
 
 class table_replication_info_t {
 public:
@@ -151,4 +151,4 @@ RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
 typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > namespace_directory_metadata_t;
 
-#endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_ */

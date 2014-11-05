@@ -8,8 +8,6 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "containers/uuid.hpp"

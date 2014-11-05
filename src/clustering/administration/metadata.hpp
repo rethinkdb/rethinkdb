@@ -8,13 +8,13 @@
 #include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
-#include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/log_transfer.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
+#include "clustering/administration/tables/database_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"

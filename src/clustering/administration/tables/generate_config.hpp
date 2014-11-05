@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
