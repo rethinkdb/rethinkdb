@@ -18,6 +18,11 @@ tests:
     ot: ({'created':1})
   - cd: tbl.index_create('other')
     ot: ({'created':1})
+  # r.point is deterministic and can be used in an index function
+  - rb: "tbl.index_create('point_det'){ |x| r.point(x, x) }"
+    py: "tbl.index_create('point_det', lambda x: r.point(x, x) )"
+    js: "tbl.indexCreate('point_det', function(x) {return r.point(x, x);} )"
+    ot: ({'created':1})
 
   - cd: tbl.index_wait()
 
