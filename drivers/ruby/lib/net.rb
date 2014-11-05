@@ -340,7 +340,7 @@ module RethinkDB
     def note_error(token, e) # Synchronize around this!
       data = {
         't' => Response::ResponseType::CLIENT_ERROR,
-        'r' => [e.inspect],
+        'r' => [e.message],
         'b' => []
       }
       note_data(token, data)
