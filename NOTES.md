@@ -1,6 +1,19 @@
+# Release 1.15.2 (Lawrence of Arabia)
+
+Released on 2014-11-06
+
+Bug fix update.
+
+* Added packages for Ubuntu 14.10 "Utopic Unicorn" (#3237)
+* Fix a bug with memory handling in S2 (#3201)
+* Fixed a bug handling paged results in the Data Explorer (#3111)
+* Fixed a bug that caused a crash on exit if a joined server with an open changefeed has crashed (#3038)
+
+---
+
 # Release 1.15.1 (Lawrence of Arabia)
 
-Released on 2014-10-x
+Released on 2014-10-07
 
 Bug fix update.
 
