@@ -243,6 +243,7 @@ public:
         watchable.set_value(blueprint);
         cached_write_ack_config =
             make_scoped<write_ack_config_checker_t>(repli_info.config, server_md);
+        cached_durability = repli_info.config.durability;
     }
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
@@ -264,9 +265,7 @@ public:
     }
 
     write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
-        /* RSI(reql_admin): This is temporary. When we figure out how to handle write
-        durability in the new ReQL admin API, we'll change it. */
-        return write_durability_t::HARD;
+        return cached_durability;
     }
 
 private:
@@ -314,6 +313,7 @@ private:
     svs_by_namespace_t *const svs_by_namespace_;
 
     scoped_ptr_t<write_ack_config_checker_t> cached_write_ack_config;
+    write_durability_t cached_durability;
 
     stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t> svs_;

@@ -64,6 +64,7 @@ public:
     };
     std::vector<shard_t> shards;
     write_ack_config_t write_ack_config;
+    write_durability_t durability;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);

@@ -164,6 +164,34 @@ bool convert_write_ack_config_from_datum(
     return true;
 }
 
+ql::datum_t convert_durability_to_datum(
+        write_durability_t durability) {
+    switch (durability) {
+        case write_durability_t::SOFT:
+            return ql::datum_t("soft");
+        case write_durability_t::HARD:
+            return ql::datum_t("hard");
+        case write_durability_t::INVALID:
+        default:
+            unreachable();
+    }
+}
+
+bool convert_durability_from_datum(
+        const ql::datum_t &datum,
+        write_durability_t *durability_out,
+        std::string *error_out) {
+    if (datum == ql::datum_t("soft")) {
+        *durability_out = write_durability_t::SOFT;
+    } else if (datum == ql::datum_t("hard")) {
+        *durability_out = write_durability_t::HARD;
+    } else {
+        *error_out = "Expected \"soft\" or \"hard\", got: " + datum.print();
+        return false;
+    }
+    return true;
+}
+
 ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard,
         server_name_client_t *name_client) {
@@ -260,6 +288,8 @@ ql::datum_t convert_table_config_to_datum(
             config.shards));
     builder.overwrite("write_acks",
         convert_write_ack_config_to_datum(config.write_ack_config, name_client));
+    builder.overwrite("durability",
+        convert_durability_to_datum(config.durability));
     return std::move(builder).to_datum();
 }
 
@@ -401,6 +431,19 @@ bool convert_table_config_and_name_from_datum(
         config_out->write_ack_config.complex_reqs.clear();
     }
 
+    if (existed_before || converter.has("durability")) {
+        ql::datum_t durability_datum;
+        if (!converter.get("durability", &durability_datum, error_out)) {
+            return false;
+        }
+        if (!convert_durability_from_datum(durability_datum, &config_out->durability,
+                error_out)) {
+            return false;
+        }
+    } else {
+        config_out->durability = write_durability_t::HARD;
+    }
+
     if (!converter.check_no_extra_keys(error_out)) {
         return false;
     }
@@ -418,7 +461,7 @@ bool table_config_artificial_table_backend_t::write_row(
     on_thread_t thread_switcher(home_thread());
 
     /* Look for an existing table with the given UUID */
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    cluster_semilattice_metadata_t md = semilattice_view->get();
     namespace_id_t table_id;
     std::string dummy_error;
     if (!convert_uuid_from_datum(primary_key, &table_id, &dummy_error)) {
@@ -428,7 +471,7 @@ bool table_config_artificial_table_backend_t::write_row(
             "a valid UUID string.");
         table_id = nil_uuid();
     }
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
         ::iterator it;
     bool existed_before = search_metadata_by_uuid(
@@ -576,7 +619,7 @@ bool table_config_artificial_table_backend_t::write_row(
         }
     }
 
-    table_sl_view->join(md);
+    semilattice_view->join(md);
 
     return true;
 }

@@ -32,12 +32,12 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
                                replicas, director);
 
-RDB_IMPL_SERIALIZABLE_2(table_config_t, shards, write_ack_config);
+RDB_IMPL_SERIALIZABLE_3(table_config_t, shards, write_ack_config, durability);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t, shards, write_ack_config);
+RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_t, shards, write_ack_config, durability);
 
 RDB_IMPL_SERIALIZABLE_1(table_shard_scheme_t, split_points);
 template void serialize<cluster_version_t::v1_15_is_latest>(
