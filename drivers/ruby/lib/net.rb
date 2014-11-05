@@ -74,7 +74,7 @@ module RethinkDB
     end
 
     def each (&block) # :nodoc:
-      raise RqlRuntimeError, "Can only iterate over Query_Results once!" if @run
+      raise RqlRuntimeError, "Can only iterate over a cursor once." if @run
       @run = true
       while true
         @results.each(&block)
