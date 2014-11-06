@@ -733,6 +733,7 @@ module 'DataExplorerView', ->
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
                 @handle_keypress()
+            @results_view.init_after_dom_rendered()
 
             @draft = @codemirror.getValue()
 
@@ -3624,9 +3625,8 @@ module 'DataExplorerView', ->
         render: =>
             @copy_parent_results()
             
-            if @profile is null
-                @$el.html @template
-                    profile: null
+            if not @profile?
+                @$el.html @template {} 
             else
                 @$el.html @template
                     profile:
@@ -3763,6 +3763,8 @@ module 'DataExplorerView', ->
                 @container.options_view.$('.profiler_enabled').slideDown 'fast'
 
         render_error: (query, err, js_error) =>
+            @view_object?.remove()
+            @view_object = undefined
             @$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
@@ -3805,7 +3807,7 @@ module 'DataExplorerView', ->
             @view_object?.remove()
             @view_object = new @views[@view] parent: @
             @$('.tab-content').html @view_object.render().$el
-            @view_object.init_after_dom_rendered?()
+            @init_after_dom_rendered()
 
             @set_scrollbar()
             @delegateEvents()
@@ -3815,7 +3817,10 @@ module 'DataExplorerView', ->
                 trigger: 'hover'
                 placement: 'bottom'
             return @
- 
+
+        init_after_dom_rendered: =>
+            @view_object?.init_after_dom_rendered?()
+
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.state.cursor_timed_out = true

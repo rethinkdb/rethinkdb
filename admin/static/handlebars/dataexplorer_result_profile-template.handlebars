@@ -19,9 +19,10 @@
     Copy to clipboard
   </button>
   <div class="profile_container">{{{tree}}}</div>
-  {{else}}
+  {{/with}}
+  {{#unless profile}}
   <div class="activate_profiler_message">
     <p><a href="#" class="activate_profiler">Enable</a> the query profiler (developer preview) and re-run the query.</p>
   </div>
-  {{/with}}
+  {{/unless}}
 </div>
