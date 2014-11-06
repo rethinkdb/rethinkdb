@@ -45,6 +45,10 @@ with driver.Metacluster() as metacluster:
     conn = r.connect("localhost", procs[0].driver_port)
     r.db_create("test").run(conn)
     r.table_create("foo").run(conn)
+    res = r.table_config("foo") \
+           .update({"shards": [{"director": "s1", "replicas": ["s1"]}]}).run(conn)
+    assert res["errors"] == 0
+    r.table_wait("foo").run(conn)
 
     # Insert some data so distribution queries can work
     r.table("foo").insert([{"x":x} for x in xrange(100)]).run(conn)
@@ -91,7 +95,7 @@ with driver.Metacluster() as metacluster:
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
     def get_config():
-        row = r.table_config('foo').run(conn)
+        row = r.table_config('foo').nth(0).run(conn)
         del row["name"]
         del row["db"]
         del row["primary_key"]
@@ -100,7 +104,7 @@ with driver.Metacluster() as metacluster:
     prev_config = get_config()
     new_config = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",
         dry_run=True).run(conn)
-    assert prev_config != new_config
+    assert prev_config != new_config, (prev_config, new_config)
     assert get_config() == prev_config
     new_config_2 = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",
         dry_run=False).run(conn)
@@ -118,7 +122,7 @@ with driver.Metacluster() as metacluster:
         assert res["errors"] == 0, repr(res)
         for i in xrange(10):
             time.sleep(3)
-            if r.table_status("foo").run(conn)["ready_completely"]:
+            if r.table_status("foo").nth(0).run(conn)["ready_completely"]:
                 break
         else:
             raise ValueError("took too long to reconfigure")
@@ -145,13 +149,13 @@ with driver.Metacluster() as metacluster:
         assert res["errors"] == 0
         for i in xrange(10):
             time.sleep(3)
-            if r.table_status("blocker").run(conn)["ready_completely"]:
+            if r.table_status("blocker").nth(0).run(conn)["ready_completely"]:
                 break
         else:
             raise ValueError("took too long to reconfigure")
         res = r.table_create("probe").run(conn)
         assert res == {"created": 1}
-        probe_config = r.table_config("probe").run(conn)
+        probe_config = r.table_config("probe").nth(0).run(conn)
         assert probe_config["shards"][0]["replicas"] == [server]
         res = r.table_drop("probe").run(conn)
         assert res == {"dropped": 1}

@@ -572,6 +572,9 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         return false;
     }
 
+    new_repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
+    new_repli_info.config.durability = write_durability_t::HARD;
+
     if (!dry_run) {
         /* Commit the change */
         ns_metadata_it->second.get_mutable()->replication_info.set(new_repli_info);
