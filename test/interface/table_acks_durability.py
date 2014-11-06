@@ -91,15 +91,15 @@ with driver.Metacluster() as metacluster:
         ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 3, "majority")], "ro", "ro"),
         ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 1, "single")], "ro", "ro"),
         ([mks(2, 2), mks(2, 2, "d")], [mkr(2, 0, "majority"), mkr(0, 2, "majority")],
-            "o", "awro"),
+            "o", "ro"),
         ]
 
     print("Creating tables for tests...")
     r.db_create("test").run(conn)
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         conf = {"shards": shards, "write_acks": write_acks}
-        print "%d/%d" % (i+1, len(tests)), conf
         t = "table%d" % (i+1)
+        print t, conf
         res = r.table_create(t).run(conn)
         assert res["created"] == 1, res
         res = r.table_config(t).update(conf).run(conn)
@@ -162,9 +162,11 @@ with driver.Metacluster() as metacluster:
     res = r.table_config().update(lambda conf: {
         "shards": conf["shards"].map(lambda shard: {
             "replicas": shard["replicas"],
-            "director": shard["director"].default(shard["replicas"].nth(0)).default(None)
+            "director": shard["director"].default(shard["replicas"].nth(0))
         })}).run(conn)
-    assert res["errors"] == 0, res
+    # The update will fail if "replicas" is empty after permanently removing the dead
+    # servers. So some number of errors is expected.
+    assert res["errors"] == sum(["o" not in t[3] for t in tests]), res
 
     print("Checking table statuses...")
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):

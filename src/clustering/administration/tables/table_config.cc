@@ -115,6 +115,7 @@ bool convert_write_ack_config_req_from_datum(
     } else {
         *error_out = "In `acks`: Expected 'single' or 'majority', got: " +
             acks_datum.print();
+        return false;
     }
 
     if (!converter.check_no_extra_keys(error_out)) {
@@ -160,6 +161,10 @@ bool convert_write_ack_config_from_datum(
                 }, datum, &config_out->complex_reqs, error_out)) {
             return false;
         }
+    } else {
+        *error_out = "Expected `single`, `majority`, or a list of ack requirements, but "
+            "instead got: " + datum.print();
+        return false;
     }
     return true;
 }
