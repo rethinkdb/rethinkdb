@@ -1,15 +1,18 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2014 RethinkDB, all rights reserved.
+
+"""The `interface.table_wait` test checks that waiting for a table returns when the table is available for writing."""
+
+from __future__ import print_function
+
 import sys, os, time, traceback, multiprocessing
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse
+
 r = utils.import_python_driver()
 
-"""The `interface.table_wait` test checks that waiting for a table returns when
-the table is available for writing."""
-
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
@@ -57,26 +60,23 @@ def spawn_table_wait(port, tbls):
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, log_path = "create-output-1", server_name = "a",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc1 = driver.Process(cluster, files1, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, log_path = "create-output-2", server_name = "b",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    
+    print("Spinning up two processes...")
+    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", command_prefix=command_prefix)
+    proc1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
+    files2 = driver.Files(metacluster, console_output = "create-output-2", server_name="b", command_prefix=command_prefix)
+    proc2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
     cluster.check()
 
     conn = r.connect("localhost", proc1.driver_port)
 
-    print "Creating %d tables..." % (len(tables) + 1)
+    print("Creating %d tables..." % (len(tables) + 1))
     create_tables(conn)
 
-    print "Killing second server..."
+    print("Killing second server...")
     proc2.close()
 
     wait_for_table_states(conn, ready=False)
@@ -102,15 +102,14 @@ with driver.Metacluster() as metacluster:
     waiter_procs[0].join(15)
     assert all(map(lambda w: w.is_alive(), waiter_procs)), "Wait returned while a server was still down."
 
-    print "Restarting second server..."
-    proc2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    print("Restarting second server...")
+    proc2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     proc2.wait_until_started_up()
 
-    print "Waiting for table readiness..."
+    print("Waiting for table readiness...")
     map(lambda w: w.join(), waiter_procs)
     assert check_table_states(conn, ready=True), "`table_wait` returned, but not all tables are ready"
 
     cluster.check_and_stop()
-print "Done."
+print("Done.")
 

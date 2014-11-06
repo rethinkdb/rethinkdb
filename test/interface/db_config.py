@@ -1,26 +1,26 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+# Copyright 2014 RethinkDB, all rights reserved.
+
+import os, sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse
+
 r = utils.import_python_driver()
 
-"""The `interface.db_config` test checks that the special `rethinkdb.db_config` table
-behaves as expected."""
+"""The `interface.db_config` test checks that the special `rethinkdb.db_config` table behaves as expected."""
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up a process..."
-    files = driver.Files(metacluster, log_path = "create-output", server_name = "a",
-                         executable_path = executable_path, command_prefix = command_prefix)
-    proc = driver.Process(cluster, files, log_path = "serve-output",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    
+    print("Spinning up a process...")
+    files = driver.Files(metacluster, console_output="create-output", server_name="a", command_prefix=command_prefix)
+    proc = driver.Process(cluster, files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
     proc.wait_until_started_up()
     cluster.check()
     conn = r.connect("localhost", proc.driver_port)
@@ -65,5 +65,5 @@ with driver.Metacluster() as metacluster:
     assert "baz" not in r.db_list().run(conn)
 
     cluster.check_and_stop()
-print "Done."
+print("Done.")
 

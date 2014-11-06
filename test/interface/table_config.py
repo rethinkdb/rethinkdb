@@ -1,39 +1,37 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback, pprint
+# Copyright 2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
+import os, pprint, sys, time
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse
+
 r = utils.import_python_driver()
 
-"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and
-`rethinkdb.table_status` tables behave as expected."""
+"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, log_path = "create-output-1", server_name = "a",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc1 = driver.Process(cluster1, files1, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, log_path = "create-output-2", server_name = "b",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files3 = driver.Files(metacluster, log_path = "create-output-3", server_name = "never_used",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc3 = driver.Process(cluster1, files3, log_path = "serve-output-3",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    
+    print("Spinning up two processes...")
+    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", command_prefix=command_prefix)
+    proc1 = driver.Process(cluster1, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
+    files2 = driver.Files(metacluster, console_output="create-output-2", server_name="b", command_prefix=command_prefix)
+    proc2 = driver.Process(cluster1, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
+    files3 = driver.Files(metacluster, console_output="create-output-3", server_name="never_used", command_prefix=command_prefix)
+    proc3 = driver.Process(cluster1, files3, console_output="serve-output-3", command_prefix=command_prefix, extra_options=serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
     proc3.wait_until_started_up()
     cluster1.check()
-    conn = r.connect("localhost", proc1.driver_port)
+    conn = r.connect(proc1.host, proc1.driver_port)
 
     def check_foo_config_matches(expected):
         config = r.table_config("foo").run(conn)
@@ -111,10 +109,9 @@ with driver.Metacluster() as metacluster:
         except:
             config = list(r.db("rethinkdb").table("table_config").run(conn))
             status = list(r.db("rethinkdb").table("table_status").run(conn))
-            print "Something went wrong."
-            print "config ="
+            print("Something went wrong.\nconfig =")
             pprint.pprint(config)
-            print "status ="
+            print("status =")
             pprint.pprint(status)
             raise
 
@@ -126,7 +123,7 @@ with driver.Metacluster() as metacluster:
            .run(conn)
     assert res["replaced"] == 1, res
 
-    print "Creating a table..."
+    print("Creating a table...")
     r.db_create("test").run(conn)
     r.table_create("foo").run(conn)
     r.table_create("bar").run(conn)
@@ -135,20 +132,20 @@ with driver.Metacluster() as metacluster:
     r.table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
     assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
 
-    print "Testing that table_config and table_status are sane..."
+    print("Testing that table_config and table_status are sane...")
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar"), ("test2", "bar2")]))
     wait_until(check_status_matches_config)
 
-    print "Testing that we can move around data by writing to table_config..."
+    print("Testing that we can move around data by writing to table_config...")
     def test_shards(shards):
-        print "Reconfiguring:", {"shards": shards}
+        print("Reconfiguring:", {"shards": shards})
         res = r.table_config("foo").update({"shards": shards}).run(conn)
         assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
-        print "OK"
+        print("OK")
     test_shards(
         [{"replicas": ["a"], "director": "a"}])
     test_shards(
@@ -164,13 +161,13 @@ with driver.Metacluster() as metacluster:
     test_shards(
         [{"replicas": ["a"], "director": "a"}])
 
-    print "Testing that table_config rejects invalid input..."
+    print("Testing that table_config rejects invalid input...")
     def test_invalid(conf):
-        print "Reconfiguring:", conf
+        print("Reconfiguring:", conf)
         res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}) \
                .replace(conf).run(conn)
         assert res["errors"] == 1
-        print "Error, as expected"
+        print("Error, as expected")
     test_invalid(r.row.merge({"shards": []}))
     test_invalid(r.row.merge({"shards": "this is a string"}))
     test_invalid(r.row.merge({"shards":
@@ -188,17 +185,17 @@ with driver.Metacluster() as metacluster:
     test_invalid(r.row.without("db"))
     test_invalid(r.row.without("shards"))
 
-    print "Testing that we can rename tables through table_config..."
+    print("Testing that we can rename tables through table_config...")
     res = r.table_config("bar").update({"name": "bar2"}).run(conn)
     assert res["errors"] == 0
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar2"), ("test2", "bar2")]))
 
-    print "Testing that we can't rename a table so as to cause a name collision..."
+    print("Testing that we can't rename a table so as to cause a name collision...")
     res = r.table_config("bar2").update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
 
-    print "Testing that we can create a table through table_config..."
+    print("Testing that we can create a table through table_config...")
     def test_create(doc, pkey):
         res = r.db("rethinkdb").table("table_config") \
                .insert(doc, return_changes=True).run(conn)
@@ -234,12 +231,11 @@ with driver.Metacluster() as metacluster:
         "db": "test"
         }, "id")
 
-    print "Testing that we can delete a table through table_config..."
+    print("Testing that we can delete a table through table_config...")
     res = r.table_config("baz").delete().run(conn)
     assert res["errors"] == 0, repr(res)
     assert res["deleted"] == 1, repr(res)
     assert "baz" not in r.table_list().run(conn)
 
     cluster1.check_and_stop()
-print "Done."
-
+print("Done.")

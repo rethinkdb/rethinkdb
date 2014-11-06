@@ -19,9 +19,11 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
             incremental_field_getter_t<server_id_t,
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::server_id))),
+    invalid_config_issue_tracker(cluster_sl_view),
     name_collision_issue_tracker(cluster_sl_view)
 {
     trackers.insert(&remote_issue_tracker);
+    trackers.insert(&invalid_config_issue_tracker);
     trackers.insert(&name_collision_issue_tracker);
 }
 
@@ -36,10 +38,15 @@ bool issues_artificial_table_backend_t::read_all_rows_as_vector(
     on_thread_t rethreader(home_thread());
     rows_out->clear();
 
-    ql::datum_t row;
+    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     for (auto const &tracker : trackers) {
         for (auto const &issue : tracker->get_issues()) {
-            issue->to_datum(cluster_sl_view->get(), &row);
+            ql::datum_t row;
+            bool still_valid = issue->to_datum(metadata, &row);
+            if (!still_valid) {
+                /* Based on `metadata`, the issue decided it is no longer relevant. */
+                continue;
+            }
             rows_out->push_back(row);
         }
     }

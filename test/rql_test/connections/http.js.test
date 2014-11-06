@@ -2,23 +2,22 @@
 
 import os, sys, subprocess
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-import test_util
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import utils
+import driver, utils
 
 if not os.path.isdir('run'):
     os.makedirs('run')
 
-build_dir = os.getenv('BUILD_DIR') or utils.latest_build_dir()
-if len(sys.argv) > 1:
-    build_dir = sys.argv[1]
+executable_path = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
+os.environ['RDB_EXE_PATH'] = executable_path
 
 mochaReporterOptions = ['-R', 'spec']
 if not utils.supportsTerminalColors():
     mochaReporterOptions += ['--no-colors'] # handle visionmedia/mocha#1304
 
-with test_util.RethinkDBTestServers(1, server_build_dir=build_dir) as server:
-    os.environ['TEST_PORT'] = str(server.driver_port())
-    sys.exit(subprocess.call(['_mocha'] + mochaReporterOptions + ['--timeout', '10000', os.path.join(os.path.dirname(__file__), 'http.js')]))
+server = None
+if os.environ.get('RDB_DRIVER_PORT') is None:
+    server = driver.Process(executable_path=rethinkdb_exe)
+    os.environ['RDB_DRIVER_PORT'] = server.driver_port
+
+sys.exit(subprocess.call(['_mocha'] + mochaReporterOptions + ['--timeout', '10000', os.path.join(os.path.dirname(__file__), 'http.js')]))

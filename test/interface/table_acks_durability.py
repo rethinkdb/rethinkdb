@@ -21,20 +21,20 @@ with driver.Metacluster() as metacluster:
     # The "live" process will remain alive for the entire test. The "dead" processes will
     # be killed after we create some tables
     num_live = num_dead = 3
-    print "Spinning up %d processes..." % (num_live + num_dead)
+    print("Spinning up %d processes..." % (num_live + num_dead))
     def make_procs(names):
         files, procs = [], []
         for name in names:
             files.append(driver.Files(
                 metacluster,
-                log_path = "create-output-%s" % name,
+                console_output = "create-output-%s" % name,
                 server_name = name,
                 executable_path = executable_path,
                 command_prefix = command_prefix))
             procs.append(driver.Process(
                 cluster,
                 files[-1],
-                log_path = "serve-output-%s" % name,
+                console_output = "serve-output-%s" % name,
                 executable_path = executable_path,
                 command_prefix = command_prefix,
                 extra_options = serve_options))
@@ -94,7 +94,7 @@ with driver.Metacluster() as metacluster:
             "o", "awro"),
         ]
 
-    print "Creating tables for tests..."
+    print("Creating tables for tests...")
     r.db_create("test").run(conn)
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         conf = {"shards": shards, "write_acks": write_acks}
@@ -108,11 +108,11 @@ with driver.Metacluster() as metacluster:
         res = r.table(t).insert([{}]*1000).run(conn)
         assert res["errors"] == 0 and res["inserted"] == 1000, res
 
-    print "Killing the designated 'dead' servers..."
+    print("Killing the designated 'dead' servers...")
     for proc in dead_procs:
         proc.check_and_stop()
 
-    print "Checking table statuses..."
+    print("Checking table statuses...")
     def check_table_status(name, expected_readiness):
         tested_readiness = ""
         try:
@@ -155,7 +155,7 @@ with driver.Metacluster() as metacluster:
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_1)
 
-    print "Permanently removing the designated 'dead' servers..."
+    print("Permanently removing the designated 'dead' servers...")
     res = r.db("rethinkdb").table("server_config") \
            .filter(lambda s: r.expr(dead_names).contains(s["name"])).delete().run(conn)
     assert res["deleted"] == num_dead, res
@@ -166,24 +166,24 @@ with driver.Metacluster() as metacluster:
         })}).run(conn)
     assert res["errors"] == 0, res
 
-    print "Checking table statuses..."
+    print("Checking table statuses...")
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_2)
     # TODO: Check that issues exist for write acks that are now unsatisfiable
 
-    print "Running auxiliary tests..."
+    print("Running auxiliary tests...")
     res = r.table_create("aux").run(conn)
     assert res["created"] == 1, res
     def test_ok(change):
         print repr(change)
         res = r.table_config("aux").update(change).run(conn)
         assert res["errors"] == 0 and res["replaced"] == 1
-        print "OK"
+        print("OK")
     def test_fail(change):
         print repr(change)
         res = r.table_config("aux").update(change).run(conn)
         assert res["errors"] == 1 and res["replaced"] == 0
-        print "Failed (as expected):", repr(res["first_error"])
+        print("Failed (as expected):", repr(res["first_error"]))
     test_ok({"durability": "soft"})
     test_ok({"durability": "hard"})
     test_fail({"durability": "the consistency of toothpaste"})
@@ -198,5 +198,5 @@ with driver.Metacluster() as metacluster:
     # TODO: Test putting up unsatisfiable write acks
 
     cluster.check_and_stop()
-print "Done."
+print("Done.")
 

@@ -9,13 +9,17 @@ process.on('uncaughtException', function(err) {
     process.exit(1)
 });
 
-var fs = require('fs');
-var spawn = require('child_process').spawn
 var assert = require('assert');
-var r = require('../../../build/packages/js/rethinkdb');
+var path = require('path');
+var spawn = require('child_process').spawn
 
-var build_dir = process.env.BUILD_DIR || '../../../build/debug'
-var port = parseInt(process.env.TEST_PORT, 10)
+// -- load rethinkdb from the proper location
+
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+
+// --
+
+var port = parseInt(process.env.RDB_DRIVER_PORT, 10)
 
 var withConnection = function(f){
     return function(done){

@@ -13,12 +13,11 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    
     print "Starting cluster..."
-    serve_files = driver.Files(metacluster, db_path="db", log_path="create-output",
-        executable_path=executable_path, command_prefix=command_prefix)
-    serve_process = driver.Process(cluster, serve_files, log_path="serve-output",
-        executable_path=executable_path, command_prefix=command_prefix, extra_options=serve_options)
+    serve_files = driver.Files(metacluster, db_path="db", console_output="create-output", command_prefix=command_prefix)
+    serve_process = driver.Process(cluster, serve_files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
     
     # remove --cache-size
     for option in serve_options[:]:
@@ -31,8 +30,7 @@ with driver.Metacluster() as metacluster:
         elif option.startswith('--cache-size='):
             serve_options.remove(option)
     
-    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path='proxy-output',
-        executable_path=executable_path, command_prefix=command_prefix, extra_options=serve_options)
+    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
     processes = [serve_process, proxy_process]
     for process in processes:
         process.wait_until_started_up()
