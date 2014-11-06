@@ -193,18 +193,18 @@ public:
             signal_t *interruptor,
             ql::datum_t *new_config_out,
             std::string *error_out);
-        bool table_estimate_doc_counts(
-            counted_t<const ql::db_t> db,
-            const name_string_t &name,
-            ql::env_t *interruptor,
-            std::vector<int64_t> *doc_counts_out,
-            std::string *error_out);
         bool db_reconfigure(
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            ql::datum_t *result_out,
+            ql::datum_t *new_config_out,
+            std::string *error_out);
+        bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            ql::env_t *interruptor,
+            std::vector<int64_t> *doc_counts_out,
             std::string *error_out);
 
     private:

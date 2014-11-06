@@ -37,14 +37,14 @@ std::map<name_string_t, size_t> get_replica_counts(scoped_ptr_t<val_t> arg) {
             std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
             name_string_t name;
             bool assignment_successful = name.assign_value(pair.first);
-            rcheck_target(arg.get(), assignment_successful, base_exc_t::GENERIC,
+            rcheck_target(arg, assignment_successful, base_exc_t::GENERIC,
                 strprintf("Server tag name `%s` invalid (%s).",
                           pair.first.to_std().c_str(), name_string_t::valid_char_msg));
             int64_t replicas = checked_convert_to_int(arg.get(), pair.second.as_num());
-            rcheck_target(arg.get(), replicas >= 0,
+            rcheck_target(arg, replicas >= 0,
                 base_exc_t::GENERIC, "Can't have a negative number of replicas");
             size_t replicas2 = static_cast<size_t>(replicas);
-            rcheck_target(arg.get(), static_cast<int64_t>(replicas2) == replicas,
+            rcheck_target(arg, static_cast<int64_t>(replicas2) == replicas,
                 base_exc_t::GENERIC, strprintf("Integer too large: %" PRIi64, replicas));
             replica_counts.insert(std::make_pair(name, replicas2));
         }
@@ -53,7 +53,7 @@ std::map<name_string_t, size_t> get_replica_counts(scoped_ptr_t<val_t> arg) {
         replica_counts.insert(std::make_pair(
             name_string_t::guarantee_valid("default"), replicas));
     } else {
-        rfail_target(arg.get(), base_exc_t::GENERIC,
+        rfail_target(arg, base_exc_t::GENERIC,
             "Expected type OBJECT or NUMBER but found %s:\n%s",
             datum.get_type_name().c_str(), datum.print().c_str());
     }
@@ -390,41 +390,70 @@ private:
 class reconfigure_term_t : public meta_op_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(3),
-            optargspec_t({"director_tag", "dry_run"})) { }
+        meta_op_term_t(env, term, argspec_t(0, 1),
+            optargspec_t({"director_tag", "dry_run", "replicas", "shards"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t)
-            const {
-        /* Parse parameters */
+    scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
+                                        args_t *args,
+                                        const char *name) const {
+        scoped_ptr_t<val_t> result = args->optarg(env, name);
+        rcheck(result.has(), base_exc_t::GENERIC,
+               strprintf("Missing required argument `%s`.", name));
+        return result;
+    }
+
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
         table_generate_config_params_t config_params;
-        config_params.num_shards = args->arg(env, 1)->as_int<int>();
-        config_params.num_replicas = get_replica_counts(args->arg(env, 2));
+
+        // Parse the 'shards' optarg
+        scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
+        rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
+                      "Every table must have at least one shard.");
+        config_params.num_shards = shards_optarg->as_int();
+
+        // Parse the 'replicas' optarg
+        config_params.num_replicas =
+            get_replica_counts(required_optarg(env, args, "replicas"));
+
+        // Parse the 'director_tag' optarg
         if (scoped_ptr_t<val_t> v = args->optarg(env, "director_tag")) {
             config_params.director_tag = get_name(v, this, "Server tag");
         } else {
             config_params.director_tag = name_string_t::guarantee_valid("default");
         }
+
+        // Parse the 'dry_run' optarg
         bool dry_run = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "dry_run")) {
             dry_run = v->as_bool();
         }
 
-        /* Perform the operation */
         bool success;
         datum_t result;
         std::string error;
-        scoped_ptr_t<val_t> target = args->arg(env, 0);
+        scoped_ptr_t<val_t> target;
+        if (args->num_args() == 0) {
+            target = args->optarg(env, "db");
+            r_sanity_check(target.has());
+        } else {
+            target = args->arg(env, 0);
+        }
+
+        /* Perform the operation */
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
             success = env->env->reql_cluster_interface()->db_reconfigure(
                     target->as_db(), config_params, dry_run, env->env->interruptor,
                     &result, &error);
         } else {
+            counted_t<table_t> table = target->as_table();
+            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
             /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
             on this table */
             success = env->env->reql_cluster_interface()->table_reconfigure(
-                    target->as_table()->db, get_name(target, this, "Table"),
-                    config_params, dry_run, env->env->interruptor,
-                    &result, &error);
+                    table->db, name, config_params, dry_run,
+                    env->env->interruptor, &result, &error);
         }
 
         if (!success) {
