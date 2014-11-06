@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import os, sys, unittest
+import os, sys, unittest, re
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
 import utils
@@ -18,6 +18,19 @@ class TestRangeCursor(unittest.TestCase):
     def setUp(self):
         self.conn = r.connect(port=port)
 
+        if not hasattr(self, 'assertRaisesRegexp'):
+            def assertRaisesRegexp_replacement(exception, regexp, function, *args, **kwds):
+                try:
+                    function(*args, **kwds)
+                except Exception as e:
+                    if not isinstance(e, Exception):
+                        raise
+                    if not re.match(regexp, str(e)):
+                        raise AssertionError('"%s" does not match "%s"' % (str(regexp), str(e)))
+                    return
+                raise AssertionError('TypeError not raised for: %s' % str(function))
+            self.assertRaisesRegexp = assertRaisesRegexp_replacement
+
     def test_cursor_after_connection_close(self):
         cursor = r.range().run(self.conn)
         self.conn.close()
@@ -26,7 +39,7 @@ class TestRangeCursor(unittest.TestCase):
             for i in cursor:
                 count += 1
             return count
-        count = self.assertRaises(r.RqlRuntimeError, read_cursor, cursor) # Connection is closed.
+        count = self.assertRaisesRegexp(r.RqlRuntimeError, "Connection is closed.", read_cursor, cursor)
         self.assertNotEqual(count, 0, "Did not get any cursor results")
 
     def test_cursor_after_cursor_close(self):

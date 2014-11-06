@@ -82,7 +82,7 @@ class Cursor(object):
     def _error(self, message):
         self.end_flag = True
         self.responses.append(Response(self.query.token, \
-            json.dumps({'t': pResponse.RUNTIME_ERROR, 'r': [message]})))
+            json.dumps({'t': pResponse.RUNTIME_ERROR, 'r': [message], 'b': []})))
 
     def _it(self):
         while True:
@@ -118,7 +118,7 @@ class Cursor(object):
 
     def close(self):
         if not self.end_flag:
-            self._error("Cursor is closed.")
+            self.end_flag = True
             if self.conn.is_open():
                 self.conn._end_cursor(self)
 
