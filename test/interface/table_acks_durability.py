@@ -20,7 +20,7 @@ with driver.Metacluster() as metacluster:
 
     # The "live" process will remain alive for the entire test. The "dead" processes will
     # be killed after we create some tables
-    num_live = num_dead = 5
+    num_live = num_dead = 3
     print "Spinning up %d processes..." % (num_live + num_dead)
     def make_procs(names):
         files, procs = [], []
@@ -56,14 +56,14 @@ with driver.Metacluster() as metacluster:
         determines if the primary replica will be a live one or dead one."""
         assert nl <= num_live and nd <= num_dead
         assert (primary == "l" and nl > 0) or (primary == "d" and nd > 0)
-        replicas = live_names[:nl] + dead_names[:nl]
+        replicas = live_names[:nl] + dead_names[:nd]
         return {"replicas": replicas, "director": "%s1" % primary}
     def mkr(nl, nd, mode):
         """Helper function for constructing lists for `table_config.write_acks`. Returns
         an ack requirement with "nl" live replicas and "nd" dead ones, and the given mode
         for "single" or "majority"."""
         assert nl <= num_live and nd <= num_dead
-        replicas = live_names[:nl] + dead_names[:nl]
+        replicas = live_names[:nl] + dead_names[:nd]
         return {"replicas": replicas, "acks": mode}
 
     # Each test is a tuple with four parts:
@@ -75,8 +75,8 @@ with driver.Metacluster() as metacluster:
     #  4. The level of availability we expect after the "dead" servers have been
     #     permanently removed and the primary (if dead) reassigned to a live server.
     tests = [
-        ([mks(5, 0)], "single", "awro", "awro"),
-        ([mks(0, 5, "d")], "single", "", ""),
+        ([mks(3, 0)], "single", "awro", "awro"),
+        ([mks(0, 3, "d")], "single", "", ""),
         ([mks(1, 0)], "majority", "awro", "awro"),
         ([mks(0, 1, "d")], "majority", "", ""),
         ([mks(2, 1)], "single", "wro", "awro"),
@@ -88,24 +88,25 @@ with driver.Metacluster() as metacluster:
         ([mks(2, 2, "d")], "majority", "o", "awro"),
         ([mks(2, 2)], [mkr(1, 1, "single")], "wro", "awro"),
         ([mks(2, 2)], [mkr(1, 1, "single"), mkr(2, 0, "majority")], "wro", "awro"),
-        ([mks(5, 5)], [mkr(5, 0, "majority"), mkr(0, 5, "majority")], "ro", "ro"),
-        ([mks(5, 5)], [mkr(5, 0, "majority"), mkr(0, 1, "single")], "ro", "ro"),
-        ([mks(3, 1), mks(1, 3, "d")], [mkr(3, 0, "majority"), mkr(0, 3, "majority")],
+        ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 3, "majority")], "ro", "ro"),
+        ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 1, "single")], "ro", "ro"),
+        ([mks(2, 2), mks(2, 2, "d")], [mkr(2, 0, "majority"), mkr(0, 2, "majority")],
             "o", "awro"),
         ]
 
     print "Creating tables for tests..."
     r.db_create("test").run(conn)
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
-        print "%d/%d" % (i+1, len(tests))
-        res = r.table_create("table%d" % (i+1)).run(conn)
-        assert res["created"] == 1
-        res = r.table_config("table%d" % (i+1)) \
-               .update({"shards": shards, "write_acks": write_acks}).run(conn)
-        assert res["errors"] == 0
-        res =r.table("table%d" % (i+1)).insert([{}]*1000).run(conn)
-        assert res["errors"] == 0 and res["inserted"] == 1000
-    r.table_wait().run(conn)
+        conf = {"shards": shards, "write_acks": write_acks}
+        print "%d/%d" % (i+1, len(tests)), conf
+        t = "table%d" % (i+1)
+        res = r.table_create(t).run(conn)
+        assert res["created"] == 1, res
+        res = r.table_config(t).update(conf).run(conn)
+        assert res["errors"] == 0, res
+        r.table_wait(t).run(conn)
+        res = r.table(t).insert([{}]*1000).run(conn)
+        assert res["errors"] == 0 and res["inserted"] == 1000, res
 
     print "Killing the designated 'dead' servers..."
     for proc in dead_procs:
@@ -114,8 +115,13 @@ with driver.Metacluster() as metacluster:
     print "Checking table statuses..."
     def check_table_status(name, expected_readiness):
         tested_readiness = ""
-        res = r.table(name).update({"x": r.row["x"].default(0).add(1)}).run(conn)
-        if res["errors"] == 0 and res["replaced"] == 1:
+        try:
+            res = r.table(name).update({"x": r.row["x"].default(0).add(1)}).run(conn)
+        except r.RqlRuntimeError, e:
+            # This can happen if we aren't available for reading either
+            pass
+        else:
+            assert res["errors"] == 0 and res["replaced"] == 1000
             tested_readiness += "w"
         try:
             res = r.table(name).count().run(conn)
@@ -131,7 +137,7 @@ with driver.Metacluster() as metacluster:
         else:
             assert res == 1000
             tested_readiness += "o"
-        res = r.table_status(name).run(conn)
+        res = r.table_status(name).nth(0).run(conn)
         reported_readiness = ""
         if res["ready_completely"]:
             reported_readiness += "a"
@@ -151,8 +157,14 @@ with driver.Metacluster() as metacluster:
 
     print "Permanently removing the designated 'dead' servers..."
     res = r.db("rethinkdb").table("server_config") \
-           .filter(r.expr(dead_names).contains(r.row["name"])).delete().run(conn)
-    assert res["deleted"] == num_dead
+           .filter(lambda s: r.expr(dead_names).contains(s["name"])).delete().run(conn)
+    assert res["deleted"] == num_dead, res
+    res = r.table_config().update(lambda conf: {
+        "shards": conf["shards"].map(lambda shard: {
+            "replicas": shard["replicas"],
+            "director": shard["director"].default(shard["replicas"].nth(0)).default(None)
+        })}).run(conn)
+    assert res["errors"] == 0, res
 
     print "Checking table statuses..."
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
@@ -161,7 +173,7 @@ with driver.Metacluster() as metacluster:
 
     print "Running auxiliary tests..."
     res = r.table_create("aux").run(conn)
-    assert res["created"] == 1
+    assert res["created"] == 1, res
     def test_ok(change):
         print repr(change)
         res = r.table_config("aux").update(change).run(conn)

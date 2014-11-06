@@ -239,6 +239,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             return false;
         }
 
+        repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
+        repli_info.config.durability = write_durability_t::HARD;
+
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = versioned_t<name_string_t>(name);
         table_metadata.database = versioned_t<database_id_t>(db->id);
