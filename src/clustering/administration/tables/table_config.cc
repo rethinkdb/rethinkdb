@@ -438,6 +438,7 @@ bool convert_table_config_and_name_from_datum(
         }
         if (!convert_durability_from_datum(durability_datum, &config_out->durability,
                 error_out)) {
+            *error_out = "In `durability`: " + *error_out;
             return false;
         }
     } else {
