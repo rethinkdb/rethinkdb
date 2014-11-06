@@ -270,7 +270,6 @@ void server_name_client_t::recompute_name_to_server_id_map() {
 void server_name_client_t::recompute_server_id_to_peer_id_map() {
     std::map<server_id_t, peer_id_t> new_map_s2p;
     std::map<peer_id_t, server_id_t> new_map_p2s;
-    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dir) {
             for (auto dir_it = dir->get_inner().begin();

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 import sys, os, time, pprint, socket
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common, utils
@@ -142,7 +142,9 @@ with driver.Metacluster() as metacluster:
         "replicas": []
         }]
 
-    print "Testing that it's possible to write `\"director\": None`..."
+    print "Testing that having director=None doesn't break `table_config`..."
+    # By changing the table's name, we force a write to `table_config`, which tests the
+    # code path that writes `"director": None`.
     res = r.table_config("test2").update({"name": "test2x"}).run(conn)
     assert res["errors"] == 0
     res = r.table_config("test2x").update({"name": "test2"}).run(conn)
@@ -153,17 +155,11 @@ with driver.Metacluster() as metacluster:
         }]
 
     print "Fixing table `test2`..."
-    res = r.table_config("test2").update({
-        "shards": [{"director": "PrinceHamlet", "replicas": ["PrinceHamlet"]}]
-        }).run(conn)
-    assert res["errors"] == 0
+    r.table("test2").reconfigure(1, 1).run(conn)
     r.table_wait("test2").run(conn)
 
     print "Fixing table `test3`..."
-    res = r.table_config("test3").update({
-        "shards": [{"director": "PrinceHamlet", "replicas": ["PrinceHamlet"]}]
-        }).run(conn)
-    assert res["errors"] == 0
+    r.table("test3").reconfigure(1, 1).run(conn)
     r.table_wait("test3").run(conn)
 
     print "Bringing the dead server back as a ghost..."
