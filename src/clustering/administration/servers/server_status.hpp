@@ -22,7 +22,7 @@ class server_status_artificial_table_backend_t :
 {
 public:
     server_status_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_read_view_t<
+            boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
             server_name_client_t *_name_client,
             clone_ptr_t< watchable_t< change_tracking_map_t<

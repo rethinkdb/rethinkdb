@@ -122,7 +122,16 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
 
     /* Put the primaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
-        peer_id_t peer = trans.server_id_to_peer_id(info.config.shards[i].director);
+        peer_id_t peer;
+        if (!static_cast<bool>(name_client->get_name_for_server_id(
+                info.config.shards[i].director))) {
+            /* The server was permanently removed. `table_config` will show `null` in
+            the `director` field. Pick a random peer ID to make sure that the table acts
+            as though the director is missing. */
+            peer = peer_id_t(generate_uuid());
+        } else {
+            peer = trans.server_id_to_peer_id(info.config.shards[i].director);
+        }
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
