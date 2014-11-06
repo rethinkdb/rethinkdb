@@ -270,30 +270,13 @@ void server_name_client_t::recompute_name_to_server_id_map() {
 void server_name_client_t::recompute_server_id_to_peer_id_map() {
     std::map<server_id_t, peer_id_t> new_map_s2p;
     std::map<peer_id_t, server_id_t> new_map_p2s;
-    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    for (auto sl_it = sl_metadata.servers.begin();
-              sl_it != sl_metadata.servers.end();
-            ++sl_it) {
-        if (sl_it->second.is_deleted()) {
-            continue;
-        }
-        new_map_s2p.insert(std::make_pair(sl_it->first, peer_id_t()));
-    }
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dir) {
             for (auto dir_it = dir->get_inner().begin();
                       dir_it != dir->get_inner().end();
                     ++dir_it) {
-                auto map_it = new_map_s2p.find(dir_it->second.server_id);
-                if (map_it == new_map_s2p.end()) {
-                    /* This server is in the directory but not the semilattices. This
-                    can happen temporarily at startup, or if a permanently removed server
-                    comes back online. Ignore it. */
-                    continue;
-                }
-                guarantee(map_it->second.is_nil(),
-                    "Two servers have the same server ID.");
-                map_it->second = dir_it->first;
+                new_map_s2p.insert(std::make_pair(
+                    dir_it->second.server_id, dir_it->first));
                 new_map_p2s.insert(std::make_pair(
                     dir_it->first, dir_it->second.server_id));
             }

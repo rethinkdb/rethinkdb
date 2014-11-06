@@ -8,7 +8,7 @@
 request. */
 class me_http_app_t : public http_app_t {
 public:
-    me_http_app_t(const server_id_t &_me) : me(_me) { }
+    explicit me_http_app_t(const server_id_t &_me) : me(_me) { }
 private:
     void handle(const http_req_t &req, http_res_t *result, signal_t *) {
         if (req.method != GET) {

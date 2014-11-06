@@ -297,7 +297,7 @@ protected:
     virtual bool impl(scope_env_t *env,
                       args_t *args,
                       counted_t<const db_t> db,
-                      const std::set<name_string_t> &tables,
+                      const std::vector<name_string_t> &tables,
                       scoped_ptr_t<val_t> *resp_out,
                       std::string *error_out) const = 0;
 private:
@@ -309,7 +309,7 @@ private:
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const db_t> db;
-        std::set<name_string_t> tables;
+        std::vector<name_string_t> tables;
 
         if (args->num_args() > 0) {
             for (size_t i = 0; i < args->num_args(); ++i) {
@@ -317,7 +317,7 @@ private:
                 if (i == 0 && arg->get_type().is_convertible(val_t::type_t::DB)) {
                     db = arg->as_db();
                 } else {
-                    tables.insert(get_name(arg, this, "Table"));
+                    tables.push_back(get_name(arg, this, "Table"));
                 }
             }
         }
@@ -343,7 +343,7 @@ private:
     bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
-              const std::set<name_string_t> &tables,
+              const std::vector<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_config(
@@ -360,7 +360,7 @@ private:
     bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
-              const std::set<name_string_t> &tables,
+              const std::vector<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_status(
@@ -377,7 +377,7 @@ private:
     bool impl(scope_env_t *env,
               UNUSED args_t *args,
               counted_t<const db_t> db,
-              const std::set<name_string_t> &tables,
+              const std::vector<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_wait(

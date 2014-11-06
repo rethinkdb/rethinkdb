@@ -22,10 +22,10 @@ RDB_IMPL_EQUALITY_COMPARABLE_3(server_down_issue_t,
                                issue_id, affected_server_ids, down_server_id);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_down_issue_t);
 
-RDB_IMPL_SERIALIZABLE_3(server_ghost_issue_t,
-                        issue_id, affected_server_ids, ghost_server_id);
-RDB_IMPL_EQUALITY_COMPARABLE_3(server_ghost_issue_t,
-                               issue_id, affected_server_ids, ghost_server_id);
+RDB_IMPL_SERIALIZABLE_4(server_ghost_issue_t,
+                        issue_id, ghost_server_id, hostname, pid);
+RDB_IMPL_EQUALITY_COMPARABLE_4(server_ghost_issue_t,
+                               issue_id, ghost_server_id, hostname, pid);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_ghost_issue_t);
 
 RDB_IMPL_SERIALIZABLE_4(local_issues_t,

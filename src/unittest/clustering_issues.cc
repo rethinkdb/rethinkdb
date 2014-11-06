@@ -26,7 +26,6 @@ public:
 
     issues_artificial_table_backend_t issues_backend;
     local_issue_aggregator_t local_issue_aggregator;
-    server_issue_tracker_t server_issue_tracker;
     log_write_issue_tracker_t log_write_issue_tracker;
     outdated_index_issue_tracker_t outdated_index_issue_tracker;
 
@@ -131,12 +130,6 @@ issues_environment_t::issues_environment_t() :
                        directory_entry.get_watchable()),
     issues_backend(cluster_metadata.get_view(),
                    directory_metadata.get_view()),
-    server_issue_tracker(&local_issue_aggregator,
-                         cluster_metadata.get_view(),
-                         directory_metadata.get_view()->incremental_subview(
-                             incremental_field_getter_t<server_id_t,
-                                                        cluster_directory_metadata_t>(
-                                 &cluster_directory_metadata_t::server_id))),
     log_write_issue_tracker(&local_issue_aggregator),
     outdated_index_issue_tracker(&local_issue_aggregator),
     local_issue_copier(&cluster_directory_metadata_t::local_issues,
@@ -172,79 +165,6 @@ void assert_one_issue(issues_environment_t *env, ql::datum_t *issue_out) {
     ASSERT_EQ(static_cast<size_t>(1), rows.size());
 
     *issue_out = rows.front();
-}
-
-TPTEST(ClusteringIssues, ServerDown) {
-    issues_environment_t env;
-    assert_no_issues(&env);
-
-    // Set up error case
-    std::string down_server_name("downer");
-    server_id_t down_server_id = add_server(&env, down_server_name);
-
-    let_stuff_happen();
-    ql::datum_t issue;
-    assert_one_issue(&env, &issue);
-    ASSERT_TRUE(issue.has());
-
-    // Check issue data
-    ASSERT_TRUE(issue.get_field("critical").as_bool());
-    ASSERT_EQ(std::string("server_down"), issue.get_field("type").as_str().to_std());
-
-    ql::datum_t info = issue.get_field("info");
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("affected_server_ids").arr_size());
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("affected_servers").arr_size());
-    ASSERT_EQ(uuid_to_str(env.local_server_id),
-              info.get_field("affected_server_ids").get(0).as_str().to_std());
-    ASSERT_EQ(std::string("self"),
-              info.get_field("affected_servers").get(0).as_str().to_std());
-    ASSERT_EQ(down_server_name, info.get_field("server").as_str().to_std());
-    ASSERT_EQ(uuid_to_str(down_server_id), info.get_field("server_id").as_str().to_std());
-
-    // Clear error case
-    delete_server(&env, down_server_id);
-
-    let_stuff_happen();
-    assert_no_issues(&env);
-}
-
-TPTEST(ClusteringIssues, ServerGhost) {
-    issues_environment_t env;
-    assert_no_issues(&env);
-
-    // Set up error case
-    std::string deleted_server_name("del");
-    server_id_t deleted_server_id = add_server(&env, deleted_server_name);
-    delete_server(&env, deleted_server_id);
-
-    peer_id_t ghost_peer_id = peer_id_t(generate_uuid());
-    env.directory_metadata.set_peer_value(ghost_peer_id,
-                                          default_directory_entry(deleted_server_id));
-
-    let_stuff_happen();
-    ql::datum_t issue;
-    assert_one_issue(&env, &issue);
-    ASSERT_TRUE(issue.has());
-
-    // Check issue data
-    ASSERT_FALSE(issue.get_field("critical").as_bool());
-    ASSERT_EQ(std::string("server_ghost"), issue.get_field("type").as_str().to_std());
-
-    ql::datum_t info = issue.get_field("info");
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("affected_server_ids").arr_size());
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("affected_servers").arr_size());
-    ASSERT_EQ(uuid_to_str(env.local_server_id),
-              info.get_field("affected_server_ids").get(0).as_str().to_std());
-    ASSERT_EQ(std::string("self"),
-              info.get_field("affected_servers").get(0).as_str().to_std());
-    ASSERT_EQ(std::string("__deleted_server__"), info.get_field("server").as_str().to_std());
-    ASSERT_EQ(uuid_to_str(deleted_server_id), info.get_field("server_id").as_str().to_std());
-
-    // Clear error case
-    env.directory_metadata.delete_peer(ghost_peer_id);
-
-    let_stuff_happen();
-    assert_no_issues(&env);
 }
 
 TPTEST(ClusteringIssues, OutdatedIndex) {

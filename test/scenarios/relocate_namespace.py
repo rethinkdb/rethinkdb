@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
 import sys, os, time
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, workload_runner, scenario_common, rdb_workload_common
 from vcoptparse import *
@@ -15,12 +17,11 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster,
-                                driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                             executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
-                                executable_path = executable_path,
-                                command_prefix = command_prefix, extra_options = serve_options)
-                 for i in xrange(opts["num-nodes"])]
+    processes = [driver.Process(
+    		cluster,
+			driver.Files(metacluster, db_path="db-%d" % i, console_output="create-output-%d" % i, command_prefix=command_prefix),
+			console_output="serve-output-%d" % i, command_prefix=command_prefix, extra_options=serve_options)
+		 for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()
 

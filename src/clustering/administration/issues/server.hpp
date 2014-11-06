@@ -10,14 +10,18 @@
 #include "rpc/semilattice/view.hpp"
 #include "containers/incremental_lenses.hpp"
 
+class server_name_server_t;
+class server_name_client_t;
+
 class server_issue_tracker_t {
 public:
     server_issue_tracker_t(
         local_issue_aggregator_t *parent,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > >
-            &_server_to_peer);
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
+        server_name_client_t *_name_client,
+        server_name_server_t *_name_server);
     ~server_issue_tracker_t();
 
     static void combine(local_issues_t *local_issues,
@@ -33,12 +37,21 @@ private:
 
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
+    server_name_client_t *name_client;
+    server_name_server_t *name_server;
+
+    /* Note that we subscribe both to `directory_view` and to `name_client`'s 
+    `get_server_id_to_peer_id_map()`. Since `get_server_id_to_peer_id_map()` is computed
+    from the directory, these will always be updated in quick succession. But because our
+    callback is delivered synchronously, it's possible that the callback will be
+    called after one updates but before the other updates. Since we don't consider a
+    server connected unless it appears in both, we need to make sure that we also get a
+    callback after the second update occurs. So we subscribe to both. */
     semilattice_read_view_t<cluster_semilattice_metadata_t>::subscription_t
         cluster_sl_subs;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > >
-        server_to_peer;
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t
-        server_to_peer_subs;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
+    watchable_t<std::map<server_id_t, peer_id_t> >::subscription_t name_client_subs;
     DISABLE_COPYING(server_issue_tracker_t);
 };
 

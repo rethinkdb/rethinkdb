@@ -155,11 +155,14 @@ bool do_serve(io_backender_t *io_backender,
             current_microtime(),
             getpid(),
             str_gethostname(),
+            /* Note we'll update `cluster_port`, `reql_port`, `http_port`, and
+            `canonical_addresses` later, once final values are available */
             serve_info.ports.port,
             serve_info.ports.reql_port,
             serve_info.ports.http_admin_is_disabled
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
+            serve_info.ports.canonical_addresses.hosts(),
             stat_manager.get_address(),
             log_server.get_business_card(),
             i_am_a_server
@@ -179,12 +182,15 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
-        server_issue_tracker_t server_issue_tracker(
-            &local_issue_aggregator,
-            semilattice_manager_cluster.get_root_view(),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::server_id)));
+        scoped_ptr_t<server_issue_tracker_t> server_issue_tracker;
+        if (i_am_a_server) {
+            server_issue_tracker.init(new server_issue_tracker_t(
+                &local_issue_aggregator,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_map_view(),
+                &server_name_client,
+                server_name_server.get()));
+        }
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -210,7 +216,9 @@ bool do_serve(io_backender_t *io_backender,
         our_root_directory_variable.apply_atomic_op(
             [&](cluster_directory_metadata_t *md) -> bool {
                 md->cluster_port = connectivity_cluster_run->get_port();
-                return (md->cluster_port != serve_info.ports.port);
+                md->canonical_addresses =
+                    connectivity_cluster_run->get_canonical_addresses();
+                return true;
             });
 
         auto_reconnector_t auto_reconnector(

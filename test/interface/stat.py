@@ -11,18 +11,14 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     
     print "Spinning up cluster..."
     processes = [
-        driver.Process(cluster,
-                       driver.Files(metacluster,
-                                    log_path = "create-output-%d" % i,
-                                    executable_path = executable_path,
-                                    command_prefix = command_prefix),
-                       executable_path = executable_path,
-                       command_prefix = command_prefix,
-                       extra_options = serve_options)
+        driver.Process(
+        	cluster,
+            driver.Files(metacluster, console_output="create-output-%d" % i, command_prefix=command_prefix),
+            command_prefix=command_prefix, extra_options=serve_options)
         for i in xrange(4)]
     for process in processes:
         process.wait_until_started_up()

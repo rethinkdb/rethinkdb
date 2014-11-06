@@ -7,10 +7,8 @@ import utils
 if not os.path.isdir('run'):
     os.makedirs('run')
 
-buildDir = os.getenv('BUILD_DIR') or utils.latest_build_dir()
-if len(sys.argv) > 1:
-    buildDir = sys.argv[1]
-os.environ['BUILD_DIR'] = buildDir
+rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
+os.environ['RDB_EXE_PATH'] = rethinkdb_exe
 
 mochaReporterOptions = ['-R', 'spec']
 if not utils.supportsTerminalColors():

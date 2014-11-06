@@ -5,6 +5,17 @@
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
+ql::datum_t convert_ip_to_datum(const ip_address_t &ip) {
+    return ql::datum_t(datum_string_t(ip.to_string()));
+}
+
+ql::datum_t convert_host_and_port_to_datum(const host_and_port_t &x) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("host", ql::datum_t(datum_string_t(x.host())));
+    builder.overwrite("port", convert_port_to_datum(x.port().value()));
+    return std::move(builder).to_datum();
+}
+
 bool directory_has_role_for_table(const reactor_business_card_t &business_card) {
     for (auto it = business_card.activities.begin();
               it != business_card.activities.end();
@@ -27,7 +38,7 @@ bool table_has_role_for_server(const server_id_t &server,
 }
 
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
-    boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> >
+    boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
         _servers_sl_view,
     server_name_client_t *_name_client,
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -62,13 +73,16 @@ bool server_status_artificial_table_backend_t::format_row(
     boost::optional<peer_id_t> peer_id =
         name_client->get_peer_id_for_server_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
-    directory_view->apply_read(
-        [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dv) {
-            auto it = dv->get_inner().find(*peer_id);
-            if (it != dv->get_inner().end()) {
-                directory = boost::optional<cluster_directory_metadata_t>(it->second);
-            }
-        });
+    if (static_cast<bool>(peer_id)) {
+        directory_view->apply_read(
+            [&](const change_tracking_map_t<peer_id_t,
+                    cluster_directory_metadata_t> *dv) {
+                auto it = dv->get_inner().find(*peer_id);
+                if (it != dv->get_inner().end()) {
+                    directory = it->second;
+                }
+            });
+    }
 
     if (directory) {
         builder.overwrite("status", ql::datum_t("available"));
@@ -76,52 +90,63 @@ bool server_status_artificial_table_backend_t::format_row(
         builder.overwrite("status", ql::datum_t("unavailable"));
     }
 
+    ql::datum_object_builder_t conn_builder;
     if (directory) {
-        builder.overwrite("time_started",
-            convert_microtime_to_datum(directory->time_started));
         microtime_t connected_time =
             last_seen_tracker.get_connected_time(server_id);
-        builder.overwrite("time_connected",
+        conn_builder.overwrite("time_connected",
             convert_microtime_to_datum(connected_time));
-        builder.overwrite("time_disconnected", ql::datum_t::null());
+        conn_builder.overwrite("time_disconnected", ql::datum_t::null());
     } else {
-        builder.overwrite("time_started", ql::datum_t::null());
-        builder.overwrite("time_connected", ql::datum_t::null());
+        conn_builder.overwrite("time_connected", ql::datum_t::null());
         microtime_t disconnected_time =
             last_seen_tracker.get_disconnected_time(server_id);
-        builder.overwrite("time_disconnected",
+        conn_builder.overwrite("time_disconnected",
             convert_microtime_to_datum(disconnected_time));
     }
+    builder.overwrite("connection", std::move(conn_builder).to_datum());
 
+    ql::datum_object_builder_t proc_builder;
     if (directory) {
-        builder.overwrite("version",
+        proc_builder.overwrite("time_started",
+            convert_microtime_to_datum(directory->time_started));
+        proc_builder.overwrite("version",
             ql::datum_t(datum_string_t(directory->version)));
-        builder.overwrite("cache_size_mb",
+        proc_builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
-        builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
+        proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
     } else {
-        builder.overwrite("version", ql::datum_t::null());
-        builder.overwrite("cache_size_mb", ql::datum_t::null());
-        builder.overwrite("pid", ql::datum_t::null());
+        proc_builder.overwrite("time_started", ql::datum_t::null());
+        proc_builder.overwrite("version", ql::datum_t::null());
+        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
+        proc_builder.overwrite("pid", ql::datum_t::null());
     }
+    builder.overwrite("process", std::move(proc_builder).to_datum());
 
+    ql::datum_object_builder_t net_builder;
     if (directory) {
-        builder.overwrite("hostname",
+        net_builder.overwrite("hostname",
             ql::datum_t(datum_string_t(directory->hostname)));
-        builder.overwrite("cluster_port",
+        net_builder.overwrite("cluster_port",
             convert_port_to_datum(directory->cluster_port));
-        builder.overwrite("reql_port",
+        net_builder.overwrite("reql_port",
             convert_port_to_datum(directory->reql_port));
-        builder.overwrite("http_admin_port",
+        net_builder.overwrite("http_admin_port",
             directory->http_admin_port
                 ? convert_port_to_datum(*directory->http_admin_port)
                 : ql::datum_t("<no http admin>"));
+        net_builder.overwrite("canonical_addresses",
+            convert_set_to_datum<host_and_port_t>(
+                &convert_host_and_port_to_datum,
+                directory->canonical_addresses));
     } else {
-        builder.overwrite("hostname", ql::datum_t::null());
-        builder.overwrite("cluster_port", ql::datum_t::null());
-        builder.overwrite("reql_port", ql::datum_t::null());
-        builder.overwrite("http_admin_port", ql::datum_t::null());
+        net_builder.overwrite("hostname", ql::datum_t::null());
+        net_builder.overwrite("cluster_port", ql::datum_t::null());
+        net_builder.overwrite("reql_port", ql::datum_t::null());
+        net_builder.overwrite("http_admin_port", ql::datum_t::null());
+        net_builder.overwrite("canonical_addresses", ql::datum_t::null());
     }
+    builder.overwrite("network", std::move(net_builder).to_datum());
 
     *row_out = std::move(builder).to_datum();
     return true;

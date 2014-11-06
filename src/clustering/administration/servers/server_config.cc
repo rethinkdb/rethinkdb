@@ -89,42 +89,45 @@ bool server_config_artificial_table_backend_t::write_row(
     name_string_t server_name;
     server_id_t server_id;
     server_semilattice_metadata_t *server_sl;
-    if (!new_value_inout->has()) {
-        /* We give this error even if the row didn't already exist. This is a little
-        strange but unlikely to happen in practice. */
-        *error_out = "It's illegal to delete rows from the `rethinkdb.server_config` "
-            "artificial table. If you want to permanently remove a server, use "
-            "r.server_permanently_remove().";
-        return false;
-    }
     if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
-        *error_out = "It's illegal to insert new rows into the "
-            "`rethinkdb.server_config` artificial table.";
-        return false;
-    }
-    name_string_t new_server_name;
-    server_id_t new_server_id;
-    std::set<name_string_t> new_tags;
-    if (!convert_server_config_and_name_from_datum(*new_value_inout,
-            &new_server_name, &new_server_id, &new_tags, error_out)) {
-        *error_out = "The row you're trying to put into `rethinkdb.server_config` "
-            "has the wrong format. " + *error_out;
-        return false;
-    }
-    guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
-        "primary key is unchanged.");
-    if (new_server_name != server_name) {
-        if (!name_client->rename_server(server_id, server_name, new_server_name,
-                                        &interruptor2, error_out)) {
+        if (new_value_inout->has()) {
+            *error_out = "It's illegal to insert new rows into the "
+                "`rethinkdb.server_config` artificial table.";
             return false;
+        } else {
+            /* The user is re-deleting an already-absent row. OK. */
+            return true;
         }
     }
-    if (new_tags != server_sl->tags.get_ref()) {
-        if (!name_client->retag_server(server_id, server_name, new_tags, &interruptor2,
-                                       error_out)) {
+    if (new_value_inout->has()) {
+        name_string_t new_server_name;
+        server_id_t new_server_id;
+        std::set<name_string_t> new_tags;
+        if (!convert_server_config_and_name_from_datum(*new_value_inout,
+                &new_server_name, &new_server_id, &new_tags, error_out)) {
+            *error_out = "The row you're trying to put into `rethinkdb.server_config` "
+                "has the wrong format. " + *error_out;
             return false;
         }
+        guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
+            "primary key is unchanged.");
+        if (new_server_name != server_name) {
+            if (!name_client->rename_server(server_id, server_name, new_server_name,
+                                            &interruptor2, error_out)) {
+                return false;
+            }
+        }
+        if (new_tags != server_sl->tags.get_ref()) {
+            if (!name_client->retag_server(
+                    server_id, server_name, new_tags, &interruptor2, error_out)) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        servers_sl.servers.at(server_id).mark_deleted();
+        servers_sl_view->join(servers_sl);
+        return true;
     }
-    return true;
 }
 

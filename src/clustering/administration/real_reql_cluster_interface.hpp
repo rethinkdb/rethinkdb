@@ -44,7 +44,7 @@ public:
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out);
-    bool db_config(const std::set<name_string_t> &db_names,
+    bool db_config(const std::vector<name_string_t> &db_names,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
@@ -62,17 +62,17 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &tables,
+            const std::vector<name_string_t> &tables,
             table_readiness_t readiness,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
@@ -128,8 +128,8 @@ private:
 
     bool get_table_ids_for_query(
             counted_t<const ql::db_t> db,
-            const std::set<name_string_t> &table_names,
-            std::map<namespace_id_t, name_string_t> *table_map_out,
+            const std::vector<name_string_t> &table_names,
+            std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
             std::string *error_out);
 
     /* For each UUID in `entity_map`, reads the row with that primary key from `backend`,
@@ -138,7 +138,7 @@ private:
     format specifier in it, which will be used to format an error message with the name
     of the missing entity. */
     bool table_meta_read(artificial_table_backend_t *backend,
-            const std::map<uuid_u, name_string_t> &entity_map,
+            const std::vector<std::pair<uuid_u, name_string_t> > &entity_ids,
             const boost::optional<std::string> &missing_msg,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
