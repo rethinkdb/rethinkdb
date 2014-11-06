@@ -3,10 +3,7 @@ module 'DataExplorerView', ->
     @state =
         current_query: null
         query: null
-        results: null
-        profile: null
         query_result: null
-        metadata: null
         cursor_timed_out: true
         view: 'tree'
         history_state: 'hidden'
@@ -589,8 +586,6 @@ module 'DataExplorerView', ->
                     window.localStorage.removeItem 'rethinkdb_history'
 
             @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
-            @current_results = @state.results
-            @profile = @state.profile
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -692,12 +687,12 @@ module 'DataExplorerView', ->
                 @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @state?.query? and @state?.results? and @state?.metadata?
+            if @state?.query? and @state?.ATN_results? and @state?.ATN_metadata?
                 @$('.results_container').html @results_view.render_result({
                     show_query_warning: @show_query_warning
-                    results: @state.results
-                    metadata: @state.metadata
-                    profile: @state.profile
+                    results: @state.ATN_results
+                    metadata: @state.ATN_metadata
+                    profile: @state.ATN_profile
                 }).$el
                 # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
@@ -2519,7 +2514,7 @@ module 'DataExplorerView', ->
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             event.preventDefault()
-            @current_results = []
+            @ATN_current_results = []
             @start_time = new Date()
             @state.query_result.shift @limit, @next_results_callback
 
@@ -2615,7 +2610,7 @@ module 'DataExplorerView', ->
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
                     @start_time = new Date()
-                    @current_results = []
+                    @ATN_current_results = []
 
                     query_result = new QueryResult
                         profile: @state.options.profiler
@@ -2630,7 +2625,7 @@ module 'DataExplorerView', ->
                             @error_on_connect error
                         else
                             rdb_query.private_run connection,
-                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler},
+                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profile},
                                 query_result.set
                     , @error_on_connect
 
@@ -2664,8 +2659,8 @@ module 'DataExplorerView', ->
                     broken_query: true
                 return false
 
-            @profile = result.profile ? null
-            @state.profile = @profile
+            @ATN_profile = result.profile ? null
+            @state.ATN_profile = @ATN_profile
 
             if @index is @queries.length # @index was incremented in execute_portion
                 @state.query_result = result
@@ -2674,21 +2669,21 @@ module 'DataExplorerView', ->
                     result.shift @limit, @next_results_callback
                 else
                     @toggle_executing false
-                    @current_results = result.value
+                    @ATN_current_results = result.value
 
                     @state.query = @query
-                    @state.results = @current_results
-                    @state.metadata =
-                        limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1
+                    @state.ATN_results = @ATN_current_results
+                    @state.ATN_metadata =
+                        limit_value: if Object::toString.call(@results) is '[object Array]' then @ATN_current_results.length else 1
                         skip_value: 0
                         execution_time: new Date() - @start_time
                         query: @query
                         has_more_data: false
 
                     @results_view.render_result
-                        results: @current_results
-                        metadata: @state.metadata
-                        profile: @profile
+                        results: @ATN_current_results
+                        metadata: @state.ATN_metadata
+                        profile: @ATN_profile
 
                     # Successful query, let's save it in the history
                     @save_query
@@ -2700,22 +2695,22 @@ module 'DataExplorerView', ->
         # Called when there is a new batch of results to display
         next_results_callback: (result, rows) =>
 
-            @current_results = rows
+            @ATN_current_results = rows
 
             @toggle_executing false
             @state.query = @query
-            @state.results = @current_results
-            @state.metadata =
-                limit_value: @current_results.length
+            @state.ATN_results = @ATN_current_results
+            @state.ATN_metadata =
+                limit_value: @ATN_current_results.length
                 skip_value: result.start_index - rows.length
                 execution_time: new Date() - @start_time
                 query: @query
                 has_more_data: not result.ended
 
             @results_view.render_result
-                results: @current_results
-                metadata: @state.metadata
-                profile: @profile
+                results: @ATN_current_results
+                metadata: @state.ATN_metadata
+                profile: @ATN_profile
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2975,10 +2970,10 @@ module 'DataExplorerView', ->
             return 1
 
         copy_parent_results: =>
-            @results = @parent.results
-            @results_array = @parent.results_array
-            @profile = @parent.profile
-            @metadata = @parent.metadata
+            @ATN_results = @parent.ATN_results
+            @ATN_results_array = @parent.ATN_results_array
+            @ATN_profile = @parent.ATN_profile
+            @ATN_metadata = @parent.ATN_metadata
 
         toggle_collapse: (event) =>
             @$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
@@ -3296,7 +3291,7 @@ module 'DataExplorerView', ->
                     flatten_attr: flatten_attr
 
         tag_record: (doc, i) =>
-            doc.record = @metadata.skip_value + i
+            doc.record = @ATN_metadata.skip_value + i
 
         render: =>
             @copy_parent_results()
@@ -3308,10 +3303,10 @@ module 'DataExplorerView', ->
                 else
                     @$el.html @templates.wrapper content: @json_to_table @results
             else
-                if not @results_array?
-                    @results_array = []
-                    @results_array.push @results
-                @$el.html @templates.wrapper content: @json_to_table @results_array
+                if not @ATN_results_array?
+                    @ATN_results_array = []
+                    @ATN_results_array.push @results
+                @$el.html @templates.wrapper content: @json_to_table @ATN_results_array
 
             # Check if the keys are the same
             if @parent.container.state.last_keys.length isnt previous_keys.length
@@ -3421,16 +3416,16 @@ module 'DataExplorerView', ->
         render: =>
             @copy_parent_results()
             
-            if not @profile?
-                @$el.html @template {} 
+            if not @ATN_profile?
+                @$el.html @template {}
             else
                 @$el.html @template
                     profile:
-                        clipboard_text: JSON.stringify @profile, null, 2
-                        tree: @json_to_tree @profile
-                        total_duration: @metadata.execution_time_pretty
-                        server_duration: Utils.prettify_duration @compute_total_duration @profile
-                        num_shard_accesses: @compute_num_shard_accesses @profile
+                        clipboard_text: JSON.stringify @ATN_profile, null, 2
+                        tree: @json_to_tree @ATN_profile
+                        total_duration: @ATN_metadata.execution_time_pretty
+                        server_duration: Utils.prettify_duration @compute_total_duration @ATN_profile
+                        num_shard_accesses: @compute_num_shard_accesses @ATN_profile
 
                 @clip.glue(@$('button.copy_profile'))
                 @delegateEvents()
@@ -3571,33 +3566,33 @@ module 'DataExplorerView', ->
 
             if args? and args.results isnt undefined
                 @results = args.results
-                @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
+                @ATN_results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             if args? and args.profile isnt undefined
-                @profile = args.profile
-            if args?.metadata?
-                @metadata = args.metadata
-            if args?.metadata?.skip_value?
+                @ATN_profile = args.ATN_profile
+            if args?.ATN_metadata?
+                @ATN_metadata = args.ATN_metadata
+            if args?.ATN_metadata?.skip_value?
                 # @container.state.start_record is the old value of @container.state.skip_value
                 # Here we just deal with start_record
                 # TODO May have to remove this line as we have metadata.start now
-                @container.state.start_record = args.metadata.skip_value
+                @container.state.start_record = args.ATN_metadata.skip_value
 
-                if args.metadata.execution_time?
-                    @metadata.execution_time_pretty = Utils.prettify_duration args.metadata.execution_time
+                if args.ATN_metadata.execution_time?
+                    @ATN_metadata.execution_time_pretty = Utils.prettify_duration args.ATN_metadata.execution_time
 
-            num_results = @metadata.skip_value
-            if @metadata.has_more_data isnt true
+            num_results = @ATN_metadata.skip_value
+            if @ATN_metadata.has_more_data isnt true
                 if Object::toString.call(@results) is '[object Array]'
                     num_results += @results.length
                 else # @results can be a single value or null
                     num_results += 1
 
-            @$el.html @template _.extend @metadata,
+            @$el.html @template _.extend @ATN_metadata,
                 show_query_warning: args?.show_query_warning
-                show_more_data: @metadata.has_more_data is true and @container.state.cursor_timed_out is false
-                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.state.cursor_timed_out is true)
-                execution_time_pretty: @metadata.execution_time_pretty
-                no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
+                show_more_data: @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is false
+                cursor_timed_out_template: (@cursor_timed_out_template() if @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is true)
+                execution_time_pretty: @ATN_metadata.execution_time_pretty
+                no_results: @ATN_metadata.has_more_data isnt true and @results?.length is 0 and @ATN_metadata.skip_value is 0
                 num_results: num_results
 
             @view_object?.remove()
@@ -3620,7 +3615,7 @@ module 'DataExplorerView', ->
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.state.cursor_timed_out = true
-            if @container.state.metadata?.has_more_data is true
+            if @container.state.ATN_metadata?.has_more_data is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
