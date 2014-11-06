@@ -324,7 +324,7 @@ bool table_config_artificial_table_backend_t::format_row(
 bool convert_table_config_and_name_from_datum(
         ql::datum_t datum,
         bool existed_before,
-        const namespaces_semilattice_metadata_t &all_table_metadata,
+        const cluster_semilattice_metadata_t &all_metadata,
         server_name_client_t *name_client,
         signal_t *interruptor,
         name_string_t *table_name_out,
@@ -405,7 +405,7 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         std::map<server_id_t, int> server_usage;
-        for (const auto &pair : all_table_metadata.namespaces) {
+        for (const auto &pair : all_metadata.rdb_namespaces->namespaces) {
             if (pair.second.is_deleted()) {
                 continue;
             }
@@ -448,6 +448,20 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         config_out->durability = write_durability_t::HARD;
+    }
+
+    write_ack_config_checker_t ack_checker(*config_out, all_metadata.servers);
+    for (const table_config_t::shard_t &shard : config_out->shards) {
+        std::set<server_id_t> replicas;
+        replicas.insert(shard.replicas.begin(), shard.replicas.end());
+        if (!ack_checker.check_acks(replicas)) {
+            *error_out = "The `write_acks` settings you provided make some shard(s) "
+                "unwritable. This usually happens because different shards have "
+                "different numbers of replicas; the 'majority' write ack setting "
+                "applies the same threshold to every shard, but it computes the "
+                "threshold based on the shard with the most replicas.";
+            return false;
+        }
     }
 
     if (!converter.check_no_extra_keys(error_out)) {
@@ -495,9 +509,8 @@ bool table_config_artificial_table_backend_t::write_row(
         namespace_id_t new_table_id;
         std::string new_primary_key;
         if (!convert_table_config_and_name_from_datum(*new_value_inout, existed_before,
-                *md_change.get(), name_client, interruptor,
-                &new_table_name, &new_db_name, &new_table_id,
-                &replication_info.config, &new_primary_key, error_out)) {
+                md, name_client, interruptor, &new_table_name, &new_db_name,
+                &new_table_id, &replication_info.config, &new_primary_key, error_out)) {
             *error_out = "The change you're trying to make to "
                 "`rethinkdb.table_config` has the wrong format. " + *error_out;
             return false;

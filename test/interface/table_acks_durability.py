@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+import sys, os, time, traceback, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
 from vcoptparse import *
@@ -82,16 +82,16 @@ with driver.Metacluster() as metacluster:
         ([mks(2, 1)], "single", "wro", "awro"),
         ([mks(1, 2)], "single", "wro", "awro"),
         ([mks(2, 1)], "majority", "wro", "awro"),
-        ([mks(2, 1, "d")], "majority", "o", "awro"),
+        ([mks(2, 1, "d")], "majority", "o", "o"),
         ([mks(1, 2)], "majority", "ro", "awro"),
         ([mks(2, 2)], "majority", "ro", "awro"),
-        ([mks(2, 2, "d")], "majority", "o", "awro"),
+        ([mks(2, 2, "d")], "majority", "o", "o"),
         ([mks(2, 2)], [mkr(1, 1, "single")], "wro", "awro"),
         ([mks(2, 2)], [mkr(1, 1, "single"), mkr(2, 0, "majority")], "wro", "awro"),
         ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 3, "majority")], "ro", "ro"),
         ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 1, "single")], "ro", "ro"),
         ([mks(2, 2), mks(2, 2, "d")], [mkr(2, 0, "majority"), mkr(0, 2, "majority")],
-            "o", "ro"),
+            "o", "o"),
         ]
 
     print("Creating tables for tests...")
@@ -107,6 +107,9 @@ with driver.Metacluster() as metacluster:
         r.table_wait(t).run(conn)
         res = r.table(t).insert([{}]*1000).run(conn)
         assert res["errors"] == 0 and res["inserted"] == 1000, res
+
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    assert not issues, repr(issues)
 
     print("Killing the designated 'dead' servers...")
     for proc in dead_procs:
@@ -159,32 +162,47 @@ with driver.Metacluster() as metacluster:
     res = r.db("rethinkdb").table("server_config") \
            .filter(lambda s: r.expr(dead_names).contains(s["name"])).delete().run(conn)
     assert res["deleted"] == num_dead, res
-    res = r.table_config().update(lambda conf: {
-        "shards": conf["shards"].map(lambda shard: {
-            "replicas": shard["replicas"],
-            "director": shard["director"].default(shard["replicas"].nth(0))
-        })}).run(conn)
-    # The update will fail if "replicas" is empty after permanently removing the dead
-    # servers. So some number of errors is expected.
-    assert res["errors"] == sum(["o" not in t[3] for t in tests]), res
 
     print("Checking table statuses...")
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_2)
-    # TODO: Check that issues exist for write acks that are now unsatisfiable
+
+    print "Checking for issues..."
+    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    pprint.pprint(issues)
+    issues_by_table = {}
+    for issue in issues:
+        assert issue["type"] in ["write_acks", "data_lost", "table_needs_primary"]
+        issues_by_table[issue["info"]["table"]] = issue["type"]
+    for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
+        t = "table%d" % (i+1)
+        if readiness_2 == "":
+            assert issues_by_table[t] == "data_lost"
+        elif readiness_2 == "o":
+            assert issues_by_table[t] == "table_needs_primary"
+        elif readiness_2 == "ro":
+            assert issues_by_table[t] == "write_acks"
+        elif readiness_2 == "wro":
+            assert False, "This is impossible since we removed the dead servers"
+        elif readiness_2 == "awro":
+            assert t not in issues_by_table
 
     print("Running auxiliary tests...")
     res = r.table_create("aux").run(conn)
     assert res["created"] == 1, res
+    res = r.table_config("aux") \
+           .update({"shards": [{"director": "l1", "replicas": ["l1"]}]}).run(conn)
+    assert res["errors"] == 0, res
+    r.table_wait("aux").run(conn)
     def test_ok(change):
         print repr(change)
         res = r.table_config("aux").update(change).run(conn)
-        assert res["errors"] == 0 and res["replaced"] == 1
+        assert res["errors"] == 0 and res["replaced"] == 1, res
         print("OK")
     def test_fail(change):
         print repr(change)
         res = r.table_config("aux").update(change).run(conn)
-        assert res["errors"] == 1 and res["replaced"] == 0
+        assert res["errors"] == 1 and res["replaced"] == 0, res
         print("Failed (as expected):", repr(res["first_error"]))
     test_ok({"durability": "soft"})
     test_ok({"durability": "hard"})
@@ -197,7 +215,16 @@ with driver.Metacluster() as metacluster:
     test_fail({"write_acks": [{"replicas": ["l1"]}]})
     test_fail({"write_acks": [{"acks": "single"}]})
     test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single", "foo": "bar"}]})
-    # TODO: Test putting up unsatisfiable write acks
+
+    print("Checking that unsatisfiable write acks are rejected...")
+    test_ok({
+        "shards": [
+            {"director": "l1", "replicas": ["l1", "l2", "l3"]},
+            {"director": "l1", "replicas": ["l1"]},
+            ],
+        "write_acks": "single"
+        })
+    test_fail({"write_acks": "majority"})
 
     cluster.check_and_stop()
 print("Done.")
