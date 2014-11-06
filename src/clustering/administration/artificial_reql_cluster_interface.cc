@@ -151,7 +151,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "
@@ -159,7 +159,23 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         return false;
     }
     return next->table_reconfigure(db, name, params, dry_run, interruptor,
-        new_config_out, error_out);
+        result_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::db_reconfigure(
+        counted_t<const ql::db_t> db,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->db_reconfigure(db, params, dry_run, interruptor,
+        result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(

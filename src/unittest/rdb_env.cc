@@ -459,7 +459,18 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,
-        UNUSED ql::datum_t *new_config_out,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_reconfigure(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
     return false;

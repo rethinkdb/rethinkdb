@@ -80,7 +80,14 @@ public:
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            ql::datum_t *new_config_out,
+            ql::datum_t *result_out,
+            std::string *error_out);
+    bool db_reconfigure(
+            counted_t<const ql::db_t> db,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
             std::string *error_out);
     bool table_estimate_doc_counts(
             counted_t<const ql::db_t> db,
@@ -123,7 +130,7 @@ private:
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     bool get_table_ids_for_query(
-            counted_t<const ql::db_t> db,
+            const counted_t<const ql::db_t> &db,
             const std::vector<name_string_t> &table_names,
             std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
             std::string *error_out);
@@ -134,6 +141,14 @@ private:
             bool error_on_missing,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
+            std::string *error_out);
+
+    bool reconfigure_internal(
+            namespace_id_t table,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);

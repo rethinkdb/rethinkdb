@@ -396,9 +396,6 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t)
             const {
         /* Parse parameters */
-        /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
-        on this table */
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
         table_generate_config_params_t config_params;
         config_params.num_shards = args->arg(env, 1)->as_int<int>();
         config_params.num_replicas = get_replica_counts(args->arg(env, 2));
@@ -411,18 +408,30 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "dry_run")) {
             dry_run = v->as_bool();
         }
+
         /* Perform the operation */
-        name_string_t name;
-        bool ok = name.assign_value(table->name);
-        guarantee(ok, "table->name should have been a valid name");
-        datum_t new_config;
+        bool success;
+        datum_t result;
         std::string error;
-        if (!env->env->reql_cluster_interface()->table_reconfigure(
-                table->db, name, config_params, dry_run, env->env->interruptor,
-                &new_config, &error)) {
+        scoped_ptr_t<val_t> target = args->arg(env, 0);
+        if (target->get_type().is_convertible(val_t::type_t::DB)) {
+            success = env->env->reql_cluster_interface()->db_reconfigure(
+                    target->as_db(), config_params, dry_run, env->env->interruptor,
+                    &result, &error);
+        } else {
+            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
+            on this table */
+            success = env->env->reql_cluster_interface()->table_reconfigure(
+                    target->as_table()->db, get_name(target, this, "Table"),
+                    config_params, dry_run, env->env->interruptor,
+                    &result, &error);
+        }
+
+        if (!success) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        return new_val(new_config);
+
+        return new_val(result);
     }
     virtual const char *name() const { return "reconfigure"; }
 };
