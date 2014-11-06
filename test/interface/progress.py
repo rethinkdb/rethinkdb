@@ -14,14 +14,13 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
     processes = [
-        driver.Process(cluster,
-                       driver.Files(metacluster, log_path = "create-output-%d" % i,
-                                    executable_path = executable_path, command_prefix = command_prefix),
-                       log_path = "serve-output-%d" % i,
-                       executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+        driver.Process(
+        	cluster,
+            driver.Files(metacluster, console_output="create-output-%d" % i, command_prefix=command_prefix),
+            console_output="serve-output-%d" % i, command_prefix=command_prefix, extra_options=serve_options)
         for i in xrange(2)]
     for process in processes:
         process.wait_until_started_up()
@@ -54,7 +53,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking backfill progress... ",
     progress = http.get_progress()
-    for server_id, temp1 in progress.iteritems():
+    for _, temp1 in progress.iteritems():
         for namespace_id, temp2 in temp1.iteritems():
             for activity_id, temp3 in temp2.iteritems():
                 for region, progress_val in temp3.iteritems():

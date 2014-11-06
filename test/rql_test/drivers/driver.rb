@@ -4,33 +4,14 @@ $test_count = 0
 $failure_count = 0
 $success_count = 0
 
-JSPORT = ARGV[0]
-CPPPORT = ARGV[1]
-DB_AND_TABLE_NAME = ARGV[2]
+DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+DB_AND_TABLE_NAME = ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME'] || 'no_table_specified'
 
-# -- import the called-for rethinkdb module
-if ENV['RUBY_DRIVER_DIR']
-  $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
-  require 'rethinkdb'
-  $LOAD_PATH.shift
-else
-  # look for the source directory
-  targetPath = File.expand_path(File.dirname(__FILE__))
-  while targetPath != File::Separator
-    sourceDir = File.join(targetPath, 'drivers', 'ruby')
-    if File.directory?(sourceDir)
-      unless system("make -C " + sourceDir)
-        abort "Unable to build the ruby driver at: " + sourceDir
-      end
-      $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
-      require 'rethinkdb'
-      $LOAD_PATH.shift
-      break
-    end
-    targetPath = File.dirname(targetPath)
-  end
-end
-extend RethinkDB::Shortcuts
+# -- import the rethinkdb driver
+
+require_relative '../importRethinkDB.rb'
+
+# --
 
 def show x
   if x.class == Err
@@ -55,6 +36,10 @@ end
 
 def uuid
   AnyUUID
+end
+
+def shard
+  # do nothing in Ruby tests
 end
 
 def err(type, message, backtrace=[])
@@ -215,7 +200,7 @@ end
 def eval_env; binding; end
 $defines = eval_env
 
-$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => CPPPORT)
+$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
 begin
   r.db_create('test').run($cpp_conn)
 rescue

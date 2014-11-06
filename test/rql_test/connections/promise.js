@@ -2,6 +2,8 @@
 // Tests the driver cursor API
 /////
 
+var path = require('path');
+
 process.on('uncaughtException', function(err) {
     console.log(err);
     if (err.stack) {
@@ -12,7 +14,16 @@ process.on('uncaughtException', function(err) {
     process.exit(1)
 });
 
-var r = require('../../../build/packages/js/rethinkdb');
+// -- get input
+
+var port = parseInt(process.argv[2], 10)
+var num_rows = parseInt(process.argv[3], 10);
+
+// -- load rethinkdb from the proper location
+
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+
+// --
 
 var assertNoError = function(err) {
     if (err) {
@@ -43,12 +54,10 @@ var assert = function(predicate) {
     }
 };
 
-var port = parseInt(process.argv[2], 10)
-
 r.connect({port: port}).then(function(c) {
-    var tbl = r.table('test');
-    var num_rows = parseInt(process.argv[3], 10);
-    console.log("Testing for "+num_rows);
+    
+    var tbl = r.db('test').table('test');
+    console.log("Testing for " + num_rows + " rows");
 
 
     tbl.run(c).then(function(cur) {

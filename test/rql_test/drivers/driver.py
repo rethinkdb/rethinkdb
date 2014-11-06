@@ -3,6 +3,11 @@ from __future__ import print_function
 import atexit, itertools, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
+stashedPath = sys.path
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
+import driver, utils
+sys.path = stashedPath
+
 try:
     unicode
 except NameError:
@@ -46,32 +51,16 @@ class PacificTimeZone(tzinfo):
     def dst(self, dt):
         return timedelta(0, 3600)
 
-# -- import test resources - NOTE: these are path dependent
+# -- import driver
 
-stashedPath = sys.path
-
-# - test_util - TODO: replace with methods from common
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-import test_util
-
-# - common
-
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
-import utils
 r = utils.import_python_driver()
 
-# -
+# -- get settings
 
-sys.path = stashedPath
-
-# --
-
-# JSPORT = int(sys.argv[1])
-CPPPORT = int(sys.argv[2])
-DB_AND_TABLE_NAME = sys.argv[3]
-CLUSTER_PORT = int(sys.argv[4])
-BUILD = sys.argv[5]
+DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
+DB_AND_TABLE_NAME = (sys.argv[2] if len(sys.argv) > 2 else None) or os.environ.get('TEST_DB_AND_TABLE_NAME') or 'no_table_specified'
+CLUSTER_PORT = int(sys.argv[2] if len(sys.argv) > 2 else os.environ.get('RDB_CLUSTER_PORT'))
+RDB_EXE_PATH = sys.argv[3] if len(sys.argv) > 3 else utils.find_rethinkdb_executable()
 
 # -- utilities --
 
@@ -278,7 +267,7 @@ class PyTestDriver:
     cpp_conn = None
     
     def __init__(self):
-        print('Creating default connection to CPP server on port %s\n' % str(CPPPORT))
+        print('Creating default connection to server on port %d\n' % DRIVER_PORT)
         self.cpp_conn = self.connect()
         self.scope = {}
         
@@ -286,7 +275,7 @@ class PyTestDriver:
             r.db_create('test').run(self.cpp_conn)
     
     def connect(self):
-        return r.connect(host='localhost', port=CPPPORT)
+        return r.connect(host='localhost', port=DRIVER_PORT)
 
     def define(self, expr):
         try:
@@ -356,9 +345,9 @@ class PyTestDriver:
         
         if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(result), str(result)))
+                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (repr(result), str(result)))
             elif not eq(exp_val, **compOptions)(result):
-                print_test_failure(name, src, "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
         elif not eq(exp_val, **compOptions)(result):
             print_test_failure(name, src, "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
 
@@ -427,7 +416,7 @@ def uuid():
     return Uuid()
 
 def shard(table_name):
-    test_util.shard_table(CLUSTER_PORT, BUILD, table_name)
+    utils.shard_table(CLUSTER_PORT, BUILD, table_name)
 
 def int_cmp(expected_value):
     return Number(expected_value, explicit_type=(int, long))

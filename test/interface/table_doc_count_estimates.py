@@ -1,30 +1,29 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback, re, pprint
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
-r = utils.import_python_driver()
 
 """The `interface.table_status_num_docs` test checks that the `doc_count_estimates`
 field on `r.table(...).info()` behaves as expected."""
 
-op = OptParser()
+import os, pprint, re, sys, time
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, utils, vcoptparse
+
+r = utils.import_python_driver()
+
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, log_path = "create-output-1", server_name = "a",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc1 = driver.Process(cluster1, files1, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, log_path = "create-output-2", server_name = "b",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    
+    print("Spinning up two processes...")
+    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", command_prefix=command_prefix)
+    proc1 = driver.Process(cluster1, files1, console_output = "serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
+    files2 = driver.Files(metacluster, console_output="create-output-2", server_name="b", command_prefix=command_prefix)
+    proc2 = driver.Process(cluster1, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
     cluster1.check()
@@ -84,5 +83,5 @@ with driver.Metacluster() as metacluster:
     assert res["doc_count_estimates"] == [2]
 
     cluster1.check_and_stop()
-print "Done."
+print("Done.")
 

@@ -1,14 +1,11 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-require 'rubygems'
-require 'ql2.pb.rb'
-require 'socket'
-require 'pp'
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-load 'exc.rb'
-load 'net.rb'
-load 'shim.rb'
-load 'func.rb'
-load 'rpp.rb'
+require_relative './ql2.pb.rb'
+require_relative './exc.rb'
+require_relative './net.rb'
+require_relative './shim.rb'
+require_relative './func.rb'
+require_relative './rpp.rb'
 
 module RethinkDB
   module Shortcuts
