@@ -15,12 +15,12 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options =
+    executable_path, command_prefix, serve_options = \
         scenario_common.parse_mode_flags(opts)
 
     # The "live" process will remain alive for the entire test. The "dead" processes will
     # be killed after we create some tables
-    num_live = 5, num_dead = 5
+    num_live = num_dead = 5
     print "Spinning up %d processes..." % (num_live + num_dead)
     def make_procs(names):
         files, procs = [], []
@@ -48,12 +48,14 @@ with driver.Metacluster() as metacluster:
         p.wait_until_started_up()
     cluster.check()
 
+    conn = r.connect("localhost", live_procs[0].driver_port)
+
     def mks(nl, nd, primary = "l"):
         """Helper function for constructing entries for `table_config.shards`. Returns a
         shard with "nl" live replicas and "nd" dead ones. The value of "primary"
         determines if the primary replica will be a live one or dead one."""
         assert nl <= num_live and nd <= num_dead
-        assert (primary == "l" and nl > 0) || (primary == "d" and nd > 0)
+        assert (primary == "l" and nl > 0) or (primary == "d" and nd > 0)
         replicas = live_names[:nl] + dead_names[:nl]
         return {"replicas": replicas, "director": "%s1" % primary}
     def mkr(nl, nd, mode):
@@ -74,9 +76,9 @@ with driver.Metacluster() as metacluster:
     #     permanently removed and the primary (if dead) reassigned to a live server.
     tests = [
         ([mks(5, 0)], "single", "awro", "awro"),
-        ([mks(0, 5)], "single", "", ""),
+        ([mks(0, 5, "d")], "single", "", ""),
         ([mks(1, 0)], "majority", "awro", "awro"),
-        ([mks(0, 1)], "majority", "", ""),
+        ([mks(0, 1, "d")], "majority", "", ""),
         ([mks(2, 1)], "single", "wro", "awro"),
         ([mks(1, 2)], "single", "wro", "awro"),
         ([mks(2, 1)], "majority", "wro", "awro"),
@@ -144,7 +146,7 @@ with driver.Metacluster() as metacluster:
         assert expected_readiness.replace("a", "") == tested_readiness
         assert expected_readiness == reported_readiness
 
-    for i, (shards, write_acks, readiness_1, readiness_2):
+    for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_1)
 
     print "Permanently removing the designated 'dead' servers..."
@@ -153,7 +155,7 @@ with driver.Metacluster() as metacluster:
     assert res["deleted"] == num_dead
 
     print "Checking table statuses..."
-    for i, (shards, write_acks, readiness_1, readiness_2):
+    for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_2)
     # TODO: Check that issues exist for write acks that are now unsatisfiable
 
@@ -167,7 +169,7 @@ with driver.Metacluster() as metacluster:
         print "OK"
     def test_fail(change):
         print repr(change)
-        res = r.table_config9"aux").update(change).run(conn)
+        res = r.table_config("aux").update(change).run(conn)
         assert res["errors"] == 1 and res["replaced"] == 0
         print "Failed (as expected):", repr(res["first_error"])
     test_ok({"durability": "soft"})
@@ -175,12 +177,12 @@ with driver.Metacluster() as metacluster:
     test_fail({"durability": "the consistency of toothpaste"})
     test_ok({"write_acks": [{"replicas": ["l1"], "acks": "single"}]})
     test_fail({"write_acks": "this is a string"})
-    test_fail({"write_acks": [{"replicas": ["not_a_server"], "acks": "single"}])
-    test_fail({"write_acks": [{"replicas": 1, "acks": "single"}])
-    test_fail({"write_acks": [{"replicas": ["l1"], "acks": 12345}]}
+    test_fail({"write_acks": [{"replicas": ["not_a_server"], "acks": "single"}]})
+    test_fail({"write_acks": [{"replicas": 1, "acks": "single"}]})
+    test_fail({"write_acks": [{"replicas": ["l1"], "acks": 12345}]})
     test_fail({"write_acks": [{"replicas": ["l1"]}]})
     test_fail({"write_acks": [{"acks": "single"}]})
-    test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single", "foo": "bar"}])
+    test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single", "foo": "bar"}]})
     # TODO: Test putting up unsatisfiable write acks
 
     cluster.check_and_stop()
