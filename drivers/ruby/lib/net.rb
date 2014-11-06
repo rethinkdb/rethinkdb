@@ -395,12 +395,11 @@ module RethinkDB
             @listener_mutex.synchronize {
               if @waiters.has_key?(token)
                 note_error(token, e)
-              else
-                @waiters.keys.each{ |k| note_error(k, e) }
-                @listener = nil
-                Thread.current.terminate
-                abort("unreachable")
               end
+              @waiters.keys.each{ |k| note_error(k, e) }
+              @listener = nil
+              Thread.current.terminate
+              abort("unreachable")
             }
           end
         end

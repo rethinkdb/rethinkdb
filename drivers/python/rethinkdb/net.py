@@ -87,7 +87,7 @@ class Cursor(object):
     def _it(self):
         while True:
             if len(self.responses) == 0 and not self.conn.is_open():
-                raise RqlDriverError("Connection closed, cannot read cursor.")
+                raise RqlRuntimeError("Connection is closed.")
             if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
             if len(self.responses) == 1 and not self.end_flag:
