@@ -8,15 +8,16 @@ Bug fix update.
 * Fix a bug with memory handling in S2 (#3201)
 * Fixed a bug handling paged results in the Data Explorer (#3111)
 * Fixed a bug that caused a crash on exit if a joined server with an open
-  changefeed has crashed (#3038)
-* Fixed a bug that caused a crash when unsharding discards more rows than
+  changefeed crashed (#3038)
+* Fixed a bug that caused a crash when unsharding discarded more rows than
   expected when batching results (#3264)
-* Fixed a bug that could lead to crashes when changefeeds are frequently
+* Fixed a bug that could lead to crashes when changefeeds were frequently
   registered and unregistered (#3205)
 * Changed the `r.point` constructor to be deterministic, allowing it to be used
   in secondary index functions (#3287)
 * Fixed an incompatibility problem between Python 3.4 and the `import` command
   (#3259)
+* Fixed a buffer alignment issue with `object_buffer_t` data (#3300)
 
 ---
 
