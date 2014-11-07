@@ -101,7 +101,7 @@ with driver.Metacluster() as metacluster:
     test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
     assert test_status["status"]["ready_for_writes"], test_status
-    assert not test_status["status"]["ready_completely"], test_status
+    assert not test_status["status"]["all_replicas_ready"], test_status
     assert test2_status["status"]["ready_for_outdated_reads"], test2_status
     assert not test2_status["status"]["ready_for_reads"], test2_status
     assert not test3_status["status"]["ready_for_outdated_reads"], test3_status
@@ -130,7 +130,7 @@ with driver.Metacluster() as metacluster:
 
     test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
-    assert test_status["status"]["ready_completely"]
+    assert test_status["status"]["all_replicas_ready"]
     assert test2_status["status"]["ready_for_outdated_reads"]
     assert not test2_status["status"]["ready_for_reads"]
     assert not test3_status["status"]["ready_for_outdated_reads"]
