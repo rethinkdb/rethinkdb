@@ -2631,18 +2631,20 @@ module 'DataExplorerView', ->
 
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
+                    final_query = @index is @queries.length 
                     @start_time = new Date()
 
-                    query_result = new QueryResult
-                        has_profile: @state.options.profiler
-                        current_query: @raw_query
-                        raw_query: @raw_queries[@index]
-                        driver_handler: @driver_handler
-                        events:
-                            error: (err) =>
-                                @results_view.render_error(@query, err)
+                    if final_query
+                        query_result = new QueryResult
+                            has_profile: @state.options.profiler
+                            current_query: @raw_query
+                            raw_query: @raw_queries[@index]
+                            driver_handler: @driver_handler
+                            events:
+                                error: (err) =>
+                                    @results_view.render_error(@query, err)
 
-                    # ATN: pass the query_result object to the view
+                        # ATN: pass the query_result object to the view
 
                     @driver_handler.run_with_new_connection rdq_query,
                         optargs:
@@ -2651,7 +2653,13 @@ module 'DataExplorerView', ->
                             profile: @state.options.profile
                         connection_error: (error) =>
                             @error_on_connect error
-                        callback: query_result.set
+                        callback: (error, result) =>
+                            if final_query
+                                query_result.set error, result
+                            else if error
+                                @result_view.render_error(@query, err)
+                            else
+                                @execute_portion()
 
                     return true
                 else
@@ -2664,50 +2672,6 @@ module 'DataExplorerView', ->
                         @save_query
                             query: @raw_query
                             broken_query: true
-
-
-        # ATN: move to child views, with special care for error handling
-        # ATN: this is no longer called
-        # Handle the result of a query
-        query_result_callback: (result) =>
-            if result.error?
-                if @queries.length > 1
-                    @results_view.render_error(@raw_queries[@index-1], result.error)
-                else
-                    @results_view.render_error(null, result.error)
-                @save_query
-                    query: @raw_query
-                    broken_query: true
-                return false
-
-            @ATN_profile = result.profile ? null
-            @state.ATN_profile = @ATN_profile
-
-            if @index is @queries.length # @index was incremented in execute_portion
-                @state.query_result = result
-                if result.cursor?
-
-                    result.shift @limit, @next_results_callback
-                else
-                    @ATN_current_results = result.value
-
-                    @state.ATN_results = @ATN_current_results
-                    @state.ATN_metadata =
-                        limit_value: if Object::toString.call(@results) is '[object Array]' then @ATN_current_results.length else 1
-                        skip_value: 0
-                        execution_time: new Date() - @start_time
-                        query: @query
-                        has_more_data: false
-
-                    @results_view.render_result
-                        query_result: @ATN_current_results
-
-                    # Successful query, let's save it in the history
-                    @save_query
-                        query: @raw_query
-                        broken_query: false
-            else
-                @execute_portion()
 
         # ATN: move to child views
         # Called when there is a new batch of results to display
