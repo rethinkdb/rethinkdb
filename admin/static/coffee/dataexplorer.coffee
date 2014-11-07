@@ -1,8 +1,42 @@
+# ATN: change query nomenclature:
+# raw: text from the data explorer
+# clean: cleaned somehow. how?
+# query: a single query
+# query_group: multiple queries
+
+# Move load more results into view
+# and scroll to top: $(window).scrollTop(@$('.results_container').offset().top)
+
+# ATN tags
+
+# history load/remove buttons display is broken
+
+# view tabs display is different
+
+# compare look to old version, make sure nothing changed
+
+# test wrapper_scrollbar
+
+# move more results button into individual views
+
+# returned/displayed/skipped has extra comma and is generally ugly
+# removing id_connection may have introduced bugs
+# round-trip time for cursors is inconsistent
+# get rid of current_results and allow looking at previous results
+# cursor_timed_out is only called on connection errors
+
+# save_query gets called too often with no effect -> symptom that it is
+# called in the wrong places
+
+# typeof value._next is 'function' is NOT a good test for cursors
+
+# table view doesn't work with arrays
+
+
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
     @state =
         current_query: null
-        query: null
         query_result: null
         cursor_timed_out: true
         view: 'tree'
@@ -38,8 +72,10 @@ module 'DataExplorerView', ->
         _.extend @::, Backbone.Events
 
         constructor: (options) ->
-            @has_profile = options.profile
+            @has_profile = options.has_profile
             @discard_results = options.discard_results ? false
+            @current_query = options.current_query
+            @raw_query = options.raw_query
             if options.events?
                 for own event, handler of options.events
                     @on event, handler
@@ -130,8 +166,7 @@ module 'DataExplorerView', ->
             @error = error
             @trigger 'error', @, error
             @discard_results = true
-
-                    
+            @ended = true
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -166,7 +201,6 @@ module 'DataExplorerView', ->
             'click .abort_query': 'abort_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'execute_query'
-            'click .more_results': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
@@ -585,7 +619,7 @@ module 'DataExplorerView', ->
                 catch err
                     window.localStorage.removeItem 'rethinkdb_history'
 
-            @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
+            @query_has_changed = @state.query_result?.current_query isnt @state.current_query
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -687,12 +721,10 @@ module 'DataExplorerView', ->
                 @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @state?.query? and @state?.ATN_results? and @state?.ATN_metadata?
+            if @state?.query? and @state?.query_result?
                 @$('.results_container').html @results_view.render_result({
-                    show_query_warning: @show_query_warning
-                    results: @state.ATN_results
-                    metadata: @state.ATN_metadata
-                    profile: @state.ATN_profile
+                    query_has_changed: @query_has_changed
+                    query_result: @state.query_result
                 }).$el
                 # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
@@ -2511,20 +2543,9 @@ module 'DataExplorerView', ->
                         error: true
                     }
 
-        # Function triggered when the user click on 'more results'
-        show_more_results: (event) =>
-            event.preventDefault()
-            @ATN_current_results = []
-            @start_time = new Date()
-            @state.query_result.shift @limit, @next_results_callback
-
-            # TODO: there is no indication that anything is loading
-            $(window).scrollTop(@$('.results_container').offset().top)
-
         abort_query: =>
             @state.query_result?.discard()
             @driver_handler.close_connection()
-            @toggle_executing false
 
         # Function that execute the queries in a synchronous way.
         execute_query: =>
@@ -2538,7 +2559,7 @@ module 'DataExplorerView', ->
 
             # The user just executed a query, so we reset cursor_timed_out to false
             @state.cursor_timed_out = false
-            @state.show_query_warning = false
+            @state.query_has_changed = false
 
             @raw_query = @codemirror.getValue()
 
@@ -2559,11 +2580,9 @@ module 'DataExplorerView', ->
                         no_query: true
                     @results_view.render_error(null, error, true)
                 else
-                    @toggle_executing true
                     @execute_portion()
 
             catch err
-                @toggle_executing false
                 # Missing brackets, so we display everything (we don't know if we properly splitted the query)
                 @results_view.render_error(@query, err, true)
                 @save_query
@@ -2596,7 +2615,6 @@ module 'DataExplorerView', ->
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
-                    @toggle_executing false
                     if @queries.length > 1
                         @results_view.render_error(@raw_queries[@index], err, true)
                     else
@@ -2610,16 +2628,21 @@ module 'DataExplorerView', ->
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
                     @start_time = new Date()
-                    @ATN_current_results = []
 
                     query_result = new QueryResult
-                        profile: @state.options.profiler
+                        has_profile: @state.options.profiler
+                        current_query: @raw_query
+                        raw_query: @raw_queries[@index]
                         events:
+                            # ATN don't handle events here
+                            # ATN let the ResultView handle that
                             sync: @query_result_callback
                             error: (err) =>
-                                @toggle_executing false
                                 @results_view.render_error(@query, err)
 
+                    # ATN: pass the query_result object to the view
+
+                    # ATN: replaced create_connection with run_with_new_connection
                     @driver_handler.create_connection (error, connection) =>
                         if (error)
                             @error_on_connect error
@@ -2630,13 +2653,9 @@ module 'DataExplorerView', ->
                     , @error_on_connect
 
                     return true
-                else if rdb_query instanceof DriverHandler
-                    # Nothing to do
-                    return true
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        @toggle_executing false
                         error = @query_error_template
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error, true)
@@ -2646,10 +2665,10 @@ module 'DataExplorerView', ->
                             broken_query: true
 
 
+        # ATN: move to child views, with special care for error handling
         # Handle the result of a query
         query_result_callback: (result) =>
             if result.error?
-                @toggle_executing false
                 if @queries.length > 1
                     @results_view.render_error(@raw_queries[@index-1], result.error)
                 else
@@ -2668,10 +2687,8 @@ module 'DataExplorerView', ->
 
                     result.shift @limit, @next_results_callback
                 else
-                    @toggle_executing false
                     @ATN_current_results = result.value
 
-                    @state.query = @query
                     @state.ATN_results = @ATN_current_results
                     @state.ATN_metadata =
                         limit_value: if Object::toString.call(@results) is '[object Array]' then @ATN_current_results.length else 1
@@ -2681,9 +2698,7 @@ module 'DataExplorerView', ->
                         has_more_data: false
 
                     @results_view.render_result
-                        results: @ATN_current_results
-                        metadata: @state.ATN_metadata
-                        profile: @ATN_profile
+                        query_result: @ATN_current_results
 
                     # Successful query, let's save it in the history
                     @save_query
@@ -2692,13 +2707,12 @@ module 'DataExplorerView', ->
             else
                 @execute_portion()
 
+        # ATN: move to child views
         # Called when there is a new batch of results to display
         next_results_callback: (result, rows) =>
 
             @ATN_current_results = rows
 
-            @toggle_executing false
-            @state.query = @query
             @state.ATN_results = @ATN_current_results
             @state.ATN_metadata =
                 limit_value: @ATN_current_results.length
@@ -2707,7 +2721,7 @@ module 'DataExplorerView', ->
                 query: @query
                 has_more_data: not result.ended
 
-            @results_view.render_result
+            @results_view.render_result # ATN line 679
                 results: @ATN_current_results
                 metadata: @state.ATN_metadata
                 profile: @ATN_profile
@@ -2844,7 +2858,6 @@ module 'DataExplorerView', ->
             if /^(Unexpected token)/.test(error.message)
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
-                @toggle_executing false
                 @results_view.render_error(null, error)
 
                 # We save the query since the callback will never be called.
@@ -2859,15 +2872,12 @@ module 'DataExplorerView', ->
                 @$('#user-alert-space').hide()
                 @$('#user-alert-space').html @alert_connection_fail_template({})
                 @$('#user-alert-space').slideDown 'fast'
-                @reconnecting = false
                 @driver_connected = 'error'
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
-            @reconnecting = true
             event.preventDefault()
-            @driver_handler.connect()
-
+            @driver_handler.connect() # ATN: this function does not exist
         handle_gutter_click: (editor, line) =>
             start =
                 line: line
@@ -3480,7 +3490,7 @@ module 'DataExplorerView', ->
             @container.state.view = view
             @$(".link_to_#{@view}_view").addClass 'active'
             @$(".link_to_#{@view}_view").parent().addClass 'active'
-            @render_result()
+            @render_result() # ATN: 0-argument render_result?
 
         set_scrollbar: =>
             if @view is 'table'
@@ -3562,7 +3572,10 @@ module 'DataExplorerView', ->
                 js_error: js_error is true
             return @
 
+        # ATN: get rid of this. replace with set_query_result
         render_result: (args) =>
+
+            # ATN: now only two arguments: query_result and query_has_changed
 
             if args? and args.results isnt undefined
                 @results = args.results
@@ -3587,8 +3600,13 @@ module 'DataExplorerView', ->
                 else # @results can be a single value or null
                     num_results += 1
 
-            @$el.html @template _.extend @ATN_metadata,
-                show_query_warning: args?.show_query_warning
+            @$el.html @template
+                limit_value: ATN_from_old_metadata
+                skip_value: ATN
+                execution_time: ATN
+                query: ATN
+                has_more_data: ATN
+                query_has_changed: args?.query_has_changed
                 show_more_data: @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is true)
                 execution_time_pretty: @ATN_metadata.execution_time_pretty
@@ -3786,20 +3804,20 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class DriverHandler
-        # This class does a little more than window.Driver
-        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
+        constructor: ({@container}) ->
 
         close_connection: =>
             if @connection?.open is true
                 driver.close @connection
                 @connection = null
+                @container.toggle_executing false
 
-        create_connection: (cb, connection_cb) =>
+        run_with_new_connection: ({query, callback, connection_error}) =>
             @close_connection()
 
-            that = @
-
             driver.connect (error, connection) =>
+                if error?
+                    connection_error error
                 connection.removeAllListeners 'error' # See issue 1347
                 connection.on 'error', connection_cb
                 @connection = connection
