@@ -46,7 +46,8 @@ with driver.Metacluster() as metacluster:
             "shards": [{
                 "director": "PrinceHamlet",
                 "replicas": ["PrinceHamlet", "KingHamlet"]
-                }]
+                }],
+            "write_acks": "single"
         },
         # The `test2` table will raise a `table_needs_primary` issue
         {
@@ -56,7 +57,8 @@ with driver.Metacluster() as metacluster:
             "shards": [{
                 "director": "KingHamlet",
                 "replicas": ["PrinceHamlet", "KingHamlet"]
-                }]
+                }],
+            "write_acks": "single"
         },
         # The `test3` table will raise a `data_lost` issue
         {
@@ -66,7 +68,8 @@ with driver.Metacluster() as metacluster:
             "shards": [{
                 "director": "KingHamlet",
                 "replicas": ["KingHamlet"]
-                }]
+                }],
+            "write_acks": "single"
         }
         ]).run(conn)
     assert res["inserted"] == 3, res
