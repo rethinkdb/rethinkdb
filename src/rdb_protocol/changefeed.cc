@@ -1066,8 +1066,7 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_stamp_t(keyspec_t(spec), *addr),
-                   profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
             &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);

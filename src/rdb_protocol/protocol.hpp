@@ -490,12 +490,9 @@ RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 struct changefeed_stamp_t {
     changefeed_stamp_t() : region(region_t::universe()) { }
     explicit changefeed_stamp_t(
-        ql::changefeed::keyspec_t _spec,
         ql::changefeed::client_t::addr_t _addr)
-        : spec(std::move(_spec)),
-          addr(std::move(_addr)),
+        : addr(std::move(_addr)),
           region(region_t::universe()) { }
-    ql::changefeed::keyspec_t spec;
     ql::changefeed::client_t::addr_t addr;
     region_t region;
 };

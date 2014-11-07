@@ -1203,7 +1203,7 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(sindex_status_t, sindexes, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, region);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
     changefeed_limit_subscribe_t, addr, uuid, spec, table, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(changefeed_stamp_t, spec, addr, region);
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(read_t, read, profile);

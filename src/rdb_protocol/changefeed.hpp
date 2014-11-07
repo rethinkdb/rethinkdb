@@ -139,7 +139,6 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t() { }
     keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
     template<class T>
     explicit keyspec_t(T &&t) : spec(std::move(t)) { }
@@ -150,6 +149,8 @@ struct keyspec_t {
     keyspec_t &operator=(const keyspec_t &) = default;
 
     boost::variant<range_t, limit_t, point_t> spec;
+private:
+    keyspec_t() { }
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
@@ -435,7 +436,6 @@ public:
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f);
     bool has_limit(const boost::optional<std::string> &s);
-    std::vector<std::string> sindexes;
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
