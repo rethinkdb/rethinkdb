@@ -18,6 +18,34 @@ namespace ql {
 
 namespace changefeed {
 
+namespace debug {
+std::string print(const uuid_u &u) {
+    printf_buffer_t buf;
+    debug_print(&buf, u);
+    return strprintf("uuid(%s)", buf.c_str());
+}
+std::string print(const datum_t &d) {
+    return "datum(" + d.print() + ")";
+}
+std::string print(const std::string &s) {
+    return "str(" + s + ")";
+}
+template<class A, class B>
+std::string print(const std::pair<A, B> &p) {
+    return strprintf("pair(%s, %s)", print(p.first).c_str(), print(p.second).c_str());
+}
+template<class T>
+std::string print(const boost::optional<T> &t) {
+    return strprintf("opt(%s)\n", t ? print(*t).c_str() : "");
+}
+std::string print(const msg_t::limit_change_t &change) {
+    return strprintf("limit_change_t(%s, %s, %s)",
+                     print(change.sub).c_str(),
+                     print(change.old_key).c_str(),
+                     print(change.new_val).c_str());
+}
+} // namespace debug;
+
 server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
@@ -534,9 +562,15 @@ void limit_manager_t::add(
     datum_t key,
     datum_t val) {
     guarantee(spot->write_signal()->is_pulsed());
-    added.push_back(
-        std::make_pair(key_to_mangled_primary(sk, is_primary),
-                       std::make_pair(std::move(key), std::move(val))));
+    guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
+    if ((is_primary == is_primary_t::YES
+         && region.inner.contains_key(sk))
+        || (is_primary == is_primary_t::NO
+            && spec.range.range.contains(reql_version_t::LATEST, key))) {
+        added.push_back(
+            std::make_pair(key_to_mangled_primary(sk, is_primary),
+                           std::make_pair(std::move(key), std::move(val))));
+    }
 }
 
 void limit_manager_t::del(
@@ -550,19 +584,21 @@ void limit_manager_t::del(
 class ref_visitor_t : public boost::static_visitor<item_vec_t> {
 public:
     ref_visitor_t(env_t *_env,
-                  key_range_t _pk_range,
+                  const key_range_t *_pk_range,
+                  const keyspec_t::limit_t *_spec,
                   sorting_t _sorting,
                   boost::optional<item_queue_t::iterator> _start,
                   size_t _n)
         : env(_env),
-          pk_range(std::move(_pk_range)),
+          pk_range(_pk_range),
+          spec(_spec),
           sorting(_sorting),
           start(std::move(_start)),
           n(_n) { }
 
     item_vec_t operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
-        key_range_t range = pk_range;
+        key_range_t range = *pk_range;
         switch (sorting) {
         case sorting_t::ASCENDING: {
             if (start) {
@@ -608,18 +644,20 @@ public:
 
     item_vec_t operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
-        datum_range_t srange;
-        auto open = key_range_t::bound_t::open;
-        datum_t dstart = start ? (**start)->second.first : datum_t();
-        switch (sorting) {
-        case sorting_t::ASCENDING:
-            srange = datum_range_t(dstart, open, datum_t(), open);
-            break;
-        case sorting_t::DESCENDING:
-            srange = datum_range_t(datum_t(), open, dstart, open);
-            break;
-        case sorting_t::UNORDERED: // fallthru
-        default: unreachable();
+        guarantee(spec->range.sindex);
+        datum_range_t srange = spec->range.range;
+        if (start) {
+            datum_t dstart = (**start)->second.first;
+            switch (sorting) {
+            case sorting_t::ASCENDING:
+                srange = srange.with_left_bound(dstart, key_range_t::bound_t::open);
+                break;
+            case sorting_t::DESCENDING:
+                srange = srange.with_right_bound(dstart, key_range_t::bound_t::open);
+                break;
+            case sorting_t::UNORDERED: // fallthru
+            default: unreachable();
+            }
         }
         rdb_rget_secondary_slice(
             ref.btree,
@@ -631,7 +669,7 @@ public:
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
                     is_primary_t::NO, n, sorting}),
-            pk_range,
+            *pk_range,
             sorting,
             *ref.sindex_info,
             &resp,
@@ -651,7 +689,8 @@ public:
 
 private:
     env_t *env;
-    key_range_t pk_range;
+    const key_range_t *pk_range;
+    const keyspec_t::limit_t *spec;
     sorting_t sorting;
     boost::optional<item_queue_t::iterator> start;
     size_t n;
@@ -662,7 +701,7 @@ item_vec_t limit_manager_t::read_more(
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
     size_t n) {
-    ref_visitor_t visitor(env.get(), region.inner, sorting, start, n);
+    ref_visitor_t visitor(env.get(), &region.inner, &spec, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
 
@@ -1102,7 +1141,7 @@ public:
                 els.push_back(
                     datum_t(std::map<datum_string_t, datum_t> {
                             { datum_string_t("old_val"), (*it)->second.second },
-                                { datum_string_t("new_val"), (*it)->second.second } }));
+                            { datum_string_t("new_val"), (*it)->second.second } }));
             }
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
@@ -1122,9 +1161,18 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_limit_subscribe_t(
-                       *addr, uuid, spec, std::move(table), env->get_all_optargs()),
+                       *addr,
+                       uuid,
+                       spec,
+                       std::move(table),
+                       env->get_all_optargs(),
+                       spec.range.sindex
+                       ? region_t::universe()
+                       : region_t(spec.range.range.to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE),
-            &read_resp, order_token_t::ignore, env->interruptor);
+            &read_resp,
+            order_token_t::ignore,
+            env->interruptor);
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(
             &read_resp.response);
         if (resp == NULL) {
@@ -1196,10 +1244,9 @@ public:
             if (active_data.size() == 0) {
                 insert = false;
             } else {
-                datum_t a = (*it)->second.first;
                 guarantee(active_data.size() != 0);
-                datum_t b = (**active_data.begin())->second.first;
-                insert = !gt(a, b);
+                // Yup, three stars.  Fuck spatial locality.
+                insert = !gt(**it, ***active_data.begin());
             }
             if (insert) {
                 active_data.insert(it);
@@ -1412,7 +1459,7 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
-    if (!has_el() && !exc) {
+    if (!has_el() && !exc && skipped == 0) {
         cond_t wait_for_data;
         cond = &wait_for_data;
         signal_timer_t timer;
@@ -1433,6 +1480,7 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
             throw e;
         }
         guarantee(cond == NULL);
+        guarantee(has_el() || exc || skipped != 0);
     }
 
     std::vector<datum_t> v;
@@ -1469,7 +1517,7 @@ void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
 
 void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
-    if (cond != NULL) {
+    if (cond != NULL && (has_el() || exc || skipped != 0)) {
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;

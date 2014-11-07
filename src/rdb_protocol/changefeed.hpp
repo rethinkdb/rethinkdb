@@ -369,7 +369,7 @@ public:
     void abort(exc_t e);
     bool is_aborted() { return aborted; }
 
-    const region_t region; // TODO: use this when ranges are supported.
+    const region_t region;
     const std::string table;
     const uuid_u uuid;
 private:

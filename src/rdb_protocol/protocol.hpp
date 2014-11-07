@@ -470,13 +470,14 @@ struct changefeed_limit_subscribe_t {
         uuid_u _uuid,
         ql::changefeed::keyspec_t::limit_t _spec,
         std::string _table,
-        std::map<std::string, ql::wire_func_t> _optargs)
+        std::map<std::string, ql::wire_func_t> _optargs,
+        region_t pkey_region)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
           table(std::move(_table)),
           optargs(std::move(_optargs)),
-          region(region_t::universe()) { }
+          region(std::move(pkey_region)) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;

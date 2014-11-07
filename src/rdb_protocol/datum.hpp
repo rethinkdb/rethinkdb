@@ -407,6 +407,9 @@ public:
     // truncated sindexes.
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
+
+    datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
+    datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);
 private:
 
     datum_t left_bound, right_bound;
