@@ -307,7 +307,7 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                              std::function<void(rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
-                                                limit_manager_t *)> f) {
+                                                limit_manager_t *)> f) THROWS_NOTHING {
     auto_drainer_t::lock_t lock(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();

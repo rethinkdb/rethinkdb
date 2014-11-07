@@ -434,7 +434,7 @@ public:
                        std::function<void(rwlock_in_line_t *,
                                           rwlock_in_line_t *,
                                           rwlock_in_line_t *,
-                                          limit_manager_t *)> f);
+                                          limit_manager_t *)> f) THROWS_NOTHING;
     bool has_limit(const boost::optional<std::string> &s);
 private:
     friend class limit_manager_t;

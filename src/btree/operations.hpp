@@ -268,7 +268,7 @@ void find_keyvalue_location_for_write(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
-        promise_t<superblock_t *> *pass_back_superblock = NULL);
+        promise_t<superblock_t *> *pass_back_superblock = NULL) THROWS_NOTHING;
 
 void find_keyvalue_location_for_read(
         value_sizer_t *sizer,

@@ -142,7 +142,7 @@ kv_location_set(keyvalue_location_t *kv_location,
                 ql::datum_t data,
                 repli_timestamp_t timestamp,
                 const deletion_context_t *deletion_context,
-                rdb_modification_info_t *mod_info_out) {
+                rdb_modification_info_t *mod_info_out) THROWS_NOTHING {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
@@ -1513,7 +1513,7 @@ void rdb_update_single_sindex(
         auto_drainer_t::lock_t,
         cond_t *keys_available_cond,
         std::vector<ql::datum_t> *old_keys_out,
-        std::vector<ql::datum_t> *new_keys_out) {
+        std::vector<ql::datum_t> *new_keys_out) THROWS_NOTHING {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
