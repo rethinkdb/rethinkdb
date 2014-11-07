@@ -61,8 +61,6 @@ private:
     the destructor won't call `begin_shutdown()` again. */
     mailbox_read_callback_t *callback;
 
-    auto_drainer_t drainer;
-
     DISABLE_COPYING(raw_mailbox_t);
 
 public:
