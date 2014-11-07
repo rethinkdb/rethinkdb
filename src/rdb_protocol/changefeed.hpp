@@ -311,13 +311,13 @@ public:
     explicit limit_order_t(sorting_t _sorting);
     bool operator()(const item_t &, const item_t &) const;
     bool operator()(const const_item_t &, const const_item_t &) const;
-    bool operator()(const datum_t &, const datum_t &) const;
-    bool operator()(const std::string &, const std::string &) const;
     template<class T>
     bool operator()(const T &a, const T &b) const {
         return (*this)(*a, *b);
     }
 private:
+    bool operator()(const datum_t &, const datum_t &) const;
+    bool operator()(const std::string &, const std::string &) const;
     bool subop(
         const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
         const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const;

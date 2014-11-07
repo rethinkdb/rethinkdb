@@ -1244,8 +1244,7 @@ public:
                 insert = false;
             } else {
                 guarantee(active_data.size() != 0);
-                // Yup, three stars.  Fuck spatial locality.
-                insert = !gt(**it, ***active_data.begin());
+                insert = !gt(it, *active_data.begin());
             }
             if (insert) {
                 active_data.insert(it);
