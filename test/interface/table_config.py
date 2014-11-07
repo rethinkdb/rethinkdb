@@ -34,7 +34,7 @@ with driver.Metacluster() as metacluster:
     conn = r.connect(proc1.host, proc1.driver_port)
 
     def check_foo_config_matches(expected):
-        config = r.table_config("foo").run(conn)
+        config = r.table_config("foo").nth(0).run(conn)
         assert config["name"] == "foo" and config["db"] == "test"
         found = config["shards"]
         if len(expected) != len(found):
