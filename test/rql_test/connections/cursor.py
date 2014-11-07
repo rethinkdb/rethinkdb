@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import os, sys, unittest, re
+import os, re, sys, unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
 import utils
@@ -60,21 +60,23 @@ class TestRangeCursor(unittest.TestCase):
         self.assertTrue(count > 2, "Did not get enough cursor results")
 
     def test_cursor_success(self):
-        cursor = r.range().limit(10000).run(self.conn)
+        range_size = 10000
+        cursor = r.range().limit(range_size).run(self.conn)
         count = 0
         for i in cursor:
             count += 1
-        self.assertEqual(count, 10000, "Did not get enough cursor results")
+        self.assertEqual(count, range_size, "Expected %d results on the cursor, but got %d" % (range_size, count))
 
     def test_cursor_double_each(self):
-        cursor = r.range().limit(10000).run(self.conn)
+        range_size = 10000
+        cursor = r.range().limit(range_size).run(self.conn)
         count = 0
         for i in cursor:
             count += 1
-        self.assertEqual(count, 10000, "Did not get enough cursor results")
+        self.assertEqual(count, range_size, "Expected %d results on the cursor, but got %d" % (range_size, count))
         for i in cursor:
             count += 1
-        self.assertEqual(count, 10000, "Got cursor results in a second read of the cursor")
+        self.assertEqual(count, range_size, "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
 
 class TestCursor(unittest.TestCase):
 
