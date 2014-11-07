@@ -50,7 +50,7 @@ with driver.Metacluster() as metacluster:
     pprint.pprint(res)
     assert N*2/fudge <= res["doc_count_estimates"][0] <= N*2*fudge
 
-    r.table("test").reconfigure(2, 1).run(conn)
+    r.table("test").reconfigure(shards=2, replicas=1).run(conn)
     res = list(r.table_wait("test").run(conn))
     pprint.pprint(res)
 
@@ -60,7 +60,7 @@ with driver.Metacluster() as metacluster:
     assert N/fudge <= res["doc_count_estimates"][1] <= N*fudge
 
     # Make sure that oversharding doesn't break distribution queries
-    r.table("test").reconfigure(2, 2).run(conn)
+    r.table("test").reconfigure(shards=2, replicas=2).run(conn)
     res = list(r.table_wait("test").run(conn))
     pprint.pprint(res)
 
