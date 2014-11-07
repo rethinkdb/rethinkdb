@@ -287,6 +287,32 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
+class db_config_term_t : public meta_op_term_t {
+public:
+    db_config_term_t(compile_env_t *env,
+                     const protob_t<const Term> &term) :
+        meta_op_term_t(env, term, argspec_t(0, -1), optargspec_t({})) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        std::vector<name_string_t> db_names;
+        if (args->num_args() > 0) {
+            for (size_t i = 0; i < args->num_args(); ++i) {
+                scoped_ptr_t<val_t> arg = args->arg(env, i);
+                db_names.push_back(get_name(arg, this, "Database"));
+            }
+        }
+
+        std::string error;
+        scoped_ptr_t<val_t> resp;
+        if (!env->env->reql_cluster_interface()->db_config(
+                db_names, backtrace(), env->env->interruptor, &resp, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+        return resp;
+    }
+    virtual const char *name() const { return "db_config"; }
+};
+
 class table_meta_read_term_t : public meta_op_term_t {
 public:
     table_meta_read_term_t(compile_env_t *env,
@@ -575,6 +601,10 @@ counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
+}
+
+counted_t<term_t> make_db_config_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<db_config_term_t>(env, term);
 }
 
 counted_t<term_t> make_table_config_term(compile_env_t *env, const protob_t<const Term> &term) {

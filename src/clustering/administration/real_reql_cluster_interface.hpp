@@ -134,12 +134,11 @@ private:
 
     /* For each UUID in `entity_map`, reads the row with that primary key from `backend`,
     and returns a vector of all the rows. If `missing_msg` is absent, missing rows will
-    be silently ignored; otherwise, `missing_msg` must be a string with a single `%s`
-    format specifier in it, which will be used to format an error message with the name
-    of the missing entity. */
+    be silently ignored; otherwise, `missing_msg` will be called with the name of the
+    missing entity to generate an error message. */
     bool table_meta_read(artificial_table_backend_t *backend,
             const std::vector<std::pair<uuid_u, name_string_t> > &entity_ids,
-            const boost::optional<std::string> &missing_msg,
+            const std::function<std::string(const name_string_t &)> &missing_msg,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
             std::string *error_out);

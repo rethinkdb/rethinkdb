@@ -47,6 +47,21 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
     return next->db_find(name, interruptor, db_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::db_config(
+        const std::vector<name_string_t> &db_names,
+        const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    for (const name_string_t &db : db_names) {
+        if (db == database) {
+            *error_out = strprintf("Database `%s` is special; you can't configure it.",
+                database.c_str());
+            return false;
+        }
+    }
+    return next->db_config(db_names, bt, interruptor, resp_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
         bool hard_durability, const std::string &primary_key, signal_t *interruptor,

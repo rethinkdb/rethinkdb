@@ -450,6 +450,10 @@ message Term {
         DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
         DB_LIST       = 59; // -> ARRAY
+        // With no arguments, returns the contents of the `rethinkdb.db_config` system
+        // table. With string arguments, returns only the rows corresponding to the DBs
+        // with the given names.
+        DB_CONFIG     = 178; // [String...] -> StreamSelection
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -464,11 +468,10 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST    = 62; // Database -> ARRAY
                             //  -> ARRAY
-        // With a string argument, returns the row in the
-        // `rethinkdb.table_config` system table for the given table in
-        // the given database; with no argument, returns the config for
-        // all tables in the database. (You may omit the first argument
-        // to use the default database.)
+        // With no string arguments, returns the rows in the `rethinkdb.table_config`
+        // system table for tables in the given database, or the default database if none
+        // is specified. With string arguments, returns only the rows corresponding to
+        // the tables with the given names.
         TABLE_CONFIG  = 174; // Database[, String...] -> StreamSelection
                              // [String...] -> StreamSelection
         // Like TABLE_CONFIG, except it returns the row in
