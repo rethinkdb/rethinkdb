@@ -7,6 +7,8 @@
 # Move load more results into view
 # and scroll to top: $(window).scrollTop(@$('.results_container').offset().top)
 
+# handle sync inside the result view
+
 # ATN tags
 
 # history load/remove buttons display is broken
@@ -63,7 +65,7 @@ module 'DataExplorerView', ->
     #
     #  * add: Another row has been received from a cursor
     #
-    #  * error: An error has been received from a cursor
+    #  * error: An error has occured
     #
     #  * end: There are no more documents to fetch
     #
@@ -76,6 +78,7 @@ module 'DataExplorerView', ->
             @discard_results = options.discard_results ? false
             @current_query = options.current_query
             @raw_query = options.raw_query
+            @driver_handler = options.driver_handler
             if options.events?
                 for own event, handler of options.events
                     @on event, handler
@@ -83,7 +86,7 @@ module 'DataExplorerView', ->
         # Can be used as a callback to run
         set: (error, result) =>
             if error?
-                @error = error
+                @set_error error
             else if not @discard_results
                 if @has_profile
                     @profile = result.profile
@@ -101,7 +104,7 @@ module 'DataExplorerView', ->
                     @start_index = 0
                     @value = value
                     @ended = true
-            @trigger 'sync', @
+                @trigger 'sync', @
 
         # Remove n elements from the result set of a cursor Waits for
         # n+1 elements, or the end before returning
@@ -2634,24 +2637,21 @@ module 'DataExplorerView', ->
                         has_profile: @state.options.profiler
                         current_query: @raw_query
                         raw_query: @raw_queries[@index]
+                        driver_handler: @driver_handler
                         events:
-                            # ATN don't handle events here
-                            # ATN let the ResultView handle that
-                            sync: @query_result_callback
                             error: (err) =>
                                 @results_view.render_error(@query, err)
 
                     # ATN: pass the query_result object to the view
 
-                    # ATN: replaced create_connection with run_with_new_connection
-                    @driver_handler.create_connection (error, connection) =>
-                        if (error)
+                    @driver_handler.run_with_new_connection rdq_query,
+                        optargs:
+                            binaryFormat: "raw"
+                            timeFormat: "raw"
+                            profile: @state.options.profile
+                        connection_error: (error) =>
                             @error_on_connect error
-                        else
-                            rdb_query.private_run connection,
-                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profile},
-                                query_result.set
-                    , @error_on_connect
+                        callback: query_result.set
 
                     return true
                 else
@@ -2667,6 +2667,7 @@ module 'DataExplorerView', ->
 
 
         # ATN: move to child views, with special care for error handling
+        # ATN: this is no longer called
         # Handle the result of a query
         query_result_callback: (result) =>
             if result.error?
@@ -3814,7 +3815,7 @@ module 'DataExplorerView', ->
                 @connection = null
                 @container.toggle_executing false
 
-        run_with_new_connection: ({query, callback, connection_error}) =>
+        run_with_new_connection: (query, {callback, connection_error, optargs}) =>
             @close_connection()
 
             @container.toggle_executing true
@@ -3827,7 +3828,7 @@ module 'DataExplorerView', ->
                     @container.toggle_executing false
                     connection_error error
                 @connection = connection
-                query.private_run connection, (error, result) =>
+                query.private_run connection, optargs, (error, result) =>
                     @container.toggle_executing false
                     callback error, result
 
