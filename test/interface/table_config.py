@@ -65,28 +65,25 @@ with driver.Metacluster() as metacluster:
             # Make sure that servers that have never been involved with the table will
             # never appear in `table_status`. (See GitHub issue #3101.)
             for s_shard in s_shards:
-                for doc in s_shard:
+                for doc in s_shard["replicas"]:
                     assert doc["server"] != "never_used"
             if len(s_shards) != len(c_shards):
                 return False
             for (s_shard, c_shard) in zip(s_shards, c_shards):
-                if set(doc["server"] for doc in s_shard) != set(c_shard["replicas"]):
+                if set(doc["server"] for doc in s_shard["replicas"]) != \
+                        set(c_shard["replicas"]):
                     return False
-                s_directors = [doc["server"] for doc in s_shard
-                               if doc["role"] == "director"]
-                if len(s_directors) != 1:
+                if s_shard["director"] != c_shard["director"]:
                     return False
-                if s_directors[0] != c_shard["director"]:
+                if any(doc["state"] != "ready" for doc in s_shard["replicas"]):
                     return False
-                if any(doc["state"] != "ready" for doc in s_shard):
-                    return False
-            if not s_row["ready_for_outdated_reads"]:
+            if not s_row["status"]["ready_for_outdated_reads"]:
                 return False
-            if not s_row["ready_for_reads"]:
+            if not s_row["status"]["ready_for_reads"]:
                 return False
-            if not s_row["ready_for_writes"]:
+            if not s_row["status"]["ready_for_writes"]:
                 return False
-            if not s_row["ready_completely"]:
+            if not s_row["status"]["all_replicas_ready"]:
                 return False
         return True
 

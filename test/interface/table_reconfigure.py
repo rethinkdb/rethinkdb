@@ -122,7 +122,7 @@ with driver.Metacluster() as metacluster:
         assert res["errors"] == 0, repr(res)
         for i in xrange(10):
             time.sleep(3)
-            if r.table_status("foo").nth(0).run(conn)["ready_completely"]:
+            if r.table_status("foo").nth(0).run(conn)["status"]["all_replicas_ready"]:
                 break
         else:
             raise ValueError("took too long to reconfigure")
@@ -149,7 +149,8 @@ with driver.Metacluster() as metacluster:
         assert res["errors"] == 0
         for i in xrange(10):
             time.sleep(3)
-            if r.table_status("blocker").nth(0).run(conn)["ready_completely"]:
+            if r.table_status("blocker").nth(0) \
+                    .run(conn)["status"]["all_replicas_ready"]:
                 break
         else:
             raise ValueError("took too long to reconfigure")
