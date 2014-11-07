@@ -1261,11 +1261,11 @@ void rdb_modification_report_cb_t::on_mod_report(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
                       this,
                       report,
-                      &old_keys,
-                      &new_keys,
+                      spot,
                       &keys_available_cond,
                       &sindexes_updated_cond,
-                      spot));
+                      &old_keys,
+                      &new_keys));
         guarantee(store_->changefeed_server.has());
         if (update_pkey_cfeeds) {
             store_->changefeed_server->foreach_limit(
@@ -1306,21 +1306,21 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 void rdb_modification_report_cb_t::on_mod_report_sub(
     const rdb_modification_report_t &mod_report,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys,
+    new_mutex_in_line_t *spot,
     cond_t *keys_available_cond,
     cond_t *done_cond,
-    new_mutex_in_line_t *spot) {
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
                         sindexes_,
                         &mod_report,
-                        old_keys,
-                        new_keys,
-                        keys_available_cond,
                         sindex_block_->txn(),
-                        &deletion_context);
+                        &deletion_context,
+                        keys_available_cond,
+                        old_keys_out,
+                        new_keys_out);
     guarantee(keys_available_cond->is_pulsed());
     done_cond->pulse();
 }
@@ -1510,15 +1510,18 @@ void rdb_update_single_sindex(
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
         size_t *updates_left,
-        std::vector<ql::datum_t> *old_keys,
-        std::vector<ql::datum_t> *new_keys,
+        auto_drainer_t::lock_t,
         cond_t *keys_available_cond,
-        auto_drainer_t::lock_t) {
+        std::vector<ql::datum_t> *old_keys_out,
+        std::vector<ql::datum_t> *new_keys_out) {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
     // function.
     guarantee(modification->primary_key.size() != 0);
+
+    guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
+    guarantee(new_keys_out == NULL || new_keys_out->size() == 0);
 
     sindex_disk_info_t sindex_info;
     try {
@@ -1542,9 +1545,9 @@ void rdb_update_single_sindex(
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
-            if (old_keys != NULL) {
+            if (old_keys_out != NULL) {
                 for (const auto &pair : keys) {
-                    old_keys->push_back(pair.second);
+                    old_keys_out->push_back(pair.second);
                 }
             }
             if (server != NULL) {
@@ -1594,7 +1597,7 @@ void rdb_update_single_sindex(
             // Do nothing (it wasn't actually in the index).
 
             // See comment in `catch` below.
-            guarantee(old_keys == NULL || old_keys->size() == 0);
+            guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
         }
     }
 
@@ -1611,10 +1614,10 @@ void rdb_update_single_sindex(
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
-            if (new_keys != NULL) {
+            if (new_keys_out != NULL) {
                 guarantee(keys_available_cond != NULL);
                 for (const auto &pair : keys) {
-                    new_keys->push_back(pair.second);
+                    new_keys_out->push_back(pair.second);
                 }
                 guarantee(*updates_left > 0);
                 decremented_updates_left = true;
@@ -1676,7 +1679,7 @@ void rdb_update_single_sindex(
             // inside of it), so this guarantee should never trip.
             if (keys_available_cond != NULL) {
                 guarantee(!decremented_updates_left);
-                guarantee(new_keys->size() == 0);
+                guarantee(new_keys_out->size() == 0);
                 guarantee(updates_left > 0);
                 if (--*updates_left == 0) {
                     keys_available_cond->pulse();
@@ -1708,14 +1711,15 @@ void rdb_update_single_sindex(
     }
 }
 
-void rdb_update_sindexes(store_t *store,
-                         const store_t::sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
-                         std::map<std::string, std::vector<ql::datum_t> > *old_keys,
-                         std::map<std::string, std::vector<ql::datum_t> > *new_keys,
-                         cond_t *keys_available_cond,
-                         txn_t *txn,
-                         const deletion_context_t *deletion_context) {
+void rdb_update_sindexes(
+    store_t *store,
+    const store_t::sindex_access_vector_t &sindexes,
+    const rdb_modification_report_t *modification,
+    txn_t *txn,
+    const deletion_context_t *deletion_context,
+    cond_t *keys_available_cond,
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
     {
         auto_drainer_t drainer;
 
@@ -1732,10 +1736,14 @@ void rdb_update_sindexes(store_t *store,
                     deletion_context,
                     modification,
                     &counter,
-                    old_keys == NULL ? NULL : &(*old_keys)[sindex->name.name],
-                    old_keys == NULL ? NULL : &(*new_keys)[sindex->name.name],
+                    auto_drainer_t::lock_t(&drainer),
                     keys_available_cond,
-                    auto_drainer_t::lock_t(&drainer)));
+                    old_keys_out == NULL
+                        ? NULL
+                        : &(*old_keys_out)[sindex->name.name],
+                    new_keys_out == NULL
+                        ? NULL
+                        : &(*new_keys_out)[sindex->name.name]));
         }
     }
 
@@ -1849,11 +1857,11 @@ public:
             rdb_update_sindexes(store_,
                                 sindexes,
                                 &mod_report,
-                                NULL,
-                                NULL,
-                                NULL,
                                 wtxn.get(),
-                                &deletion_context);
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
             store_->btree->stats.pm_keys_set.record();
             store_->btree->stats.pm_total_keys_set += 1;
 

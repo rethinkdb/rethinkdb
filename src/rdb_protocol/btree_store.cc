@@ -497,11 +497,11 @@ void store_t::update_sindexes(
             rdb_update_sindexes(this,
                                 sindexes,
                                 &mod_reports[i],
-                                NULL,
-                                NULL,
-                                NULL,
                                 txn,
-                                &deletion_context);
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
         }
     }
 

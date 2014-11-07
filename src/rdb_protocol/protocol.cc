@@ -210,11 +210,11 @@ void post_construct_and_drain_queue(
                 rdb_update_sindexes(store,
                                     sindexes,
                                     &mod_report,
-                                    NULL,
-                                    NULL,
-                                    NULL,
                                     queue_txn.get(),
-                                    &deletion_context);
+                                    &deletion_context,
+                                    NULL,
+                                    NULL,
+                                    NULL);
                 ++current_chunk_size;
             }
 
