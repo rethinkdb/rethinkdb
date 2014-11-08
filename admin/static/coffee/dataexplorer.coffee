@@ -41,7 +41,7 @@ module 'DataExplorerView', ->
         current_query: null
         query_result: null
         cursor_timed_out: true
-        view: 'tree'
+        view: 'profile' # ATN 'tree'
         history_state: 'hidden'
         last_keys: []
         last_columns_size: {}
@@ -55,27 +55,21 @@ module 'DataExplorerView', ->
 
     # This class represents the results of a query.
     #
-    # If there is a profile, `profile` is set
-    #
-    # After a 'sync' event, one of `error`, `value` or `cursor` is always set
+    # If there is a profile, `profile` is set. After a 'sync' event,
+    # one of `error`, `value` or `cursor` is always set. `ended`
+    # indicates whether there are any more results to read.
     #
     # It triggers the following events:
-    #
     #  * sync: The first response has been received
-    #
     #  * add: Another row has been received from a cursor
-    #
     #  * error: An error has occured
-    #
     #  * end: There are no more documents to fetch
-    #
     #  * discard: The results have been discarded
     class QueryResult
         _.extend @::, Backbone.Events
 
         constructor: (options) ->
             @has_profile = options.has_profile
-            @discard_results = options.discard_results ? false
             @current_query = options.current_query
             @raw_query = options.raw_query
             @driver_handler = options.driver_handler
@@ -202,7 +196,7 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .abort_query': 'abort_query'
             'click .change_size': 'toggle_size'
-            'click #reconnect': 'execute_query'
+            'click #rerun_query': 'execute_query'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
@@ -723,18 +717,14 @@ module 'DataExplorerView', ->
                 @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @state?.query? and @state?.query_result?
-                @$('.results_container').html @results_view.render_result({
-                    query_has_changed: @query_has_changed
-                    query_result: @state.query_result
-                }).$el
-                # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
-            else
-                @$('.results_container').html @results_view.render_default().$el
+            if @state?.query_result?
+                # ATN: set_query_result?
+                @results_view.set_query_result @state.query_result
 
-            # If driver not conneced
-            if @driver_connected is false
-                @error_on_connect()
+            # ATN: results_view.render?
+            @$('.results_container').html @results_view.render(query_has_changed: @query_has_changed).$el
+
+            # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
 
             return @
 
@@ -2657,7 +2647,7 @@ module 'DataExplorerView', ->
                             if final_query
                                 query_result.set error, result
                             else if error
-                                @result_view.render_error(@query, err)
+                                @results_view.render_error(@query, err)
                             else
                                 @execute_portion()
 
@@ -2672,25 +2662,6 @@ module 'DataExplorerView', ->
                         @save_query
                             query: @raw_query
                             broken_query: true
-
-        # ATN: move to child views
-        # Called when there is a new batch of results to display
-        next_results_callback: (result, rows) =>
-
-            @ATN_current_results = rows
-
-            @state.ATN_results = @ATN_current_results
-            @state.ATN_metadata =
-                limit_value: @ATN_current_results.length
-                skip_value: result.start_index - rows.length
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: not result.ended
-
-            @results_view.render_result # ATN line 679
-                results: @ATN_current_results
-                metadata: @state.ATN_metadata
-                profile: @ATN_profile
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2819,9 +2790,9 @@ module 'DataExplorerView', ->
             @codemirror.setValue ''
             @codemirror.focus()
 
-        # Called if the driver could not connect
+        # Called if there is any on the connection
         error_on_connect: (error) =>
-            if /^(Unexpected token)/.test(error.message)
+            if /^(Unexpected token)/.test(error.message) # ATN: test that this is handled correctly
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
                 @results_view.render_error(null, error)
@@ -2831,19 +2802,14 @@ module 'DataExplorerView', ->
                     query: @raw_query
                     broken_query: true
 
-            else
+            else # ATN: test that this is handled correctly
                 @results_view.cursor_timed_out()
                 # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
                 # So if the user fails to reconnect after a failure, the alert will still flash
                 @$('#user-alert-space').hide()
                 @$('#user-alert-space').html @alert_connection_fail_template({})
                 @$('#user-alert-space').slideDown 'fast'
-                @driver_connected = 'error'
 
-        # Reconnect, function triggered if the user click on reconnect
-        reconnect: (event) =>
-            event.preventDefault()
-            @driver_handler.connect() # ATN: this function does not exist
         handle_gutter_click: (editor, line) =>
             start =
                 line: line
@@ -2945,12 +2911,6 @@ module 'DataExplorerView', ->
 
             return 1
 
-        copy_parent_results: =>
-            @ATN_results = @parent.ATN_results
-            @ATN_results_array = @parent.ATN_results_array
-            @ATN_profile = @parent.ATN_profile
-            @ATN_metadata = @parent.ATN_metadata
-
         toggle_collapse: (event) =>
             @$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
             @$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
@@ -2976,7 +2936,7 @@ module 'DataExplorerView', ->
         template: Handlebars.templates['dataexplorer_result_tree-template']
 
         render: =>
-            @copy_parent_results()
+            @copy_parent_results() # ATN
             @$el.html @template
                 tree: @json_to_tree @results
             @
@@ -3270,7 +3230,7 @@ module 'DataExplorerView', ->
             doc.record = @ATN_metadata.skip_value + i
 
         render: =>
-            @copy_parent_results()
+            @copy_parent_results() # ATN
 
             previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
             if Object::toString.call(@results) is '[object Array]'
@@ -3390,7 +3350,7 @@ module 'DataExplorerView', ->
             return num_shard_accesses
 
         render: =>
-            @copy_parent_results()
+            @copy_parent_results() # ATN
 
             if not @ATN_profile?
                 @$el.html @template {}
@@ -3432,11 +3392,7 @@ module 'DataExplorerView', ->
 
         initialize: (args) =>
             @container = args.container
-
-            if args.view?
-                @view = args.view
-            else
-                @view = 'tree'
+            @view = args.view
 
         show_tree: (event) =>
             event.preventDefault()
@@ -3538,7 +3494,7 @@ module 'DataExplorerView', ->
                 js_error: js_error is true
             return @
 
-        # ATN: get rid of this. replace with set_query_result
+        # ATN: get rid of this, set the query_result in the initializer 
         render_result: (args) =>
 
             # ATN: now only two arguments: query_result and query_has_changed
@@ -3599,14 +3555,11 @@ module 'DataExplorerView', ->
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.state.cursor_timed_out = true
-            if @container.state.ATN_metadata?.has_more_data is true
+            if @container.state.query_result?.ended is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
             @delegateEvents()
-            return @
-
-        render_default: =>
             return @
 
         remove: =>
