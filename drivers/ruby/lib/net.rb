@@ -1,7 +1,7 @@
 require 'socket'
 require 'thread'
 require 'timeout'
-require 'pp'
+require 'pp' # This is needed for pretty_inspect
 
 module RethinkDB
   module Faux_Abort
@@ -14,8 +14,8 @@ module RethinkDB
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil, &b)
       unbound_if(@body == RQL)
-      c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
-      opts = {} if opts.nil?
+      c, opts = @@default_conn, c if !opts && !c.kind_of?(RethinkDB::Connection)
+      opts = {} if !opts
       opts = {opts => true} if opts.class != Hash
       if (tf = opts[:time_format])
         opts[:time_format] = (tf = tf.to_s)
@@ -46,12 +46,12 @@ module RethinkDB
   class Cursor
     include Enumerable
     def out_of_date # :nodoc:
-      @conn.conn_id != @conn_id or not @conn.is_open()
+      @conn.conn_id != @conn_id || !@conn.is_open()
     end
 
     def inspect # :nodoc:
       preview_res = @results[0...10]
-      if @results.size > 10 or @more
+      if @results.size > 10 || @more
         preview_res << (dots = "..."; class << dots; def inspect; "..."; end; end; dots)
       end
       preview = preview_res.pretty_inspect[0...-1]
@@ -79,7 +79,7 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        raise RqlRuntimeError, "Connection is closed." if @more and out_of_date
+        raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
         res = @conn.wait(@token)
         @results = Shim.response_to_native(res, @msg, @opts)
         if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
@@ -138,7 +138,7 @@ module RethinkDB
       @token_cnt = 0
       @token_cnt_mutex = Mutex.new
 
-      reconnect(:noreply_wait => false)
+      self.connect()
     end
     attr_reader :host, :port, :default_db, :conn_id
 
@@ -147,9 +147,10 @@ module RethinkDB
     end
 
     def register_query(token, opts)
-      if not opts[:noreply]
+      if !opts[:noreply]
         @listener_mutex.synchronize{
-          raise RqlDriverError, "Internal driver error, token already in use." if @waiters.has_key?(token)
+          raise RqlDriverError, "Internal driver error, token already in use." \
+            if @waiters.has_key?(token)
           @waiters[token] = ConditionVariable.new
           @opts[token] = opts
         }
@@ -161,8 +162,8 @@ module RethinkDB
       opts[:noreply] ? nil : wait(token)
     end
     def run(msg, opts, &b)
-      reconnect(:noreply_wait => false) if @auto_reconnect and not self.is_open()
-      raise RqlRuntimeError, "Connection is closed." if not self.is_open()
+      reconnect(:noreply_wait => false) if @auto_reconnect && !self.is_open()
+      raise RqlRuntimeError, "Connection is closed." if !self.is_open()
 
       global_optargs = {}
       all_opts = @default_opts.merge(opts)
@@ -225,7 +226,7 @@ module RethinkDB
       begin
         res = nil
         @listener_mutex.synchronize {
-          raise RqlRuntimeError, "Connection is closed." if not @waiters.has_key?(token)
+          raise RqlRuntimeError, "Connection is closed." if !@waiters.has_key?(token)
           res = @data.delete(token)
           if res == nil
             @waiters[token].wait(@listener_mutex)
@@ -233,7 +234,7 @@ module RethinkDB
           end
           @waiters.delete(token)
         }
-        raise RqlRuntimeError, "Connection is closed." if res.nil? and not self.is_open()
+        raise RqlRuntimeError, "Connection is closed." if res.nil? && !self.is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
         return res
       rescue @abort_module::Abort => e
@@ -252,7 +253,7 @@ module RethinkDB
     def inspect
       db = @default_opts[:db] || RQL.new.db('test')
       properties = "(#{@host}:#{@port}) (Default DB: #{db.inspect})"
-      state = self.is_open() ? "(listening)" : "(closed)"
+      state = self.is_open() ? "(open)" : "(closed)"
       "#<RethinkDB::Connection:#{self.object_id} #{properties} #{state}>"
     end
 
@@ -268,54 +269,52 @@ module RethinkDB
     def reconnect(opts={})
       raise ArgumentError, "Argument to reconnect must be a hash." if opts.class != Hash
       self.close(opts)
+      self.connect()
+    end
 
+    def connect()
+      raise RuntimeError, "Connection must be closed before calling connect." if @socket
       @socket = TCPSocket.open(@host, @port)
       @listener_mutex = Mutex.new
       @waiters = {}
-      @waiters.default = nil
       @opts = {}
-      @opts.default = nil
       @data = {}
-      @data.default = nil
       @conn_id += 1
       start_listener
-
       self
     end
 
     def is_open()
-      (not @socket.nil?) and (not @listener.nil?)
+      @socket && @listener
     end
 
     def close(opts={})
       raise ArgumentError, "Argument to close must be a hash." if opts.class != Hash
-      if not (opts.keys - [:noreply_wait]).empty?
+      if !(opts.keys - [:noreply_wait]).empty?
         raise ArgumentError, "close does not understand these options: " +
           (opts.keys - [:noreply_wait]).to_s
       end
-      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
+      opts[:noreply_wait] = true if !opts.keys.include?(:noreply_wait)
 
-      self.noreply_wait() if opts[:noreply_wait] and self.is_open()
-      if not @listener.nil?
+      self.noreply_wait() if opts[:noreply_wait] && self.is_open()
+      if @listener
         @listener.terminate
         @listener.join
       end
-      @socket.close if not @socket.nil?
+      @socket.close if @socket
       @listener = nil
       @socket = nil
-      if not @listener_mutex.nil?
-        @listener_mutex.synchronize {
-          @opts.clear
-          @data.clear
-          @waiters.values.each{ |w| w.signal }
-          @waiters.clear
-        }
-      end
+      @listener_mutex.synchronize {
+        @opts.clear
+        @data.clear
+        @waiters.values.each{ |w| w.signal }
+        @waiters.clear
+      }
       self
     end
 
     def noreply_wait
-      raise RqlRuntimeError, "Connection is closed." if not self.is_open()
+      raise RqlRuntimeError, "Connection is closed." if !self.is_open()
       q = [Query::QueryType::NOREPLY_WAIT]
       res = run_internal(q, {noreply: false}, new_token)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
@@ -330,11 +329,11 @@ module RethinkDB
     end
 
     def note_data(token, data) # Synchronize around this!
-      raise RqlDriverError, "Unknown token in response." if not @waiters.has_key?(token)
+      raise RqlDriverError, "Unknown token in response." if !@waiters.has_key?(token)
       @data[token] = data
       @opts.delete(token)
       w = @waiters[token]
-      w.signal if not w.nil?
+      w.signal if w
     end
 
     def note_error(token, e) # Synchronize around this!
@@ -354,7 +353,7 @@ module RethinkDB
         def read_exn(len, timeout_sec=nil)
           maybe_timeout(timeout_sec) {
             buf = read len
-            if !buf or buf.length != len
+            if !buf || buf.length != len
               raise RqlRuntimeError, "Connection closed by server."
             end
             return buf
@@ -372,7 +371,8 @@ module RethinkDB
         raise RqlRuntimeError, "Server dropped connection with message: \"#{response}\""
       end
 
-      raise RqlDriverError, "Internal driver error, listener already started." if not @listener.nil?
+      raise RqlDriverError, "Internal driver error, listener already started." \
+        if @listener
       @listener = Thread.new {
         while true
           begin
@@ -393,9 +393,6 @@ module RethinkDB
             @listener_mutex.synchronize{note_data(token, data)}
           rescue Exception => e
             @listener_mutex.synchronize {
-              if @waiters.has_key?(token)
-                note_error(token, e)
-              end
               @waiters.keys.each{ |k| note_error(k, e) }
               @listener = nil
               Thread.current.terminate
