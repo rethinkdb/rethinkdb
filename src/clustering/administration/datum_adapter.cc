@@ -62,6 +62,116 @@ bool convert_uuid_from_datum(
     return true;
 }
 
+bool convert_server_id_to_datum(
+        const server_id_t &value,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        ql::datum_t *datum_out) {
+    boost::optional<name_string_t> name = name_client->get_name_for_server_id(value);
+    if (!static_cast<bool>(name)) {
+        return false;
+    }
+    if (identifier_format == admin_identifier_format_t::name) {
+        *datum_out = convert_name_to_datum(*name);
+    } else {
+        *datum_out = convert_uuid_to_datum(value);
+    }
+    return true;
+}
+
+bool convert_server_id_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        server_id_t *value_out,
+        std::string *error_out) {
+    if (identifier_format == admin_identifier_format_t::name) {
+        name_string_t name;
+        if (!convert_name_from_datum(datum, &name, error_out)) {
+            return false;
+        }
+        bool ok;
+        name_client->get_name_to_server_id_map()->apply_read(
+            [&](const std::multimap<name_string_t, server_id_t> *map) {
+                if (map->count(name) == 0) {
+                    *error_out = strprintf("Server `%s` does not exist.", name.c_str());
+                    ok = false;
+                } else if (map->count(name) > 1) {
+                    *error_out = strprintf("Server `%s` is ambiguous; there are "
+                        "multiple servers with that name.", name.c_str());
+                    ok = false;
+                } else {
+                    *value_out = map->find(name)->second;
+                    ok = true;
+                }
+            });
+        return ok;
+    } else {
+        if (!convert_uuid_from_datum(datum, value_out, error_out)) {
+            return false;
+        }
+        if (!static_cast<bool>(name_client->get_name_for_server_id(*value_out))) {
+            *error_out = strprintf("There is no server with UUID `%s`.",
+                uuid_to_str(*value_out).c_str());
+            return false;
+        }
+        return true;
+    }
+}
+
+bool convert_database_id_to_datum(
+        const database_id_t &value,
+        admin_identifier_format_t identifier_format,
+        const databases_semilattice_metadata_t &db_metadata,
+        ql::datum_t *datum_out) {
+    auto it = db_metadata.databases.find(value);
+    guarantee(it != db_metadata.databases.end());
+    if (it->second.is_deleted()) {
+        return false;
+    }
+    if (identifier_format == admin_identifier_format_t::name) {
+        *datum_out = convert_name_to_datum(it->second.get_ref().name.get_ref());
+    } else {
+        *datum_out = convert_uuid_to_datum(value);
+    }
+    return true;
+}
+
+bool convert_database_id_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        const database_semilattice_metadata_t &db_metadata,
+        database_id_t *value_out,
+        std::string *error_out) {
+    if (identifier_format == admin_identifier_format_t::name) {
+        name_string_t name;
+        if (!convert_name_from_datum(datum, &name, error_out)) {
+            return false;
+        }
+        const_metadata_searcher_t<database_semilattice_metadata_t> searcher(
+            &db_metadata->databases);
+        metadata_search_status_t search_status;
+        auto it = searcher.find_uniq(name, &search_status);
+        if (!check_metadata_status(
+                search_status, "Database", name.str(), true, error_out)) {
+            return false;
+        }
+        *value_out = it->first;
+        return true;
+    } else {
+        if (!convert_uuid_from_datum(datum, value_out, error_out)) {
+            return false;
+        }
+        auto it = db_metadata.databases.find(*value_out);
+        if (it == db_metadata.databases.end() || it->second.is_deleted()) {
+            *error_out = strprintf("There is no database with UUID `%s`.",
+                uuid_to_str(*value_out).c_str());
+            return false;
+        }
+        return true;
+    }
+}
+
 ql::datum_t convert_port_to_datum(
         uint16_t value) {
     return ql::datum_t(static_cast<double>(value));

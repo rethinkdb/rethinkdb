@@ -24,9 +24,11 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view) :
+                databases_semilattice_metadata_t> > _database_sl_view,
+            admin_identifier_format_t _identifier_format) :
         table_sl_view(_table_sl_view),
-        database_sl_view(_database_sl_view) {
+        database_sl_view(_database_sl_view),
+        identifier_format(_identifier_format) {
         table_sl_view->assert_thread();
         database_sl_view->assert_thread();
     }
@@ -49,24 +51,22 @@ protected:
     virtual bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            name_string_t db_name,
+            /* Depending on `identifier_format` this will be a name or UUID */
+            const ql::datum_t &db,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out) = 0;
 
-    /* This should only be called on the home thread */
-    name_string_t get_db_name(database_id_t db_id);
-
-    /* This should only be called on the home thread. If the DB is not found or there is
-    a name collision, returns `false` and sets `*error_out`. */
-    bool get_db_id(name_string_t db_name, database_id_t *db_id_out,
-        std::string *error_out);
+    /* This should only be called on the home thread. It returns a name or UUID depending
+    on `identifier_format`. */
+    ql::datum_t get_db_identifier(database_id_t db_id);
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
+    admin_identifier_format_t identifier_format;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */

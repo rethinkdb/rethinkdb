@@ -25,7 +25,7 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         }
 
         name_string_t table_name = it->second.get_ref().name.get_ref();
-        name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
+        ql::datum_t db = get_db_identifier(it->second.get_ref().database.get_ref());
         ql::datum_t row;
         if (!format_row(it->first, table_name, db_name, it->second.get_ref(),
                         &interruptor2, &row, error_out)) {
@@ -55,8 +55,8 @@ bool common_table_artificial_table_backend_t::read_row(
         ::const_iterator it;
     if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
         name_string_t table_name = it->second.get_ref().name.get_ref();
-        name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
-        return format_row(table_id, table_name, db_name, it->second.get_ref(),
+        ql::datum_t db = get_db_identifier(it->second.get_ref().database.get_ref());
+        return format_row(table_id, table_name, db, it->second.get_ref(),
                           &interruptor2, row_out, error_out);
     } else {
         *row_out = ql::datum_t();
@@ -64,16 +64,18 @@ bool common_table_artificial_table_backend_t::read_row(
     }
 }
 
-name_string_t common_table_artificial_table_backend_t::get_db_name(database_id_t db_id) {
+ql::datum_t common_table_artificial_table_backend_t::get_db_identifier(
+        const database_id_t &db_id) {
     assert_thread();
     databases_semilattice_metadata_t dbs = database_sl_view->get();
-    if (dbs.databases.at(db_id).is_deleted()) {
+    ql::datum_t res;
+    if (!convert_database_id_to_datum(db_id, identifier_format, dbs, &res)) {
         /* This can occur due to a race condition, if a new table is added to a database
         at the same time as it is being deleted. */
-        return name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        return dbs.databases.at(db_id).get_ref().name.get_ref();
+        res = convert_name_to_datum(
+            name_string_t::guarantee_valid("__deleted_database__"));
     }
+    return res;
 }
 
 bool common_table_artificial_table_backend_t::get_db_id(name_string_t db_name,

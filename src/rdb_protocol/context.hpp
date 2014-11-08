@@ -73,6 +73,8 @@ enum class table_readiness_t {
     finished
 };
 
+enum class admin_identifier_format_t { name, uuid };
+
 class base_table_t {
 public:
     virtual const std::string &get_pkey() = 0;
@@ -173,6 +175,7 @@ public:
             signal_t *interruptor, std::set<name_string_t> *names_out,
             std::string *error_out) = 0;
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+            boost::optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out) = 0;
     virtual bool table_config(counted_t<const ql::db_t> db,

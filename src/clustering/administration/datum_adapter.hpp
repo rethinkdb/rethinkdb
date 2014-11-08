@@ -41,6 +41,34 @@ bool convert_uuid_from_datum(
         uuid_u *value_out,
         std::string *error_out);
 
+/* `convert_server_id_to_datum()` will return `false` if the server ID corresponds to a
+permanently removed server. */
+bool convert_server_id_to_datum(
+        const server_id_t &value,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        ql::datum_t *datum_out);
+bool convert_server_id_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        server_id_t *value_out,
+        std::string *error_out);
+
+/* `convert_database_id_to_datum()` will return `false` if the database ID corresponds to
+a deleted database. */
+bool convert_database_id_to_datum(
+        const database_id_t &value,
+        admin_identifier_format_t identifier_format,
+        const databases_semilattice_metadata_t &db_metadata,
+        ql::datum_t *datum_out);
+bool convert_database_id_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        const databases_semilattice_metadata_t &db_metadata,
+        database_id_t *value_out,
+        std::string *error_out);
+
 ql::datum_t convert_port_to_datum(
         uint16_t value);
 

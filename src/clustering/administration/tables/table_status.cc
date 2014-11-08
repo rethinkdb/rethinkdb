@@ -52,11 +52,11 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
 }
 
 ql::datum_t convert_director_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *has_director_out) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
+    object_builder.overwrite("server", name_or_uuid);
     object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     *has_director_out = false;
@@ -87,12 +87,12 @@ ql::datum_t convert_director_status_to_datum(
 }
 
 ql::datum_t convert_replica_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *has_outdated_reader_out,
         bool *has_replica_out) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
+    object_builder.overwrite("server", name_or_uuid);
     object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
@@ -125,7 +125,7 @@ ql::datum_t convert_replica_status_to_datum(
 }
 
 ql::datum_t convert_nothing_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
     if (status == nullptr) {
@@ -166,7 +166,7 @@ ql::datum_t convert_nothing_status_to_datum(
                 }
             }
             ql::datum_object_builder_t object_builder;
-            object_builder.overwrite("server", convert_name_to_datum(name));
+            object_builder.overwrite("server", name_or_uuid);
             object_builder.overwrite("role", ql::datum_t("replica"));
             object_builder.overwrite("state", ql::datum_t(state));
             return std::move(object_builder).to_datum();
@@ -216,10 +216,10 @@ ql::datum_t convert_table_status_shard_to_datum(
     std::set<server_id_t> already_handled;
 
     bool has_director = false;
-    boost::optional<name_string_t> director_name =
-        name_client->get_name_for_server_id(shard.director);
-    if (static_cast<bool>(director_name)) {
-        array_builder.add(convert_director_status_to_datum(
+    ql::datum_t director_name_or_uuid;
+    if (convert_server_id_to_datum(
+            shard.director, identifier_format, name_client, &director_name_or_uuid)) {
+         array_builder.add(convert_director_status_to_datum(
             *director_name,
             server_states.count(shard.director) == 1 ?
                 &server_states[shard.director] : NULL,

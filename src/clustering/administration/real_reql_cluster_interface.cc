@@ -317,8 +317,10 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
     return true;
 }
 
-bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor,
+bool real_reql_cluster_interface_t::table_find(
+        const name_string_t &name, counted_t<const ql::db_t> db,
+        boost::optional<admin_identifier_format_t> identifier_format,
+        signal_t *interruptor,
         scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -333,6 +335,12 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
     guarantee(!ns_metadata_it->second.is_deleted());
+
+    if (static_cast<bool>(identifier_format)) {
+        *error_out = "The `identifier_format` optarg only makes sense for tables in the "
+            "special `rethinkdb` database.";
+        return false;
+    }
 
     table_out->init(new real_table_t(
         ns_metadata_it->first,

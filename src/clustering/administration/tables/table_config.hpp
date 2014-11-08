@@ -34,8 +34,10 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 databases_semilattice_metadata_t> > _database_sl_view,
             real_reql_cluster_interface_t *_reql_cluster_interface,
+            admin_identifier_format_t _identifier_format,
             server_name_client_t *_name_client) :
-        common_table_artificial_table_backend_t(_table_sl_view, _database_sl_view),
+        common_table_artificial_table_backend_t(
+            _table_sl_view, _database_sl_view, _identifier_format),
         reql_cluster_interface(_reql_cluster_interface),
         name_client(_name_client)
         { }

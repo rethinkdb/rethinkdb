@@ -33,8 +33,12 @@ public:
     artificial_reql_cluster_interface_t(
             /* This is the name of the special database; i.e. `rethinkdb` */
             name_string_t _database,
-            /* These are the tables that live in the special database. */
-            const std::map<name_string_t, artificial_table_backend_t *> &_tables,
+            /* These are the tables that live in the special database. For each pair, the
+            first value will be used if `identifier_format` is unspecified or "name", and
+            the second value will be used if `identifier_format` is "uuid". */
+            const std::map<name_string_t,
+                std::pair<artificial_table_backend_t *, artificial_table_backend_t *>
+                > &_tables,
             /* This is the `real_reql_cluster_interface_t` that we're proxying. */
             reql_cluster_interface_t *_next) :
         database(_database),
@@ -62,6 +66,7 @@ public:
             signal_t *interruptor,
             std::set<name_string_t> *names_out, std::string *error_out);
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+            admin_identifier_format_t identifier_format,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
@@ -98,7 +103,8 @@ public:
 
 private:
     name_string_t database;
-    std::map<name_string_t, artificial_table_backend_t *> tables;
+    std::map<name_string_t,
+        std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > tables;
     reql_cluster_interface_t *next;
 };
 
@@ -122,13 +128,20 @@ public:
         return reql_cluster_interface.get();
     }
 
+    /* These variables exist only to manage the lifetimes of the various backends; they
+    are initialized in the constructor and then passed to the `reql_cluster_interface`,
+    but not used after that.
+
+    The arrays of two backends are used when the contents of the table depends on the
+    identifier format; one backend uses names and the other uses UUIDs. */
+
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
-    scoped_ptr_t<issues_artificial_table_backend_t> issues_backend;
+    scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
-    scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
-    scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;
+    scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
+    scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
     scoped_ptr_t<debug_table_status_artificial_table_backend_t>
