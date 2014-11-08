@@ -949,8 +949,7 @@ changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
         changefeed::keyspec_t subspec = source->get_change_spec();
         auto rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
         if (rspec != NULL) {
-            return changefeed::keyspec_t(
-                changefeed::keyspec_t::limit_t(*rspec, right));
+            return changefeed::keyspec_t(changefeed::keyspec_t::limit_t{*rspec, right});
         }
     }
     return wrapper_datum_stream_t::get_change_spec();

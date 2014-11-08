@@ -333,7 +333,8 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const = 0;
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t>) const = 0;
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
@@ -360,11 +361,10 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const {
-        // TODO: include transforms in the spec when we support other changefeed
-        // types.
-        return changefeed::keyspec_t::range_t(
-            sindex_name(), sorting, original_datum_range);
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t> transforms) const {
+        return changefeed::keyspec_t::range_t{
+            std::move(transforms), sindex_name(), sorting, original_datum_range};
     }
 private:
     virtual rget_read_t next_read_impl(
@@ -465,7 +465,8 @@ public:
     virtual key_range_t original_keyrange() const;
     virtual boost::optional<std::string> sindex_name() const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const {
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t>) const {
         rfail_datum(base_exc_t::GENERIC,
                     "%s", "Cannot call `changes` on an intersection read.");
         unreachable();
@@ -517,7 +518,7 @@ public:
     bool is_finished() const;
 
     virtual changefeed::keyspec_t::range_t get_change_spec() const {
-        return readgen->get_change_spec();
+        return readgen->get_change_spec(transforms);
     }
 protected:
     // Returns `true` if there's data in `items`.

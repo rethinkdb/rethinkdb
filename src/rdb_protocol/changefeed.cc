@@ -836,8 +836,9 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
 
-RDB_IMPL_ME_SERIALIZABLE_4(
-    msg_t::change_t, old_indexes, new_indexes, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_5(
+    msg_t::change_t,
+    old_indexes, new_indexes, pkey, empty_ok(old_val), empty_ok(new_val));
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
@@ -902,8 +903,8 @@ public:
            signal_t *interruptor);
     ~feed_t();
 
-    void add_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING;
-    void del_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING;
+    void add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
+    void del_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
 
     void add_range_sub(range_sub_t *sub) THROWS_NOTHING;
     void del_range_sub(range_sub_t *sub) THROWS_NOTHING;
@@ -915,7 +916,7 @@ public:
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
-        datum_t key, const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
+        store_key_t key, const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void on_limit_sub(
         const uuid_u &uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
 
@@ -967,9 +968,7 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    std::map<datum_t,
-             std::vector<std::set<point_sub_t *> >,
-             optional_datum_less_t> point_subs;
+    std::map<store_key_t, std::vector<std::set<point_sub_t *> > > point_subs;
     rwlock_t point_subs_lock;
 
     std::vector<std::set<range_sub_t *> > range_subs;
@@ -986,7 +985,7 @@ private:
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, datum_t _key)
+    point_sub_t(feed_t *feed, store_key_t _key)
         : flat_sub_t(feed), key(std::move(_key)), stamp(0) {
         feed->add_point_sub(this, key);
     }
@@ -1000,10 +999,7 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(
-                changefeed_point_stamp_t(
-                    *addr, store_key_t(key.print_primary())),
-                profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_point_stamp_t{*addr, key}, profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1044,7 +1040,7 @@ private:
         el.reset();
         return ret;
     }
-    datum_t key;
+    store_key_t key;
     uint64_t stamp;
     datum_t el;
 };
@@ -1074,8 +1070,13 @@ public:
         guarantee(start_stamps.size() != 0);
     }
     boost::optional<std::string> sindex() const { return spec.sindex; }
-    bool contains(const datum_t &d) const {
-        return spec.range.contains(reql_version_t::LATEST, d);
+    bool contains(const datum_t &sindex_key) const {
+        guarantee(spec.sindex);
+        return spec.range.contains(reql_version_t::LATEST, sindex_key);
+    }
+    bool contains(const store_key_t &pkey) const {
+        guarantee(!spec.sindex);
+        return spec.range.to_primary_keyrange().contains_key(pkey);
     }
     virtual void add_el(const uuid_u &uuid,
                         uint64_t stamp,
@@ -1344,8 +1345,6 @@ public:
         auto old_val = change.old_val.has() ? change.old_val : null;
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
-        auto pkey_val = val.get_field(datum_string_t(feed->pkey), NOTHROW);
-        r_sanity_check(pkey_val.has());
 
         feed->each_range_sub([&](range_sub_t *sub) {
                 datum_t obj(std::map<datum_string_t, datum_t>{
@@ -1395,13 +1394,13 @@ public:
                         --new_vals;
                     }
                 } else {
-                    if (sub->contains(pkey_val)) {
+                    if (sub->contains(change.pkey)) {
                         sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
                     }
                 }
             });
         feed->on_point_sub(
-            pkey_val,
+            change.pkey,
             std::bind(&point_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
@@ -1539,7 +1538,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
 
-RDB_MAKE_SERIALIZABLE_3_FOR_CLUSTER(keyspec_t::range_t, sindex, sorting, range);
+RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(
+    keyspec_t::range_t, transforms, sindex, sorting, range);
 RDB_MAKE_SERIALIZABLE_2_FOR_CLUSTER(keyspec_t::limit_t, range, limit);
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t, spec);
@@ -1603,14 +1603,14 @@ size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING {
     add_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
             map_add_sub(&point_subs, key, sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::del_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING {
     del_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
             return map_del_sub(&point_subs, key, sub);
         });
@@ -1717,7 +1717,7 @@ void feed_t::each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING
 }
 
 void feed_t::on_point_sub(
-    datum_t key,
+    store_key_t key,
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
@@ -1803,10 +1803,6 @@ feed_t::feed_t(client_t *_client,
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1, ph::_2)),
-      /* We only use comparison in the point_subs map for equality purposes, not
-         ordering -- and this isn't in a secondary index function.  Thus
-         reql_version_t::LATEST is appropriate. */
-      point_subs(optional_datum_less_t(reql_version_t::LATEST)),
       range_subs(get_num_threads()),
       num_subs(0),
       detached(false) {

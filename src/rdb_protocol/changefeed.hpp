@@ -77,6 +77,7 @@ struct msg_t {
     };
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
+        store_key_t pkey;
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -115,28 +116,17 @@ typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
 struct keyspec_t {
     struct range_t {
-        range_t() { }
-        range_t(boost::optional<std::string> _sindex,
-                sorting_t _sorting,
-                datum_range_t _range)
-            : sindex(std::move(_sindex)),
-              sorting(_sorting),
-              range(std::move(_range)) { }
+        std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datum_range_t range;
     };
     struct limit_t {
-        limit_t() { }
-        limit_t(range_t _range, size_t _limit)
-            : range(std::move(_range)), limit(_limit) { }
         range_t range;
         size_t limit;
     };
     struct point_t {
-        point_t() { }
-        explicit point_t(datum_t _key) : key(std::move(_key)) { }
-        datum_t key;
+        store_key_t key;
     };
 
     keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
