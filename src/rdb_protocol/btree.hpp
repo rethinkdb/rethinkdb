@@ -326,7 +326,12 @@ public:
 
 private:
     void on_mod_report_sub(
-        const rdb_modification_report_t &, cond_t *, new_mutex_in_line_t *);
+        const rdb_modification_report_t &mod_report,
+        new_mutex_in_line_t *spot,
+        cond_t *keys_available_cond,
+        cond_t *done_cond,
+        std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+        std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
 
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
@@ -342,7 +347,10 @@ void rdb_update_sindexes(
     const store_t::sindex_access_vector_t &sindexes,
     const rdb_modification_report_t *modification,
     txn_t *txn,
-    const deletion_context_t *deletion_context);
+    const deletion_context_t *deletion_context,
+    cond_t *keys_available_cond,
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
 
 void post_construct_secondary_indexes(
         store_t *store,

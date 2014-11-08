@@ -470,13 +470,14 @@ struct changefeed_limit_subscribe_t {
         uuid_u _uuid,
         ql::changefeed::keyspec_t::limit_t _spec,
         std::string _table,
-        std::map<std::string, ql::wire_func_t> _optargs)
+        std::map<std::string, ql::wire_func_t> _optargs,
+        region_t pkey_region)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
           table(std::move(_table)),
           optargs(std::move(_optargs)),
-          region(region_t::universe()) { }
+          region(std::move(pkey_region)) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
@@ -488,8 +489,10 @@ RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 
 struct changefeed_stamp_t {
     changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
-        : addr(std::move(_addr)), region(region_t::universe()) { }
+    explicit changefeed_stamp_t(
+        ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)),
+          region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;
 };

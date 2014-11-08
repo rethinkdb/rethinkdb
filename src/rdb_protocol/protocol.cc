@@ -211,7 +211,10 @@ void post_construct_and_drain_queue(
                                     sindexes,
                                     &mod_report,
                                     queue_txn.get(),
-                                    &deletion_context);
+                                    &deletion_context,
+                                    NULL,
+                                    NULL,
+                                    NULL);
                 ++current_chunk_size;
             }
 
