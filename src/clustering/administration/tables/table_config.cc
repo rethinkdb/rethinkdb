@@ -7,12 +7,10 @@
 #include "clustering/administration/tables/split_points.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-ql::datum_t convert_table_config_shard_to_datum(
-        const table_config_t::shard_t &shard,
+ql::datum_t convert_replica_list_to_datum(
+        const std::set<server_id_t> &replicas,
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client) {
-    ql::datum_object_builder_t builder;
-
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
     for (const server_id_t &replica : shard.replicas) {
         ql::datum_t replica;
@@ -22,7 +20,172 @@ ql::datum_t convert_table_config_shard_to_datum(
             replicas_builder.add(replica);
         }
     }
-    builder.overwrite("replicas", std::move(replicas_builder).to_datum());
+    return std::move(replicas_builder).to_datum();
+}
+
+bool convert_replica_list_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        std::set<server_id_t> *replicas_out,
+        std::string *error_out) {
+    if (datum.get_type() != ql::datum_t::R_ARRAY) {
+        *error_out = "Expected an array, got " + datum.print();
+        return false;
+    }
+    replicas_out->clear();
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
+        server_id_t server_id;
+        if (!convert_server_id_from_datum(
+                datum.get(i), identifier_format, name_client, &server_id, error_out)) {
+            return false;
+        }
+        auto pair = replicas_out->insert(server_id);
+        if (!pair.second) {
+            *error_out = "A server is listed more than once.";
+            return false;
+        }
+    }
+    return true;
+}
+
+ql::datum_t convert_write_ack_config_req_to_datum(
+        const write_ack_config_t::req_t &req,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client) {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("replicas",
+        convert_replica_list_to_datum(req.replicas, identifier_format, name_client));
+    const char *acks =
+        (req.mode == write_ack_config_t::mode_t::majority) ? "majority" : "single";
+    builder.overwrite("acks", ql::datum_t(acks));
+    return std::move(builder).to_datum();
+}
+
+bool convert_write_ack_config_req_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        write_ack_config_t::req_t *req_out,
+        std::string *error_out) {
+    converter_from_datum_object_t converter;
+    if (!converter.init(datum, error_out)) {
+        return false;
+    }
+
+    ql::datum_t replicas_datum;
+    if (!converter.get("replicas", &replicas_datum, error_out)) {
+        return false;
+    }
+    if (!convert_replica_list_from_datum(replicas_datum, identifier_format, name_client,
+            &req_out->replicas, error_out)) {
+        return false;
+    }
+
+    ql::datum_t acks_datum;
+    if (!converter.get("acks", &acks_datum, error_out)) {
+        return false;
+    }
+    if (acks_datum == ql::datum_t("single")) {
+        req_out->mode = write_ack_config_t::mode_t::single;
+    } else if (acks_datum == ql::datum_t("majority")) {
+        req_out->mode = write_ack_config_t::mode_t::majority;
+    } else {
+        *error_out = "In `acks`: Expected 'single' or 'majority', got: " +
+            acks_datum.print();
+        return false;
+    }
+
+    if (!converter.check_no_extra_keys(error_out)) {
+        return false;
+    }
+
+    return true;
+}
+
+ql::datum_t convert_write_ack_config_to_datum(
+        const write_ack_config_t &config,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client) {
+    if (config.mode == write_ack_config_t::mode_t::single) {
+        return ql::datum_t("single");
+    } else if (config.mode == write_ack_config_t::mode_t::majority) {
+        return ql::datum_t("majority");
+    } else {
+        return convert_vector_to_datum<write_ack_config_t::req_t>(
+            [&](const write_ack_config_t::req_t &req) {
+                return convert_write_ack_config_req_to_datum(
+                    req, identifier_format, name_client);
+            }, config.complex_reqs);
+    }
+}
+
+bool convert_write_ack_config_from_datum(
+        const ql::datum_t &datum,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client,
+        write_ack_config_t *config_out,
+        std::string *error_out) {
+    if (datum == ql::datum_t("single")) {
+        config_out->mode = write_ack_config_t::mode_t::single;
+        config_out->complex_reqs.clear();
+    } else if (datum == ql::datum_t("majority")) {
+        config_out->mode = write_ack_config_t::mode_t::majority;
+        config_out->complex_reqs.clear();
+    } else if (datum.get_type() == ql::datum_t::R_ARRAY) {
+        config_out->mode = write_ack_config_t::mode_t::complex;
+        if (!convert_vector_from_datum<write_ack_config_t::req_t>(
+                [&](const ql::datum_t &datum_2, write_ack_config_t::req_t *req_out,
+                        std::string *error_out_2) {
+                    return convert_write_ack_config_req_from_datum(
+                        datum_2, identifier_format, name_client, req_out, error_out_2);
+                }, datum, &config_out->complex_reqs, error_out)) {
+            return false;
+        }
+    } else {
+        *error_out = "Expected `single`, `majority`, or a list of ack requirements, but "
+            "instead got: " + datum.print();
+        return false;
+    }
+    return true;
+}
+
+ql::datum_t convert_durability_to_datum(
+        write_durability_t durability) {
+    switch (durability) {
+        case write_durability_t::SOFT:
+            return ql::datum_t("soft");
+        case write_durability_t::HARD:
+            return ql::datum_t("hard");
+        case write_durability_t::INVALID:
+        default:
+            unreachable();
+    }
+}
+
+bool convert_durability_from_datum(
+        const ql::datum_t &datum,
+        write_durability_t *durability_out,
+        std::string *error_out) {
+    if (datum == ql::datum_t("soft")) {
+        *durability_out = write_durability_t::SOFT;
+    } else if (datum == ql::datum_t("hard")) {
+        *durability_out = write_durability_t::HARD;
+    } else {
+        *error_out = "Expected \"soft\" or \"hard\", got: " + datum.print();
+        return false;
+    }
+    return true;
+}
+
+ql::datum_t convert_table_config_shard_to_datum(
+        const table_config_t::shard_t &shard,
+        admin_identifier_format_t identifier_format,
+        server_name_client_t *name_client) {
+    ql::datum_object_builder_t builder;
+
+    builder.overwrite("replicas",
+        convert_replica_list_to_datum(shard.replicas, identifier_format, name_client));
 
     ql::datum_t director;
     if (!convert_server_id_to_datum(
@@ -51,25 +214,10 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("replicas", &replicas_datum, error_out)) {
         return false;
     }
-    if (replicas_datum.get_type() != ql::datum_t::R_ARRAY) {
-        *error_out = "In `replicas`: Expected an array, got " +
-            replica_names_datum.print();
+    if (!convert_replica_list_from_datum(replicas_datum, identifier_format, name_client,
+            &shard_out->replicas, error_out)) {
+        *error_out = "In `replicas`: " + *error_out;
         return false;
-    }
-    shard_out->replicas.clear();
-    for (size_t i = 0; i < replicas_datum.arr_size(); ++i) {
-        server_id_t server_id;
-        if (!convert_server_id_from_datum(
-                replicas_datum.get(i), identifier_format, name_client,
-                &server_id, error_out)) {
-            *error_out = "In `replicas`: " + *error_out;
-            return false;
-        }
-        auto pair = shard_out->replicas.insert(server_id);
-        if (!pair.second) {
-            *error_out = "In `replicas`: A server is listed more than once.";
-            return false;
-        }
     }
     if (shard_out->replicas.empty()) {
         *error_out = "You must specify at least one replica for each shard.";
@@ -121,6 +269,10 @@ ql::datum_t convert_table_config_to_datum(
                     shard, identifier_format, name_client);
             },
             config.shards));
+    builder.overwrite("write_acks",
+        convert_write_ack_config_to_datum(config.write_ack_config, name_client));
+    builder.overwrite("durability",
+        convert_durability_to_datum(config.durability));
     return std::move(builder).to_datum();
 }
 
@@ -150,7 +302,7 @@ bool table_config_artificial_table_backend_t::format_row(
 bool convert_table_config_and_name_from_datum(
         ql::datum_t datum,
         bool existed_before,
-        const namespaces_semilattice_metadata_t &all_table_metadata,
+        const cluster_semilattice_metadata_t &all_metadata,
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client,
         signal_t *interruptor,
@@ -228,7 +380,7 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         std::map<server_id_t, int> server_usage;
-        for (const auto &pair : all_table_metadata.namespaces) {
+        for (const auto &pair : all_metadata.rdb_namespaces->namespaces) {
             if (pair.second.is_deleted()) {
                 continue;
             }
@@ -240,6 +392,49 @@ bool convert_table_config_and_name_from_datum(
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
                 interruptor, config_out, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
+            return false;
+        }
+    }
+
+    if (existed_before || converter.has("write_acks")) {
+        ql::datum_t write_acks_datum;
+        if (!converter.get("write_acks", &write_acks_datum, error_out)) {
+            return false;
+        }
+        if (!convert_write_ack_config_from_datum(write_acks_datum, name_client,
+                &config_out->write_ack_config, error_out)) {
+            *error_out = "In `write_acks`: " + *error_out;
+            return false;
+        }
+    } else {
+        config_out->write_ack_config.mode = write_ack_config_t::mode_t::majority;
+        config_out->write_ack_config.complex_reqs.clear();
+    }
+
+    if (existed_before || converter.has("durability")) {
+        ql::datum_t durability_datum;
+        if (!converter.get("durability", &durability_datum, error_out)) {
+            return false;
+        }
+        if (!convert_durability_from_datum(durability_datum, &config_out->durability,
+                error_out)) {
+            *error_out = "In `durability`: " + *error_out;
+            return false;
+        }
+    } else {
+        config_out->durability = write_durability_t::HARD;
+    }
+
+    write_ack_config_checker_t ack_checker(*config_out, all_metadata.servers);
+    for (const table_config_t::shard_t &shard : config_out->shards) {
+        std::set<server_id_t> replicas;
+        replicas.insert(shard.replicas.begin(), shard.replicas.end());
+        if (!ack_checker.check_acks(replicas)) {
+            *error_out = "The `write_acks` settings you provided make some shard(s) "
+                "unwritable. This usually happens because different shards have "
+                "different numbers of replicas; the 'majority' write ack setting "
+                "applies the same threshold to every shard, but it computes the "
+                "threshold based on the shard with the most replicas.";
             return false;
         }
     }
@@ -261,7 +456,7 @@ bool table_config_artificial_table_backend_t::write_row(
     on_thread_t thread_switcher(home_thread());
 
     /* Look for an existing table with the given UUID */
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    cluster_semilattice_metadata_t md = semilattice_view->get();
     namespace_id_t table_id;
     std::string dummy_error;
     if (!convert_uuid_from_datum(primary_key, &table_id, &dummy_error)) {
@@ -271,7 +466,7 @@ bool table_config_artificial_table_backend_t::write_row(
             "a valid UUID string.");
         table_id = nil_uuid();
     }
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
         ::iterator it;
     bool existed_before = search_metadata_by_uuid(
@@ -288,9 +483,9 @@ bool table_config_artificial_table_backend_t::write_row(
         namespace_id_t new_table_id;
         std::string new_primary_key;
         if (!convert_table_config_and_name_from_datum(*new_value_inout, existed_before,
-                *md_change.get(), identifier_format, name_client, interruptor,
-                &new_table_name, &new_db, &new_table_id,
-                &replication_info.config, &new_primary_key, error_out)) {
+                md, identifier_format, name_client, interruptor,
+                &new_table_name, &new_db, &new_table_id, &replication_info.config,
+                &new_primary_key, error_out)) {
             *error_out = "The change you're trying to make to "
                 "`rethinkdb.table_config` has the wrong format. " + *error_out;
             return false;
@@ -420,7 +615,7 @@ bool table_config_artificial_table_backend_t::write_row(
         }
     }
 
-    table_sl_view->join(md);
+    semilattice_view->join(md);
 
     return true;
 }

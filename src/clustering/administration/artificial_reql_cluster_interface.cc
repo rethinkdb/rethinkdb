@@ -265,10 +265,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     for (int i = 0; i < 2; ++i) {
         table_config_backend[i].init(new table_config_artificial_table_backend_t(
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                _semilattice_view),
-            metadata_field(&cluster_semilattice_metadata_t::databases,
-                _semilattice_view),
+            _semilattice_view,
             _next_reql_cluster_interface,
             i == 0 ? admin_identifier_format_t::name : admin_identifier_format_t::uuid,
             _name_client));
@@ -278,10 +275,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     for (int i = 0; i < 2; ++i) {
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                _semilattice_view),
-            metadata_field(&cluster_semilattice_metadata_t::databases,
-                _semilattice_view),
+            _semilattice_view,
             _reactor_directory_view,
             i == 0 ? admin_identifier_format_t::name : admin_identifier_format_t::uuid,
             _name_client));
@@ -294,10 +288,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         debug_scratch_backend.get();
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-            _semilattice_view),
-        metadata_field(&cluster_semilattice_metadata_t::databases,
-            _semilattice_view),
+        _semilattice_view,
         _reactor_directory_view,
         _name_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =

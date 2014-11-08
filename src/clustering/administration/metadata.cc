@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/metadata.hpp"
 
-#include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -18,14 +17,6 @@ migrate serialized metadata from pre-ReQL-admin versions into the new format. Gi
 issue #2869 is tracking this discussion. As a temporary measure so that development can
 proceed, deserialization of old versions has been disabled. */
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
-RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
-
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(databases_semilattice_metadata_t, databases);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
-RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
-
 RDB_IMPL_SERIALIZABLE_2(server_semilattice_metadata_t, name, tags);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const server_semilattice_metadata_t &);
@@ -41,62 +32,6 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, servers_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
 RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
-
-RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
-
-RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
-                        replicas, director);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const table_config_t::shard_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, table_config_t::shard_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replicas, director);
-
-RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const table_config_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, table_config_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_1(table_config_t, shards);
-
-RDB_IMPL_SERIALIZABLE_1(table_shard_scheme_t, split_points);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const table_shard_scheme_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, table_shard_scheme_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
-
-RDB_IMPL_SERIALIZABLE_2(table_replication_info_t,
-                        config, shard_scheme);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const table_replication_info_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, table_replication_info_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_replication_info_t,
-                               config, shard_scheme);
-
-RDB_IMPL_SERIALIZABLE_4(namespace_semilattice_metadata_t,
-                        name, database, primary_key, replication_info);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const namespace_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, namespace_semilattice_metadata_t *);
-
-RDB_IMPL_SEMILATTICE_JOINABLE_4(
-        namespace_semilattice_metadata_t,
-        name, database, primary_key, replication_info);
-RDB_IMPL_EQUALITY_COMPARABLE_4(
-        namespace_semilattice_metadata_t,
-        name, database, primary_key, replication_info);
-
-RDB_IMPL_SERIALIZABLE_1(namespaces_semilattice_metadata_t, namespaces);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const namespaces_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, namespaces_semilattice_metadata_t *);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
-RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
 RDB_IMPL_SERIALIZABLE_3(
         cluster_semilattice_metadata_t,
@@ -132,31 +67,6 @@ RDB_IMPL_SERIALIZABLE_16_FOR_CLUSTER(cluster_directory_metadata_t,
      local_issues,
      peer_type);
 
-bool ack_expectation_t::operator==(ack_expectation_t other) const {
-    return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
-}
-
-void debug_print(printf_buffer_t *buf, const ack_expectation_t &x) {
-    buf->appendf("ack_expectation{durability=%s, acks=%" PRIu32 "}",
-                 x.is_hardly_durable() ? "hard" : "soft", x.expectation());
-}
-
-// json adapter concept for ack_expectation_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["expectation"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint32_t>(&target->expectation_));
-    res["hard_durability"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool>(&target->hard_durability_));
-    return res;
-}
-cJSON *render_as_json(ack_expectation_t *target) {
-    return render_as_directory(target);
-}
-
-void apply_json_to(cJSON *change, ack_expectation_t *target) {
-    apply_as_directory(change, target);
-}
-
-
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
@@ -174,9 +84,6 @@ cJSON *render_as_json(cluster_directory_metadata_t *target) {
 void apply_json_to(cJSON *change, cluster_directory_metadata_t *target) {
     apply_as_directory(change, target);
 }
-
-
-
 
 // ctx-less json adapter for cluster_directory_peer_type_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *) {

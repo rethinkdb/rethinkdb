@@ -48,6 +48,18 @@ private:
         const name_string_t &table_name) const;
 };
 
+class write_acks_issue_t : public invalid_config_issue_t {
+public:
+    write_acks_issue_t(const namespace_id_t &_table_id);
+    const datum_string_t &get_name() const { return write_acks_issue_type; }
+private:
+    static const datum_string_t write_acks_issue_type;
+    static const issue_id_t base_issue_id;
+    datum_string_t build_description(
+        const name_string_t &db_name,
+        const name_string_t &table_name) const;
+};
+
 class invalid_config_issue_tracker_t : public issue_tracker_t {
 public:
     invalid_config_issue_tracker_t(

@@ -12,6 +12,11 @@ const datum_string_t data_loss_issue_t::data_loss_issue_type =
 const uuid_u data_loss_issue_t::base_issue_id =
     str_to_uuid("12ad8005-bdc0-4f31-aa43-b0b7ca6cc4b0");
 
+const datum_string_t write_acks_issue_t::write_acks_issue_type =
+    datum_string_t("write_acks");
+const uuid_u write_acks_issue_t::base_issue_id =
+    str_to_uuid("086417d4-ce13-4d38-84c7-52871f7f1bd7");
+
 invalid_config_issue_t::invalid_config_issue_t(
         const issue_id_t &issue_id, const namespace_id_t &_table_id)
     : issue_t(issue_id), table_id(_table_id) { }
@@ -78,6 +83,22 @@ datum_string_t data_loss_issue_t::build_description(
         table_name.c_str()));
 }
 
+write_acks_issue_t::write_acks_issue_t(const namespace_id_t &_table_id) :
+    invalid_config_issue_t(from_hash(base_issue_id, _table_id), _table_id) { }
+
+datum_string_t write_acks_issue_t::build_description(
+        const name_string_t &table_name, const name_string_t &db_name) const {
+    return datum_string_t(strprintf("One or more servers that were acting as replicas "
+        "for table `%s.%s` have been permanently removed from the cluster, and as a "
+        "result the write ack settings you specified in `rethinkdb.table_config` are no "
+        "longer satisfiable. This usually happens because different shards have "
+        "different numbers of replicas; the 'majority' write ack setting applies the "
+        "same threshold to every shard, but it computes the threshold based on the "
+        "shard with the most replicas. Fix this by changing the replica assignments in "
+        "`rethinkdb.table_config` or by changing the write ack setting to 'single'.",
+        db_name.c_str(), table_name.c_str()));
+}
+
 invalid_config_issue_tracker_t::invalid_config_issue_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view) :
@@ -94,25 +115,31 @@ std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues()
             it = searcher.find_next(++it)) {
         const table_config_t &config =
             it->second.get_ref().replication_info.get_ref().config;
-        bool need_primary = false, data_loss = false;
+        write_ack_config_checker_t ack_checker(config, md.servers);
+        bool need_primary = false, data_loss = false, write_acks = false;
         for (const table_config_t::shard_t &shard : config.shards) {
             if (md.servers.servers.at(shard.director).is_deleted()) {
                 need_primary = true;
             }
-            size_t num_dead = 0;
+            std::set<server_id_t> replicas;
             for (const server_id_t &sid : shard.replicas) {
-                if (md.servers.servers.at(sid).is_deleted()) {
-                    ++num_dead;
+                if (!md.servers.servers.at(sid).is_deleted()) {
+                    replicas.insert(sid);
                 }
             }
-            if (num_dead == shard.replicas.size()) {
+            if (replicas.empty()) {
                 data_loss = true;
+            }
+            if (!ack_checker.check_acks(replicas)) {
+                write_acks = true;
             }
         }
         if (data_loss) {
             issues.push_back(make_scoped<data_loss_issue_t>(it->first));
         } else if (need_primary) {
             issues.push_back(make_scoped<need_primary_issue_t>(it->first));
+        } else if (write_acks) {
+            issues.push_back(make_scoped<write_acks_issue_t>(it->first));
         }
     }
     return issues;

@@ -5,7 +5,6 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"

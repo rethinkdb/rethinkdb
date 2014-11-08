@@ -8,8 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -22,15 +21,11 @@ class common_table_artificial_table_backend_t :
 public:
     common_table_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
-                cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view,
+                cluster_semilattice_metadata_t> > _semilattice_view,
             admin_identifier_format_t _identifier_format) :
-        table_sl_view(_table_sl_view),
-        database_sl_view(_database_sl_view),
+        semilattice_view(_semilattice_view),
         identifier_format(_identifier_format) {
-        table_sl_view->assert_thread();
-        database_sl_view->assert_thread();
+        semilattice_view->assert_thread();
     }
 
     std::string get_primary_key_name();
@@ -63,9 +58,7 @@ protected:
     ql::datum_t get_db_identifier(database_id_t db_id);
 
     boost::shared_ptr< semilattice_readwrite_view_t<
-        cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        databases_semilattice_metadata_t> > database_sl_view;
+        cluster_semilattice_metadata_t> > semilattice_view;
     admin_identifier_format_t identifier_format;
 };
 

@@ -16,7 +16,8 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md =
+        semilattice_view->get().rdb_namespaces;
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
             ++it) {
@@ -43,7 +44,8 @@ bool common_table_artificial_table_backend_t::read_row(
         std::string *error_out) {
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md =
+        semilattice_view->get().rdb_namespaces;
     namespace_id_t table_id;
     std::string dummy_error;
     if (!convert_uuid_from_datum(primary_key, &table_id, &dummy_error)) {
@@ -67,7 +69,7 @@ bool common_table_artificial_table_backend_t::read_row(
 ql::datum_t common_table_artificial_table_backend_t::get_db_identifier(
         const database_id_t &db_id) {
     assert_thread();
-    databases_semilattice_metadata_t dbs = database_sl_view->get();
+    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
     ql::datum_t res;
     if (!convert_database_id_to_datum(db_id, identifier_format, dbs, &res)) {
         /* This can occur due to a race condition, if a new table is added to a database
@@ -81,7 +83,7 @@ ql::datum_t common_table_artificial_table_backend_t::get_db_identifier(
 bool common_table_artificial_table_backend_t::get_db_id(name_string_t db_name,
         database_id_t *db_out, std::string *error_out) {
     assert_thread();
-    databases_semilattice_metadata_t dbs = database_sl_view->get();
+    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbs.databases);
     metadata_search_status_t status;
     auto db_it = searcher.find_uniq(db_name, &status);
