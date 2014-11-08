@@ -18,6 +18,34 @@ namespace ql {
 
 namespace changefeed {
 
+namespace debug {
+std::string print(const uuid_u &u) {
+    printf_buffer_t buf;
+    debug_print(&buf, u);
+    return strprintf("uuid(%s)", buf.c_str());
+}
+std::string print(const datum_t &d) {
+    return "datum(" + d.print() + ")";
+}
+std::string print(const std::string &s) {
+    return "str(" + s + ")";
+}
+template<class A, class B>
+std::string print(const std::pair<A, B> &p) {
+    return strprintf("pair(%s, %s)", print(p.first).c_str(), print(p.second).c_str());
+}
+template<class T>
+std::string print(const boost::optional<T> &t) {
+    return strprintf("opt(%s)\n", t ? print(*t).c_str() : "");
+}
+std::string print(const msg_t::limit_change_t &change) {
+    return strprintf("limit_change_t(%s, %s, %s)",
+                     print(change.sub).c_str(),
+                     print(change.old_key).c_str(),
+                     print(change.new_val).c_str());
+}
+} // namespace debug;
+
 server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
@@ -279,7 +307,7 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                              std::function<void(rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
                                                 rwlock_in_line_t *,
-                                                limit_manager_t *)> f) {
+                                                limit_manager_t *)> f) THROWS_NOTHING {
     auto_drainer_t::lock_t lock(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();
@@ -534,9 +562,15 @@ void limit_manager_t::add(
     datum_t key,
     datum_t val) {
     guarantee(spot->write_signal()->is_pulsed());
-    added.push_back(
-        std::make_pair(key_to_mangled_primary(sk, is_primary),
-                       std::make_pair(std::move(key), std::move(val))));
+    guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
+    if ((is_primary == is_primary_t::YES
+         && region.inner.contains_key(sk))
+        || (is_primary == is_primary_t::NO
+            && spec.range.range.contains(reql_version_t::LATEST, key))) {
+        added.push_back(
+            std::make_pair(key_to_mangled_primary(sk, is_primary),
+                           std::make_pair(std::move(key), std::move(val))));
+    }
 }
 
 void limit_manager_t::del(
@@ -550,19 +584,21 @@ void limit_manager_t::del(
 class ref_visitor_t : public boost::static_visitor<item_vec_t> {
 public:
     ref_visitor_t(env_t *_env,
-                  key_range_t _pk_range,
+                  const key_range_t *_pk_range,
+                  const keyspec_t::limit_t *_spec,
                   sorting_t _sorting,
                   boost::optional<item_queue_t::iterator> _start,
                   size_t _n)
         : env(_env),
-          pk_range(std::move(_pk_range)),
+          pk_range(_pk_range),
+          spec(_spec),
           sorting(_sorting),
           start(std::move(_start)),
           n(_n) { }
 
     item_vec_t operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
-        key_range_t range = pk_range;
+        key_range_t range = *pk_range;
         switch (sorting) {
         case sorting_t::ASCENDING: {
             if (start) {
@@ -608,18 +644,20 @@ public:
 
     item_vec_t operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
-        datum_range_t srange;
-        auto open = key_range_t::bound_t::open;
-        datum_t dstart = start ? (**start)->second.first : datum_t();
-        switch (sorting) {
-        case sorting_t::ASCENDING:
-            srange = datum_range_t(dstart, open, datum_t(), open);
-            break;
-        case sorting_t::DESCENDING:
-            srange = datum_range_t(datum_t(), open, dstart, open);
-            break;
-        case sorting_t::UNORDERED: // fallthru
-        default: unreachable();
+        guarantee(spec->range.sindex);
+        datum_range_t srange = spec->range.range;
+        if (start) {
+            datum_t dstart = (**start)->second.first;
+            switch (sorting) {
+            case sorting_t::ASCENDING:
+                srange = srange.with_left_bound(dstart, key_range_t::bound_t::open);
+                break;
+            case sorting_t::DESCENDING:
+                srange = srange.with_right_bound(dstart, key_range_t::bound_t::open);
+                break;
+            case sorting_t::UNORDERED: // fallthru
+            default: unreachable();
+            }
         }
         rdb_rget_secondary_slice(
             ref.btree,
@@ -631,7 +669,7 @@ public:
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
                     is_primary_t::NO, n, sorting}),
-            pk_range,
+            *pk_range,
             sorting,
             *ref.sindex_info,
             &resp,
@@ -651,7 +689,8 @@ public:
 
 private:
     env_t *env;
-    key_range_t pk_range;
+    const key_range_t *pk_range;
+    const keyspec_t::limit_t *spec;
     sorting_t sorting;
     boost::optional<item_queue_t::iterator> start;
     size_t n;
@@ -662,7 +701,7 @@ item_vec_t limit_manager_t::read_more(
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
     size_t n) {
-    ref_visitor_t visitor(env.get(), region.inner, sorting, start, n);
+    ref_visitor_t visitor(env.get(), &region.inner, &spec, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
 
@@ -797,7 +836,8 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
 
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_4(
+    msg_t::change_t, old_indexes, new_indexes, empty_ok(old_val), empty_ok(new_val));
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
@@ -844,12 +884,14 @@ public:
     virtual void add_el(
         const uuid_u &uuid,
         uint64_t stamp,
-        const datum_t &pkey_val,
         datum_t d,
         const configured_limits_t &limits) = 0;
 };
 
+class range_sub_t;
+class point_sub_t;
 class limit_sub_t;
+
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
     feed_t(client_t *client,
@@ -860,20 +902,20 @@ public:
            signal_t *interruptor);
     ~feed_t();
 
-    void add_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING;
-    void del_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING;
+    void add_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING;
+    void del_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING;
 
-    void add_range_sub(flat_sub_t *sub) THROWS_NOTHING;
-    void del_range_sub(flat_sub_t *sub) THROWS_NOTHING;
+    void add_range_sub(range_sub_t *sub) THROWS_NOTHING;
+    void del_range_sub(range_sub_t *sub) THROWS_NOTHING;
 
     void add_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
     void del_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
 
-    void each_range_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
-    void each_point_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void each_range_sub(const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
+    void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
-        datum_t key, const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+        datum_t key, const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void on_limit_sub(
         const uuid_u &uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
 
@@ -898,7 +940,7 @@ private:
                             const std::vector<std::set<Sub *> > &vec,
                             const std::vector<int> &sub_threads,
                             int i);
-    void each_point_sub_cb(const std::function<void(flat_sub_t *)> &f, int i);
+    void each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i);
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
     void constructor_cb();
 
@@ -926,11 +968,11 @@ private:
     cond_t queues_ready;
 
     std::map<datum_t,
-             std::vector<std::set<flat_sub_t *> >,
+             std::vector<std::set<point_sub_t *> >,
              optional_datum_less_t> point_subs;
     rwlock_t point_subs_lock;
 
-    std::vector<std::set<flat_sub_t *> > range_subs;
+    std::vector<std::set<range_sub_t *> > range_subs;
     rwlock_t range_subs_lock;
 
     std::map<uuid_u, std::vector<std::set<limit_sub_t *> > > limit_subs;
@@ -979,14 +1021,11 @@ public:
             el = std::move(resp->initial_val);
         }
     }
-private:
     virtual void add_el(const uuid_u &,
                         uint64_t d_stamp,
-                        DEBUG_VAR const datum_t &pkey_val,
                         datum_t d,
                         const configured_limits_t &) {
         assert_thread();
-        rassert(pkey_val == key);
         // We use `>=` because we might have the same stamp as the start stamp
         // (the start stamp reads the stamp non-destructively on the shards).
         // We do ordering and duplicate checking in the layer above, so apart
@@ -997,6 +1036,7 @@ private:
             maybe_signal_cond();
         }
     }
+private:
     virtual bool has_el() { return el.has(); }
     virtual datum_t pop_el() {
         guarantee(has_el());
@@ -1033,29 +1073,30 @@ public:
         start_stamps = std::move(resp->stamps);
         guarantee(start_stamps.size() != 0);
     }
-private:
+    boost::optional<std::string> sindex() const { return spec.sindex; }
+    bool contains(const datum_t &d) const {
+        return spec.range.contains(reql_version_t::LATEST, d);
+    }
     virtual void add_el(const uuid_u &uuid,
                         uint64_t stamp,
-                        const datum_t &pkey_val,
                         datum_t d,
                         const configured_limits_t &limits) {
-        if (spec.range.contains(reql_version_t::LATEST, pkey_val)) {
-            // If we don't have start timestamps, we haven't started, and if we have
-            // exc, we've stopped.
-            if (start_stamps.size() != 0 && !exc) {
-                auto it = start_stamps.find(uuid);
-                guarantee(it != start_stamps.end());
-                if (stamp >= it->second) {
-                    els.push_back(std::move(d));
-                    if (els.size() > limits.array_size_limit()) {
-                        skipped += els.size();
-                        els.clear();
-                    }
-                    maybe_signal_cond();
+        // If we don't have start timestamps, we haven't started, and if we have
+        // exc, we've stopped.
+        if (start_stamps.size() != 0 && !exc) {
+            auto it = start_stamps.find(uuid);
+            guarantee(it != start_stamps.end());
+            if (stamp >= it->second) {
+                els.push_back(std::move(d));
+                if (els.size() > limits.array_size_limit()) {
+                    skipped += els.size();
+                    els.clear();
                 }
+                maybe_signal_cond();
             }
         }
     }
+private:
     virtual bool has_el() { return els.size() != 0; }
     virtual datum_t pop_el() {
         guarantee(has_el());
@@ -1099,7 +1140,7 @@ public:
                 els.push_back(
                     datum_t(std::map<datum_string_t, datum_t> {
                             { datum_string_t("old_val"), (*it)->second.second },
-                                { datum_string_t("new_val"), (*it)->second.second } }));
+                            { datum_string_t("new_val"), (*it)->second.second } }));
             }
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
@@ -1119,9 +1160,18 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_limit_subscribe_t(
-                       *addr, uuid, spec, std::move(table), env->get_all_optargs()),
+                       *addr,
+                       uuid,
+                       spec,
+                       std::move(table),
+                       env->get_all_optargs(),
+                       spec.range.sindex
+                       ? region_t::universe()
+                       : region_t(spec.range.range.to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE),
-            &read_resp, order_token_t::ignore, env->interruptor);
+            &read_resp,
+            order_token_t::ignore,
+            env->interruptor);
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(
             &read_resp.response);
         if (resp == NULL) {
@@ -1193,10 +1243,8 @@ public:
             if (active_data.size() == 0) {
                 insert = false;
             } else {
-                datum_t a = (*it)->second.first;
                 guarantee(active_data.size() != 0);
-                datum_t b = (**active_data.begin())->second.first;
-                insert = !gt(a, b);
+                insert = !gt(it, *active_data.begin());
             }
             if (insert) {
                 active_data.insert(it);
@@ -1290,33 +1338,75 @@ public:
             });
     }
     void operator()(const msg_t::change_t &change) const {
-        datum_t null = datum_t::null();
         configured_limits_t default_limits;
-        std::map<datum_string_t, datum_t> obj{
-            {datum_string_t("new_val"), change.new_val.has() ? change.new_val : null},
-            {datum_string_t("old_val"), change.old_val.has() ? change.old_val : null}
-        };
+        datum_t null = datum_t::null();
+        auto new_val = change.new_val.has() ? change.new_val : null;
+        auto old_val = change.old_val.has() ? change.old_val : null;
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
         auto pkey_val = val.get_field(datum_string_t(feed->pkey), NOTHROW);
         r_sanity_check(pkey_val.has());
 
-        feed->each_range_sub(
-            std::bind(&flat_sub_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      std::cref(pkey_val),
-                      datum_t(std::move(obj)),
-                      default_limits));
+        feed->each_range_sub([&](range_sub_t *sub) {
+                datum_t obj(std::map<datum_string_t, datum_t>{
+                    {datum_string_t("new_val"), new_val},
+                    {datum_string_t("old_val"), old_val}
+                });
+                boost::optional<std::string> sindex = sub->sindex();
+                if (sindex) {
+                    datum_t del_obj(std::map<datum_string_t, datum_t>{
+                        {datum_string_t("new_val"), null},
+                        {datum_string_t("old_val"), old_val}
+                    });
+                    datum_t add_obj(std::map<datum_string_t, datum_t>{
+                        {datum_string_t("new_val"), new_val},
+                        {datum_string_t("old_val"), null}
+                    });
+                    size_t old_vals = 0, new_vals = 0;
+                    auto old_it = change.old_indexes.find(*sindex);
+                    if (old_it != change.old_indexes.end()) {
+                        for (const auto &idx : old_it->second) {
+                            if (sub->contains(idx)) {
+                                old_vals += 1;
+                            }
+                        }
+                    }
+                    auto new_it = change.new_indexes.find(*sindex);
+                    if (new_it != change.new_indexes.end()) {
+                        for (const auto &idx : new_it->second) {
+                            if (sub->contains(idx)) {
+                                new_vals += 1;
+                            }
+                        }
+                    }
+                    while (new_vals > 0 && old_vals > 0) {
+                        sub->add_el(server_uuid, stamp, obj, default_limits);
+                        --new_vals;
+                        --old_vals;
+                    }
+                    while (old_vals > 0) {
+                        guarantee(new_vals == 0);
+                        sub->add_el(server_uuid, stamp, del_obj, default_limits);
+                        --old_vals;
+                    }
+                    while (new_vals > 0) {
+                        guarantee(old_vals == 0);
+                        sub->add_el(server_uuid, stamp, add_obj, default_limits);
+                        --new_vals;
+                    }
+                } else {
+                    if (sub->contains(pkey_val)) {
+                        sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
+                    }
+                }
+            });
         feed->on_point_sub(
             pkey_val,
-            std::bind(&flat_sub_t::add_el,
+            std::bind(&point_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      std::cref(pkey_val),
-                      change.new_val.has() ? change.new_val : datum_t::null(),
+                      new_val,
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
@@ -1367,7 +1457,7 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
-    if (!has_el() && !exc) {
+    if (!has_el() && !exc && skipped == 0) {
         cond_t wait_for_data;
         cond = &wait_for_data;
         signal_timer_t timer;
@@ -1388,6 +1478,7 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
             throw e;
         }
         guarantee(cond == NULL);
+        guarantee(has_el() || exc || skipped != 0);
     }
 
     std::vector<datum_t> v;
@@ -1424,7 +1515,7 @@ void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
 
 void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
-    if (cond != NULL) {
+    if (cond != NULL && (has_el() || exc || skipped != 0)) {
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;
@@ -1512,28 +1603,28 @@ size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::add_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING {
     add_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
             map_add_sub(&point_subs, key, sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::del_point_sub(point_sub_t *sub, const datum_t &key) THROWS_NOTHING {
     del_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
             return map_del_sub(&point_subs, key, sub);
         });
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_range_sub(flat_sub_t *sub) THROWS_NOTHING {
+void feed_t::add_range_sub(range_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&range_subs_lock, [this, sub]() {
             range_subs[sub->home_thread().threadnum].insert(sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_range_sub(flat_sub_t *sub) THROWS_NOTHING {
+void feed_t::del_range_sub(range_sub_t *sub) THROWS_NOTHING {
     del_sub_with_lock(&range_subs_lock, [this, sub]() {
             return range_subs[sub->home_thread().threadnum].erase(sub);
         });
@@ -1594,14 +1685,14 @@ void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
 }
 
 void feed_t::each_range_sub(
-    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+    const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&range_subs_lock, access_t::read);
     each_sub_in_vec(range_subs, &spot, f);
 }
 
 void feed_t::each_point_sub(
-    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
     pmap(get_num_threads(),
@@ -1611,10 +1702,10 @@ void feed_t::each_point_sub(
                    ph::_1));
 }
 
-void feed_t::each_point_sub_cb(const std::function<void(flat_sub_t *)> &f, int i) {
+void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
     for (auto const &pair : point_subs) {
-        for (flat_sub_t *sub : pair.second[i]) {
+        for (point_sub_t *sub : pair.second[i]) {
             f(sub);
         }
     }
@@ -1627,7 +1718,7 @@ void feed_t::each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING
 
 void feed_t::on_point_sub(
     datum_t key,
-    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);

@@ -76,9 +76,7 @@ struct msg_t {
         exc_t exc;
     };
     struct change_t {
-        change_t() { }
-        change_t(datum_t _old_val, datum_t _new_val)
-            : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
+        std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -313,13 +311,13 @@ public:
     explicit limit_order_t(sorting_t _sorting);
     bool operator()(const item_t &, const item_t &) const;
     bool operator()(const const_item_t &, const const_item_t &) const;
-    bool operator()(const datum_t &, const datum_t &) const;
-    bool operator()(const std::string &, const std::string &) const;
     template<class T>
     bool operator()(const T &a, const T &b) const {
         return (*this)(*a, *b);
     }
 private:
+    bool operator()(const datum_t &, const datum_t &) const;
+    bool operator()(const std::string &, const std::string &) const;
     bool subop(
         const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
         const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const;
@@ -372,7 +370,7 @@ public:
     void abort(exc_t e);
     bool is_aborted() { return aborted; }
 
-    const region_t region; // TODO: use this when ranges are supported.
+    const region_t region;
     const std::string table;
     const uuid_u uuid;
 private:
@@ -436,7 +434,7 @@ public:
                        std::function<void(rwlock_in_line_t *,
                                           rwlock_in_line_t *,
                                           rwlock_in_line_t *,
-                                          limit_manager_t *)> f);
+                                          limit_manager_t *)> f) THROWS_NOTHING;
     bool has_limit(const boost::optional<std::string> &s);
 private:
     friend class limit_manager_t;

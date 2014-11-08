@@ -1945,6 +1945,14 @@ key_range_t datum_range_t::to_sindex_keyrange() const {
             : store_key_t::max());
 }
 
+datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {
+    return datum_range_t(d, type, right_bound, right_bound_type);
+}
+
+datum_range_t datum_range_t::with_right_bound(datum_t d, key_range_t::bound_t type) {
+    return datum_range_t(left_bound, left_bound_type, d, type);
+}
+
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
 RDB_IMPL_ME_SERIALIZABLE_4(

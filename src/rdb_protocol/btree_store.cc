@@ -498,7 +498,10 @@ void store_t::update_sindexes(
                                 sindexes,
                                 &mod_reports[i],
                                 txn,
-                                &deletion_context);
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
         }
     }
 
