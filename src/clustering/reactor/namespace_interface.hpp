@@ -13,7 +13,7 @@
 #include "arch/timing.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"

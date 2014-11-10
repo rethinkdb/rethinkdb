@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
-#define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_
 
 #include <map>
 #include <set>
@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "clustering/administration/database_metadata.hpp"
+#include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
@@ -27,38 +27,30 @@
 #include "rpc/serialize_macros.hpp"
 
 
-/* This is the metadata for a single namespace of a specific protocol. */
+/* This is the metadata for a single table. */
 
-class ack_expectation_t {
+class write_ack_config_t {
 public:
-    ack_expectation_t() : expectation_(0), hard_durability_(true) { }
-
-    explicit ack_expectation_t(uint32_t expectation, bool hard_durability) :
-        expectation_(expectation),
-        hard_durability_(hard_durability) { }
-
-    uint32_t expectation() const { return expectation_; }
-    bool is_hardly_durable() const { return hard_durability_; }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-
-    bool operator==(ack_expectation_t other) const;
-
-private:
-    friend json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
-
-    uint32_t expectation_;
-    bool hard_durability_;
+    enum class mode_t { single, majority, complex };
+    class req_t {
+    public:
+        std::set<server_id_t> replicas;
+        mode_t mode;   /* must not be `complex` */
+    };
+    mode_t mode;
+    /* `complex_reqs` must be empty unless `mode` is `complex`. */
+    std::vector<req_t> complex_reqs;
 };
 
-RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
-
-void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
-
-// ctx-less json adapter concept for ack_expectation_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
-cJSON *render_as_json(ack_expectation_t *target);
-void apply_json_to(cJSON *change, ack_expectation_t *target);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    write_ack_config_t::mode_t,
+    int8_t,
+    write_ack_config_t::mode_t::single,
+    write_ack_config_t::mode_t::complex);
+RDB_DECLARE_SERIALIZABLE(write_ack_config_t::req_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t::req_t);
+RDB_DECLARE_SERIALIZABLE(write_ack_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t);
 
 /* `table_config_t` describes the contents of the `rethinkdb.table_config` artificial
 table. */
@@ -71,6 +63,8 @@ public:
         server_id_t director;
     };
     std::vector<shard_t> shards;
+    write_ack_config_t write_ack_config;
+    write_durability_t durability;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);
@@ -117,7 +111,7 @@ RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_scheme_t);
 
 /* `table_replication_info_t` exists because the `table_config_t` needs to be under the
-same vector clock as `chosen_directors`. */
+same `versioned_t` as `table_shard_scheme_t`. */
 
 class table_replication_info_t {
 public:
@@ -158,4 +152,19 @@ RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
 typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > namespace_directory_metadata_t;
 
-#endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */
+/* `write_ack_config_checker_t` is used for checking if a set of acks satisfies the
+requirements in the given `table_config_t`. The reason it needs the `table_config_t` and
+the `servers_semilattice_metadata_t` is because the meaning of the `write_ack_config_t`
+may depend on how many replicas the shards have and on which servers have been
+permanently removed. The reason it's an object instead of a function is that it caches
+intermediate results for best performance. */
+class write_ack_config_checker_t {
+public:
+    write_ack_config_checker_t(const table_config_t &config,
+                               const servers_semilattice_metadata_t &servers);
+    bool check_acks(const std::set<server_id_t> &acks) const;
+private:
+    std::vector<std::pair<std::set<server_id_t>, size_t> > reqs;
+};
+
+#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_ */

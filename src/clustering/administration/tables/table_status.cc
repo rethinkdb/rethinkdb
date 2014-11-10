@@ -181,6 +181,7 @@ ql::datum_t convert_table_status_shard_to_datum(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
         server_name_client_t *name_client,
+        const write_ack_config_checker_t &ack_checker,
         table_readiness_t *readiness_out) {
     /* `server_states` will contain one entry per connected server. That entry will be a
     vector with the current state of each hash-shard on the server whose key range
@@ -215,6 +216,7 @@ ql::datum_t convert_table_status_shard_to_datum(
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     std::set<server_id_t> already_handled;
 
+    std::set<server_id_t> servers_for_acks;
     bool has_director = false;
     boost::optional<name_string_t> director_name =
         name_client->get_name_for_server_id(shard.director);
@@ -225,6 +227,9 @@ ql::datum_t convert_table_status_shard_to_datum(
                 &server_states[shard.director] : NULL,
             &has_director));
         already_handled.insert(shard.director);
+        if (has_director) {
+            servers_for_acks.insert(shard.director);
+        }
     } else {
         /* Director was permanently removed; in `table_config` the `director` field will
         have a value of `null`. So we don't show a director entry in `table_status`. */
@@ -254,7 +259,9 @@ ql::datum_t convert_table_status_shard_to_datum(
         if (this_one_has_outdated_reader) {
             has_outdated_reader = true;
         }
-        if (!this_one_has_replica) {
+        if (this_one_has_replica) {
+            servers_for_acks.insert(replica);
+        } else {
             is_unfinished = true;
         }
         already_handled.insert(replica);
@@ -281,16 +288,15 @@ ql::datum_t convert_table_status_shard_to_datum(
         }
     }
 
-    /* RSI(reql_admin): Currently we assume that only one ack is necessary to perform a
-    write. Therefore, any table that's available for up-to-date reads is also available
-    for writes. This is consistent with the current behavior of the `reactor_driver_t`.
-    But eventually we'll implement some sort of reasonable thing with write acks, and
-    then this will change. */
     if (has_director) {
-        if (!is_unfinished) {
-            *readiness_out = table_readiness_t::finished;
+        if (ack_checker.check_acks(servers_for_acks)) {
+            if (!is_unfinished) {
+                *readiness_out = table_readiness_t::finished;
+            } else {
+                *readiness_out = table_readiness_t::writes;
+            }
         } else {
-            *readiness_out = table_readiness_t::writes;
+            *readiness_out = table_readiness_t::reads;
         }
     } else {
         if (has_outdated_reader) {
@@ -310,11 +316,14 @@ ql::datum_t convert_table_status_to_datum(
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
+        const servers_semilattice_metadata_t &server_md,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
     builder.overwrite("id", convert_uuid_to_datum(table_id));
+
+    write_ack_config_checker_t ack_checker(repli_info.config, server_md);
 
     table_readiness_t readiness = table_readiness_t::finished;
     ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
@@ -327,6 +336,7 @@ ql::datum_t convert_table_status_to_datum(
                 repli_info.config.shards[i],
                 dir,
                 name_client,
+                ack_checker,
                 &this_shard_readiness));
         readiness = std::min(readiness, this_shard_readiness);
     }
@@ -359,6 +369,7 @@ bool table_status_artificial_table_backend_t::format_row(
         table_id,
         metadata.replication_info.get_ref(),
         directory_view,
+        semilattice_view->get().servers,
         name_client);
     return true;
 }
@@ -391,13 +402,16 @@ table_wait_result_t wait_for_table_readiness(
             table_status_backend->assert_thread();
             boost::optional<table_readiness_t> actual_readiness;
 
-            cow_ptr_t<namespaces_semilattice_metadata_t> md =
-                table_status_backend->table_sl_view->get();
+            cluster_semilattice_metadata_t md =
+                table_status_backend->semilattice_view->get();
             std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
                 ::const_iterator it;
-            if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
+            if (search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
+                    table_id, &it)) {
                 const table_replication_info_t &repli_info =
                     it->second.get_ref().replication_info.get_ref();
+
+                write_ack_config_checker_t ack_checker(repli_info.config, md.servers);
 
                 actual_readiness = table_readiness_t::finished;
                 for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
@@ -408,6 +422,7 @@ table_wait_result_t wait_for_table_readiness(
                         repli_info.config.shards[i],
                         table_status_backend->directory_view,
                         table_status_backend->name_client,
+                        ack_checker,
                         &this_shard_readiness);
                     actual_readiness = std::min(*actual_readiness, this_shard_readiness);
                 }
