@@ -132,13 +132,13 @@ private:
             std::vector<std::pair<namespace_id_t, name_string_t> > *tables_out,
             std::string *error_out);
 
-    /* For each UUID in `entity_map`, reads the row with that primary key from `backend`,
-    and returns a vector of all the rows. If `missing_msg` is absent, missing rows will
-    be silently ignored; otherwise, `missing_msg` will be called with the name of the
-    missing entity to generate an error message. */
+    /* For each UUID in `tables`, reads the row with that primary key from `backend`, and
+    returns a vector of all the rows. If `error_on_missing` is false, missing rows will
+    be silently ignored; otherwise, an error will be raised. */
     bool table_meta_read(artificial_table_backend_t *backend,
-            const std::vector<std::pair<uuid_u, name_string_t> > &entity_ids,
-            const std::function<std::string(const name_string_t &)> &missing_msg,
+            const counted_t<const ql::db_t> &db,
+            const std::vector<std::pair<namespace_id_t, name_string_t> > &tables,
+            bool error_on_missing,
             signal_t *interruptor,
             std::vector<ql::datum_t> *res_out,
             std::string *error_out);
