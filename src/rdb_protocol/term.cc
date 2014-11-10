@@ -3,7 +3,6 @@
 
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "job_control.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -214,8 +213,11 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    job_sentry_t job_sentry(job_type_t::QUERY);
-    wait_any_t combined_interruptor(interruptor, job_sentry.get_interruptor_signal());
+    // JEROEN
+    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
+        ctx->get_jobs_manager()->get_queries_map(),
+        generate_uuid(),
+        query_job_t(current_microtime()));
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
@@ -224,7 +226,7 @@ void run(protob_t<Query> q,
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, &combined_interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -289,7 +291,7 @@ void run(protob_t<Query> q,
                                          env.get_all_optargs(),
                                          profile,
                                          seq);
-                    bool b = stream_cache->serve(token, res, &combined_interruptor);
+                    bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -308,7 +310,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache->serve(token, res, &combined_interruptor);
+            bool b = stream_cache->serve(token, res, interruptor);
             if (!b) {
                 auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
                 fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());

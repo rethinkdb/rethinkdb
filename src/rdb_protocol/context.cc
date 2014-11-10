@@ -4,13 +4,14 @@
 #include "rdb_protocol/datum.hpp"
 
 rdb_context_t::rdb_context_t()
-    : extproc_pool(NULL),
-      cluster_interface(NULL),
-      manager(NULL),
+    : extproc_pool(nullptr),
+      cluster_interface(nullptr),
+      manager(nullptr),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy()
+      reql_http_proxy(),
+      jobs_manager(nullptr)
 { }
 
 rdb_context_t::rdb_context_t(
@@ -18,11 +19,12 @@ rdb_context_t::rdb_context_t(
         reql_cluster_interface_t *_cluster_interface)
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
-      manager(NULL),
+      manager(nullptr),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy()
+      reql_http_proxy(),
+      jobs_manager(nullptr)
 { }
 
 rdb_context_t::rdb_context_t(
@@ -32,15 +34,20 @@ rdb_context_t::rdb_context_t(
         boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             _auth_metadata,
         perfmon_collection_t *_global_stats,
-        const std::string &_reql_http_proxy)
+        const std::string &_reql_http_proxy,
+        jobs_manager_t *_jobs_manager)
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
       auth_metadata(_auth_metadata),
       manager(_mailbox_manager),
       ql_stats_membership(_global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy(_reql_http_proxy)
+      reql_http_proxy(_reql_http_proxy),
+      jobs_manager(_jobs_manager)
 { }
 
 rdb_context_t::~rdb_context_t() { }
 
+jobs_manager_t * rdb_context_t::get_jobs_manager() {
+    return jobs_manager;
+}

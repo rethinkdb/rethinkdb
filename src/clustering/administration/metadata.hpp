@@ -9,7 +9,7 @@
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
-#include "clustering/administration/job_manager.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
@@ -138,7 +138,7 @@ public:
     boost::optional<uint16_t> http_admin_port;
     std::set<host_and_port_t> canonical_addresses;
 
-    job_manager_business_card_t jobs_mailbox;
+    jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
     boost::optional<server_name_business_card_t> server_name_business_card;

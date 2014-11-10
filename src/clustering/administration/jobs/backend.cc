@@ -1,13 +1,14 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/jobs_backend.hpp"
+#include "clustering/administration/jobs/backend.hpp"
+
+#include <set>
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/job_manager.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "job_control.hpp"
 
-class jobs_response_record_t {
+/* class jobs_response_record_t {
 public:
     explicit jobs_response_record_t(
         mailbox_manager_t *mailbox_manager)
@@ -21,18 +22,18 @@ public:
     mailbox_t<void(std::vector<job_wire_entry_t>)> response_mailbox;
 };
 
-// Extends the `job_wire_entry_t` with a `std::vector<server_id_t>`.
-class extended_job_wire_entry_t : public job_wire_entry_t {
+// Extends the `job_report_t` with a `std::set<server_id_t>`.
+class extended_job_wire_entry_t : public job_report_t {
 public:
     extended_job_wire_entry_t(job_wire_entry_t entry) : job_wire_entry_t(entry) { }
 
     std::vector<server_id_t> servers;
-};
+}; */
 
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
         mailbox_manager_t *_mailbox_manager,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > > &_directory_view)
+        const clone_ptr_t<watchable_t<change_tracking_map_t<
+            peer_id_t, cluster_directory_metadata_t> > > &_directory_view)
     : mailbox_manager(_mailbox_manager),
       directory_view(_directory_view) {
 }
@@ -46,11 +47,44 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
         std::vector<ql::datum_t> *rows_out,
         UNUSED std::string *error_out) {
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
-    on_thread_t thread_switcher(home_thread());
-
+    on_thread_t rethreader(home_thread());
     rows_out->clear();
 
-    std::map<server_id_t, scoped_ptr_t<jobs_response_record_t> > responses;
+    std::map<server_id_t, std::vector<job_report_t> > server_reports;
+
+    typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_t;
+    peers_t peers = directory_view->get().get_inner();
+    pmap(peers.begin(), peers.end(), [&](peers_t::value_type const &peer) {
+        cond_t got_report;
+        disconnect_watcher_t disconnect_watcher(mailbox_manager, peer.first);
+
+        mailbox_t<void(std::vector<job_report_t>)> return_mailbox(
+            mailbox_manager,
+            [&](UNUSED signal_t *, std::vector<job_report_t> const &reports) {
+                server_reports[peer.second.server_id] = std::move(reports);
+                got_report.pulse();
+            });
+        send(mailbox_manager,
+             peer.second.jobs_mailbox.get_job_reports_mailbox_address,
+             return_mailbox.get_address());
+
+        wait_any_t waiter(&got_report, &disconnect_watcher);
+        wait_interruptible(&waiter, &ct_interruptor);
+    });
+
+    for (auto const &server : server_reports) {
+        for (auto const &report : server.second) {
+            ql::datum_object_builder_t builder;
+            builder.overwrite("id", convert_uuid_to_datum(report.id));
+            builder.overwrite("type", convert_string_to_datum(report.type));
+            builder.overwrite("duration", ql::datum_t(report.duration));
+            rows_out->push_back(std::move(builder).to_datum());
+        }
+    }
+
+    return true;
+
+    /* std::map<server_id_t, scoped_ptr_t<jobs_response_record_t> > responses;
 
     std::map<peer_id_t, cluster_directory_metadata_t> peers =
         directory_view->get().get_inner();
@@ -67,17 +101,17 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     std::map<uuid_u, extended_job_wire_entry_t> entries;
     for (auto const &response : responses) {
         const signal_t *ready = response.second->promise.get_ready_signal();
-        wait_any_t waiter(/* &timer, */ ready, &ct_interruptor);
+        wait_any_t waiter(* &timer, * ready, &ct_interruptor);
         waiter.wait();
 
         if (ready->is_pulsed()) {
             const std::vector<job_wire_entry_t> jobs = response.second->promise.wait();
             for (auto const &job : jobs) {
-                /* auto entries_it = entries.find(job.id);
+                * auto entries_it = entries.find(job.id);
                 if (entries_it == entries.end()) {
                     entries_it = entries.insert(std::make_pair(job.id, extended_job_wire_entry_t(job))).first;
                 }
-                entries_it->second.servers.push_back(response.first); */
+                entries_it->second.servers.push_back(response.first); *
 
                 auto entries_pair = entries.insert(std::make_pair(job.id, job));
                 entries_pair.first->second.servers.push_back(response.first);
@@ -100,7 +134,7 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
         rows_out->push_back(std::move(builder).to_datum());
     }
 
-    return true;
+    return true; */
 }
 
 bool jobs_artificial_table_backend_t::read_row(UNUSED ql::datum_t primary_key,

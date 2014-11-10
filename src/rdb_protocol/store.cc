@@ -150,10 +150,8 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     }
 
     if (!sindexes_to_update.empty()) {
-        std::cout << "help_construct_bring_sindexes_up_to_date\n";
         rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                 &sindex_block);
-        std::cout << "~help_construct_bring_sindexes_up_to_date\n";
     }
 }
 

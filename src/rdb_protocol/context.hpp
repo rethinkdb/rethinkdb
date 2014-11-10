@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/jobs/manager.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/counted.hpp"
 #include "containers/name_string.hpp"
@@ -263,7 +264,8 @@ public:
                     semilattice_readwrite_view_t<
                         auth_semilattice_metadata_t> > _auth_metadata,
                   perfmon_collection_t *_global_stats,
-                  const std::string &_reql_http_proxy);
+                  const std::string &_reql_http_proxy,
+                  jobs_manager_t *_jobs_manager);
 
     ~rdb_context_t();
 
@@ -281,6 +283,11 @@ public:
     perfmon_membership_t ql_ops_running_membership;
 
     const std::string reql_http_proxy;
+
+    jobs_manager_t *get_jobs_manager();
+
+private:
+    jobs_manager_t *jobs_manager;
 
 private:
     DISABLE_COPYING(rdb_context_t);
