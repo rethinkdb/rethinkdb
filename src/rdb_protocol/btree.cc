@@ -1680,7 +1680,7 @@ void rdb_update_single_sindex(
             if (keys_available_cond != NULL) {
                 guarantee(!decremented_updates_left);
                 guarantee(new_keys_out->size() == 0);
-                guarantee(updates_left > 0);
+                guarantee(*updates_left > 0);
                 if (--*updates_left == 0) {
                     keys_available_cond->pulse();
                 }
@@ -1688,7 +1688,7 @@ void rdb_update_single_sindex(
         }
     } else {
         if (keys_available_cond != NULL) {
-            guarantee(updates_left > 0);
+            guarantee(*updates_left > 0);
             if (--*updates_left == 0) {
                 keys_available_cond->pulse();
             }
