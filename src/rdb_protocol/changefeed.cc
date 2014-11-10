@@ -46,6 +46,37 @@ std::string print(const msg_t::limit_change_t &change) {
 }
 } // namespace debug;
 
+boost::optional<datum_t> apply_ops(
+    datum_t val, const std::vector<scoped_ptr_t<op_t> > &ops, env_t *env, datum_t key)
+    THROWS_NOTHING {
+    try {
+        groups_t groups{optional_datum_less_t(reql_version_t::LATEST)};
+        groups[datum_t()] = std::vector<datum_t>{val};
+        for (const auto &op : ops) {
+            (*op)(env, &groups, key);
+        }
+        // RSI: forbid those earlier, as well as nondeterministic transformations.
+        // TODO: when we support `.group.changes` this will need to change.
+        guarantee(groups.size() <= 1);
+        std::vector<datum_t> *vec = &groups[datum_t()];
+        guarantee(groups.size() == 1);
+        // TODO: when we support `.concatmap.changes` this will need to change.
+        guarantee(vec->size() <= 1);
+        if (vec->size() == 1) {
+            return (*vec)[0];
+        } else {
+            return boost::none;
+        }
+    } catch (const base_exc_t &) {
+        // Do nothing.  This is similar to index behavior where we drop a row if
+        // we fail to execute the code required to produce the index.  (In this
+        // case, if you change the value of a row so that one of the
+        // transformations errors on it, we report the row as being deleted from
+        // the selection you asked for changes on.)
+        return boost::none;
+    }
+}
+
 server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
@@ -547,6 +578,11 @@ limit_manager_t::limit_manager_t(
     env = make_scoped<env_t>(
         ctx, drainer.get_drain_signal(), std::move(optargs), nullptr);
 
+    guarantee(ops.size() == 0);
+    for (const auto &transform : spec.range.transforms) {
+        ops.push_back(make_op(transform));
+    }
+
     guarantee(item_queue.size() == 0);
     for (const auto &pair : item_vec) {
         bool inserted = item_queue.insert(pair).second;
@@ -560,23 +596,26 @@ void limit_manager_t::add(
     store_key_t sk,
     is_primary_t is_primary,
     datum_t key,
-    datum_t val) {
+    datum_t val) THROWS_NOTHING {
     guarantee(spot->write_signal()->is_pulsed());
     guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
     if ((is_primary == is_primary_t::YES
          && region.inner.contains_key(sk))
         || (is_primary == is_primary_t::NO
             && spec.range.range.contains(reql_version_t::LATEST, key))) {
-        added.push_back(
-            std::make_pair(key_to_mangled_primary(sk, is_primary),
-                           std::make_pair(std::move(key), std::move(val))));
+        if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
+            added.push_back(
+                std::make_pair(
+                    key_to_mangled_primary(sk, is_primary),
+                    std::make_pair(std::move(key), *d)));
+        }
     }
 }
 
 void limit_manager_t::del(
     rwlock_in_line_t *spot,
     store_key_t sk,
-    is_primary_t is_primary) {
+    is_primary_t is_primary) THROWS_NOTHING {
     guarantee(spot->write_signal()->is_pulsed());
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
@@ -707,7 +746,7 @@ item_vec_t limit_manager_t::read_more(
 
 void limit_manager_t::commit(
     rwlock_in_line_t *spot,
-    const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
+    const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) THROWS_NOTHING {
     guarantee(spot->write_signal()->is_pulsed());
     if (added.size() == 0 && deleted.size() == 0) {
         return;
@@ -1050,20 +1089,31 @@ public:
     // Throws QL exceptions.
     range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
         : flat_sub_t(feed), spec(std::move(_spec)) {
+        for (const auto &transform : spec.transforms) {
+            ops.push_back(make_op(transform));
+        }
         feed->add_range_sub(this);
     }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start(env_t *env,
+    virtual void start(env_t *outer_env,
                        std::string,
                        namespace_interface_t *nif,
                        client_t::addr_t *addr) {
         assert_thread();
+
+        env = make_scoped<env_t>(
+            outer_env->get_rdb_ctx(),
+            drainer.get_drain_signal(), // Abort any ongoing 
+            outer_env->get_all_optargs(),
+            nullptr/*don't profile*/);
+
         read_response_t read_resp;
+        // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
             read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
-            &read_resp, order_token_t::ignore, env->interruptor);
+            &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
         start_stamps = std::move(resp->stamps);
@@ -1078,23 +1128,45 @@ public:
         guarantee(!spec.sindex);
         return spec.range.to_primary_keyrange().contains_key(pkey);
     }
+
+    bool active() {
+        // If we don't have start timestamps, we haven't started, and if we have
+        // exc, we've stopped.
+        return start_stamps.size() != 0 && !exc;
+    }
+
+    bool has_ops() { return ops.size() != 0; }
+
+    boost::optional<datum_t> apply_ops(datum_t val) {
+        guarantee(active());
+        guarantee(env.has());
+        guarantee(has_ops());
+
+        // We acquire a lock here, and the drain signal is out interruptor for
+        // `env`.  I think this is technically unnecessary right now because we
+        // ban non-deterministic terms in `ops` and no deterministic terms
+        // block, but better safe than sorry.
+        auto_drainer_t::lock_t lock(&drainer);
+        // It's safe to use `datum_t()` here for the same reason it's safe in
+        // `eager_datum_stream_t::next_grouped_batch`, but if we add e.g. an
+        // `r.current_index` term we'll need to make this smarter.
+        return changefeed::apply_ops(val, ops, env.get(), datum_t());
+    }
+
     virtual void add_el(const uuid_u &uuid,
                         uint64_t stamp,
                         datum_t d,
                         const configured_limits_t &limits) {
-        // If we don't have start timestamps, we haven't started, and if we have
-        // exc, we've stopped.
-        if (start_stamps.size() != 0 && !exc) {
-            auto it = start_stamps.find(uuid);
-            guarantee(it != start_stamps.end());
-            if (stamp >= it->second) {
-                els.push_back(std::move(d));
-                if (els.size() > limits.array_size_limit()) {
-                    skipped += els.size();
-                    els.clear();
-                }
-                maybe_signal_cond();
+        guarantee(active());
+        auto it = start_stamps.find(uuid);
+        guarantee(it != start_stamps.end());
+        if (stamp >= it->second) {
+            els.push_back(std::move(d));
+            if (els.size() > limits.array_size_limit()) {
+                skipped += els.size();
+                els.clear();
             }
+            maybe_signal_cond();
         }
     }
 private:
@@ -1105,6 +1177,10 @@ private:
         els.pop_front();
         return ret;
     }
+
+    scoped_ptr_t<env_t> env;
+    std::vector<scoped_ptr_t<op_t> > ops;
+
     // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
     // read.  We use these to make sure we don't see changes from writes before
     // our subscription.
@@ -1112,6 +1188,7 @@ private:
     // The queue of changes we've accumulated since the last time we were read from.
     std::deque<datum_t> els;
     keyspec_t::range_t spec;
+    auto_drainer_t drainer;
 };
 
 class limit_sub_t : public subscription_t {
@@ -1341,71 +1418,94 @@ public:
     void operator()(const msg_t::change_t &change) const {
         configured_limits_t default_limits;
         datum_t null = datum_t::null();
-        auto new_val = change.new_val.has() ? change.new_val : null;
-        auto old_val = change.old_val.has() ? change.old_val : null;
-        auto val = change.new_val.has() ? change.new_val : change.old_val;
-        r_sanity_check(val.has());
 
         feed->each_range_sub([&](range_sub_t *sub) {
-                datum_t obj(std::map<datum_string_t, datum_t>{
-                    {datum_string_t("new_val"), new_val},
-                    {datum_string_t("old_val"), old_val}
-                });
-                boost::optional<std::string> sindex = sub->sindex();
-                if (sindex) {
-                    datum_t del_obj(std::map<datum_string_t, datum_t>{
-                        {datum_string_t("new_val"), null},
-                        {datum_string_t("old_val"), old_val}
-                    });
-                    datum_t add_obj(std::map<datum_string_t, datum_t>{
-                        {datum_string_t("new_val"), new_val},
-                        {datum_string_t("old_val"), null}
-                    });
-                    size_t old_vals = 0, new_vals = 0;
-                    auto old_it = change.old_indexes.find(*sindex);
-                    if (old_it != change.old_indexes.end()) {
-                        for (const auto &idx : old_it->second) {
-                            if (sub->contains(idx)) {
-                                old_vals += 1;
-                            }
-                        }
-                    }
-                    auto new_it = change.new_indexes.find(*sindex);
-                    if (new_it != change.new_indexes.end()) {
-                        for (const auto &idx : new_it->second) {
-                            if (sub->contains(idx)) {
-                                new_vals += 1;
-                            }
-                        }
-                    }
-                    while (new_vals > 0 && old_vals > 0) {
-                        sub->add_el(server_uuid, stamp, obj, default_limits);
-                        --new_vals;
-                        --old_vals;
-                    }
-                    while (old_vals > 0) {
-                        guarantee(new_vals == 0);
-                        sub->add_el(server_uuid, stamp, del_obj, default_limits);
-                        --old_vals;
-                    }
-                    while (new_vals > 0) {
-                        guarantee(old_vals == 0);
-                        sub->add_el(server_uuid, stamp, add_obj, default_limits);
-                        --new_vals;
-                    }
-                } else {
-                    if (sub->contains(change.pkey)) {
-                        sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
+            datum_t new_val = null, old_val = null;
+            if (sub->has_ops()) {
+                if (change.new_val.has()) {
+                    if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
+                        new_val = *d;
                     }
                 }
+                if (change.old_val.has()) {
+                    if (boost::optional<datum_t> d = sub->apply_ops(change.old_val)) {
+                        old_val = *d;
+                    }
+                }
+                // Duplicate values are caught before being written to disk and
+                // don't generate a `mod_report`, but if we have transforms the
+                // values might have changed.
+                if (new_val == old_val) {
+                    return;
+                }
+            } else {
+                guarantee(change.old_val.has() || change.new_val.has());
+                if (change.new_val.has()) {
+                    new_val = change.new_val;
+                }
+                if (change.old_val.has()) {
+                    old_val = change.old_val;
+                }
+            }
+            datum_t obj(std::map<datum_string_t, datum_t>{
+                {datum_string_t("new_val"), new_val},
+                {datum_string_t("old_val"), old_val}
             });
+            boost::optional<std::string> sindex = sub->sindex();
+            if (sindex) {
+                datum_t del_obj(std::map<datum_string_t, datum_t>{
+                    {datum_string_t("new_val"), null},
+                    {datum_string_t("old_val"), old_val}
+                });
+                datum_t add_obj(std::map<datum_string_t, datum_t>{
+                    {datum_string_t("new_val"), new_val},
+                    {datum_string_t("old_val"), null}
+                });
+                size_t old_vals = 0, new_vals = 0;
+                auto old_it = change.old_indexes.find(*sindex);
+                if (old_it != change.old_indexes.end()) {
+                    for (const auto &idx : old_it->second) {
+                        if (sub->contains(idx)) {
+                            old_vals += 1;
+                        }
+                    }
+                }
+                auto new_it = change.new_indexes.find(*sindex);
+                if (new_it != change.new_indexes.end()) {
+                    for (const auto &idx : new_it->second) {
+                        if (sub->contains(idx)) {
+                            new_vals += 1;
+                        }
+                    }
+                }
+                while (new_vals > 0 && old_vals > 0) {
+                    sub->add_el(server_uuid, stamp, obj, default_limits);
+                    --new_vals;
+                    --old_vals;
+                }
+                while (old_vals > 0) {
+                    guarantee(new_vals == 0);
+                    sub->add_el(server_uuid, stamp, del_obj, default_limits);
+                    --old_vals;
+                }
+                while (new_vals > 0) {
+                    guarantee(old_vals == 0);
+                    sub->add_el(server_uuid, stamp, add_obj, default_limits);
+                    --new_vals;
+                }
+            } else {
+                if (sub->contains(change.pkey)) {
+                    sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
+                }
+            }
+        });
         feed->on_point_sub(
             change.pkey,
             std::bind(&point_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      new_val,
+                      change.new_val.has() ? change.new_val : null,
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {

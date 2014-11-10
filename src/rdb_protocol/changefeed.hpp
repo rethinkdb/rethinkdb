@@ -350,12 +350,13 @@ public:
              store_key_t sk,
              is_primary_t is_primary,
              datum_t key,
-             datum_t val);
+             datum_t val) THROWS_NOTHING;
     void del(rwlock_in_line_t *spot,
              store_key_t sk,
-             is_primary_t is_primary);
+             is_primary_t is_primary) THROWS_NOTHING;
     void commit(rwlock_in_line_t *spot,
-                const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
+                const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref)
+        THROWS_NOTHING;
 
     void abort(exc_t e);
     bool is_aborted() { return aborted; }
@@ -377,6 +378,8 @@ private:
     client_t::addr_t parent_client;
 
     keyspec_t::limit_t spec;
+    std::vector<scoped_ptr_t<op_t> > ops;
+
     limit_order_t gt;
     item_queue_t item_queue;
 
