@@ -5,7 +5,7 @@ from .query import \
     js, http, json, args, error, random, do, row, branch, \
     object, binary, uuid, type_of, info, range, literal, asc, desc, \
     table, db, db_create, db_drop, db_list, table_create, table_drop, table_list, \
-    table_config, table_status, table_wait, \
+    table_config, table_status, table_wait, reconfigure, \
     eq, ne, le, ge, lt, gt, any, all, and_, or_, not_, \
     add, sub, mul, div, mod, \
     time, iso8601, epoch_time, now, make_timezone, \

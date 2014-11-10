@@ -63,6 +63,9 @@ def table_status(*args):
 def table_wait(*args):
     return TableWaitTL(*args)
 
+def reconfigure(*args, **kwargs):
+    return ReconfigureTL(*args, **kwargs)
+
 def branch(*args):
     return Branch(*args)
 

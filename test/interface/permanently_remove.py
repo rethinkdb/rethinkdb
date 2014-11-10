@@ -160,11 +160,11 @@ with driver.Metacluster() as metacluster:
         }]
 
     print("Fixing table `test2`...")
-    r.table("test2").reconfigure(1, 1).run(conn)
+    r.table("test2").reconfigure(shards=1, replicas=1).run(conn)
     r.table_wait("test2").run(conn)
 
     print("Fixing table `test3`...")
-    r.table("test3").reconfigure(1, 1).run(conn)
+    r.table("test3").reconfigure(shards=1, replicas=1).run(conn)
     r.table_wait("test3").run(conn)
 
     print("Bringing the dead server back as a ghost...")

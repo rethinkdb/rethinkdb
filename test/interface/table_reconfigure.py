@@ -57,7 +57,8 @@ with driver.Metacluster() as metacluster:
     # satisfy the constraints
     def test_reconfigure(num_shards, num_replicas, director_tag):
         print("Making configuration num_shards=%d num_replicas=%r director_tag=%r" % (num_shards, num_replicas, director_tag))
-        new_config = r.table("foo").reconfigure(num_shards, num_replicas, director_tag=director_tag, dry_run=True).run(conn)
+        new_config = r.table("foo").reconfigure(shards=num_shards, replicas=num_replicas, \
+                                                director_tag=director_tag, dry_run=True).run(conn)
         print(new_config)
 
         # Make sure new config follows all the rules
@@ -102,11 +103,11 @@ with driver.Metacluster() as metacluster:
         del row["id"]
         return row
     prev_config = get_config()
-    new_config = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",
+    new_config = r.table("foo").reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2",
         dry_run=True).run(conn)
     assert prev_config != new_config, (prev_config, new_config)
     assert get_config() == prev_config
-    new_config_2 = r.table("foo").reconfigure(1, {"tag_2": 1}, director_tag="tag_2",
+    new_config_2 = r.table("foo").reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2",
         dry_run=False).run(conn)
     assert prev_config != new_config_2
     print("get_config()", get_config())

@@ -36,7 +36,7 @@ with driver.Metacluster() as metacluster:
     print("Testing pre-sharding with UUID primary keys...")
     res = r.table_create("uuid_pkey").run(conn)
     assert res["created"] == 1
-    r.table("uuid_pkey").reconfigure(10, 1).run(conn)
+    r.table("uuid_pkey").reconfigure(shards=10, replicas=1).run(conn)
     r.table_wait("uuid_pkey").run(conn)
     res = r.table("uuid_pkey").insert([{}]*1000).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
@@ -46,7 +46,7 @@ with driver.Metacluster() as metacluster:
         assert 50 < num < 200
 
     print("Testing down-sharding existing balanced shards...")
-    r.table("uuid_pkey").reconfigure(2, 1).run(conn)
+    r.table("uuid_pkey").reconfigure(shards=2, replicas=1).run(conn)
     r.table_wait("uuid_pkey").run(conn)
     res = r.table("uuid_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
@@ -58,7 +58,7 @@ with driver.Metacluster() as metacluster:
     assert res["created"] == 1
     res = r.table("numeric_pkey").insert([{"id": n} for n in xrange(1000)]).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
-    r.table("numeric_pkey").reconfigure(10, 1).run(conn)
+    r.table("numeric_pkey").reconfigure(shards=10, replicas=1).run(conn)
     r.table_wait("numeric_pkey").run(conn)
     res = r.table("numeric_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)

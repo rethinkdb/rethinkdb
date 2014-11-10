@@ -105,11 +105,11 @@ function le_test(a, b){
         var ret;
         for (k in ka) {
             k = ka[k];
-            if (le_test(a[k], b[k])) {
-                return true;
-            }
-            if (le_test(b[k], a[k])) {
-                return false;
+            var a_lt_b = le_test(a[k], b[k]);
+            var b_lt_a = le_test(b[k], a[k]);
+
+            if (a_lt_b ^ b_lt_a) {
+                return a_lt_b;
             }
         }
         return true;
