@@ -65,14 +65,6 @@ public:
     name_string_t director_tag;
 };
 
-enum class table_readiness_t {
-    unavailable,
-    outdated_reads,
-    reads,
-    writes,
-    finished
-};
-
 class base_table_t {
 public:
     virtual const std::string &get_pkey() = 0;

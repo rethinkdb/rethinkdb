@@ -57,6 +57,10 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
     return s;
 }
 
+void mock_namespace_interface_t::wait_for_readiness(table_readiness_t, signal_t *) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
     ql::configured_limits_t limits;
     response->response = point_read_response_t();

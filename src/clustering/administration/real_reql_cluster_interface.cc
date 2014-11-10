@@ -551,6 +551,25 @@ bool real_reql_cluster_interface_t::table_wait(
         }
     }
 
+    // Allow up to 5 seconds for changes to propagate to this thread - otherwise assume
+    // something else went wrong and return anyway.  This is to avoid query failures
+    // due to slow directory propagation (see github issue #3278).
+    try {
+        microtime_t start_time = current_microtime();
+        for (auto table : table_ids) {
+            microtime_t timeout = (5 * MILLION) - (current_microtime() - start_time);
+            signal_timer_t timer_interruptor;
+            wait_any_t combined_interruptor(interruptor, &timer_interruptor);
+            timer_interruptor.start(timeout / THOUSAND);
+            namespace_interface_access_t ns_if =
+                namespace_repo.get_namespace_interface(table.first,
+                                                       &combined_interruptor);
+            ns_if.get()->wait_for_readiness(readiness, &combined_interruptor);
+        }
+    } catch (const interrupted_exc_t &) {
+        // Nothing to see here, move along
+    }
+
     counted_t<ql::table_t> backend = make_backend_table(
         admin_tables->table_status_backend.get(), "table_status", bt);
     counted_t<ql::datum_stream_t> stream =

@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/map_sentries.hpp"
 #include "rdb_protocol/env.hpp"
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
@@ -30,6 +31,48 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
     starting_up = false;
     if (start_count == 0) {
         start_cond.pulse();
+    }
+}
+
+table_readiness_t cluster_namespace_interface_t::get_readiness() const {
+    rassert(relationships.get_domain() == region_t::universe());
+    table_readiness_t total_readiness = table_readiness_t::finished;
+    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
+        table_readiness_t region_readiness = table_readiness_t::unavailable;
+        for (auto const &peer : it->second) {
+            if (peer->master_access != NULL) {
+                // Techinally this should be 'writes', but we can't see backfills
+                region_readiness = table_readiness_t::finished;
+            } else if (peer->direct_reader_access != NULL) {
+                region_readiness = table_readiness_t::outdated_reads;
+            }
+            // TODO: handle write acks
+        }
+        total_readiness = std::min(total_readiness, region_readiness);
+    }
+    return total_readiness;
+}
+
+void cluster_namespace_interface_t::wait_for_readiness(table_readiness_t readiness,
+                                                       signal_t *interruptor) {
+    if (get_readiness() < readiness) {
+        auto_drainer_t::lock_t keepalive(&relationship_coroutine_auto_drainer);
+        wait_any_t combined_interruptor(interruptor, keepalive.get_drain_signal());
+        cond_t wait_cond;
+
+        multimap_insertion_sentry_t<table_readiness_t, cond_t *>
+            map_sentry(&waiters, readiness, &wait_cond);
+        wait_interruptible(&wait_cond, &combined_interruptor);
+    }
+}
+
+void cluster_namespace_interface_t::check_readiness() {
+    if (waiters.size() > 0) {
+        table_readiness_t readiness = get_readiness();
+        for (auto waiter = waiters.begin();
+             waiter->first <= readiness && waiter != waiters.end(); ++waiter) {
+            waiter->second->pulse_if_not_already_pulsed();
+        }
     }
 }
 
@@ -497,6 +540,8 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
             }
             is_start = false;
         }
+
+        check_readiness();
 
         wait_any_t waiter(lock.get_drain_signal());
         if (master_access.has()) {

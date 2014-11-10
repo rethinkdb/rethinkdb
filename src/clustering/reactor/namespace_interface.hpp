@@ -40,7 +40,6 @@ public:
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
 
-
     /* Returns a signal that will be pulsed when we have either successfully
     connected or tried and failed to connect to every master that was present
     at the time that the constructor was called. This is to avoid the case where
@@ -49,6 +48,9 @@ public:
     signal_t *get_initial_ready_signal() {
         return &start_cond;
     }
+
+    table_readiness_t get_readiness() const;
+    void wait_for_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
@@ -149,6 +151,8 @@ private:
                                 bool is_start, bool is_primary, const region_t &region,
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
+    void check_readiness();
+
     mailbox_manager_t *mailbox_manager;
     const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
         *region_to_primary_maps;
@@ -169,6 +173,8 @@ private:
     cond_t start_cond;
     int start_count;
     bool starting_up;
+
+    std::multimap<table_readiness_t, cond_t *> waiters;
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
