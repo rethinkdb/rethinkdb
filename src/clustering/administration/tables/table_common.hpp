@@ -46,8 +46,7 @@ protected:
     virtual bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            /* Depending on `identifier_format` this will be a name or UUID */
-            const ql::datum_t &db,
+            const ql::datum_t &db_name_or_uuid,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,
@@ -55,7 +54,7 @@ protected:
 
     /* This should only be called on the home thread. It returns a name or UUID depending
     on `identifier_format`. */
-    ql::datum_t get_db_identifier(database_id_t db_id);
+    ql::datum_t get_db_name_or_uuid(const database_id_t &db_id);
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;

@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/datum_adapter.hpp"
 
+#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/tables/database_metadata.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
 ql::datum_t convert_string_to_datum(
@@ -87,7 +89,7 @@ bool convert_server_id_from_datum(
         std::string *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
-        if (!convert_name_from_datum(datum, &name, error_out)) {
+        if (!convert_name_from_datum(datum, "server name", &name, error_out)) {
             return false;
         }
         bool ok;
@@ -140,16 +142,16 @@ bool convert_database_id_to_datum(
 bool convert_database_id_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
-        const database_semilattice_metadata_t &db_metadata,
+        const databases_semilattice_metadata_t &db_metadata,
         database_id_t *value_out,
         std::string *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
-        if (!convert_name_from_datum(datum, &name, error_out)) {
+        if (!convert_name_from_datum(datum, "database name", &name, error_out)) {
             return false;
         }
         const_metadata_searcher_t<database_semilattice_metadata_t> searcher(
-            &db_metadata->databases);
+            &db_metadata.databases);
         metadata_search_status_t search_status;
         auto it = searcher.find_uniq(name, &search_status);
         if (!check_metadata_status(

@@ -37,8 +37,9 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *_directory_view,
+            admin_identifier_format_t _identifier_format,
             server_name_client_t *_name_client) :
-        common_table_artificial_table_backend_t(_semilattice_view),
+        common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
         directory_view(_directory_view),
         name_client(_name_client) { }
 
@@ -53,7 +54,7 @@ private:
     bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            name_string_t db_name,
+            const ql::datum_t &db_name,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,

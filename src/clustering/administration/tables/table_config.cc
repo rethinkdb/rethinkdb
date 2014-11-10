@@ -279,7 +279,7 @@ ql::datum_t convert_table_config_to_datum(
 bool table_config_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
-        const ql::datum_t &db,
+        const ql::datum_t &db_name_or_uuid,
         const namespace_semilattice_metadata_t &metadata,
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
@@ -290,7 +290,7 @@ bool table_config_artificial_table_backend_t::format_row(
         metadata.replication_info.get_ref().config, identifier_format, name_client);
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", db);
+    builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite(
         "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));

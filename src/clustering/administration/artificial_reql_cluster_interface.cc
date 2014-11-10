@@ -182,7 +182,9 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
         auto it = tables.find(name);
         if (it != tables.end()) {
             counted_t<ql::datum_stream_t> docs;
-            if (!it->second->read_all_rows_as_stream(
+            /* We arbitrarily choose to read from the UUID version of the system table
+            rather than the name version. */
+            if (!it->second.second->read_all_rows_as_stream(
                     ql::protob_t<const Backtrace>(),
                     datum_range_t::universe(),
                     sorting_t::UNORDERED,
@@ -234,12 +236,12 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         metadata_field(&cluster_semilattice_metadata_t::databases,
             _semilattice_view)));
     backends[name_string_t::guarantee_valid("db_config")] =
-        db_config_backend.get();
+        std::make_pair(db_config_backend.get(), db_config_backend.get());
 
     for (int i = 0; i < 2; ++i) {
+        /* RSI(reql_admin): Actually pass identifier_format into issues_backend. */
         issues_backend[i].init(new issues_artificial_table_backend_t(
-            _semilattice_view, _directory_view,
-            i == 0 ? admin_identifier_format_t::name : admin_identifier_format_t::uuid));
+            _semilattice_view, _directory_view));
     }
     backends[name_string_t::guarantee_valid("issues")] =
         std::make_pair(issues_backend[0].get(), issues_backend[1].get());
@@ -249,7 +251,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view),
         _name_client));
     backends[name_string_t::guarantee_valid("server_config")] =
-        server_config_backend.get();
+        std::make_pair(server_config_backend.get(), server_config_backend.get());
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
@@ -261,7 +263,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         metadata_field(&cluster_semilattice_metadata_t::databases,
             _semilattice_view)));
     backends[name_string_t::guarantee_valid("server_status")] =
-        server_status_backend.get();
+        std::make_pair(server_status_backend.get(), server_status_backend.get());
 
     for (int i = 0; i < 2; ++i) {
         table_config_backend[i].init(new table_config_artificial_table_backend_t(
@@ -285,14 +287,15 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =
-        debug_scratch_backend.get();
+        std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
         _reactor_directory_view,
         _name_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
-        debug_table_status_backend.get();
+        std::make_pair(debug_table_status_backend.get(),
+                       debug_table_status_backend.get());
 
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),

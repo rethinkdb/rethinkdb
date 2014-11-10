@@ -403,6 +403,7 @@ class fake_ref_tracker_t : public namespace_interface_access_t::ref_tracker_t {
 
 bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         counted_t<const ql::db_t> db,
+        boost::optional<admin_identifier_format_t> identifier_format,
         UNUSED signal_t *local_interruptor, scoped_ptr_t<base_table_t> *table_out,
         std::string *error_out) {
     auto it = tables.find(std::make_pair(db->id, name));
@@ -410,6 +411,11 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         *error_out = "No table with that name";
         return false;
     } else {
+        if (static_cast<bool>(identifier_format)) {
+            *error_out = "identifier_format doesn't make sense for "
+                "test_rdb_env_t::instance_t";
+            return false;
+        }
         static fake_ref_tracker_t fake_ref_tracker;
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());

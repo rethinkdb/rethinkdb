@@ -26,9 +26,10 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         }
 
         name_string_t table_name = it->second.get_ref().name.get_ref();
-        ql::datum_t db = get_db_identifier(it->second.get_ref().database.get_ref());
+        ql::datum_t db_name_or_uuid =
+            get_db_name_or_uuid(it->second.get_ref().database.get_ref());
         ql::datum_t row;
-        if (!format_row(it->first, table_name, db_name, it->second.get_ref(),
+        if (!format_row(it->first, table_name, db_name_or_uuid, it->second.get_ref(),
                         &interruptor2, &row, error_out)) {
             return false;
         }
@@ -57,8 +58,9 @@ bool common_table_artificial_table_backend_t::read_row(
         ::const_iterator it;
     if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
         name_string_t table_name = it->second.get_ref().name.get_ref();
-        ql::datum_t db = get_db_identifier(it->second.get_ref().database.get_ref());
-        return format_row(table_id, table_name, db, it->second.get_ref(),
+        ql::datum_t db_name_or_uuid =
+            get_db_name_or_uuid(it->second.get_ref().database.get_ref());
+        return format_row(table_id, table_name, db_name_or_uuid, it->second.get_ref(),
                           &interruptor2, row_out, error_out);
     } else {
         *row_out = ql::datum_t();
@@ -66,7 +68,7 @@ bool common_table_artificial_table_backend_t::read_row(
     }
 }
 
-ql::datum_t common_table_artificial_table_backend_t::get_db_identifier(
+ql::datum_t common_table_artificial_table_backend_t::get_db_name_or_uuid(
         const database_id_t &db_id) {
     assert_thread();
     databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
@@ -80,17 +82,4 @@ ql::datum_t common_table_artificial_table_backend_t::get_db_identifier(
     return res;
 }
 
-bool common_table_artificial_table_backend_t::get_db_id(name_string_t db_name,
-        database_id_t *db_out, std::string *error_out) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
-    metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbs.databases);
-    metadata_search_status_t status;
-    auto db_it = searcher.find_uniq(db_name, &status);
-    if (!check_metadata_status(status, "Database", db_name.str(), true, error_out)) {
-        return false;
-    }
-    *db_out = db_it->first;
-    return true;
-}
 

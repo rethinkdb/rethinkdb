@@ -48,7 +48,7 @@ private:
     bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            name_string_t db_name,
+            const ql::datum_t &db_name_or_uuid,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,

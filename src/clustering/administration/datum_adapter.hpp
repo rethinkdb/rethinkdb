@@ -7,8 +7,12 @@
 #include <vector>
 
 #include "containers/name_string.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "time.hpp"
+
+class databases_semilattice_metadata_t;
+class server_name_client_t;
 
 /* Note that we generally use `ql::configured_limits_t::unlimited` when converting
 things to datum, rather than using a user-specified limit. This is mostly for consistency

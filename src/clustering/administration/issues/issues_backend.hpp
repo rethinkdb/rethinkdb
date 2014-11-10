@@ -20,6 +20,7 @@ class issues_artificial_table_backend_t :
     public artificial_table_backend_t
 {
 public:
+    /* RSI(reql_admin): Thread identifier_format through here. */
     issues_artificial_table_backend_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,

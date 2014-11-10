@@ -259,10 +259,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        wait_for_table_readiness(table_id, 
-                                 table_readiness_t::finished,
-                                 admin_tables->table_status_backend.get(),
-                                 &interruptor2);
+        wait_for_table_readiness(
+            table_id, 
+            table_readiness_t::finished,
+            /* Arbitrarily choose to use the UUID-based backend rather than the
+            name-based backend when waiting for table readiness. This doesn't matter. */
+            admin_tables->table_status_backend[1].get(),
+            &interruptor2);
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
     return true;
@@ -410,13 +413,20 @@ bool real_reql_cluster_interface_t::table_config(
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_ids,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(
+            /* Use name-based backend for `table_config` */
+            admin_tables->table_config_backend[0].get(),
+            db,
+            table_ids,
+            true,
+            interruptor,
+            &result_array,
+            error_out)) {
         return false;
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_config_backend.get(), "table_config", bt);
+        admin_tables->table_config_backend[0].get(), "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
     resp_out->init(new ql::val_t(backend, stream, bt));
@@ -435,13 +445,20 @@ bool real_reql_cluster_interface_t::table_status(
     }
 
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(
+            /* Use name-based backend for `table_status` */
+            admin_tables->table_status_backend[0].get(),
+            db,
+            table_ids,
+            true,
+            interruptor,
+            &result_array,
+            error_out)) {
         return false;
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend.get(), "table_status", bt);
+        admin_tables->table_status_backend[0].get(), "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
     resp_out->init(new ql::val_t(backend, stream, bt));
@@ -499,15 +516,22 @@ bool real_reql_cluster_interface_t::table_wait(
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
-                             tables.size() != 0, // A db-level wait should not error if a table is deleted
-                             &ct_interruptor, &result_array, error_out)) {
+        /* Use name-based backend for `table_status` */
+        if (!table_meta_read(
+                admin_tables->table_status_backend[0].get(),
+                db,
+                table_ids,
+                // A db-level wait should not error if a table is deleted
+                tables.size() != 0,
+                &ct_interruptor,
+                &result_array,
+                error_out)) {
             return false;
         }
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend.get(), "table_status", bt);
+        admin_tables->table_status_backend[0].get(), "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
     resp_out->init(new ql::val_t(backend, stream, bt));

@@ -23,7 +23,9 @@ public:
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *_directory_view,
             server_name_client_t *_name_client) :
-        common_table_artificial_table_backend_t(_semilattice_view),
+        common_table_artificial_table_backend_t(
+            _semilattice_view,
+            admin_identifier_format_t::uuid),
         directory_view(_directory_view),
         name_client(_name_client) { }
 
@@ -38,7 +40,7 @@ private:
     bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            name_string_t db_name,
+            const ql::datum_t &db_name_or_uuid,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,
