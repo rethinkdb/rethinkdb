@@ -18,8 +18,8 @@ with driver.Metacluster() as metacluster:
     executable_path, command_prefix, serve_options = \
         scenario_common.parse_mode_flags(opts)
 
-    # The "live" process will remain alive for the entire test. The "dead" processes will
-    # be killed after we create some tables
+    # The "live" processes will remain alive for the entire test. The "dead" processes
+    # will be killed after we create some tables.
     num_live = num_dead = 3
     print("Spinning up %d processes..." % (num_live + num_dead))
     def make_procs(names):
