@@ -17,6 +17,15 @@
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
+counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
+                                          const char *backend_name,
+                                          const ql::protob_t<const Backtrace> &bt) {
+    return make_counted<ql::table_t>(
+        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
+        make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
+        backend_name, false, bt);
+}
+
 real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr<
@@ -165,6 +174,58 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
         return false;
     }
     *db_out = make_counted<const ql::db_t>(it->first, name.str());
+    return true;
+}
+
+bool real_reql_cluster_interface_t::db_config(
+        const std::vector<name_string_t> &db_names,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+    databases_semilattice_metadata_t db_metadata;
+    get_databases_metadata(&db_metadata);
+    const_metadata_searcher_t<database_semilattice_metadata_t> db_searcher(
+        &db_metadata.databases);
+
+    std::vector<ql::datum_t> result_array;
+    if (db_names.empty()) {
+        for (auto it = db_searcher.find_next(db_searcher.begin());
+                  it != db_searcher.end();
+                  it = db_searcher.find_next(++it)) {
+            guarantee(!it->second.is_deleted());
+            ql::datum_t row;
+            if (!admin_tables->db_config_backend->read_row(
+                    convert_uuid_to_datum(it->first), interruptor, &row, error_out)) {
+                return false;
+            }
+            if (row.has()) {
+                result_array.push_back(row);
+            }
+        }
+    } else {
+        for (auto const &name : db_names) {
+            metadata_search_status_t status;
+            auto it = db_searcher.find_uniq(name, &status);
+            if (!check_metadata_status(status, "Database", name.str(), true,
+                    error_out)) return false;
+            guarantee(!it->second.is_deleted());
+            ql::datum_t row;
+            if (!admin_tables->db_config_backend->read_row(
+                    convert_uuid_to_datum(it->first), interruptor, &row, error_out)) {
+                return false;
+            }
+            if (!row.has()) {
+                *error_out = strprintf("Database `%s` does not exist.", name.c_str());
+                return false;
+            }
+            result_array.push_back(row);
+        }
+    }
+
+    counted_t<ql::table_t> backend = make_backend_table(
+        admin_tables->db_config_backend.get(), "db_config", bt);
+    counted_t<ql::datum_stream_t> stream =
+        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+    resp_out->init(new ql::val_t(backend, stream, bt));
     return true;
 }
 
@@ -381,15 +442,6 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
     return true;
 }
 
-counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
-                                          const char *backend_name,
-                                          const ql::protob_t<const Backtrace> &bt) {
-    return make_counted<ql::table_t>(
-        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
-        make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
-        backend_name, false, bt);
-}
-
 bool real_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
         const std::vector<name_string_t> &tables,
@@ -491,9 +543,10 @@ bool real_reql_cluster_interface_t::table_wait(
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
-                             tables.size() != 0, // A db-level wait should not error if a table is deleted
-                             &ct_interruptor, &result_array, error_out)) {
+        if (!table_meta_read(
+                admin_tables->table_status_backend.get(), db, table_ids,
+                !tables.empty(), // A db-level wait shouldn't error if a table is deleted
+                &ct_interruptor, &result_array, error_out)) {
             return false;
         }
     }

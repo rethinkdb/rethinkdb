@@ -369,6 +369,15 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
     }
 }
 
+bool test_rdb_env_t::instance_t::db_config(
+        UNUSED const std::vector<name_string_t> &db_names,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor, UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_db_env_t::instance_t doesn't support db_config()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const boost::optional<name_string_t> &primary_dc,
