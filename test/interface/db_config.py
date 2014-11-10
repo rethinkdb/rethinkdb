@@ -56,10 +56,10 @@ with driver.Metacluster() as metacluster:
 
     try:
         rows = r.db_config("not_a_database").run(conn)
-    except r.RqlRuntimeError, e:
+    except r.RqlRuntimeError:
         pass
     else:
-        assert False, rows
+        raise ValueError("db_config() porcelain should fail if argument does not exist.")
 
     res = r.db("rethinkdb").table("db_config").get(bar_uuid).update({"name": "foo2"}) \
            .run(conn)
