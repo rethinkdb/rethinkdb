@@ -719,7 +719,9 @@ module 'DataExplorerView', ->
             # Let's bring back the data explorer to its old state (if there was)
             if @state?.query_result?
                 # ATN: set_query_result?
-                @results_view.set_query_result @state.query_result
+                @results_view.set_query_result
+                    query_result: @state.query_result
+                    current_index: @state.current_position # ATN: TODO current_index
 
             # ATN: results_view.render?
             @$('.results_container').html @results_view.render(query_has_changed: @query_has_changed).$el
@@ -2634,7 +2636,9 @@ module 'DataExplorerView', ->
                                 error: (err) =>
                                     @results_view.render_error(@query, err)
 
-                        # ATN: pass the query_result object to the view
+                        # ATN ?
+                        @results_view.set_query_result
+                            query_result: @state.query_result
 
                     @driver_handler.run_with_new_connection rdq_query,
                         optargs:
@@ -3494,33 +3498,11 @@ module 'DataExplorerView', ->
                 js_error: js_error is true
             return @
 
-        # ATN: get rid of this, set the query_result in the initializer 
+        # ATN: conitnue ripping this into pieces
         render_result: (args) =>
 
-            # ATN: now only two arguments: query_result and query_has_changed
-
-            if args? and args.results isnt undefined
-                @results = args.results
-                @ATN_results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
-            if args? and args.profile isnt undefined
-                @ATN_profile = args.ATN_profile
-            if args?.ATN_metadata?
-                @ATN_metadata = args.ATN_metadata
-            if args?.ATN_metadata?.skip_value?
-                # @container.state.start_record is the old value of @container.state.skip_value
-                # Here we just deal with start_record
-                # TODO May have to remove this line as we have metadata.start now
-                @container.state.start_record = args.ATN_metadata.skip_value
-
-                if args.ATN_metadata.execution_time?
-                    @ATN_metadata.execution_time_pretty = Utils.prettify_duration args.ATN_metadata.execution_time
-
-            num_results = @ATN_metadata.skip_value
-            if @ATN_metadata.has_more_data isnt true
-                if Object::toString.call(@results) is '[object Array]'
-                    num_results += @results.length
-                else # @results can be a single value or null
-                    num_results += 1
+            # ATN TODO
+            @ATN_metadata.execution_time_pretty = Utils.prettify_duration args.ATN_metadata.execution_time
 
             @$el.html @template
                 limit_value: ATN_from_old_metadata
