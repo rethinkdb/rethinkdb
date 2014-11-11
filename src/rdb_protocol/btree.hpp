@@ -389,7 +389,7 @@ private:
 class noop_value_deleter_t : public value_deleter_t {
 public:
     noop_value_deleter_t() { }
-    void delete_value(buf_parent_t, const void *) const { }
+    void delete_value(buf_parent_t, const void *) const;
 };
 
 /* Used for operations on secondary indexes that aren't yet post-constructed.

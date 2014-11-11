@@ -1066,6 +1066,19 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     return true;
 }
 
+store_t::sindex_access_t::sindex_access_t(btree_slice_t *_btree,
+                                          sindex_name_t _name,
+                                          secondary_index_t _sindex,
+                                          scoped_ptr_t<real_superblock_t> _superblock)
+    : btree(_btree),
+      name(std::move(_name)),
+      sindex(std::move(_sindex)),
+      superblock(std::move(_superblock))
+{ }
+
+store_t::sindex_access_t::~sindex_access_t() { }
+
+
 void store_t::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         buf_parent_t parent,

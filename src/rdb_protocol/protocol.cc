@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 
+#include "btree/operations.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
