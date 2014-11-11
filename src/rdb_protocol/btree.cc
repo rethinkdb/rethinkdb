@@ -1947,3 +1947,6 @@ void post_construct_secondary_indexes(
 
     btree_parallel_traversal(superblock.get(), &helper, &wait_any);
 }
+
+void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
+

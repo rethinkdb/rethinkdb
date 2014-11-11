@@ -11,7 +11,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/erase_range.hpp"
-#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
@@ -263,12 +262,8 @@ public:
         sindex_access_t(btree_slice_t *_btree,
                         sindex_name_t _name,
                         secondary_index_t _sindex,
-                        scoped_ptr_t<real_superblock_t> _superblock)
-            : btree(_btree),
-              name(std::move(_name)),
-              sindex(std::move(_sindex)),
-              superblock(std::move(_superblock))
-        { }
+                        scoped_ptr_t<real_superblock_t> _superblock);
+        ~sindex_access_t();
 
         btree_slice_t *btree;
         sindex_name_t name;

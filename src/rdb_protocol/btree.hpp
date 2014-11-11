@@ -385,6 +385,13 @@ private:
     rdb_value_deleter_t deleter;
 };
 
+/* A deleter that does absolutely nothing. */
+class noop_value_deleter_t : public value_deleter_t {
+public:
+    noop_value_deleter_t() { }
+    void delete_value(buf_parent_t, const void *) const;
+};
+
 /* Used for operations on secondary indexes that aren't yet post-constructed.
  * Since we don't have any guarantees that referenced blob blocks still exist
  * during that stage, we use noop deleters for everything. */
