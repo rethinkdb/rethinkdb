@@ -52,6 +52,9 @@ protected:
             ql::datum_t *row_out,
             std::string *error_out) = 0;
 
+    /* This should only be called on the home thread. */
+    name_string_t get_db_name(const database_id_t &db_id);
+
     /* This should only be called on the home thread. It returns a name or UUID depending
     on `identifier_format`. */
     ql::datum_t get_db_name_or_uuid(const database_id_t &db_id);

@@ -73,7 +73,7 @@ enum class table_readiness_t {
     finished
 };
 
-enum class admin_identifier_format_t { name, uuid };
+enum class admin_identifier_format_t { name = 0, uuid = 1 };
 
 class base_table_t {
 public:

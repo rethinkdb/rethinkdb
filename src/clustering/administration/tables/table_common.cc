@@ -68,6 +68,19 @@ bool common_table_artificial_table_backend_t::read_row(
     }
 }
 
+name_string_t common_table_artificial_table_backend_t::get_db_name(
+        const database_id_t &db_id) {
+    assert_thread();
+    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
+    auto it = dbs.databases.find(db_id);
+    guarantee(it != dbs.databases.end());
+    if (it->second.is_deleted()) {
+        return name_string_t::guarantee_valid("__deleted_database__");
+    } else {
+        return it->second.get_ref().name.get_ref();
+    }
+}
+
 ql::datum_t common_table_artificial_table_backend_t::get_db_name_or_uuid(
         const database_id_t &db_id) {
     assert_thread();

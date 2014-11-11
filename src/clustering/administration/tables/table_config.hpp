@@ -20,6 +20,7 @@ class real_reql_cluster_interface_t;
 `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
         const table_config_t &config,
+        admin_identifier_format_t identifier_format,
         server_name_client_t *name_client);
 
 class table_config_artificial_table_backend_t :

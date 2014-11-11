@@ -221,15 +221,15 @@ ql::datum_t convert_table_status_shard_to_datum(
     ql::datum_t director_name_or_uuid;
     if (convert_server_id_to_datum(
             shard.director, identifier_format, name_client, &director_name_or_uuid)) {
-         array_builder.add(convert_director_status_to_datum(
-            *director_name,
+        array_builder.add(convert_director_status_to_datum(
+            director_name_or_uuid,
             server_states.count(shard.director) == 1 ?
                 &server_states[shard.director] : NULL,
             &has_director));
         already_handled.insert(shard.director);
         if (has_director) {
             servers_for_acks.insert(shard.director);
-            builder.overwrite("director", convert_name_to_datum(*director_name));
+            builder.overwrite("director", director_name_or_uuid);
         }
     } else {
         /* Director was permanently removed; in `table_config` the `director` field will
@@ -386,8 +386,8 @@ bool table_status_artificial_table_backend_t::format_row(
         db_name_or_uuid,
         table_id,
         metadata.replication_info.get_ref(),
-        identifier_format,
         directory_view,
+        identifier_format,
         semilattice_view->get().servers,
         name_client);
     return true;

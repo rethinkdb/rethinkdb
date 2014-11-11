@@ -392,13 +392,14 @@ bool real_reql_cluster_interface_t::get_table_ids_for_query(
     return true;
 }
 
-counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
-                                          const char *backend_name,
-                                          const ql::protob_t<const Backtrace> &bt) {
+counted_t<ql::table_t> make_table_with_backend(
+        artificial_table_backend_t *backend,
+        const char *table_name,
+        const ql::protob_t<const Backtrace> &bt) {
     return make_counted<ql::table_t>(
         scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
         make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
-        backend_name, false, bt);
+        table_name, false, bt);
 }
 
 bool real_reql_cluster_interface_t::table_config(
@@ -412,24 +413,20 @@ bool real_reql_cluster_interface_t::table_config(
         return false;
     }
 
+    artificial_table_backend_t *backend =
+        admin_tables->table_config_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(
-            /* Use name-based backend for `table_config` */
-            admin_tables->table_config_backend[0].get(),
-            db,
-            table_ids,
-            true,
-            interruptor,
-            &result_array,
-            error_out)) {
+    if (!table_meta_read(backend, db, table_ids, true,
+            interruptor, &result_array, error_out)) {
         return false;
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_config_backend[0].get(), "table_config", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(backend, "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(table, stream, bt));
     return true;
 }
 
@@ -444,24 +441,20 @@ bool real_reql_cluster_interface_t::table_status(
         return false;
     }
 
+    artificial_table_backend_t *backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(
-            /* Use name-based backend for `table_status` */
-            admin_tables->table_status_backend[0].get(),
-            db,
-            table_ids,
-            true,
-            interruptor,
-            &result_array,
-            error_out)) {
+    if (!table_meta_read(backend, db, table_ids, true,
+            interruptor, &result_array, error_out)) {
         return false;
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend[0].get(), "table_status", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(table, stream, bt));
     return true;
 }
 
@@ -478,14 +471,16 @@ bool real_reql_cluster_interface_t::table_wait(
         return false;
     }
 
+    table_status_artificial_table_backend_t *backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
     {
         threadnum_t new_thread = directory_root_view->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, new_thread);
         on_thread_t thread_switcher(new_thread);
-        table_status_artificial_table_backend_t *table_status_backend =
-            admin_tables->table_status_backend.get();
-        rassert(new_thread == table_status_backend->home_thread());
+        rassert(new_thread == backend->home_thread());
 
         // Loop until all tables are ready - we have to check all tables again
         // if a table was not immediately ready
@@ -494,7 +489,7 @@ bool real_reql_cluster_interface_t::table_wait(
             immediate = true;
             for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
                 table_wait_result_t res = wait_for_table_readiness(
-                    it->first, readiness, table_status_backend, &ct_interruptor);
+                    it->first, readiness, backend, &ct_interruptor);
                 immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
                 // Error out if a table was deleted and it was explicitly waited on
                 if (res == table_wait_result_t::DELETED) {
@@ -516,25 +511,17 @@ bool real_reql_cluster_interface_t::table_wait(
         // It is important for correctness that nothing runs in-between the wait and the
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
-        /* Use name-based backend for `table_status` */
-        if (!table_meta_read(
-                admin_tables->table_status_backend[0].get(),
-                db,
-                table_ids,
-                // A db-level wait should not error if a table is deleted
-                tables.size() != 0,
-                &ct_interruptor,
-                &result_array,
-                error_out)) {
+        if (!table_meta_read(backend, db, table_ids,
+                !tables.empty(), // A db-level wait shouldn't error if a table is deleted
+                &ct_interruptor, &result_array, error_out)) {
             return false;
         }
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend[0].get(), "table_status", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(table, stream, bt));
     return true;
 }
 
@@ -614,7 +601,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
 
     *new_config_out = convert_table_config_to_datum(
-        new_repli_info.config, server_name_client);
+        new_repli_info.config, admin_identifier_format_t::name, server_name_client);
 
     return true;
 }

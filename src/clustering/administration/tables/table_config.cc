@@ -12,12 +12,12 @@ ql::datum_t convert_replica_list_to_datum(
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client) {
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
-    for (const server_id_t &replica : shard.replicas) {
-        ql::datum_t replica;
+    for (const server_id_t &replica : replicas) {
+        ql::datum_t replica_datum;
         /* This will return `false` for replicas that have been permanently removed */
         if (convert_server_id_to_datum(
-                replica, identifier_format, name_client, &replica)) {
-            replicas_builder.add(replica);
+                replica, identifier_format, name_client, &replica_datum)) {
+            replicas_builder.add(replica_datum);
         }
     }
     return std::move(replicas_builder).to_datum();
@@ -270,7 +270,8 @@ ql::datum_t convert_table_config_to_datum(
             },
             config.shards));
     builder.overwrite("write_acks",
-        convert_write_ack_config_to_datum(config.write_ack_config, name_client));
+        convert_write_ack_config_to_datum(
+            config.write_ack_config, identifier_format, name_client));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
     return std::move(builder).to_datum();
@@ -401,8 +402,8 @@ bool convert_table_config_and_name_from_datum(
         if (!converter.get("write_acks", &write_acks_datum, error_out)) {
             return false;
         }
-        if (!convert_write_ack_config_from_datum(write_acks_datum, name_client,
-                &config_out->write_ack_config, error_out)) {
+        if (!convert_write_ack_config_from_datum(write_acks_datum, identifier_format,
+                name_client, &config_out->write_ack_config, error_out)) {
             *error_out = "In `write_acks`: " + *error_out;
             return false;
         }
@@ -479,13 +480,13 @@ bool table_config_artificial_table_backend_t::write_row(
         /* Parse the new value the user provided for the table */
         table_replication_info_t replication_info;
         name_string_t new_table_name;
-        ql::datum_t new_db;
+        ql::datum_t new_db_name_or_uuid;
         namespace_id_t new_table_id;
         std::string new_primary_key;
         if (!convert_table_config_and_name_from_datum(*new_value_inout, existed_before,
                 md, identifier_format, name_client, interruptor,
-                &new_table_name, &new_db, &new_table_id, &replication_info.config,
-                &new_primary_key, error_out)) {
+                &new_table_name, &new_db_name_or_uuid, &new_table_id,
+                &replication_info.config, &new_primary_key, error_out)) {
             *error_out = "The change you're trying to make to "
                 "`rethinkdb.table_config` has the wrong format. " + *error_out;
             return false;
@@ -516,17 +517,18 @@ bool table_config_artificial_table_backend_t::write_row(
         database_id_t db_id;
         if (existed_before) {
             db_id = it->second.get_ref().database.get_ref();
-            if (new_db != get_db_identifier(db_id)) {
+            if (new_db_name_or_uuid != get_db_name_or_uuid(db_id)) {
                 *error_out = "It's illegal to change a table's `database` field.";
                 return false;
             }
         } else {
-            databases_semilattice_metadata_t db_md = database_sl_view->get();
             if (!convert_database_id_from_datum(
-                    new_db, identifier_format, db_md, &db_id, error_out)) {
+                    new_db_name_or_uuid, identifier_format, md.databases, &db_id,
+                    error_out)) {
                 return false;
             }
         }
+        name_string_t db_name = get_db_name(db_id);
 
         if (existed_before) {
             if (new_primary_key != it->second.get_ref().primary_key.get_ref()) {
@@ -571,13 +573,13 @@ bool table_config_artificial_table_backend_t::write_row(
                     table with the specified UUID already exists; but we're showing the
                     user an error if a table with the specified name already exists. */
                     *error_out = strprintf("Table `%s.%s` already exists.",
-                        new_db_name.c_str(), new_table_name.c_str());
+                        db_name.c_str(), new_table_name.c_str());
                 } else {
                     *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
-                        "because table `%s.%s` already exists.", new_db_name.c_str(),
-                        old_table_name.c_str(), new_db_name.c_str(),
-                        new_table_name.c_str(), new_db_name.c_str(),
-                        new_table_name.c_str());
+                        "because table `%s.%s` already exists.",
+                        db_name.c_str(), old_table_name.c_str(),
+                        db_name.c_str(), new_table_name.c_str(),
+                        db_name.c_str(), new_table_name.c_str());
                 }
                 return false;
             }
@@ -601,7 +603,7 @@ bool table_config_artificial_table_backend_t::write_row(
 
         /* Because we might have filled in the `primary_key` and `shards` fields, we need
         to write back to `new_value_inout` */
-        if (!format_row(table_id, new_table_name, new_db_name,
+        if (!format_row(table_id, new_table_name, new_db_name_or_uuid,
                 md_change.get()->namespaces[table_id].get_ref(),
                 interruptor, new_value_inout, error_out)) {
             return false;
