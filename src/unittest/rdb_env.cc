@@ -73,6 +73,10 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     }
 }
 
+void mock_namespace_interface_t::read_visitor_t::operator()(const dummy_read_t &) {
+    response->response = dummy_read_response_t();
+}
+
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_subscribe_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
@@ -220,6 +224,10 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);
     response->response = std::move(result).to_datum();
+}
+
+void mock_namespace_interface_t::write_visitor_t::operator()(const dummy_write_t &) {
+    response->response = dummy_write_response_t();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {

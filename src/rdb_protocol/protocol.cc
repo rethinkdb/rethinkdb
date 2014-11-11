@@ -426,6 +426,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
+
+    region_t operator()(const dummy_read_t &d) const {
+        return d.region;
+    }
 };
 
 region_t read_t::get_region() const THROWS_NOTHING {
@@ -507,6 +511,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(ss);
     }
 
+    bool operator()(const dummy_read_t &d) const {
+        return rangey_read(d);
+    }
+
     const hash_region_t<key_range_t> *region;
     read_t::variant_t *payload_out;
 };
@@ -573,6 +581,7 @@ public:
     void operator()(const changefeed_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
     void operator()(const changefeed_point_stamp_t &);
+    void operator()(const dummy_read_t &);
 
 private:
     // Shared by rget_read_t and intersecting_geo_read_t operators
@@ -828,6 +837,10 @@ void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
     }
 }
 
+void rdb_r_unshard_visitor_t::operator()(const dummy_read_t &) {
+    *response_out = responses[0];
+}
+
 void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, rdb_context_t *ctx,
                      signal_t *interruptor) const
@@ -938,6 +951,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const sync_t &s) const {
         return s.region;
     }
+
+    region_t operator()(const dummy_write_t &d) const {
+        return d.region;
+    }
 };
 
 #ifndef NDEBUG
@@ -1036,6 +1053,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(s);
     }
 
+    bool operator()(const dummy_write_t &d) const {
+        return rangey_write(d);
+    }
+
     const region_t *region;
     write_t::variant_t *payload_out;
 };
@@ -1096,6 +1117,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const dummy_write_t &) const {
         *response_out = responses[0];
     }
 
@@ -1168,8 +1193,10 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
 RDB_IMPL_ME_SERIALIZABLE_2_FOR_CLUSTER(
         changefeed_point_stamp_response_t, stamp, initial_val);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
@@ -1205,6 +1232,7 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_delete_response_t, result);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_create_response_t, success);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_drop_response_t, success);
 RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(sync_response_t);
+RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_write_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_rename_response_t, result);
 
@@ -1222,6 +1250,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(sindex_create_t, id, mapping, region, multi, geo);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_write_t, region);
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rename_t, region,
                                     old_name, new_name, overwrite);

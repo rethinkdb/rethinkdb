@@ -420,6 +420,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
     }
 
+    void operator()(const dummy_read_t &) {
+        response->response = dummy_read_response_t();
+    }
+
     rdb_read_visitor_t(btree_slice_t *_btree,
                        store_t *_store,
                        superblock_t *_superblock,
@@ -688,6 +692,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         // the superblock.)
     }
 
+    void operator()(const dummy_write_t &) {
+        response->response = sync_response_t();
+    }
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         store_t *_store,
