@@ -100,10 +100,16 @@ public:
     explicit reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
+enum class result_hint_t { NO_HINT, AT_MOST_ONE };
 class concatmap_wire_func_t : public wire_func_t {
 public:
+    concatmap_wire_func_t() { }
     template <class... Args>
-    explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit concatmap_wire_func_t(result_hint_t _result_hint, Args... args)
+        : wire_func_t(args...), result_hint(_result_hint) { }
+    // We use this so that terms which rewrite to a `concat_map` but can never
+    // produce more than one result can be handled correctly by `changes`.
+    result_hint_t result_hint;
 };
 
 // These are fake functions because we don't need to send anything.
