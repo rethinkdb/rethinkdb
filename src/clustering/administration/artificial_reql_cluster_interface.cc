@@ -269,7 +269,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         table_config_backend[i].init(new table_config_artificial_table_backend_t(
             _semilattice_view,
             _next_reql_cluster_interface,
-            i == 0 ? admin_identifier_format_t::name : admin_identifier_format_t::uuid,
+            static_cast<admin_identifier_format_t>(i),
             _name_client));
     }
     backends[name_string_t::guarantee_valid("table_config")] =
@@ -279,7 +279,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
             _reactor_directory_view,
-            i == 0 ? admin_identifier_format_t::name : admin_identifier_format_t::uuid,
+            static_cast<admin_identifier_format_t>(i),
             _name_client));
     }
     backends[name_string_t::guarantee_valid("table_status")] =

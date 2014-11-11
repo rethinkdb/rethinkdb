@@ -260,7 +260,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         metadata = semilattice_root_view->get();
 
         wait_for_table_readiness(
-            table_id, 
+            table_id,
             table_readiness_t::finished,
             /* Arbitrarily choose to use the UUID-based backend rather than the
             name-based backend when waiting for table readiness. This doesn't matter. */

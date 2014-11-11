@@ -79,6 +79,7 @@ bool convert_write_ack_config_req_from_datum(
     }
     if (!convert_replica_list_from_datum(replicas_datum, identifier_format, name_client,
             &req_out->replicas, error_out)) {
+        *error_out = "In `replicas`: " + *error_out;
         return false;
     }
 
