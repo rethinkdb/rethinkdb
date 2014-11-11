@@ -85,8 +85,8 @@ public:
         }
     }
     virtual counted_t<datum_stream_t> read_changes() {
-        auto spec = ql::changefeed::keyspec_t(
-            ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1});
+        changefeed::keyspec_t::spec_t spec =
+            ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
             env, std::move(spec), bt, slice->get_tbl()->display_name());
         s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);

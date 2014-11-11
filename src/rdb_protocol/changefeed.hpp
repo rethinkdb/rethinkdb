@@ -29,6 +29,7 @@
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
+class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
 class namespace_interface_access_t;
@@ -55,6 +56,12 @@ typedef std::vector<item_t> item_vec_t;
 
 item_vec_t mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
+
+boost::optional<datum_t> apply_ops(
+    const datum_t &val,
+    const std::vector<scoped_ptr_t<op_t> > &ops,
+    env_t *env,
+    const datum_t &key) THROWS_NOTHING;
 
 struct msg_t {
     struct limit_start_t {
@@ -129,25 +136,33 @@ struct keyspec_t {
         store_key_t key;
     };
 
-    keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
-    template<class T>
-    explicit keyspec_t(T &&t) : spec(std::move(t)) { }
+    keyspec_t(keyspec_t &&keyspec);
+    ~keyspec_t();
+
+    // Accursed reference collapsing!
+    template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
+    explicit keyspec_t(T &&t,
+                       scoped_ptr_t<base_table_t> &&_table,
+                       std::string _table_name)
+        : spec(std::move(t)),
+          table(std::move(_table)),
+          table_name(std::move(_table_name)) { }
 
     // This needs to be copyable and assignable because it goes inside a
     // `changefeed_stamp_t`, which goes inside a variant.
     keyspec_t(const keyspec_t &keyspec) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    boost::variant<range_t, limit_t, point_t> spec;
-private:
-    keyspec_t() { }
+    typedef boost::variant<range_t, limit_t, point_t> spec_t;
+    spec_t spec;
+    scoped_ptr_t<base_table_t> table;
+    std::string table_name;
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 // The `client_t` exists on the machine handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
@@ -176,7 +191,7 @@ public:
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
         const std::string &pkey,
-        const keyspec_t &keyspec);
+        const keyspec_t::spec_t &spec);
     void maybe_remove_feed(const namespace_id_t &uuid);
     scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
 private:

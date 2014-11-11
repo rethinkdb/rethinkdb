@@ -47,8 +47,10 @@ std::string print(const msg_t::limit_change_t &change) {
 } // namespace debug;
 
 boost::optional<datum_t> apply_ops(
-    datum_t val, const std::vector<scoped_ptr_t<op_t> > &ops, env_t *env, datum_t key)
-    THROWS_NOTHING {
+    const datum_t &val,
+    const std::vector<scoped_ptr_t<op_t> > &ops,
+    env_t *env,
+    const datum_t &key) THROWS_NOTHING {
     try {
         groups_t groups{optional_datum_less_t(reql_version_t::LATEST)};
         groups[datum_t()] = std::vector<datum_t>{val};
@@ -623,12 +625,14 @@ void limit_manager_t::del(
 class ref_visitor_t : public boost::static_visitor<item_vec_t> {
 public:
     ref_visitor_t(env_t *_env,
+                  std::vector<scoped_ptr_t<op_t> > *_ops,
                   const key_range_t *_pk_range,
                   const keyspec_t::limit_t *_spec,
                   sorting_t _sorting,
                   boost::optional<item_queue_t::iterator> _start,
                   size_t _n)
         : env(_env),
+          ops(std::move(_ops)),
           pk_range(_pk_range),
           spec(_spec),
           sorting(_sorting),
@@ -663,7 +667,7 @@ public:
             batchspec_t::all(),
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
-                    is_primary_t::YES, n, sorting}),
+                    is_primary_t::YES, n, sorting, ops}),
             sorting,
             &resp,
             release_superblock_t::KEEP);
@@ -707,7 +711,7 @@ public:
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
-                    is_primary_t::NO, n, sorting}),
+                    is_primary_t::NO, n, sorting, ops}),
             *pk_range,
             sorting,
             *ref.sindex_info,
@@ -728,6 +732,7 @@ public:
 
 private:
     env_t *env;
+    std::vector<scoped_ptr_t<op_t> > *ops;
     const key_range_t *pk_range;
     const keyspec_t::limit_t *spec;
     sorting_t sorting;
@@ -740,7 +745,7 @@ item_vec_t limit_manager_t::read_more(
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
     size_t n) {
-    ref_visitor_t visitor(env.get(), &region.inner, &spec, sorting, start, n);
+    ref_visitor_t visitor(env.get(), &ops, &region.inner, &spec, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
 
@@ -1638,11 +1643,15 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
 
+keyspec_t::keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) {
+    guarantee(table.has());
+}
+keyspec_t::~keyspec_t() { }
+
 RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(
     keyspec_t::range_t, transforms, sindex, sorting, range);
 RDB_MAKE_SERIALIZABLE_2_FOR_CLUSTER(keyspec_t::limit_t, range, limit);
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
-RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t, spec);
 
 void feed_t::add_sub_with_lock(
     rwlock_t *rwlock, const std::function<void()> &f) THROWS_NOTHING {
@@ -2017,7 +2026,7 @@ client_t::new_feed(env_t *env,
                    const protob_t<const Backtrace> &bt,
                    const std::string &table_name,
                    const std::string &pkey,
-                   const keyspec_t &keyspec) {
+                   const keyspec_t::spec_t &spec) {
     try {
         scoped_ptr_t<subscription_t> sub;
         boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
@@ -2049,8 +2058,8 @@ client_t::new_feed(env_t *env,
             feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
 
-            struct keyspec_visitor_t : public boost::static_visitor<subscription_t *> {
-                explicit keyspec_visitor_t(feed_t *_feed) : feed(_feed) { }
+            struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
+                explicit spec_visitor_t(feed_t *_feed) : feed(_feed) { }
                 subscription_t *operator()(const keyspec_t::range_t &range) const {
                     return new range_sub_t(feed, range);
                 }
@@ -2062,7 +2071,7 @@ client_t::new_feed(env_t *env,
                 }
                 feed_t *feed;
             };
-            sub.init(boost::apply_visitor(keyspec_visitor_t(feed), keyspec.spec));
+            sub.init(boost::apply_visitor(spec_visitor_t(feed), spec));
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start(env, table_name, access.get(), &addr);

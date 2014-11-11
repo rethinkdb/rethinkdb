@@ -331,18 +331,19 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
-        if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            counted_t<selection_t> selection = v->as_selection(env->env);
-            counted_t<table_t> tbl = selection->table;
-            counted_t<datum_stream_t> seq = selection->seq;
-            auto spec = seq->get_change_spec();
+        if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+            counted_t<datum_stream_t> seq = v->as_seq(env->env);
+            changefeed::keyspec_t keyspec = seq->get_change_spec();
             boost::apply_visitor(
                 rcheck_spec_visitor_t(env->env, backtrace()),
-                spec.spec);
+                keyspec.spec);
             return new_val(
                 env->env,
-                tbl->tbl->read_changes(
-                    env->env, std::move(spec), backtrace(), tbl->display_name()));
+                keyspec.table->read_changes(
+                    env->env,
+                    std::move(keyspec.spec),
+                    backtrace(),
+                    keyspec.table_name));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
                 env->env, v->as_single_selection()->read_changes());

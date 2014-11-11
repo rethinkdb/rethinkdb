@@ -269,16 +269,26 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.region = s.region;
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
+            std::vector<scoped_ptr_t<ql::op_t> > ops;
+            for (const auto &transform : s.spec.range.transforms) {
+                ops.push_back(make_op(transform));
+            }
             if (s.spec.range.sindex) {
                 rget.terminal = ql::limit_read_t{
-                    is_primary_t::NO, s.spec.limit, s.spec.range.sorting};
+                    is_primary_t::NO,
+                    s.spec.limit,
+                    s.spec.range.sorting,
+                    &ops};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     region_t(s.spec.range.range.to_sindex_keyrange()),
                     s.spec.range.range);
             } else {
                 rget.terminal = ql::limit_read_t{
-                    is_primary_t::YES, s.spec.limit, s.spec.range.sorting};
+                    is_primary_t::YES,
+                    s.spec.limit,
+                    s.spec.range.sorting,
+                    &ops};
             }
             rget.sorting = s.spec.range.sorting;
             // The superblock will instead be released in `store_t::read`
