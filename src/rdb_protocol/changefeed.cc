@@ -1109,7 +1109,7 @@ public:
 
         env = make_scoped<env_t>(
             outer_env->get_rdb_ctx(),
-            drainer.get_drain_signal(), // Abort any ongoing 
+            drainer.get_drain_signal(),
             outer_env->get_all_optargs(),
             nullptr/*don't profile*/);
 
