@@ -57,7 +57,6 @@ boost::optional<datum_t> apply_ops(
         for (const auto &op : ops) {
             (*op)(env, &groups, key);
         }
-        // RSI: forbid those earlier, as well as nondeterministic transformations.
         // TODO: when we support `.group.changes` this will need to change.
         guarantee(groups.size() <= 1);
         std::vector<datum_t> *vec = &groups[datum_t()];
