@@ -6,7 +6,6 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
-#include "containers/map_sentries.hpp"
 #include "rdb_protocol/env.hpp"
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
@@ -34,45 +33,43 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
     }
 }
 
-table_readiness_t cluster_namespace_interface_t::get_readiness() const {
-    rassert(relationships.get_domain() == region_t::universe());
-    table_readiness_t total_readiness = table_readiness_t::finished;
-    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
-        table_readiness_t region_readiness = table_readiness_t::unavailable;
-        for (auto const &peer : it->second) {
-            if (peer->master_access != NULL) {
-                // Techinally this should be 'writes', but we can't see backfills
-                region_readiness = table_readiness_t::finished;
-            } else if (peer->direct_reader_access != NULL) {
-                region_readiness = table_readiness_t::outdated_reads;
-            }
-            // TODO: handle write acks
+template <class op_t, class response_t>
+void run_query_until_success(const op_t &query,
+                             const std::function<void(const op_t &, response_t *)> &fn) {
+    response_t response;
+    while (true) {
+        try {
+            fn(query, &response);
+            break;
+        } catch (const cannot_perform_query_exc_t &) {
+            // Not ready yet - try again until interrupted
         }
-        total_readiness = std::min(total_readiness, region_readiness);
+        nap(100);
     }
-    return total_readiness;
 }
 
 void cluster_namespace_interface_t::wait_for_readiness(table_readiness_t readiness,
                                                        signal_t *interruptor) {
-    if (get_readiness() < readiness) {
-        auto_drainer_t::lock_t keepalive(&relationship_coroutine_auto_drainer);
-        wait_any_t combined_interruptor(interruptor, keepalive.get_drain_signal());
-        cond_t wait_cond;
-
-        multimap_insertion_sentry_t<table_readiness_t, cond_t *>
-            map_sentry(&waiters, readiness, &wait_cond);
-        wait_interruptible(&wait_cond, &combined_interruptor);
-    }
-}
-
-void cluster_namespace_interface_t::check_readiness() {
-    if (waiters.size() > 0) {
-        table_readiness_t readiness = get_readiness();
-        for (auto waiter = waiters.begin();
-             waiter->first <= readiness && waiter != waiters.end(); ++waiter) {
-            waiter->second->pulse_if_not_already_pulsed();
-        }
+    rassert(readiness != table_readiness_t::unavailable);
+    if (readiness <= table_readiness_t::outdated_reads) {
+        run_query_until_success<read_t, read_response_t>(
+            read_t(dummy_read_t(), profile_bool_t::DONT_PROFILE),
+            [&](const read_t &q, read_response_t *r) -> void {
+                this->read_outdated(q, r, interruptor);
+            });
+    } else if (readiness <= table_readiness_t::reads) {
+        run_query_until_success<read_t, read_response_t>(
+            read_t(dummy_read_t(), profile_bool_t::DONT_PROFILE),
+            [&](const read_t &q, read_response_t *r) -> void {
+                this->read(q, r, order_token_t::ignore, interruptor);
+            });
+    } else if (readiness <= table_readiness_t::finished) {
+        run_query_until_success<write_t, write_response_t>(
+            write_t(dummy_write_t(), profile_bool_t::DONT_PROFILE,
+                    ql::configured_limits_t::unlimited),
+            [&](const write_t &q, write_response_t *r) -> void {
+                this->write(q, r, order_token_t::ignore, interruptor);
+            });
     }
 }
 
@@ -540,8 +537,6 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
             }
             is_start = false;
         }
-
-        check_readiness();
 
         wait_any_t waiter(lock.get_drain_signal());
         if (master_access.has()) {
