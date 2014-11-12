@@ -22,7 +22,7 @@ delete_table = "delete"
 
 def check_table_states(conn, ready):
     statuses = r.db(db).table_status(r.args(tables)).run(conn)
-    return all(map(lambda s: (s['ready_for_writes'] == ready), statuses))
+    return all(map(lambda s: (s["status"]['ready_for_writes'] == ready), statuses))
 
 def wait_for_table_states(conn, ready):
     while not check_table_states(conn, ready=ready):

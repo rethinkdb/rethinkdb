@@ -57,7 +57,6 @@ ql::datum_t convert_director_status_to_datum(
         bool *has_director_out) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("server", convert_name_to_datum(name));
-    object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     *has_director_out = false;
     if (status == nullptr) {
@@ -93,7 +92,6 @@ ql::datum_t convert_replica_status_to_datum(
         bool *has_replica_out) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("server", convert_name_to_datum(name));
-    object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
     if (status == nullptr) {
@@ -167,7 +165,6 @@ ql::datum_t convert_nothing_status_to_datum(
             }
             ql::datum_object_builder_t object_builder;
             object_builder.overwrite("server", convert_name_to_datum(name));
-            object_builder.overwrite("role", ql::datum_t("replica"));
             object_builder.overwrite("state", ql::datum_t(state));
             return std::move(object_builder).to_datum();
         }
@@ -213,6 +210,8 @@ ql::datum_t convert_table_status_shard_to_datum(
             server_states[*server_id] = std::move(server_state);
         });
 
+    ql::datum_object_builder_t builder;
+
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     std::set<server_id_t> already_handled;
 
@@ -229,10 +228,14 @@ ql::datum_t convert_table_status_shard_to_datum(
         already_handled.insert(shard.director);
         if (has_director) {
             servers_for_acks.insert(shard.director);
+            builder.overwrite("director", convert_name_to_datum(*director_name));
         }
     } else {
         /* Director was permanently removed; in `table_config` the `director` field will
         have a value of `null`. So we don't show a director entry in `table_status`. */
+    }
+    if (!has_director) {
+        builder.overwrite("director", ql::datum_t::null());
     }
 
     bool has_outdated_reader = false;
@@ -288,6 +291,8 @@ ql::datum_t convert_table_status_shard_to_datum(
         }
     }
 
+    builder.overwrite("replicas", std::move(array_builder).to_datum());
+
     if (has_director) {
         if (ack_checker.check_acks(servers_for_acks)) {
             if (!is_unfinished) {
@@ -306,7 +311,7 @@ ql::datum_t convert_table_status_shard_to_datum(
         }
     }
 
-    return std::move(array_builder).to_datum();
+    return std::move(builder).to_datum();
 }
 
 ql::datum_t convert_table_status_to_datum(
@@ -342,14 +347,16 @@ ql::datum_t convert_table_status_to_datum(
     }
     builder.overwrite("shards", std::move(array_builder).to_datum());
 
-    builder.overwrite("ready_for_outdated_reads", ql::datum_t::boolean(
+    ql::datum_object_builder_t status_builder;
+    status_builder.overwrite("ready_for_outdated_reads", ql::datum_t::boolean(
         readiness >= table_readiness_t::outdated_reads));
-    builder.overwrite("ready_for_reads", ql::datum_t::boolean(
+    status_builder.overwrite("ready_for_reads", ql::datum_t::boolean(
         readiness >= table_readiness_t::reads));
-    builder.overwrite("ready_for_writes", ql::datum_t::boolean(
+    status_builder.overwrite("ready_for_writes", ql::datum_t::boolean(
         readiness >= table_readiness_t::writes));
-    builder.overwrite("ready_completely", ql::datum_t::boolean(
+    status_builder.overwrite("all_replicas_ready", ql::datum_t::boolean(
         readiness == table_readiness_t::finished));
+    builder.overwrite("status", std::move(status_builder).to_datum());
 
     return std::move(builder).to_datum();
 }

@@ -71,7 +71,7 @@ with driver.Metacluster() as metacluster:
     #  2. A value in the same format as `table_config.write_acks`.
     #  3. The level of availability we expect for the table after the "dead" servers have
     #     shut down, expressed as a string with the chars `a`, `w`, `r`, and/or `o`,
-    #     which correspond to the four `ready_*` fields in `table_status`.
+    #     which correspond to the four fields in the `status` group of `table_status`.
     #  4. The level of availability we expect after the "dead" servers have been
     #     permanently removed and the primary (if dead) reassigned to a live server.
     tests = [
@@ -142,13 +142,13 @@ with driver.Metacluster() as metacluster:
             tested_readiness += "o"
         res = r.table_status(name).nth(0).run(conn)
         reported_readiness = ""
-        if res["ready_completely"]:
+        if res["status"]["all_replicas_ready"]:
             reported_readiness += "a"
-        if res["ready_for_writes"]:
+        if res["status"]["ready_for_writes"]:
             reported_readiness += "w"
-        if res["ready_for_reads"]:
+        if res["status"]["ready_for_reads"]:
             reported_readiness += "r"
-        if res["ready_for_outdated_reads"]:
+        if res["status"]["ready_for_outdated_reads"]:
             reported_readiness += "o"
         print "%s expect=%r test=%r report=%r" % \
             (name, expected_readiness, tested_readiness, reported_readiness)

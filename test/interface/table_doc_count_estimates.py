@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-"""The `interface.table_status_num_docs` test checks that the `doc_count_estimates`
+"""The `interface.table_doc_count_estimates` test checks that the `doc_count_estimates`
 field on `r.table(...).info()` behaves as expected."""
 
 import os, pprint, re, sys, time

@@ -100,11 +100,11 @@ with driver.Metacluster() as metacluster:
 
     test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
-    assert test_status["ready_for_writes"], test_status
-    assert not test_status["ready_completely"], test_status
-    assert test2_status["ready_for_outdated_reads"], test2_status
-    assert not test2_status["ready_for_reads"], test2_status
-    assert not test3_status["ready_for_outdated_reads"], test3_status
+    assert test_status["status"]["ready_for_writes"], test_status
+    assert not test_status["status"]["all_replicas_ready"], test_status
+    assert test2_status["status"]["ready_for_outdated_reads"], test2_status
+    assert not test2_status["status"]["ready_for_reads"], test2_status
+    assert not test3_status["status"]["ready_for_outdated_reads"], test3_status
 
     print("Permanently removing the dead one...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "KingHamlet"}) \
@@ -130,10 +130,10 @@ with driver.Metacluster() as metacluster:
 
     test_status, test2_status, test3_status = \
         r.table_status("test", "test2", "test3").run(conn)
-    assert test_status["ready_completely"]
-    assert test2_status["ready_for_outdated_reads"]
-    assert not test2_status["ready_for_reads"]
-    assert not test3_status["ready_for_outdated_reads"]
+    assert test_status["status"]["all_replicas_ready"]
+    assert test2_status["status"]["ready_for_outdated_reads"]
+    assert not test2_status["status"]["ready_for_reads"]
+    assert not test3_status["status"]["ready_for_outdated_reads"]
     assert r.table_config("test").nth(0)["shards"].run(conn) == [{
         "director": "PrinceHamlet",
         "replicas": ["PrinceHamlet"]
