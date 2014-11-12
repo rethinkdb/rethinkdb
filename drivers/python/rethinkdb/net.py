@@ -251,7 +251,7 @@ class Connection(object):
         offset = 0
         while offset < len(data):
             try:
-                offset += self.socket.send(data)
+                offset += self.socket.send(data[offset:])
             except IOError as e:
                 if e.errno != errno.EINTR:
                     self.close(noreply_wait=False)
