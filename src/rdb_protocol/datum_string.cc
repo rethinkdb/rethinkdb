@@ -14,7 +14,7 @@
 #include "utils.hpp"
 
 datum_string_t::datum_string_t() {
-    init(0, NULL);
+    init(0, "");
 }
 
 datum_string_t::datum_string_t(size_t _size, const char *_data) {
