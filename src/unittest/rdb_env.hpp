@@ -61,11 +61,15 @@ public:
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
+    void wait_for_readiness(table_readiness_t readiness,
+                            signal_t *interruptor);
+
 private:
     cond_t ready_cond;
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const point_read_t &get);
+        void operator()(const dummy_read_t &d);
         void NORETURN operator()(const changefeed_subscribe_t &);
         void NORETURN operator()(const changefeed_stamp_t &);
         void NORETURN operator()(const changefeed_point_stamp_t &);
@@ -85,6 +89,7 @@ private:
     struct write_visitor_t : public boost::static_visitor<void> {
         void operator()(const batched_replace_t &br);
         void operator()(const batched_insert_t &br);
+        void operator()(const dummy_write_t &d);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
         void NORETURN operator()(UNUSED const sindex_create_t &s);
@@ -155,6 +160,10 @@ public:
         bool db_find(const name_string_t &name,
                 signal_t *interruptor, counted_t<const ql::db_t> *db_out,
                 std::string *error_out);
+        bool db_config(const std::vector<name_string_t> &db_names,
+                const ql::protob_t<const Backtrace> &bt,
+                signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+                std::string *error_out);
 
         bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
                 const boost::optional<name_string_t> &primary_dc, bool hard_durability,
@@ -189,6 +198,13 @@ public:
         bool table_reconfigure(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *new_config_out,
+            std::string *error_out);
+        bool db_reconfigure(
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,

@@ -55,6 +55,10 @@ public:
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out);
+    bool db_config(const std::vector<name_string_t> &db_names,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out);
 
     bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
             const boost::optional<name_string_t> &primary_dc, bool hard_durability,
@@ -89,6 +93,13 @@ public:
     bool table_reconfigure(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *new_config_out,
+            std::string *error_out);
+    bool db_reconfigure(
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,

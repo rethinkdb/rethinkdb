@@ -29,11 +29,10 @@ def wait_for_table_states(conn, ready):
         time.sleep(0.1)
 
 def create_tables(conn):
-    r.db_create(db).run(conn)
     r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
     r.db(db).table_create(delete_table).run(conn) # An extra table to be deleted during a wait
     r.db(db).table_list().for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
-    r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
+    r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(shards=2, replicas=2)).run(conn)
     statuses = r.db(db).table_wait().run(conn)
     assert check_table_states(conn, ready=True), \
         "Wait after reconfigure returned before tables were ready, statuses: %s" % str(statuses)
@@ -72,6 +71,18 @@ with driver.Metacluster() as metacluster:
     cluster.check()
 
     conn = r.connect("localhost", proc1.driver_port)
+    r.db_create(db).run(conn)
+
+    print("Testing simple table (several times)...")
+    for i in xrange(5):
+        res = r.db(db).table_create("simple").run(conn)
+        assert res == {"created": 1}
+        r.db(db).table("simple").reconfigure(shards=12, replicas=1).run(conn)
+        r.db(db).table_wait("simple").run(conn)
+        count = r.db(db).table("simple").count().run(conn)
+        assert count == 0
+        res = r.db(db).table_drop("simple").run(conn)
+        assert res == {"dropped": 1}
 
     print("Creating %d tables..." % (len(tables) + 1))
     create_tables(conn)

@@ -65,14 +65,6 @@ public:
     name_string_t director_tag;
 };
 
-enum class table_readiness_t {
-    unavailable,
-    outdated_reads,
-    reads,
-    writes,
-    finished
-};
-
 enum class admin_identifier_format_t {
     /* Some parts of the code rely on the fact that `admin_identifier_format_t` can be
     mapped to `{0, 1}` using `static_cast`. */
@@ -168,6 +160,10 @@ public:
     virtual bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out) = 0;
+    virtual bool db_config(const std::vector<name_string_t> &db_names,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out) = 0;
 
     /* `table_create()` won't return until the table is ready for reading */
     virtual bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
@@ -210,6 +206,13 @@ public:
     virtual bool table_reconfigure(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *new_config_out,
+            std::string *error_out) = 0;
+    virtual bool db_reconfigure(
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,

@@ -934,6 +934,9 @@ class DB(RqlTopLevelQuery):
     tt = pTerm.DB
     st = 'db'
 
+    def reconfigure(self, *args, **kwargs):
+        return Reconfigure(self, *args, **kwargs)
+
     def table_list(self, *args):
         return TableList(self, *args)
 
@@ -1191,6 +1194,10 @@ class DbList(RqlTopLevelQuery):
     tt = pTerm.DB_LIST
     st = "db_list"
 
+class DbConfig(RqlTopLevelQuery):
+    tt = pTerm.DB_CONFIG
+    st = "db_config"
+
 class TableCreate(RqlMethodQuery):
     tt = pTerm.TABLE_CREATE
     st = "table_create"
@@ -1264,6 +1271,10 @@ class IndexWait(RqlMethodQuery):
     st = 'index_wait'
 
 class Reconfigure(RqlMethodQuery):
+    tt = pTerm.RECONFIGURE
+    st = 'reconfigure'
+
+class ReconfigureTL(RqlTopLevelQuery):
     tt = pTerm.RECONFIGURE
     st = 'reconfigure'
 

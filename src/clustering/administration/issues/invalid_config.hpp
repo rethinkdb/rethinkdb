@@ -30,7 +30,7 @@ private:
 
 class need_primary_issue_t : public invalid_config_issue_t {
 public:
-    need_primary_issue_t(const namespace_id_t &_table_id);
+    explicit need_primary_issue_t(const namespace_id_t &_table_id);
     const datum_string_t &get_name() const { return need_primary_issue_type; }
 private:
     static const datum_string_t need_primary_issue_type;
@@ -42,7 +42,7 @@ private:
 
 class data_loss_issue_t : public invalid_config_issue_t {
 public:
-    data_loss_issue_t(const namespace_id_t &_table_id);
+    explicit data_loss_issue_t(const namespace_id_t &_table_id);
     const datum_string_t &get_name() const { return data_loss_issue_type; }
 private:
     static const datum_string_t data_loss_issue_type;
@@ -54,7 +54,7 @@ private:
 
 class write_acks_issue_t : public invalid_config_issue_t {
 public:
-    write_acks_issue_t(const namespace_id_t &_table_id);
+    explicit write_acks_issue_t(const namespace_id_t &_table_id);
     const datum_string_t &get_name() const { return write_acks_issue_type; }
 private:
     static const datum_string_t write_acks_issue_type;
@@ -66,7 +66,7 @@ private:
 
 class invalid_config_issue_tracker_t : public issue_tracker_t {
 public:
-    invalid_config_issue_tracker_t(
+    explicit invalid_config_issue_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view);
 

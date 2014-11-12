@@ -48,6 +48,19 @@ with driver.Metacluster() as metacluster:
     assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
     bar_uuid = [row["id"] for row in rows if row["name"] == "bar"][0]
 
+    rows = list(r.db_config().run(conn))
+    assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
+
+    rows = list(r.db_config("foo2").run(conn))
+    assert len(rows) == 1 and rows[0]["name"] == "foo2"
+
+    try:
+        rows = r.db_config("not_a_database").run(conn)
+    except r.RqlRuntimeError:
+        pass
+    else:
+        raise ValueError("db_config() porcelain should fail if argument does not exist.")
+
     res = r.db("rethinkdb").table("db_config").get(bar_uuid).update({"name": "foo2"}) \
            .run(conn)
     # This would cause a name conflict, so it should fail

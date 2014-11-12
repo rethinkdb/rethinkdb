@@ -58,19 +58,21 @@ tests:
     - cd: db.table_create('a')
       ot: ({'created':1})
 
-    - cd: db.table('a').reconfigure(1, 1)
+    - py: db.table('a').reconfigure(shards=1, replicas=1)
+      js: db.table('a').reconfigure({shards:1, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1)
 
-    - py: db.table('a').reconfigure(1, {"default":1})
-      js: db.table('a').reconfigure(1, {default:1})
-      rb: db.table('a').reconfigure(1, {:default => 1})
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1})
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1})
 
-    - py: db.table('a').reconfigure(1, 1, director_tag='default')
-      js: db.table('a').reconfigure(1, 1, {director_tag:'default'})
-      rb: db.table('a').reconfigure(1, 1, {:director_tag => 'default'})
+    - py: db.table('a').reconfigure(shards=1, replicas=1, director_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:1, director_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :director_tag => 'default')
 
-    - py: db.table('a').reconfigure(1, 1, dry_run=True)
-      js: db.table('a').reconfigure(1, 1, {dry_run:true})
-      rb: db.table('a').reconfigure(1, 1, {:dry_run => true})
+    - py: db.table('a').reconfigure(shards=1, replicas=1, dry_run=True)
+      js: db.table('a').reconfigure({shards:1, replicas:1, dry_run:true})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :dry_run => true)
 
     - cd: db.table_drop('a')
       ot: ({'dropped':1})
@@ -105,30 +107,83 @@ tests:
     - cd: db.table_create('a')
       ot: ({'created':1})
 
-    - cd: db.table('a').reconfigure(0, 1)
+    - py: db.table('a').reconfigure(shards=0, replicas=1)
+      js: db.table('a').reconfigure({shards:0, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 0, :replicas => 1)
       ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
 
-    - py: db.table('a').reconfigure(1, {"default":0})
-      js: db.table('a').reconfigure(1, {default:0})
-      rb: db.table('a').reconfigure(1, {:default => 0})
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":0})
+      js: db.table('a').reconfigure({shards:1, replicas:{default:0}})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 0})
       ot: >
           err('RqlRuntimeError', 'Can\'t use server tag `default` for directors because
           you specified no replicas in server tag `default`.', [])
 
-    - py: db.table('a').reconfigure(1, {"default":-3})
-      js: db.table('a').reconfigure(1, {default:-3})
-      rb: db.table('a').reconfigure(1, {:default => -3})
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":-3})
+      js: db.table('a').reconfigure({shards:1, replicas:{default:-3}})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => -3})
       ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
 
-    - cd: db.table('a').reconfigure(2, 1)
+    # Test reconfigure auto-sharding without data
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
 
-    - cd: db.table('a').reconfigure(1, 2)
+    - cd: db.table_wait('a')
+
+    # Insert some data so that `reconfigure()` can pick shard points
+    - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
+      js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
+      rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
+      ot: {"inserted": 4}
+
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
+
+    - py: db.table('a').reconfigure(shards=1, replicas=2)
+      js: db.table('a').reconfigure({shards:1, replicas:2})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 2)
       ot: >
-          err('RqlRuntimeError', 'Can\'t put 2 replicas on servers with the tag `default`
-          because there are only 1 servers with the tag `default`. It\'s impossible to
-          have more replicas of the data than there are servers.', [])
+          err('RqlRuntimeError', 'Can\'t put 2 replicas on servers with the tag
+          `default` because there are only 1 servers with the tag `default`. It\'s
+          impossible to have more replicas of the data than there are servers.', [])
 
     - cd: db.table_drop('a')
+      ot: ({'dropped':1})
+
+    # Reconfiguring all tables in a database
+    - cd: db.table_create('a')
+    - cd: db.table_create('b')
+    - cd: db.table_create('c')
+
+    - py: db.reconfigure(shards=0, replicas=1)
+      js: db.reconfigure({shards:0, replicas:1})
+      rb: db.reconfigure(:shards => 0, :replicas => 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":0})
+      js: db.reconfigure({shards:1, replicas:{default:0}})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => 0})
+      ot: >
+          err('RqlRuntimeError', 'Can\'t use server tag `default` for directors because
+          you specified no replicas in server tag `default`.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":-3})
+      js: db.reconfigure({shards:1, replicas:{default:-3}})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => -3})
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
+
+    - py: db.reconfigure(shards=2, replicas=1)['shards'].map(r.row.count())
+      js: db.reconfigure({shards:2, replicas:1})('shards').map(r.row.count())
+      rb: db.reconfigure(:shards => 2, :replicas => 1)['shards'].map{ |t| t.count() }
+      ot: bag([2,2,2])
+
+    - cd: db.table_drop('a')
+      ot: ({'dropped':1})
+    - cd: db.table_drop('b')
+      ot: ({'dropped':1})
+    - cd: db.table_drop('c')
       ot: ({'dropped':1})
 
     # table_config and table_status porcelains

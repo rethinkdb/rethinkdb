@@ -57,6 +57,10 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
     return s;
 }
 
+void mock_namespace_interface_t::wait_for_readiness(table_readiness_t, signal_t *) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
     ql::configured_limits_t limits;
     response->response = point_read_response_t();
@@ -67,6 +71,10 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     } else {
         res.data = ql::datum_t::null();
     }
+}
+
+void mock_namespace_interface_t::read_visitor_t::operator()(const dummy_read_t &) {
+    response->response = dummy_read_response_t();
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
@@ -216,6 +224,10 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);
     response->response = std::move(result).to_datum();
+}
+
+void mock_namespace_interface_t::write_visitor_t::operator()(const dummy_write_t &) {
+    response->response = dummy_write_response_t();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
@@ -369,6 +381,15 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
     }
 }
 
+bool test_rdb_env_t::instance_t::db_config(
+        UNUSED const std::vector<name_string_t> &db_names,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor, UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_db_env_t::instance_t doesn't support db_config()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const boost::optional<name_string_t> &primary_dc,
@@ -462,6 +483,17 @@ bool test_rdb_env_t::instance_t::table_wait(
 bool test_rdb_env_t::instance_t::table_reconfigure(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *new_config_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_reconfigure(
+        UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,

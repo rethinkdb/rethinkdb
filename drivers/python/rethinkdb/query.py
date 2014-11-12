@@ -45,6 +45,9 @@ def db_drop(*args):
 def db_list(*args):
     return DbList(*args)
 
+def db_config(*args):
+    return DbConfig(*args)
+
 def table_create(*args, **kwargs):
     return TableCreateTL(*args, **kwargs)
 
@@ -62,6 +65,9 @@ def table_status(*args):
 
 def table_wait(*args):
     return TableWaitTL(*args)
+
+def reconfigure(*args, **kwargs):
+    return ReconfigureTL(*args, **kwargs)
 
 def branch(*args):
     return Branch(*args)

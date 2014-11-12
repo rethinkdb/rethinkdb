@@ -279,6 +279,7 @@ struct changefeed_stamp_response_t {
     // servers and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
 struct changefeed_point_stamp_response_t {
@@ -290,7 +291,14 @@ struct changefeed_point_stamp_response_t {
     ql::datum_t initial_val;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
 RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
+
+struct dummy_read_response_t {
+    // dummy read always succeeds
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_read_response_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
@@ -301,7 +309,8 @@ struct read_response_t {
                            changefeed_point_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
-                           sindex_status_response_t> variant_t;
+                           sindex_status_response_t,
+                           dummy_read_response_t> variant_t;
     variant_t response;
     profile::event_log_t event_log;
     size_t n_shards;
@@ -322,6 +331,16 @@ public:
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
+
+// `dummy_read_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.  
+class dummy_read_t {
+public:
+    dummy_read_t() : region(region_t::universe()) { }
+    region_t region;
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_read_t);
 
 struct sindex_rangespec_t {
     sindex_rangespec_t() { }
@@ -523,7 +542,8 @@ struct read_t {
                            changefeed_point_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
-                           sindex_status_t> variant_t;
+                           sindex_status_t,
+                           dummy_read_t> variant_t;
     variant_t read;
     profile_bool_t profile;
 
@@ -602,6 +622,12 @@ struct sync_response_t {
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
+struct dummy_write_response_t {
+    // dummy write always succeeds
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_write_response_t);
+
 typedef ql::datum_t batched_replace_response_t;
 
 struct write_response_t {
@@ -612,7 +638,8 @@ struct write_response_t {
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sindex_rename_response_t,
-                   sync_response_t> response;
+                   sync_response_t,
+                   dummy_write_response_t> response;
 
     profile::event_log_t event_log;
     size_t n_shards;
@@ -768,6 +795,16 @@ public:
     region_t region;
 };
 
+// `dummy_write_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.  
+class dummy_write_t {
+public:
+    dummy_write_t() : region(region_t::universe()) { }
+    region_t region;
+};
+
+RDB_DECLARE_SERIALIZABLE(dummy_write_t);
+
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
 struct write_t {
@@ -778,7 +815,8 @@ struct write_t {
                            sindex_create_t,
                            sindex_drop_t,
                            sindex_rename_t,
-                           sync_t> variant_t;
+                           sync_t,
+                           dummy_write_t> variant_t;
     variant_t write;
 
     durability_requirement_t durability_requirement;

@@ -47,6 +47,21 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
     return next->db_find(name, interruptor, db_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::db_config(
+        const std::vector<name_string_t> &db_names,
+        const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    for (const name_string_t &db : db_names) {
+        if (db == database) {
+            *error_out = strprintf("Database `%s` is special; you can't configure it.",
+                database.c_str());
+            return false;
+        }
+    }
+    return next->db_config(db_names, bt, interruptor, resp_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
         bool hard_durability, const std::string &primary_key, signal_t *interruptor,
@@ -169,6 +184,22 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         return false;
     }
     return next->table_reconfigure(db, name, params, dry_run, interruptor,
+        new_config_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::db_reconfigure(
+        counted_t<const ql::db_t> db,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *new_config_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->db_reconfigure(db, params, dry_run, interruptor,
         new_config_out, error_out);
 }
 

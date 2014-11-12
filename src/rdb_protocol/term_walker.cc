@@ -251,6 +251,7 @@ private:
         case Term::DECEMBER:
         case Term::DB_LIST:
         case Term::TABLE_LIST:
+        case Term::DB_CONFIG:
         case Term::TABLE_CONFIG:
         case Term::TABLE_STATUS:
         case Term::TABLE_WAIT:
@@ -376,6 +377,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::DB_CONFIG:
         case Term::TABLE_CONFIG:
         case Term::TABLE_STATUS:
         case Term::TABLE_WAIT:
