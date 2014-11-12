@@ -613,7 +613,7 @@ module 'DataExplorerView', ->
                 [/\[/g, '\\[']
             ]
 
-            @results_view = new ResultParentView
+            @results_view = new ResultViewWrapper
                 container: @
                 view: @state.view
 
@@ -628,7 +628,9 @@ module 'DataExplorerView', ->
             @driver_handler = new DriverHandler
                 container: @
 
-            # One callback to rule them all
+            # These events were caught here to avoid being bound and unbound every time
+            # The results changed. It should ideally be caught in the individual result views
+            # that actually need it.
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
             $(window).mousedown @handle_mousedown
@@ -3434,7 +3436,7 @@ module 'DataExplorerView', ->
                 @delegateEvents()
             @
 
-    class ResultParentView extends Backbone.View
+    class ResultViewWrapper extends Backbone.View
         className: 'result_view'
         template: Handlebars.templates['dataexplorer_result_container-template']
         metadata_template: Handlebars.templates['dataexplorer-metadata-template']
