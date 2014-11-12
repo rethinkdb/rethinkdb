@@ -92,6 +92,7 @@ protected:
     virtual changefeed::keyspec_t get_change_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
+    std::vector<transform_variant_t> transforms;
 
 private:
     enum class done_t { YES, NO };

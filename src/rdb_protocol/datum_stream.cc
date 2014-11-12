@@ -707,7 +707,8 @@ bool datum_stream_t::batch_cache_exhausted() const {
 
 void eager_datum_stream_t::add_transformation(
     transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    ops.push_back(make_op(std::move(tv)));
+    ops.push_back(make_op(tv));
+    transforms.push_back(std::move(tv));
     update_bt(bt);
 }
 
@@ -949,6 +950,8 @@ changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
         changefeed::keyspec_t subspec = source->get_change_spec();
         auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
         if (rspec != NULL) {
+            std::copy(transforms.begin(), transforms.end(),
+                      std::back_inserter(rspec->transforms));
             return changefeed::keyspec_t(
                 changefeed::keyspec_t::limit_t{std::move(*rspec), right},
                 std::move(subspec.table),
