@@ -592,13 +592,17 @@ bool real_reql_cluster_interface_t::table_wait(
 }
 
 bool real_reql_cluster_interface_t::reconfigure_internal(
-        namespace_id_t table_id,
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        const name_string_t &table_name,
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     rassert(get_thread_id() == server_name_client->home_thread());
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_map;
+    table_map.push_back(std::make_pair(table_id, table_name));
 
     /* Find the specified table in the semilattice metadata */
     cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
@@ -651,6 +655,26 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         return false;
     }
 
+    // Store the old value of the config and status
+    ql::datum_object_builder_t result_builder;
+    {
+        ql::datum_object_builder_t old_val_builder;
+        old_val_builder.overwrite("config", 
+            convert_table_config_to_datum(
+                ns_metadata_it->second.get_ref().replication_info.get_ref().config,
+                server_name_client));
+
+        std::vector<ql::datum_t> old_status;
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+                             true, interruptor, &old_status, error_out)) {
+            *error_out = "When calculating old table status: " + *error_out;
+            return false;
+        }
+        guarantee(old_status.size() == 1);
+        old_val_builder.overwrite("status", old_status[0]);
+        result_builder.overwrite("old_val", std::move(old_val_builder).to_datum());
+    }
+
     new_repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
     new_repli_info.config.durability = write_durability_t::HARD;
 
@@ -660,8 +684,24 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         semilattice_root_view->join(metadata);
     }
 
-    *new_config_out = convert_table_config_to_datum(
-        new_repli_info.config, server_name_client);
+    // Store the new value of the config and status
+    {
+        ql::datum_object_builder_t new_val_builder;
+        new_val_builder.overwrite("config",
+            convert_table_config_to_datum(new_repli_info.config, server_name_client));
+
+        std::vector<ql::datum_t> new_status;
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+                             true, interruptor, &new_status, error_out)) {
+            *error_out = "When calculating new table status: " + *error_out;
+            return false;
+        }
+        guarantee(new_status.size() == 1);
+        new_val_builder.overwrite("status", new_status[0]);
+        result_builder.overwrite("new_val", std::move(new_val_builder).to_datum());
+    }
+
+    *result_out = std::move(result_builder).to_datum();
     return true;
 }
 
@@ -671,7 +711,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -684,8 +724,8 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
     rassert(tables.size() == 1);
 
-    return reconfigure_internal(tables.begin()->first, params, dry_run,
-                                &ct_interruptor, new_config_out, error_out);
+    return reconfigure_internal(db, tables.begin()->first, name, params, dry_run,
+                                &ct_interruptor, result_out, error_out);
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
@@ -693,7 +733,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -708,13 +748,13 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     for (auto const &pair : tables) {
         ql::datum_t table_result;
-        if (!reconfigure_internal(pair.first, params, dry_run, &ct_interruptor,
-                                  &table_result, error_out)) {
+        if (!reconfigure_internal(db, pair.first, pair.second, params, dry_run,
+                                  &ct_interruptor, &table_result, error_out)) {
             return false;
         }
         array_builder.add(table_result);
     }
-    *new_config_out = std::move(array_builder).to_datum();
+    *result_out = std::move(array_builder).to_datum();
     return true;
 }
 
