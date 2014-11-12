@@ -365,7 +365,7 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-                        // The arity of the function should be 
+                        // The arity of the function should be
                         // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
@@ -481,8 +481,12 @@ message Term {
         // Waits for table(s) to be fully ready for read/write operations
         TABLE_WAIT    = 177; // Database[, String...] -> StreamSelection
                              // [String...] -> StreamSelection
-        // Generates a new config for the given table.
-        RECONFIGURE   = 176; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
+        // Generates a new config for the given table, or all tables in the given database
+        // The `shards` and `replicas` arguments are required
+        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Database, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Table, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Table, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT
