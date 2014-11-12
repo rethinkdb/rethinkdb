@@ -24,7 +24,7 @@ public:
     watchable_variable_t<cluster_directory_metadata_t> directory_entry;
     dummy_directory_manager_t<cluster_directory_metadata_t> directory_metadata;
 
-    issues_artificial_table_backend_t issues_backend;
+    issues_artificial_table_backend_t issues_backend_name, issues_backend_uuid;
     local_issue_aggregator_t local_issue_aggregator;
     log_write_issue_tracker_t log_write_issue_tracker;
     outdated_index_issue_tracker_t outdated_index_issue_tracker;
@@ -128,12 +128,17 @@ issues_environment_t::issues_environment_t() :
     directory_entry(default_directory_entry(local_server_id)),
     directory_metadata(directory_entry.get_watchable()->get().peer_id,
                        directory_entry.get_watchable()),
-    issues_backend(cluster_metadata.get_view(),
-                   directory_metadata.get_view(),
-                   /* We don't test any types of issues that need the
-                   `server_name_client_t` */
-                   nullptr,
-                   admin_identifier_format_t::name),
+    issues_backend_name(
+        cluster_metadata.get_view(),
+        directory_metadata.get_view(),
+        /* We don't test any types of issues that need the `server_name_client_t` */
+        nullptr,
+        admin_identifier_format_t::name),
+    issues_backend_uuid(
+        cluster_metadata.get_view(),
+        directory_metadata.get_view(),
+        nullptr,
+        admin_identifier_format_t::uuid),
     log_write_issue_tracker(&local_issue_aggregator),
     outdated_index_issue_tracker(&local_issue_aggregator),
     local_issue_copier(&cluster_directory_metadata_t::local_issues,
@@ -154,17 +159,25 @@ void assert_no_issues(issues_environment_t *env) {
     cond_t interruptor;
 
     std::vector<ql::datum_t> rows;
-    bool res = env->issues_backend.read_all_rows_as_vector(&interruptor, &rows, &error);
+    bool res = env->issues_backend_name.read_all_rows_as_vector(
+        &interruptor, &rows, &error);
     ASSERT_TRUE(res);
     ASSERT_EQ(static_cast<size_t>(0), rows.size());
 }
 
-void assert_one_issue(issues_environment_t *env, ql::datum_t *issue_out) {
+void assert_one_issue(
+        issues_environment_t *env,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *issue_out) {
     std::string error;
     cond_t interruptor;
 
+    artificial_table_backend_t *backend =
+        (identifier_format == admin_identifier_format_t::name)
+            ? &env->issues_backend_name
+            : &env->issues_backend_uuid;
     std::vector<ql::datum_t> rows;
-    bool res = env->issues_backend.read_all_rows_as_vector(&interruptor, &rows, &error);
+    bool res = backend->read_all_rows_as_vector(&interruptor, &rows, &error);
     ASSERT_TRUE(res);
     ASSERT_EQ(static_cast<size_t>(1), rows.size());
 
@@ -186,57 +199,38 @@ TPTEST(ClusteringIssues, OutdatedIndex) {
         std::set<std::string>({"one", "two", "three"}));
 
     let_stuff_happen();
-    ql::datum_t issue;
-    assert_one_issue(&env, &issue);
-    ASSERT_TRUE(issue.has());
+    ql::datum_t issue_with_names, issue_with_uuids;
+    assert_one_issue(&env, admin_identifier_format_t::name, &issue_with_names);
+    assert_one_issue(&env, admin_identifier_format_t::uuid, &issue_with_uuids);
+    ASSERT_TRUE(issue_with_names.has() && issue_with_uuids.has());
 
     // Check issue data
-    ASSERT_FALSE(issue.get_field("critical").as_bool());
-    ASSERT_EQ(std::string("outdated_index"), issue.get_field("type").as_str().to_std());
+    ASSERT_FALSE(issue_with_names.get_field("critical").as_bool());
+    ASSERT_EQ(std::string("outdated_index"),
+        issue_with_names.get_field("type").as_str().to_std());
 
-    ASSERT_EQ(static_cast<size_t>(1), issue.get_field("info").get_field("tables").arr_size());
-    ql::datum_t table = issue.get_field("info").get_field("tables").get(0);
-    ASSERT_EQ(db_name, table.get_field("db").as_str().to_std());
-    ASSERT_EQ(table_name, table.get_field("table").as_str().to_std());
-    ASSERT_EQ(uuid_to_str(db_id), table.get_field("db_id").as_str().to_std());
-    ASSERT_EQ(uuid_to_str(table_id), table.get_field("table_id").as_str().to_std());
-    ASSERT_EQ(static_cast<size_t>(3), table.get_field("indexes").arr_size());
+    ASSERT_EQ(static_cast<size_t>(1),
+        issue_with_names.get_field("info").get_field("tables").arr_size());
+    ql::datum_t table_with_names =
+        issue_with_names.get_field("info").get_field("tables").get(0);
+    ASSERT_EQ(db_name,
+        table_with_names.get_field("db").as_str().to_std());
+    ASSERT_EQ(table_name,
+        table_with_names.get_field("table").as_str().to_std());
+    ASSERT_EQ(static_cast<size_t>(3),
+        table_with_names.get_field("indexes").arr_size());
+
+    ASSERT_EQ(static_cast<size_t>(1),
+        issue_with_uuids.get_field("info").get_field("tables").arr_size());
+    ql::datum_t table_with_uuids =
+        issue_with_uuids.get_field("info").get_field("tables").get(0);
+    ASSERT_EQ(uuid_to_str(db_id),
+        table_with_uuids.get_field("db").as_str().to_std());
+    ASSERT_EQ(uuid_to_str(table_id),
+        table_with_uuids.get_field("table").as_str().to_std());
 
     // Clear error case
     index_report->destroy();
-
-    let_stuff_happen();
-    assert_no_issues(&env);
-}
-
-TPTEST(ClusteringIssues, LogWriteError) {
-    issues_environment_t env;
-    assert_no_issues(&env);
-
-    // Set up error case
-    std::string error_string("fake error");
-    env.log_write_issue_tracker.report_error(error_string);
-
-    let_stuff_happen();
-    ql::datum_t issue;
-    assert_one_issue(&env, &issue);
-    ASSERT_TRUE(issue.has());
-
-    // Check issue data
-    ASSERT_FALSE(issue.get_field("critical").as_bool());
-    ASSERT_EQ(std::string("log_write_error"), issue.get_field("type").as_str().to_std());
-
-    ql::datum_t info = issue.get_field("info");
-    ASSERT_EQ(error_string, info.get_field("message").as_str().to_std());
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("server_ids").arr_size());
-    ASSERT_EQ(static_cast<size_t>(1), info.get_field("servers").arr_size());
-    ASSERT_EQ(uuid_to_str(env.local_server_id),
-              info.get_field("server_ids").get(0).as_str().to_std());
-    ASSERT_EQ(std::string("self"),
-              info.get_field("servers").get(0).as_str().to_std());
-
-    // Clear error case
-    env.log_write_issue_tracker.report_success();
 
     let_stuff_happen();
     assert_no_issues(&env);
@@ -253,7 +247,7 @@ TPTEST(ClusteringIssues, DatabaseNameCollision) {
 
     let_stuff_happen();
     ql::datum_t issue;
-    assert_one_issue(&env, &issue);
+    assert_one_issue(&env, admin_identifier_format_t::name, &issue);
     ASSERT_TRUE(issue.has());
 
     // Check issue data
@@ -295,7 +289,7 @@ TPTEST(ClusteringIssues, TableNameCollision) {
 
     let_stuff_happen();
     ql::datum_t issue;
-    assert_one_issue(&env, &issue);
+    assert_one_issue(&env, admin_identifier_format_t::name, &issue);
     ASSERT_TRUE(issue.has());
 
     // Check issue data
@@ -304,7 +298,6 @@ TPTEST(ClusteringIssues, TableNameCollision) {
 
     ql::datum_t info = issue.get_field("info");
     ASSERT_EQ(collided_name, info.get_field("name").as_str().to_std());
-    ASSERT_EQ(uuid_to_str(db1), info.get_field("db_id").as_str().to_std());
     ASSERT_EQ("db1", info.get_field("db").as_str().to_std());
 
     ql::datum_t ids = info.get_field("ids");
@@ -338,7 +331,7 @@ TPTEST(ClusteringIssues, ServerNameCollision) {
 
     let_stuff_happen();
     ql::datum_t issue;
-    assert_one_issue(&env, &issue);
+    assert_one_issue(&env, admin_identifier_format_t::name, &issue);
     ASSERT_TRUE(issue.has());
 
     // Check issue data
