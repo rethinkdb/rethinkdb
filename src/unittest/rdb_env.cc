@@ -485,6 +485,25 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
     return false;
 }
 
+bool test_rdb_env_t::instance_t::table_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,

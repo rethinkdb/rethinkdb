@@ -686,6 +686,117 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     return true;
 }
 
+bool real_reql_cluster_interface_t::rebalance_internal(
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        const name_string_t &table_name,
+        signal_t *interruptor,
+        ql::datum_t *results_out,
+        std::string *error_out) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    tables.push_back(std::make_pair(table_id, table_name));
+
+    std::vector<ql::datum_t> old_status;
+    if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
+            interruptor, &old_status, error_out)) {
+        *error_out = "When calculating table status: " + *error_out;
+        return false;
+    }
+    guarantee(old_status.size() == 1);
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
+            &metadata.rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &ns_change.get()->namespaces);
+    auto it = ns_change.get()->namespaces.find(table_id);
+    r_sanity_check(it != ns_change.get()->namespaces.end() && !it->second.is_deleted());
+
+    std::map<store_key_t, int64_t> counts;
+    if (!fetch_distribution(table_id, this, interruptor, &counts, error_out)) {
+        *error_out = "When measuring document distribution: " + *error_out;
+        return false;
+    }
+
+    table_replication_info_t new_repli_info =
+        it->second.get_ref().replication_info.get_ref();
+    if (!calculate_split_points_with_distribution(
+            counts,
+            new_repli_info.config.shards.size(),
+            &new_repli_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+
+    it->second.get_mutable()->replication_info.set(new_repli_info);
+    semilattice_root_view->join(metadata);
+
+    std::vector<ql::datum_t> new_status;
+    if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
+            interruptor, &new_status, error_out)) {
+        *error_out = "When calculating table status: " + *error_out;
+        return false;
+    }
+    guarantee(new_status.size() == 1);
+
+    ql::datum_object_builder_t builder;
+    builder.overwrite("old_status", old_status[0]);
+    builder.overwrite("new_status", new_status[0]);
+    *results_out = std::move(builder).to_datum();
+
+    return true;
+}
+
+bool real_reql_cluster_interface_t::table_rebalance(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    if (!get_table_ids_for_query(db, { name }, &tables, error_out)) {
+        return false;
+    }
+    rassert(tables.size() == 1);
+
+    return rebalance_internal(db, tables.begin()->first, name, &ct_interruptor,
+        result_out, error_out);
+}
+
+bool real_reql_cluster_interface_t::db_rebalance(
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    if (!get_table_ids_for_query(db, std::vector<name_string_t>(), &tables, error_out)) {
+        return false;
+    }
+
+    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+    for (auto const &pair : tables) {
+        ql::datum_t table_result;
+        if (!rebalance_internal(db, pair.first, pair.second, &ct_interruptor,
+                                &table_result, error_out)) {
+            return false;
+        }
+        array_builder.add(table_result);
+    }
+    *result_out = std::move(array_builder).to_datum();
+    return true;
+}
+
 bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         counted_t<const ql::db_t> db,
         const name_string_t &name,

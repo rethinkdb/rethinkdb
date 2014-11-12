@@ -483,6 +483,8 @@ message Term {
                              // [String...] -> StreamSelection
         // Generates a new config for the given table.
         RECONFIGURE   = 176; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
+        // Balances the table's shards but leaves everything else the same
+        REBALANCE     = 179; // Table -> OBJECT
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.

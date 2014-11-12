@@ -149,6 +149,12 @@ tests:
           `default` because there are only 1 servers with the tag `default`. It\'s
           impossible to have more replicas of the data than there are servers.', [])
 
+    - cd: db.table('a').rebalance().keys()
+      ot: bag(['old_status','new_status])
+
+    - cd: db.rebalance().count()
+      ot: 1
+
     - cd: db.table_drop('a')
       ot: ({'dropped':1})
 

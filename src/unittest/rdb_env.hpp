@@ -204,6 +204,17 @@ public:
             signal_t *interruptor,
             ql::datum_t *new_config_out,
             std::string *error_out);
+        bool table_rebalance(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out);
+        bool db_rebalance(
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out);
         bool table_estimate_doc_counts(
             counted_t<const ql::db_t> db,
             const name_string_t &name,

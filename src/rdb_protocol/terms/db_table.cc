@@ -491,6 +491,48 @@ private:
     virtual const char *name() const { return "reconfigure"; }
 };
 
+class rebalance_term_t : public meta_op_term_t {
+public:
+    rebalance_term_t(compile_env_t *env, const protob_t<const Term> &term) :
+        meta_op_term_t(env, term, argspec_t(0, 1), optargspec_t({})) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
+        scoped_ptr_t<val_t> target;
+        if (args->num_args() == 0) {
+            target = args->optarg(env, "db");
+            r_sanity_check(target.has());
+        } else {
+            target = args->arg(env, 0);
+        }
+
+        /* Perform the operation */
+        std::string error;
+        bool success;
+        datum_t result;
+        if (target->get_type().is_convertible(val_t::type_t::DB)) {
+            /* RSI(reql_admin): Support this or tear it out completely. */
+            error = "`rebalance()` currently isn't implemented for databases.";
+            success = false;
+        } else {
+            counted_t<table_t> table = target->as_table();
+            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
+            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
+            on this table */
+            success = env->env->reql_cluster_interface()->table_rebalance(
+                    table->db, name, env->env->interruptor, &result, &error);
+        }
+
+        if (!success) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+
+        return new_val(result);
+    }
+    virtual const char *name() const { return "rebalance"; }
+};
+
 class sync_term_t : public meta_write_op_t {
 public:
     sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -659,6 +701,10 @@ counted_t<term_t> make_table_wait_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_reconfigure_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<reconfigure_term_t>(env, term);
+}
+
+counted_t<term_t> make_rebalance_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<rebalance_term_t>(env, term);
 }
 
 counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {

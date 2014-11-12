@@ -65,11 +65,27 @@ with driver.Metacluster() as metacluster:
     for num in res:
         assert 50 < num < 200
 
-    # RSI(reql_admin): Once #2896 is implemented, create an unbalanced table and make
-    # sure the system gives us an issue.
+    print("Creating an unbalanced table...")
+    res = r.table_create("unbalanced").run(conn)
+    assert res["created"] == 1
+    r.table("unbalanced").reconfigure(shards=2, replicas=1).run(conn)
+    r.table_wait("unbalanced")
+    res = r.table("unbalanced").insert([{"id": n} for n in xrange(1000)]).run(conn)
+    assert res["inserted"] == 1000 and res["errors"] == 0
+    res = r.table("unbalanced").info().run(conn)["doc_count_estimates"]
+    pprint.pprint(res)
+    assert res[0] > 500
+    assert res[1] < 100
 
-    # RSI(reql_admin): Once `table.rebalance()` is implemented, create an unbalanced
-    # table and make sure that `rebalance()` does what it should.
+    # RSI(reql_admin): Once #2896 is implemented, make sure the server has an issue now
+
+    print("Fixing the unbalanced table...")
+    r.table("unbalanced").rebalance().run(conn)
+    r.table_wait("unbalanced")
+    res = r.table("unbalanced").info().run(conn)["doc_count_estimates"]
+    pprint.pprint(res)
+    for num in res:
+        assert 250 < num < 750
 
     cluster1.check_and_stop()
 print("Done.")
