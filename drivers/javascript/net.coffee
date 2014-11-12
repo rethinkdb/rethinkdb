@@ -408,11 +408,13 @@ class TcpConnection extends Connection
             @rawSocket.on 'data', handshake_callback
 
         @rawSocket.on 'error', (args...) =>
-            @close({noreplyWait:false})
+            if @isOpen()
+                @close({noreplyWait:false})
             @emit 'close'
 
         @rawSocket.on 'close', =>
-            @close({noreplyWait: false})
+            if @isOpen()
+                @close({noreplyWait: false})
             @emit 'close'
 
         # In case the raw socket timesout, we close it and re-emit the event for the user
