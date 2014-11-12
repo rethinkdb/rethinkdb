@@ -512,9 +512,8 @@ private:
         bool success;
         datum_t result;
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
-            /* RSI(reql_admin): Support this or tear it out completely. */
-            error = "`rebalance()` currently isn't implemented for databases.";
-            success = false;
+            success = env->env->reql_cluster_interface()->db_rebalance(
+                    target->as_db(), env->env->interruptor, &result, &error);
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());

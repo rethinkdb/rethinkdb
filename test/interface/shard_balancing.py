@@ -69,7 +69,7 @@ with driver.Metacluster() as metacluster:
     res = r.table_create("unbalanced").run(conn)
     assert res["created"] == 1
     r.table("unbalanced").reconfigure(shards=2, replicas=1).run(conn)
-    r.table_wait("unbalanced")
+    r.table_wait("unbalanced").run(conn)
     res = r.table("unbalanced").insert([{"id": n} for n in xrange(1000)]).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
     res = r.table("unbalanced").info().run(conn)["doc_count_estimates"]
@@ -81,7 +81,7 @@ with driver.Metacluster() as metacluster:
 
     print("Fixing the unbalanced table...")
     r.table("unbalanced").rebalance().run(conn)
-    r.table_wait("unbalanced")
+    r.table_wait("unbalanced").run(conn)
     res = r.table("unbalanced").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
