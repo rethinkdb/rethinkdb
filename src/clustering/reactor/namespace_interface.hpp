@@ -40,7 +40,6 @@ public:
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
 
-
     /* Returns a signal that will be pulsed when we have either successfully
     connected or tried and failed to connect to every master that was present
     at the time that the constructor was called. This is to avoid the case where
@@ -49,6 +48,8 @@ public:
     signal_t *get_initial_ready_signal() {
         return &start_cond;
     }
+
+    void wait_for_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 

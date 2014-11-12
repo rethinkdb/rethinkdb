@@ -61,11 +61,15 @@ public:
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
+    void wait_for_readiness(table_readiness_t readiness,
+                            signal_t *interruptor);
+
 private:
     cond_t ready_cond;
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const point_read_t &get);
+        void operator()(const dummy_read_t &d);
         void NORETURN operator()(const changefeed_subscribe_t &);
         void NORETURN operator()(const changefeed_stamp_t &);
         void NORETURN operator()(const changefeed_point_stamp_t &);
@@ -85,6 +89,7 @@ private:
     struct write_visitor_t : public boost::static_visitor<void> {
         void operator()(const batched_replace_t &br);
         void operator()(const batched_insert_t &br);
+        void operator()(const dummy_write_t &d);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
         void NORETURN operator()(UNUSED const sindex_create_t &s);

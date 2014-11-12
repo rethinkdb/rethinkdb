@@ -33,6 +33,57 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
     }
 }
 
+template <class op_t, class response_t>
+void run_query_until_success(const op_t &query, signal_t *interruptor,
+                             const std::function<void(const op_t &, response_t *)> &fn) {
+    response_t response;
+    while (true) {
+        try {
+            fn(query, &response);
+            break;
+        } catch (const cannot_perform_query_exc_t &) {
+            // Not ready yet - try again until interrupted
+        }
+        nap(100, interruptor);
+    }
+}
+
+void cluster_namespace_interface_t::wait_for_readiness(table_readiness_t readiness,
+                                                       signal_t *interruptor) {
+    rassert(readiness != table_readiness_t::finished,
+            "Cannot wait for the 'finished' state with namespace_interface_t.");
+    switch (readiness) {
+    case table_readiness_t::outdated_reads:
+        run_query_until_success<read_t, read_response_t>(
+            read_t(dummy_read_t(), profile_bool_t::DONT_PROFILE), interruptor,
+            [&](const read_t &q, read_response_t *r) -> void {
+                this->read_outdated(q, r, interruptor);
+            });
+        break;
+    case table_readiness_t::reads:
+        run_query_until_success<read_t, read_response_t>(
+            read_t(dummy_read_t(), profile_bool_t::DONT_PROFILE), interruptor,
+            [&](const read_t &q, read_response_t *r) -> void {
+                this->read(q, r, order_token_t::ignore, interruptor);
+            });
+        break;
+    case table_readiness_t::finished: // Fallthrough in release mode, better than a crash
+    case table_readiness_t::writes:
+        run_query_until_success<write_t, write_response_t>(
+            write_t(dummy_write_t(), profile_bool_t::DONT_PROFILE,
+                    ql::configured_limits_t::unlimited), interruptor,
+            [&](const write_t &q, write_response_t *r) -> void {
+                this->write(q, r, order_token_t::ignore, interruptor);
+            });
+        break;
+    case table_readiness_t::unavailable:
+        // Do nothing - all tables are always >= unavailable
+        break;
+    default:
+        unreachable();
+    }
+}
+
 void cluster_namespace_interface_t::read(
     const read_t &r,
     read_response_t *response,

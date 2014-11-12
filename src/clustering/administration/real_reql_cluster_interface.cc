@@ -236,6 +236,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
+    namespace_id_t table_id = generate_uuid();
     cluster_semilattice_metadata_t metadata;
     {
         cross_thread_signal_t interruptor2(interruptor,
@@ -313,7 +314,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
         (void)hard_durability;
 
-        namespace_id_t table_id = generate_uuid();
         ns_change.get()->namespaces.insert(
             std::make_pair(table_id, make_deletable(table_metadata)));
 
@@ -325,7 +325,19 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                                  admin_tables->table_status_backend.get(),
                                  &interruptor2);
     }
-    wait_for_metadata_to_propagate(metadata, interruptor);
+
+    // This could hang because of a node going down or the user deleting the table.
+    // In that case, timeout after 10 seconds and pretend everything's alright.
+    signal_timer_t timer_interruptor;
+    wait_any_t combined_interruptor(interruptor, &timer_interruptor);
+    timer_interruptor.start(10000);
+    try {
+        namespace_interface_access_t ns_if =
+            namespace_repo.get_namespace_interface(table_id, &combined_interruptor);
+        ns_if.get()->wait_for_readiness(table_readiness_t::writes, &combined_interruptor);
+    } catch (const interrupted_exc_t &) {
+        // Do nothing
+    }
     return true;
 }
 
@@ -549,6 +561,26 @@ bool real_reql_cluster_interface_t::table_wait(
                 &ct_interruptor, &result_array, error_out)) {
             return false;
         }
+    }
+
+    // Allow up to 10 seconds for each table to become available - otherwise assume
+    // something else went wrong and return anyway.  See github issue #3278.
+    try {
+        signal_timer_t timer_interruptor;
+        wait_any_t combined_interruptor(interruptor, &timer_interruptor);
+        timer_interruptor.start(10000);
+
+        // We cannot wait for anything higher than 'writes' through namespace_interface_t
+        table_readiness_t readiness2 = std::min(readiness, table_readiness_t::writes);
+
+        for (auto table : table_ids) {
+            namespace_interface_access_t ns_if =
+                namespace_repo.get_namespace_interface(table.first,
+                                                       &combined_interruptor);
+            ns_if.get()->wait_for_readiness(readiness2, &combined_interruptor);
+        }
+    } catch (const interrupted_exc_t &) {
+        // Nothing to see here, move along
     }
 
     counted_t<ql::table_t> backend = make_backend_table(
