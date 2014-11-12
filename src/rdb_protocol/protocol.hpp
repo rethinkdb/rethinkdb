@@ -332,6 +332,8 @@ public:
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
 
+// `dummy_read_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.  
 class dummy_read_t {
 public:
     dummy_read_t() : region(region_t::universe()) { }
@@ -793,6 +795,8 @@ public:
     region_t region;
 };
 
+// `dummy_write_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.  
 class dummy_write_t {
 public:
     dummy_write_t() : region(region_t::universe()) { }

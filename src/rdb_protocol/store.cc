@@ -693,7 +693,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const dummy_write_t &) {
-        response->response = sync_response_t();
+        response->response = dummy_write_response_t();
     }
 
     rdb_write_visitor_t(btree_slice_t *_btree,
