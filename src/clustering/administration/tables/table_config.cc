@@ -16,7 +16,7 @@ ql::datum_t convert_replica_list_to_datum(
         ql::datum_t replica_datum;
         /* This will return `false` for replicas that have been permanently removed */
         if (convert_server_id_to_datum(
-                replica, identifier_format, name_client, &replica_datum)) {
+                replica, identifier_format, name_client, &replica_datum, nullptr)) {
             replicas_builder.add(replica_datum);
         }
     }
@@ -36,13 +36,15 @@ bool convert_replica_list_from_datum(
     replicas_out->clear();
     for (size_t i = 0; i < datum.arr_size(); ++i) {
         server_id_t server_id;
-        if (!convert_server_id_from_datum(
-                datum.get(i), identifier_format, name_client, &server_id, error_out)) {
+        name_string_t server_name;
+        if (!convert_server_id_from_datum(datum.get(i), identifier_format, name_client,
+                &server_id, &server_name, error_out)) {
             return false;
         }
         auto pair = replicas_out->insert(server_id);
         if (!pair.second) {
-            *error_out = "A server is listed more than once.";
+            *error_out = strprintf("Server `%s` is listed more than once.",
+                server_name.c_str());
             return false;
         }
     }
@@ -190,7 +192,7 @@ ql::datum_t convert_table_config_shard_to_datum(
 
     ql::datum_t director;
     if (!convert_server_id_to_datum(
-            shard.director, identifier_format, name_client, &director)) {
+            shard.director, identifier_format, name_client, &director, nullptr)) {
         /* If the previous director was declared dead, just display `null`. The user will
         have to change this to a new server before the table will come back online. */
         director = ql::datum_t::null();
@@ -238,13 +240,15 @@ bool convert_table_config_shard_from_datum(
         state. */
         shard_out->director = nil_uuid();
     } else {
+        name_string_t director_name;
         if (!convert_server_id_from_datum(director_datum, identifier_format, name_client,
-                &shard_out->director, error_out)) {
+                &shard_out->director, &director_name, error_out)) {
             *error_out = "In `director`: " + *error_out;
             return false;
         }
         if (shard_out->replicas.count(shard_out->director) != 1) {
-            *error_out = "The director must be one of the replicas.";
+            *error_out = strprintf("The director (server `%s`) must also be one of the "
+                "replicas.", director_name.c_str());
             return false;
         }
     }
@@ -468,11 +472,16 @@ bool table_config_artificial_table_backend_t::write_row(
             "a valid UUID string.");
         table_id = nil_uuid();
     }
+
+    name_string_t old_table_name;
+    ql::datum_t old_db_name_or_uuid;
+    name_string_t old_db_name;
+    bool existed_before = convert_table_id_to_datums(table_id, identifier_format, md,
+        nullptr, &old_table_name, &old_db_name_or_uuid, &old_db_name);
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-        ::iterator it;
-    bool existed_before = search_metadata_by_uuid(
-        &md_change.get()->namespaces, table_id, &it);
+    auto it = md_change.get()->namespaces.find(table_id);
+    guarantee(existed_before ==
+        (!it->second.is_deleted() && it != md_change.get()->namespaces.end()));
 
     if (new_value_inout->has()) {
         /* We're updating an existing table (if `existed_before == true`) or creating
@@ -516,20 +525,22 @@ bool table_config_artificial_table_backend_t::write_row(
         DB name collision or if the DB was deleted. If we're creating a new table, only
         then do we actually look up the DB's UUID. */
         database_id_t db_id;
+        name_string_t db_name;
         if (existed_before) {
-            db_id = it->second.get_ref().database.get_ref();
-            if (new_db_name_or_uuid != get_db_name_or_uuid(db_id)) {
+            if (new_db_name_or_uuid != old_db_name_or_uuid) {
                 *error_out = "It's illegal to change a table's `database` field.";
                 return false;
             }
+            db_id = it->second.get_ref().database.get_ref();
+            db_name = old_db_name;
         } else {
             if (!convert_database_id_from_datum(
-                    new_db_name_or_uuid, identifier_format, md.databases, &db_id,
-                    error_out)) {
+                    new_db_name_or_uuid, identifier_format, md,
+                    &db_id, &db_name, error_out)) {
+                *error_out = "In `database`: " + *error_out;
                 return false;
             }
         }
-        name_string_t db_name = get_db_name(db_id);
 
         if (existed_before) {
             if (new_primary_key != it->second.get_ref().primary_key.get_ref()) {
@@ -553,11 +564,6 @@ bool table_config_artificial_table_backend_t::write_row(
                 return false;
             }
             replication_info.shard_scheme = table_shard_scheme_t::one_shard();
-        }
-
-        name_string_t old_table_name;
-        if (existed_before) {
-            old_table_name = it->second.get_ref().name.get_ref();
         }
 
         if (!existed_before || new_table_name != old_table_name) {

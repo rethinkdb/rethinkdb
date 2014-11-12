@@ -129,7 +129,11 @@ issues_environment_t::issues_environment_t() :
     directory_metadata(directory_entry.get_watchable()->get().peer_id,
                        directory_entry.get_watchable()),
     issues_backend(cluster_metadata.get_view(),
-                   directory_metadata.get_view()),
+                   directory_metadata.get_view(),
+                   /* We don't test any types of issues that need the
+                   `server_name_client_t` */
+                   nullptr,
+                   admin_identifier_format_t::name),
     log_write_issue_tracker(&local_issue_aggregator),
     outdated_index_issue_tracker(&local_issue_aggregator),
     local_issue_copier(&cluster_directory_metadata_t::local_issues,

@@ -219,8 +219,8 @@ ql::datum_t convert_table_status_shard_to_datum(
     std::set<server_id_t> servers_for_acks;
     bool has_director = false;
     ql::datum_t director_name_or_uuid;
-    if (convert_server_id_to_datum(
-            shard.director, identifier_format, name_client, &director_name_or_uuid)) {
+    if (convert_server_id_to_datum(shard.director, identifier_format, name_client,
+            &director_name_or_uuid, nullptr)) {
         array_builder.add(convert_director_status_to_datum(
             director_name_or_uuid,
             server_states.count(shard.director) == 1 ?
@@ -247,8 +247,8 @@ ql::datum_t convert_table_status_shard_to_datum(
             continue;
         }
         ql::datum_t replica_name_or_uuid;
-        if (!convert_server_id_to_datum(
-                replica, identifier_format, name_client, &replica_name_or_uuid)) {
+        if (!convert_server_id_to_datum(replica, identifier_format, name_client,
+                &replica_name_or_uuid, nullptr)) {
             /* Replica was permanently removed. It won't show up in `table_config`. So
             we act as if it wasn't in `shard.replicas`. */
             continue;
@@ -279,8 +279,8 @@ ql::datum_t convert_table_status_shard_to_datum(
             continue;
         }
         ql::datum_t server_name_or_uuid;
-        if (!convert_server_id_to_datum(
-                it->second, identifier_format, name_client, &server_name_or_uuid)) {
+        if (!convert_server_id_to_datum(it->second, identifier_format, name_client,
+                &server_name_or_uuid, nullptr)) {
             /* In general this won't happen; if a server was permanently deleted, it
             won't show up in `get_name_to_server_id_map()`. But this might be possible
             due to a race condition. */

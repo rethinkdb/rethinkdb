@@ -8,8 +8,12 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
             _cluster_sl_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
-                &directory_view) :
+                &directory_view,
+        server_name_client_t *_name_client,
+        admin_identifier_format_t _identifier_format) :
+    identifier_format(_identifier_format),
     cluster_sl_view(_cluster_sl_view),
+    name_client(_name_client),
     remote_issue_tracker(
         directory_view->incremental_subview(
             incremental_field_getter_t<local_issues_t,
@@ -42,7 +46,8 @@ bool issues_artificial_table_backend_t::read_all_rows_as_vector(
     for (auto const &tracker : trackers) {
         for (auto const &issue : tracker->get_issues()) {
             ql::datum_t row;
-            bool still_valid = issue->to_datum(metadata, &row);
+            bool still_valid = issue->to_datum(
+                metadata, name_client, identifier_format, &row);
             if (!still_valid) {
                 /* Based on `metadata`, the issue decided it is no longer relevant. */
                 continue;
@@ -68,7 +73,12 @@ bool issues_artificial_table_backend_t::read_row(ql::datum_t primary_key,
 
         for (auto const &issue : issues) {
             if (issue->get_id() == issue_id) {
-                issue->to_datum(cluster_sl_view->get(), row_out);
+                ql::datum_t row;
+                bool still_valid = issue->to_datum(
+                    cluster_sl_view->get(), name_client, identifier_format, &row);
+                if (still_valid) {
+                    *row_out = row;
+                }
                 break;
             }
         }

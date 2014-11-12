@@ -64,32 +64,46 @@ bool convert_uuid_from_datum(
     return true;
 }
 
+ql::datum_t convert_name_or_uuid_to_datum(
+        const name_string_t &name,
+        const uuid_u &uuid,
+        admin_identifier_format_t identifier_format) {
+    if (identifier_format == admin_identifier_format_t::name) {
+        return convert_name_to_datum(name);
+    } else {
+        return convert_uuid_to_datum(uuid);
+    }
+}
+
 bool convert_server_id_to_datum(
-        const server_id_t &value,
+        const server_id_t &server_id,
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client,
-        ql::datum_t *datum_out) {
-    boost::optional<name_string_t> name = name_client->get_name_for_server_id(value);
+        ql::datum_t *server_name_or_uuid_out,
+        name_string_t *server_name_out) {
+    boost::optional<name_string_t> name = name_client->get_name_for_server_id(server_id);
     if (!static_cast<bool>(name)) {
         return false;
     }
-    if (identifier_format == admin_identifier_format_t::name) {
-        *datum_out = convert_name_to_datum(*name);
-    } else {
-        *datum_out = convert_uuid_to_datum(value);
+    if (server_name_or_uuid_out != nullptr) {
+        *server_name_or_uuid_out =
+            convert_name_or_uuid_to_datum(*name, server_id, identifier_format);
     }
+    if (server_name_out != nullptr) *server_name_out = *name;
     return true;
 }
 
 bool convert_server_id_from_datum(
-        const ql::datum_t &datum,
+        const ql::datum_t &server_name_or_uuid,
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client,
-        server_id_t *value_out,
+        server_id_t *server_id_out,
+        name_string_t *server_name_out,
         std::string *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
-        if (!convert_name_from_datum(datum, "server name", &name, error_out)) {
+        if (!convert_name_from_datum(server_name_or_uuid,
+                "server name", &name, error_out)) {
             return false;
         }
         bool ok;
@@ -103,73 +117,123 @@ bool convert_server_id_from_datum(
                         "multiple servers with that name.", name.c_str());
                     ok = false;
                 } else {
-                    *value_out = map->find(name)->second;
+                    if (server_id_out != nullptr) {
+                        *server_id_out = map->find(name)->second;
+                    }
+                    if (server_name_out != nullptr) *server_name_out = name;
                     ok = true;
                 }
             });
         return ok;
     } else {
-        if (!convert_uuid_from_datum(datum, value_out, error_out)) {
+        server_id_t id;
+        if (!convert_uuid_from_datum(server_name_or_uuid, &id, error_out)) {
             return false;
         }
-        if (!static_cast<bool>(name_client->get_name_for_server_id(*value_out))) {
+        boost::optional<name_string_t> name = name_client->get_name_for_server_id(id);
+        if (!static_cast<bool>(name)) {
             *error_out = strprintf("There is no server with UUID `%s`.",
-                uuid_to_str(*value_out).c_str());
+                uuid_to_str(id).c_str());
             return false;
         }
+        if (server_id_out != nullptr) *server_id_out = id;
+        if (server_name_out != nullptr) *server_name_out = *name;
         return true;
     }
 }
 
-bool convert_database_id_to_datum(
-        const database_id_t &value,
+bool convert_table_id_to_datums(
+        const namespace_id_t &table_id,
         admin_identifier_format_t identifier_format,
-        const databases_semilattice_metadata_t &db_metadata,
-        ql::datum_t *datum_out) {
-    auto it = db_metadata.databases.find(value);
-    guarantee(it != db_metadata.databases.end());
+        const cluster_semilattice_metadata_t &metadata,
+        /* Any of these can be `nullptr` if they are not needed */
+        ql::datum_t *table_name_or_uuid_out,
+        name_string_t *table_name_out,
+        ql::datum_t *db_name_or_uuid_out,
+        name_string_t *db_name_out) {
+    auto it = metadata.rdb_namespaces->namespaces.find(table_id);
+    if (it == metadata.rdb_namespaces->namespaces.end() || it->second.is_deleted()) {
+        return false;
+    }
+    name_string_t table_name = it->second.get_ref().name.get_ref();
+    if (table_name_or_uuid_out != nullptr) {
+        *table_name_or_uuid_out = convert_name_or_uuid_to_datum(
+            table_name, table_id, identifier_format); 
+    }
+    if (table_name_out != nullptr) *table_name_out = table_name;
+    database_id_t db_id = it->second.get_ref().database.get_ref();
+    name_string_t db_name;
+    auto jt = metadata.databases.databases.find(db_id);
+    if (jt == metadata.databases.databases.end() || jt->second.is_deleted()) {
+        db_name = name_string_t::guarantee_valid("__deleted_database__");
+    } else {
+        db_name = jt->second.get_ref().name.get_ref();
+    }
+    if (db_name_or_uuid_out != nullptr) {
+        *db_name_or_uuid_out = convert_name_or_uuid_to_datum(
+            db_name, db_id, identifier_format);
+    }
+    if (db_name_out != nullptr) *db_name_out = db_name;
+    return true;
+}
+
+bool convert_database_id_to_datum(
+        const database_id_t &db_id,
+        admin_identifier_format_t identifier_format,
+        const cluster_semilattice_metadata_t &metadata,
+        ql::datum_t *db_name_or_uuid_out,
+        name_string_t *db_name_out) {
+    auto it = metadata.databases.databases.find(db_id);
+    guarantee(it != metadata.databases.databases.end());
     if (it->second.is_deleted()) {
         return false;
     }
-    if (identifier_format == admin_identifier_format_t::name) {
-        *datum_out = convert_name_to_datum(it->second.get_ref().name.get_ref());
-    } else {
-        *datum_out = convert_uuid_to_datum(value);
+    name_string_t db_name = it->second.get_ref().name.get_ref();
+    if (db_name_or_uuid_out != nullptr) {
+        *db_name_or_uuid_out =
+            convert_name_or_uuid_to_datum(db_name, db_id, identifier_format);
     }
+    if (db_name_out != nullptr) *db_name_out = db_name;
     return true;
 }
 
 bool convert_database_id_from_datum(
-        const ql::datum_t &datum,
+        const ql::datum_t &db_name_or_uuid,
         admin_identifier_format_t identifier_format,
-        const databases_semilattice_metadata_t &db_metadata,
-        database_id_t *value_out,
+        const cluster_semilattice_metadata_t &metadata,
+        database_id_t *db_id_out,
+        name_string_t *db_name_out,
         std::string *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
-        if (!convert_name_from_datum(datum, "database name", &name, error_out)) {
+        if (!convert_name_from_datum(db_name_or_uuid, "database name",
+                                     &name, error_out)) {
             return false;
         }
         const_metadata_searcher_t<database_semilattice_metadata_t> searcher(
-            &db_metadata.databases);
+            &metadata.databases.databases);
         metadata_search_status_t search_status;
         auto it = searcher.find_uniq(name, &search_status);
         if (!check_metadata_status(
                 search_status, "Database", name.str(), true, error_out)) {
             return false;
         }
-        *value_out = it->first;
+        if (db_id_out != nullptr) *db_id_out = it->first;
+        if (db_name_out != nullptr) *db_name_out = name;
         return true;
     } else {
-        if (!convert_uuid_from_datum(datum, value_out, error_out)) {
+        database_id_t db_id;
+        if (!convert_uuid_from_datum(db_name_or_uuid, &db_id, error_out)) {
             return false;
         }
-        auto it = db_metadata.databases.find(*value_out);
-        if (it == db_metadata.databases.end() || it->second.is_deleted()) {
+        auto it = metadata.databases.databases.find(db_id);
+        if (it == metadata.databases.databases.end() || it->second.is_deleted()) {
             *error_out = strprintf("There is no database with UUID `%s`.",
-                uuid_to_str(*value_out).c_str());
+                uuid_to_str(db_id).c_str());
             return false;
         }
+        if (db_id_out != nullptr) *db_id_out = db_id;
+        if (db_name_out != nullptr) *db_name_out = it->second.get_ref().name.get_ref();
         return true;
     }
 }

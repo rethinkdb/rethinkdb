@@ -239,9 +239,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(db_config_backend.get(), db_config_backend.get());
 
     for (int i = 0; i < 2; ++i) {
-        /* RSI(reql_admin): Actually pass identifier_format into issues_backend. */
         issues_backend[i].init(new issues_artificial_table_backend_t(
-            _semilattice_view, _directory_view));
+            _semilattice_view,
+            _directory_view,
+            _name_client,
+            static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("issues")] =
         std::make_pair(issues_backend[0].get(), issues_backend[1].get());
