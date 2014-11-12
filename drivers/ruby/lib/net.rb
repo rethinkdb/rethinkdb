@@ -386,10 +386,6 @@ module RethinkDB
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
             end
-            if token == -1
-              token = nil
-              raise RqlRuntimeError, "Protocol error, connection closed."
-            end
             @listener_mutex.synchronize{note_data(token, data)}
           rescue Exception => e
             @listener_mutex.synchronize {
