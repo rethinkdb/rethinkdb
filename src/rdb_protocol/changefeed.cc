@@ -631,7 +631,7 @@ public:
                   boost::optional<item_queue_t::iterator> _start,
                   size_t _n)
         : env(_env),
-          ops(std::move(_ops)),
+          ops(_ops),
           pk_range(_pk_range),
           spec(_spec),
           sorting(_sorting),
@@ -1146,7 +1146,7 @@ public:
         guarantee(env.has());
         guarantee(has_ops());
 
-        // We acquire a lock here, and the drain signal is out interruptor for
+        // We acquire a lock here, and the drain signal is our interruptor for
         // `env`.  I think this is technically unnecessary right now because we
         // ban non-deterministic terms in `ops` and no deterministic terms
         // block, but better safe than sorry.
