@@ -182,9 +182,9 @@ tests:
       rb: db.reconfigure(:shards => 1, :replicas => {:default => -3})
       ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
 
-    - py: db.reconfigure(shards=2, replicas=1)['shards'].map(r.row.count())
-      js: db.reconfigure({shards:2, replicas:1})('shards').map(r.row.count())
-      rb: db.reconfigure(:shards => 2, :replicas => 1)['shards'].map{ |t| t.count() }
+    - py: db.reconfigure(shards=2, replicas=1)['new_val']['config']['shards'].map(r.row.count())
+      js: db.reconfigure({shards:2, replicas:1})('new_'+'val')('config')('shards').map(r.row.count())
+      rb: db.reconfigure(:shards => 2, :replicas => 1)['new_val']['config']['shards'].map{ |t| t.count() }
       ot: bag([2,2,2])
 
     - cd: db.table_drop('a')

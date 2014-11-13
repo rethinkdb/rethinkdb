@@ -32,7 +32,7 @@ def create_tables(conn):
     r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
     r.db(db).table_create(delete_table).run(conn) # An extra table to be deleted during a wait
     r.db(db).table_list().for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
-    r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(shards=2, replicas=2)).run(conn)
+    r.db(db).reconfigure(shards=2, replicas=2).run(conn)
     statuses = r.db(db).table_wait().run(conn)
     assert check_table_states(conn, ready=True), \
         "Wait after reconfigure returned before tables were ready, statuses: %s" % str(statuses)
