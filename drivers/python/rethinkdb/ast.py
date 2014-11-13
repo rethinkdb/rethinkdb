@@ -937,6 +937,9 @@ class DB(RqlTopLevelQuery):
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
 
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
+
     def table_list(self, *args):
         return TableList(self, *args)
 
@@ -1015,6 +1018,9 @@ class Table(RqlQuery):
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
 
     def sync(self, *args):
         return Sync(self, *args)
@@ -1277,6 +1283,14 @@ class Reconfigure(RqlMethodQuery):
 class ReconfigureTL(RqlTopLevelQuery):
     tt = pTerm.RECONFIGURE
     st = 'reconfigure'
+
+class Rebalance(RqlMethodQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
+
+class RebalanceTL(RqlTopLevelQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
 
 class Sync(RqlMethodQuery):
     tt = pTerm.SYNC

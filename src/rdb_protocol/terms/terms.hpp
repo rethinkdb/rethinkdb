@@ -115,6 +115,8 @@ counted_t<term_t> make_table_wait_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_reconfigure_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_rebalance_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sync_term(
     compile_env_t *env, const protob_t<const Term> &term);
 

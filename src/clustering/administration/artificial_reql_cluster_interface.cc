@@ -193,6 +193,33 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         new_config_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_rebalance(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't rebalance the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_rebalance(db, name, interruptor, result_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::db_rebalance(
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't rebalance the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->db_rebalance(db, interruptor, result_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
         counted_t<const ql::db_t> db,
         const name_string_t &name,

@@ -320,8 +320,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
-    reconfigure: (opts) ->
-        new Reconfigure opts, @
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -957,6 +957,10 @@ class Reconfigure extends RDBOp
     tt: protoTermType.RECONFIGURE
     mt: 'reconfigure'
 
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
+
 class Sync extends RDBOp
     tt: protoTermType.SYNC
     mt: 'sync'
@@ -1245,6 +1249,7 @@ rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
 rethinkdb.tableWait = (args...) -> new TableWait {}, args...
 
 rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
