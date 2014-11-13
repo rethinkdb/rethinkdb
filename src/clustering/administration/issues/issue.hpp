@@ -8,12 +8,14 @@
 
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_string.hpp"
 
-class name_string_t;
-class issue_multiplexer_t;
 class cluster_semilattice_metadata_t;
+class issue_multiplexer_t;
+class name_string_t;
+class server_name_client_t;
 
 class issue_t {
 public:
@@ -25,14 +27,20 @@ public:
     Based on the cluster configuration, it may decide that the issue is no longer
     relevant, in which case `to_datum()` will return `false`. */
     typedef cluster_semilattice_metadata_t metadata_t;
-    bool to_datum(const metadata_t &metadata, ql::datum_t *datum_out) const;
+    bool to_datum(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *datum_out) const;
 
     virtual bool is_critical() const = 0;
     virtual const datum_string_t &get_name() const = 0;
     issue_id_t get_id() const { return issue_id; }
 
+    /* RSI: remove me completely
     static const std::string get_server_name(const metadata_t &metadata,
                                              const server_id_t &server_id);
+    */
 
     // Utility function for generating deterministic UUIDs via a hash of the args
     template<class... Args>
@@ -43,11 +51,14 @@ public:
     issue_id_t issue_id;
 
 protected:
-    /* Note that `build_info()` can return an empty `ql::datum_t` if it decided that the
-    issue is no longer relevant based on the contents of the metadata. If it returns an
-    empty `ql::datum_t`, the user will not see the issue. */
-    virtual ql::datum_t build_info(const metadata_t &metadata) const = 0;
-    virtual datum_string_t build_description(const ql::datum_t &info) const = 0;
+    /* `build_info_and_description()` can return `false` if it decides based on the
+    contents of the metadata that the issue is no longer relevant. */
+    virtual bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const = 0;
 
 private:
     // Terminal concat call

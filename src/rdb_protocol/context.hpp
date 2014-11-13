@@ -65,6 +65,13 @@ public:
     name_string_t director_tag;
 };
 
+enum class admin_identifier_format_t {
+    /* Some parts of the code rely on the fact that `admin_identifier_format_t` can be
+    mapped to `{0, 1}` using `static_cast`. */
+    name = 0,
+    uuid = 1
+};
+
 class base_table_t {
 public:
     virtual const std::string &get_pkey() = 0;
@@ -169,6 +176,7 @@ public:
             signal_t *interruptor, std::set<name_string_t> *names_out,
             std::string *error_out) = 0;
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+            boost::optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out) = 0;
     virtual bool table_config(counted_t<const ql::db_t> db,

@@ -21,39 +21,27 @@ invalid_config_issue_t::invalid_config_issue_t(
         const issue_id_t &issue_id, const namespace_id_t &_table_id)
     : issue_t(issue_id), table_id(_table_id) { }
 
-ql::datum_t invalid_config_issue_t::build_info(
-        const metadata_t &metadata) const {
-    ql::datum_object_builder_t builder;
-    auto it = metadata.rdb_namespaces->namespaces.find(table_id);
-    if (it->second.is_deleted()) {
-        /* There's no point in showing an issue for a deleted table */
-        return ql::datum_t();
-    }
-    name_string_t table_name = it->second.get_ref().name.get_ref();
-    database_id_t db_id = it->second.get_ref().database.get_ref();
+bool invalid_config_issue_t::build_info_and_description(
+        const metadata_t &metadata,
+        UNUSED server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const {
+    ql::datum_t table_name_or_uuid;
+    name_string_t table_name;
+    ql::datum_t db_name_or_uuid;
     name_string_t db_name;
-    auto jt = metadata.databases.databases.find(db_id);
-    if (jt->second.is_deleted()) {
-        db_name = name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        db_name = jt->second.get_ref().name.get_ref();
+    if (!convert_table_id_to_datums(table_id, identifier_format, metadata,
+            &table_name_or_uuid, &table_name, &db_name_or_uuid, &db_name)) {
+        /* There's no point in showing an issue for a deleted table */
+        return false;
     }
-    builder.overwrite("table", convert_name_to_datum(table_name));
-    builder.overwrite("table_id", convert_uuid_to_datum(table_id));
-    builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("db_id", convert_uuid_to_datum(db_id));
-    return std::move(builder).to_datum();
-}
-
-datum_string_t invalid_config_issue_t::build_description(const ql::datum_t &info) const {
-    name_string_t table_name, db_name;
-    std::string dummy_error;
-    bool ok = convert_name_from_datum(
-        info.get_field("table"), "", &table_name, &dummy_error);
-    guarantee(ok);
-    ok = convert_name_from_datum(info.get_field("db"), "", &db_name, &dummy_error);
-    guarantee(ok);
-    return build_description(table_name, db_name);
+    ql::datum_object_builder_t builder;
+    builder.overwrite("table", table_name_or_uuid);
+    builder.overwrite("db", db_name_or_uuid);
+    *info_out = std::move(builder).to_datum();
+    *description_out = build_description(table_name, db_name);
+    return true;
 }
 
 need_primary_issue_t::need_primary_issue_t(const namespace_id_t &_table_id) :

@@ -52,11 +52,11 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
 }
 
 ql::datum_t convert_director_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *has_director_out) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
+    object_builder.overwrite("server", name_or_uuid);
     const char *state;
     *has_director_out = false;
     if (status == nullptr) {
@@ -86,12 +86,12 @@ ql::datum_t convert_director_status_to_datum(
 }
 
 ql::datum_t convert_replica_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *has_outdated_reader_out,
         bool *has_replica_out) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", convert_name_to_datum(name));
+    object_builder.overwrite("server", name_or_uuid);
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
     if (status == nullptr) {
@@ -123,7 +123,7 @@ ql::datum_t convert_replica_status_to_datum(
 }
 
 ql::datum_t convert_nothing_status_to_datum(
-        const name_string_t &name,
+        const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
     if (status == nullptr) {
@@ -164,7 +164,7 @@ ql::datum_t convert_nothing_status_to_datum(
                 }
             }
             ql::datum_object_builder_t object_builder;
-            object_builder.overwrite("server", convert_name_to_datum(name));
+            object_builder.overwrite("server", name_or_uuid);
             object_builder.overwrite("state", ql::datum_t(state));
             return std::move(object_builder).to_datum();
         }
@@ -177,6 +177,7 @@ ql::datum_t convert_table_status_shard_to_datum(
         const table_config_t::shard_t &shard,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
+        admin_identifier_format_t identifier_format,
         server_name_client_t *name_client,
         const write_ack_config_checker_t &ack_checker,
         table_readiness_t *readiness_out) {
@@ -217,18 +218,18 @@ ql::datum_t convert_table_status_shard_to_datum(
 
     std::set<server_id_t> servers_for_acks;
     bool has_director = false;
-    boost::optional<name_string_t> director_name =
-        name_client->get_name_for_server_id(shard.director);
-    if (static_cast<bool>(director_name)) {
+    ql::datum_t director_name_or_uuid;
+    if (convert_server_id_to_datum(shard.director, identifier_format, name_client,
+            &director_name_or_uuid, nullptr)) {
         array_builder.add(convert_director_status_to_datum(
-            *director_name,
+            director_name_or_uuid,
             server_states.count(shard.director) == 1 ?
                 &server_states[shard.director] : NULL,
             &has_director));
         already_handled.insert(shard.director);
         if (has_director) {
             servers_for_acks.insert(shard.director);
-            builder.overwrite("director", convert_name_to_datum(*director_name));
+            builder.overwrite("director", director_name_or_uuid);
         }
     } else {
         /* Director was permanently removed; in `table_config` the `director` field will
@@ -245,16 +246,16 @@ ql::datum_t convert_table_status_shard_to_datum(
             /* Don't overwrite the director's entry */
             continue;
         }
-        boost::optional<name_string_t> replica_name =
-            name_client->get_name_for_server_id(replica);
-        if (!static_cast<bool>(replica_name)) {
+        ql::datum_t replica_name_or_uuid;
+        if (!convert_server_id_to_datum(replica, identifier_format, name_client,
+                &replica_name_or_uuid, nullptr)) {
             /* Replica was permanently removed. It won't show up in `table_config`. So
             we act as if it wasn't in `shard.replicas`. */
             continue;
         }
         bool this_one_has_replica, this_one_has_outdated_reader;
         array_builder.add(convert_replica_status_to_datum(
-            *replica_name,
+            replica_name_or_uuid,
             server_states.count(replica) == 1 ?
                 &server_states[replica] : NULL,
             &this_one_has_outdated_reader,
@@ -277,9 +278,17 @@ ql::datum_t convert_table_status_shard_to_datum(
             /* Don't overwrite a director or replica entry */
             continue;
         }
+        ql::datum_t server_name_or_uuid;
+        if (!convert_server_id_to_datum(it->second, identifier_format, name_client,
+                &server_name_or_uuid, nullptr)) {
+            /* In general this won't happen; if a server was permanently deleted, it
+            won't show up in `get_name_to_server_id_map()`. But this might be possible
+            due to a race condition. */
+            continue;
+        }
         bool this_one_is_unfinished;
         ql::datum_t entry = convert_nothing_status_to_datum(
-            it->first,
+            server_name_or_uuid,
             server_states.count(it->second) == 1 ?
                 &server_states[it->second] : NULL,
             &this_one_is_unfinished);
@@ -316,16 +325,17 @@ ql::datum_t convert_table_status_shard_to_datum(
 
 ql::datum_t convert_table_status_to_datum(
         name_string_t table_name,
-        name_string_t db_name,
+        const ql::datum_t &db_name_or_uuid,
         namespace_id_t table_id,
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
+        admin_identifier_format_t identifier_format,
         const servers_semilattice_metadata_t &server_md,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", convert_name_to_datum(db_name));
+    builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("id", convert_uuid_to_datum(table_id));
 
     write_ack_config_checker_t ack_checker(repli_info.config, server_md);
@@ -340,6 +350,7 @@ ql::datum_t convert_table_status_to_datum(
                 repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 dir,
+                identifier_format,
                 name_client,
                 ack_checker,
                 &this_shard_readiness));
@@ -364,7 +375,7 @@ ql::datum_t convert_table_status_to_datum(
 bool table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
-        name_string_t db_name,
+        const ql::datum_t &db_name_or_uuid,
         const namespace_semilattice_metadata_t &metadata,
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
@@ -372,10 +383,11 @@ bool table_status_artificial_table_backend_t::format_row(
     assert_thread();
     *row_out = convert_table_status_to_datum(
         table_name,
-        db_name,
+        db_name_or_uuid,
         table_id,
         metadata.replication_info.get_ref(),
         directory_view,
+        identifier_format,
         semilattice_view->get().servers,
         name_client);
     return true;
@@ -428,6 +440,7 @@ table_wait_result_t wait_for_table_readiness(
                         repli_info.shard_scheme.get_shard_range(i),
                         repli_info.config.shards[i],
                         table_status_backend->directory_view,
+                        admin_identifier_format_t::uuid,   /* irrelevant */
                         table_status_backend->name_client,
                         ack_checker,
                         &this_shard_readiness);
