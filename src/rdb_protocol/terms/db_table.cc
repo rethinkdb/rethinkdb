@@ -28,7 +28,7 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
     return name;
 }
 
-std::map<name_string_t, size_t> get_replica_counts(scoped_ptr_t<val_t> arg) {
+std::map<name_string_t, size_t> get_replica_counts(const scoped_ptr_t<val_t> &arg) {
     r_sanity_check(arg.has());
     std::map<name_string_t, size_t> replica_counts;
     datum_t datum = arg->as_datum();
@@ -124,34 +124,34 @@ private:
     virtual const char *name() const { return "db_create"; }
 };
 
-bool is_hard(durability_requirement_t requirement) {
-    switch (requirement) {
-    case DURABILITY_REQUIREMENT_DEFAULT:
-    case DURABILITY_REQUIREMENT_HARD:
-        return true;
-    case DURABILITY_REQUIREMENT_SOFT:
-        return false;
-    default:
-        unreachable();
-    }
-}
-
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
-                        optargspec_t({"datacenter", "primary_key", "durability"})) { }
+            optargspec_t({"primary_key", "shards", "replicas", "director_tag"})) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-
         /* Parse arguments */
-        boost::optional<name_string_t> primary_dc;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "datacenter")) {
-            primary_dc.reset(get_name(v, this, "Table"));
+
+        table_generate_config_params_t config_params =
+            table_generate_config_params_t::make_default();
+
+        // Parse the 'shards' optarg
+        if (scoped_ptr_t<val_t> shards_optarg = args->optarg(env, "shards")) {
+            rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
+                          "Every table must have at least one shard.");
+            config_params.num_shards = shards_optarg->as_int();
         }
 
-        const bool hard_durability
-            = is_hard(parse_durability_optarg(args->optarg(env, "durability"), this));
+        // Parse the 'replicas' optarg
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "replicas")) {
+            config_params.num_replicas = get_replica_counts(v);
+        }
+
+        // Parse the 'director_tag' optarg
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "director_tag")) {
+            config_params.director_tag = get_name(v, this, "Server tag");
+        }
 
         std::string primary_key = "id";
         if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
@@ -173,7 +173,7 @@ private:
         /* Create the table */
         std::string error;
         if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
-                primary_dc, hard_durability, primary_key,
+                config_params, primary_key,
                 env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }

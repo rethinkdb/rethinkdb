@@ -392,8 +392,8 @@ bool test_rdb_env_t::instance_t::db_config(
 
 bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const boost::optional<name_string_t> &primary_dc,
-        UNUSED bool hard_durability, UNUSED const std::string &primary_key,
+        UNUSED const table_generate_config_params_t &config_params,
+        UNUSED const std::string &primary_key,
         UNUSED signal_t *local_interruptor, std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
