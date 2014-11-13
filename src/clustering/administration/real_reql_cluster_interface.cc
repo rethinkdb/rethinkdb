@@ -731,7 +731,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     std::vector<ql::datum_t> old_status;
     if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
             interruptor, &old_status, error_out)) {
-        *error_out = "When calculating table status: " + *error_out;
         return false;
     }
     guarantee(old_status.size() == 1);
@@ -767,7 +766,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     std::vector<ql::datum_t> new_status;
     if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
             interruptor, &new_status, error_out)) {
-        *error_out = "When calculating table status: " + *error_out;
         return false;
     }
     guarantee(new_status.size() == 1);
