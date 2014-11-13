@@ -320,7 +320,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        wait_for_table_readiness(table_id, 
+        wait_for_table_readiness(table_id,
                                  table_readiness_t::finished,
                                  admin_tables->table_status_backend.get(),
                                  &interruptor2);
@@ -614,6 +614,25 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     r_sanity_check(ns_metadata_it != ns_change.get()->namespaces.end() &&
                    !ns_metadata_it->second.is_deleted());
 
+    // Store the old value of the config and status
+    ql::datum_object_builder_t result_builder;
+    {
+        ql::datum_object_builder_t old_val_builder;
+        old_val_builder.overwrite("config",
+            convert_table_config_to_datum(
+                ns_metadata_it->second.get_ref().replication_info.get_ref().config,
+                server_name_client));
+
+        std::vector<ql::datum_t> old_status;
+        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+                             true, interruptor, &old_status, error_out)) {
+            return false;
+        }
+        guarantee(old_status.size() == 1);
+        old_val_builder.overwrite("status", old_status[0]);
+        result_builder.overwrite("old_val", std::move(old_val_builder).to_datum());
+    }
+
     std::map<server_id_t, int> server_usage;
     for (auto it = ns_searcher.find_next(ns_searcher.begin());
               it != ns_searcher.end();
@@ -653,25 +672,6 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             &new_repli_info.config,
             error_out)) {
         return false;
-    }
-
-    // Store the old value of the config and status
-    ql::datum_object_builder_t result_builder;
-    {
-        ql::datum_object_builder_t old_val_builder;
-        old_val_builder.overwrite("config", 
-            convert_table_config_to_datum(
-                ns_metadata_it->second.get_ref().replication_info.get_ref().config,
-                server_name_client));
-
-        std::vector<ql::datum_t> old_status;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
-                             true, interruptor, &old_status, error_out)) {
-            return false;
-        }
-        guarantee(old_status.size() == 1);
-        old_val_builder.overwrite("status", old_status[0]);
-        result_builder.overwrite("old_val", std::move(old_val_builder).to_datum());
     }
 
     new_repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
