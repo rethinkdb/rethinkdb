@@ -12,13 +12,12 @@
 
 namespace ql {
 
-name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
-                       const char *type_str) {
+name_string_t get_name(const scoped_ptr_t<val_t> &val, const char *type_str) {
     r_sanity_check(val.has());
     const datum_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(caller,
+    rcheck_target(val.get(),
                   assignment_successful,
                   base_exc_t::GENERIC,
                   strprintf("%s name `%s` invalid (%s).",
@@ -28,36 +27,48 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
     return name;
 }
 
-std::map<name_string_t, size_t> get_replica_counts(const scoped_ptr_t<val_t> &arg) {
-    r_sanity_check(arg.has());
-    std::map<name_string_t, size_t> replica_counts;
-    datum_t datum = arg->as_datum();
-    if (datum.get_type() == datum_t::R_OBJECT) {
-        for (size_t i = 0; i < datum.obj_size(); ++i) {
-            std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
-            name_string_t name;
-            bool assignment_successful = name.assign_value(pair.first);
-            rcheck_target(arg, assignment_successful, base_exc_t::GENERIC,
-                strprintf("Server tag name `%s` invalid (%s).",
-                          pair.first.to_std().c_str(), name_string_t::valid_char_msg));
-            int64_t replicas = checked_convert_to_int(arg.get(), pair.second.as_num());
-            rcheck_target(arg, replicas >= 0,
-                base_exc_t::GENERIC, "Can't have a negative number of replicas");
-            size_t replicas2 = static_cast<size_t>(replicas);
-            rcheck_target(arg, static_cast<int64_t>(replicas2) == replicas,
-                base_exc_t::GENERIC, strprintf("Integer too large: %" PRIi64, replicas));
-            replica_counts.insert(std::make_pair(name, replicas2));
+void get_replicas_and_director(const scoped_ptr_t<val_t> &replicas,
+                               const scoped_ptr_t<val_t> &director_tag,
+                               table_generate_config_params_t *params) {
+    if (replicas.has()) {
+        params->num_replicas.clear();
+        datum_t datum = replicas->as_datum();
+        if (datum.get_type() == datum_t::R_OBJECT) {
+            rcheck_target(replicas.get(), director_tag.has(), base_exc_t::GENERIC,
+                "`director_tag` must be specified when `replicas` is an OBJECT.");
+            for (size_t i = 0; i < datum.obj_size(); ++i) {
+                std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
+                name_string_t name;
+                bool assignment_successful = name.assign_value(pair.first);
+                rcheck_target(replicas, assignment_successful, base_exc_t::GENERIC,
+                    strprintf("Server tag name `%s` invalid (%s).",
+                              pair.first.to_std().c_str(),
+                              name_string_t::valid_char_msg));
+                int64_t count = checked_convert_to_int(replicas.get(),
+                                                       pair.second.as_num());
+                rcheck_target(replicas.get(), count >= 0,
+                    base_exc_t::GENERIC, "Can't have a negative number of replicas");
+                size_t size_count = static_cast<size_t>(count);
+                rcheck_target(replicas.get(), static_cast<int64_t>(size_count) == count,
+                              base_exc_t::GENERIC,
+                              strprintf("Integer too large: %" PRIi64, count));
+                params->num_replicas.insert(std::make_pair(name, size_count));
+            }
+        } else if (datum.get_type() == datum_t::R_NUM) {
+            rcheck_target(replicas.get(), !director_tag.has(), base_exc_t::GENERIC,
+                "`replicas` must be an OBJECT if `director_tag` is specified.");
+            size_t count = replicas->as_int<size_t>();
+            params->num_replicas.insert(std::make_pair(params->director_tag, count));
+        } else {
+            rfail_target(replicas, base_exc_t::GENERIC,
+                "Expected type OBJECT or NUMBER but found %s:\n%s",
+                datum.get_type_name().c_str(), datum.print().c_str());
         }
-    } else if (datum.get_type() == datum_t::R_NUM) {
-        size_t replicas = arg->as_int<size_t>();
-        replica_counts.insert(std::make_pair(
-            name_string_t::guarantee_valid("default"), replicas));
-    } else {
-        rfail_target(arg, base_exc_t::GENERIC,
-            "Expected type OBJECT or NUMBER but found %s:\n%s",
-            datum.get_type_name().c_str(), datum.print().c_str());
     }
-    return replica_counts;
+
+    if (director_tag.has()) {
+        params->director_tag = get_name(director_tag, "Server tag");
+    }
 }
 
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
@@ -94,7 +105,7 @@ public:
     db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
+        name_string_t db_name = get_name(args->arg(env, 0), "Database");
         counted_t<const db_t> db;
         std::string error;
         if (!env->env->reql_cluster_interface()->db_find(db_name, env->env->interruptor,
@@ -112,7 +123,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
+        name_string_t db_name = get_name(args->arg(env, 0), "Database");
         std::string error;
         if (!env->env->reql_cluster_interface()->db_create(db_name,
                 env->env->interruptor, &error)) {
@@ -132,7 +143,6 @@ public:
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         /* Parse arguments */
-
         table_generate_config_params_t config_params =
             table_generate_config_params_t::make_default();
 
@@ -143,15 +153,10 @@ private:
             config_params.num_shards = shards_optarg->as_int();
         }
 
-        // Parse the 'replicas' optarg
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "replicas")) {
-            config_params.num_replicas = get_replica_counts(v);
-        }
-
-        // Parse the 'director_tag' optarg
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "director_tag")) {
-            config_params.director_tag = get_name(v, this, "Server tag");
-        }
+        // Parse the 'replicas' and 'director_tag' optargs
+        get_replicas_and_director(args->optarg(env, "replicas"),
+                                  args->optarg(env, "director_tag"),
+                                  &config_params);
 
         std::string primary_key = "id";
         if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
@@ -164,10 +169,10 @@ private:
             scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
-            tbl_name = get_name(args->arg(env, 0), this, "Table");
+            tbl_name = get_name(args->arg(env, 0), "Table");
         } else {
             db = args->arg(env, 0)->as_db();
-            tbl_name = get_name(args->arg(env, 1), this, "Table");
+            tbl_name = get_name(args->arg(env, 1), "Table");
         }
 
         /* Create the table */
@@ -189,7 +194,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
+        name_string_t db_name = get_name(args->arg(env, 0), "Database");
 
         std::string error;
         if (!env->env->reql_cluster_interface()->db_drop(db_name,
@@ -214,10 +219,10 @@ private:
             scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
-            tbl_name = get_name(args->arg(env, 0), this, "Table");
+            tbl_name = get_name(args->arg(env, 0), "Table");
         } else {
             db = args->arg(env, 0)->as_db();
-            tbl_name = get_name(args->arg(env, 1), this, "Table");
+            tbl_name = get_name(args->arg(env, 1), "Table");
         }
 
         std::string error;
@@ -298,7 +303,7 @@ private:
         if (args->num_args() > 0) {
             for (size_t i = 0; i < args->num_args(); ++i) {
                 scoped_ptr_t<val_t> arg = args->arg(env, i);
-                db_names.push_back(get_name(arg, this, "Database"));
+                db_names.push_back(get_name(arg, "Database"));
             }
         }
 
@@ -343,7 +348,7 @@ private:
                 if (i == 0 && arg->get_type().is_convertible(val_t::type_t::DB)) {
                     db = arg->as_db();
                 } else {
-                    tables.push_back(get_name(arg, this, "Table"));
+                    tables.push_back(get_name(arg, "Table"));
                 }
             }
         }
@@ -431,7 +436,9 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
                                           args_t *args,
                                           eval_flags_t) const {
-        table_generate_config_params_t config_params;
+        // Use the default director_tag, unless the optarg overwrites it
+        table_generate_config_params_t config_params =
+            table_generate_config_params_t::make_default();
 
         // Parse the 'shards' optarg
         scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
@@ -439,16 +446,10 @@ private:
                       "Every table must have at least one shard.");
         config_params.num_shards = shards_optarg->as_int();
 
-        // Parse the 'replicas' optarg
-        config_params.num_replicas =
-            get_replica_counts(required_optarg(env, args, "replicas"));
-
-        // Parse the 'director_tag' optarg
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "director_tag")) {
-            config_params.director_tag = get_name(v, this, "Server tag");
-        } else {
-            config_params.director_tag = name_string_t::guarantee_valid("default");
-        }
+        // Parse the 'replicas' and 'director_tag' optargs
+        get_replicas_and_director(required_optarg(env, args, "replicas"),
+                                  args->optarg(env, "director_tag"),
+                                  &config_params);
 
         // Parse the 'dry_run' optarg
         bool dry_run = false;
@@ -561,11 +562,11 @@ private:
             scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
-            name = get_name(args->arg(env, 0), this, "Table");
+            name = get_name(args->arg(env, 0), "Table");
         } else {
             r_sanity_check(args->num_args() == 2);
             db = args->arg(env, 0)->as_db();
-            name = get_name(args->arg(env, 1), this, "Table");
+            name = get_name(args->arg(env, 1), "Table");
         }
         std::string error;
         scoped_ptr_t<base_table_t> table;
