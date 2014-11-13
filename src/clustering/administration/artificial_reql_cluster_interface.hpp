@@ -91,14 +91,14 @@ public:
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            ql::datum_t *new_config_out,
+            ql::datum_t *result_out,
             std::string *error_out);
     bool db_reconfigure(
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            ql::datum_t *new_config_out,
+            ql::datum_t *result_out,
             std::string *error_out);
     bool table_rebalance(
             counted_t<const ql::db_t> db,
