@@ -44,11 +44,11 @@ bool log_write_issue_t::build_info_and_description(
         "statements: %s. Please fix whatever problem is preventing the server%s from "
         "writing to their log files. (Note that the server will not notice that the "
         "problem has been fixed until it next tries to write to the log file, so this "
-        "issue may not go away immediately.)",
-        servers.arr_size() == 1 ? "" : "s",
-        info.get_field("message").as_str().to_std().c_str(),
+        "issue might not go away immediately.)",
+        affected_server_ids.size() == 1 ? "" : "s",
+        message.c_str(),
         servers_string.c_str(),
-        servers.arr_size() == 1 ? "" : "s"));
+        affected_server_ids.size() == 1 ? "" : "s"));
     return true;
 }
 
