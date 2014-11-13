@@ -45,7 +45,10 @@ datum_string_t build_server_db_description(const std::string &type,
         ids_str += strprintf("%s%s",
                              it == ids.begin() ? "" : ", ", uuid_to_str(*it).c_str());
     }
-    return datum_string_t(strprintf("The following %s are all named '%s': %s.",
+    return datum_string_t(strprintf(
+        "The following %s are all named '%s': %s. RethinkDB requires that all %s have "
+        "unique names. Please change the names by updating the `name` field of the "
+        "`rethinkdb.%s` system table, or using the web UI.",
                                     type.c_str(), name.c_str(), ids_str.c_str()));
 }
 

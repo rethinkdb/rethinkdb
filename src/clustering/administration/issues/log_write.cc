@@ -39,11 +39,15 @@ datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) con
     }
 
     return datum_string_t(strprintf(
-        "The following server%s encountered an error ('%s') while "
-        "writing log statements: %s.",
+        "The following server%s encountered an error ('%s') while writing log "
+        "statements: %s. Please fix whatever problem is preventing the server%s from "
+        "writing to their log files. (Note that the server will not notice that the "
+        "problem has been fixed until it next tries to write to the log file, so this "
+        "issue may not go away immediately.)",
         servers.arr_size() == 1 ? "" : "s",
         info.get_field("message").as_str().to_std().c_str(),
-        servers_string.c_str()));
+        servers_string.c_str(),
+        servers.arr_size() == 1 ? "" : "s"));
 }
 
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *parent) :
