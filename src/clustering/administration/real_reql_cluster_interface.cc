@@ -11,6 +11,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -225,7 +226,7 @@ bool real_reql_cluster_interface_t::db_config(
         admin_tables->db_config_backend.get(), "db_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
     return true;
 }
 
@@ -475,7 +476,7 @@ bool real_reql_cluster_interface_t::table_config(
         admin_tables->table_config_backend.get(), "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
     return true;
 }
 
@@ -500,7 +501,7 @@ bool real_reql_cluster_interface_t::table_status(
         admin_tables->table_status_backend.get(), "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
     return true;
 }
 
@@ -587,7 +588,7 @@ bool real_reql_cluster_interface_t::table_wait(
         admin_tables->table_status_backend.get(), "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(backend, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
     return true;
 }
 

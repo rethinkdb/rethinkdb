@@ -32,7 +32,7 @@ with driver.Metacluster() as metacluster:
     servers = http.servers.keys()
     http.move_server_to_datacenter(servers[0], primary_dc)
     http.move_server_to_datacenter(servers[1], secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc)
+    ns = scenario_common.prepare_table_for_workload(http, primary=primary_dc)
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()

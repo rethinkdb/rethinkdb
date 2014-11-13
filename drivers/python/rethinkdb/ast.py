@@ -377,11 +377,11 @@ class RqlQuery(object):
     def avg(self, *args):
         return Avg(self, *[func_wrap(arg) for arg in args])
 
-    def min(self, *args):
-        return Min(self, *[func_wrap(arg) for arg in args])
+    def min(self, *args, **kwargs):
+        return Min(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def max(self, *args):
-        return Max(self, *[func_wrap(arg) for arg in args])
+    def max(self, *args, **kwargs):
+        return Max(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def map(self, *args):
         return Map(self, *[func_wrap(arg) for arg in args])

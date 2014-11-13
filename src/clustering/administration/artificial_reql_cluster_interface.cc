@@ -5,6 +5,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
 bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
@@ -232,7 +233,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
             counted_t<ql::datum_stream_t> docs;
             if (!it->second->read_all_rows_as_stream(
                     ql::protob_t<const Backtrace>(),
-                    datum_range_t::universe(),
+                    ql::datum_range_t::universe(),
                     sorting_t::UNORDERED,
                     env->interruptor,
                     &docs,

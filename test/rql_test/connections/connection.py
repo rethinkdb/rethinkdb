@@ -107,8 +107,19 @@ class TestCaseCompatible(unittest.TestCase):
         else:
             self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))            
 
+<<<<<<< HEAD
+class TestWithConnection(TestCaseCompatible):
+||||||| merged common ancestors
+class TestNoConnection(TestCaseCompatible):
+=======
 class TestWithConnection(TestCaseCompatible):
     
+    port = None
+    server = None
+    serverOutput = None
+>>>>>>> next
+    
+<<<<<<< HEAD
     port = None
     server = None
     serverOutput = None
@@ -117,12 +128,49 @@ class TestWithConnection(TestCaseCompatible):
         global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
         
         if sharedServer is not None:
+||||||| merged common ancestors
+    @staticmethod
+    def findOpenPort():
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            useSocket.settimeout(.5)
+=======
+    def setUp(self):
+        global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
+        
+        if sharedServer is not None:
+>>>>>>> next
             try:
+<<<<<<< HEAD
+                sharedServer.check()
+            except Exception:
+                # ToDo: figure out how to blame the last test
+                closeSharedServer()
+||||||| merged common ancestors
+                import random # importing here to avoid issue #2343
+                port = random.randint(49152, 65535)
+                useSocket.connect(('localhost', port))
+                useSocket.close()
+            except socket.timeout:
+                pass
+            except socket.error:
+                return port
+        raise Exception('Timed out looking for an open port')
+=======
                 sharedServer.check()
             except Exception:
                 # ToDo: figure out how to blame the last test
                 closeSharedServer()
         
+        if sharedServerDriverPort is None:
+            sharedServerOutput = tempfile.NamedTemporaryFile('w+')
+            sharedServer = driver.Process(executable_path=rethinkdb_exe, console_output=sharedServerOutput, wait_until_ready=True)
+            sharedServerHost = sharedServer.host
+            sharedServerDriverPort = sharedServer.driver_port
+>>>>>>> next
+        
+<<<<<<< HEAD
         if sharedServerDriverPort is None:
             sharedServerOutput = tempfile.NamedTemporaryFile('w+')
             sharedServer = driver.Process(executable_path=rethinkdb_exe, console_output=sharedServerOutput, wait_until_ready=True)
@@ -146,6 +194,26 @@ class TestWithConnection(TestCaseCompatible):
 # == Test Classes
 
 class TestNoConnection(TestCaseCompatible):
+||||||| merged common ancestors
+=======
+        # - insure we are ready
+        
+        checkSharedServer()
+
+    def tearDown(self):
+        global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
+
+        if sharedServerDriverPort is not None:
+            try:
+                checkSharedServer()
+            except Exception:
+                closeSharedServer()
+                raise # ToDo: figure out how to best give the server log
+
+# == Test Classes
+
+class TestNoConnection(TestCaseCompatible):
+>>>>>>> next
     
     # No servers started yet so this should fail
     def test_connect(self):
@@ -193,6 +261,7 @@ class TestNoConnection(TestCaseCompatible):
             return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(RqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
 
+<<<<<<< HEAD
 class TestPrivateServer(TestCaseCompatible):
     
     server = None
@@ -221,6 +290,53 @@ class TestPrivateServer(TestCaseCompatible):
                 result = r.db('rethinkdb').table('cluster_config').update({'auth_key':cls.authKey}).run(conn)
                 if result != {u'skipped': 0, u'deleted': 0, u'unchanged': 0, u'errors': 0, u'replaced': 1, u'inserted': 0}:
                     raise Exception('Unable to set authkey, got: %s' % str(result))
+||||||| merged common ancestors
+class TestConnectionDefaultPort(TestCaseCompatible):
+=======
+class TestPrivateServer(TestCaseCompatible):
+    
+    server = None
+    serverConsoleOutput = None
+>>>>>>> next
+    
+<<<<<<< HEAD
+    @classmethod
+    def tearDown(cls):
+        if cls.server is not None:
+            try:
+                cls.server.check()
+            except Exception as e:
+                try:
+                    cls.server.close()
+                except Exception:
+                    pass
+                cls.server = None
+                raise
+
+class TestConnectionDefaultPort(TestPrivateServer):
+    
+    useDefaultPort = True
+||||||| merged common ancestors
+    servers = None
+=======
+    useDefaultPort = False
+    port = None
+    
+    @classmethod
+    def setUp(cls):
+        if cls.server is not None:
+            try:
+                cls.server.check()
+            except Exception:
+                cls.server = None
+        if cls.server is None:
+            port = str(DEFAULT_DRIVER_PORT) if cls.useDefaultPort else '0'
+            cls.serverConsoleOutput = tempfile.NamedTemporaryFile('w+')
+            cls.server = driver.Process(executable_path=rethinkdb_exe, console_output=cls.serverConsoleOutput, wait_until_ready=True, extra_options=['--driver-port', port])
+            cls.port = cls.server.driver_port
+            
+            if cls.server.set_auth("hunter2") != 0:
+                raise RuntimeError("Could not set up authorization key")
     
     @classmethod
     def tearDown(cls):
@@ -238,6 +354,7 @@ class TestPrivateServer(TestCaseCompatible):
 class TestConnectionDefaultPort(TestPrivateServer):
     
     useDefaultPort = True
+>>>>>>> next
     
     def setUp(self):
         if not use_default_port:
@@ -276,11 +393,41 @@ class TestConnectionDefaultPort(TestPrivateServer):
             RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, auth_key="hunter2")
 
+<<<<<<< HEAD
 class TestAuthConnection(TestPrivateServer):
     
     incorrectAuthMessage = 'Server dropped connection with message: "ERROR: Incorrect authorization key."'
     authKey = 'hunter2'
 
+||||||| merged common ancestors
+class TestAuthConnection(TestCaseCompatible):
+
+    def setUp(self):
+        self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir)
+        self.servers.__enter__()
+        self.port=self.servers.driver_port()
+
+        cluster_port = self.servers.cluster_port()
+        exe = self.servers.executable()
+
+        if test_util.set_auth(cluster_port, exe, "hunter2") != 0:
+            raise RuntimeError("Could not set up authorization key")
+
+    def tearDown(self):
+        if self.servers is not None:
+            self.servers.__exit__()
+
+=======
+class TestAuthConnection(TestPrivateServer):
+    
+    def setUp(self):
+        finishSetup = self.server is None
+        super(TestAuthConnection, self).setUp()
+        
+        if finishSetup and self.server.set_auth("hunter2") != 0:
+            raise RuntimeError("Could not set up authorization key")
+
+>>>>>>> next
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port)
 
