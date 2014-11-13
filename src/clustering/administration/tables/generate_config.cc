@@ -59,6 +59,16 @@ static bool validate_params(
         *error_out = "Every table must have at least one shard.";
         return false;
     }
+    size_t total_replicas = 0;
+    for (const auto &pair : params.num_replicas) {
+        total_replicas += pair.second;
+    }
+    if (total_replicas == 0) {
+        *error_out = "You must set `replicas` to at least one. `replicas` includes the "
+            "primary replica; if there are zero replicas, there is nowhere to put the "
+            "data.";
+        return false;
+    }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
         *error_out = strprintf("Maximum number of shards is %zu.", max_shards);
