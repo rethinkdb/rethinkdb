@@ -53,6 +53,8 @@ struct rget_item_t {
 
 RDB_SERIALIZE_OUTSIDE(rget_item_t);
 
+void debug_print(printf_buffer_t *, const rget_item_t &);
+
 typedef std::vector<rget_item_t> stream_t;
 
 class optimizer_t {
@@ -241,11 +243,23 @@ public:
     get_underlying_map(grouped::order_doesnt_matter_t) {
         return &m;
     }
+
+    const std::map<datum_t, T, optional_datum_less_t> *
+    get_underlying_map(grouped::order_doesnt_matter_t) const {
+        return &m;
+    }
+
 private:
     std::map<datum_t, T, optional_datum_less_t> m;
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+
+template <class T>
+void debug_print(printf_buffer_t *buf, const grouped_t<T> &value) {
+    buf->appendf("grouped_t");
+    debug_print(buf, *value.get_underlying_map(grouped::order_doesnt_matter_t()));
+}
 
 namespace grouped_details {
 
