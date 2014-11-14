@@ -39,7 +39,9 @@ struct make_sindex_read_t;
 namespace ql {
 
 class datum_stream_t;
+class datum_t;
 class env_t;
+class grouped_data_t;
 class val_t;
 
 namespace pseudo {
@@ -66,7 +68,7 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 
-class grouped_data_t;
+void debug_print(printf_buffer_t *, const datum_t &);
 
 struct components_t {
     std::string secondary;
@@ -381,6 +383,8 @@ private:
 
         internal_type_t internal_type;
     } data;
+
+    friend void ::ql::debug_print(printf_buffer_t *, const datum_t &);
 
 public:
     static const datum_string_t reql_type_string;

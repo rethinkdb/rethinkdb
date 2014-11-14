@@ -135,7 +135,7 @@ static val_t::type_t::raw_type_t supertype(int type) {
     return static_cast<val_t::type_t::raw_type_t>(type / MAX_TYPE);
 }
 static datum_t::type_t subtype(int type) {
-    return static_cast<datum_t::type_t>(type - supertype(type));
+    return static_cast<datum_t::type_t>(type % MAX_TYPE);
 }
 static int merge_types(int supertype, int subtype) {
     return supertype * MAX_TYPE + subtype;
