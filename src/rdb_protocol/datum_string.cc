@@ -11,10 +11,11 @@
 #include "containers/archive/buffer_stream.hpp"
 #include "containers/archive/varint.hpp"
 #include "containers/scoped.hpp"
+#include "debug.hpp"
 #include "utils.hpp"
 
 datum_string_t::datum_string_t() {
-    init(0, NULL);
+    init(0, "");
 }
 
 datum_string_t::datum_string_t(size_t _size, const char *_data) {
@@ -131,4 +132,10 @@ datum_string_t concat(const datum_string_t &a, const datum_string_t &b) {
     memcpy(buf->data(str_offset), a.data(), a.size());
     memcpy(buf->data(str_offset + a.size()), b.data(), b.size());
     return datum_string_t(shared_buf_ref_t<char>(std::move(buf), 0));
+}
+
+
+void debug_print(printf_buffer_t *buf, const datum_string_t &s) {
+    debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(s.data()),
+                              s.size());
 }
