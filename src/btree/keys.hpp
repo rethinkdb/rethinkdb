@@ -78,7 +78,7 @@ public:
     }
 
     static store_key_t min() {
-        return store_key_t(0, NULL);
+        return store_key_t();
     }
 
     static store_key_t max() {
