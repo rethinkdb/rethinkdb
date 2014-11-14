@@ -232,9 +232,9 @@ bool real_reql_cluster_interface_t::db_config(
 
 bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db,
-        UNUSED const boost::optional<name_string_t> &primary_dc,
-        bool hard_durability, const std::string &primary_key, signal_t *interruptor,
-        std::string *error_out) {
+        const table_generate_config_params_t &config_params,
+        const std::string &primary_key,
+        signal_t *interruptor, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
     namespace_id_t table_id = generate_uuid();
@@ -244,22 +244,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
-
-        /* Find the specified datacenter */
-#if 0 /* RSI: Figure out what to do about datacenters */
-        uuid_u dc_id;
-        if (primary_dc) {
-            metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(
-                &metadata.datacenters.datacenters);
-            metadata_search_status_t status;
-            auto it = dc_searcher.find_uniq(*primary_dc, &status);
-            if (!check_metadata_status(status, "Datacenter", primary_dc->str(), true,
-                    error_out)) return false;
-            dc_id = it->first;
-        } else {
-            dc_id = nil_uuid();
-        }
-#endif /* 0 */
 
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
@@ -277,8 +261,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         table_replication_info_t repli_info;
 
-        /* We can't meaningfully pick shard points, so create only one shard */
-        repli_info.shard_scheme = table_shard_scheme_t::one_shard();
+        /* We don't have any data to generate split points based on, so assume UUIDs */
+        calculate_split_points_for_uuids(
+            config_params.num_shards, &repli_info.shard_scheme);
 
         /* Construct a configuration for the new namespace */
         std::map<server_id_t, int> server_usage;
@@ -291,9 +276,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             calculate_server_usage(
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
-        /* RSI(reql_admin): These should be passed by the user. */
-        table_generate_config_params_t config_params =
-            table_generate_config_params_t::make_default();
         if (!table_generate_config(
                 server_name_client, nil_uuid(), nullptr, server_usage,
                 config_params, table_shard_scheme_t(), &interruptor2,
@@ -311,9 +293,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         table_metadata.primary_key = versioned_t<std::string>(primary_key);
         table_metadata.replication_info =
             versioned_t<table_replication_info_t>(repli_info);
-
-        /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
-        (void)hard_durability;
 
         ns_change.get()->namespaces.insert(
             std::make_pair(table_id, make_deletable(table_metadata)));

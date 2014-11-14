@@ -115,6 +115,16 @@ with driver.Metacluster() as metacluster:
     print("prev_config", prev_config)
     assert get_config() == new_config_2
 
+    # Test that configuration parameters to `table_create()` work
+    res = r.table_create("blablabla", replicas=2, shards=8).run(conn)
+    assert res == {"created": 1}
+    conf = r.table_config("blablabla").nth(0).run(conn)
+    assert len(conf["shards"]) == 8
+    for i in xrange(8):
+        assert len(conf["shards"][i]["replicas"]) == 2
+    res = r.table_drop("blablabla").run(conn)
+    assert res == {"dropped": 1}
+
     # Test that we prefer servers that held our data before
     for server in server_names:
         res = r.table_config("foo") \

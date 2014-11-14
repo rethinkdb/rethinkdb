@@ -63,16 +63,16 @@ bool artificial_reql_cluster_interface_t::db_config(
     return next->db_config(db_names, bt, interruptor, resp_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name,
-        counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
-        bool hard_durability, const std::string &primary_key, signal_t *interruptor,
-        std::string *error_out) {
+bool artificial_reql_cluster_interface_t::table_create(
+        const name_string_t &name, counted_t<const ql::db_t> db,
+        const table_generate_config_params_t &config_params,
+        const std::string &primary_key, signal_t *interruptor, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't create new tables "
             "in it.", database.c_str());
         return false;
     }
-    return next->table_create(name, db, primary_dc, hard_durability, primary_key,
+    return next->table_create(name, db, config_params, primary_key,
         interruptor, error_out);
 }
 

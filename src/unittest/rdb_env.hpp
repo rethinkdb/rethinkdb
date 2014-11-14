@@ -167,7 +167,7 @@ public:
                 std::string *error_out);
 
         bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
-                const boost::optional<name_string_t> &primary_dc, bool hard_durability,
+                const table_generate_config_params_t &config_params,
                 const std::string &primary_key,
                 signal_t *interruptor, std::string *error_out);
         bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
