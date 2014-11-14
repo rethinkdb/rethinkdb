@@ -28,16 +28,16 @@ private:
     DISABLE_COPYING(page_loader_t);
 };
 
-class instant_page_loader_t : public page_loader_t {
+class instant_page_loader_t final : public page_loader_t {
 public:
     instant_page_loader_t() { }
     ~instant_page_loader_t() { }
 
-    void added_waiter(page_cache_t *, cache_account_t *) {
+    void added_waiter(page_cache_t *, cache_account_t *) final {
         // Do nothing.
     }
 
-    bool is_really_loading() const {
+    bool is_really_loading() const final {
         return true;
     }
 
@@ -199,7 +199,7 @@ public:
     counted_t<standard_block_token_t> token;
 };
 
-class deferred_page_loader_t : public page_loader_t {
+class deferred_page_loader_t final : public page_loader_t {
 public:
     explicit deferred_page_loader_t(page_t *page)
         : page_(page), block_token_ptr_(new deferred_block_token_t) { }
@@ -212,14 +212,14 @@ public:
         return std::move(block_token_ptr_);
     }
 
-    void added_waiter(page_cache_t *page_cache, cache_account_t *account) {
+    void added_waiter(page_cache_t *page_cache, cache_account_t *account) final {
         coro_t::spawn_now_dangerously(std::bind(&page_t::catch_up_with_deferred_load,
                                                 this,
                                                 page_cache,
                                                 account));
     }
 
-    bool is_really_loading() const {
+    bool is_really_loading() const final {
         return false;
     }
 
