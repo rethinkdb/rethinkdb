@@ -35,7 +35,9 @@ RDB_DECLARE_SERIALIZABLE(Datum);
 namespace ql {
 
 class datum_stream_t;
+class datum_t;
 class env_t;
+class grouped_data_t;
 class val_t;
 
 namespace pseudo {
@@ -62,7 +64,7 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 
-class grouped_data_t;
+void debug_print(printf_buffer_t *, const datum_t &);
 
 // A `datum_t` is basically a JSON value, with some special handling for
 // ReQL pseudo-types.
@@ -472,8 +474,6 @@ public:
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo
-
-void debug_print(printf_buffer_t *buf, const datum_t &d);
 
 } // namespace ql
 
