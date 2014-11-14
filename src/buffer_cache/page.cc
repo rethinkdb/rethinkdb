@@ -42,7 +42,6 @@ public:
     }
 
 private:
-    bool abandon_page_;
     DISABLE_COPYING(instant_page_loader_t);
 };
 
