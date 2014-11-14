@@ -316,7 +316,7 @@ class Connection(object):
             except KeyboardInterrupt as err:
                 # When interrupted while waiting for a response cancel the outstanding
                 # requests by resetting this connection
-                self.reconnect()
+                self.reconnect(noreply_wait=False)
                 raise err
 
             # Construct response
