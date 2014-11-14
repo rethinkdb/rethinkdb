@@ -61,8 +61,7 @@ public:
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
-    void wait_for_readiness(table_readiness_t readiness,
-                            signal_t *interruptor);
+    bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
 private:
     cond_t ready_cond;

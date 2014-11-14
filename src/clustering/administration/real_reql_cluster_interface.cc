@@ -314,7 +314,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     try {
         namespace_interface_access_t ns_if =
             namespace_repo.get_namespace_interface(table_id, &combined_interruptor);
-        ns_if.get()->wait_for_readiness(table_readiness_t::writes, &combined_interruptor);
+        while (!ns_if.get()->check_readiness(table_readiness_t::writes,
+                                             &combined_interruptor)) {
+            nap(100, &combined_interruptor);
+        }
     } catch (const interrupted_exc_t &) {
         // Do nothing
     }
@@ -498,69 +501,68 @@ bool real_reql_cluster_interface_t::table_wait(
     }
 
     std::vector<ql::datum_t> result_array;
-    {
-        threadnum_t new_thread = directory_root_view->home_thread();
-        cross_thread_signal_t ct_interruptor(interruptor, new_thread);
-        on_thread_t thread_switcher(new_thread);
-        table_status_artificial_table_backend_t *table_status_backend =
-            admin_tables->table_status_backend.get();
-        rassert(new_thread == table_status_backend->home_thread());
+    while (true) {
+        result_array.clear();
+        {
+            threadnum_t new_thread = directory_root_view->home_thread();
+            cross_thread_signal_t ct_interruptor(interruptor, new_thread);
+            on_thread_t thread_switcher(new_thread);
+            table_status_artificial_table_backend_t *table_status_backend =
+                admin_tables->table_status_backend.get();
+            rassert(new_thread == table_status_backend->home_thread());
 
-        // Loop until all tables are ready - we have to check all tables again
-        // if a table was not immediately ready
-        bool immediate;
-        do {
-            immediate = true;
-            for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
-                table_wait_result_t res = wait_for_table_readiness(
-                    it->first, readiness, table_status_backend, &ct_interruptor);
-                immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
-                // Error out if a table was deleted and it was explicitly waited on
-                if (res == table_wait_result_t::DELETED) {
-                    if (tables.size() != 0) {
-                        *error_out = strprintf("Table `%s.%s` does not exist.",
-                                               db->name.c_str(),
-                                               it->second.str().c_str());
-                        return false;
-                    } else {
-                        // We erase the table_id here to avoid getting a DELETED result
-                        // every loop, so that `immediate` is never true
-                        table_ids.erase(it);
-                        break;
+            // Loop until all tables are ready - we have to check all tables again
+            // if a table was not immediately ready
+            bool immediate;
+            do {
+                immediate = true;
+                for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
+                    table_wait_result_t res = wait_for_table_readiness(
+                        it->first, readiness, table_status_backend, &ct_interruptor);
+                    immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
+                    // Error out if a table was deleted and it was explicitly waited on
+                    if (res == table_wait_result_t::DELETED) {
+                        if (tables.size() != 0) {
+                            *error_out = strprintf("Table `%s.%s` does not exist.",
+                                                   db->name.c_str(),
+                                                   it->second.str().c_str());
+                            return false;
+                        } else {
+                            // We erase the table_id here to avoid getting a DELETED result
+                            // every loop, so that `immediate` is never true
+                            table_ids.erase(it);
+                            break;
+                        }
                     }
                 }
+            } while (!immediate && table_ids.size() != 1);
+
+            // It is important for correctness that nothing runs in-between the wait and the
+            // `table_status` read.
+            ASSERT_FINITE_CORO_WAITING;
+            if (!table_meta_read(
+                    admin_tables->table_status_backend.get(), db, table_ids,
+                    !tables.empty(), // A db-level wait shouldn't error if a table is deleted
+                    &ct_interruptor, &result_array, error_out)) {
+                return false;
             }
-        } while (!immediate && table_ids.size() != 1);
-
-        // It is important for correctness that nothing runs in-between the wait and the
-        // `table_status` read.
-        ASSERT_FINITE_CORO_WAITING;
-        if (!table_meta_read(
-                admin_tables->table_status_backend.get(), db, table_ids,
-                !tables.empty(), // A db-level wait shouldn't error if a table is deleted
-                &ct_interruptor, &result_array, error_out)) {
-            return false;
         }
-    }
 
-    // Allow up to 10 seconds for each table to become available - otherwise assume
-    // something else went wrong and return anyway.  See github issue #3278.
-    try {
-        signal_timer_t timer_interruptor;
-        wait_any_t combined_interruptor(interruptor, &timer_interruptor);
-        timer_interruptor.start(10000);
-
+        // Make sure the tables are available - if not, wait a bit and loop again
         // We cannot wait for anything higher than 'writes' through namespace_interface_t
         table_readiness_t readiness2 = std::min(readiness, table_readiness_t::writes);
-
-        for (auto table : table_ids) {
+        bool success = true;
+        for (auto it = table_ids.begin(); it != table_ids.end() && success; ++it) {
             namespace_interface_access_t ns_if =
-                namespace_repo.get_namespace_interface(table.first,
-                                                       &combined_interruptor);
-            ns_if.get()->wait_for_readiness(readiness2, &combined_interruptor);
+                namespace_repo.get_namespace_interface(it->first, interruptor);
+            success = success && ns_if.get()->check_readiness(readiness2, interruptor);
         }
-    } catch (const interrupted_exc_t &) {
-        // Nothing to see here, move along
+
+        if (success) {
+            break;
+        }
+
+        nap(100, interruptor);
     }
 
     counted_t<ql::table_t> backend = make_backend_table(

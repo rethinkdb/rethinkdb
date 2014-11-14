@@ -77,8 +77,8 @@ public:
 
     virtual signal_t *get_initial_ready_signal() { return NULL; }
 
-    virtual void wait_for_readiness(table_readiness_t readiness,
-                                    signal_t *interruptor) = 0;
+    virtual bool check_readiness(table_readiness_t readiness,
+                                 signal_t *interruptor) = 0;
 
 protected:
     virtual ~namespace_interface_t() { }

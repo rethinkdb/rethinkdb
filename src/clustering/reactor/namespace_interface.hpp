@@ -49,7 +49,7 @@ public:
         return &start_cond;
     }
 
-    void wait_for_readiness(table_readiness_t readiness, signal_t *interruptor);
+    bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
