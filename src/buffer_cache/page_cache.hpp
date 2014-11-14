@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
-#define BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
+#ifndef BUFFER_CACHE_PAGE_CACHE_HPP_
+#define BUFFER_CACHE_PAGE_CACHE_HPP_
 
 #include <functional>
 #include <map>
@@ -8,11 +8,11 @@
 #include <utility>
 #include <vector>
 
-#include "buffer_cache/alt/block_version.hpp"
-#include "buffer_cache/alt/cache_account.hpp"
-#include "buffer_cache/alt/evicter.hpp"
-#include "buffer_cache/alt/free_list.hpp"
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/block_version.hpp"
+#include "buffer_cache/cache_account.hpp"
+#include "buffer_cache/evicter.hpp"
+#include "buffer_cache/free_list.hpp"
+#include "buffer_cache/page.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -658,4 +658,4 @@ private:
 }  // namespace alt
 
 
-#endif  // BUFFER_CACHE_ALT_PAGE_CACHE_HPP_
+#endif  // BUFFER_CACHE_PAGE_CACHE_HPP_

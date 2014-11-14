@@ -1,7 +1,7 @@
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/page.hpp"
 
 #include "arch/runtime/coroutines.hpp"
-#include "buffer_cache/alt/page_cache.hpp"
+#include "buffer_cache/page_cache.hpp"
 #include "serializer/serializer.hpp"
 
 namespace alt {

@@ -17,7 +17,7 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"

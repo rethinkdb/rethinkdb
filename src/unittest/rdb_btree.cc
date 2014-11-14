@@ -5,7 +5,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/operations.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
