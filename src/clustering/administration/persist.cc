@@ -138,9 +138,9 @@ static void read_blob(cluster_version_t cluster_version,
     buffer_group_read_stream_t ss(const_view(&group));
     /* RSI(reql_admin): When loading a pre-reql-admin metadata file, do some sort of
     translation procedure. */
-    guarantee(cluster_version == cluster_version_t::v1_15_is_latest);
+    guarantee(cluster_version == cluster_version_t::v1_16_is_latest);
     archive_result_t res =
-        deserialize<cluster_version_t::v1_15_is_latest>(&ss, value_out);
+        deserialize<cluster_version_t::v1_16_is_latest>(&ss, value_out);
     guarantee_deserialization(res, "T (template code)");
 }
 
