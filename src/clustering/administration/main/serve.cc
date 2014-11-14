@@ -6,7 +6,7 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "arch/os_signal.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"

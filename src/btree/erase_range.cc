@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/erase_range.hpp"
 
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
