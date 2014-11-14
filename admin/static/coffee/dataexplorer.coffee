@@ -638,7 +638,7 @@ module 'DataExplorerView', ->
                 [/\[/g, '\\[']
             ]
 
-            @results_view = new ResultViewWrapper
+            @results_view_wrapper = new ResultViewWrapper
                 container: @
                 view: @state.view
 
@@ -682,11 +682,11 @@ module 'DataExplorerView', ->
                     @databases_available = result
 
         handle_mousemove: (event) =>
-            @results_view.handle_mousemove event
+            @results_view_wrapper.handle_mousemove event
             @history_view.handle_mousemove event
 
         handle_mouseup: (event) =>
-            @results_view.handle_mouseup event
+            @results_view_wrapper.handle_mouseup event
             @history_view.handle_mouseup event
 
         handle_mousedown: (event) =>
@@ -719,12 +719,12 @@ module 'DataExplorerView', ->
             # Let's bring back the data explorer to its old state (if there was)
             if @state?.query_result?
                 # ATN: set_query_result?
-                @results_view.set_query_result
+                @results_view_wrapper.set_query_result
                     query_result: @state.query_result
                     current_index: @state.current_position # ATN: TODO current_index
 
-            # ATN: results_view.render?
-            @$('.results_container').html @results_view.render(query_has_changed: @query_has_changed).$el
+            # ATN: results_view_wrapper.render?
+            @$('.results_container').html @results_view_wrapper.render(query_has_changed: @query_has_changed).$el
 
             # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
 
@@ -756,7 +756,7 @@ module 'DataExplorerView', ->
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
                 @handle_keypress()
-            @results_view.init_after_dom_rendered()
+            @results_view_wrapper.init_after_dom_rendered()
 
             @draft = @codemirror.getValue()
 
@@ -2180,7 +2180,6 @@ module 'DataExplorerView', ->
             count_group: count_group
             parse_level: parse_level
 
-
         # Decide if we have to show a suggestion or a description
         # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
@@ -2572,13 +2571,13 @@ module 'DataExplorerView', ->
                 if @queries.length is 0
                     error = @query_error_template
                         no_query: true
-                    @results_view.render_error(null, error, true)
+                    @results_view_wrapper.render_error(null, error, true)
                 else
                     @execute_portion()
 
             catch err
                 # Missing brackets, so we display everything (we don't know if we properly splitted the query)
-                @results_view.render_error(@query, err, true)
+                @results_view_wrapper.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
@@ -2612,9 +2611,9 @@ module 'DataExplorerView', ->
                     rdb_query = @evaluate(full_query)
                 catch err
                     if @queries.length > 1
-                        @results_view.render_error(@raw_queries[@index], err, true)
+                        @results_view_wrapper.render_error(@raw_queries[@index], err, true)
                     else
-                        @results_view.render_error(null, err, true)
+                        @results_view_wrapper.render_error(null, err, true)
 
                     @save_query
                         query: @raw_query
@@ -2634,10 +2633,10 @@ module 'DataExplorerView', ->
                             driver_handler: @driver_handler
                             events:
                                 error: (err) =>
-                                    @results_view.render_error(@query, err)
+                                    @results_view_wrapper.render_error(@query, err)
 
                         # ATN ?
-                        @results_view.set_query_result
+                        @results_view_wrapper.set_query_result
                             query_result: @state.query_result
 
                     @driver_handler.run_with_new_connection rdq_query,
@@ -2651,7 +2650,7 @@ module 'DataExplorerView', ->
                             if final_query
                                 query_result.set error, result
                             else if error
-                                @results_view.render_error(@query, err)
+                                @results_view_wrapper.render_error(@query, err)
                             else
                                 @execute_portion()
 
@@ -2661,7 +2660,7 @@ module 'DataExplorerView', ->
                     if @index is @queries.length
                         error = @query_error_template
                             last_non_query: true
-                        @results_view.render_error(@raw_queries[@index-1], error, true)
+                        @results_view_wrapper.render_error(@raw_queries[@index-1], error, true)
 
                         @save_query
                             query: @raw_query
@@ -2799,7 +2798,7 @@ module 'DataExplorerView', ->
             if /^(Unexpected token)/.test(error.message) # ATN: test that this is handled correctly
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
-                @results_view.render_error(null, error)
+                @results_view_wrapper.render_error(null, error)
 
                 # We save the query since the callback will never be called.
                 @save_query
@@ -2807,7 +2806,7 @@ module 'DataExplorerView', ->
                     broken_query: true
 
             else # ATN: test that this is handled correctly
-                @results_view.cursor_timed_out()
+                @results_view_wrapper.cursor_timed_out()
                 # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
                 # So if the user fails to reconnect after a failure, the alert will still flash
                 @$('#user-alert-space').hide()
@@ -2833,7 +2832,7 @@ module 'DataExplorerView', ->
                 @display_full()
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
-            @results_view.set_scrollbar()
+            @results_view_wrapper.set_scrollbar()
 
         display_normal: =>
             $('#cluster').addClass 'container'
@@ -2850,7 +2849,7 @@ module 'DataExplorerView', ->
             @$('.option_icon').addClass 'fullscreen_exit'
 
         remove: =>
-            @results_view.remove()
+            @results_view_wrapper.remove()
             @history_view.remove()
             @driver_handler.remove()
 
