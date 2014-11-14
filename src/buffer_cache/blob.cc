@@ -1,11 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/blob.hpp"
 
 #include <stdint.h>
 
 #include <limits>
 
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"

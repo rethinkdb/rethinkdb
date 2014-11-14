@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 
+#include "btree/operations.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -211,7 +212,10 @@ void post_construct_and_drain_queue(
                                     sindexes,
                                     &mod_report,
                                     queue_txn.get(),
-                                    &deletion_context);
+                                    &deletion_context,
+                                    NULL,
+                                    NULL,
+                                    NULL);
                 ++current_chunk_size;
             }
 

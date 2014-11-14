@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_ALT_CACHE_ACCOUNT_HPP_
-#define BUFFER_CACHE_ALT_CACHE_ACCOUNT_HPP_
+#ifndef BUFFER_CACHE_CACHE_ACCOUNT_HPP_
+#define BUFFER_CACHE_CACHE_ACCOUNT_HPP_
 
 #include "threading.hpp"
 
@@ -32,4 +32,4 @@ private:
     DISABLE_COPYING(cache_account_t);
 };
 
-#endif  // BUFFER_CACHE_ALT_CACHE_ACCOUNT_HPP_
+#endif  // BUFFER_CACHE_CACHE_ACCOUNT_HPP_

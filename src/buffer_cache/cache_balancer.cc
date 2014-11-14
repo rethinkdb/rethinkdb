@@ -1,8 +1,8 @@
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 
 #include <limits>
 
-#include "buffer_cache/alt/evicter.hpp"
+#include "buffer_cache/evicter.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 

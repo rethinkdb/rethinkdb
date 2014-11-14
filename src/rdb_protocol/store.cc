@@ -274,8 +274,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     is_primary_t::NO, s.spec.limit, s.spec.range.sorting};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    region_t(ql::datum_range_t::universe().to_sindex_keyrange()),
-                    ql::datum_range_t::universe());
+                    region_t(s.spec.range.range.to_sindex_keyrange()),
+                    s.spec.range.range);
             } else {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES, s.spec.limit, s.spec.range.sorting};

@@ -9,8 +9,8 @@
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/buffer_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -498,7 +498,10 @@ void store_t::update_sindexes(
                                 sindexes,
                                 &mod_reports[i],
                                 txn,
-                                &deletion_context);
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
         }
     }
 
@@ -1062,6 +1065,19 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
     return true;
 }
+
+store_t::sindex_access_t::sindex_access_t(btree_slice_t *_btree,
+                                          sindex_name_t _name,
+                                          secondary_index_t _sindex,
+                                          scoped_ptr_t<real_superblock_t> _superblock)
+    : btree(_btree),
+      name(std::move(_name)),
+      sindex(std::move(_sindex)),
+      superblock(std::move(_superblock))
+{ }
+
+store_t::sindex_access_t::~sindex_access_t() { }
+
 
 void store_t::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,

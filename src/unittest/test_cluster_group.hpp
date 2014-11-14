@@ -13,7 +13,7 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
 #include "clustering/reactor/directory_echo.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"

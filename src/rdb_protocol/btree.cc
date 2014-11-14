@@ -17,7 +17,7 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -142,7 +142,7 @@ kv_location_set(keyvalue_location_t *kv_location,
                 ql::datum_t data,
                 repli_timestamp_t timestamp,
                 const deletion_context_t *deletion_context,
-                rdb_modification_info_t *mod_info_out) {
+                rdb_modification_info_t *mod_info_out) THROWS_NOTHING {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
@@ -1254,19 +1254,19 @@ void rdb_modification_report_cb_t::on_mod_report(
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
-        cond_t sindexes_updated_cond;
+        cond_t sindexes_updated_cond, keys_available_cond;
+        std::map<std::string, std::vector<ql::datum_t> > old_keys, new_keys;
         spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
-                      this, report, &sindexes_updated_cond, spot));
+                      this,
+                      report,
+                      spot,
+                      &keys_available_cond,
+                      &sindexes_updated_cond,
+                      &old_keys,
+                      &new_keys));
         guarantee(store_->changefeed_server.has());
-        store_->changefeed_server->send_all(
-            ql::changefeed::msg_t(
-                ql::changefeed::msg_t::change_t(
-                    report.info.deleted.first,
-                    report.info.added.first)),
-            report.primary_key);
-
         if (update_pkey_cfeeds) {
             store_->changefeed_server->foreach_limit(
                 boost::optional<std::string>(),
@@ -1291,22 +1291,38 @@ void rdb_modification_report_cb_t::on_mod_report(
                     }
                 });
         }
+        keys_available_cond.wait_lazily_unordered();
+        store_->changefeed_server->send_all(
+            ql::changefeed::msg_t(
+                ql::changefeed::msg_t::change_t{
+                    old_keys,
+                    new_keys,
+                    report.info.deleted.first,
+                    report.info.added.first}),
+            report.primary_key);
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
 
 void rdb_modification_report_cb_t::on_mod_report_sub(
     const rdb_modification_report_t &mod_report,
-    cond_t *cond,
-    new_mutex_in_line_t *spot) {
+    new_mutex_in_line_t *spot,
+    cond_t *keys_available_cond,
+    cond_t *done_cond,
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
                         sindexes_,
                         &mod_report,
                         sindex_block_->txn(),
-                        &deletion_context);
-    cond->pulse();
+                        &deletion_context,
+                        keys_available_cond,
+                        old_keys_out,
+                        new_keys_out);
+    guarantee(keys_available_cond->is_pulsed());
+    done_cond->pulse();
 }
 
 std::vector<std::string> expand_geo_key(
@@ -1448,7 +1464,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
             reql_version_t::v1_13;
         break;
     case cluster_version_t::v1_14:
-    case cluster_version_t::v1_15_is_latest:
+    case cluster_version_t::v1_15:
+    case cluster_version_t::v1_16_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
@@ -1493,12 +1510,19 @@ void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
-        auto_drainer_t::lock_t) {
+        size_t *updates_left,
+        auto_drainer_t::lock_t,
+        cond_t *keys_available_cond,
+        std::vector<ql::datum_t> *old_keys_out,
+        std::vector<ql::datum_t> *new_keys_out) THROWS_NOTHING {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
     // function.
     guarantee(modification->primary_key.size() != 0);
+
+    guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
+    guarantee(new_keys_out == NULL || new_keys_out->size() == 0);
 
     sindex_disk_info_t sindex_info;
     try {
@@ -1521,8 +1545,12 @@ void rdb_update_single_sindex(
             ql::datum_t deleted = modification->info.deleted.first;
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
-
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
+            if (old_keys_out != NULL) {
+                for (const auto &pair : keys) {
+                    old_keys_out->push_back(pair.second);
+                }
+            }
             if (server != NULL) {
                 server->foreach_limit(
                     sindex->name.name,
@@ -1568,6 +1596,9 @@ void rdb_update_single_sindex(
             }
         } catch (const ql::base_exc_t &) {
             // Do nothing (it wasn't actually in the index).
+
+            // See comment in `catch` below.
+            guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
         }
     }
 
@@ -1577,12 +1608,24 @@ void rdb_update_single_sindex(
     // (we with inserting new entries, or the erase with removing them).
     const bool sindex_is_being_deleted = sindex->sindex.being_deleted;
     if (!sindex_is_being_deleted && modification->info.added.first.has()) {
+        bool decremented_updates_left = false;
         try {
             ql::datum_t added = modification->info.added.first;
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
+            if (new_keys_out != NULL) {
+                guarantee(keys_available_cond != NULL);
+                for (const auto &pair : keys) {
+                    new_keys_out->push_back(pair.second);
+                }
+                guarantee(*updates_left > 0);
+                decremented_updates_left = true;
+                if (--*updates_left == 0) {
+                    keys_available_cond->pulse();
+                }
+            }
             if (server != NULL) {
                 server->foreach_limit(
                     sindex->name.name,
@@ -1628,6 +1671,28 @@ void rdb_update_single_sindex(
             }
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
+
+            // If we've decremented `updates_left` already, that means we might
+            // have sent a change with new values for this key even though we're
+            // actually dropping the row.  I *believe* that this catch statement
+            // can only be triggered by an exception thrown from `compute_keys`
+            // (which begs the question of why so many other statements are
+            // inside of it), so this guarantee should never trip.
+            if (keys_available_cond != NULL) {
+                guarantee(!decremented_updates_left);
+                guarantee(new_keys_out->size() == 0);
+                guarantee(*updates_left > 0);
+                if (--*updates_left == 0) {
+                    keys_available_cond->pulse();
+                }
+            }
+        }
+    } else {
+        if (keys_available_cond != NULL) {
+            guarantee(*updates_left > 0);
+            if (--*updates_left == 0) {
+                keys_available_cond->pulse();
+            }
         }
     }
 
@@ -1647,13 +1712,22 @@ void rdb_update_single_sindex(
     }
 }
 
-void rdb_update_sindexes(store_t *store,
-                         const store_t::sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
-                         txn_t *txn, const deletion_context_t *deletion_context) {
+void rdb_update_sindexes(
+    store_t *store,
+    const store_t::sindex_access_vector_t &sindexes,
+    const rdb_modification_report_t *modification,
+    txn_t *txn,
+    const deletion_context_t *deletion_context,
+    cond_t *keys_available_cond,
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
     {
         auto_drainer_t drainer;
 
+        size_t counter = sindexes.size();
+        if (counter == 0 && keys_available_cond != NULL) {
+            keys_available_cond->pulse();
+        }
         for (const auto &sindex : sindexes) {
             coro_t::spawn_sometime(
                 std::bind(
@@ -1662,7 +1736,15 @@ void rdb_update_sindexes(store_t *store,
                     sindex.get(),
                     deletion_context,
                     modification,
-                    auto_drainer_t::lock_t(&drainer)));
+                    &counter,
+                    auto_drainer_t::lock_t(&drainer),
+                    keys_available_cond,
+                    old_keys_out == NULL
+                        ? NULL
+                        : &(*old_keys_out)[sindex->name.name],
+                    new_keys_out == NULL
+                        ? NULL
+                        : &(*new_keys_out)[sindex->name.name]));
         }
     }
 
@@ -1777,7 +1859,10 @@ public:
                                 sindexes,
                                 &mod_report,
                                 wtxn.get(),
-                                &deletion_context);
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
             store_->btree->stats.pm_keys_set.record();
             store_->btree->stats.pm_total_keys_set += 1;
 
@@ -1863,3 +1948,6 @@ void post_construct_secondary_indexes(
 
     btree_parallel_traversal(superblock.get(), &helper, &wait_any);
 }
+
+void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
+
