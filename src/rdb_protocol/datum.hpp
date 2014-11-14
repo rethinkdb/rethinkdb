@@ -382,6 +382,8 @@ private:
         internal_type_t internal_type;
     } data;
 
+    friend void ::ql::debug_print(printf_buffer_t *, const datum_t &);
+
 public:
     static const datum_string_t reql_type_string;
 };
@@ -518,6 +520,8 @@ public:
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo
+
+void debug_print(printf_buffer_t *buf, const datum_t &d);
 
 } // namespace ql
 

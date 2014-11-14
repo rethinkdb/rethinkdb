@@ -15,6 +15,16 @@ bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
 namespace ql {
 
+void debug_print(printf_buffer_t *buf, const rget_item_t &item) {
+    buf->appendf("rget_item{key=");
+    debug_print(buf, item.key);
+    buf->appendf(", sindex_key=");
+    debug_print(buf, item.sindex_key);
+    buf->appendf(", data=");
+    debug_print(buf, item.data);
+    buf->appendf("}");
+}
+
 accumulator_t::accumulator_t() : finished(false) { }
 accumulator_t::~accumulator_t() { }
 void accumulator_t::mark_finished() { finished = true; }
