@@ -318,6 +318,9 @@ void _check_keys_are_NOT_present(store_t *store,
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
+        if (groups->size() != 0) {
+            debugf_print("groups is non-empty", *groups);
+        }
         ASSERT_EQ(0, groups->size());
     }
 }
