@@ -4,13 +4,7 @@
 
 from __future__ import print_function
 
-<<<<<<< HEAD
-import atexit, collections, copy, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback, warnings
-||||||| merged common ancestors
-import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
-=======
 import atexit, collections, copy, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
->>>>>>> next
 
 try:
     import yaml
