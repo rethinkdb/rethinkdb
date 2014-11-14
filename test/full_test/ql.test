@@ -23,13 +23,17 @@ generate_test(
     name = "py-cursor")
 
 generate_test(
+    run_prefix + "-i rb connections/cursor",
+    name = "rb-cursor")
+
+generate_test(
     run_prefix + "-i js polyglot",
     name = "js-polyglot")
 
 generate_test(
-    run_prefix + " -i py polyglot",
+    run_prefix + "-i py polyglot",
     name = "py-polyglot")
 
 generate_test(
-    run_prefix + " -i rb polyglot",
+    run_prefix + "-i rb polyglot",
     name = "rb-polyglot")
