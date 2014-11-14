@@ -1889,7 +1889,53 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
     return datum_t(std::move(vector), datum_t::no_array_size_limit_check_t());
 }
 
-
+void debug_print(printf_buffer_t *buf, const datum_t &d) {
+    switch (d.data.get_internal_type()) {
+    case datum_t::internal_type_t::UNINITIALIZED:
+        buf->appendf("d/uninitialized");
+        break;
+    case datum_t::internal_type_t::R_ARRAY:
+        buf->appendf("d/array");
+        if (!d.data.r_array.has()) {
+            buf->appendf("(null!?)");
+        } else {
+            debug_print(buf, *d.data.r_array);
+        }
+        break;
+    case datum_t::internal_type_t::R_BINARY:
+        buf->appendf("d/binary(");
+        debug_print(buf, d.data.r_str);
+        buf->appendf(")");
+        break;
+    case datum_t::internal_type_t::R_BOOL:
+        buf->appendf("d/%s", d.data.r_bool ? "true" : "false");
+        break;
+    case datum_t::internal_type_t::R_NULL:
+        buf->appendf("d/null");
+        break;
+    case datum_t::internal_type_t::R_NUM:
+        buf->appendf("d/number(%" PR_RECONSTRUCTABLE_DOUBLE ")", d.data.r_num);
+        break;
+    case datum_t::internal_type_t::R_OBJECT:
+        buf->appendf("d/object");
+        debug_print(buf, *d.data.r_object);
+        break;
+    case datum_t::internal_type_t::R_STR:
+        buf->appendf("d/string(");
+        debug_print(buf, d.data.r_str);
+        buf->appendf(")");
+        break;
+    case datum_t::internal_type_t::BUF_R_ARRAY:
+        buf->appendf("d/buf_r_array(...)");
+        break;
+    case datum_t::internal_type_t::BUF_R_OBJECT:
+        buf->appendf("d/buf_r_object(...)");
+        break;
+    default:
+        buf->appendf("datum/garbage{internal_type=%d}", d.data.get_internal_type());
+        break;
+    }
+}
 
 
 } // namespace ql
