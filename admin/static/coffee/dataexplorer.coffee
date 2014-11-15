@@ -1,8 +1,11 @@
+# ATN: update jquery
 # ATN: change query nomenclature:
 # raw: text from the data explorer
 # clean: cleaned somehow. how?
 # query: a single query
 # query_group: multiple queries
+
+# TODO: standardize on result or results
 
 # Move load more results into view
 # and scroll to top: $(window).scrollTop(@$('.results_container').offset().top)
@@ -2642,11 +2645,11 @@ module 'DataExplorerView', ->
                         @results_view_wrapper.set_query_result
                             query_result: @state.query_result
 
-                    @driver_handler.run_with_new_connection rdq_query,
+                    @driver_handler.run_with_new_connection rdb_query,
                         optargs:
                             binaryFormat: "raw"
                             timeFormat: "raw"
-                            profile: @state.options.profile
+                            profile: @state.options.profiler
                         connection_error: (error) =>
                             @error_on_connect error
                         callback: (error, result) =>
@@ -3504,7 +3507,7 @@ module 'DataExplorerView', ->
             return @
 
         set_query_result: ({query_result}) =>
-            @query_result.discard()
+            @query_result?.discard()
             @query_result = query_result
             # ATN disable "next" button
             if query_result.ready
@@ -3522,7 +3525,7 @@ module 'DataExplorerView', ->
                     limit_value: @container.limit
                     skip_value: @query_result.position
                     execution_time: 12345 # ATN
-                    query: ATN
+                    query: "query" # ATN
                     has_more_data: not @query_result.ended
                     query_has_changed: args?.query_has_changed
                     show_more_data: not @query_result.ended and not @container.state.cursor_timed_out
@@ -3536,7 +3539,7 @@ module 'DataExplorerView', ->
                     for_dataexplorer: true
                     trigger: 'hover'
                     placement: 'bottom'
-                @$('.tab-content').html @view_object.$el
+                @$('.tab-content').html @view_object?.$el
             return @
 
         new_view: () =>
@@ -3726,8 +3729,8 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class DriverHandler
-        constructor: (container) ->
-            @container = container
+        constructor: (options) ->
+            @container = options.container
 
         close_connection: =>
             if @connection?.open is true

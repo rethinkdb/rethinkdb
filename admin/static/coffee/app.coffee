@@ -20,7 +20,8 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         return 0
 
-    DataExplorerView.Container.prototype.set_docs reql_docs
+    # ATN TODO reql_docs missing
+    # DataExplorerView.Container.prototype.set_docs reql_docs
 
 class @Driver
     constructor: (args) ->
