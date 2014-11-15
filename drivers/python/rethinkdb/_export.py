@@ -403,6 +403,7 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        rdb_call_wrapper(conn_fn, "version check", check_version)
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
         del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 
