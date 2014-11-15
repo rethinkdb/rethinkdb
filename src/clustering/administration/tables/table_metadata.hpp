@@ -26,7 +26,6 @@
 #include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 
-
 /* This is the metadata for a single table. */
 
 class write_ack_config_t {
