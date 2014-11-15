@@ -116,7 +116,7 @@ RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
 RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 
-class feed_t;
+class real_feed_t;
 struct stamped_msg_t;
 
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
@@ -168,10 +168,10 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
 // should call `new_feed`.  The `client_t` will give it back a stream of rows.
 // The `client_t` does this by maintaining an internal map from table UUIDs to
-// `feed_t`s.  (It does this so that there is at most one `feed_t` per <table,
-// client> pair, to prevent redundant cluster messages.)  The actual logic for
-// subscribing to a changefeed server and distributing writes to streams can be
-// found in the `feed_t` class.
+// `real_feed_t`s.  (It does this so that there is at most one `real_feed_t` per
+// <table, client> pair, to prevent redundant cluster messages.)  The actual
+// logic for subscribing to a changefeed server and distributing writes to
+// streams can be found in the `real_feed_t` class.
 class client_t : public home_thread_mixin_t {
 public:
     typedef client_addr_t addr_t;
@@ -193,7 +193,7 @@ public:
         const std::string &pkey,
         const keyspec_t::spec_t &spec);
     void maybe_remove_feed(const namespace_id_t &uuid);
-    scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
+    scoped_ptr_t<real_feed_t> detach_feed(const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
@@ -202,7 +202,7 @@ private:
             const namespace_id_t &,
             signal_t *)
         > const namespace_source;
-    std::map<namespace_id_t, scoped_ptr_t<feed_t> > feeds;
+    std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever
     // `new_feed` is called with a table not already in the `feeds` map, or
@@ -408,7 +408,7 @@ public:
 };
 
 // There is one `server_t` per `store_t`, and it is used to send changes that
-// occur on that `store_t` to any subscribed `feed_t`s contained in a
+// occur on that `store_t` to any subscribed `real_feed_t`s contained in a
 // `client_t`.
 class server_t {
 public:
@@ -453,7 +453,7 @@ private:
                                uuid_u uuid);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
-    // The UUID of the server, used so that `feed_t`s can enforce on ordering on
+    // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
     // from before their own creation timestamp on a per-server basis).
     const uuid_u uuid;
@@ -509,12 +509,17 @@ private:
         limit_stop_mailbox;
 };
 
+class artificial_feed_t;
 class artificial_t {
 public:
-    artificial_t() : uuid(generate_uuid()) { }
-    counted_t<datum_stream_t> subscribe(const keyspec_t::spec &spec);
-    void send_all(const msg_t &msg, const store_key_t &key);
+    artificial_t();
+    ~artificial_t();
+    counted_t<datum_stream_t> subscribe(
+        const keyspec_t::spec_t &spec,
+        const protob_t<const Backtrace> &bt);
+    void send_all(const msg_t &msg);
 private:
+    uint64_t stamp;
     uuid_u uuid;
     scoped_ptr_t<artificial_feed_t> feed;
 };
