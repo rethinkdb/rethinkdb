@@ -139,9 +139,16 @@ private:
     bool read_ahead_ok;
     uint64_t bytes_toward_read_ahead_limit;
 
+    struct per_thread_data_t {
+        per_thread_data_t() { }
+        std::set<alt::evicter_t *> evicters;
+
+        DISABLE_COPYING(per_thread_data_t);
+    };
+
     // This contains the extant evicter pointers for each thread, only accessed
     // from each thread
-    scoped_array_t<std::set<alt::evicter_t *> > evicters_per_thread;
+    scoped_array_t<per_thread_data_t> per_thread_data;
 
     // Coroutine pool to make sure there is only one rebalance happening at a time
     // The single_value_producer_t makes sure we never build up a backlog

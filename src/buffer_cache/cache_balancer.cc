@@ -25,7 +25,7 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     last_rebalance_time(0),
     read_ahead_ok(true),
     bytes_toward_read_ahead_limit(0),
-    evicters_per_thread(get_num_threads()),
+    per_thread_data(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) {
 
     // We do some signed arithmetic with cache sizes, so the total cache size
@@ -40,13 +40,13 @@ alt_cache_balancer_t::~alt_cache_balancer_t() {
 
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    auto res = evicters_per_thread[get_thread_id().threadnum].insert(evicter);
+    auto res = per_thread_data[get_thread_id().threadnum].evicters.insert(evicter);
     guarantee(res.second);
 }
 
 void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    size_t res = evicters_per_thread[get_thread_id().threadnum].erase(evicter);
+    size_t res = per_thread_data[get_thread_id().threadnum].evicters.erase(evicter);
     guarantee(res == 1);
 }
 
@@ -60,7 +60,7 @@ void alt_cache_balancer_t::on_ring() {
 
 void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
     assert_thread();
-    scoped_array_t<std::vector<cache_data_t> > per_thread_data(evicters_per_thread.size());
+    scoped_array_t<std::vector<cache_data_t> > per_thread_data(per_thread_data.size());
 
     // Get cache sizes from shards on each thread
     pmap(per_thread_data.size(),
@@ -155,7 +155,7 @@ void alt_cache_balancer_t::collect_stats_from_thread(int index,
     on_thread_t rethreader((threadnum_t(index)));
 
     ASSERT_NO_CORO_WAITING;
-    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
+    const std::set<alt::evicter_t *> *evicters = &per_thread_data[index].evicters;
     std::vector<cache_data_t> * per_evicter_data = &(*data_out)[index];
 
     per_evicter_data->reserve(evicters->size());
@@ -170,7 +170,7 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
         bool new_read_ahead_ok) {
     on_thread_t rethreader((threadnum_t(index)));
 
-    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
+    const std::set<alt::evicter_t *> *evicters = &per_thread_data[index].evicters;
     const std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;
