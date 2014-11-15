@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-expectedDriverPath = File.join(File.dirname(__FILE__), 'lib')
+expectedDriverPath = File.expand_path File.join(File.dirname(__FILE__), 'lib')
 
 # -- load the driver
 
@@ -10,9 +10,9 @@ include RethinkDB::Shortcuts
 
 # -- test that we got the driver we expected
 
-actualDirverPath = File.dirname(r.method(:connect).source_location[0])
-if actualDirverPath != expectedDriverPath
-  abort "Wrong Ruby driver loaded, expected from: " + expectedDriverPath + " but got :" + actualDirverPath
+actualDriverPath = File.expand_path File.dirname(r.method(:connect).source_location[0])
+if actualDriverPath != expectedDriverPath
+  abort "Wrong Ruby driver loaded, expected from: " + expectedDriverPath + " but got: " + actualDriverPath
 end
 
 # --
