@@ -9,9 +9,10 @@ namespace alt {
 
 evicter_t::evicter_t()
     : initialized_(false),
-      page_cache_(NULL),
-      balancer_(NULL),
-      throttler_(NULL),
+      page_cache_(nullptr),
+      balancer_(nullptr),
+      balancer_notify_activity_boolean_(nullptr),
+      throttler_(nullptr),
       bytes_loaded_counter_(0),
       access_count_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME),
@@ -28,13 +29,16 @@ evicter_t::~evicter_t() {
 void evicter_t::initialize(page_cache_t *page_cache,
                            cache_balancer_t *balancer,
                            alt_txn_throttler_t *throttler) {
-    guarantee(balancer != NULL);
+    assert_thread();
+    guarantee(balancer != nullptr);
     initialized_ = true;  // Can you really say this class is 'initialized_'?
     page_cache_ = page_cache;
     memory_limit_ = balancer->base_mem_per_store();
     page_cache_ = page_cache;
     throttler_ = throttler;
     balancer_ = balancer;
+    balancer_notify_activity_boolean_
+        = balancer_->notify_activity_boolean(get_thread_id());
     balancer_->add_evicter(this);
     throttler_->inform_memory_limit_change(memory_limit_,
                                            page_cache_->max_block_size());
@@ -78,11 +82,24 @@ uint64_t evicter_t::access_count() const {
     return access_count_counter_;
 }
 
+void wake_up_balancer(cache_balancer_t *balancer,
+                      UNUSED auto_drainer_t::lock_t drainer_lock) {
+    on_thread_t th(balancer->home_thread());
+    balancer->wake_up_activity_happened();
+}
+
 void evicter_t::notify_bytes_loading(int64_t in_memory_buf_change) {
     assert_thread();
     guarantee(initialized_);
     bytes_loaded_counter_ += in_memory_buf_change;
     access_count_counter_ += 1;
+    if (*balancer_notify_activity_boolean_) {
+        *balancer_notify_activity_boolean_ = false;
+
+        coro_t::spawn_sometime(std::bind(&wake_up_balancer,
+                                         balancer_,
+                                         page_cache_->drainer_lock()));
+    }
 }
 
 void evicter_t::add_deferred_loaded(page_t *page) {

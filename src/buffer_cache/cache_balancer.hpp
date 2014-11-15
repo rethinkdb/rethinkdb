@@ -19,7 +19,7 @@ class evicter_t;
 }
 
 // Base class so we can have a dummy implementation for tests
-class cache_balancer_t {
+class cache_balancer_t : public home_thread_mixin_t {
 public:
     cache_balancer_t() { }
     virtual ~cache_balancer_t() { }
@@ -29,6 +29,19 @@ public:
 
     // Tells caches whether to start read ahead initially
     virtual bool read_ahead_ok_at_start() const = 0;
+
+    // Returns a pointer to a boolean for the given thread number (which must be the
+    // current thread) which, when set to true, means you should notify the balancer
+    // that it should wake up.  Stuff outside the balancer should only set it from
+    // true to false.
+    //
+    // You should only call this once -- that way, you don't need a wasteful virtual
+    // function call anytime you want activity.
+    virtual bool *notify_activity_boolean(threadnum_t) = 0;
+
+    // Tells the balancer that activity happened, so that maybe it should restart its
+    // balancing processes, if necessary (since right now they run on a timer).
+    virtual void wake_up_activity_happened() = 0;
 
 protected:
     friend class alt::evicter_t;
@@ -40,19 +53,26 @@ protected:
 };
 
 // Dummy balancer that does nothing but provide the initial size of a cache
-class dummy_cache_balancer_t : public cache_balancer_t {
+class dummy_cache_balancer_t final : public cache_balancer_t {
 public:
-    explicit dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
-        base_mem_per_store_(_base_mem_per_store) { }
+    explicit dummy_cache_balancer_t(uint64_t _base_mem_per_store)
+        : base_mem_per_store_(_base_mem_per_store),
+          notify_activity_boolean_(false) { }
     ~dummy_cache_balancer_t() { }
 
-    uint64_t base_mem_per_store() const {
+    uint64_t base_mem_per_store() const final {
         return base_mem_per_store_;
     }
 
-    bool read_ahead_ok_at_start() const {
+    bool read_ahead_ok_at_start() const final {
         return false;
     }
+
+    bool *notify_activity_boolean(threadnum_t) final {
+        return &notify_activity_boolean_;
+    }
+
+    void wake_up_activity_happened() final { }
 
 private:
     void add_evicter(alt::evicter_t *) { }
@@ -60,28 +80,32 @@ private:
 
     uint64_t base_mem_per_store_;
 
+    bool notify_activity_boolean_;
+
     DISABLE_COPYING(dummy_cache_balancer_t);
 };
 
 class alt_cache_balancer_dummy_value_t { };
 
-class alt_cache_balancer_t :
+class alt_cache_balancer_t final :
     public cache_balancer_t,
-    public home_thread_mixin_t,
     public coro_pool_callback_t<alt_cache_balancer_dummy_value_t>,
-    public repeating_timer_callback_t
-{
+    public repeating_timer_callback_t {
 public:
     explicit alt_cache_balancer_t(uint64_t _total_cache_size);
     ~alt_cache_balancer_t();
 
-    uint64_t base_mem_per_store() const {
+    uint64_t base_mem_per_store() const final {
         return 0;
     }
 
-    bool read_ahead_ok_at_start() const {
+    bool read_ahead_ok_at_start() const final {
         return true;
     }
+
+    bool *notify_activity_boolean(threadnum_t thread) final;
+
+    void wake_up_activity_happened() final;
 
 private:
     friend class alt::evicter_t;
@@ -140,8 +164,11 @@ private:
     uint64_t bytes_toward_read_ahead_limit;
 
     struct per_thread_data_t {
-        per_thread_data_t() { }
+        per_thread_data_t() : wake_up_balancer(false) { }
         std::set<alt::evicter_t *> evicters;
+        // true if the balancer should wake up (because there was activity on this
+        // thread).
+        bool wake_up_balancer;
 
         DISABLE_COPYING(per_thread_data_t);
     };

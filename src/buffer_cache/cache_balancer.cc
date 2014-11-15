@@ -38,6 +38,17 @@ alt_cache_balancer_t::~alt_cache_balancer_t() {
     assert_thread();
 }
 
+bool *alt_cache_balancer_t::notify_activity_boolean(threadnum_t thread) {
+    guarantee(thread == get_thread_id());
+    return &per_thread_data[thread.threadnum].wake_up_balancer;
+}
+
+void alt_cache_balancer_t::wake_up_activity_happened() {
+    assert_thread();
+
+    // RSI: Do something!
+}
+
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
     auto res = per_thread_data[get_thread_id().threadnum].evicters.insert(evicter);

@@ -73,6 +73,8 @@ private:
     bool initialized_;
     page_cache_t *page_cache_;
     cache_balancer_t *balancer_;
+    bool *balancer_notify_activity_boolean_;
+
     alt_txn_throttler_t *throttler_;
 
     uint64_t memory_limit_;
