@@ -55,12 +55,12 @@ module 'DataExplorerView', ->
 
     # This class represents the results of a query.
     #
-    # If there is a profile, `profile` is set. After a 'sync' event,
+    # If there is a profile, `profile` is set. After a 'ready' event,
     # one of `error`, `value` or `cursor` is always set. `ended`
     # indicates whether there are any more results to read.
     #
     # It triggers the following events:
-    #  * sync: The first response has been received
+    #  * ready: The first response has been received
     #  * add: Another row has been received from a cursor
     #  * error: An error has occured
     #  * end: There are no more documents to fetch
@@ -73,6 +73,8 @@ module 'DataExplorerView', ->
             @current_query = options.current_query
             @raw_query = options.raw_query
             @driver_handler = options.driver_handler
+            @ready = false
+            @position = 0
             if options.events?
                 for own event, handler of options.events
                     @on event, handler
@@ -98,7 +100,8 @@ module 'DataExplorerView', ->
                     @start_index = 0
                     @value = value
                     @ended = true
-                @trigger 'sync', @
+                @ready = true
+                @trigger 'ready', @
 
         # Remove n elements from the result set of a cursor Waits for
         # n+1 elements, or the end before returning
@@ -721,7 +724,6 @@ module 'DataExplorerView', ->
                 # ATN: set_query_result?
                 @results_view_wrapper.set_query_result
                     query_result: @state.query_result
-                    current_index: @state.current_position # ATN: TODO current_index
 
             # ATN: results_view_wrapper.render?
             @$('.results_container').html @results_view_wrapper.render(query_has_changed: @query_has_changed).$el
@@ -2635,7 +2637,8 @@ module 'DataExplorerView', ->
                                 error: (err) =>
                                     @results_view_wrapper.render_error(@query, err)
 
-                        # ATN ?
+                        @state.query_result = query_result
+
                         @results_view_wrapper.set_query_result
                             query_result: @state.query_result
 
@@ -2874,13 +2877,17 @@ module 'DataExplorerView', ->
 
         initialize: (args) =>
             @parent = args.parent
+            @query_result = args.query_result
+            if @query_events?
+                for own event, handler of @query_events()
+                    @query_result.on event, handler
 
         current_result: []
         max_datum_threshold: 1000
 
         # Return whether there are too many datums
         # If there are too many, we will disable syntax highlighting to avoid freezing the page
-        has_too_many_datums: (result) ->
+        has_too_many_datums: (result) -> # ATN
             if @has_too_many_datums_helper(result) > @max_datum_threshold
                 return true
             return false
@@ -3353,18 +3360,17 @@ module 'DataExplorerView', ->
             return num_shard_accesses
 
         render: =>
-            @copy_parent_results() # ATN
-
-            if not @ATN_profile?
+            if not @query_result.profile?
                 @$el.html @template {}
             else
+                profile = @query_result.profile
                 @$el.html @template
                     profile:
-                        clipboard_text: JSON.stringify @ATN_profile, null, 2
-                        tree: @json_to_tree @ATN_profile
-                        total_duration: @ATN_metadata.execution_time_pretty
-                        server_duration: Utils.prettify_duration @compute_total_duration @ATN_profile
-                        num_shard_accesses: @compute_num_shard_accesses @ATN_profile
+                        clipboard_text: JSON.stringify profile, null, 2
+                        tree: @json_to_tree profile
+                        total_duration: 12345 # ATN: @metadata.execution_time_pretty
+                        server_duration: Utils.prettify_duration @compute_total_duration profile
+                        num_shard_accesses: @compute_num_shard_accesses profile
 
                 @clip.glue(@$('button.copy_profile'))
                 @delegateEvents()
@@ -3415,7 +3421,7 @@ module 'DataExplorerView', ->
             @container.state.view = view
             @$(".link_to_#{@view}_view").addClass 'active'
             @$(".link_to_#{@view}_view").parent().addClass 'active'
-            @render_result() # ATN: 0-argument render_result?
+            @new_view()
 
         set_scrollbar: =>
             if @view is 'table'
@@ -3497,38 +3503,58 @@ module 'DataExplorerView', ->
                 js_error: js_error is true
             return @
 
+        set_query_result: ({query_result}) =>
+            @query_result.discard()
+            @query_result = query_result
+            # ATN disable "next" button
+            if query_result.ready
+                @render()
+                @new_view()
+            else
+                @query_result.on 'ready', () =>
+                    @render()
+                    @new_view()
+
+        render: (args) =>
+            # ATN many of these fields don't get updated when their value changes
+            if @query_result?.ready
+                @$el.html @template
+                    limit_value: @container.limit
+                    skip_value: @query_result.position
+                    execution_time: 12345 # ATN
+                    query: ATN
+                    has_more_data: not @query_result.ended
+                    query_has_changed: args?.query_has_changed
+                    show_more_data: not @query_result.ended and not @container.state.cursor_timed_out
+                    cursor_timed_out_template: (
+                        @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
+                    execution_time_pretty: 12345 # @ATN_metadata.execution_time_pretty
+                    no_results: @query_result.ended and (
+                        @query_result.value is [] or @query_result.results is []) # ATN: move to QueryResult class
+                    num_results: 12345 # ATN
+                @$('.execution_time').tooltip
+                    for_dataexplorer: true
+                    trigger: 'hover'
+                    placement: 'bottom'
+                @$('.tab-content').html @view_object.$el
+            return @
+
+        new_view: () =>
+            @view_object?.remove() 
+            @view_object = new @views[@view]
+                parent: @
+                query_result: @query_result
+            @$('.tab-content').html @view_object.$el
+            @init_after_dom_rendered()
+            @set_scrollbar()
+            # ATN @delegateEvents() ?
+
         # ATN: conitnue ripping this into pieces
         render_result: (args) =>
 
             # ATN TODO
             @ATN_metadata.execution_time_pretty = Utils.prettify_duration args.ATN_metadata.execution_time
 
-            @$el.html @template
-                limit_value: ATN_from_old_metadata
-                skip_value: ATN
-                execution_time: ATN
-                query: ATN
-                has_more_data: ATN
-                query_has_changed: args?.query_has_changed
-                show_more_data: @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is false
-                cursor_timed_out_template: (@cursor_timed_out_template() if @ATN_metadata.has_more_data is true and @container.state.cursor_timed_out is true)
-                execution_time_pretty: @ATN_metadata.execution_time_pretty
-                no_results: @ATN_metadata.has_more_data isnt true and @results?.length is 0 and @ATN_metadata.skip_value is 0
-                num_results: num_results
-
-            @view_object?.remove()
-            @view_object = new @views[@view] parent: @
-            @$('.tab-content').html @view_object.render().$el
-            @init_after_dom_rendered()
-
-            @set_scrollbar()
-            @delegateEvents()
-
-            @$('.execution_time').tooltip
-                for_dataexplorer: true
-                trigger: 'hover'
-                placement: 'bottom'
-            return @
 
         init_after_dom_rendered: =>
             @view_object?.init_after_dom_rendered?()
@@ -3538,10 +3564,6 @@ module 'DataExplorerView', ->
             @container.state.cursor_timed_out = true
             if @container.state.query_result?.ended is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
-
-        render: =>
-            @delegateEvents()
-            return @
 
         remove: =>
             $(window).unbind 'scroll'
