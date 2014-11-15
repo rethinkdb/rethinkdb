@@ -893,6 +893,7 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
+    virtual void start(const uuid_u &) = 0;
     virtual void start(env_t *env,
                        std::string table,
                        namespace_interface_t *nif,
@@ -1035,6 +1036,7 @@ public:
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
     }
+    virtual void start(const uuid_u &) { } // `stamp` already 0
     virtual void start(env_t *env,
                        std::string,
                        namespace_interface_t *nif,
@@ -1100,6 +1102,9 @@ public:
     }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
+    }
+    virtual void start(const uuid_u &uuid) {
+        start_stamps[uuid] = 0;
     }
     virtual void start(env_t *outer_env,
                        std::string,
@@ -1234,6 +1239,9 @@ public:
         }
     }
 
+    NORETURN virtual void start(const uuid_u &) {
+        crash("Cannot start a limit subscription on an artificial table.");
+    }
     virtual void start(env_t *env,
                        std::string table,
                        namespace_interface_t *nif,

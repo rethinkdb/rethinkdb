@@ -509,6 +509,16 @@ private:
         limit_stop_mailbox;
 };
 
+class artificial_t {
+public:
+    artificial_t() : uuid(generate_uuid()) { }
+    counted_t<datum_stream_t> subscribe(const keyspec_t::spec &spec);
+    void send_all(const msg_t &msg, const store_key_t &key);
+private:
+    uuid_u uuid;
+    scoped_ptr_t<artificial_feed_t> feed;
+};
+
 } // namespace changefeed
 } // namespace ql
 
