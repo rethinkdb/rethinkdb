@@ -1,4 +1,5 @@
-# ATN: update jquery
+# ATN: remove jquery migration:
+#   $.browser
 # ATN: change query nomenclature:
 # raw: text from the data explorer
 # clean: cleaned somehow. how?
@@ -3424,7 +3425,8 @@ module 'DataExplorerView', ->
             @container.state.view = view
             @$(".link_to_#{@view}_view").addClass 'active'
             @$(".link_to_#{@view}_view").parent().addClass 'active'
-            @new_view()
+            if @query_result?.ready
+                @new_view()
 
         set_scrollbar: =>
             if @view is 'table'
@@ -3547,7 +3549,7 @@ module 'DataExplorerView', ->
             @view_object = new @views[@view]
                 parent: @
                 query_result: @query_result
-            @$('.tab-content').html @view_object.$el
+            @$('.tab-content').html @view_object.render().$el
             @init_after_dom_rendered()
             @set_scrollbar()
             # ATN @delegateEvents() ?
