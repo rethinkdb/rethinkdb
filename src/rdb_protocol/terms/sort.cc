@@ -230,35 +230,38 @@ private:
                 s->add_transformation(std::move(mwf), backtrace());
                 return new_val(env->env, s);
             } else {
-                tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
-                counted_t<datum_stream_t> s =
-                    tbl->as_datum_stream(env->env, backtrace());
-                s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
-                return new_val(env->env, s->ordered_distinct());
-            }
-        } else {
-            rcheck(!idx, base_exc_t::GENERIC,
-                   "Can only perform an indexed distinct on a TABLE.");
-            counted_t<datum_stream_t> s = v->as_seq(env->env);
-            // The reql_version matters here, because we copy `results` into `toret`
-            // in ascending order.
-            std::set<datum_t, optional_datum_less_t>
-                results(optional_datum_less_t(env->env->reql_version()));
-            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-            {
-                profile::sampler_t sampler("Evaluating elements in distinct.",
-                                           env->env->trace);
-                datum_t d;
-                while (d = s->next(env->env, batchspec), d.has()) {
-                    results.insert(std::move(d));
-                    rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
-                    sampler.new_sample();
+                if (!tbl->sindex_id || *tbl->sindex_id == idx_str) {
+                    if (tbl->sorting == sorting_t::UNORDERED) {
+                        tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
+                    }
+                    counted_t<datum_stream_t> s =
+                        tbl->as_datum_stream(env->env, backtrace());
+                    s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
+                    return new_val(env->env, s->ordered_distinct());
                 }
             }
-            std::vector<datum_t> toret;
-            std::move(results.begin(), results.end(), std::back_inserter(toret));
-            return new_val(datum_t(std::move(toret), env->env->limits()));
         }
+        rcheck(!idx, base_exc_t::GENERIC,
+               "Can only perform an indexed distinct on a TABLE.");
+        counted_t<datum_stream_t> s = v->as_seq(env->env);
+        // The reql_version matters here, because we copy `results` into `toret`
+        // in ascending order.
+        std::set<datum_t, optional_datum_less_t>
+            results(optional_datum_less_t(env->env->reql_version()));
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        {
+            profile::sampler_t sampler("Evaluating elements in distinct.",
+                                       env->env->trace);
+            datum_t d;
+            while (d = s->next(env->env, batchspec), d.has()) {
+                results.insert(std::move(d));
+                rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
+                sampler.new_sample();
+            }
+        }
+        std::vector<datum_t> toret;
+        std::move(results.begin(), results.end(), std::back_inserter(toret));
+        return new_val(datum_t(std::move(toret), env->env->limits()));
     }
     virtual const char *name() const { return "distinct"; }
 };
