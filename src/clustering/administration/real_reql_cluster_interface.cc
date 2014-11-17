@@ -237,6 +237,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     namespace_id_t table_id = generate_uuid();
     cluster_semilattice_metadata_t metadata;
     {
@@ -321,12 +322,14 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
+        table_status_artificial_table_backend_t *backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
         wait_for_table_readiness(
             table_id,
             table_readiness_t::finished,
-            /* Arbitrarily choose to use the UUID-based backend rather than the
-            name-based backend when waiting for table readiness. This doesn't matter. */
-            admin_tables->table_status_backend[1].get(),
+            backend,
             &interruptor2);
     }
 

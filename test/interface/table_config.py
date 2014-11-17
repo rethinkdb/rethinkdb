@@ -234,7 +234,7 @@ with driver.Metacluster() as metacluster:
     assert res["deleted"] == 1, repr(res)
     assert "baz" not in r.table_list().run(conn)
 
-    print("Testing that identifier_format workss...")
+    print("Testing that identifier_format works...")
     a_uuid = r.db("rethinkdb").table("server_config") \
               .filter({"name": "a"}).nth(0)["id"].run(conn)
     db_uuid = r.db("rethinkdb").table("db_config") \
