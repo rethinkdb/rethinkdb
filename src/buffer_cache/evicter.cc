@@ -20,6 +20,7 @@ evicter_t::evicter_t()
 
 evicter_t::~evicter_t() {
     assert_thread();
+    drainer_.drain();
     if (initialized_) {
         balancer_->remove_evicter(this);
     }
@@ -98,7 +99,7 @@ void evicter_t::notify_bytes_loading(int64_t in_memory_buf_change) {
 
         coro_t::spawn_sometime(std::bind(&wake_up_balancer,
                                          balancer_,
-                                         page_cache_->drainer_lock()));
+                                         drainer_.lock()));
     }
 }
 

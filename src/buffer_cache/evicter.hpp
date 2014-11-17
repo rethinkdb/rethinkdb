@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "buffer_cache/eviction_bag.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/cache_line_padded.hpp"
 #include "concurrency/pubsub.hpp"
 #include "threading.hpp"
@@ -97,6 +98,8 @@ private:
     eviction_bag_t evictable_disk_backed_;
     eviction_bag_t evictable_unbacked_;
     eviction_bag_t evicted_;
+
+    auto_drainer_t drainer_;
 
     DISABLE_COPYING(evicter_t);
 };
