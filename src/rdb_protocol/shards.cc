@@ -213,7 +213,7 @@ public:
           seen_distinct(false),
           seen(0),
           n(_n),
-          ops(std::move(_ops)),
+          ops(_ops),
           batcher(batchspec_t::all().to_batcher()) { }
 private:
     virtual void operator()(env_t *, groups_t *) {
