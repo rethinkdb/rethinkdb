@@ -53,7 +53,7 @@ protected:
 
 class repeating_timer_t : private timer_callback_t {
 public:
-    repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *ringee);
+    repeating_timer_t(int64_t period_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:

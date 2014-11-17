@@ -64,10 +64,10 @@ void signal_timer_t::on_timer() {
 
 // repeating_timer_t
 
-repeating_timer_t::repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *_ringee) :
+repeating_timer_t::repeating_timer_t(int64_t period_ms, repeating_timer_callback_t *_ringee) :
     ringee(_ringee) {
-    rassert(frequency_ms > 0);
-    timer = add_timer(frequency_ms, this);
+    rassert(period_ms > 0);
+    timer = add_timer(period_ms, this);
 }
 
 repeating_timer_t::~repeating_timer_t() {
