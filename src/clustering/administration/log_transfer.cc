@@ -39,7 +39,7 @@ void log_server_t::handle_request(
     /* Hack around the fact that we can't call a blocking function (e.g.
     `send()` from within a `catch`-block. */
     send(mailbox_manager, cont, boost::variant<std::vector<log_message_t>, std::string>(error));
-}
+}  // NOLINT(whitespace/indent)  (cpplint is confused by the 'struct timespec')
 
 std::vector<log_message_t> fetch_log_file(
         mailbox_manager_t *mm,

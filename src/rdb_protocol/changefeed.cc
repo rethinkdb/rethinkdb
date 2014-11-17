@@ -44,7 +44,7 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.old_key).c_str(),
                      print(change.new_val).c_str());
 }
-} // namespace debug;
+}  // namespace debug
 
 server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
@@ -1191,7 +1191,7 @@ public:
     void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
               &start_data) {
 #ifndef NDEBUG
-        nap(rand() % 250); // Nap up to 250ms to test queueing.
+        nap(randint(250)); // Nap up to 250ms to test queueing.
 #endif
         got_init += 1;
         for (const auto &pair : start_data) {
