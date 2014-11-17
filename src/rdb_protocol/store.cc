@@ -264,15 +264,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::env_t env(ctx, interruptor, s.optargs, trace);
         ql::stream_t stream;
         {
-            rget_read_response_t resp;
-            rget_read_t rget;
-            rget.region = s.region;
-            rget.table_name = s.table;
-            rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
                 ops.push_back(make_op(transform));
             }
+            rget_read_t rget;
+            rget.region = s.region;
+            rget.table_name = s.table;
+            rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             if (s.spec.range.sindex) {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::NO,
@@ -293,6 +292,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.sorting = s.spec.range.sorting;
             // The superblock will instead be released in `store_t::read`
             // shortly after this function returns.
+            rget_read_response_t resp;
             do_read(&env, store, btree, superblock, rget, &resp,
                     release_superblock_t::KEEP);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
