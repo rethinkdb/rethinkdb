@@ -242,9 +242,7 @@ tests:
     - py: r.table('testA',identifier_format='uuid').count()
       js: r.table('testA',{identifierFormat:'uuid'}).count()
       rb: r.table('testA',{:identifier_format=>'uuid'}).count()
-      ot: >
-          err('RqlRuntimeError', 'The `identifier_format` optarg only makes sense for
-          tables in the special `rethinkdb` database.')
+      ot: 0
 
     - cd: db.table_drop('testA')
       ot: ({'dropped':1})
