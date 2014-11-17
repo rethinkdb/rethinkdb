@@ -151,7 +151,8 @@ private:
     // Helper function to collect stats from each thread so we don't need
     //  atomic variables slowing down normal operations
     void collect_stats_from_thread(int index,
-                                   scoped_array_t<std::vector<cache_data_t> > *data_out);
+                                   scoped_array_t<std::vector<cache_data_t> > *data_out,
+                                   scoped_array_t<bool> *zero_access_counts_out);
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
                                    const scoped_array_t<std::vector<cache_data_t> > *new_sizes,
@@ -159,6 +160,20 @@ private:
 
     const uint64_t total_cache_size;
     scoped_ptr_t<repeating_timer_t> rebalance_timer;
+    enum class rebalance_timer_state_t {
+        // Normal operating condition: there is a timer, and it'll ping soon.  Can
+        // switch to examining_other_threads.
+        normal,
+        // We're going to other threads to examine their cache activity.  We might
+        // ask them to send us a message that puts us back into "normal" state.  Such
+        // a request could arrive while we're still in "examining_other_threads"
+        // state, or "normal", or "deactivated."
+        examining_other_threads,
+        // rebalance_timer is null -- we are no longer running timer events.
+        deactivated,
+    };
+    rebalance_timer_state_t rebalance_timer_state;
+
     microtime_t last_rebalance_time;
     bool read_ahead_ok;
     uint64_t bytes_toward_read_ahead_limit;
