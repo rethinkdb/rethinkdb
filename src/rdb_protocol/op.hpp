@@ -56,18 +56,18 @@ class op_term_t;
 
 class argvec_t {
 public:
-    explicit argvec_t(std::vector<counted_t<const term_t> > &&v);
+    explicit argvec_t(std::vector<counted_t<const runtime_term_t> > &&v);
 
     // Retrieves the arg.  The arg is removed (leaving an empty pointer in its
     // slot), forcing you to call this function exactly once per argument.
-    MUST_USE counted_t<const term_t> remove(size_t i);
+    MUST_USE counted_t<const runtime_term_t> remove(size_t i);
 
     size_t size() const { return vec.size(); }
 
     bool empty() const { return vec.empty(); }
 
 private:
-    std::vector<counted_t<const term_t> > vec;
+    std::vector<counted_t<const runtime_term_t> > vec;
 };
 
 class args_t {
