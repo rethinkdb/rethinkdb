@@ -347,8 +347,13 @@ void run(protob_t<Query> q,
     }
 }
 
+runtime_term_t::runtime_term_t(protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(std::move(bt)) { }
+
+runtime_term_t::~runtime_term_t() { }
+
 term_t::term_t(protob_t<const Term> _src)
-    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
+    : runtime_term_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -378,7 +383,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
