@@ -158,7 +158,7 @@ private:
                                    bool new_read_ahead_ok);
 
     const uint64_t total_cache_size;
-    repeating_timer_t rebalance_timer;
+    scoped_ptr_t<repeating_timer_t> rebalance_timer;
     microtime_t last_rebalance_time;
     bool read_ahead_ok;
     uint64_t bytes_toward_read_ahead_limit;

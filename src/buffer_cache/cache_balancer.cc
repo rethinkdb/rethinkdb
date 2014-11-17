@@ -21,7 +21,7 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
-    rebalance_timer(rebalance_check_interval_ms, this),
+    rebalance_timer(make_scoped<repeating_timer_t>(rebalance_check_interval_ms, this)),
     last_rebalance_time(0),
     read_ahead_ok(true),
     bytes_toward_read_ahead_limit(0),
