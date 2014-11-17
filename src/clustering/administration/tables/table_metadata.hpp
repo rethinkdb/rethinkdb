@@ -8,9 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
-#include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
