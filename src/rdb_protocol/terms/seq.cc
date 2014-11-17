@@ -318,8 +318,15 @@ struct rcheck_transform_visitor_t : public pb_rcheckable_t,
                    base_exc_t::GENERIC,
                    "Cannot call `changes` after a non-deterministic function.");
     }
-    void operator()(const map_wire_func_t &f) const { check_f(f); }
-    void operator()(const filter_wire_func_t &f) const { check_f(f.filter_func); }
+    void operator()(const map_wire_func_t &f) const {
+        check_f(f);
+    }
+    void operator()(const filter_wire_func_t &f) const {
+        check_f(f.filter_func);
+        if (f.default_filter_val) {
+            check_f(*f.default_filter_val);
+        }
+    }
     void operator()(const concatmap_wire_func_t &f) const {
         switch (f.result_hint) {
         case result_hint_t::AT_MOST_ONE:
