@@ -274,8 +274,8 @@ bool do_serve(io_backender_t *io_backender,
                               NULL,   /* we'll fill this in later */
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
-                              serve_info.reql_http_proxy,
-                              &jobs_manager);
+                              serve_info.reql_http_proxy);
+        jobs_manager.set_rdb_context(&rdb_ctx);
 
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
@@ -341,6 +341,7 @@ bool do_serve(io_backender_t *io_backender,
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
+                jobs_manager.set_reactor_driver(rdb_reactor_driver.get());
                 reactor_directory_write_manager.init(
                     new directory_map_write_manager_t<
                             namespace_id_t, namespace_directory_metadata_t>(

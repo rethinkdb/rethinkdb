@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "btree/secondary_operations.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -16,16 +17,9 @@ public:
 
     std::string type;
     uuid_u id;
-    double duration;
+    double duration;    // in microseconds
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_report_t);
-
-class query_job_t {
-public:
-    query_job_t(microtime_t start_time);
-
-    microtime_t start_time;
-};
 
 class sindex_job_t {
 public:

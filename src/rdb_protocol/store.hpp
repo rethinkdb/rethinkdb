@@ -14,6 +14,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/rwlock.hpp"
@@ -412,6 +413,9 @@ public:
 
     const namespace_id_t &get_namespace_id() const;
 
+    typedef std::map<uuid_u, std::pair<microtime_t, std::string> > sindex_jobs_t;
+    sindex_jobs_t * get_sindex_jobs();
+
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
@@ -440,6 +444,8 @@ public:
 
 private:
     namespace_id_t namespace_id;
+
+    sindex_jobs_t sindex_jobs;
 
 public:
     // This lock is used to pause backfills while secondary indexes are being

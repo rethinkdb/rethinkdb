@@ -1170,3 +1170,7 @@ void store_t::delayed_clear_sindex(
 const namespace_id_t &store_t::get_namespace_id() const {
     return namespace_id;
 }
+
+store_t::sindex_jobs_t * store_t::get_sindex_jobs() {
+    return &sindex_jobs;
+}

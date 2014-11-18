@@ -22,6 +22,9 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(jobs_manager_business_card_t);
 
+class rdb_context_t;
+class reactor_driver_t;
+
 class jobs_manager_t {
 public:
     explicit jobs_manager_t(mailbox_manager_t* mailbox_manager);
@@ -29,13 +32,13 @@ public:
     typedef jobs_manager_business_card_t business_card_t;
     jobs_manager_business_card_t get_business_card();
 
-    typedef std::map<uuid_u, query_job_t> queries_map_t;
-    queries_map_t * get_queries_map();
-
-    typedef std::multimap<std::pair<uuid_u, uuid_u>, sindex_job_t> sindexes_multimap_t;
-    sindexes_multimap_t * get_sindexes_multimap();
+    void set_rdb_context(rdb_context_t *);
+    void set_reactor_driver(reactor_driver_t *);
 
 private:
+    static const uuid_u base_sindex_id;
+    static const uuid_u base_disk_compaction_id;
+
     void on_get_job_reports(
         UNUSED signal_t *interruptor,
         const business_card_t::return_mailbox_t::address_t& reply_address);
@@ -43,8 +46,8 @@ private:
     mailbox_manager_t *mailbox_manager;
     business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
 
-    one_per_thread_t<queries_map_t> queries_map;
-    one_per_thread_t<sindexes_multimap_t> sindexes_multimap;
+    rdb_context_t *rdb_context;
+    reactor_driver_t *reactor_driver;
 
     DISABLE_COPYING(jobs_manager_t);
 };

@@ -1405,6 +1405,10 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     return ret;
 }
 
+bool data_block_manager_t::is_gc_active() const {
+    return !active_gcs.empty();
+}
+
 // Looks at young_extent_queue and pops things off the queue that are
 // no longer deemed young, putting them on the priority queue.
 void data_block_manager_t::mark_unyoung_entries() {

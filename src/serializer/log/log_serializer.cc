@@ -720,6 +720,10 @@ bool log_serializer_t::coop_lock_and_check() {
     return dbfile->coop_lock_and_check();
 }
 
+bool log_serializer_t::is_gc_active() const {
+    return data_block_manager->is_gc_active() || lba_index->is_any_gc_active();
+}
+
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 block_id_t log_serializer_t::max_block_id() {
     assert_thread();

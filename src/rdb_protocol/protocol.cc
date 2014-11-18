@@ -57,7 +57,7 @@ namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
@@ -105,7 +105,8 @@ void bring_sindexes_up_to_date(
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
-    std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
+    // std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
+    std::map<uuid_u, std::string> sindexes_to_bring_up_to_date_uuid_name;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
@@ -113,13 +114,14 @@ void bring_sindexes_up_to_date(
                                       "being deleted");
         auto sindexes_it = sindexes.find(*it);
         guarantee(sindexes_it != sindexes.end());
-        sindexes_to_bring_up_to_date_uuid.insert(sindexes_it->second.id);
+        sindexes_to_bring_up_to_date_uuid_name.insert(
+            std::make_pair(sindexes_it->second.id, sindexes_it->first.name));
     }
 
     coro_t::spawn_sometime(std::bind(
                 &post_construct_and_drain_queue,
                 store_drainer_acq,
-                sindexes_to_bring_up_to_date_uuid,
+                sindexes_to_bring_up_to_date_uuid_name,
                 store,
                 mod_queue.release()));
 }
@@ -130,19 +132,21 @@ void bring_sindexes_up_to_date(
  */
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const & sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
     // JEROEN
-    std::vector<multimap_insertion_sentry_t<
-        std::pair<namespace_id_t, uuid_u>, sindex_job_t> > multimap_sentries;
-    for (auto const &sindex : sindexes_to_bring_up_to_date) {
-        multimap_sentries.emplace_back(
-            store->ctx->get_jobs_manager()->get_sindexes_multimap(),
-            std::make_pair(store->get_namespace_id(), sindex),
-            sindex_job_t(current_microtime()));
+    std::set<uuid_u> sindexes_to_bring_up_to_date;
+    std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
+        sindex_sentries;
+    for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
+        sindexes_to_bring_up_to_date.insert(sindex.first);
+        sindex_sentries.emplace_back(
+            store->get_sindex_jobs(),
+            sindex.first,
+            std::make_pair(current_microtime(), sindex.second));
     }
 
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);

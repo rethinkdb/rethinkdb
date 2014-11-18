@@ -214,10 +214,8 @@ void run(protob_t<Query> q,
 #endif // INSTRUMENT
 
     // JEROEN
-    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
-        ctx->get_jobs_manager()->get_queries_map(),
-        generate_uuid(),
-        query_job_t(current_microtime()));
+    map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
+        ctx->get_query_jobs(), generate_uuid(), current_microtime());
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
