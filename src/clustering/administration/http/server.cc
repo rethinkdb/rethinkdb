@@ -5,7 +5,6 @@
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
 #include "clustering/administration/http/me_app.hpp"
-#include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
@@ -47,7 +46,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     me_app.init(new me_http_app_t(my_server_id));
     directory_app.init(new directory_http_app_t(_directory_metadata));
-    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_server_id)));
@@ -59,7 +57,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["me"] = me_app.get();
     ajax_routes["directory"] = directory_app.get();
-    ajax_routes["stat"] = stat_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());

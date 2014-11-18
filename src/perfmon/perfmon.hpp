@@ -42,7 +42,7 @@ struct perfmon_perthread_t : public perfmon_t {
     void visit_stats(void *data) {
         get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id().threadnum]);
     }
-    scoped_ptr_t<perfmon_result_t> end_stats(void *v_data) {
+    ql::datum_t end_stats(void *v_data) {
         std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));
         combined_stat_t combined = combine_stats(data.get());
         return output_stat(combined);
@@ -51,7 +51,7 @@ struct perfmon_perthread_t : public perfmon_t {
 protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
     virtual combined_stat_t combine_stats(const thread_stat_t *) = 0;
-    virtual scoped_ptr_t<perfmon_result_t> output_stat(const combined_stat_t &) = 0;
+    virtual ql::datum_t output_stat(const combined_stat_t &) = 0;
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be
@@ -68,7 +68,7 @@ protected:
 
     void get_thread_stat(padded_int64_t *);
     int64_t combine_stats(const padded_int64_t *);
-    scoped_ptr_t<perfmon_result_t> output_stat(const int64_t&);
+    ql::datum_t output_stat(const int64_t&);
 public:
     perfmon_counter_t();
     virtual ~perfmon_counter_t();
@@ -125,7 +125,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(const stats_t *);
-    scoped_ptr_t<perfmon_result_t> output_stat(const stats_t&);
+    ql::datum_t output_stat(const stats_t&);
 
     void update(ticks_t now);
 
@@ -174,7 +174,7 @@ public:
 protected:
     void get_thread_stat(stddev_t *);
     stddev_t combine_stats(const stddev_t *);
-    scoped_ptr_t<perfmon_result_t> output_stat(const stddev_t&);
+    ql::datum_t output_stat(const stddev_t&);
 private:
     cache_line_padded_t<stddev_t> thread_data[MAX_THREADS];
 };
@@ -200,7 +200,7 @@ private:
 
     void get_thread_stat(double *);
     double combine_stats(const double *);
-    scoped_ptr_t<perfmon_result_t> output_stat(const double&);
+    ql::datum_t output_stat(const double&);
 public:
     explicit perfmon_rate_monitor_t(ticks_t length);
     void record(double value = 1.0);
@@ -237,7 +237,7 @@ public:
 
     void *begin_stats();
     void visit_stats(void *data);
-    scoped_ptr_t<perfmon_result_t> end_stats(void *data);
+    ql::datum_t end_stats(void *data);
 
 public:
     //Control interface used for enabling and disabling duration samplers at run time

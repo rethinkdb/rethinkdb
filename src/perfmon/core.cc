@@ -53,24 +53,26 @@ void perfmon_collection_t::visit_stats(void *_context) {
     }
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
+ql::datum_t perfmon_collection_t::end_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    scoped_ptr_t<perfmon_result_t> map = perfmon_result_t::alloc_map_result();
+    datum_object_builder_t builder;
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        scoped_ptr_t<perfmon_result_t> stat = p->get()->end_stats(ctx->contexts[i]);
+        ql::datum_t stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
-            stat->splice_into(map.get());
+            for (size_t j = 0; i < stat.obj_size(); ++j) {
+                std::pair<datum_string_t, datum_t> pair = stat.get_pair(j);
+                builder.overwrite(pair.first, pair.second);
+            }
         } else {
-            map->insert(p->name, stat.release());
+            builder.overwrite(p->name, stat);
         }
     }
-
     delete ctx; // cleans up, unlocks
 
-    return map;
+    return std::move(builder).to_datum();
 }
 
 void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
@@ -139,184 +141,5 @@ perfmon_multi_membership_t::~perfmon_multi_membership_t() {
     for (std::vector<perfmon_membership_t*>::const_iterator it = memberships.begin(); it != memberships.end(); ++it) {
         delete *it;
     }
-}
-
-perfmon_result_t::perfmon_result_t() {
-    type = perfmon_result_type_t::STRING;
-}
-
-perfmon_result_t::perfmon_result_t(perfmon_result_t &&other) :
-        type(other.type) {
-    switch (type) {
-    case perfmon_result_type_t::NUMBER:
-        number_ = other.number_;
-        other.number_ = 0;
-        break;
-    case perfmon_result_type_t::STRING:
-        string_ = std::move(other.string_);
-        other.string_ = std::string();
-        break;
-    case perfmon_result_type_t::MAP:
-        map_ = std::move(other.map_);
-        other.map_ = internal_map_t();
-        break;
-    default:
-        unreachable();
-    }
-}
-
-perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
-    : type(copyee.type) {
-    switch (type) {
-    case perfmon_result_type_t::NUMBER:
-        number_ = other.number_;
-        break;
-    case perfmon_result_type_t::STRING:
-        string_ = other.string_;
-        break;
-    case perfmon_result_type_t::MAP:
-        for (auto const &pair : copyee.map_) {
-            map_.insert(std::make_pair(pair.first, new perfmon_result_t(*pair.second)));
-        }
-        break;
-    default:
-        unreachable();
-    }
-}
-
-perfmon_result_t::perfmon_result_t(const std::string &s) {
-    type = perfmon_result_type_t::STRING;
-    string_ = s;
-}
-
-perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
-    type = perfmon_result_type_t::MAP;
-    map_ = m;
-}
-
-perfmon_result_t::~perfmon_result_t() {
-    if (type == perfmon_result_type_t::MAP) {
-        clear_map();
-    }
-    rassert(map_.empty());
-}
-
-void perfmon_result_t::clear_map() {
-    rassert(type == perfmon_result_type_t::MAP);
-    for (auto &pair : map_) {
-        delete pair.second;
-    }
-    map_.clear();
-}
-
-void perfmon_result_t::erase(perfmon_result_t::iterator it) {
-    rassert(type == perfmon_result_type_t::MAP);
-    delete it->second;
-    map_.erase(it);
-}
-
-scoped_ptr_t<perfmon_result_t> perfmon_result_t::alloc_map_result() {
-    return scoped_ptr_t<perfmon_result_t>(new perfmon_result_t(internal_map_t()));
-}
-
-std::string *perfmon_result_t::get_string() {
-    rassert(type == perfmon_result_type_t::STRING);
-    return &value_;
-}
-
-const std::string *perfmon_result_t::get_string() const {
-    rassert(type == perfmon_result_type_t::STRING);
-    return &value_;
-}
-
-perfmon_result_t::internal_map_t *perfmon_result_t::get_map() {
-    rassert(type == perfmon_result_type_t::MAP);
-    return &map_;
-}
-
-const perfmon_result_t::internal_map_t *perfmon_result_t::get_map() const {
-    rassert(type == perfmon_result_type_t::MAP);
-    return &map_;
-}
-
-size_t perfmon_result_t::get_map_size() const {
-    rassert(type == perfmon_result_type_t::MAP);
-    return map_.size();
-}
-
-bool perfmon_result_t::is_number() const {
-    return type == perfmon_result_type_t::NUMBER;
-}
-
-bool perfmon_result_t::is_string() const {
-    return type == perfmon_result_type_t::STRING;
-}
-
-bool perfmon_result_t::is_map() const {
-    return type == perfmon_result_type_t::MAP;
-}
-
-perfmon_result_t::perfmon_result_type_t perfmon_result_t::get_type() const {
-    return type;
-}
-
-void perfmon_result_t::reset_type(perfmon_result_type_t new_type) {
-    value_.clear();
-    clear_map();
-    type = new_type;
-}
-
-std::pair<perfmon_result_t::iterator, bool> perfmon_result_t::insert(const std::string &name, perfmon_result_t *val) {
-    std::string s(name);
-    perfmon_result_t::internal_map_t *map = get_map();
-    rassert(map->count(name) == 0, "Duplicate perfmons for: %s\n", name.c_str());
-    return map->insert(std::pair<std::string, perfmon_result_t *>(s, val));
-}
-
-perfmon_result_t::iterator perfmon_result_t::begin() {
-    return map_.begin();
-}
-
-perfmon_result_t::iterator perfmon_result_t::end() {
-    return map_.end();
-}
-
-perfmon_result_t::const_iterator perfmon_result_t::begin() const {
-    return map_.cbegin();
-}
-
-perfmon_result_t::const_iterator perfmon_result_t::end() const {
-    return map_.cend();
-}
-
-perfmon_result_t::const_iterator perfmon_result_t::cbegin() const {
-    return map_.cbegin();
-}
-
-perfmon_result_t::const_iterator perfmon_result_t::cend() const {
-    return map_.cend();
-}
-
-void perfmon_result_t::splice_into(perfmon_result_t *map) {
-    rassert(type == perfmon_result_type_t::MAP);
-
-    // Transfer all elements from the internal map to the passed map.
-    // Unfortunately we can't use here std::map::insert(InputIterator first, InputIterator last),
-    // because that way we can overwrite an entry in the target map and thus leak a
-    // perfmon_result_t value.
-    for (const_iterator it = begin(); it != end(); ++it) {
-        map->insert(it->first, it->second);
-    }
-    map_.clear();
-}
-
-perfmon_collection_t &get_global_perfmon_collection() {
-    // Getter function so that we can be sure that `collection` is initialized
-    // before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
-    // might be initialized before `collection` was initialized.
-
-    // FIXME: probably use "new" to create the perfmon_collection_t. For more info check out C++ FAQ Lite answer 10.16.
-    static perfmon_collection_t collection;
-    return collection;
 }
 

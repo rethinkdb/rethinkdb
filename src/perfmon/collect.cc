@@ -14,7 +14,7 @@ static void co_perfmon_visit(int thread, void *data) {
 
 int get_num_threads();
 
-scoped_ptr_t<perfmon_result_t> perfmon_get_stats() {
+ql::datum_t perfmon_get_stats() {
     void *data = get_global_perfmon_collection().begin_stats();
     pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
     return get_global_perfmon_collection().end_stats(data);

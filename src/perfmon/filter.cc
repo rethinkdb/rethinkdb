@@ -53,71 +53,46 @@ perfmon_filter_t::~perfmon_filter_t() {
     }
 }
 
-void perfmon_filter_t::filter(const scoped_ptr_t<perfmon_result_t> *p) const {
-    guarantee(p->has(), "perfmon_filter_t::filter needs a perfmon_result_t");
-    subfilter(const_cast<scoped_ptr_t<perfmon_result_t> *>(p),
-              0, std::vector<bool>(regexps.size(), true));
-    guarantee(p->has(), "subfilter is not supposed to delete the top-most node.");
+ql::datum_t perfmon_filter_t::filter(const ql::datum_t &stats) const {
+    guarantee(f.has(), "perfmon_filter_t::filter was passed an uninitialized datum");
+    return subfilter(stats, 0, std::vector<bool>(regexps.size(), true));
 }
 
-/* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
+/* Filter a perfmon result.  [depth] is how deep we are in the paths that
    the [perfmon_filter_t] was constructed from, and [active] is the set of paths
    that are still active (i.e. that haven't failed a match yet).  This should
    only be called by [filter]. */
-void perfmon_filter_t::subfilter(
-    scoped_ptr_t<perfmon_result_t> *p_ptr, const size_t depth,
-    const std::vector<bool> active) const {
-
-    perfmon_result_t *const p = p_ptr->get();
-
+ql::datum_t perfmon_filter_t::subfilter(const ql::datum_t &stats,
+                                        const size_t depth,
+                                        const std::vector<bool> active) const {
     bool keep_this_perfmon = true;
-    if (p->is_string()) {
-        std::string *str = p->get_string();
-        for (size_t i = 0; i < regexps.size(); ++i) {
-            if (!active[i]) {
-                continue;
-            }
-            if (depth >= regexps[i].size()) {
-                return;
-            }
-            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) {
-                return;
-            }
-        }
-        keep_this_perfmon = false;
-    } else if (p->is_map()) {
-        perfmon_result_t::iterator it = p->begin();
-        while (it != p->end()) {
+    if (stats.get_type() == ql::datum_t::R_OBJECT) {
+        ql::datum_object_builder_t builder;
+
+        for (size_t i = 0; i < stats.obj_size(); ++i) {
             std::vector<bool> subactive = active;
+            std::pair<datum_string_t, datum_t> pair = stats.get_pair(i);
+
             bool some_subpath = false;
-            for (size_t i = 0; i < regexps.size(); ++i) {
-                if (!active[i]) {
+            for (size_t j = 0; j < regexps.size(); ++j) {
+                if (!active[j]) {
                     continue;
                 }
-                if (depth >= regexps[i].size()) {
-                    return;
+                if (depth >= regexps[j].size()) {
+                    continue;
                 }
-                subactive[i] = regexps[i][depth]->matches(it->first);
-                some_subpath |= subactive[i];
+                subactive[j] = regexps[j][depth]->matches(pair.first.to_std());
+                some_subpath |= subactive[j];
             }
+
             if (some_subpath) {
-                scoped_ptr_t<perfmon_result_t> tmp(it->second);
-                subfilter(&tmp, depth + 1, subactive);
-                it->second = tmp.release();
-            }
-            perfmon_result_t::iterator prev_it = it;
-            ++it;
-            if (!some_subpath || prev_it->second == NULL) {
-                p->erase(prev_it);
+                builder.overwrite(pair.first,
+                                  subfilter(pair.second, depth + 1, subactive));
             }
         }
 
-        if (p->get_map_size() == 0) {
-            keep_this_perfmon = false;
-        }
+        return std::move(builder).to_datum();
     }
 
-    if (!keep_this_perfmon && depth > 0) {  // Never delete the topmost node.
-        p_ptr->reset();
-    }
+    return stats;
 }

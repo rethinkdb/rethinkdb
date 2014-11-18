@@ -12,7 +12,7 @@
 class stat_manager_t {
 public:
     typedef std::string stat_id_t;
-    typedef mailbox_addr_t<void(perfmon_result_t)> return_address_t;
+    typedef mailbox_addr_t<void(ql::datum_t)> return_address_t;
     typedef mailbox_t<void(return_address_t, std::set<stat_id_t>)> get_stats_mailbox_t;
     typedef get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
 

@@ -25,8 +25,7 @@ void stat_manager_t::on_stats_request(
         const return_address_t& reply_address,
         const std::set<stat_id_t>& requested_stats) {
     perfmon_filter_t request(requested_stats);
-    scoped_ptr_t<perfmon_result_t> perfmon_result(perfmon_get_stats());
-    request.filter(&perfmon_result);
-    guarantee(perfmon_result.has());
-    send(mailbox_manager, reply_address, *perfmon_result);
+    ql::datum_t perfmon_result(perfmon_get_stats());
+    perfmon_result = request.filter(perfmon_result);
+    send(mailbox_manager, reply_address, perfmon_result);
 }

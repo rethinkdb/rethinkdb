@@ -17,7 +17,7 @@ std::string stats_artificial_table_backend_t::get_primary_key_name() {
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
         const std::set<std::string> &filter,
-        boost::optional<perfmon_result_t> *result_out,
+        ql::datum_t *result_out,
         signal_t *interruptor) {
     // Loop up peer in directory - find get stats mailbox
 
@@ -32,7 +32,7 @@ void stats_artificial_table_backend_t::get_peer_stats(
 void stats_artificial_table_backend_t::perform_stats_request(
         const std::map<server_id_t, peer_id_t> &peers,
         const std::set<std::string> &filter,
-        std::map<server_id_t, boost::optional<perfmon_result_t> > *results_out,
+        std::map<server_id_t, ql::datum_t> *results_out,
         signal_t *interruptor) {
     pmap(peers.size(),
         [&](int index) {
@@ -49,7 +49,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     std::set<std::string> filter = stats_request_t::global_stats_filter();
     std::map<server_id_t, peer_id_t> peers = stats:request_t::all_peers(name_client);
 
-    std::map<server_id_t, boost::optional<perfmon_result_t> > result_map;
+    std::map<server_id_t, ql::datum_t> result_map;
     perform_stats_request(peers, filter, &result_map, interruptor);
 
     // Start building results
@@ -123,7 +123,7 @@ bool stats_artificial_table_backend_t::read_row(
     }
 
     std::map<server_id_t, peer_id_t> peers;
-    std::map<server_id_t, boost::optional<perfmon_result_t> > results_map;
+    std::map<server_id_t, ql::datum_t> results_map;
     if (!request->get_peers(name_client, &peers, error_out)) {
         return false;
     }
@@ -162,14 +162,12 @@ public:
                    std::string *error_out) const = 0;
 
     ql::datum_t to_datum(
-        const std::map<server_id_t,
-                       boost::optional<perfmon_result_t> > &results) const = 0;
+        const std::map<server_id_t, ql::datum_t> &results) const = 0;
 };
 
 class parsed_cluster_stats_t {
 public:
-    parsed_cluster_stats_t(
-            const std::map<server_id_t, boost::optional<perfmon_result_t> > &stats) {
+    parsed_cluster_stats_t(const std::map<server_id_t, ql::datum_t> &stats) {
         for (auto const &serv_pair : stats) {
             server_stats_t *serv_stats = &servers[serv_pair.first];
             *serv_stats = { }
@@ -193,7 +191,7 @@ public:
         }
     }
 
-    void add_perfmon_value(const perfmon_result_t &perf,
+    void add_perfmon_value(const ql::datum_t &perf,
                            const std::string &key,
                            double *value_out) {
         auto const &value_it = perf.get_map()->find(key);
@@ -203,7 +201,7 @@ public:
         }
     }
 
-    void add_shard_values(const perfmon_result_t &shard_perf,
+    void add_shard_values(const ql::datum_t &shard_perf,
                           table_stats_t *stats_out) {
         r_sanity_check(shard_perf.is_map());
         auto const &shard_it = shard_perf.get_map()->find("shard_0");
@@ -221,13 +219,13 @@ public:
         }
     }
 
-    void add_serializer_values(const perfmon_result_t &ser_perf,
+    void add_serializer_values(const ql::datum_t &ser_perf,
                                table_stats_t *stats_out) {
         r_sanity_check(ser_perf.is_map());
         // TODO: implement after modifying the perfmons to be closer to the stats we want
     }
 
-    void add_query_engine_stats(const perfmon_result_t &perf,
+    void add_query_engine_stats(const ql::datum_t &perf,
                                 server_stats_t *stats_out) {
         r_sanity_check(perf.is_map());
         add_perfmon_value(perf, "queries_per_sec", &stats_out->query_per_sec);
@@ -236,7 +234,7 @@ public:
     }
 
     void add_table_stats(const namespace_id_t &table_id,
-                         const perfmon_result_t &perf,
+                         const ql::datum_t &perf,
                          server_stats_t *stats_out) {
         r_sanity_check(perf.is_map());
         auto const &sub_map_it = perf.get_map()->find("serializers");
@@ -297,21 +295,6 @@ struct table_serializer_stats_t {
     table_serializer_stats_t() :
 };
 
-void parse_server_stats(const perfmon_result_t &stats,
-                            server_stats_t *stats_out) {
-    
-}
-
-void parse_table_query_stats(const perfmon_result_t &stats,
-                                 table_query_stats_t *stats_out) {
-
-}
-
-void parse_table_serializer_stats(const perfmon_result_t &stats,
-                                      table_serializer_stats_t *stats_out) {
-
-}
-
 class cluster_stats_request_t {
     static const char *cluster_request_type = "cluster";
 public:
@@ -344,9 +327,7 @@ public:
         return true;
     }
 
-    ql::datum_t to_datum(
-            const std::map<server_id_t,
-                           boost::optional<perfmon_result_t> > &results) const {
+    ql::datum_t to_datum(const std::map<server_id_t, ql::datum_t> &results) const {
         server_stats_t server_stats;
         table_query_stats_t table_stats;
 
@@ -407,9 +388,7 @@ public:
         return true;
     }
 
-    ql::datum_t to_datum(
-            const std::map<server_id_t,
-                           boost::optional<perfmon_result_t> > &results) const {
+    ql::datum_t to_datum(const std::map<server_id_t, ql::datum_t> &results) const {
     }
 
 private:
@@ -453,9 +432,7 @@ public:
 
     }
 
-    ql::datum_t to_datum(
-            const std::map<server_id_t,
-                           boost::optional<perfmon_result_t> > &results) const {
+    ql::datum_t to_datum(const std::map<server_id_t, ql::datum_t> &results) const {
     }
 
 private:
@@ -503,9 +480,7 @@ public:
 
     }
 
-    ql::datum_t to_datum(
-            const std::map<server_id_t,
-                           boost::optional<perfmon_result_t> > &results) const {
+    ql::datum_t to_datum(const std::map<server_id_t, ql::datum_t> &results) const {
     }
 
 private:
