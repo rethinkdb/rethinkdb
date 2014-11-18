@@ -25,23 +25,22 @@ module 'DashboardView', ->
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
                     num_primaries: table_config('shards').concatMap(identity)("director").count()
-                    num_available_primaries: table_status('shards')
-                        .concatMap(identity)
-                        .concatMap(identity)
-                        .filter({role: "director", state: "ready"})
-                        .count()
+                    num_available_primaries: table_status.map((table) ->
+                        table('shards').map((shard) ->
+                            shard('replicas').filter((replica) ->
+                                replica('server').eq(shard('director').and(replica('state').eq('ready')))
+                            )
+                        )
+                    ).concatMap(identity).count()
                     num_replicas: table_config('shards').concatMap(identity)("replicas").concatMap(identity).count()
                     num_available_replicas: table_status('shards')
+                        .concatMap((shard) -> shard('replicas'))
                         .concatMap(identity)
-                        .concatMap(identity)
-                        .filter( (assignment) ->
-                            assignment("state").eq("ready").and(
-                                assignment("role").eq("replica").or(assignment("role").eq("director"))
-                            )
-                        ).count()
+                        .filter( (assignment) -> assignment("state").eq("ready"))
+                        .count()
                     tables_with_primaries_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").indexesOf( () -> true ).map( (position) ->
-                            table("shards").nth(position).merge
+                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                            doc.merge
                                 id: r.add(
                                     table("db"),
                                     ".",
@@ -52,14 +51,14 @@ module 'DashboardView', ->
                                 position: position.add(1)
                                 num_shards: table("shards").count()
                         ).map( (shard) ->
-                            shard.filter (assignment) ->
-                                assignment("role").eq("director").and(assignment("state").ne("ready"))
-                        ).concatMap identity
+                            shard('replicas').filter (replica) ->
+                                replica("server").eq(shard('director')).and(replica("state").ne("ready"))
+                        ).concatMap(identity).coerceTo('array')
                     ).filter (table) ->
                         table("shards").isEmpty().not()
                     tables_with_replicas_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").indexesOf( () -> true ).map( (position) ->
-                            table("shards").nth(position).merge
+                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                            doc.merge
                                 id: r.add(
                                     table("db"),
                                     ".",
@@ -70,9 +69,8 @@ module 'DashboardView', ->
                                 position: position.add(1)
                                 num_shards: table("shards").count()
                         ).map( (shard) ->
-                            shard.filter (assignment) ->
-                                r.expr(["director", "replica"]).contains(assignment("role")).and(assignment("state").ne("ready"))
-                        ).concatMap identity
+                            shard('replicas').filter (assignment) -> assignment("state").ne("ready")
+                        ).concatMap(identity).coerceTo('array')
                     ).filter (table) ->
                         table("shards").isEmpty().not()
 
