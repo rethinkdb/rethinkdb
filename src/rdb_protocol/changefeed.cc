@@ -1002,7 +1002,6 @@ public:
                 mailbox_manager_t *_manager,
                 namespace_interface_t *ns_if,
                 uuid_u uuid,
-                // RSI: remove // std::string pkey,
                 signal_t *interruptor);
     ~real_feed_t();
 
@@ -2072,7 +2071,6 @@ client_t::new_feed(env_t *env,
                    const namespace_id_t &uuid,
                    const protob_t<const Backtrace> &bt,
                    const std::string &table_name,
-                   const std::string &, // RSI: remove
                    const keyspec_t::spec_t &spec) {
     try {
         scoped_ptr_t<subscription_t> sub;

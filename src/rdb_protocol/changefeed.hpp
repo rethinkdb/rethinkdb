@@ -190,7 +190,6 @@ public:
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
-        const std::string &pkey,
         const keyspec_t::spec_t &spec);
     void maybe_remove_feed(const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(const namespace_id_t &uuid);
