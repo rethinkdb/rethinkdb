@@ -445,10 +445,25 @@ tests:
     - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
       ot: 25
 
+    - rb: tbl.orderby({index:'m'}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:'m'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.orderby({index:r.desc('m')}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:r.desc('m')}).distinct().count()
+      ot: 100
+
     - rb: tbl.between(1, 3, {index:'m2'}).count()
       ot: 200
 
     - rb: tbl.between(1, 3, {index:'m2'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(1, 3, {index:'m2'}).orderby(index:r.desc('m2')).distinct().count()
       ot: 100
 
     - rb: tbl.between(0, 1, {index:'m'}).count()
