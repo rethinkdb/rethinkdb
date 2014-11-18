@@ -335,11 +335,24 @@ typedef boost::variant<map_wire_func_t,
                        zip_wire_func_t
                        > transform_variant_t;
 
+class op_t {
+public:
+    op_t() { }
+    virtual ~op_t() { }
+    virtual void operator()(env_t *env,
+                            groups_t *groups,
+                            // sindex_val may be NULL
+                            const datum_t &sindex_val) = 0;
+};
+
 struct limit_read_t {
     is_primary_t is_primary;
     size_t n;
     sorting_t sorting;
+    std::vector<scoped_ptr_t<op_t> > *ops;
 };
+// Note that this is serializable because it goes in a serializable variant, but
+// it is a runtime error to serialize it.
 RDB_DECLARE_SERIALIZABLE(limit_read_t);
 
 typedef boost::variant<count_wire_func_t,
@@ -350,16 +363,6 @@ typedef boost::variant<count_wire_func_t,
                        reduce_wire_func_t,
                        limit_read_t
                        > terminal_variant_t;
-
-class op_t {
-public:
-    op_t() { }
-    virtual ~op_t() { }
-    virtual void operator()(env_t *env,
-                            groups_t *groups,
-                            // sindex_val may be NULL
-                            const datum_t &sindex_val) = 0;
-};
 
 class accumulator_t {
 public:

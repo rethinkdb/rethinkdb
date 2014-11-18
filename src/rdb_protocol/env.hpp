@@ -107,7 +107,7 @@ public:
 
     configured_limits_t limits() const { return limits_; }
 
-    query_cache_t & query_cache() { return cache_; }
+    query_cache_t &query_cache() { return cache_; }
 
     reql_version_t reql_version() const { return reql_version_; }
 
@@ -136,6 +136,7 @@ public:
 
     profile_bool_t profile() const;
 
+    rdb_context_t *get_rdb_ctx() { return rdb_ctx_; }
 private:
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     uint32_t evals_since_yield_;

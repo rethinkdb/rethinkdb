@@ -108,22 +108,19 @@ counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
         ql::datum_t pval,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) {
-    return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::point_t(std::move(pval))));
+    return changefeed_client->new_feed(
+        env, uuid, bt, table_name,
+        ql::changefeed::keyspec_t::spec_t(
+            ql::changefeed::keyspec_t::point_t{store_key_t(pval.print_primary())}));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
-    ql::changefeed::keyspec_t &&spec,
+    ql::changefeed::keyspec_t::spec_t &&spec,
     const ql::protob_t<const Backtrace> &bt,
     const std::string &table_name) {
     return changefeed_client->new_feed(
-        env,
-        uuid,
-        bt,
-        table_name,
-        pkey,
-        std::move(spec));
+        env, uuid, bt, table_name, std::move(spec));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(

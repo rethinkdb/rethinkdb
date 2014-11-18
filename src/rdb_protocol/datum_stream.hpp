@@ -92,6 +92,7 @@ protected:
     virtual changefeed::keyspec_t get_change_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
+    std::vector<transform_variant_t> transforms;
 
 private:
     enum class done_t { YES, NO };
@@ -333,7 +334,10 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const = 0;
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t>) const = 0;
+
+    const std::string &get_table_name() const { return table_name; }
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
@@ -360,11 +364,10 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const {
-        // TODO: include transforms in the spec when we support other changefeed
-        // types.
-        return changefeed::keyspec_t::range_t(
-            sindex_name(), sorting, original_datum_range);
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t> transforms) const {
+        return changefeed::keyspec_t::range_t{
+            std::move(transforms), sindex_name(), sorting, original_datum_range};
     }
 private:
     virtual rget_read_t next_read_impl(
@@ -465,7 +468,8 @@ public:
     virtual key_range_t original_keyrange() const;
     virtual boost::optional<std::string> sindex_name() const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const {
+    virtual changefeed::keyspec_t::range_t get_change_spec(
+        std::vector<transform_variant_t>) const {
         rfail_datum(base_exc_t::GENERIC,
                     "%s", "Cannot call `changes` on an intersection read.");
         unreachable();
@@ -500,14 +504,14 @@ public:
                                             const batchspec_t &batchspec) = 0;
     virtual bool is_finished() const = 0;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const = 0;
+    virtual changefeed::keyspec_t get_change_spec() const = 0;
 };
 
 // For reads that generate read_response_t results
 class rget_response_reader_t : public reader_t {
 public:
     rget_response_reader_t(
-        const real_table_t &_table,
+        const real_table_t &table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
@@ -516,8 +520,11 @@ public:
     std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec() const {
-        return readgen->get_change_spec();
+    virtual changefeed::keyspec_t get_change_spec() const {
+        return changefeed::keyspec_t(
+            readgen->get_change_spec(transforms),
+            make_scoped<real_table_t>(table),
+            readgen->get_table_name());
     }
 protected:
     // Returns `true` if there's data in `items`.
@@ -593,7 +600,7 @@ public:
     virtual bool is_cfeed() const;
 private:
     virtual changefeed::keyspec_t get_change_spec() {
-        return changefeed::keyspec_t(reader->get_change_spec());
+        return reader->get_change_spec();
     }
 
     std::vector<datum_t >

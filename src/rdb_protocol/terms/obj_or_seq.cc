@@ -100,8 +100,9 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
                                        target->backtrace());
             break;
         case SKIP_MAP:
-            stream->add_transformation(concatmap_wire_func_t(f),
-                                       target->backtrace());
+            stream->add_transformation(
+                concatmap_wire_func_t(result_hint_t::AT_MOST_ONE, f),
+                target->backtrace());
             break;
         default: unreachable();
         }
@@ -139,7 +140,8 @@ public:
     pluck_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -160,7 +162,8 @@ public:
     without_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -181,7 +184,8 @@ public:
     literal_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found: literal is only legal inside of "
                "the object passed to merge or update and cannot nest inside "
@@ -206,7 +210,8 @@ public:
     merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
-    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             scoped_ptr_t<val_t> v = args->arg(env, i, LITERAL_OK);
@@ -264,7 +269,8 @@ public:
     has_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
         std::vector<datum_t> paths;
@@ -284,14 +290,16 @@ public:
     get_field_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
-    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
         return new_val(d.get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_field_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
 
@@ -301,11 +309,13 @@ public:
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
           impl(this, SKIP_MAP, term, std::set<std::string>()) {}
 private:
-    scoped_ptr_t<val_t> obj_eval_dereferenced(const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
+    scoped_ptr_t<val_t> obj_eval_dereferenced(
+        const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
         datum_t d = v0->as_datum();
         return new_val(d.get_field(v1->as_str()));
     }
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
         scoped_ptr_t<val_t> v1 = args->arg(env, 1);
         datum_t d = v1->as_datum();
@@ -316,8 +326,9 @@ private:
             return nth_term_impl(this, env, std::move(v0), v1);
         }
         case datum_t::R_STR:
-            return impl.eval_impl_dereferenced(this, env, args, v0,
-                                               [&]{ return this->obj_eval_dereferenced(v0, v1); });
+            return impl.eval_impl_dereferenced(
+                this, env, args, v0,
+                [&]{ return this->obj_eval_dereferenced(v0, v1); });
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:
         case datum_t::R_BOOL:
@@ -325,8 +336,10 @@ private:
         case datum_t::R_OBJECT:
         case datum_t::UNINITIALIZED:
         default:
-            d.type_error(strprintf("Expected NUMBER or STRING as second argument to `%s` but found %s.",
-                                   name(), d.get_type_name().c_str()));
+            d.type_error(
+                strprintf(
+                    "Expected NUMBER or STRING as second argument to `%s` but found %s.",
+                    name(), d.get_type_name().c_str()));
             unreachable();
         }
     }
@@ -338,24 +351,30 @@ private:
     obj_or_seq_op_impl_t impl;
 };
 
-counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_bracket_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<bracket_term_t>(env, term);
 }
 
-counted_t<term_t> make_has_fields_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_has_fields_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<has_fields_term_t>(env, term);
 }
 
-counted_t<term_t> make_pluck_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_pluck_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<pluck_term_t>(env, term);
 }
-counted_t<term_t> make_without_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_without_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_literal_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<literal_term_t>(env, term);
 }
-counted_t<term_t> make_merge_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_merge_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);
 }
 

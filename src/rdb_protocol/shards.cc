@@ -213,12 +213,17 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // runtime error.
 class limit_append_t : public append_t, public eager_acc_t {
 public:
-    limit_append_t(is_primary_t _is_primary, size_t _n, sorting_t sorting)
+    limit_append_t(
+        is_primary_t _is_primary,
+        size_t _n,
+        sorting_t sorting,
+        std::vector<scoped_ptr_t<op_t> > *_ops)
         : append_t(sorting, &batcher),
           is_primary(_is_primary),
           seen_distinct(false),
           seen(0),
           n(_n),
+          ops(_ops),
           batcher(batchspec_t::all().to_batcher()) { }
 private:
     virtual void operator()(env_t *, groups_t *) {
@@ -242,32 +247,47 @@ private:
                             const store_key_t &key,
                             // sindex_val may be NULL
                             const datum_t &sindex_val) {
-        bool ret = append_t::accumulate(env, el, stream, key, sindex_val);
-        seen += 1;
-        if (is_primary == is_primary_t::YES) {
-            if (seen >= n) {
-                seen_distinct = true;
+        bool ret;
+        size_t seen_this_time = 0;
+        {
+            stream_t substream;
+            ret = append_t::accumulate(env, el, &substream, key, sindex_val);
+            for (auto &&item : substream) {
+                if (boost::optional<datum_t> d
+                    = ql::changefeed::apply_ops(item.data, *ops, env, item.sindex_key)) {
+                    item.data = *d;
+                    stream->push_back(std::move(item));
+                    seen_this_time += 1;
+                }
             }
-        } else {
-            guarantee(stream->size() > 0);
-            rget_item_t *last = &stream->back();
-            if (start_sindex) {
-                std::string cur =
-                    datum_t::extract_secondary(key_to_unescaped_str(last->key));
-                // We need to do this because the truncated sindex keys might be
-                // different sizes depending on the length of the primary key.
-                // (Also, I hate literally everything about our on-disk key format.)
-                size_t minlen = std::min(cur.size(), (*start_sindex).size());
-                if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
+        }
+        if (seen_this_time > 0) {
+            seen += seen_this_time;
+            if (is_primary == is_primary_t::YES) {
+                if (seen >= n) {
                     seen_distinct = true;
                 }
             } else {
-                if (seen >= n) {
-                    if (datum_t::key_is_truncated(last->key)) {
-                        start_sindex =
-                            datum_t::extract_secondary(key_to_unescaped_str(last->key));
-                    } else {
+                guarantee(stream->size() > 0);
+                rget_item_t *last = &stream->back();
+                if (start_sindex) {
+                    std::string cur =
+                        datum_t::extract_secondary(key_to_unescaped_str(last->key));
+                    // We need to do this because the truncated sindex keys might be
+                    // different sizes depending on the length of the primary key.
+                    // (Also, I hate literally everything about our on-disk key format.)
+                    size_t minlen = std::min(cur.size(), (*start_sindex).size());
+                    if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
                         seen_distinct = true;
+                    }
+                } else {
+                    if (seen >= n) {
+                        if (datum_t::key_is_truncated(last->key)) {
+                            start_sindex = datum_t::extract_secondary(
+                                key_to_unescaped_str(last->key));
+                        } else {
+                            seen_distinct = true;
+                        }
                     }
                 }
             }
@@ -278,6 +298,7 @@ private:
     is_primary_t is_primary;
     bool seen_distinct;
     size_t seen, n;
+    std::vector<scoped_ptr_t<op_t> > *ops;
     batcher_t batcher;
 };
 
@@ -310,7 +331,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.",
+                              env->limits().array_size_limit()).c_str());
             }
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
@@ -339,7 +361,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.",
+                              env->limits().array_size_limit()).c_str());
             }
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
@@ -422,7 +445,8 @@ private:
             // Order doesnt' matter here because the size is 1.
             r_sanity_check(acc->size() == 1 &&
                            !acc->begin(grouped::order_doesnt_matter_t())->first.has());
-            retval = make_scoped<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
+            retval = make_scoped<val_t>(
+                unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
         }
         acc->clear();
         return retval;
@@ -712,7 +736,8 @@ public:
         return new reduce_terminal_t(f);
     }
     T *operator()(const limit_read_t &lr) const {
-        return new limit_append_t(lr.is_primary, lr.n, lr.sorting);
+        return new limit_append_t(
+            lr.is_primary, lr.n, lr.sorting, lr.ops);
     }
 };
 
@@ -1010,8 +1035,14 @@ RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(rget_item_t, key, empty_ok(sindex_key), d
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_2(limit_read_t, n, sorting);
+template<cluster_version_t W>
+void serialize(write_message_t *, const limit_read_t &) {
+    crash("Cannot serialize a `limit_read_t`.");
+}
+template<cluster_version_t W>
+archive_result_t deserialize(read_stream_t *, limit_read_t *) {
+    crash("Cannot deserialize a `limit_read_t`.");
+}
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(limit_read_t);
-
 
 } // namespace ql
