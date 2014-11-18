@@ -757,7 +757,7 @@ TEST(RDBProtocol, OvershardedMissingAttr) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, true);
 }
 
-void test_artificial_changefeeds() {
+TPTEST(RDBProtocol, ArtificialChangefeeds) {
     using namespace ql;
     using namespace changefeed;
     artificial_t artificial_cfeed;
@@ -786,12 +786,10 @@ void test_artificial_changefeeds() {
         protob_t<const Backtrace> bt;
         counted_t<datum_stream_t> point_0, point_1, range;
     };
-    std::map<double, cfeed_bundle_t> bundles;
-    for (int i = 0; i <= 20; ++i) {
+    std::map<size_t, cfeed_bundle_t> bundles;
+    for (size_t i = 0; i <= 20; ++i) {
         double d = i / 10.0;
-        if (i == 0) {
-            bundles.insert(std::make_pair(d, cfeed_bundle_t(&artificial_cfeed)));
-        }
+        bundles.insert(std::make_pair(i, cfeed_bundle_t(&artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
                     std::map<std::string, std::vector<datum_t> >(),
                     std::map<std::string, std::vector<datum_t> >(),
@@ -801,31 +799,31 @@ void test_artificial_changefeeds() {
     }
     cond_t interruptor;
     env_t env(&interruptor, reql_version_t::LATEST);
-    batchspec_t bs(batchspec_t::all()
-                   .with_new_batch_type(batch_type_t::NORMAL)
-                   .with_max_dur(1000000));
     for (const auto &pair : bundles) {
-        double d = pair.first;
+        batchspec_t bs(batchspec_t::all()
+                       .with_new_batch_type(batch_type_t::NORMAL)
+                       .with_max_dur(1000));
+        size_t i = pair.first;
         std::vector<datum_t> p0, p1, rng;
         p0 = pair.second.point_0->next_batch(&env, bs);
         p1 = pair.second.point_1->next_batch(&env, bs);
         rng = pair.second.range->next_batch(&env, bs);
-        if (d <= 0.0) {
+        if (i == 0) {
             guarantee(p0.size() == 1);
         } else {
             guarantee(p0.size() == 0);
         }
-        if (d <= 1.0) {
+        if (i <= 10) {
             guarantee(p1.size() == 1);
         } else {
             guarantee(p1.size() == 0);
         }
-        guarantee(rng.size() == (1.0 - d) / 0.1);
+        if (i <= 10) {
+            guarantee(rng.size() == 10 - i);
+        } else {
+            guarantee(rng.size() == 0);
+        }
     }
-}
-
-TEST(RDBProtocol, ArtificialChangefeeds) {
-    run_in_thread_pool(&test_artificial_changefeeds, 8);
 }
 
 }   /* namespace unittest */
