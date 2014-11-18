@@ -288,7 +288,8 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
+        TABLE = 15; // Database, STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
+                    // STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
@@ -365,7 +366,7 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-                        // The arity of the function should be 
+                        // The arity of the function should be
                         // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
@@ -457,8 +458,10 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE  = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
-                                // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+        TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, director_tag:STRING} -> OBJECT
+                            // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, director_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, director_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, director_tag:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -481,8 +484,16 @@ message Term {
         // Waits for table(s) to be fully ready for read/write operations
         TABLE_WAIT    = 177; // Database[, String...] -> StreamSelection
                              // [String...] -> StreamSelection
-        // Generates a new config for the given table.
-        RECONFIGURE   = 176; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
+        // Generates a new config for the given table, or all tables in the given database
+        // The `shards` and `replicas` arguments are required
+        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Database, {shards:NUMBER, replicas:OBJECT[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Table, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Table, {shards:NUMBER, replicas:OBJECT[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+        // Balances the table's shards but leaves everything else the same. Can also be
+        // applied to an entire database at once.
+        REBALANCE     = 179; // Table -> OBJECT
+                             // Database -> ARRAY
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.

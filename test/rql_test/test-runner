@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import atexit, collections, copy, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback, warnings
+import atexit, collections, copy, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
 
 try:
     import yaml
@@ -764,7 +764,7 @@ def cleanup(*args):
         try:
             utils.kill_process_group(processGroupId)
         except Exception as e:
-            warnings.warning('Unable to shut down server: %s' % str(e))
+            raise Warning('Unable to shut down server: %s' % str(e))
     
     if len(args) == 2 and args[0] == signal.SIGINT:
         sys.exit(130) # standard signal.SIGINT exit code

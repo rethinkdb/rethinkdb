@@ -19,15 +19,19 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
-enum class sorting_t {
-    UNORDERED,
-    ASCENDING,
-    DESCENDING
-};
-// UNORDERED sortings aren't reversed
-bool reversed(sorting_t sorting);
+enum class is_primary_t { NO, YES };
 
 namespace ql {
+
+template<class T>
+T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
+    if (g->size() == 0) {
+        return T();
+    } else {
+        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
+        return std::move(g->begin()->second);
+    }
+}
 
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.
@@ -48,6 +52,8 @@ struct rget_item_t {
 };
 
 RDB_SERIALIZE_OUTSIDE(rget_item_t);
+
+void debug_print(printf_buffer_t *, const rget_item_t &);
 
 typedef std::vector<rget_item_t> stream_t;
 
@@ -237,11 +243,23 @@ public:
     get_underlying_map(grouped::order_doesnt_matter_t) {
         return &m;
     }
+
+    const std::map<datum_t, T, optional_datum_less_t> *
+    get_underlying_map(grouped::order_doesnt_matter_t) const {
+        return &m;
+    }
+
 private:
     std::map<datum_t, T, optional_datum_less_t> m;
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+
+template <class T>
+void debug_print(printf_buffer_t *buf, const grouped_t<T> &value) {
+    buf->appendf("grouped_t");
+    debug_print(buf, *value.get_underlying_map(grouped::order_doesnt_matter_t()));
+}
 
 namespace grouped_details {
 
@@ -305,7 +323,7 @@ typedef boost::variant<
     grouped_t<std::pair<double, uint64_t> >, // Avg.
     grouped_t<ql::datum_t>, // Reduce (may be NULL)
     grouped_t<optimizer_t>, // min, max
-    grouped_t<stream_t>, // No terminal.,
+    grouped_t<stream_t>, // No terminal.
     exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;
 
@@ -317,12 +335,20 @@ typedef boost::variant<map_wire_func_t,
                        zip_wire_func_t
                        > transform_variant_t;
 
+struct limit_read_t {
+    is_primary_t is_primary;
+    size_t n;
+    sorting_t sorting;
+};
+RDB_DECLARE_SERIALIZABLE(limit_read_t);
+
 typedef boost::variant<count_wire_func_t,
                        sum_wire_func_t,
                        avg_wire_func_t,
                        min_wire_func_t,
                        max_wire_func_t,
-                       reduce_wire_func_t
+                       reduce_wire_func_t,
+                       limit_read_t
                        > terminal_variant_t;
 
 class op_t {
@@ -371,11 +397,10 @@ public:
 
 scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);
 //                                                        NULL if unsharding ^^^^^^^
+scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting);
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
-
 scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version);
 scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);
-
 scoped_ptr_t<op_t> make_op(const transform_variant_t &tv);
 
 } // namespace ql

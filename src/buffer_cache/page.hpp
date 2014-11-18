@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_ALT_PAGE_HPP_
-#define BUFFER_CACHE_ALT_PAGE_HPP_
+#ifndef BUFFER_CACHE_PAGE_HPP_
+#define BUFFER_CACHE_PAGE_HPP_
 
 #include "concurrency/cond_var.hpp"
 #include "containers/backindex_bag.hpp"
@@ -253,4 +253,4 @@ private:
 
 }  // namespace alt
 
-#endif  // BUFFER_CACHE_ALT_PAGE_HPP_
+#endif  // BUFFER_CACHE_PAGE_HPP_

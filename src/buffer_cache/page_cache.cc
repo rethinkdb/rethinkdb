@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "buffer_cache/alt/page_cache.hpp"
+#include "buffer_cache/page_cache.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -10,7 +10,7 @@
 #include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"

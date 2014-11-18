@@ -11,6 +11,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -226,17 +227,18 @@ bool real_reql_cluster_interface_t::db_config(
         admin_tables->db_config_backend.get(), "db_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(table, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
 bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db,
-        UNUSED const boost::optional<name_string_t> &primary_dc,
-        bool hard_durability, const std::string &primary_key, signal_t *interruptor,
-        std::string *error_out) {
+        const table_generate_config_params_t &config_params,
+        const std::string &primary_key,
+        signal_t *interruptor, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     namespace_id_t table_id = generate_uuid();
     cluster_semilattice_metadata_t metadata;
     {
@@ -244,22 +246,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
-
-        /* Find the specified datacenter */
-#if 0 /* RSI: Figure out what to do about datacenters */
-        uuid_u dc_id;
-        if (primary_dc) {
-            metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(
-                &metadata.datacenters.datacenters);
-            metadata_search_status_t status;
-            auto it = dc_searcher.find_uniq(*primary_dc, &status);
-            if (!check_metadata_status(status, "Datacenter", primary_dc->str(), true,
-                    error_out)) return false;
-            dc_id = it->first;
-        } else {
-            dc_id = nil_uuid();
-        }
-#endif /* 0 */
 
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
@@ -277,8 +263,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         table_replication_info_t repli_info;
 
-        /* We can't meaningfully pick shard points, so create only one shard */
-        repli_info.shard_scheme = table_shard_scheme_t::one_shard();
+        /* We don't have any data to generate split points based on, so assume UUIDs */
+        calculate_split_points_for_uuids(
+            config_params.num_shards, &repli_info.shard_scheme);
 
         /* Construct a configuration for the new namespace */
         std::map<server_id_t, int> server_usage;
@@ -291,9 +278,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             calculate_server_usage(
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
-        /* RSI(reql_admin): These should be passed by the user. */
-        table_generate_config_params_t config_params =
-            table_generate_config_params_t::make_default();
         if (!table_generate_config(
                 server_name_client, nil_uuid(), nullptr, server_usage,
                 config_params, table_shard_scheme_t(), &interruptor2,
@@ -312,21 +296,20 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         table_metadata.replication_info =
             versioned_t<table_replication_info_t>(repli_info);
 
-        /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
-        (void)hard_durability;
-
         ns_change.get()->namespaces.insert(
             std::make_pair(table_id, make_deletable(table_metadata)));
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
+        table_status_artificial_table_backend_t *status_backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
         wait_for_table_readiness(
             table_id,
             table_readiness_t::finished,
-            /* Arbitrarily choose to use the UUID-based backend rather than the
-            name-based backend when waiting for table readiness. This doesn't matter. */
-            admin_tables->table_status_backend[1].get(),
+            status_backend,
             &interruptor2);
     }
 
@@ -399,7 +382,7 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
 
 bool real_reql_cluster_interface_t::table_find(
         const name_string_t &name, counted_t<const ql::db_t> db,
-        boost::optional<admin_identifier_format_t> identifier_format,
+        UNUSED boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor,
         scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
@@ -415,13 +398,12 @@ bool real_reql_cluster_interface_t::table_find(
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
     guarantee(!ns_metadata_it->second.is_deleted());
-
-    if (static_cast<bool>(identifier_format)) {
-        *error_out = "The `identifier_format` optarg only makes sense for tables in the "
-            "special `rethinkdb` database.";
-        return false;
-    }
-
+    /* Note that we completely ignore `identifier_format`. `identifier_format` is
+    meaningless for real tables, so it might seem like we should produce an error. The
+    reason we don't is that the user might write a query that access both a system table
+    and a real table, and they might specify `identifier_format` as a global optarg.
+    So then they would get a spurious error for the real table. This behavior is also
+    consistent with that of system tables that aren't affected by `identifier_format`. */
     table_out->init(new real_table_t(
         ns_metadata_it->first,
         namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor),
@@ -490,7 +472,7 @@ bool real_reql_cluster_interface_t::table_config(
     counted_t<ql::table_t> table = make_table_with_backend(backend, "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(table, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -518,7 +500,7 @@ bool real_reql_cluster_interface_t::table_status(
     counted_t<ql::table_t> table = make_table_with_backend(backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(table, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -535,7 +517,7 @@ bool real_reql_cluster_interface_t::table_wait(
         return false;
     }
 
-    table_status_artificial_table_backend_t *backend =
+    table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
 
@@ -544,7 +526,7 @@ bool real_reql_cluster_interface_t::table_wait(
         threadnum_t new_thread = directory_root_view->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, new_thread);
         on_thread_t thread_switcher(new_thread);
-        rassert(new_thread == backend->home_thread());
+        rassert(new_thread == status_backend->home_thread());
 
         // Loop until all tables are ready - we have to check all tables again
         // if a table was not immediately ready
@@ -553,7 +535,7 @@ bool real_reql_cluster_interface_t::table_wait(
             immediate = true;
             for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
                 table_wait_result_t res = wait_for_table_readiness(
-                    it->first, readiness, backend, &ct_interruptor);
+                    it->first, readiness, status_backend, &ct_interruptor);
                 immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
                 // Error out if a table was deleted and it was explicitly waited on
                 if (res == table_wait_result_t::DELETED) {
@@ -576,7 +558,7 @@ bool real_reql_cluster_interface_t::table_wait(
         // `table_status` read.
         ASSERT_FINITE_CORO_WAITING;
         if (!table_meta_read(
-                backend, db, table_ids,
+                status_backend, db, table_ids,
                 !tables.empty(), // A db-level wait shouldn't error if a table is deleted
                 &ct_interruptor, &result_array, error_out)) {
             return false;
@@ -604,21 +586,25 @@ bool real_reql_cluster_interface_t::table_wait(
     }
 
     counted_t<ql::table_t> table = make_table_with_backend(
-        backend, "table_status", bt);
+        status_backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(table, stream, bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
 bool real_reql_cluster_interface_t::reconfigure_internal(
-        namespace_id_t table_id,
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        const name_string_t &table_name,
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     rassert(get_thread_id() == server_name_client->home_thread());
+    std::vector<std::pair<namespace_id_t, name_string_t> > table_map;
+    table_map.push_back(std::make_pair(table_id, table_name));
 
     /* Find the specified table in the semilattice metadata */
     cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
@@ -629,6 +615,30 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     auto ns_metadata_it = ns_change.get()->namespaces.find(table_id);
     r_sanity_check(ns_metadata_it != ns_change.get()->namespaces.end() &&
                    !ns_metadata_it->second.is_deleted());
+
+    // Store the old value of the config and status
+    ql::datum_object_builder_t result_builder;
+    {
+        ql::datum_object_builder_t old_val_builder;
+        old_val_builder.overwrite("config",
+            convert_table_config_to_datum(
+                ns_metadata_it->second.get_ref().replication_info.get_ref().config,
+                admin_identifier_format_t::name,
+                server_name_client));
+
+        table_status_artificial_table_backend_t *backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
+        std::vector<ql::datum_t> old_status;
+        if (!table_meta_read(backend, db, table_map,
+                             true, interruptor, &old_status, error_out)) {
+            return false;
+        }
+        guarantee(old_status.size() == 1);
+        old_val_builder.overwrite("status", old_status[0]);
+        result_builder.overwrite("old_val", std::move(old_val_builder).to_datum());
+    }
 
     std::map<server_id_t, int> server_usage;
     for (auto it = ns_searcher.find_next(ns_searcher.begin());
@@ -680,8 +690,30 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         semilattice_root_view->join(metadata);
     }
 
-    *new_config_out = convert_table_config_to_datum(
-        new_repli_info.config, admin_identifier_format_t::name, server_name_client);
+    // Store the new value of the config and status
+    {
+        ql::datum_object_builder_t new_val_builder;
+        new_val_builder.overwrite("config",
+            convert_table_config_to_datum(
+                new_repli_info.config,
+                admin_identifier_format_t::name,
+                server_name_client));
+
+        table_status_artificial_table_backend_t *backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
+        std::vector<ql::datum_t> new_status;
+        if (!table_meta_read(backend, db, table_map,
+                             true, interruptor, &new_status, error_out)) {
+            return false;
+        }
+        guarantee(new_status.size() == 1);
+        new_val_builder.overwrite("status", new_status[0]);
+        result_builder.overwrite("new_val", std::move(new_val_builder).to_datum());
+    }
+
+    *result_out = std::move(result_builder).to_datum();
     return true;
 }
 
@@ -691,7 +723,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -704,8 +736,8 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
     rassert(tables.size() == 1);
 
-    return reconfigure_internal(tables.begin()->first, params, dry_run,
-                                &ct_interruptor, new_config_out, error_out);
+    return reconfigure_internal(db, tables.begin()->first, name, params, dry_run,
+                                &ct_interruptor, result_out, error_out);
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
@@ -713,7 +745,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -728,13 +760,126 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     for (auto const &pair : tables) {
         ql::datum_t table_result;
-        if (!reconfigure_internal(pair.first, params, dry_run, &ct_interruptor,
-                                  &table_result, error_out)) {
+        if (!reconfigure_internal(db, pair.first, pair.second, params, dry_run,
+                                  &ct_interruptor, &table_result, error_out)) {
             return false;
         }
         array_builder.add(table_result);
     }
-    *new_config_out = std::move(array_builder).to_datum();
+    *result_out = std::move(array_builder).to_datum();
+    return true;
+}
+
+bool real_reql_cluster_interface_t::rebalance_internal(
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        const name_string_t &table_name,
+        signal_t *interruptor,
+        ql::datum_t *results_out,
+        std::string *error_out) {
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    tables.push_back(std::make_pair(table_id, table_name));
+
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
+    std::vector<ql::datum_t> old_status;
+    if (!table_meta_read(status_backend, db, tables, true,
+            interruptor, &old_status, error_out)) {
+        return false;
+    }
+    guarantee(old_status.size() == 1);
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
+            &metadata.rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &ns_change.get()->namespaces);
+    auto it = ns_change.get()->namespaces.find(table_id);
+    r_sanity_check(it != ns_change.get()->namespaces.end() && !it->second.is_deleted());
+
+    std::map<store_key_t, int64_t> counts;
+    if (!fetch_distribution(table_id, this, interruptor, &counts, error_out)) {
+        *error_out = "When measuring document distribution: " + *error_out;
+        return false;
+    }
+
+    table_replication_info_t new_repli_info =
+        it->second.get_ref().replication_info.get_ref();
+    if (!calculate_split_points_with_distribution(
+            counts,
+            new_repli_info.config.shards.size(),
+            &new_repli_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+
+    it->second.get_mutable()->replication_info.set(new_repli_info);
+    semilattice_root_view->join(metadata);
+
+    std::vector<ql::datum_t> new_status;
+    if (!table_meta_read(status_backend, db, tables, true,
+            interruptor, &new_status, error_out)) {
+        return false;
+    }
+    guarantee(new_status.size() == 1);
+
+    ql::datum_object_builder_t builder;
+    builder.overwrite("old_status", old_status[0]);
+    builder.overwrite("new_status", new_status[0]);
+    *results_out = std::move(builder).to_datum();
+
+    return true;
+}
+
+bool real_reql_cluster_interface_t::table_rebalance(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    if (!get_table_ids_for_query(db, { name }, &tables, error_out)) {
+        return false;
+    }
+    rassert(tables.size() == 1);
+
+    return rebalance_internal(db, tables.begin()->first, name, &ct_interruptor,
+        result_out, error_out);
+}
+
+bool real_reql_cluster_interface_t::db_rebalance(
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != "rethinkdb",
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    std::vector<std::pair<namespace_id_t, name_string_t> > tables;
+    if (!get_table_ids_for_query(db, std::vector<name_string_t>(), &tables, error_out)) {
+        return false;
+    }
+
+    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+    for (auto const &pair : tables) {
+        ql::datum_t table_result;
+        if (!rebalance_internal(db, pair.first, pair.second, &ct_interruptor,
+                                &table_result, error_out)) {
+            return false;
+        }
+        array_builder.add(table_result);
+    }
+    *result_out = std::move(array_builder).to_datum();
     return true;
 }
 

@@ -58,7 +58,7 @@ with driver.Metacluster() as metacluster:
     def test_reconfigure(num_shards, num_replicas, director_tag):
         print("Making configuration num_shards=%d num_replicas=%r director_tag=%r" % (num_shards, num_replicas, director_tag))
         new_config = r.table("foo").reconfigure(shards=num_shards, replicas=num_replicas, \
-                                                director_tag=director_tag, dry_run=True).run(conn)
+                                                director_tag=director_tag, dry_run=True)['new_val']['config'].run(conn)
         print(new_config)
 
         # Make sure new config follows all the rules
@@ -104,16 +104,26 @@ with driver.Metacluster() as metacluster:
         return row
     prev_config = get_config()
     new_config = r.table("foo").reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2",
-        dry_run=True).run(conn)
+        dry_run=True)['new_val']['config'].run(conn)
     assert prev_config != new_config, (prev_config, new_config)
     assert get_config() == prev_config
     new_config_2 = r.table("foo").reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2",
-        dry_run=False).run(conn)
+        dry_run=False)['new_val']['config'].run(conn)
     assert prev_config != new_config_2
     print("get_config()", get_config())
     print("new_config_2", new_config_2)
     print("prev_config", prev_config)
     assert get_config() == new_config_2
+
+    # Test that configuration parameters to `table_create()` work
+    res = r.table_create("blablabla", replicas=2, shards=8).run(conn)
+    assert res == {"created": 1}
+    conf = r.table_config("blablabla").nth(0).run(conn)
+    assert len(conf["shards"]) == 8
+    for i in xrange(8):
+        assert len(conf["shards"][i]["replicas"]) == 2
+    res = r.table_drop("blablabla").run(conn)
+    assert res == {"dropped": 1}
 
     # Test that we prefer servers that held our data before
     for server in server_names:

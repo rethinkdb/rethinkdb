@@ -18,7 +18,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/uuid.hpp"

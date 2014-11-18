@@ -109,6 +109,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::RECONFIGURE:
+        case Term::REBALANCE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
@@ -382,6 +383,7 @@ private:
         case Term::TABLE_STATUS:
         case Term::TABLE_WAIT:
         case Term::RECONFIGURE:
+        case Term::REBALANCE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:

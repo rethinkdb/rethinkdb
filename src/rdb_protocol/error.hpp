@@ -5,6 +5,8 @@
 #include <list>
 #include <string>
 
+#include "errors.hpp"
+
 #include "containers/archive/archive.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -40,7 +42,8 @@ void runtime_fail(base_exc_t::type_t type,
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
-void runtime_sanity_check_failed() NORETURN;
+void runtime_sanity_check_failed(
+    const char *file, int line, const char *test) NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -71,7 +74,7 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-    protob_t<const Backtrace> backtrace() const { return bt_src; }
+    const protob_t<const Backtrace> &backtrace() const { return bt_src; }
 
 protected:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
@@ -141,6 +144,10 @@ private:
         rcheck_typed_target(target, false, strprintf(args));      \
         unreachable();                                            \
     } while (0)
+#define rfail_src(src, type, args...) do {                       \
+        rcheck_src(src, false, type, strprintf(args));            \
+        unreachable();                                           \
+    } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
         unreachable();                                                  \
@@ -166,7 +173,8 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 #else
 #define r_sanity_check(test) do {                       \
         if (!(test)) {                                  \
-            ::ql::runtime_sanity_check_failed();        \
+            ::ql::runtime_sanity_check_failed(          \
+                __FILE__, __LINE__, stringify(test));   \
         }                                               \
     } while (0)
 #endif // NDEBUG

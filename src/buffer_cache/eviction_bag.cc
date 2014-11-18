@@ -1,8 +1,8 @@
-#include "buffer_cache/alt/eviction_bag.hpp"
+#include "buffer_cache/eviction_bag.hpp"
 
 #include <inttypes.h>
 
-#include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/page.hpp"
 #include "utils.hpp"
 
 namespace alt {

@@ -3,8 +3,10 @@
 #define RDB_PROTOCOL_TERM_HPP_
 
 #include "containers/counted.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -15,7 +17,7 @@ class env_t;
 class func_t;
 class scope_env_t;
 class table_t;
-class val_t;
+class table_slice_t;
 class var_captures_t;
 class compile_env_t;
 
@@ -33,17 +35,13 @@ public:
     scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
 
     // Allocates a new value in the current environment.
-    scoped_ptr_t<val_t> new_val(datum_t d) const;
-    scoped_ptr_t<val_t> new_val(datum_t d, counted_t<table_t> t) const;
-    scoped_ptr_t<val_t> new_val(datum_t d,
-                                datum_t orig_key,
-                                counted_t<table_t> t) const;
-    scoped_ptr_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s) const;
-    scoped_ptr_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t) const;
-    scoped_ptr_t<val_t> new_val(counted_t<const db_t> db) const;
-    scoped_ptr_t<val_t> new_val(counted_t<table_t> t) const;
-    scoped_ptr_t<val_t> new_val(counted_t<const func_t> f) const;
-    scoped_ptr_t<val_t> new_val_bool(bool b) const;
+    template<class... Args>
+    scoped_ptr_t<val_t> new_val(Args... args) const {
+        return make_scoped<val_t>(std::forward<Args>(args)..., backtrace());
+    }
+    scoped_ptr_t<val_t> new_val_bool(bool b) const {
+        return new_val(datum_t::boolean(b));
+    }
 
     virtual bool is_deterministic() const = 0;
 

@@ -26,9 +26,9 @@ try:
 except NameError:
     xrange = range
 try:
-    from multiprocessing.queues import SimpleQueue
-except NameError:
     from multiprocessing import SimpleQueue
+except ImportError:
+    from multiprocessing.queues import SimpleQueue
 
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\

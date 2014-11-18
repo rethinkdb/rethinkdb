@@ -9,7 +9,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
     void process_a_leaf(buf_lock_t *leaf_node_buf,

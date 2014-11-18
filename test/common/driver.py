@@ -184,7 +184,7 @@ class Cluster(object):
     
     def __exit__(self, type, value, traceback):
         self.check_and_stop()
-    
+
     def check(self):
         """Throws an exception if any of the processes in the cluster has stopped or crashed. """
         for proc in self.processes:
@@ -529,7 +529,7 @@ class _Process(object):
                 return returnCode
         time.sleep(3)
         return 0
-        
+
 class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """

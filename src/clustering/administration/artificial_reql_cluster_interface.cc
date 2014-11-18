@@ -5,6 +5,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
 bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
@@ -62,16 +63,16 @@ bool artificial_reql_cluster_interface_t::db_config(
     return next->db_config(db_names, bt, interruptor, resp_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name,
-        counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
-        bool hard_durability, const std::string &primary_key, signal_t *interruptor,
-        std::string *error_out) {
+bool artificial_reql_cluster_interface_t::table_create(
+        const name_string_t &name, counted_t<const ql::db_t> db,
+        const table_generate_config_params_t &config_params,
+        const std::string &primary_key, signal_t *interruptor, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't create new tables "
             "in it.", database.c_str());
         return false;
     }
-    return next->table_create(name, db, primary_dc, hard_durability, primary_key,
+    return next->table_create(name, db, config_params, primary_key,
         interruptor, error_out);
 }
 
@@ -176,7 +177,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "
@@ -184,7 +185,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         return false;
     }
     return next->table_reconfigure(db, name, params, dry_run, interruptor,
-        new_config_out, error_out);
+        result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_reconfigure(
@@ -192,7 +193,7 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        ql::datum_t *new_config_out,
+        ql::datum_t *result_out,
         std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "
@@ -200,7 +201,34 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         return false;
     }
     return next->db_reconfigure(db, params, dry_run, interruptor,
-        new_config_out, error_out);
+        result_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::table_rebalance(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't rebalance the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_rebalance(db, name, interruptor, result_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::db_rebalance(
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't rebalance the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->db_rebalance(db, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
@@ -217,7 +245,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
             rather than the name version. */
             if (!it->second.second->read_all_rows_as_stream(
                     ql::protob_t<const Backtrace>(),
-                    datum_range_t::universe(),
+                    ql::datum_range_t::universe(),
                     sorting_t::UNORDERED,
                     env->interruptor,
                     &docs,

@@ -93,8 +93,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
                     .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
@@ -218,8 +218,6 @@ class RDBVal extends TermBase
 
     sum: (args...) -> new Sum {}, @, args.map(funcWrap)...
     avg: (args...) -> new Avg {}, @, args.map(funcWrap)...
-    min: (args...) -> new Min {}, @, args.map(funcWrap)...
-    max: (args...) -> new Max {}, @, args.map(funcWrap)...
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
@@ -289,7 +287,6 @@ class RDBVal extends TermBase
         # Default if no opts dict provided
         opts = {}
         keys = keysAndOpts
-
         # Look for opts dict
         if keysAndOpts.length > 1
             perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
@@ -297,8 +294,33 @@ class RDBVal extends TermBase
                     ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
                 opts = perhapsOptDict
                 keys = keysAndOpts[0...(keysAndOpts.length - 1)]
-
         new GetAll opts, @, keys...
+
+    min: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Min opts, @, keys.map(funcWrap)...
+
+    max: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
@@ -320,8 +342,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
-    reconfigure: (opts) ->
-        new Reconfigure opts, @
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -959,6 +981,10 @@ class Reconfigure extends RDBOp
     tt: protoTermType.RECONFIGURE
     mt: 'reconfigure'
 
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
+
 class Sync extends RDBOp
     tt: protoTermType.SYNC
     mt: 'sync'
@@ -1247,6 +1273,7 @@ rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
 rethinkdb.tableWait = (args...) -> new TableWait {}, args...
 
 rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

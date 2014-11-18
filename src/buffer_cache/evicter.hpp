@@ -1,11 +1,11 @@
-#ifndef BUFFER_CACHE_ALT_EVICTER_HPP_
-#define BUFFER_CACHE_ALT_EVICTER_HPP_
+#ifndef BUFFER_CACHE_EVICTER_HPP_
+#define BUFFER_CACHE_EVICTER_HPP_
 
 #include <stdint.h>
 
 #include <functional>
 
-#include "buffer_cache/alt/eviction_bag.hpp"
+#include "buffer_cache/eviction_bag.hpp"
 #include "concurrency/cache_line_padded.hpp"
 #include "concurrency/pubsub.hpp"
 #include "threading.hpp"
@@ -118,4 +118,4 @@ private:
 
 }  // namespace alt
 
-#endif  // BUFFER_CACHE_ALT_EVICTER_HPP_
+#endif  // BUFFER_CACHE_EVICTER_HPP_

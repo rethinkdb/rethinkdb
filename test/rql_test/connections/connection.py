@@ -112,7 +112,6 @@ class TestWithConnection(TestCaseCompatible):
     port = None
     server = None
     serverOutput = None
-    
     def setUp(self):
         global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
         

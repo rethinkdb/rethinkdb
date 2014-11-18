@@ -5,7 +5,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/operations.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
@@ -62,7 +62,14 @@ void insert_rows(int start, int finish, store_t *store) {
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      &sindex_block,
                      &sindexes);
-            rdb_update_sindexes(sindexes, &mod_report, txn.get(), &deletion_context);
+            rdb_update_sindexes(store,
+                                sindexes,
+                                &mod_report,
+                                txn.get(),
+                                &deletion_context,
+                                NULL,
+                                NULL,
+                                NULL);
 
             scoped_ptr_t<new_mutex_in_line_t> acq =
                 store->get_in_line_for_sindex_queue(&sindex_block);
@@ -238,7 +245,8 @@ void _check_keys_are_present(store_t *store,
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
-            &res);
+            &res,
+            release_superblock_t::RELEASE);
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
@@ -314,10 +322,14 @@ void _check_keys_are_NOT_present(store_t *store,
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
-            &res);
+            &res,
+            release_superblock_t::RELEASE);
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
+        if (groups->size() != 0) {
+            debugf_print("groups is non-empty", *groups);
+        }
         ASSERT_EQ(0, groups->size());
     }
 }

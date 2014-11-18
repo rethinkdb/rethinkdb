@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "boost_utils.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -13,17 +14,6 @@
 #include "debug.hpp"
 
 namespace ql {
-
-template<class T>
-T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
-    if (g->size() == 0) {
-        return T();
-    } else {
-        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
-        return std::move(g->begin()->second);
-    }
-}
-
 
 // RANGE/READGEN STUFF
 rget_response_reader_t::rget_response_reader_t(
@@ -97,7 +87,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               env->limits().array_size_limit(),
-                              readgen->sindex_name().c_str(),
+                              opt_or(readgen->sindex_name(), "").c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
@@ -216,7 +206,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
                           env->limits().array_size_limit(),
-                          readgen->sindex_name().c_str(),
+                          opt_or(readgen->sindex_name(), "").c_str(),
                           items[items.size() - 1].sindex_key.trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
 
@@ -424,8 +414,8 @@ key_range_t primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
 }
 
-std::string primary_readgen_t::sindex_name() const {
-    return "";
+boost::optional<std::string> primary_readgen_t::sindex_name() const {
+    return boost::optional<std::string>();
 }
 
 sindex_readgen_t::sindex_readgen_t(
@@ -547,7 +537,7 @@ key_range_t sindex_readgen_t::original_keyrange() const {
     return original_datum_range.to_sindex_keyrange();
 }
 
-std::string sindex_readgen_t::sindex_name() const {
+boost::optional<std::string> sindex_readgen_t::sindex_name() const {
     return sindex;
 }
 
@@ -627,7 +617,7 @@ key_range_t intersecting_readgen_t::original_keyrange() const {
     return datum_range_t::universe().to_sindex_keyrange();
 }
 
-std::string intersecting_readgen_t::sindex_name() const {
+boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
     return sindex;
 }
 
@@ -954,48 +944,75 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
+changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
+    if (left == 0) {
+        changefeed::keyspec_t subspec = source->get_change_spec();
+        auto rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
+        if (rspec != NULL) {
+            return changefeed::keyspec_t(
+                changefeed::keyspec_t::limit_t(*rspec, right));
+        }
+    }
+    return wrapper_datum_stream_t::get_change_spec();
+}
+
 std::vector<datum_t>
-slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) {
+slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     if (left >= right || index >= right) {
         return std::vector<datum_t>();
     }
 
-    const batchspec_t batchspec = _batchspec.with_at_most(right - index);
-
+    batcher_t batcher = batchspec.to_batcher();
     profile::sampler_t sampler("Slicing eagerly.", env->trace);
+
+    std::vector<datum_t> ret;
+
     while (index < left) {
         sampler.new_sample();
-        std::vector<datum_t> v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v =
+            source->next_batch(env, batchspec.with_at_most(right - index));
         if (v.size() == 0) {
-            return v;
+            return ret;
         }
         index += v.size();
         if (index > right) {
             v.resize(v.size() - (index - right));
             index = right;
         }
+
         if (index > left) {
-            std::vector<datum_t> ret;
+            auto start = v.end() - (index - left);
+            for (auto it = start; it != v.end(); ++it) {
+                batcher.note_el(*it);
+            }
             ret.reserve(index - left);
-            std::move(v.end() - (index - left), v.end(), std::back_inserter(ret));
-            return ret;
+            std::move(start, v.end(), std::back_inserter(ret));
         }
     }
 
-    while (index < right) {
+    while (index < right && !batcher.should_send_batch()) {
         sampler.new_sample();
-        std::vector<datum_t> v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v =
+            source->next_batch(env, batchspec.with_at_most(right - index));
         if (v.size() == 0) {
-            break;
+            return ret;
         }
         index += v.size();
         if (index > right) {
             v.resize(v.size() - (index - right));
+            index = right;
         }
-        return v;
+
+        for (const auto &d : v) {
+            batcher.note_el(d);
+        }
+        ret.reserve(ret.size() + v.size());
+        std::move(v.begin(), v.end(), std::back_inserter(ret));
     }
 
-    return std::vector<datum_t>();
+    r_sanity_check(index >= left);
+    r_sanity_check(index <= right);
+    return ret;
 }
 
 bool slice_datum_stream_t::is_exhausted() const {

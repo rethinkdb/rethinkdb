@@ -25,7 +25,7 @@ name_collision_issue_t::name_collision_issue_t(const issue_id_t &_issue_id,
     name(_name),
     collided_ids(_collided_ids) { }
 
-void build_server_db_info_and_description(
+void generic_build_info_and_description(
         const std::string &long_type_plural,
         const char *short_type_singular,
         const char *system_table_name,
@@ -38,7 +38,7 @@ void build_server_db_info_and_description(
     std::string ids_str;
     for (auto const &id : ids) {
         ids_builder.add(convert_uuid_to_datum(id));
-        if (ids_str.empty()) {
+        if (!ids_str.empty()) {
             ids_str += ", ";
         }
         ids_str += uuid_to_str(id);
@@ -68,7 +68,7 @@ bool server_name_collision_issue_t::build_info_and_description(
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
-    build_server_db_info_and_description(
+    generic_build_info_and_description(
         "servers", "server", "server_config", name, collided_ids,
         info_out, description_out);
     return true;
@@ -87,7 +87,7 @@ bool db_name_collision_issue_t::build_info_and_description(
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
-    build_server_db_info_and_description(
+    generic_build_info_and_description(
         "databases", "database", "db_config", name, collided_ids,
         info_out, description_out);
     return true;
@@ -116,7 +116,7 @@ bool table_name_collision_issue_t::build_info_and_description(
         db_name = name_string_t::guarantee_valid("__deleted_database__");
     }
     ql::datum_t partial_info;
-    build_server_db_info_and_description(
+    generic_build_info_and_description(
         strprintf("tables in database `%s`", db_name.c_str()),
         "table", "table_config", name, collided_ids,
         &partial_info, description_out);
