@@ -8,7 +8,7 @@
 
 class file_http_app_t : public http_app_t {
 public:
-    file_http_app_t(std::string _asset_dir);
+    explicit file_http_app_t(std::string _asset_dir);
 
     void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 private:

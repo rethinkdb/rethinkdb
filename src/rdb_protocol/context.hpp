@@ -15,8 +15,6 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/geo/distances.hpp"
-#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
