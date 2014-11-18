@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "buffer_cache/eviction_bag.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/cache_line_padded.hpp"
 #include "concurrency/pubsub.hpp"
 #include "threading.hpp"
@@ -73,6 +74,8 @@ private:
     bool initialized_;
     page_cache_t *page_cache_;
     cache_balancer_t *balancer_;
+    bool *balancer_notify_activity_boolean_;
+
     alt_txn_throttler_t *throttler_;
 
     uint64_t memory_limit_;
@@ -95,6 +98,8 @@ private:
     eviction_bag_t evictable_disk_backed_;
     eviction_bag_t evictable_unbacked_;
     eviction_bag_t evicted_;
+
+    auto_drainer_t drainer_;
 
     DISABLE_COPYING(evicter_t);
 };

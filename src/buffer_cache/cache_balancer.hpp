@@ -19,7 +19,7 @@ class evicter_t;
 }
 
 // Base class so we can have a dummy implementation for tests
-class cache_balancer_t {
+class cache_balancer_t : public home_thread_mixin_t {
 public:
     cache_balancer_t() { }
     virtual ~cache_balancer_t() { }
@@ -29,6 +29,19 @@ public:
 
     // Tells caches whether to start read ahead initially
     virtual bool read_ahead_ok_at_start() const = 0;
+
+    // Returns a pointer to a boolean for the given thread number (which must be the
+    // current thread) which, when set to true, means you should notify the balancer
+    // that it should wake up.  Stuff outside the balancer should only set it from
+    // true to false.
+    //
+    // You should only call this once -- that way, you don't need a wasteful virtual
+    // function call anytime you want activity.
+    virtual bool *notify_activity_boolean(threadnum_t) = 0;
+
+    // Tells the balancer that activity happened, so that maybe it should restart its
+    // balancing processes, if necessary (since right now they run on a timer).
+    virtual void wake_up_activity_happened() = 0;
 
 protected:
     friend class alt::evicter_t;
@@ -40,19 +53,26 @@ protected:
 };
 
 // Dummy balancer that does nothing but provide the initial size of a cache
-class dummy_cache_balancer_t : public cache_balancer_t {
+class dummy_cache_balancer_t final : public cache_balancer_t {
 public:
-    explicit dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
-        base_mem_per_store_(_base_mem_per_store) { }
+    explicit dummy_cache_balancer_t(uint64_t _base_mem_per_store)
+        : base_mem_per_store_(_base_mem_per_store),
+          notify_activity_boolean_(false) { }
     ~dummy_cache_balancer_t() { }
 
-    uint64_t base_mem_per_store() const {
+    uint64_t base_mem_per_store() const final {
         return base_mem_per_store_;
     }
 
-    bool read_ahead_ok_at_start() const {
+    bool read_ahead_ok_at_start() const final {
         return false;
     }
+
+    bool *notify_activity_boolean(threadnum_t) final {
+        return &notify_activity_boolean_;
+    }
+
+    void wake_up_activity_happened() final { }
 
 private:
     void add_evicter(alt::evicter_t *) { }
@@ -60,28 +80,32 @@ private:
 
     uint64_t base_mem_per_store_;
 
+    bool notify_activity_boolean_;
+
     DISABLE_COPYING(dummy_cache_balancer_t);
 };
 
 class alt_cache_balancer_dummy_value_t { };
 
-class alt_cache_balancer_t :
+class alt_cache_balancer_t final :
     public cache_balancer_t,
-    public home_thread_mixin_t,
     public coro_pool_callback_t<alt_cache_balancer_dummy_value_t>,
-    public repeating_timer_callback_t
-{
+    public repeating_timer_callback_t {
 public:
     explicit alt_cache_balancer_t(uint64_t _total_cache_size);
     ~alt_cache_balancer_t();
 
-    uint64_t base_mem_per_store() const {
+    uint64_t base_mem_per_store() const final {
         return 0;
     }
 
-    bool read_ahead_ok_at_start() const {
+    bool read_ahead_ok_at_start() const final {
         return true;
     }
+
+    bool *notify_activity_boolean(threadnum_t thread) final;
+
+    void wake_up_activity_happened() final;
 
 private:
     friend class alt::evicter_t;
@@ -127,21 +151,46 @@ private:
     // Helper function to collect stats from each thread so we don't need
     //  atomic variables slowing down normal operations
     void collect_stats_from_thread(int index,
-                                   scoped_array_t<std::vector<cache_data_t> > *data_out);
+                                   scoped_array_t<std::vector<cache_data_t> > *data_out,
+                                   scoped_array_t<bool> *zero_access_counts_out);
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
                                    const scoped_array_t<std::vector<cache_data_t> > *new_sizes,
                                    bool new_read_ahead_ok);
 
     const uint64_t total_cache_size;
-    repeating_timer_t rebalance_timer;
+    scoped_ptr_t<repeating_timer_t> rebalance_timer;
+    enum class rebalance_timer_state_t {
+        // Normal operating condition: there is a timer, and it'll ping soon.  Can
+        // switch to examining_other_threads.
+        normal,
+        // We're going to other threads to examine their cache activity.  We might
+        // ask them to send us a message that puts us back into "normal" state.  Such
+        // a request could arrive while we're still in "examining_other_threads"
+        // state, or "normal", or "deactivated."
+        examining_other_threads,
+        // rebalance_timer is null -- we are no longer running timer events.
+        deactivated,
+    };
+    rebalance_timer_state_t rebalance_timer_state;
+
     microtime_t last_rebalance_time;
     bool read_ahead_ok;
     uint64_t bytes_toward_read_ahead_limit;
 
+    struct per_thread_data_t {
+        per_thread_data_t() : wake_up_balancer(false) { }
+        std::set<alt::evicter_t *> evicters;
+        // true if the balancer should wake up (because there was activity on this
+        // thread).
+        bool wake_up_balancer;
+
+        DISABLE_COPYING(per_thread_data_t);
+    };
+
     // This contains the extant evicter pointers for each thread, only accessed
     // from each thread
-    scoped_array_t<std::set<alt::evicter_t *> > evicters_per_thread;
+    scoped_array_t<per_thread_data_t> per_thread_data;
 
     // Coroutine pool to make sure there is only one rebalance happening at a time
     // The single_value_producer_t makes sure we never build up a backlog
