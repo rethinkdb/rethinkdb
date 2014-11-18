@@ -279,11 +279,6 @@ cluster_namespace_interface_t::dispatch_outdated_read(
     op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
-void outdated_read_store_result(read_response_t *result_out, const read_response_t &result_in, cond_t *done) {
-    *result_out = result_in;
-    done->pulse();
-}
-
 void cluster_namespace_interface_t::perform_outdated_read(
         std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
         std::vector<read_response_t> *results,
@@ -295,7 +290,10 @@ void cluster_namespace_interface_t::perform_outdated_read(
     try {
         cond_t done;
         mailbox_t<void(read_response_t)> cont(mailbox_manager,
-                                              std::bind(&outdated_read_store_result, &results->at(i), ph::_1, &done));
+            [&](signal_t *, const read_response_t &res) {
+                results->at(i) = res;
+                done.pulse();
+            });
 
         send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);

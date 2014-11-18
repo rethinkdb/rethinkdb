@@ -314,7 +314,9 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     if (colpos != std::string::npos && (colpos + 1) < tz.size() && tz[colpos+1] == '-') {
         tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
     }
-    rcheck_target(target,  base_exc_t::GENERIC, tz != "UTC+00" && tz != "",
+    rcheck_target(target,
+                  tz != "UTC+00" && tz != "",
+                  base_exc_t::GENERIC,
                   "ISO 8601 string has no time zone, and no default time "
                   "zone was provided.");
 
@@ -365,10 +367,12 @@ datum_t iso8601_to_time(
         }
         time_t t(boost::date_time::not_a_date_time);
         ss >> t;
-        rcheck_target(
-            target, base_exc_t::GENERIC, !t.is_special(),
-            strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
-                      s.c_str(), sanitized.c_str()));
+        rcheck_target(target,
+                      !t.is_special(),
+                      base_exc_t::GENERIC, 
+                      strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
+                                s.c_str(),
+                                sanitized.c_str()));
         return boost_to_time(t, target);
     } HANDLE_BOOST_ERRORS(target);
 }

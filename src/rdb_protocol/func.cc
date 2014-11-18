@@ -74,6 +74,10 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
     }
 }
 
+boost::optional<size_t> reql_func_t::arity() const {
+    return arg_names.size();
+}
+
 bool reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
@@ -118,6 +122,10 @@ scoped_ptr_t<val_t> js_func_t::call(
         rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
+}
+
+boost::optional<size_t> js_func_t::arity() const {
+    return boost::none;
 }
 
 bool js_func_t::is_deterministic() const {
@@ -392,7 +400,7 @@ counted_t<const func_t> new_page_func(datum_t method,
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
+            rcheck_src(bt_src.get(), false, base_exc_t::GENERIC, msg);
         }
     }
     return counted_t<const func_t>();

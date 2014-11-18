@@ -7,19 +7,19 @@ $(TOP)/admin/all: web-assets
 
 ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
 
+ALL_WEB_ASSETS := $(WEB_ASSETS_BUILD_DIR)
+
 $(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
 	$P CP
+	rm -rf $@
 	cp -pRP $< $@
-
-.PHONY: web-assets
-web-assets: $(WEB_ASSETS_BUILD_DIR)
 
 else # Don't use precompiled assets
 
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
 WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
-BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
+ALL_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 # coffee script can't handle dependencies.
 COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
@@ -54,7 +54,7 @@ DOCS_JS := $(TOP)/docs/rql/reql_docs.json
 HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
 
 .PHONY: web-assets
-web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
+web-assets: $(ALL_WEB_ASSETS)
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P CP

@@ -66,7 +66,7 @@ bool MathUtil::RealRootsForCubic(long double const a,
   }
 
   long double const A =
-    -sgn(R) * pow(fabs(R) + sqrt(R_squared - Q_cubed), 1.0/3.0L);
+    -sgn(R) * pow(fabs(static_cast<double>(R)) + sqrt(R_squared - Q_cubed), 1.0/3.0L);
 
   if (A != 0.0) {  // in which case, B from NR is zero
     *r1 = A + Q / A - a_third;

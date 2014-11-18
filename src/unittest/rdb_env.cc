@@ -75,6 +75,11 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_limit_subscribe_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_stamp_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

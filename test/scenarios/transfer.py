@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
 import sys, os, time
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, workload_runner, scenario_common, rdb_workload_common
 from vcoptparse import *
@@ -14,13 +16,11 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
     print "Starting cluster..."
-    files1 = driver.Files(metacluster, db_path = "db-first", log_path = "create-output-first",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-first",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    files1 = driver.Files(metacluster, db_path="db-first", console_output="create-output-first", command_prefix=command_prefix)
+    process1 = driver.Process(cluster, files1, console_output="serve-output-first", command_prefix=command_prefix, extra_options=serve_options)
     process1.wait_until_started_up()
 
     print "Creating table..."
@@ -35,10 +35,8 @@ with driver.Metacluster() as metacluster:
     workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
 
     print "Bringing up new server..."
-    files2 = driver.Files(metacluster, db_path = "db-second", log_path = "create-output-second",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-second",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    files2 = driver.Files(metacluster, db_path="db-second", console_output="create-output-second", command_prefix=command_prefix)
+    process2 = driver.Process(cluster, files2, console_output="serve-output-second", command_prefix=command_prefix, extra_options=serve_options)
     process2.wait_until_started_up()
     http1.update_cluster_data(3)
     http1.move_server_to_datacenter(files2.machine_name, dc)

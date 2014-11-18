@@ -1,5 +1,5 @@
 
-version=1.55.0
+version=1.56.0
 
 src_url=http://sourceforge.net/projects/boost/files/boost/${version}/boost_${version//./_}.tar.bz2
 

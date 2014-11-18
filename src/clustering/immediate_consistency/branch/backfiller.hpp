@@ -34,20 +34,21 @@ private:
                                    mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont);
 
     void on_backfill(
+            signal_t *interruptor,
             backfill_session_id_t session_id,
             const region_map_t<version_range_t> &start_point,
             const branch_history_t &start_point_associated_branch_history,
             mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
             mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
             mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
-            mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
-            auto_drainer_t::lock_t keepalive);
+            mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box);
 
-    void on_cancel_backfill(backfill_session_id_t session_id, UNUSED auto_drainer_t::lock_t);
+    void on_cancel_backfill(signal_t *interruptor, backfill_session_id_t session_id);
 
-    void request_backfill_progress(backfill_session_id_t session_id,
-                                   mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
-                                   auto_drainer_t::lock_t);
+    void request_backfill_progress(
+            signal_t *interruptor,
+            backfill_session_id_t session_id,
+            mailbox_addr_t<void(std::pair<int, int>)> response_mbox);
 
     mailbox_manager_t *const mailbox_manager;
     branch_history_manager_t *const branch_history_manager;
@@ -56,7 +57,6 @@ private:
 
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
     std::map<backfill_session_id_t, traversal_progress_combiner_t *> local_backfill_progress;
-    auto_drainer_t drainer;
 
     backfiller_business_card_t::backfill_mailbox_t backfill_mailbox;
     backfiller_business_card_t::cancel_backfill_mailbox_t cancel_backfill_mailbox;

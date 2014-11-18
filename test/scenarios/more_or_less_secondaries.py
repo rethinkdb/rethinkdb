@@ -35,18 +35,14 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    primary_files = driver.Files(metacluster, db_path = "db-primary", log_path = "create-db-primary-output",
-                                 executable_path = executable_path, command_prefix = command_prefix)
-    primary_process = driver.Process(cluster, primary_files, log_path = "serve-output-primary",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    replica_processes = [driver.Process(cluster,
-                                        driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                                     executable_path = executable_path, command_prefix = command_prefix),
-                                        log_path = "serve_output-%d" % i,
-                                        executable_path = executable_path, command_prefix = command_prefix,
-                                        extra_options = serve_options)
-                         for i in xrange(opts["sequence"].peak())]
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    primary_files = driver.Files(metacluster, db_path="db-primary", console_output="create-db-primary-output", command_prefix=command_prefix)
+    primary_process = driver.Process(cluster, primary_files, console_output="serve-output-primary", command_prefix=command_prefix, extra_options=serve_options)
+    replica_processes = [driver.Process(
+    		cluster,
+        	driver.Files(metacluster, db_path="db-%d" % i, console_output="create-output-%d" % i, command_prefix=command_prefix),
+        	console_output="serve_output-%d" % i, command_prefix=command_prefix, extra_options=serve_options)
+        for i in xrange(opts["sequence"].peak())]
     primary_process.wait_until_started_up()
     for replica_process in replica_processes:
         replica_process.wait_until_started_up()

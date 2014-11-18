@@ -18,9 +18,12 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
     const datum_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
+    rcheck_target(caller,
+                  assignment_successful,
+                  base_exc_t::GENERIC,
                   strprintf("%s name `%s` invalid (%s).",
-                            type_str, raw_name.to_std().c_str(),
+                            type_str,
+                            raw_name.to_std().c_str(),
                             name_string_t::valid_char_msg));
     return name;
 }
@@ -260,7 +263,7 @@ public:
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
-        bool success = t->sync(env->env, this);
+        bool success = t->sync(env->env);
         r_sanity_check(success);
         return "synced";
     }
@@ -304,11 +307,13 @@ class get_term_t : public op_term_t {
 public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        datum_t pkey = args->arg(env, 1)->as_datum();
-        datum_t row = table->get_row(env->env, pkey);
-        return new_val(row, pkey, table);
+    virtual scoped_ptr_t<val_t>
+    eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(single_selection_t::from_key(
+                           env->env,
+                           backtrace(),
+                           args->arg(env, 0)->as_table(),
+                           args->arg(env, 1)->as_datum()));
     }
     virtual const char *name() const { return "get"; }
 };
@@ -321,10 +326,11 @@ private:
     datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
 
-        rcheck_target(arg, base_exc_t::GENERIC,
-                     !datum_arg.is_ptype(pseudo::geometry_string),
-                     "Cannot use a geospatial index with `get_all`.  "
-                     "Use `get_intersecting` instead.");
+        rcheck_target(arg,
+                      !datum_arg.is_ptype(pseudo::geometry_string),
+                      base_exc_t::GENERIC,
+                      "Cannot use a geospatial index with `get_all`. "
+                      "Use `get_intersecting` instead.");
         return datum_arg;
     }
 
@@ -342,7 +348,7 @@ private:
             }
             counted_t<datum_stream_t> stream
                 = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
-            return new_val(stream, table);
+            return new_val(make_counted<selection_t>(table, stream));
         } else {
             datum_array_builder_t arr(env->env->limits());
             for (size_t i = 1; i < args->num_args(); ++i) {
@@ -355,7 +361,7 @@ private:
             counted_t<datum_stream_t> stream
                 = make_counted<array_datum_stream_t>(std::move(arr).to_datum(),
                                                      backtrace());
-            return new_val(stream, table);
+            return new_val(make_counted<selection_t>(table, stream));
         }
     }
     virtual const char *name() const { return "get_all"; }

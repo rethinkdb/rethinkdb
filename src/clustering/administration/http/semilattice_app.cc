@@ -77,7 +77,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                    logWRN("Json body failed to parse. Here's the data that failed: %s",
                            req.get_sanitized_body().c_str());
                     *result = http_res_t(HTTP_BAD_REQUEST);
                     return;
@@ -94,7 +94,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
                             str_to_uuid(prefer_distribution_param.get());
                         prioritize_distr_for_ns.reset(ns_id);
                     } catch (...) {
-                        logINF("Invalid value for prefer_distribution_for argument: %s",
+                        logWRN("Invalid value for prefer_distribution_for argument: %s",
                            prefer_distribution_param.get().c_str());
                         *result = http_res_t(HTTP_BAD_REQUEST);
                         return;
@@ -146,7 +146,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                    logWRN("Json body failed to parse. Here's the data that failed: %s",
                            req.get_sanitized_body().c_str());
                     *result = http_res_t(HTTP_BAD_REQUEST);
                     return;
@@ -184,19 +184,19 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
                 break;
         }
     } catch (const schema_mismatch_exc_t &e) {
-        logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
+        logWRN("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
         *result =  http_error_res(e.what());
     } catch (const permission_denied_exc_t &e) {
-        logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
+        logWRN("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
         *result = http_error_res(e.what());
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         *result = http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
     } catch (const gone_exc_t &e) {
-        logINF("HTTP request throw a gone_exc_t with what = %s", e.what());
+        logWRN("HTTP request throw a gone_exc_t with what = %s", e.what());
         *result = http_error_res(e.what(), HTTP_GONE);
     } catch (const multiple_choices_exc_t &e) {
-        logINF("HTTP request failed to change semilattice data. %s", e.what());
+        logWRN("HTTP request failed to change semilattice data. %s", e.what());
         *result = http_error_res(e.what(), HTTP_METHOD_NOT_ALLOWED);
     }
 }
@@ -209,7 +209,7 @@ bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &r
     // information, and e.g. send "application/json; charset=UTF-8" instead of "application/json"
     if (!content_type || !boost::istarts_with(content_type.get(), expected_content_type)) {
         std::string actual_content_type = (content_type ? content_type.get() : "<NONE>");
-        logINF("Bad request, Content-Type should be %s, but is %s.", expected_content_type.c_str(), actual_content_type.c_str());
+        logWRN("Bad request, Content-Type should be %s, but is %s.", expected_content_type.c_str(), actual_content_type.c_str());
         return false;
     }
 

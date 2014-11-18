@@ -28,9 +28,9 @@ public:
     virtual const char *name() const { return "json"; }
 };
 
-class to_json_term_t : public op_term_t {
+class to_json_string_term_t : public op_term_t {
 public:
-    to_json_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    to_json_string_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -41,14 +41,14 @@ public:
         return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
     }
 
-    virtual const char *name() const { return "to_json"; }
+    virtual const char *name() const { return "to_json_string"; }
 };
 
 counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<json_term_t>(env, term);
 }
 
-counted_t<term_t> make_to_json_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<to_json_term_t>(env, term);
+counted_t<term_t> make_to_json_string_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<to_json_string_term_t>(env, term);
 }
 } // namespace ql

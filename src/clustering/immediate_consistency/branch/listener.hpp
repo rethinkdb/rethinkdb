@@ -173,7 +173,9 @@ private:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
-    void on_write(const write_t &write,
+    void on_write(
+            signal_t *interruptor,
+            const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -186,7 +188,9 @@ private:
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
-    void on_writeread(const write_t &write,
+    void on_writeread(
+            signal_t *interruptor,
+            const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -194,7 +198,9 @@ private:
             write_durability_t durability)
         THROWS_NOTHING;
 
-    void on_read(const read_t &read,
+    void on_read(
+            signal_t *interruptor,
+            const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
@@ -267,7 +273,7 @@ private:
     DISABLE_COPYING(listener_t);
 };
 
-RDB_DECLARE_SERIALIZABLE(listener_t::write_queue_entry_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(listener_t::write_queue_entry_t);
 
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */

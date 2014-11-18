@@ -2,9 +2,8 @@
 
 from __future__ import print_function
 
-import json, os, subprocess, re
+import json, os, re, subprocess
 
-import test_framework
 import utils
 
 def format_tests(test_root, test_tree):

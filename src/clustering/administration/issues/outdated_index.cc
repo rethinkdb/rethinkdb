@@ -57,7 +57,7 @@ outdated_index_issue_server_t::outdated_index_issue_server_t(
         mailbox_manager(_mailbox_manager),
         request_mailbox(mailbox_manager, std::bind(
             &outdated_index_issue_server_t::handle_request,
-            this, ph::_1)),
+            this, ph::_1, ph::_2)),
         local_client(NULL) { }
 
 
@@ -78,7 +78,9 @@ request_address_t outdated_index_issue_server_t::get_request_mailbox_address() c
     return request_mailbox.get_address();
 }
 
-void outdated_index_issue_server_t::handle_request(result_address_t result_address) {
+void outdated_index_issue_server_t::handle_request(
+        UNUSED signal_t *interruptor,
+        result_address_t result_address) {
     outdated_index_map_t res;
 
     if (local_client != NULL) {
@@ -179,13 +181,6 @@ outdated_index_map_t merge_maps(
     return res;
 }
 
-void handle_response(cond_t *done_signal,
-                     outdated_index_map_t *map_out,
-                     outdated_index_map_t &&peer_map) {
-    *map_out = std::move(peer_map);
-    done_signal->pulse();
-}
-
 void make_peer_request(mailbox_manager_t *mailbox_manager,
                        const std::map<peer_id_t, request_address_t> &request_mailboxes,
                        std::vector<outdated_index_map_t> *maps_out,
@@ -195,10 +190,10 @@ void make_peer_request(mailbox_manager_t *mailbox_manager,
         cond_t response_done;
         outdated_index_issue_server_t::result_mailbox_t result_mailbox(
             mailbox_manager,
-            std::bind(&handle_response,
-                      &response_done,
-                      &maps_out->at(peer_offset),
-                      ph::_1));
+            [&](signal_t *, const outdated_index_map_t &resp) {
+                maps_out->at(peer_offset) = resp;
+                response_done.pulse();
+            });
 
         auto peer_it = request_mailboxes.begin();
         for (int i = 0; i < peer_offset; ++i) {

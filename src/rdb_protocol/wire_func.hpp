@@ -114,7 +114,7 @@ RDB_DECLARE_SERIALIZABLE(count_wire_func_t);
 
 class zip_wire_func_t {
 };
-RDB_DECLARE_SERIALIZABLE(zip_wire_func_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(zip_wire_func_t);
 
 class bt_wire_func_t {
 public:
@@ -157,7 +157,7 @@ public:
     explicit distinct_wire_func_t(bool _use_index) : use_index(_use_index) { }
     bool use_index;
 };
-RDB_DECLARE_SERIALIZABLE(distinct_wire_func_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distinct_wire_func_t);
 
 template <class T>
 class skip_terminal_t;

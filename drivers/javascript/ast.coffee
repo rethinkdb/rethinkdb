@@ -73,8 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
-                    return
+                    #options is a function here
+                    return Promise.reject(new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,42 +88,38 @@ class TermBase
 
         options = {} if not options?
 
-        # Check if the arguments are valid types
-        try
-            for own key of options
-                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-            if net.isConnection(connection) is false
-                throw new err.RqlDriverError "First argument to `run` must be an open connection."
-        catch e
-            if typeof callback is 'function'
-                return callback(e)
-            else
-                return new Promise (resolve, reject) =>
-                    reject(e)
+        if callback? and typeof callback isnt 'function'
+            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
-        if options.noreply is true or typeof callback is 'function'
+        # Check if the arguments are valid types
+        for own key of options
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+                    .nodeify callback
+        if net.isConnection(connection) is false
+            return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
+
+        # if `noreply` is `true`, the callback will be immediately called without error
+        # so we do not have to worry about bluebird complaining about errors not being
+        # caught
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if err?
+                    console.log 'reject'
+                    reject(err)
+                else
+                    resolve(result)
+
             try
-                connection._start @, callback, options
+                connection._start @, wrappedCb, options
             catch e
                 # It was decided that, if we can, we prefer to invoke the callback
                 # with any errors rather than throw them as normal exceptions.
                 # Thus we catch errors here and invoke the callback instead of
                 # letting the error bubble up.
-                if typeof(callback) is 'function'
-                    callback(e)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
+                wrappedCb(e)
 
-                try
-                    connection._start @, callback, options
-                catch e
-                    callback(e)
+        ).nodeify callback
 
     toString: -> err.printQuery(@)
 
@@ -191,7 +187,8 @@ class RDBVal extends TermBase
     union: (args...) -> new Union {}, @, args...
     nth: (args...) -> new Nth {}, @, args...
     bracket: (args...) -> new Bracket {}, @, args...
-    toJson: (args...) -> new ToJson {}, @, args...
+    toJSON: (args...) -> new ToJsonString {}, @, args...
+    toJsonString: (args...) -> new ToJsonString {}, @, args...
     match: (args...) -> new Match {}, @, args...
     split: (args...) -> new Split {}, @, args.map(funcWrap)...
     upcase: (args...) -> new Upcase {}, @, args...
@@ -221,8 +218,6 @@ class RDBVal extends TermBase
 
     sum: (args...) -> new Sum {}, @, args.map(funcWrap)...
     avg: (args...) -> new Avg {}, @, args.map(funcWrap)...
-    min: (args...) -> new Min {}, @, args.map(funcWrap)...
-    max: (args...) -> new Max {}, @, args.map(funcWrap)...
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
@@ -289,7 +284,6 @@ class RDBVal extends TermBase
         # Default if no opts dict provided
         opts = {}
         keys = keysAndOpts
-
         # Look for opts dict
         if keysAndOpts.length > 1
             perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
@@ -297,8 +291,33 @@ class RDBVal extends TermBase
                     ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
                 opts = perhapsOptDict
                 keys = keysAndOpts[0...(keysAndOpts.length - 1)]
-
         new GetAll opts, @, keys...
+
+    min: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Min opts, @, keys.map(funcWrap)...
+
+    max: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
@@ -759,11 +778,11 @@ class Filter extends RDBOp
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: protoTermType.CONCATMAP
+    tt: protoTermType.CONCAT_MAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: protoTermType.ORDERBY
+    tt: protoTermType.ORDER_BY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
@@ -782,9 +801,9 @@ class Nth extends RDBOp
     tt: protoTermType.NTH
     mt: 'nth'
 
-class ToJson extends RDBOp
-    tt: protoTermType.TO_JSON
-    mt: 'toJson'
+class ToJsonString extends RDBOp
+    tt: protoTermType.TO_JSON_STRING
+    mt: 'toJsonString'
 
 class Match extends RDBOp
     tt: protoTermType.MATCH
@@ -842,6 +861,10 @@ class Zip extends RDBOp
     tt: protoTermType.ZIP
     mt: 'zip'
 
+class Range extends RDBOp
+    tt: protoTermType.RANGE
+    st: 'range'
+
 class CoerceTo extends RDBOp
     tt: protoTermType.COERCE_TO
     mt: 'coerceTo'
@@ -851,7 +874,7 @@ class Ungroup extends RDBOp
     mt: 'ungroup'
 
 class TypeOf extends RDBOp
-    tt: protoTermType.TYPEOF
+    tt: protoTermType.TYPE_OF
     mt: 'typeOf'
 
 class Info extends RDBOp
@@ -959,7 +982,7 @@ class All extends RDBOp
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: protoTermType.FOREACH
+    tt: protoTermType.FOR_EACH
     mt: 'forEach'
 
 class Func extends RDBOp
@@ -1280,6 +1303,8 @@ rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
 
 rethinkdb.uuid = (args...) -> new UUID {}, args...
+
+rethinkdb.range = (args...) -> new Range {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

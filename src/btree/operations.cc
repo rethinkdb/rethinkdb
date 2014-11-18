@@ -6,8 +6,8 @@
 #include "btree/erase_range.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/binary_blob.hpp"
 #include "rdb_protocol/profile.hpp"
@@ -798,7 +798,7 @@ void find_keyvalue_location_for_write(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
-        promise_t<superblock_t *> *pass_back_superblock) {
+        promise_t<superblock_t *> *pass_back_superblock) THROWS_NOTHING {
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 

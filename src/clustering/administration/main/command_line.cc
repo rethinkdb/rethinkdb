@@ -37,6 +37,7 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/options.hpp"
+#include "clustering/administration/main/meminfo.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
@@ -394,23 +395,13 @@ void initialize_logfile(const std::map<std::string, options::values_t> &opts,
     install_fallback_log_writer(filename);
 }
 
-std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
-    // We check first for a run-time option, then check the home of the binary,
-    // and then we check in the install location if such a location was provided
-    // at compile time.
+std::string get_web_path(boost::optional<std::string> web_static_directory) {
     path_t result;
+
     if (web_static_directory) {
         result = parse_as_path(*web_static_directory);
     } else {
-        result = parse_as_path(argv[0]);
-        result.nodes.pop_back();
-        result.nodes.push_back(WEB_ASSETS_DIR_NAME);
-#ifdef WEBRESDIR
-        std::string chkdir(WEBRESDIR);
-        if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
-            result = parse_as_path(chkdir);
-        }
-#endif  // WEBRESDIR
+        return std::string();
     }
 
     // Make sure we return an absolute path
@@ -425,10 +416,10 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
     return abs_path.path();
 }
 
-std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
+std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     if (!exists_option(opts, "--no-http-admin")) {
         boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
-        return get_web_path(web_static_directory, argv);
+        return get_web_path(web_static_directory);
     }
     return std::string();
 }
@@ -437,36 +428,52 @@ uint64_t get_avail_mem_size() {
     uint64_t page_size = sysconf(_SC_PAGESIZE);
 
 #if defined(__MACH__)
-    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
-    vm_statistics_data_t vmstat;
-    if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+    vm_statistics64_data_t vmstat;
+    // We memset this struct to zero because of zero-knowledge paranoia that some old
+    // system might use a shorter version of the struct, where it would not set the
+    // vmstat.external_page_count field (which is relatively new) that we use below.
+    // (Probably, instead, the host_statistics64 call will fail, because count would
+    // be wrong.)
+    memset(&vmstat, 0, sizeof(vmstat));
+    if (KERN_SUCCESS != host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmstat, &count)) {
         fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
         return 1024 * MEGABYTE;
     }
-    return vmstat.free_count * page_size;
+    // external_page_count is the number of pages that are file-backed (non-swap) --
+    // see /usr/include/mach/vm_statistics.h, see also vm_stat.c, the implementation
+    // of vm_stat, in Darwin.
+    uint64_t ret = (vmstat.free_count + vmstat.external_page_count) * page_size;
+    return ret;
 #else
-    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
-    return avail_mem_pages * page_size;
+    {
+        uint64_t memory;
+        if (get_proc_meminfo_available_memory_size(&memory)) {
+            return memory;
+        } else {
+            fprintf(stderr,
+                    "ERROR: Could not parse /proc/meminfo, so we will treat "
+                    "cached file memory as if it were unavailable.");
+
+            // This just returns what /proc/meminfo would report as "MemFree".
+            uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+            return avail_mem_pages * page_size;
+        }
+    }
 #endif
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
-    uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
-    int64_t available_mem = get_avail_mem_size();
-
-    // Default to half the available memory minus a gigabyte, to leave room for server
-    // and query overhead, but never default to less than 100 megabytes
-    int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
-    uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
-
+    const uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
     if (exists_option(opts, "--cache-size")) {
-        std::string cache_size_opt = get_single_option(opts, "--cache-size");
-        if (!strtou64_strict(cache_size_opt, 10, &res)) {
+        const std::string cache_size_opt = get_single_option(opts, "--cache-size");
+        uint64_t cache_size_megs;
+        if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
             throw std::runtime_error(strprintf(
                     "ERROR: could not parse cache-size as a number (%s)",
                     cache_size_opt.c_str()));
         }
-        res = res * MEGABYTE;
+        const uint64_t res = cache_size_megs * MEGABYTE;
 
         if (res > cache_limit) {
             throw std::runtime_error(strprintf(
@@ -474,9 +481,17 @@ uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &op
                     "expected upper-bound for this platform (%" PRIu64" MB).",
                     res / 1024 / 1024, cache_limit / 1024 / 1024));
         }
-    }
 
-    return res;
+        return res;
+    } else {
+        const int64_t available_mem = get_avail_mem_size();
+
+        // Default to half the available memory minus a gigabyte, to leave room for server
+        // and query overhead, but never default to less than 100 megabytes
+        const int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
+        const uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
+        return res;
+    }
 }
 
 // Note that this defaults to the peer port if no port is specified
@@ -587,7 +602,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            std::string errmsg = strprintf("Could not find bind ip address '%s'", i->to_string().c_str());
             if (i->is_ipv6_link_local()) {
                 errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
             }
@@ -596,7 +611,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     if (result.empty()) {
-        throw address_lookup_exc_t("no local addresses found to bind to");
+        throw address_lookup_exc_t("No local addresses found to bind to.");
     }
 
     // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
@@ -710,11 +725,11 @@ void run_rethinkdb_create(const base_path_t &base_path,
                                                                         get_auth_metadata_filename(base_path),
                                                                         &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
-        logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+        logNTC("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
+        logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     }
 }
@@ -782,8 +797,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
-    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
-    logINF("Running on %s", uname_msr().c_str());
+    logNTC("Running %s...\n", RETHINKDB_VERSION_STR);
+    logNTC("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
     logINF("Using cache size of %" PRIu64 " MB",
@@ -792,10 +807,10 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     // Provide some warnings if the cache size or available memory seem inadequate
     // We can't *really* tell what could go wrong given that we don't know how much data
     // or what kind of queries will be run, so these are just somewhat reasonable values.
-    uint64_t available_memory = get_avail_mem_size();
-    if (total_cache_size > get_avail_mem_size()) {
+    const uint64_t available_memory = get_avail_mem_size();
+    if (total_cache_size > available_memory) {
         logWRN("Requested cache size is larger than available memory.");
-    } else if (total_cache_size + GIGABYTE > get_avail_mem_size()) {
+    } else if (total_cache_size + GIGABYTE > available_memory) {
         logWRN("Cache size does not leave much memory for server and query "
                "overhead (available memory: %" PRIu64 " MB).",
                available_memory / static_cast<uint64_t>(MEGABYTE));
@@ -805,7 +820,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     }
 
 
-    logINF("Loading data from directory %s\n", base_path.path().c_str());
+    logNTC("Loading data from directory %s\n", base_path.path().c_str());
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
@@ -855,7 +870,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                             &sigint_cond);
 
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
+        logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
@@ -878,7 +893,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
-        logINF("Initializing directory %s\n", base_path.path().c_str());
+        logNTC("Initializing directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -1057,7 +1072,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; if not specified, 127.0.0.1 and ::1 will be used");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
@@ -1426,7 +1441,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {
@@ -1568,7 +1583,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         base_path_t base_path(".");
         initialize_logfile(opts, base_path);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
         const int num_workers = get_cpu_count();
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
@@ -1694,7 +1709,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {

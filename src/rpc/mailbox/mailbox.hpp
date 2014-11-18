@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "backtrace.hpp"
 #include "concurrency/new_semaphore.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -29,16 +30,22 @@ class mailbox_read_callback_t {
 public:
     virtual ~mailbox_read_callback_t() { }
 
-    // cluster_version tells the read callback what format to read bytes off the
-    // stream in, for its mailbox message parsing.
-    virtual void read(cluster_version_t cluster_version,
-                      read_stream_t *stream) = 0;
+    /* `read()` is allowed to block indefinitely after reading the message from the
+    stream, but the mailbox's destructor cannot return until `read()` returns. */
+    virtual void read(
+        read_stream_t *stream,
+        /* `interruptor` will be pulsed if the mailbox is destroyed. */
+        signal_t *interruptor) = 0;
 };
 
 struct raw_mailbox_t : public home_thread_mixin_t {
 public:
     struct address_t;
     typedef uint64_t id_t;
+
+#ifndef NDEBUG
+    lazy_backtrace_formatter_t bt;
+#endif
 
 private:
     friend class mailbox_manager_t;
@@ -49,6 +56,9 @@ private:
 
     const id_t mailbox_id;
 
+    /* `callback` will be set to `nullptr` after `begin_shutdown()` is called. This is
+    both a way of ensuring that no new callbacks are spawned and of making sure that
+    the destructor won't call `begin_shutdown()` again. */
     mailbox_read_callback_t *callback;
 
     auto_drainer_t drainer;
@@ -93,7 +103,6 @@ public:
         peer_id_t peer;
 
         /* The thread on `peer` that the mailbox lives on */
-        static const int32_t ANY_THREAD;
         int32_t thread;
 
         /* The ID of the mailbox */
@@ -101,7 +110,14 @@ public:
     };
 
     raw_mailbox_t(mailbox_manager_t *, mailbox_read_callback_t *callback);
+
+    /* Note that `~raw_mailbox_t()` will block until all of the callbacks have finished
+    running. */
     ~raw_mailbox_t();
+
+    /* `begin_shutdown()` will stop the mailbox from accepting further queries, and
+    pulse the interruptor for every running instance of the callback. */
+    void begin_shutdown();
 
     address_t get_address() const;
 };

@@ -44,16 +44,6 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, list):
-        val = [expr(v, nesting_depth - 1) for v in val]
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        obj = {}
-        for k, v in dict_items(val):
-            obj[k] = expr(v, nesting_depth - 1)
-        return MakeObj(obj)
     elif isinstance(val, collections.Callable):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
@@ -67,10 +57,20 @@ def expr(val, nesting_depth=20):
         return ISO8601(val.isoformat())
     elif isinstance(val, RqlBinary):
         return Binary(val)
-    elif isinstance(val, str):
+    elif isinstance(val, (str, unicode)):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
+    elif isinstance(val, collections.Mapping):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        obj = {}
+        for k, v in dict_items(val):
+            obj[k] = expr(v, nesting_depth - 1)
+        return MakeObj(obj)
+    elif isinstance(val, collections.Iterable):
+        val = [expr(v, nesting_depth - 1) for v in val]
+        return MakeArray(*val)
     else:
         return Datum(val)
 
@@ -336,7 +336,10 @@ class RqlQuery(object):
         return Nth(self, *args)
 
     def to_json(self, *args):
-        return ToJson(self, *args)
+        return ToJsonString(self, *args)
+
+    def to_json_string(self, *args):
+        return ToJsonString(self, *args)
 
     def match(self, *args):
         return Match(self, *args)
@@ -374,11 +377,11 @@ class RqlQuery(object):
     def avg(self, *args):
         return Avg(self, *[func_wrap(arg) for arg in args])
 
-    def min(self, *args):
-        return Min(self, *[func_wrap(arg) for arg in args])
+    def min(self, *args, **kwargs):
+        return Min(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def max(self, *args):
-        return Max(self, *[func_wrap(arg) for arg in args])
+    def max(self, *args, **kwargs):
+        return Max(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def map(self, *args):
         return Map(self, *[func_wrap(arg) for arg in args])
@@ -1065,11 +1068,11 @@ class Filter(RqlMethodQuery):
     st = 'filter'
 
 class ConcatMap(RqlMethodQuery):
-    tt = pTerm.CONCATMAP
+    tt = pTerm.CONCAT_MAP
     st = 'concat_map'
 
 class OrderBy(RqlMethodQuery):
-    tt = pTerm.ORDERBY
+    tt = pTerm.ORDER_BY
     st = 'order_by'
 
 class Distinct(RqlMethodQuery):
@@ -1092,9 +1095,9 @@ class Match(RqlMethodQuery):
     tt = pTerm.MATCH
     st = 'match'
 
-class ToJson(RqlMethodQuery):
-    tt = pTerm.TO_JSON
-    st = 'to_json'
+class ToJsonString(RqlMethodQuery):
+    tt = pTerm.TO_JSON_STRING
+    st = 'to_json_string'
 
 class Split(RqlMethodQuery):
     tt = pTerm.SPLIT
@@ -1145,7 +1148,7 @@ class Ungroup(RqlMethodQuery):
     st = 'ungroup'
 
 class TypeOf(RqlMethodQuery):
-    tt = pTerm.TYPEOF
+    tt = pTerm.TYPE_OF
     st = 'type_of'
 
 class Update(RqlMethodQuery):
@@ -1243,7 +1246,7 @@ class All(RqlBoolOperQuery):
     st_infix = "&"
 
 class ForEach(RqlMethodQuery):
-    tt = pTerm.FOREACH
+    tt = pTerm.FOR_EACH
     st = 'for_each'
 
 class Info(RqlMethodQuery):
@@ -1325,6 +1328,10 @@ class Binary(RqlTopLevelQuery):
             return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
         else:
             return RqlTopLevelQuery.build(self)
+
+class Range(RqlTopLevelQuery):
+    tt = pTerm.RANGE
+    st = 'range'
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601

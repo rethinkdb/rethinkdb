@@ -13,15 +13,11 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    primary_files = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1",
-                                 executable_path = executable_path, command_prefix = command_prefix)
-    primary = driver.Process(cluster, primary_files, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    secondary_files = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2",
-                                   executable_path = executable_path, command_prefix = command_prefix)
-    secondary = driver.Process(cluster, secondary_files, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    primary_files = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", command_prefix=command_prefix)
+    primary = driver.Process(cluster, primary_files, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
+    secondary_files = driver.Files(metacluster, db_path="db-2", console_output="create-output-2", command_prefix=command_prefix)
+    secondary = driver.Process(cluster, secondary_files, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     primary.wait_until_started_up()
     secondary.wait_until_started_up()
 
@@ -31,7 +27,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(primary.files.machine_name, primary_dc)
     secondary_dc = http.add_datacenter()
     http.move_server_to_datacenter(secondary.files.machine_name, secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
+    ns = scenario_common.prepare_table_for_workload(http, primary=primary_dc, affinities={primary_dc: 0, secondary_dc: 1})
     http.set_table_ack_expectations(ns, {secondary_dc: 1})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()

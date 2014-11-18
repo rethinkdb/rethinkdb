@@ -11,18 +11,12 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up two processes..."
-    prince_hamlet_files = driver.Files(metacluster, machine_name = "PrinceHamlet", db_path = "prince-hamlet-db",
-                                       log_path = "prince-hamlet-create-output",
-                                       executable_path = executable_path, command_prefix = command_prefix)
-    prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    king_hamlet_files = driver.Files(metacluster, machine_name = "KingHamlet", db_path = "king-hamlet-db",
-                                     log_path = "king-hamlet-create-output",
-                                     executable_path = executable_path, command_prefix = command_prefix)
-    king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    prince_hamlet_files = driver.Files(metacluster, machine_name="PrinceHamlet", db_path="prince-hamlet-db", console_output="prince-hamlet-create-output", command_prefix=command_prefix)
+    prince_hamlet = driver.Process(cluster, prince_hamlet_files, console_output="prince-hamlet-log", command_prefix=command_prefix, extra_options=serve_options)
+    king_hamlet_files = driver.Files(metacluster, machine_name="KingHamlet", db_path="king-hamlet-db", console_output="king-hamlet-create-output", command_prefix=command_prefix)
+    king_hamlet = driver.Process(cluster, king_hamlet_files, console_output="king-hamlet-log", command_prefix=command_prefix, extra_options=serve_options)
     prince_hamlet.wait_until_started_up()
     king_hamlet.wait_until_started_up()
     cluster.check()
@@ -43,7 +37,7 @@ with driver.Metacluster() as metacluster:
     print "Checking that the issue is gone..."
     assert access.get_issues() == []
     print "Bringing it back as a ghost..."
-    ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-ghost-log", executable_path = executable_path, command_prefix = command_prefix)
+    ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files, console_output="king-hamlet-ghost-log", command_prefix=command_prefix)
     ghost_of_king_hamlet.wait_until_started_up()
     cluster.check()
     print "Checking that there is an issue..."

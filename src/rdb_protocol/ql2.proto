@@ -365,6 +365,8 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
+                        // The arity of the function should be 
+                        // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
         // object (see API docs for details).  The body of FILTER is
@@ -376,9 +378,9 @@ message Term {
         FILTER    = 39; // Sequence, Function(1), {default:DATUM} -> Sequence |
                         // Sequence, OBJECT, {default:DATUM} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
-        CONCATMAP = 40; // Sequence, Function(1) -> Sequence
+        CONCAT_MAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
+        ORDER_BY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence, or only the elements that match
@@ -399,6 +401,9 @@ message Term {
         // An inner-join that does an equality comparison on two attributes.
         EQ_JOIN            = 50; // Sequence, !STRING, Sequence, {index:!STRING} -> Sequence
         ZIP                = 72; // Sequence -> Sequence
+        RANGE              = 173; // -> Sequence                        [0, +inf)
+                                  // NUMBER -> Sequence                 [0, a)
+                                  // NUMBER, NUMBER -> Sequence         [a, b)
 
         // Array Ops
         // Insert an element in to an array at a given index.
@@ -416,8 +421,8 @@ message Term {
         // If you previously used `stream_to_array`, you should use this instead
         // with the type "array".
         COERCE_TO = 51; // Top, STRING -> Top
-        // Returns the named type of a datum (e.g. TYPEOF(true) = "BOOL")
-        TYPEOF = 52; // Top -> STRING
+        // Returns the named type of a datum (e.g. TYPE_OF(true) = "BOOL")
+        TYPE_OF = 52; // Top -> STRING
 
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
@@ -495,7 +500,7 @@ message Term {
         ALL     = 67; // BOOL... -> BOOL
         // Calls its Function with each entry in the sequence
         // and executes the array of terms that Function returns.
-        FOREACH = 68; // Sequence, Function(1) -> OBJECT
+        FOR_EACH = 68; // Sequence, Function(1) -> OBJECT
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////// Special Terms
@@ -572,7 +577,10 @@ message Term {
         // datum.
         JSON = 98; // STRING -> DATUM
         // Returns the datum as a JSON string.
-        TO_JSON = 172; // DATUM -> STRING
+        // N.B.: we would really prefer this be named TO_JSON and that exists as
+        // an alias in Python and JavaScript drivers; however it conflicts with the
+        // standard `to_json` method defined by Ruby's standard json library.
+        TO_JSON_STRING = 172; // DATUM -> STRING
 
         // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.

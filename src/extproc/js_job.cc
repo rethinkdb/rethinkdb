@@ -12,7 +12,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <cmath>
 #include <limits>
 
 #include "containers/archive/boost_types.hpp"
@@ -21,6 +20,7 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
+#include "utils.hpp"
 
 #include "debug.hpp"
 
@@ -600,9 +600,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
     } else if (value->IsNumber()) {
         double num_val = value->NumberValue();
 
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std; // NOLINT(build/namespaces)
-        if (!isfinite(num_val)) {
+        if (!risfinite(num_val)) {
             err_out->assign("Number return value is not finite.");
         } else {
             result = ql::datum_t(num_val);

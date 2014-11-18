@@ -32,6 +32,7 @@ module RethinkDB
       :slice => -1,
       :during => -1,
       :orderby => -1,
+      :order_by => -1,
       :group => -1,
       :iso8601 => -1,
       :index_create => -1,
@@ -42,7 +43,9 @@ module RethinkDB
       :distance => -1,
       :circle => -1,
       :get_intersecting => -1,
-      :get_nearest => -1
+      :get_nearest => -1,
+      :min => -1,
+      :max => -1
     }
     @@method_aliases = {
       :lt => :<,
@@ -56,11 +59,11 @@ module RethinkDB
       :mod => :%,
       :any => [:"|", :or],
       :all => [:"&", :and],
-      :orderby => :order_by,
-      :concatmap => :concat_map,
-      :foreach => :for_each,
+      :order_by => :orderby,
+      :concat_map => :concatmap,
+      :for_each => :foreach,
       :javascript => :js,
-      :typeof => :type_of
+      :type_of => :typeof
     }
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }

@@ -3,42 +3,13 @@
 require 'test/unit'
 require 'pp'
 
-importFilePath = ''
-if ENV['RUBY_DRIVER_DIR']
-  if File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb')
-  elsif File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb')
-  else 
-    abort('The Ruby driver was not where it was expected based on RUBY_DRIVER_DIR: ' + ENV['RUBY_DRIVER_DIR'])
-  end
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-else
-  projectDir = File.dirname(File.dirname(File.dirname(File.expand_path(__FILE__))))
-  
-  ['build', ''].each do |pathPrefix|
-    dirPath = File.join(projectDir, pathPrefix, 'drivers', 'ruby', 'lib')
-    if File.file?(File.join(dirPath, 'rethinkdb.rb')) && File.file?(File.join(dirPath, 'ql2.pb.rb'))
-      importFilePath = File.join(dirPath, 'rethinkdb.rb')
-      break
-    end
-  end
-  
-  # import or fail
-  if importFilePath == ''
-    abort('Could not find a built ruby driver. Please build it.')
-  end
-  
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-end
-puts('RethinkDB driver loaded from: ' + File.dirname(importFilePath))
-include RethinkDB::Shortcuts
+# -- import the rethinkdb driver
 
-$port ||= ARGV[0].to_i
+require_relative './importRethinkDB.rb'
+
+# --
+
+$port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 ARGV.clear
 $c = r.connect(port: $port).repl
 
@@ -155,10 +126,15 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     ensure
       $dispatch_hook = nil
     end
-    assert_equal({'t' => 16, 'b' => [], 'r' => ["Client is buggy (failed to deserialize query)."]},
-                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(1337, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(-1, {})
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Protocol error, connection closed."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1)))
+    raise Exception, "Connection was not closed by protocol error." if $c.is_open()
+    $c.reconnect()
+    $c.register_query(16, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, 1], 16)))
   end

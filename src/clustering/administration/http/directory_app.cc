@@ -101,10 +101,10 @@ void directory_http_app_t::handle(const http_req_t &req, http_res_t *result, sig
             *result = http_error_res("Machine not found", HTTP_NOT_FOUND);
         }
     } catch (const schema_mismatch_exc_t &e) {
-        logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
+        logWRN("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
         *result = http_error_res(e.what(), HTTP_NOT_FOUND);
     } catch (const permission_denied_exc_t &e) {
-        logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
+        logWRN("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         // TODO: should that be 405 Method Not Allowed?
         *result = http_error_res(e.what(), HTTP_FORBIDDEN);
     }

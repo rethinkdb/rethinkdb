@@ -24,6 +24,7 @@ static const int MAX_TYPE = 10;
 
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
 static const int TABLE_TYPE = val_t::type_t::TABLE * MAX_TYPE;
+static const int TABLE_SLICE_TYPE = val_t::type_t::TABLE_SLICE * MAX_TYPE;
 static const int SELECTION_TYPE = val_t::type_t::SELECTION * MAX_TYPE;
 static const int ARRAY_SELECTION_TYPE = SELECTION_TYPE + datum_t::R_ARRAY;
 static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
@@ -45,6 +46,7 @@ public:
     coerce_map_t() {
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
+        map["TABLE_SLICE"] = TABLE_SLICE_TYPE;
         map["SELECTION<STREAM>"] = SELECTION_TYPE;
         map["SELECTION<ARRAY>"] = ARRAY_SELECTION_TYPE;
         map["STREAM"] = SEQUENCE_TYPE;
@@ -71,7 +73,9 @@ public:
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck_target(caller, base_exc_t::GENERIC, it != map.end(),
+        rcheck_target(caller,
+                      it != map.end(),
+                      base_exc_t::GENERIC,
                       strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
@@ -95,6 +99,7 @@ private:
         switch (t) {
         case val_t::type_t::DB:
         case val_t::type_t::TABLE:
+        case val_t::type_t::TABLE_SLICE:
         case val_t::type_t::SELECTION:
         case val_t::type_t::SEQUENCE:
         case val_t::type_t::SINGLE_SELECTION:
@@ -130,7 +135,7 @@ static val_t::type_t::raw_type_t supertype(int type) {
     return static_cast<val_t::type_t::raw_type_t>(type / MAX_TYPE);
 }
 static datum_t::type_t subtype(int type) {
-    return static_cast<datum_t::type_t>(type - supertype(type));
+    return static_cast<datum_t::type_t>(type % MAX_TYPE);
 }
 static int merge_types(int supertype, int subtype) {
     return supertype * MAX_TYPE + subtype;
@@ -141,7 +146,8 @@ public:
     coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> val = args->arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
@@ -290,7 +296,7 @@ int val_type(const scoped_ptr_t<val_t> &v) {
     if (t == DATUM_TYPE) {
         t += v->as_datum().get_type();
     } else if (t == SELECTION_TYPE) {
-        if (v->sequence()->is_array()) {
+        if (v->selection()->seq->is_array()) {
             t += datum_t::R_ARRAY;
         }
     }
@@ -349,15 +355,15 @@ private:
         } break;
         case SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_selection(env->env).first)));
+                          val_info(env, new_val(v->as_selection(env->env)->table)));
         } break;
         case ARRAY_SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_selection(env->env).first)));
+                          val_info(env, new_val(v->as_selection(env->env)->table)));
         } break;
         case SINGLE_SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_single_selection().first)));
+                          val_info(env, new_val(v->as_single_selection()->get_tbl())));
         } break;
         case SEQUENCE_TYPE: {
             if (v->as_seq(env->env)->is_grouped()) {

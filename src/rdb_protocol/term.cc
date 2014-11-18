@@ -70,9 +70,9 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
-    case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::CONCAT_MAP:          return make_concatmap_term(env, t);
     case Term::GROUP:              return make_group_term(env, t);
-    case Term::ORDERBY:            return make_orderby_term(env, t);
+    case Term::ORDER_BY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
     case Term::SUM:                return make_sum_term(env, t);
@@ -88,13 +88,14 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);
     case Term::ZIP:                return make_zip_term(env, t);
+    case Term::RANGE:              return make_range_term(env, t);
     case Term::INSERT_AT:          return make_insert_at_term(env, t);
     case Term::DELETE_AT:          return make_delete_at_term(env, t);
     case Term::CHANGE_AT:          return make_change_at_term(env, t);
     case Term::SPLICE_AT:          return make_splice_at_term(env, t);
     case Term::COERCE_TO:          return make_coerce_term(env, t);
     case Term::UNGROUP:            return make_ungroup_term(env, t);
-    case Term::TYPEOF:             return make_typeof_term(env, t);
+    case Term::TYPE_OF:             return make_typeof_term(env, t);
     case Term::UPDATE:             return make_update_term(env, t);
     case Term::DELETE:             return make_delete_term(env, t);
     case Term::REPLACE:            return make_replace_term(env, t);
@@ -116,7 +117,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::BRANCH:             return make_branch_term(env, t);
     case Term::ANY:                return make_any_term(env, t);
     case Term::ALL:                return make_all_term(env, t);
-    case Term::FOREACH:            return make_foreach_term(env, t);
+    case Term::FOR_EACH:            return make_foreach_term(env, t);
     case Term::FUNC:               return make_counted<func_term_t>(env, t);
     case Term::ASC:                return make_asc_term(env, t);
     case Term::DESC:               return make_desc_term(env, t);
@@ -129,7 +130,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
     case Term::JSON:               return make_json_term(env, t);
-    case Term::TO_JSON:            return make_to_json_term(env, t);
+    case Term::TO_JSON_STRING:     return make_to_json_string_term(env, t);
     case Term::ISO8601:            return make_iso8601_term(env, t);
     case Term::TO_ISO8601:         return make_to_iso8601_term(env, t);
     case Term::EPOCH_TIME:         return make_epoch_time_term(env, t);
@@ -346,8 +347,13 @@ void run(protob_t<Query> q,
     }
 }
 
+runtime_term_t::runtime_term_t(protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(std::move(bt)) { }
+
+runtime_term_t::~runtime_term_t() { }
+
 term_t::term_t(protob_t<const Term> _src)
-    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
+    : runtime_term_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -377,7 +383,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
@@ -388,7 +394,9 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
     env->env->maybe_yield();
     INC_DEPTH;
 
+#ifdef INSTRUMENT
     try {
+#endif // INSTRUMENT
         try {
             scoped_ptr_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
@@ -399,46 +407,13 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
             DBG("%s THREW\n", name());
             rfail(e.get_type(), "%s", e.what());
         }
+#ifdef INSTRUMENT
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
         throw;
     }
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d) const {
-    return make_scoped<val_t>(d, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    datum_t orig_key,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, orig_key, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(env_t *env,
-                                    counted_t<datum_stream_t> s) const {
-    return make_scoped<val_t>(env, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                    counted_t<table_t> d) const {
-    return make_scoped<val_t>(d, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
-    return make_scoped<val_t>(db, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<table_t> t) const {
-    return make_scoped<val_t>(t, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
-    return make_scoped<val_t>(f, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val_bool(bool b) const {
-    return new_val(datum_t::boolean(b));
+#endif // INSTRUMENT
 }
 
 } // namespace ql
