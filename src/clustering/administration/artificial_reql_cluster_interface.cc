@@ -350,7 +350,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     jobs_backend.init(new jobs_artificial_table_backend_t(
         mailbox_manager, _directory_view));
     backends[name_string_t::guarantee_valid("jobs")] =
-        jobs_backend.get();
+        std::make_pair(jobs_backend.get(), jobs_backend.get());
 
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =
