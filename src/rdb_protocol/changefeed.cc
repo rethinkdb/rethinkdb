@@ -1831,7 +1831,7 @@ RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
 void feed_t::add_sub_with_lock(
     rwlock_t *rwlock, const std::function<void()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
-    guarantee(detached);
+    guarantee(!detached);
     num_subs += 1;
     auto_drainer_t::lock_t lock = get_drainer_lock();
     rwlock_in_line_t spot(rwlock, access_t::write);
@@ -2163,6 +2163,7 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
 class artificial_feed_t : public feed_t {
 public:
     artificial_feed_t() { }
+    ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     // This is a NOP because we aren't registered with a client.
     virtual void maybe_remove_feed() { }
