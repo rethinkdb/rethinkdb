@@ -75,14 +75,15 @@ module 'TablesView', ->
                 container: @
 
             @query = r.db(system_db).table('db_config').filter( (db) ->
-                db("name").ne('rethinkdb')
+                db("name").ne(system_db)
             ).map (db) ->
                 name: db("name")
                 id: db("id")
-                tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
-                    .filter({db: db("name")}).merge( (table) ->
+                tables: r.db(system_db).table('table_config').orderBy((table) -> table("name"))
+                    .filter({db: db("name")})
+                    .merge( (table) ->
                         shards: table("shards").count()
-                        replicas: table("shards").nth(0).count()
+                        replicas: table("shards").map((shard) -> shard('replicas').count()).max()
                     ).merge( (table) ->
                         id: table("id")
                     )

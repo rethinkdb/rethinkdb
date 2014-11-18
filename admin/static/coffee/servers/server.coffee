@@ -26,10 +26,7 @@ module 'ServerView', ->
                                     shard.merge(
                                         num_keys: r.db(table('db')) \
                                             .table(table('name')) \
-                                            .info()('doc_count_estimates') \
-                                            # this default line can be removed after #2980 is merged
-                                            .default([100, 200, 300, 400]) \
-                                            (index)
+                                            .info()('doc_count_estimates')(index)
                                         index: index.add(1)
                                         num_shards: table('shards').count()
                                         ).filter( (replica) ->

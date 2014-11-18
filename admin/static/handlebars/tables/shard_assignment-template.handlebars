@@ -3,11 +3,7 @@
         <div class="datacenter-info parent-info">
             <p class="name">
                 <span class="num-keys">
-                    {{#if keys_ready}}
-                        <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
-                    {{else}}
-                        <span class="highlight">N/A</span> documents
-                    {{/if}}
+                  <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
                 </span>
                 <span>Shard {{shard_id}}</span>
             </p>
@@ -30,7 +26,7 @@
                 <div class="tree-node"></div>
                 <div class="server-info child-info">
                     <p class="name"><a href="/#servers/{{data.id}}">{{data.name}}</a></p>
-                    <p class="secondary">Replica</p>
+                    <p class="secondary">Secondary Replica</p>
                 </div>
             </li>
 

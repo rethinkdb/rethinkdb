@@ -20,7 +20,6 @@ module 'TableView', ->
             @fetch_data()
 
         fetch_data: =>
-            ignore = (shard) -> shard('role').ne('nothing')
             this_id = @id
             query =
                 r.db(system_db).table('server_config').count().do( (num_servers) ->
@@ -31,25 +30,36 @@ module 'TableView', ->
                             table.merge(
                                 num_shards: table("shards").count()
                                 # TODO: replace with primary once "director" is out
-                                num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
-                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
-                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
-                                num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
-                                max_replicas: num_servers
-                                num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
+                                num_available_shards: table("shards").filter((shard) ->
+                                    shard('replicas')(shard('replicas')('server').indexesOf(shard('director'))(0))('state').eq('ready')
+                                    ).count()
+                                num_replicas: table("shards").concatMap( (shard) -> shard('replicas')).count()
+                                num_available_replicas: table("shards").concatMap((shard) ->
+                                    shard('replicas').filter({state: "ready"})).count()
+                                max_replicas_per_shard: num_servers
+                                num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
                                 distribution: r.db(table('db'))
                                     .table(table('name'))
                                     .info()('doc_count_estimates')\
-                                    .default([100, 200, 300])
-                                    # This do-wrap is a work-around for #3273
                                     .do((doc_counts) ->
                                         doc_counts.map(r.range(doc_counts.count()),
                                             (num_keys, position) ->
                                                 num_keys: num_keys
                                                 id: position
                                             ).coerceTo('array'))
+                                total_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum()
+                                status: r.branch(table('status').do((status) ->
+                                    status('all_replicas_ready')
+                                    .and(status('ready_for_outdated_reads'))
+                                    .and(status('ready_for_reads'))
+                                    .and(status('ready_for_writes'))
+                                ),
+                                'ready',
+                                'unready',
+                                )
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
+                                    num_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position)
                                     primary:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
@@ -82,6 +92,7 @@ module 'TableView', ->
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     # TODO: Handle when the table is deleted
+                    # TODO: Handle when a primary is down (table.info() fails)
                     @error = error
                     @render()
                 else
@@ -129,6 +140,7 @@ module 'TableView', ->
                                 shards_assignments.push
                                     id: "start_shard_#{shard.id}"
                                     shard_id: shard.id
+                                    num_keys: shard.num_keys
                                     start_shard: true
 
                                 shards_assignments.push
@@ -233,7 +245,7 @@ module 'TableView', ->
 
             @stats = new Stats
             @stats_timer = driver.run(
-                r.db('rethinkdb_mock').table('stats')
+                r.db('rethinkdb').table('stats')
                 .get(["table", @model.get('id')])
                 .do((stat) ->
                     keys_read: stat('query_engine')('read_docs_per_sec')
@@ -365,8 +377,8 @@ module 'TableView', ->
 
         render: =>
             @$el.html @template
-                status: @model.get 'ready_completely'
-                total_keys: "TODO"
+                status: @model.get 'status'
+                total_keys: @model.get 'total_keys'
                 num_shards: @model.get 'num_shards'
                 num_available_shards: @model.get 'num_available_shards'
                 num_replicas: @model.get 'num_replicas'
