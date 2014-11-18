@@ -12,6 +12,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -754,6 +755,77 @@ TEST(RDBProtocol, MissingAttr) {
 
 TEST(RDBProtocol, OvershardedMissingAttr) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, true);
+}
+
+void test_artificial_changefeeds() {
+    using namespace ql;
+    using namespace changefeed;
+    artificial_t artificial_cfeed;
+    struct cfeed_bundle_t {
+        cfeed_bundle_t(changefeed::artificial_t *a)
+            : bt(make_counted_backtrace()),
+              point_0(a->subscribe(
+                          keyspec_t::point_t{
+                              store_key_t(datum_t(0.0).print_primary())},
+                          bt)),
+              point_1(a->subscribe(
+                          keyspec_t::point_t{
+                              store_key_t(datum_t(1.0).print_primary())},
+                          bt)),
+              range(a->subscribe(
+                        keyspec_t::range_t{
+                          std::vector<transform_variant_t>(),
+                          boost::optional<std::string>(),
+                          sorting_t::UNORDERED,
+                          datum_range_t(
+                              datum_t(0.0),
+                              key_range_t::closed,
+                              datum_t(1.0),
+                              key_range_t::open)},
+                        bt)) { }
+        protob_t<const Backtrace> bt;
+        counted_t<datum_stream_t> point_0, point_1, range;
+    };
+    std::map<double, cfeed_bundle_t> bundles;
+    for (int i = 0; i <= 20; ++i) {
+        double d = i / 10.0;
+        if (i == 0) {
+            bundles.insert(std::make_pair(d, cfeed_bundle_t(&artificial_cfeed)));
+        }
+        artificial_cfeed.send_all(msg_t(msg_t::change_t{
+                    std::map<std::string, std::vector<datum_t> >(),
+                    std::map<std::string, std::vector<datum_t> >(),
+                    store_key_t(datum_t(d).print_primary()),
+                    datum_t(-d),
+                    datum_t(d)}));
+    }
+    cond_t interruptor;
+    env_t env(&interruptor, reql_version_t::LATEST);
+    batchspec_t bs(batchspec_t::all()
+                   .with_new_batch_type(batch_type_t::NORMAL)
+                   .with_max_dur(1000000));
+    for (const auto &pair : bundles) {
+        double d = pair.first;
+        std::vector<datum_t> p0, p1, rng;
+        p0 = pair.second.point_0->next_batch(&env, bs);
+        p1 = pair.second.point_1->next_batch(&env, bs);
+        rng = pair.second.range->next_batch(&env, bs);
+        if (d <= 0.0) {
+            guarantee(p0.size() == 1);
+        } else {
+            guarantee(p0.size() == 0);
+        }
+        if (d <= 1.0) {
+            guarantee(p1.size() == 1);
+        } else {
+            guarantee(p1.size() == 0);
+        }
+        guarantee(rng.size() == (1.0 - d) / 0.1);
+    }
+}
+
+TEST(RDBProtocol, ArtificialChangefeeds) {
+    run_in_thread_pool(&test_artificial_changefeeds, 8);
 }
 
 }   /* namespace unittest */
