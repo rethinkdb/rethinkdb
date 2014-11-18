@@ -36,6 +36,11 @@ public:
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
+    template <class U>
+    counted_t(const counted_t<U> &copyee) : p_(copyee.p_) {
+        if (p_ != nullptr) { counted_add_ref(p_); }
+    }
+
     counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
         movee.p_ = NULL;
     }

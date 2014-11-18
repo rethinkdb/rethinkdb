@@ -26,13 +26,14 @@ enum eval_flags_t {
     LITERAL_OK = 1,
 };
 
-class term_t : public slow_atomic_countable_t<term_t>, public pb_rcheckable_t {
+class runtime_term_t : public slow_atomic_countable_t<runtime_term_t>,
+                       public pb_rcheckable_t {
 public:
-    explicit term_t(protob_t<const Term> _src);
-    virtual ~term_t();
+    virtual ~runtime_term_t();
+
+    scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
 
     virtual const char *name() const = 0;
-    scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
 
     // Allocates a new value in the current environment.
     template<class... Args>
@@ -43,6 +44,19 @@ public:
         return new_val(datum_t::boolean(b));
     }
 
+protected:
+    explicit runtime_term_t(protob_t<const Backtrace> bt);
+
+private:
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
+};
+
+class term_t : public runtime_term_t {
+public:
+    explicit term_t(protob_t<const Term> _src);
+    virtual ~term_t();
+
+
     virtual bool is_deterministic() const = 0;
 
     protob_t<const Term> get_src() const;
@@ -51,7 +65,6 @@ public:
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);
