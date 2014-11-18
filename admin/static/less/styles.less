@@ -27,7 +27,7 @@
 @accent: #0597d8;
 @sans: 'Open Sans', sans-serif;
 @serif: 'Copse', serif;
-@monospace: 'Inconsolata', monospace;
+@monospace: monospace;
 
 // Visualizations (graphs, etc.)
 @import "vis.less";
@@ -1551,6 +1551,7 @@ TODO: retire this
             left: 0px;
             z-index: 100;
             font-family: @monospace;
+            font-size: 11px;
             .suggestion_name_list{
                 background: #fff;
                 display: none;
@@ -1582,6 +1583,7 @@ TODO: retire this
                 border: 1px solid #d7d7d7;
                 color: #9ea2a8;
                 font-family: @monospace;
+                font-size: 11px;
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
@@ -1593,10 +1595,10 @@ TODO: retire this
                 }
                 p, code{
                     font-family: @monospace;
-                    font-size: 13px;
+                    font-size: 11px;
                     margin: 3px 0px;
                     .description_name{
-                        color: #000;
+                        color: #222;
                         font-weight: bold;
                     }
                     .description_arguments{
@@ -1608,8 +1610,9 @@ TODO: retire this
                 }
                 .grouped_data_warning{
                     font-family: @monospace;
+                    font-size: 11px;
                     background: #f8f8f8;
-                    color: #555;
+                    color: #666;
                     padding: 5px 6px;
                     border: 1px solid #e4e4e4;
                     margin: 5px 0px;
@@ -1618,7 +1621,8 @@ TODO: retire this
             }
         }
         .input_query_container{
-            font: @monospace;
+            font-family: @monospace;
+            font-size: 13px;
 
             padding: 0px;
             margin: 10px 0px;
@@ -1672,7 +1676,7 @@ TODO: retire this
                 .history_container{
                     display: none;
                     font-family: @monospace;
-                    font-size: 15px; // Exact match with codemirror
+                    font-size: 13px; // Exact match with codemirror
                     width: 100%;
                     .history_list{
                         margin: 0px 15px 0px 0px;
@@ -1813,7 +1817,7 @@ TODO: retire this
                     margin: 0px;
                     padding: 9px 4px;
                     font-family: @monospace;
-                    font-size: 15px;
+                    font-size: 13px;
                 }
                 &:hover{
                     color: #444;
@@ -1869,6 +1873,7 @@ TODO: retire this
         .error_title{ font-weight: bold; }
         .error_details{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #CCC;
             border-radius: 3px;
@@ -1883,6 +1888,7 @@ TODO: retire this
         }
         .query{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #ccc;
             border-radius: 3px;
@@ -2935,7 +2941,7 @@ TODO: retire this
             margin-top: 7px;
             .error_detail{
                 font-family: @monospace;
-                font-size: 13px;
+                font-size: 11px;
             }
         }
         .cancel_delete_btn, .delete_index_btn{
