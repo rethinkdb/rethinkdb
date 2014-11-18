@@ -768,10 +768,10 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           keyspec_t::point_t{
                               store_key_t(datum_t(0.0).print_primary())},
                           bt)),
-              point_1(a->subscribe(
-                          keyspec_t::point_t{
-                              store_key_t(datum_t(1.0).print_primary())},
-                          bt)),
+              point_10(a->subscribe(
+                           keyspec_t::point_t{
+                               store_key_t(datum_t(10.0).print_primary())},
+                           bt)),
               range(a->subscribe(
                         keyspec_t::range_t{
                           std::vector<transform_variant_t>(),
@@ -780,22 +780,21 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           datum_range_t(
                               datum_t(0.0),
                               key_range_t::closed,
-                              datum_t(1.0),
+                              datum_t(10.0),
                               key_range_t::open)},
                         bt)) { }
         protob_t<const Backtrace> bt;
-        counted_t<datum_stream_t> point_0, point_1, range;
+        counted_t<datum_stream_t> point_0, point_10, range;
     };
     std::map<size_t, cfeed_bundle_t> bundles;
     for (size_t i = 0; i <= 20; ++i) {
-        double d = i / 10.0;
         bundles.insert(std::make_pair(i, cfeed_bundle_t(&artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
                     std::map<std::string, std::vector<datum_t> >(),
                     std::map<std::string, std::vector<datum_t> >(),
-                    store_key_t(datum_t(d).print_primary()),
-                    datum_t(-d),
-                    datum_t(d)}));
+                    store_key_t(datum_t(static_cast<double>(i)).print_primary()),
+                    datum_t(-static_cast<double>(i)),
+                    datum_t(static_cast<double>(i))}));
     }
     cond_t interruptor;
     env_t env(&interruptor, reql_version_t::LATEST);
@@ -804,9 +803,9 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                        .with_new_batch_type(batch_type_t::NORMAL)
                        .with_max_dur(1000));
         size_t i = pair.first;
-        std::vector<datum_t> p0, p1, rng;
+        std::vector<datum_t> p0, p10, rng;
         p0 = pair.second.point_0->next_batch(&env, bs);
-        p1 = pair.second.point_1->next_batch(&env, bs);
+        p10 = pair.second.point_10->next_batch(&env, bs);
         rng = pair.second.range->next_batch(&env, bs);
         if (i == 0) {
             guarantee(p0.size() == 1);
@@ -814,9 +813,9 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             guarantee(p0.size() == 0);
         }
         if (i <= 10) {
-            guarantee(p1.size() == 1);
+            guarantee(p10.size() == 1);
         } else {
-            guarantee(p1.size() == 0);
+            guarantee(p10.size() == 0);
         }
         if (i <= 10) {
             guarantee(rng.size() == 10 - i);
