@@ -234,5 +234,38 @@ with driver.Metacluster() as metacluster:
     assert res["deleted"] == 1, repr(res)
     assert "baz" not in r.table_list().run(conn)
 
+    print("Testing that identifier_format works...")
+    a_uuid = r.db("rethinkdb").table("server_config") \
+              .filter({"name": "a"}).nth(0)["id"].run(conn)
+    db_uuid = r.db("rethinkdb").table("db_config") \
+               .filter({"name": "test"}).nth(0)["id"].run(conn)
+    res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
+           .insert({
+               "name": "idf_test",
+               "db": db_uuid,
+               "shards": [{"replicas": [a_uuid], "director": a_uuid}]
+               }) \
+           .run(conn)
+    assert res["inserted"] == 1, repr(res)
+    res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{"replicas": [a_uuid], "director": a_uuid}], repr(res)
+    res = r.db("rethinkdb").table("table_config", identifier_format="name") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{"replicas": ["a"], "director": "a"}], repr(res)
+    r.table_wait("idf_test").run(conn)
+    res = r.db("rethinkdb").table("table_status", identifier_format="uuid") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{
+        "replicas": [{"server": a_uuid, "state": "ready"}],
+        "director": a_uuid
+        }], repr(res)
+    res = r.db("rethinkdb").table("table_status", identifier_format="name") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{
+        "replicas": [{"server": "a", "state": "ready"}],
+        "director": "a"
+        }], repr(res)
+
     cluster1.check_and_stop()
 print("Done.")

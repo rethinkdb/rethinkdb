@@ -13,37 +13,39 @@ log_write_issue_t::log_write_issue_t(const std::string &_message) :
     local_issue_t(from_hash(base_issue_id, _message)),
     message(_message) { }
 
-ql::datum_t log_write_issue_t::build_info(const metadata_t &metadata) const {
-    ql::datum_object_builder_t builder;
-    ql::datum_array_builder_t server_names(ql::configured_limits_t::unlimited);
-    ql::datum_array_builder_t server_ids(ql::configured_limits_t::unlimited);
-
-    for (auto const &server_id : affected_server_ids) {
-        server_names.add(convert_string_to_datum(get_server_name(metadata, server_id)));
-        server_ids.add(convert_uuid_to_datum(server_id));
-    }
-
-    builder.overwrite("servers", std::move(server_names).to_datum());
-    builder.overwrite("server_ids", std::move(server_ids).to_datum());
-    builder.overwrite("message", convert_string_to_datum(message));
-    return std::move(builder).to_datum();
-}
-
-datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) const {
-    ql::datum_t servers = info.get_field("servers");
+bool log_write_issue_t::build_info_and_description(
+        UNUSED const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const {
+    ql::datum_object_builder_t info_builder;
+    ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
     std::string servers_string;
-    for (size_t i = 0; i < servers.arr_size(); ++i) {
-        servers_string += strprintf("%s%s",
-            servers_string.empty() ? "" : ", ",
-            servers.get(i).as_str().to_std().c_str());
+    for (auto const &server_id : affected_server_ids) {
+        ql::datum_t server_name_or_uuid;
+        name_string_t server_name;
+        if (!convert_server_id_to_datum(server_id, identifier_format, name_client,
+                &server_name_or_uuid, &server_name)) {
+            server_name_or_uuid = ql::datum_t("__deleted_server__");
+            server_name = name_string_t::guarantee_valid("__deleted_server__");
+        }
+        servers_builder.add(server_name_or_uuid);
+        if (!servers_string.empty()) {
+            servers_string += ", ";
+        }
+        servers_string += server_name.str();
     }
-
-    return datum_string_t(strprintf(
-        "The following server%s encountered an error ('%s') while "
-        "writing log statements: %s.",
-        servers.arr_size() == 1 ? "" : "s",
-        info.get_field("message").as_str().to_std().c_str(),
+    info_builder.overwrite("servers", std::move(servers_builder).to_datum());
+    info_builder.overwrite("message", convert_string_to_datum(message));
+    *info_out = std::move(info_builder).to_datum();
+    *description_out = datum_string_t(strprintf(
+        "The following server%s encountered an error ('%s') while writing log "
+        "statements: %s.",
+        (affected_server_ids.size() == 1 ? "" : "s"),
+        message.c_str(),
         servers_string.c_str()));
+    return true;
 }
 
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *parent) :

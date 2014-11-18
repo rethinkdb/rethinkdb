@@ -20,8 +20,12 @@ protected:
         const name_string_t &table_name) const = 0;
     namespace_id_t table_id;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 };
 
 class need_primary_issue_t : public invalid_config_issue_t {

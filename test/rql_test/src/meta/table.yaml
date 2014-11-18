@@ -249,6 +249,20 @@ tests:
           .eq(r.table_status('testA').nth(0))
       ot: True
 
+    - py: r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"]
+      js: >
+          r.db('rethinkdb').table('table_'+'config', {identifierFormat: 'uuid'})
+          .nth(0)("db")
+      rb: >
+          r.db('rethinkdb').table('table_config', {:identifier_format => 'uuid'})
+          .nth(0)["db"]
+      ot: uuid()
+
+    - py: r.table('testA',identifier_format='uuid').count()
+      js: r.table('testA',{identifierFormat:'uuid'}).count()
+      rb: r.table('testA',{:identifier_format=>'uuid'}).count()
+      ot: 0
+
     - cd: db.table_drop('testA')
       ot: ({'dropped':1})
     - cd: db.table_drop('testB')
