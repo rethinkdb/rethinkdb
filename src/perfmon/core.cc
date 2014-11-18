@@ -145,6 +145,15 @@ perfmon_result_t::perfmon_result_t() {
     type = type_value;
 }
 
+perfmon_result_t::perfmon_result_t(perfmon_result_t &&other) :
+        type(std::move(other.type)),
+        value_(std::move(other.value)),
+        map_(std::move(other.map_)) {
+    other.type = type_value;
+    other.value_ = std::string();
+    other.map_ = internal_map_t();
+}
+
 perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
     : type(copyee.type), value_(copyee.value_), map_() {
     for (perfmon_result_t::internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {

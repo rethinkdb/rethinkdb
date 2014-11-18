@@ -157,6 +157,7 @@ public:
     };
 
     perfmon_result_t();
+    perfmon_result_t(perfmon_result_t &&);
     perfmon_result_t(const perfmon_result_t &);
     explicit perfmon_result_t(const std::string &);
     virtual ~perfmon_result_t();
