@@ -33,11 +33,14 @@ public:
     const datum_string_t &get_name() const { return server_name_collision_issue_type; }
 
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
     static const datum_string_t server_name_collision_issue_type;
     static const issue_id_t base_issue_id;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 };
 
 // Issue for database name collisions
@@ -49,11 +52,14 @@ public:
     const datum_string_t &get_name() const { return db_name_collision_issue_type; }
 
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
     static const datum_string_t db_name_collision_issue_type;
     static const issue_id_t base_issue_id;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 };
 
 // Issue for table name collisions
@@ -66,12 +72,15 @@ public:
     const datum_string_t &get_name() const { return table_name_collision_issue_type; }
 
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
     static const datum_string_t table_name_collision_issue_type;
     static const issue_id_t base_issue_id;
     const database_id_t db_id;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 };
 
 class name_collision_issue_tracker_t : public issue_tracker_t {

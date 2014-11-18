@@ -5,6 +5,7 @@ for interface_test_name in [
         'detect_dead',
         'large_branch_history',
         'log',
+        'log_write_issue',
         'metadata_persistence',
         'name_conflict_issue',
         'net_corruption',

@@ -1,12 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BUFFER_CACHE_ALT_ALT_HPP_
-#define BUFFER_CACHE_ALT_ALT_HPP_
+#ifndef BUFFER_CACHE_ALT_HPP_
+#define BUFFER_CACHE_ALT_HPP_
 
 #include <map>
 #include <vector>
 #include <utility>
 
-#include "buffer_cache/alt/page_cache.hpp"
+#include "buffer_cache/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
@@ -346,4 +346,4 @@ private:
 };
 
 
-#endif  // BUFFER_CACHE_ALT_ALT_HPP_
+#endif  // BUFFER_CACHE_ALT_HPP_

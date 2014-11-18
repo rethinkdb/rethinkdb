@@ -5,7 +5,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/operations.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
@@ -327,6 +327,9 @@ void _check_keys_are_NOT_present(store_t *store,
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
+        if (groups->size() != 0) {
+            debugf_print("groups is non-empty", *groups);
+        }
         ASSERT_EQ(0, groups->size());
     }
 }

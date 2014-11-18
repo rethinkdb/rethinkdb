@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_ALT_BLOCK_VERSION_HPP_
-#define BUFFER_CACHE_ALT_BLOCK_VERSION_HPP_
+#ifndef BUFFER_CACHE_BLOCK_VERSION_HPP_
+#define BUFFER_CACHE_BLOCK_VERSION_HPP_
 
 #include <stdint.h>
 
@@ -43,4 +43,4 @@ private:
 
 }  // namespace alt
 
-#endif  // BUFFER_CACHE_ALT_BLOCK_VERSION_HPP_
+#endif  // BUFFER_CACHE_BLOCK_VERSION_HPP_

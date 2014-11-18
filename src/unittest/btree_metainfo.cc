@@ -4,7 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/binary_blob.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"

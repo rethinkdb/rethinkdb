@@ -17,7 +17,7 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -1401,7 +1401,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
             reql_version_t::v1_13;
         break;
     case cluster_version_t::v1_14:
-    case cluster_version_t::v1_15_is_latest:
+    case cluster_version_t::v1_15:
+    case cluster_version_t::v1_16_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,

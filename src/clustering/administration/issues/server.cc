@@ -15,71 +15,61 @@ const datum_string_t server_ghost_issue_t::server_ghost_issue_type =
 const uuid_u server_ghost_issue_t::base_issue_id =
     str_to_uuid("193df26a-eac7-4373-bf0a-12bbc0b869ed");
 
-std::vector<std::string> look_up_servers(const issue_t::metadata_t &metadata,
-                                         const std::vector<server_id_t> &servers) {
-    std::vector<std::string> res;
-    res.reserve(servers.size());
-    for (auto const &server : servers) {
-        res.push_back(issue_t::get_server_name(metadata, server));
-    }
-    return res;
-}
-
-std::string servers_to_string(const ql::datum_t &server_names) {
-    std::string res;
-    for (size_t i = 0; i < server_names.arr_size(); ++i) {
-        res.append(strprintf("%s'%s'",
-                             res.empty() ? "" : ", ",
-                             server_names.get(i).as_str().to_std().c_str()));
-    }
-    return res;
-}
-
 server_down_issue_t::server_down_issue_t() { }
 
 server_down_issue_t::server_down_issue_t(const server_id_t &_down_server_id) :
     local_issue_t(from_hash(base_issue_id, _down_server_id)),
     down_server_id(_down_server_id) { }
 
-ql::datum_t server_down_issue_t::build_info(const metadata_t &metadata) const {
-    /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
-    brief window of time before the `server_down_issue_t` is destroyed. During that time,
-    if the user reads from `rethinkdb.issues`, we don't want to show them an issue saying
-    "__deleted_server__ is still connected". So we return an empty datum in this case. */
-    auto it = metadata.servers.servers.find(down_server_id);
-    if (it == metadata.servers.servers.end() || it->second.is_deleted()) {
-        return ql::datum_t();
+bool server_down_issue_t::build_info_and_description(
+        UNUSED const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const {
+    ql::datum_t down_server_name_or_uuid;
+    name_string_t down_server_name;
+    if (!convert_server_id_to_datum(down_server_id, identifier_format, name_client,
+            &down_server_name_or_uuid, &down_server_name)) {
+        /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
+        brief window of time before the `server_down_issue_t` is destroyed. During that
+        time, if the user reads from `rethinkdb.issues`, we don't want to show them an
+        issue saying "__deleted_server__ is still connected". So we return `false` in
+        this case. */
+        return false;
     }
-    const std::string name = it->second.get_ref().name.get_ref().str();
-
-    const std::vector<std::string> affected_server_names =
-        look_up_servers(metadata, affected_server_ids);
-
-    ql::datum_object_builder_t builder;
-    ql::datum_array_builder_t server_array(ql::configured_limits_t::unlimited);
-    ql::datum_array_builder_t server_id_array(ql::configured_limits_t::unlimited);
-
-    for (const auto &s : affected_server_names) {
-        server_array.add(convert_string_to_datum(s));
+    ql::datum_array_builder_t affected_servers_builder(
+        ql::configured_limits_t::unlimited);
+    std::string affected_servers_str;
+    size_t num_affected = 0;
+    for (const server_id_t &id : affected_server_ids) {
+        ql::datum_t name_or_uuid;
+        name_string_t name;
+        if (!convert_server_id_to_datum(id, identifier_format, name_client,
+                &name_or_uuid, &name)) {
+            /* Ignore connectivity reports from servers that have been declared dead */
+            continue;
+        }
+        affected_servers_builder.add(name_or_uuid);
+        if (!affected_servers_str.empty()) {
+            affected_servers_str += ", ";
+        }
+        affected_servers_str += name.str();
+        ++num_affected;
     }
-    for (const auto &s : affected_server_ids) {
-        server_id_array.add(convert_uuid_to_datum(s));
+    if (num_affected == 0) {
+        /* The servers making the reports have all been declared dead */
+        return false;
     }
-
-    builder.overwrite("server", convert_string_to_datum(name));
-    builder.overwrite("server_id", convert_uuid_to_datum(down_server_id));
-    builder.overwrite("affected_servers", std::move(server_array).to_datum());
-    builder.overwrite("affected_server_ids", std::move(server_id_array).to_datum());
-
-    return std::move(builder).to_datum();
-}
-
-datum_string_t server_down_issue_t::build_description(const ql::datum_t &info) const {
-    return datum_string_t(strprintf(
-        "Server '%s' is inaccessible from %s%s.",
-        info.get_field("server").as_str().to_std().c_str(),
-        affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(info.get_field("affected_servers")).c_str()));
+    ql::datum_object_builder_t info_builder;
+    info_builder.overwrite("server", down_server_name_or_uuid);
+    info_builder.overwrite("affected_servers",
+        std::move(affected_servers_builder).to_datum());
+    *info_out = std::move(info_builder).to_datum();
+    *description_out = datum_string_t(strprintf(
+        "Server `%s` is inaccessible from %s%s.", down_server_name.c_str(),
+        (num_affected == 1 ? "" : "these servers: "), affected_servers_str.c_str()));
+    return true;
 }
 
 server_ghost_issue_t::server_ghost_issue_t() { }
@@ -90,16 +80,18 @@ server_ghost_issue_t::server_ghost_issue_t(const server_id_t &_ghost_server_id,
     local_issue_t(from_hash(base_issue_id, _ghost_server_id)),
     ghost_server_id(_ghost_server_id), hostname(_hostname), pid(_pid) { }
 
-ql::datum_t server_ghost_issue_t::build_info(const metadata_t &) const {
+bool server_ghost_issue_t::build_info_and_description(
+        UNUSED const metadata_t &metadata,
+        UNUSED server_name_client_t *name_client,
+        UNUSED admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const {
     ql::datum_object_builder_t builder;
     builder.overwrite("server_id", convert_uuid_to_datum(ghost_server_id));
     builder.overwrite("hostname", ql::datum_t(datum_string_t(hostname)));
     builder.overwrite("pid", ql::datum_t(static_cast<double>(pid)));
-    return std::move(builder).to_datum();
-}
-
-datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &) const {
-    return datum_string_t(strprintf(
+    *info_out = std::move(builder).to_datum();
+    *description_out = datum_string_t(strprintf(
         "The server process with hostname `%s` and PID %" PRId64 " was deleted from the "
         "`rethinkdb.server_config` table, but the process is still running. Once a "
         "server has been deleted from `rethinkdb.server_config`, the data files "
@@ -107,6 +99,7 @@ datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &) cons
         "RethinkDB instance with an empty data directory.",
         hostname.c_str(), 
         pid));
+    return true;
 }
 
 server_issue_tracker_t::server_issue_tracker_t(

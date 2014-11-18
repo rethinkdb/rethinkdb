@@ -126,10 +126,15 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     ensure
       $dispatch_hook = nil
     end
-    assert_equal({'t' => 16, 'b' => [], 'r' => ["Client is buggy (failed to deserialize query)."]},
-                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(1337, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(-1, {})
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Protocol error, connection closed."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1)))
+    raise Exception, "Connection was not closed by protocol error." if $c.is_open()
+    $c.reconnect()
+    $c.register_query(16, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, 1], 16)))
   end

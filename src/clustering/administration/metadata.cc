@@ -17,29 +17,17 @@ migrate serialized metadata from pre-ReQL-admin versions into the new format. Gi
 issue #2869 is tracking this discussion. As a temporary measure so that development can
 proceed, deserialization of old versions has been disabled. */
 
-RDB_IMPL_SERIALIZABLE_2(server_semilattice_metadata_t, name, tags);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const server_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, server_semilattice_metadata_t *);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(server_semilattice_metadata_t, name, tags);
 RDB_IMPL_SEMILATTICE_JOINABLE_2(server_semilattice_metadata_t, name, tags);
 RDB_IMPL_EQUALITY_COMPARABLE_2(server_semilattice_metadata_t, name, tags);
 
-RDB_IMPL_SERIALIZABLE_1(servers_semilattice_metadata_t, servers);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const servers_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, servers_semilattice_metadata_t *);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(servers_semilattice_metadata_t, servers);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
 RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
 
-RDB_IMPL_SERIALIZABLE_3(
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(
         cluster_semilattice_metadata_t,
         rdb_namespaces, servers, databases);
-template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const cluster_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, cluster_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_3(cluster_semilattice_metadata_t,
                                 rdb_namespaces, servers, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_3(cluster_semilattice_metadata_t,

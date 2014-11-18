@@ -30,8 +30,12 @@ public:
 
     std::string message;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t log_write_issue_type;
     static const uuid_u base_issue_id;
@@ -51,8 +55,12 @@ public:
 
     index_map_t indexes;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t outdated_index_issue_type;
     static const uuid_u base_issue_id;
@@ -71,8 +79,12 @@ public:
 
     server_id_t down_server_id;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t server_down_issue_type;
     static const issue_id_t base_issue_id;
@@ -96,8 +108,12 @@ public:
     int64_t pid;
 
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t server_ghost_issue_type;
     static const issue_id_t base_issue_id;

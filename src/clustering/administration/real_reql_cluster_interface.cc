@@ -18,13 +18,14 @@
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
-counted_t<ql::table_t> make_backend_table(artificial_table_backend_t *backend,
-                                          const char *backend_name,
-                                          const ql::protob_t<const Backtrace> &bt) {
+counted_t<ql::table_t> make_table_with_backend(
+        artificial_table_backend_t *backend,
+        const char *table_name,
+        const ql::protob_t<const Backtrace> &bt) {
     return make_counted<ql::table_t>(
         scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
         make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
-        backend_name, false, bt);
+        table_name, false, bt);
 }
 
 real_reql_cluster_interface_t::real_reql_cluster_interface_t(
@@ -222,11 +223,11 @@ bool real_reql_cluster_interface_t::db_config(
         }
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
+    counted_t<ql::table_t> table = make_table_with_backend(
         admin_tables->db_config_backend.get(), "db_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -237,6 +238,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         signal_t *interruptor, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     namespace_id_t table_id = generate_uuid();
     cluster_semilattice_metadata_t metadata;
     {
@@ -300,10 +302,15 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        wait_for_table_readiness(table_id,
-                                 table_readiness_t::finished,
-                                 admin_tables->table_status_backend.get(),
-                                 &interruptor2);
+        table_status_artificial_table_backend_t *status_backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
+        wait_for_table_readiness(
+            table_id,
+            table_readiness_t::finished,
+            status_backend,
+            &interruptor2);
     }
 
     // This could hang because of a node going down or the user deleting the table.
@@ -376,8 +383,10 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
     return true;
 }
 
-bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor,
+bool real_reql_cluster_interface_t::table_find(
+        const name_string_t &name, counted_t<const ql::db_t> db,
+        UNUSED boost::optional<admin_identifier_format_t> identifier_format,
+        signal_t *interruptor,
         scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -392,7 +401,12 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
     guarantee(!ns_metadata_it->second.is_deleted());
-
+    /* Note that we completely ignore `identifier_format`. `identifier_format` is
+    meaningless for real tables, so it might seem like we should produce an error. The
+    reason we don't is that the user might write a query that access both a system table
+    and a real table, and they might specify `identifier_format` as a global optarg.
+    So then they would get a spurious error for the real table. This behavior is also
+    consistent with that of system tables that aren't affected by `identifier_format`. */
     table_out->init(new real_table_t(
         ns_metadata_it->first,
         namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor),
@@ -448,17 +462,20 @@ bool real_reql_cluster_interface_t::table_config(
         return false;
     }
 
+    artificial_table_backend_t *backend =
+        admin_tables->table_config_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_config_backend.get(), db, table_ids,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(backend, db, table_ids, true,
+            interruptor, &result_array, error_out)) {
         return false;
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_config_backend.get(), "table_config", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(backend, "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -473,17 +490,20 @@ bool real_reql_cluster_interface_t::table_status(
         return false;
     }
 
+    artificial_table_backend_t *backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_ids,
-                         true, interruptor, &result_array, error_out)) {
+    if (!table_meta_read(backend, db, table_ids, true,
+            interruptor, &result_array, error_out)) {
         return false;
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend.get(), "table_status", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -500,6 +520,10 @@ bool real_reql_cluster_interface_t::table_wait(
         return false;
     }
 
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> result_array;
     while (true) {
         result_array.clear();
@@ -507,9 +531,7 @@ bool real_reql_cluster_interface_t::table_wait(
             threadnum_t new_thread = directory_root_view->home_thread();
             cross_thread_signal_t ct_interruptor(interruptor, new_thread);
             on_thread_t thread_switcher(new_thread);
-            table_status_artificial_table_backend_t *table_status_backend =
-                admin_tables->table_status_backend.get();
-            rassert(new_thread == table_status_backend->home_thread());
+            rassert(new_thread == status_backend->home_thread());
 
             // Loop until all tables are ready - we have to check all tables again
             // if a table was not immediately ready
@@ -518,7 +540,7 @@ bool real_reql_cluster_interface_t::table_wait(
                 immediate = true;
                 for (auto it = table_ids.begin(); it != table_ids.end(); ++it) {
                     table_wait_result_t res = wait_for_table_readiness(
-                        it->first, readiness, table_status_backend, &ct_interruptor);
+                        it->first, readiness, status_backend, &ct_interruptor);
                     immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
                     // Error out if a table was deleted and it was explicitly waited on
                     if (res == table_wait_result_t::DELETED) {
@@ -541,7 +563,7 @@ bool real_reql_cluster_interface_t::table_wait(
             // `table_status` read.
             ASSERT_FINITE_CORO_WAITING;
             if (!table_meta_read(
-                    admin_tables->table_status_backend.get(), db, table_ids,
+                    status_backend, db, table_ids,
                     !tables.empty(), // A db-level wait shouldn't error if a table is deleted
                     &ct_interruptor, &result_array, error_out)) {
                 return false;
@@ -565,11 +587,11 @@ bool real_reql_cluster_interface_t::table_wait(
         nap(100, interruptor);
     }
 
-    counted_t<ql::table_t> backend = make_backend_table(
-        admin_tables->table_status_backend.get(), "table_status", bt);
+    counted_t<ql::table_t> table = make_table_with_backend(
+        status_backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
         make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
-    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(backend, stream), bt));
+    resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
 
@@ -603,10 +625,15 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         old_val_builder.overwrite("config",
             convert_table_config_to_datum(
                 ns_metadata_it->second.get_ref().replication_info.get_ref().config,
+                admin_identifier_format_t::name,
                 server_name_client));
 
+        table_status_artificial_table_backend_t *backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+
         std::vector<ql::datum_t> old_status;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+        if (!table_meta_read(backend, db, table_map,
                              true, interruptor, &old_status, error_out)) {
             return false;
         }
@@ -669,10 +696,17 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     {
         ql::datum_object_builder_t new_val_builder;
         new_val_builder.overwrite("config",
-            convert_table_config_to_datum(new_repli_info.config, server_name_client));
+            convert_table_config_to_datum(
+                new_repli_info.config,
+                admin_identifier_format_t::name,
+                server_name_client));
+
+        table_status_artificial_table_backend_t *backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
 
         std::vector<ql::datum_t> new_status;
-        if (!table_meta_read(admin_tables->table_status_backend.get(), db, table_map,
+        if (!table_meta_read(backend, db, table_map,
                              true, interruptor, &new_status, error_out)) {
             return false;
         }
@@ -748,8 +782,12 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     std::vector<std::pair<namespace_id_t, name_string_t> > tables;
     tables.push_back(std::make_pair(table_id, table_name));
 
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+
     std::vector<ql::datum_t> old_status;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
+    if (!table_meta_read(status_backend, db, tables, true,
             interruptor, &old_status, error_out)) {
         return false;
     }
@@ -784,7 +822,7 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     semilattice_root_view->join(metadata);
 
     std::vector<ql::datum_t> new_status;
-    if (!table_meta_read(admin_tables->table_status_backend.get(), db, tables, true,
+    if (!table_meta_read(status_backend, db, tables, true,
             interruptor, &new_status, error_out)) {
         return false;
     }

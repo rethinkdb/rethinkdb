@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_ALT_FREE_LIST_HPP_
-#define BUFFER_CACHE_ALT_FREE_LIST_HPP_
+#ifndef BUFFER_CACHE_FREE_LIST_HPP_
+#define BUFFER_CACHE_FREE_LIST_HPP_
 
 #include "containers/segmented_vector.hpp"
 #include "serializer/types.hpp"
@@ -29,4 +29,4 @@ private:
 
 }  // namespace alt
 
-#endif  // BUFFER_CACHE_ALT_FREE_LIST_HPP_
+#endif  // BUFFER_CACHE_FREE_LIST_HPP_
