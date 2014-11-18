@@ -151,9 +151,10 @@ public:
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
 
-    enum perfmon_result_type_t {
-        type_value,
-        type_map,
+    enum class perfmon_result_type_t {
+        NUMBER,
+        STRING,
+        MAP,
     };
 
     perfmon_result_t();
@@ -164,6 +165,8 @@ public:
 
     static scoped_ptr_t<perfmon_result_t> alloc_map_result();
 
+    double get_number() const;
+
     std::string *get_string();
     const std::string *get_string() const;
 
@@ -171,6 +174,7 @@ public:
     size_t get_map_size() const;
 
     bool is_string() const;
+    bool is_number() const;
     bool is_map() const;
 
     perfmon_result_type_t get_type() const;
@@ -200,8 +204,11 @@ private:
 
     perfmon_result_type_t type;
 
-    std::string value_;
-    internal_map_t map_;
+    union {
+        double number_;
+        std::string value_;
+        internal_map_t map_;
+    };
 
     void operator=(const perfmon_result_t &);
 };

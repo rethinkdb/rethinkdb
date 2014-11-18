@@ -142,51 +142,75 @@ perfmon_multi_membership_t::~perfmon_multi_membership_t() {
 }
 
 perfmon_result_t::perfmon_result_t() {
-    type = type_value;
+    type = perfmon_result_type_t::STRING;
 }
 
 perfmon_result_t::perfmon_result_t(perfmon_result_t &&other) :
-        type(std::move(other.type)),
-        value_(std::move(other.value)),
-        map_(std::move(other.map_)) {
-    other.type = type_value;
-    other.value_ = std::string();
-    other.map_ = internal_map_t();
+        type(other.type) {
+    switch (type) {
+    case perfmon_result_type_t::NUMBER:
+        number_ = other.number_;
+        other.number_ = 0;
+        break;
+    case perfmon_result_type_t::STRING:
+        string_ = std::move(other.string_);
+        other.string_ = std::string();
+        break;
+    case perfmon_result_type_t::MAP:
+        map_ = std::move(other.map_);
+        other.map_ = internal_map_t();
+        break;
+    default:
+        unreachable();
+    }
 }
 
 perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
-    : type(copyee.type), value_(copyee.value_), map_() {
-    for (perfmon_result_t::internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
-        perfmon_result_t *subcopy = new perfmon_result_t(*it->second);
-        map_.insert(std::pair<std::string, perfmon_result_t *>(it->first, subcopy));
+    : type(copyee.type) {
+    switch (type) {
+    case perfmon_result_type_t::NUMBER:
+        number_ = other.number_;
+        break;
+    case perfmon_result_type_t::STRING:
+        string_ = other.string_;
+        break;
+    case perfmon_result_type_t::MAP:
+        for (auto const &pair : copyee.map_) {
+            map_.insert(std::make_pair(pair.first, new perfmon_result_t(*pair.second)));
+        }
+        break;
+    default:
+        unreachable();
     }
 }
 
 perfmon_result_t::perfmon_result_t(const std::string &s) {
-    type = type_value;
-    value_ = s;
+    type = perfmon_result_type_t::STRING;
+    string_ = s;
 }
 
 perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
-    type = type_map;
+    type = perfmon_result_type_t::MAP;
     map_ = m;
 }
 
 perfmon_result_t::~perfmon_result_t() {
-    if (type == type_map) {
+    if (type == perfmon_result_type_t::MAP) {
         clear_map();
     }
     rassert(map_.empty());
 }
 
 void perfmon_result_t::clear_map() {
-    for (perfmon_result_t::internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
-        delete it->second;
+    rassert(type == perfmon_result_type_t::MAP);
+    for (auto &pair : map_) {
+        delete pair.second;
     }
     map_.clear();
 }
 
 void perfmon_result_t::erase(perfmon_result_t::iterator it) {
+    rassert(type == perfmon_result_type_t::MAP);
     delete it->second;
     map_.erase(it);
 }
@@ -196,36 +220,40 @@ scoped_ptr_t<perfmon_result_t> perfmon_result_t::alloc_map_result() {
 }
 
 std::string *perfmon_result_t::get_string() {
-    rassert(type == type_value);
+    rassert(type == perfmon_result_type_t::STRING);
     return &value_;
 }
 
 const std::string *perfmon_result_t::get_string() const {
-    rassert(type == type_value);
+    rassert(type == perfmon_result_type_t::STRING);
     return &value_;
 }
 
 perfmon_result_t::internal_map_t *perfmon_result_t::get_map() {
-    rassert(type == type_map);
+    rassert(type == perfmon_result_type_t::MAP);
     return &map_;
 }
 
 const perfmon_result_t::internal_map_t *perfmon_result_t::get_map() const {
-    rassert(type == type_map);
+    rassert(type == perfmon_result_type_t::MAP);
     return &map_;
 }
 
 size_t perfmon_result_t::get_map_size() const {
-    rassert(type == type_map);
+    rassert(type == perfmon_result_type_t::MAP);
     return map_.size();
 }
 
+bool perfmon_result_t::is_number() const {
+    return type == perfmon_result_type_t::NUMBER;
+}
+
 bool perfmon_result_t::is_string() const {
-    return type == type_value;
+    return type == perfmon_result_type_t::STRING;
 }
 
 bool perfmon_result_t::is_map() const {
-    return type == type_map;
+    return type == perfmon_result_type_t::MAP;
 }
 
 perfmon_result_t::perfmon_result_type_t perfmon_result_t::get_type() const {
@@ -270,7 +298,7 @@ perfmon_result_t::const_iterator perfmon_result_t::cend() const {
 }
 
 void perfmon_result_t::splice_into(perfmon_result_t *map) {
-    rassert(type == type_map);
+    rassert(type == perfmon_result_type_t::MAP);
 
     // Transfer all elements from the internal map to the passed map.
     // Unfortunately we can't use here std::map::insert(InputIterator first, InputIterator last),
