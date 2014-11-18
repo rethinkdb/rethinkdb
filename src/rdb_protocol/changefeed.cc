@@ -956,6 +956,8 @@ public:
     void del_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
 
     void each_range_sub(const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
+    void each_active_range_sub(
+        const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
@@ -1423,7 +1425,7 @@ public:
         configured_limits_t default_limits;
         datum_t null = datum_t::null();
 
-        feed->each_range_sub([&](range_sub_t *sub) {
+        feed->each_active_range_sub([&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
@@ -1797,6 +1799,15 @@ void feed_t::each_range_sub(
     assert_thread();
     rwlock_in_line_t spot(&range_subs_lock, access_t::read);
     each_sub_in_vec(range_subs, &spot, f);
+}
+
+void feed_t::each_active_range_sub(
+    const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
+    each_range_sub([&f](range_sub_t *sub) {
+        if (sub->active()) {
+            f(sub);
+        }
+    });
 }
 
 void feed_t::each_point_sub(
