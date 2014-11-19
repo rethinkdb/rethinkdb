@@ -48,15 +48,7 @@ module 'TableView', ->
                                                 id: position
                                             ).coerceTo('array'))
                                 total_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum()
-                                status: r.branch(table('status').do((status) ->
-                                    status('all_replicas_ready')
-                                    .and(status('ready_for_outdated_reads'))
-                                    .and(status('ready_for_reads'))
-                                    .and(status('ready_for_writes'))
-                                ),
-                                'ready',
-                                'unready',
-                                )
+                                status: r.branch(table('status')('all_replicas_ready'), 'ready', 'unready')
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
                                     num_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position)

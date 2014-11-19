@@ -63,8 +63,8 @@ module 'MainView', ->
                     server("status").eq("available")
                 ).count()
                 num_tables: r.db(system_db).table('table_config').count()
-                num_available_tables: r.db(system_db).table('table_status').filter( (server) ->
-                    server("ready_completely").eq(true)
+                num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
+                    status("all_replicas_ready")
                 ).count()
 
 
