@@ -143,3 +143,13 @@ perfmon_multi_membership_t::~perfmon_multi_membership_t() {
     }
 }
 
+perfmon_collection_t &get_global_perfmon_collection() {
+    // Getter function so that we can be sure that `collection` is initialized
+    // before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
+    // might be initialized before `collection` was initialized.
+
+    // FIXME: probably use "new" to create the perfmon_collection_t. For more info check out C++ FAQ Lite answer
+    static perfmon_collection_t collection;
+    return collection;
+}
+
