@@ -301,7 +301,7 @@ module 'TablesView', ->
             @listenTo @model, 'change', @render
 
         render: =>
-            @$el.html @template#@model.toJSON()
+            @$el.html @template
                 id: @model.get 'id'
                 db_json: JSON.stringify @model.get('db')
                 name_json: JSON.stringify @model.get('name')

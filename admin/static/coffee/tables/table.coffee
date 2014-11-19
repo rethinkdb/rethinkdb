@@ -23,7 +23,8 @@ module 'TableView', ->
             this_id = @id
             query =
                 r.db(system_db).table('server_config').count().do( (num_servers) ->
-                    r.db(system_db).table('table_status').get(this_id).do( (table) ->
+                    r.db(system_db).table('table_status').get(this_id).do((table) ->
+                        master_down = table('status')('ready_for_reads').not()
                         r.branch(
                             table.eq(null),
                             null,
@@ -38,20 +39,22 @@ module 'TableView', ->
                                     shard('replicas').filter({state: "ready"})).count()
                                 max_replicas_per_shard: num_servers
                                 num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
-                                distribution: r.db(table('db'))
-                                    .table(table('name'))
+                                # Here we check if the table is available, otherwise table.info() will bomb
+                                distribution: r.branch(master_down, [], r.db(table('db'))
+                                    .table(table('name')) \
                                     .info()('doc_count_estimates')\
                                     .do((doc_counts) ->
                                         doc_counts.map(r.range(doc_counts.count()),
                                             (num_keys, position) ->
                                                 num_keys: num_keys
                                                 id: position
-                                            ).coerceTo('array'))
-                                total_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum()
+                                            ).coerceTo('array')))
+                                # Again, we must check if the table is available
+                                total_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum())
                                 status: r.branch(table('status')('all_replicas_ready'), 'ready', 'unready')
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
-                                    num_keys: r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position)
+                                    num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position))
                                     primary:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
@@ -84,7 +87,6 @@ module 'TableView', ->
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     # TODO: Handle when the table is deleted
-                    # TODO: Handle when a primary is down (table.info() fails)
                     @error = error
                     @render()
                 else
