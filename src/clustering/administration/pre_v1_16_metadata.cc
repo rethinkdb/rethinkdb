@@ -53,6 +53,7 @@ T get_vclock_best(
         }
         if (total > best_total) {
             best_value = value.second;
+            best_total = total;
         }
     }
     if (best_total_out != nullptr) {
@@ -82,6 +83,13 @@ versioned_t<T> migrate_vclock(
         const pre_v1_16::vclock_t<T> &vclock) {
     return migrate_vclock_transform<T, T>(vclock, [](const T &v) { return v; });
 }
+
+/* The unit test needs to be able to test `migrate_vclock()`. Since nothing except for
+the unit test and this file uses `migrate_vclock()`, we don't put it in the header;
+instead, the unit test declares it and we explicitly instantiate it here. */
+template
+versioned_t<std::string> migrate_vclock<std::string>(
+    const pre_v1_16::vclock_t<std::string> &);
 
 template<class old_t, class new_t>
 std::map<uuid_u, deletable_t<new_t> > migrate_map(

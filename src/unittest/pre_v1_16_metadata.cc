@@ -6,6 +6,12 @@
 #include "clustering/administration/pre_v1_16_metadata.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 
+/* This is defined in `clustering/administration/pre_v1_16_metadata.cc` but not exposed
+publicly. It's explicitly instantiated for `std::string` where it's defined. */
+template<class T>
+versioned_t<T> migrate_vclock(
+        const pre_v1_16::vclock_t<T> &vclock);
+
 namespace unittest {
 
 template<class T>
@@ -317,6 +323,25 @@ TEST(PreV116Metadata, Migrate) {
         ASSERT_FALSE(it == post_cluster.rdb_namespaces->namespaces.end());
         ASSERT_TRUE(it->second.is_deleted());
     }
+}
+
+TEST(PreV116Metadata, VectorClock) {
+    /* Make sure that if we migrate two copies of the same vector clock, and one is more
+    up-to-date than the other, then the more up-to-date vector clock will produce a more
+    up-to-date `versioned_t`. */
+    pre_v1_16::vclock_t<std::string> vclock1, vclock2;
+    pre_v1_16::version_map_t vmap;
+    vmap[generate_uuid()] = 1;
+    vclock1.values[vmap] = "foo";
+    vmap[generate_uuid()] = 1;
+    vclock2.values[vmap] = "bar";
+    versioned_t<std::string> vers1 = migrate_vclock(vclock1);
+    versioned_t<std::string> vers2 = migrate_vclock(vclock2);
+    versioned_t<std::string> join1 = vers1, join2 = vers2;
+    semilattice_join(&join1, vers2);
+    semilattice_join(&join2, vers1);
+    EXPECT_EQ("bar", join1.get_ref());
+    EXPECT_EQ("bar", join2.get_ref());
 }
 
 }  // namespace unittest
