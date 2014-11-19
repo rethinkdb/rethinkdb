@@ -83,14 +83,25 @@ Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     reachability = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
     return new Handlebars.SafeString(reachability)
 
-Handlebars.registerHelper 'humanize_table_reachability', (status) ->
-    if status is true
-        result = "<span class='label label-success'>Live</span>"
-    else if status is false
-        result = "<span class='label label-failure'>Down</span>"
+Handlebars.registerHelper 'humanize_table_readiness', (status) ->
+    if status is 'all_replicas_ready'
+        label = 'success'
+        value = 'Ready'
+    else if status is 'not_ready'
+        label = 'failure'
+        value = 'Unavailable'
     else
-        result = "<span class='label label-unknown'>?</span>"
-    return new Handlebars.SafeString(result)
+        label = 'unknown'
+        if status is 'ready_for_writes'
+            value = 'Writable'
+        else if status is 'ready_for_reads'
+            value = 'Readable'
+        else if status is 'ready_for_outdated_reads'
+            value = 'Outdated reads only'
+        else
+            value = status
+    return new Handlebars.SafeString(
+        "<div class='status label label-#{label}'>#{value}</div>")
 
 
 # Safe string

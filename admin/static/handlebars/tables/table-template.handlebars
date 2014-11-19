@@ -7,8 +7,6 @@
         <p class="quick_info">
             {{shards}} {{pluralize_noun "shard" shards}}, {{replicas}} {{pluralize_noun "replica" replicas}}
         </p>
-        <div class="status">
-            {{humanize_table_reachability ready_completely}}
-        </span>
+        {{humanize_table_readiness status}}
     </div>
 

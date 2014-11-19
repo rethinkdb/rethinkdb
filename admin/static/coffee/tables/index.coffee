@@ -79,13 +79,19 @@ module 'TablesView', ->
             ).map (db) ->
                 name: db("name")
                 id: db("id")
-                tables: r.db(system_db).table('table_config').orderBy((table) -> table("name"))
+                tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
                     .filter({db: db("name")})
                     .merge( (table) ->
                         shards: table("shards").count()
                         replicas: table("shards").map((shard) -> shard('replicas').count()).max()
-                    ).merge( (table) ->
-                        id: table("id")
+                        status:
+                            r.branch(table('status')('all_replicas_ready'), 'all_replicas_ready',
+                            r.branch(table('status')('ready_for_writes'), 'ready_for_writes',
+                            r.branch(table('status')('ready_for_reads'), 'ready_for_reads',
+                            r.branch(table('status')('ready_for_outdated_reads'), 'ready_for_outdated_reads',
+                            'not_ready'  # otherwise
+                            ))))
+                        id: table('id')
                     )
 
             @fetch_data()
@@ -299,7 +305,7 @@ module 'TablesView', ->
                 name: @model.get('name')
                 shards: @model.get 'shards'
                 replicas: @model.get 'replicas'
-                ready_completely: @model.get 'ready_completely'
+                status: @model.get 'status'
             @
 
         remove: =>
