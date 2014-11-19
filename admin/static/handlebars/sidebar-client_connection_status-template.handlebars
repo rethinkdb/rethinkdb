@@ -3,7 +3,13 @@
         <h4>Disconnected</h4>
         {{else}}
         <h5>Connected to</h5>
-        <h4>{{me}}</h4>
+        <h4>
+          {{#if me}}
+          {{me}}
+          {{else}}
+          &lt;Unknown&gt;
+          {{/if}}
+        </h4>
         {{/if}}
     </div>
 

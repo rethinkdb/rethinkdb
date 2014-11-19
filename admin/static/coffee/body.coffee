@@ -6,7 +6,6 @@ module 'MainView', ->
         id: 'main_view'
         
         initialize: =>
-            @fetch_data()
             @fetch_ajax_data()
 
             @databases = new Databases
@@ -46,12 +45,12 @@ module 'MainView', ->
                 url: 'ajax/me'
                 dataType: 'json'
                 success: (response) =>
-                    @dashboard.set('me', response)
+                    @fetch_data(response)
                 error: (response) =>
-                    @dashboard.set('me', "UNKNOWN!")
+                    @fetch_data(null)
             })
 
-        fetch_data: =>
+        fetch_data: (server_uuid) =>
             query = r.expr
                 databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
@@ -66,6 +65,7 @@ module 'MainView', ->
                 num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
                     status("all_replicas_ready")
                 ).count()
+                me: r.db(system_db).table('server_status').get(server_uuid)('name')
 
 
             @timer = driver.run query, 5000, (error, result) =>
