@@ -83,7 +83,11 @@ module 'TablesView', ->
                     .filter({db: db("name")})
                     .merge( (table) ->
                         shards: table("shards").count()
-                        replicas: table("shards").map((shard) -> shard('replicas').count()).max()
+                        replicas: table("shards").map((shard) ->
+                            shard('replicas').count()).sum()
+                        replicas_ready: table('shards').map((shard) ->
+                            shard('replicas').filter((replica) ->
+                                replica('state').eq('ready')).count()).sum()
                         status:
                             r.branch(table('status')('all_replicas_ready'), 'all_replicas_ready',
                             r.branch(table('status')('ready_for_writes'), 'ready_for_writes',
@@ -305,6 +309,7 @@ module 'TablesView', ->
                 name: @model.get('name')
                 shards: @model.get 'shards'
                 replicas: @model.get 'replicas'
+                replicas_ready: @model.get 'replicas_ready'
                 status: @model.get 'status'
             @
 
