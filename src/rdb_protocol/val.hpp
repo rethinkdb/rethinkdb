@@ -104,8 +104,6 @@ public:
     scoped_ptr_t<base_table_t> tbl;
 
 private:
-    friend class distinct_term_t;
-
     datum_t batched_insert_with_keys(
         env_t *env,
         const std::vector<store_key_t> &keys,
@@ -133,6 +131,7 @@ public:
     const boost::optional<std::string> &get_idx() const { return idx; }
     ql::changefeed::keyspec_t::range_t get_change_spec();
 private:
+    friend class distinct_term_t;
     const counted_t<table_t> tbl;
     const boost::optional<std::string> idx;
     const sorting_t sorting;
