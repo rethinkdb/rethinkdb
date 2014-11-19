@@ -21,7 +21,7 @@ std::string stats_artificial_table_backend_t::get_primary_key_name() {
 // TODO: auto_drainer, keepalive
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
-        const std::set<std::string> &filter,
+        const std::set<std::vector<std::string> > &filter,
         ql::datum_t *result_out,
         signal_t *interruptor) {
     // Loop up peer in directory - find get stats mailbox
@@ -56,7 +56,7 @@ void stats_artificial_table_backend_t::get_peer_stats(
 
 void stats_artificial_table_backend_t::perform_stats_request(
         const std::vector<std::pair<server_id_t, peer_id_t> > &peers,
-        const std::set<std::string> &filter,
+        const std::set<std::vector<std::string> > &filter,
         std::map<server_id_t, ql::datum_t> *results_out,
         signal_t *interruptor) {
     pmap(peers.size(),
@@ -71,7 +71,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
         std::vector<ql::datum_t> *rows_out,
         UNUSED std::string *error_out) {
     assert_thread();
-    std::set<std::string> filter = stats_request_t::global_stats_filter();
+    std::set<std::vector<std::string> > filter = stats_request_t::global_stats_filter();
     std::vector<std::pair<server_id_t, peer_id_t> > peers =
         stats_request_t::all_peers(name_client);
 

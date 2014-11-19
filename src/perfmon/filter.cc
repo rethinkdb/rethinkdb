@@ -12,44 +12,24 @@
 /* Construct a filter from a set of paths.  Paths are of the form foo/bar/baz,
    where each of those can be a regular expression.  They act a lot like XPath
    expressions, but for perfmon_t objects.  */
-perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
-    typedef boost::escaped_list_separator<char> separator_t;
-    typedef boost::tokenizer<separator_t> tokenizer_t;
-    separator_t slashes("\\", "/", "");
-
-    for (std::set<std::string>::const_iterator
-             str = paths.begin(); str != paths.end(); ++str) {
-        regexps.push_back(std::vector<scoped_regex_t *>());
-        std::vector<scoped_regex_t *> *path = &regexps.back();
-        try {
-            tokenizer_t t(*str, slashes);
-            for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
-                path->push_back(new scoped_regex_t());
-                if (!path->back()->compile("^"+(*it)+"$")) {
-                    logWRN("Error: regex %s failed to compile (%s), treating as empty.",
-                           sanitize_for_logger(*it).c_str(),
-                           sanitize_for_logger(path->back()->get_error()).c_str());
-                    if (!path->back()->compile("^$")) {
-                        crash("Regex '^$' failed to compile (%s).\n",
-                              sanitize_for_logger(path->back()->get_error()).c_str());
-                    }
+perfmon_filter_t::perfmon_filter_t(const std::set<std::vector<std::string> > &paths) {
+    for (auto const &path : paths) {
+        std::vector<scoped_ptr_t<scoped_regex_t> > compiled_path;
+        for (auto const &str : path) {
+            scoped_ptr_t<scoped_regex_t> re(new scoped_regex_t());
+            if (!re->compile("^" + str + "$")) {
+                logWRN("Error: regex %s failed to compile (%s), treating as empty.",
+                       sanitize_for_logger(str).c_str(),
+                       sanitize_for_logger(re->get_error()).c_str());
+                if (!re->compile("^$")) {
+                    crash("Regex '^$' failed to compile (%s).\n",
+                          sanitize_for_logger(re->get_error()).c_str());
                 }
             }
-        } catch (const boost::escaped_list_error &e) {
-            logWRN("Error: Could not parse %s (%s), skipping.",
-                   sanitize_for_logger(*str).c_str(), e.what());
-            continue; //Skip this path
-        }
-    }
-}
 
-perfmon_filter_t::~perfmon_filter_t() {
-    for (std::vector<std::vector<scoped_regex_t *> >::const_iterator
-             it = regexps.begin(); it != regexps.end(); ++it) {
-        for (std::vector<scoped_regex_t *>::const_iterator
-                 regexp = it->begin(); regexp != it->end(); ++regexp) {
-            delete *regexp;
+            compiled_path.emplace_back(std::move(re));
         }
+        regexps.emplace_back(std::move(compiled_path));
     }
 }
 
@@ -78,15 +58,20 @@ ql::datum_t perfmon_filter_t::subfilter(const ql::datum_t &stats,
                     continue;
                 }
                 if (depth >= regexps[j].size()) {
+                    some_subpath = true;
                     continue;
                 }
                 subactive[j] = regexps[j][depth]->matches(pair.first.to_std());
                 some_subpath |= subactive[j];
             }
 
+            // Only write the stats if there was a match somewhere down the tree
             if (some_subpath) {
-                builder.overwrite(pair.first,
-                                  subfilter(pair.second, depth + 1, subactive));
+                ql::datum_t sub_stats = subfilter(pair.second, depth + 1, subactive);
+                if (sub_stats.get_type() != ql::datum_t::R_OBJECT ||
+                    sub_stats.obj_size() > 0) {
+                    builder.overwrite(pair.first, sub_stats);
+                }
             }
         }
 

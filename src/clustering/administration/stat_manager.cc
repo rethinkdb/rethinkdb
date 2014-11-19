@@ -22,7 +22,7 @@ get_stats_mailbox_address_t stat_manager_t::get_address() {
 void stat_manager_t::on_stats_request(
         UNUSED signal_t *interruptor,
         const return_address_t& reply_address,
-        const std::set<stat_id_t>& requested_stats) {
+        const std::set<std::vector<stat_id_t> >& requested_stats) {
     perfmon_filter_t request(requested_stats);
     ql::datum_t perfmon_result(perfmon_get_stats());
     perfmon_result = request.filter(perfmon_result);

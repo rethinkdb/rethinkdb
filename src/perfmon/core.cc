@@ -62,7 +62,7 @@ ql::datum_t perfmon_collection_t::end_stats(void *_context) {
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
         ql::datum_t stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
-            for (size_t j = 0; i < stat.obj_size(); ++j) {
+            for (size_t j = 0; j < stat.obj_size(); ++j) {
                 std::pair<datum_string_t, ql::datum_t> pair = stat.get_pair(j);
                 builder.overwrite(pair.first, pair.second);
             }

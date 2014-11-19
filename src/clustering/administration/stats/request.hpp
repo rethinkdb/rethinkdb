@@ -82,13 +82,13 @@ class stats_request_t {
 public:
     typedef cluster_semilattice_metadata_t metadata_t;
 
-    static std::set<std::string> global_stats_filter();
+    static std::set<std::vector<std::string> > global_stats_filter();
     static std::vector<std::pair<server_id_t, peer_id_t> > all_peers(
             server_name_client_t *name_client);
 
     virtual ~stats_request_t() { }
 
-    virtual std::set<std::string> get_filter() const = 0;
+    virtual std::set<std::vector<std::string> > get_filter() const = 0;
 
     virtual bool get_peers(server_name_client_t *name_client,
                            std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
@@ -108,7 +108,7 @@ public:
 
     cluster_stats_request_t();
 
-    std::set<std::string> get_filter() const;
+    std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
@@ -130,7 +130,7 @@ public:
 
     table_stats_request_t(const namespace_id_t &_table_id);
 
-    std::set<std::string> get_filter() const;
+    std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
@@ -151,7 +151,7 @@ public:
 
     server_stats_request_t(const server_id_t &_server_id);
 
-    std::set<std::string> get_filter() const;
+    std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
@@ -174,7 +174,7 @@ public:
     table_server_stats_request_t(const namespace_id_t &_table_id,
                                  const server_id_t &_server_id);
 
-    std::set<std::string> get_filter() const;
+    std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,

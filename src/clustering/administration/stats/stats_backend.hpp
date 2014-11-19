@@ -45,12 +45,12 @@ public:
 
 private:
     void get_peer_stats(const peer_id_t &peer,
-                        const std::set<std::string> &filter,
+                        const std::set<std::vector<std::string> > &filter,
                         ql::datum_t *result_out,
                         signal_t *interruptor);
 
     void perform_stats_request(const std::vector<std::pair<server_id_t, peer_id_t> > &peers,
-                               const std::set<std::string> &filter,
+                               const std::set<std::vector<std::string> > &filter,
                                std::map<server_id_t, ql::datum_t> *results_out,
                                signal_t *interruptor);
 

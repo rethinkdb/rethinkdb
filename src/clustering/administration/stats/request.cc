@@ -14,20 +14,21 @@ parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) 
         serv_stats = { };
 
         if (!serv_pair.second.has()) {
-            serv_stats.responsive = false;
-        } else {
-            r_sanity_check(serv_pair.second.get_type() == ql::datum_t::R_OBJECT);
-            for (size_t i = 0; i < serv_pair.second.obj_size(); ++i) {
-                std::pair<datum_string_t, ql::datum_t> perf_pair =
-                    serv_pair.second.get_pair(i);
-                if (perf_pair.first == "query_engine") {
-                    add_query_engine_stats(perf_pair.second, &serv_stats);
-                } else {
-                    namespace_id_t table_id;
-                    bool res = str_to_uuid(perf_pair.first.to_std(), &table_id);
-                    if (res) {
-                        add_table_stats(table_id, perf_pair.second, &serv_stats);
-                    }
+            continue;
+        }
+
+        serv_stats.responsive = true;
+        r_sanity_check(serv_pair.second.get_type() == ql::datum_t::R_OBJECT);
+        for (size_t i = 0; i < serv_pair.second.obj_size(); ++i) {
+            std::pair<datum_string_t, ql::datum_t> perf_pair =
+                serv_pair.second.get_pair(i);
+            if (perf_pair.first == "query_engine") {
+                add_query_engine_stats(perf_pair.second, &serv_stats);
+            } else {
+                namespace_id_t table_id;
+                bool res = str_to_uuid(perf_pair.first.to_std(), &table_id);
+                if (res) {
+                    add_table_stats(table_id, perf_pair.second, &serv_stats);
                 }
             }
         }
@@ -183,8 +184,10 @@ void add_server_fields(const server_id_t &server_id,
 }
 
 
-std::set<std::string> stats_request_t::global_stats_filter() {
-    return std::set<std::string>({ "query_engine/.*", ".*/serializers/.*" });
+std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
+    return std::set<std::vector<std::string> >(
+        { {"query_engine"},
+          {"[0-9a-f-]+", "serializers" } });
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
@@ -212,9 +215,10 @@ bool cluster_stats_request_t::parse(const ql::datum_t &info,
 
 cluster_stats_request_t::cluster_stats_request_t() { }
 
-std::set<std::string> cluster_stats_request_t::get_filter() const {
-    return std::set<std::string>({ "query_engine/queries_per_sec",
-                                   ".*/serializers/shard[0-9]+/keys_.*" });
+std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const {
+    return std::set<std::vector<std::string> >(
+        { {"query_engine", "queries_per_sec" },
+          {".*", "serializers", "shard[0-9]+", "keys_.*" } });
 }
 
 bool cluster_stats_request_t::get_peers(
@@ -266,9 +270,9 @@ bool table_stats_request_t::parse(const ql::datum_t &info,
 table_stats_request_t::table_stats_request_t(const namespace_id_t &_table_id) :
     table_id(_table_id) { }
 
-std::set<std::string> table_stats_request_t::get_filter() const {
-    return std::set<std::string>({ 
-        uuid_to_str(table_id) + "/serializers/shard[0-9]+/keys_.*" });
+std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
+    return std::set<std::vector<std::string> >({
+        { uuid_to_str(table_id), "serializers", "shard[0-9]+", "keys_.*" } });
 }
 
 bool table_stats_request_t::get_peers(
@@ -319,10 +323,11 @@ bool server_stats_request_t::parse(const ql::datum_t &info,
 server_stats_request_t::server_stats_request_t(const server_id_t &_server_id) :
     server_id(_server_id) { }
 
-    std::set<std::string> server_stats_request_t::get_filter() const {
-        return std::set<std::string>({ "query_engine/.*",
-                                     ".*/serializers/shard[0-9]+/keys_.*" });
-    }
+std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
+    return std::set<std::vector<std::string> >(
+        { {"query_engine"},
+          {".*", "serializers", "shard[0-9]+", "keys_.*" } });
+}
 
 bool server_stats_request_t::get_peers(
         server_name_client_t *name_client,
@@ -409,8 +414,9 @@ table_server_stats_request_t::table_server_stats_request_t(const namespace_id_t 
                                                            const server_id_t &_server_id) :
     table_id(_table_id), server_id(_server_id) { }
 
-std::set<std::string> table_server_stats_request_t::get_filter() const {
-    return std::set<std::string>({ uuid_to_str(table_id) + "/serializers/.*" });
+std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() const {
+    return std::set<std::vector<std::string> >({
+        { uuid_to_str(table_id), "serializers" } });
 }
 
 bool table_server_stats_request_t::get_peers(server_name_client_t *name_client,

@@ -3,12 +3,14 @@
 
 #include "rdb_protocol/datum.hpp"
 
+const char *rql_perfmon_name = "query_engine";
+
 rdb_context_t::rdb_context_t()
     : extproc_pool(nullptr),
       cluster_interface(nullptr),
       manager(nullptr),
       ql_stats_membership(
-          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+          &get_global_perfmon_collection(), &ql_stats_collection, rql_perfmon_name),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
       reql_http_proxy()
 { }
@@ -20,7 +22,7 @@ rdb_context_t::rdb_context_t(
       cluster_interface(_cluster_interface),
       manager(nullptr),
       ql_stats_membership(
-          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+          &get_global_perfmon_collection(), &ql_stats_collection, rql_perfmon_name),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
       reql_http_proxy()
 { }
@@ -37,7 +39,7 @@ rdb_context_t::rdb_context_t(
       cluster_interface(_cluster_interface),
       auth_metadata(_auth_metadata),
       manager(_mailbox_manager),
-      ql_stats_membership(_global_stats, &ql_stats_collection, "query_language"),
+      ql_stats_membership(_global_stats, &ql_stats_collection, rql_perfmon_name),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
       reql_http_proxy(_reql_http_proxy)
 { }
