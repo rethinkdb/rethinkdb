@@ -1,9 +1,9 @@
-#include "buffer_cache/alt/evicter.hpp"
+#include "buffer_cache/evicter.hpp"
 
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/page.hpp"
-#include "buffer_cache/alt/page_cache.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/page.hpp"
+#include "buffer_cache/page_cache.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 
 namespace alt {
 

@@ -12,7 +12,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"

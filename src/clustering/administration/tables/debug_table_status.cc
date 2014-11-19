@@ -124,7 +124,7 @@ ql::datum_t convert_debug_reactor_activity_to_datum(
 
 ql::datum_t convert_debug_table_status_to_datum(
         name_string_t table_name,
-        name_string_t db_name,
+        const ql::datum_t &db_name_or_uuid,
         namespace_id_t uuid,
         const namespace_semilattice_metadata_t &metadata,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
@@ -132,7 +132,7 @@ ql::datum_t convert_debug_table_status_to_datum(
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", convert_name_to_datum(db_name));
+    builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
 
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
@@ -178,7 +178,7 @@ ql::datum_t convert_debug_table_status_to_datum(
 bool debug_table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
-        name_string_t db_name,
+        const ql::datum_t &db_name_or_uuid,
         const namespace_semilattice_metadata_t &metadata,
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
@@ -186,7 +186,7 @@ bool debug_table_status_artificial_table_backend_t::format_row(
     assert_thread();
     *row_out = convert_debug_table_status_to_datum(
         table_name,
-        db_name,
+        db_name_or_uuid,
         table_id,
         metadata,
         directory_view,

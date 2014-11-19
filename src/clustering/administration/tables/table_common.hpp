@@ -21,8 +21,10 @@ class common_table_artificial_table_backend_t :
 public:
     common_table_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
-                cluster_semilattice_metadata_t> > _semilattice_view) :
-        semilattice_view(_semilattice_view) {
+                cluster_semilattice_metadata_t> > _semilattice_view,
+            admin_identifier_format_t _identifier_format) :
+        semilattice_view(_semilattice_view),
+        identifier_format(_identifier_format) {
         semilattice_view->assert_thread();
     }
 
@@ -44,22 +46,15 @@ protected:
     virtual bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
-            name_string_t db_name,
+            const ql::datum_t &db_name_or_uuid,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out) = 0;
 
-    /* This should only be called on the home thread */
-    name_string_t get_db_name(database_id_t db_id);
-
-    /* This should only be called on the home thread. If the DB is not found or there is
-    a name collision, returns `false` and sets `*error_out`. */
-    bool get_db_id(name_string_t db_name, database_id_t *db_id_out,
-        std::string *error_out);
-
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;
+    admin_identifier_format_t identifier_format;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */

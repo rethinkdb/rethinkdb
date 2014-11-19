@@ -1,10 +1,10 @@
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 
 #include <stack>
 
 #include "arch/types.hpp"
 #include "arch/runtime/coroutines.hpp"
-#include "buffer_cache/alt/stats.hpp"
+#include "buffer_cache/stats.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "utils.hpp"
 

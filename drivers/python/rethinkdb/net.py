@@ -69,7 +69,6 @@ class Cursor(object):
         self.responses = [ ]
         self.outstanding_requests = 0
         self.end_flag = False
-        self.connection_closed = False
         self.it = iter(self._it())
 
     def _extend(self, response):
@@ -80,10 +79,15 @@ class Cursor(object):
         if len(self.responses) == 1 and not self.end_flag:
             self.conn._async_continue_cursor(self)
 
+    def _error(self, message):
+        self.end_flag = True
+        self.responses.append(Response(self.query.token, \
+            json.dumps({'t': pResponse.RUNTIME_ERROR, 'r': [message], 'b': []})))
+
     def _it(self):
         while True:
-            if len(self.responses) == 0 and self.connection_closed:
-                raise RqlDriverError("Connection closed, cannot read cursor")
+            if len(self.responses) == 0 and not self.conn.is_open():
+                raise RqlRuntimeError("Connection is closed.")
             if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
             if len(self.responses) == 1 and not self.end_flag:
@@ -96,7 +100,7 @@ class Cursor(object):
             if self.responses[0].type != pResponse.SUCCESS_PARTIAL and \
                self.responses[0].type != pResponse.SUCCESS_SEQUENCE and \
                self.responses[0].type != pResponse.SUCCESS_FEED:
-                raise RqlDriverError("Unexpected response type received for cursor")
+                raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
             del self.responses[0]
@@ -115,11 +119,13 @@ class Cursor(object):
     def close(self):
         if not self.end_flag:
             self.end_flag = True
-            self.conn._end_cursor(self)
+            if self.conn.is_open():
+                self.conn._end_cursor(self)
 
 class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
+        self.closing = False
         self.host = host
         self.next_token = 1
         self.db = db
@@ -165,13 +171,15 @@ class Connection(object):
         
             response = b""
             while True:
-                char = self._sock_recv(1)
+                char = self._sock_recvall(1)
                 if char == b"\0":
                     break
                 response += char
         except socket.timeout:
+            self.close(noreply_wait=False)
             raise RqlDriverError("Timed out during handshake with %s:%d." % (self.host, self.port))
         except socket.error as err:
+            self.close(noreply_wait=False)
             raise RqlDriverError("Error during handshake with %s:%d - %s" % (self.host, self.port, err))
 
         if response != b"SUCCESS":
@@ -183,20 +191,24 @@ class Connection(object):
         # Clear timeout so we don't timeout on long running queries
         self.socket.settimeout(None)
 
+    def is_open(self):
+        return (self.socket is not None) and not self.closing
+
     def close(self, noreply_wait=True):
+        self.closing = True
         if self.socket is not None:
-            if noreply_wait:
-                self.noreply_wait()
             try:
+                if noreply_wait:
+                    self.noreply_wait()
                 self.socket.shutdown(socket.SHUT_RDWR)
             except socket.error:
                 pass
             self.socket.close()
             self.socket = None
         for token, cursor in dict_items(self.cursor_cache):
-            cursor.end_flag = True
-            cursor.connection_closed = True
+            cursor._error("Connection is closed.")
         self.cursor_cache = { }
+        self.closing = False
 
     def noreply_wait(self):
         token = self.next_token
@@ -215,21 +227,38 @@ class Connection(object):
         repl.default_connection = self
         return self
 
-    def _sock_recv(self, length):
-        while True:
-            try:
-                return self.socket.recv(length)
-            except IOError as e:
-                if e.errno != errno.EINTR:
+    def _sock_recvall(self, length):
+        res = b''
+        while len(res) < length:
+            while True:
+                try:
+                    chunk = self.socket.recv(length - len(res))
+                    break
+                except IOError as e:
+                    if e.errno != errno.EINTR:
+                        self.close(noreply_wait=False)
+                        raise
+                except:
+                    self.close(noreply_wait=False)
                     raise
+            if len(chunk) == 0:
+                self.close(noreply_wait=False)
+                raise RqlDriverError("Connection is closed.")
+            res += chunk
+        return res
 
     def _sock_sendall(self, data):
-        while True:
+        offset = 0
+        while offset < len(data):
             try:
-                return self.socket.sendall(data)
+                offset += self.socket.send(data[offset:])
             except IOError as e:
                 if e.errno != errno.EINTR:
+                    self.close(noreply_wait=False)
                     raise
+            except:
+                self.close(noreply_wait=False)
+                raise
 
     def _start(self, term, **global_optargs):
         # Set global opt args
@@ -274,33 +303,20 @@ class Connection(object):
 
         query = Query(pQuery.STOP, cursor.query.token, None, None)
         self._send_query(query, async=True)
-        self._handle_cursor_response(self._read_response(cursor.query.token))
 
     def _read_response(self, token):
         # We may get an async continue result, in which case we save it and read the next response
         while True:
-            response_buf = b''
             try:
-                response_header = b''
-                while len(response_header) < 12:
-                    chunk = self._sock_recv(12 - len(response_header))
-                    if len(chunk) == 0:
-                        raise RqlDriverError("Connection is closed.")
-                    response_header += chunk
-
-                # The first 8 bytes given the corresponding query token of this response
+                # The first 8 bytes give the corresponding query token of this response
                 # The next 4 bytes give the expected length of this response
+                response_header = self._sock_recvall(12)
                 (response_token,response_len,) = struct.unpack("<qL", response_header)
-
-                while len(response_buf) < response_len:
-                    chunk = self._sock_recv(response_len - len(response_buf))
-                    if len(chunk) == 0:
-                        raise RqlDriverError("Connection is broken.")
-                    response_buf += chunk
+                response_buf = self._sock_recvall(response_len)
             except KeyboardInterrupt as err:
                 # When interrupted while waiting for a response cancel the outstanding
                 # requests by resetting this connection
-                self.reconnect()
+                self.reconnect(noreply_wait=False)
                 raise err
 
             # Construct response
@@ -312,7 +328,8 @@ class Connection(object):
             elif response.token in self.cursor_cache:
                 self._handle_cursor_response(response)
             else:
-                # This response is corrupted or not intended for us.
+                # This response is corrupted or not intended for us
+                self.close(noreply_wait=False)
                 raise RqlDriverError("Unexpected response received.")
 
     def _check_error_response(self, response, term):

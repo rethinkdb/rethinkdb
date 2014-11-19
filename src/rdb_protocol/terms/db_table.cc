@@ -551,11 +551,26 @@ private:
 class table_term_t : public op_term_t {
 public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
+        : op_term_t(env, term, argspec_t(1, 2),
+          optargspec_t({ "use_outdated", "identifier_format" })) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
+
+        boost::optional<admin_identifier_format_t> identifier_format;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
+            const datum_string_t &str = v->as_str();
+            if (str == "name") {
+                identifier_format = admin_identifier_format_t::name;
+            } else if (str == "uuid") {
+                identifier_format = admin_identifier_format_t::uuid;
+            } else {
+                rfail(base_exc_t::GENERIC, "Identifier format `%s` unrecognized "
+                    "(options are \"name\" and \"uuid\").", str.to_std().c_str());
+            }
+        }
+
         counted_t<const db_t> db;
         name_string_t name;
         if (args->num_args() == 1) {
@@ -568,10 +583,11 @@ private:
             db = args->arg(env, 0)->as_db();
             name = get_name(args->arg(env, 1), "Table");
         }
+
         std::string error;
         scoped_ptr_t<base_table_t> table;
         if (!env->env->reql_cluster_interface()->table_find(name, db,
-                env->env->interruptor, &table, &error)) {
+                identifier_format, env->env->interruptor, &table, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return new_val(make_counted<table_t>(

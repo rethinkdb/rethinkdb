@@ -93,8 +93,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
                     .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
@@ -407,6 +407,7 @@ translateBackOptargs = (optargs) ->
             when 'page_limit' then 'pageLimit'
             when 'director_tag' then 'directorTag'
             when 'dry_run' then 'dryRun'
+            when 'identifier_format' then 'identifierFormat'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
             when 'max_results' then 'maxResults'
@@ -433,6 +434,7 @@ translateOptargs = (optargs) ->
             when 'pageLimit' then 'page_limit'
             when 'directorTag' then 'director_tag'
             when 'dryRun' then 'dry_run'
+            when 'identifierFormat' then 'identifier_format'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
             when 'maxResults' then 'max_results'

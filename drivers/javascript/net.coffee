@@ -42,6 +42,7 @@ class Connection extends events.EventEmitter
         @outstandingCallbacks = {}
         @nextToken = 1
         @open = false
+        @closing = false
 
         @buffer = new Buffer(0)
 
@@ -82,9 +83,6 @@ class Connection extends events.EventEmitter
     _delQuery: (token) ->
         # This query is done, delete this cursor
         delete @outstandingCallbacks[token]
-
-        if Object.keys(@outstandingCallbacks).length < 1 and not @open
-            @cancel()
 
     _processResponse: (response, token) ->
         profile = response.p
@@ -170,11 +168,14 @@ class Connection extends events.EventEmitter
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
 
+        @closing = true
         noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
 
         new Promise( (resolve, reject) =>
             wrappedCb = (err, result) =>
                 @open = false
+                @closing = false
+                @cancel()
                 if err?
                     reject err
                 else
@@ -213,6 +214,15 @@ class Connection extends events.EventEmitter
         ).nodeify callback
 
     cancel: ar () ->
+        response = {t:protoResponseType.RUNTIME_ERROR,r:["Connection is closed."],b:[]}
+        for own key, value of @outstandingCallbacks
+            if value.cursor?
+                value.cursor._addResponse(response)
+            else if value.feed?
+                value.feed._addResponse(response)
+            else if value.cb?
+                value.cb mkErr(err.RqlRuntimeError, response, value.root)
+
         @outstandingCallbacks = {}
 
     reconnect: (varar 0, 2, (optsOrCallback, callback) ->
@@ -249,6 +259,9 @@ class Connection extends events.EventEmitter
 
     use: ar (db) ->
         @db = db
+
+    isOpen: () ->
+        @open and not @closing
 
     _start: (term, cb, opts) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."
@@ -306,6 +319,8 @@ class Connection extends events.EventEmitter
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.CONTINUE
             token: token
@@ -313,6 +328,8 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _endQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.STOP
             token: token
@@ -390,11 +407,15 @@ class TcpConnection extends Connection
 
             @rawSocket.on 'data', handshake_callback
 
-        @rawSocket.on 'error', (args...) => @emit 'error', args...
+        @rawSocket.on 'error', (args...) =>
+            if @isOpen()
+                @close({noreplyWait:false})
+            @emit 'close'
 
         @rawSocket.on 'close', =>
-            @open = false
-            @emit 'close', {noreplyWait: false}
+            if @isOpen()
+                @close({noreplyWait: false})
+            @emit 'close'
 
         # In case the raw socket timesout, we close it and re-emit the event for the user
         @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
@@ -494,14 +515,9 @@ class HttpConnection extends Connection
         unless not cb? or typeof cb is 'function'
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
-        wrappedCb = (args...) =>
-            @cancel()
-            if cb?
-                cb(args...)
-
         # This would simply be super(opts, wrappedCb), if we were not in the varar
         # anonymous function
-        HttpConnection.__super__.close.call(this, opts, wrappedCb)
+        HttpConnection.__super__.close.call(this, opts, cb)
     )
 
     _writeQuery: (token, data) ->

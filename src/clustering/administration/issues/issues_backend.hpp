@@ -25,7 +25,9 @@ public:
             _cluster_sl_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
-                &directory_view);
+                &directory_view,
+        server_name_client_t *name_client,
+        admin_identifier_format_t identifier_format);
 
     std::string get_primary_key_name();
 
@@ -47,8 +49,12 @@ public:
 private:
     std::vector<scoped_ptr_t<issue_t> > all_issues() const;
 
+    admin_identifier_format_t identifier_format;
+
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
+
+    server_name_client_t *name_client;
 
     std::set<issue_tracker_t *> trackers;
 
