@@ -10,6 +10,7 @@
 
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/servers/name_client.hpp"
 #include "concurrency/watchable.hpp"
 
 class stats_artificial_table_backend_t :
@@ -19,8 +20,11 @@ public:
     stats_artificial_table_backend_t(
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
-                &directory_view,
-        server_name_client_t *_name_client);
+                &_directory_view,
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+            _cluster_sl_view,
+        server_name_client_t *_name_client,
+        mailbox_manager_t *_mailbox_manager);
 
     std::string get_primary_key_name();
 
@@ -40,9 +44,22 @@ public:
                    std::string *error_out);
 
 private:
+    void get_peer_stats(const peer_id_t &peer,
+                        const std::set<std::string> &filter,
+                        ql::datum_t *result_out,
+                        signal_t *interruptor);
+
+    void perform_stats_request(const std::vector<std::pair<server_id_t, peer_id_t> > &peers,
+                               const std::set<std::string> &filter,
+                               std::map<server_id_t, ql::datum_t> *results_out,
+                               signal_t *interruptor);
+
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        cluster_sl_view;
     server_name_client_t *name_client;
+    mailbox_manager_t *mailbox_manager;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_ */

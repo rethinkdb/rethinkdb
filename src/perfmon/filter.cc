@@ -54,7 +54,7 @@ perfmon_filter_t::~perfmon_filter_t() {
 }
 
 ql::datum_t perfmon_filter_t::filter(const ql::datum_t &stats) const {
-    guarantee(f.has(), "perfmon_filter_t::filter was passed an uninitialized datum");
+    guarantee(stats.has(), "perfmon_filter_t::filter was passed an uninitialized datum");
     return subfilter(stats, 0, std::vector<bool>(regexps.size(), true));
 }
 
@@ -65,13 +65,12 @@ ql::datum_t perfmon_filter_t::filter(const ql::datum_t &stats) const {
 ql::datum_t perfmon_filter_t::subfilter(const ql::datum_t &stats,
                                         const size_t depth,
                                         const std::vector<bool> active) const {
-    bool keep_this_perfmon = true;
     if (stats.get_type() == ql::datum_t::R_OBJECT) {
         ql::datum_object_builder_t builder;
 
         for (size_t i = 0; i < stats.obj_size(); ++i) {
             std::vector<bool> subactive = active;
-            std::pair<datum_string_t, datum_t> pair = stats.get_pair(i);
+            std::pair<datum_string_t, ql::datum_t> pair = stats.get_pair(i);
 
             bool some_subpath = false;
             for (size_t j = 0; j < regexps.size(); ++j) {

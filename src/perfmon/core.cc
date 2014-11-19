@@ -56,18 +56,18 @@ void perfmon_collection_t::visit_stats(void *_context) {
 ql::datum_t perfmon_collection_t::end_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    datum_object_builder_t builder;
+    ql::datum_object_builder_t builder;
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
         ql::datum_t stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             for (size_t j = 0; i < stat.obj_size(); ++j) {
-                std::pair<datum_string_t, datum_t> pair = stat.get_pair(j);
+                std::pair<datum_string_t, ql::datum_t> pair = stat.get_pair(j);
                 builder.overwrite(pair.first, pair.second);
             }
         } else {
-            builder.overwrite(p->name, stat);
+            builder.overwrite(p->name.c_str(), stat);
         }
     }
     delete ctx; // cleans up, unlocks

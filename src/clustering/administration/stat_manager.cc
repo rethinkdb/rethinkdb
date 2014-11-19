@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "concurrency/watchable.hpp"
-#include "perfmon/archive.hpp"
 #include "perfmon/collect.hpp"
 #include "perfmon/filter.hpp"
 #include "stl_utils.hpp"

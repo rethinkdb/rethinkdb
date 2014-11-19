@@ -393,7 +393,6 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.http_port,
                                 server_id,
                                 &mailbox_manager,
-                                semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));

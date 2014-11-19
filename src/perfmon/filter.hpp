@@ -8,6 +8,8 @@
 
 #include "errors.hpp"
 
+#include "rdb_protocol/datum.hpp"
+
 template <class> class scoped_ptr_t;
 class scoped_regex_t;
 

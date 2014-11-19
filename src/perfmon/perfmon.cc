@@ -11,14 +11,13 @@
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 
-static const char * stat_avg = "avg";
-static const char * stat_min = "min";
-static const char * stat_max = "max";
-static const char * stat_per_sec = "per_sec";
-static const char * stat_count = "count";
-static const char * stat_mean = "mean";
-static const char * stat_std_dev = "std_dev";
-static const char * no_value = "-";
+static const char *stat_avg = "avg";
+static const char *stat_min = "min";
+static const char *stat_max = "max";
+static const char *stat_per_sec = "per_sec";
+static const char *stat_count = "count";
+static const char *stat_mean = "mean";
+static const char *stat_std_dev = "std_dev";
 
 
 #ifdef FULL_PERFMON
@@ -225,7 +224,7 @@ ql::datum_t perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
         builder.overwrite(stat_mean, ql::datum_t::null());
         builder.overwrite(stat_std_dev, ql::datum_t::null());
     }
-    return stat;
+    return std::move(builder).to_datum();
 }
 
 void perfmon_stddev_t::record(double value) {
