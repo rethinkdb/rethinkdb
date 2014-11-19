@@ -180,7 +180,7 @@ TEST(PreV116Metadata, Migrate) {
     pre_table3.name = make_vclock(name_string_t::guarantee_valid("table3"));
     pre_table3.primary_key = make_vclock(std::string("table3_pkey"));
     pre_table3.database = make_vclock(database_id);
-    pre_namespaces.namespaces[table2_id] = make_deletable(pre_table3);
+    pre_namespaces.namespaces[table3_id] = make_deletable(pre_table3);
 
     namespace_id_t deleted_table_id = generate_uuid();
     pre_namespaces.namespaces[deleted_table_id].mark_deleted();
@@ -220,10 +220,10 @@ TEST(PreV116Metadata, Migrate) {
     }
 
     {
-        auto it = post_cluster.servers.servers.find(server2_id);
+        auto it = post_cluster.servers.servers.find(server3_id);
         ASSERT_FALSE(it == post_cluster.servers.servers.end());
         ASSERT_FALSE(it->second.is_deleted());
-        EXPECT_EQ(it->second.get_ref().name.get_ref().str(), "server2");
+        EXPECT_EQ(it->second.get_ref().name.get_ref().str(), "server3");
         std::set<name_string_t> tags = it->second.get_ref().tags.get_ref();
         EXPECT_EQ(1, tags.size());
         auto jt = tags.begin();

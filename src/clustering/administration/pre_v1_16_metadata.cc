@@ -341,8 +341,8 @@ namespace_semilattice_metadata_t migrate_table(
             continue;
         }
         std::set<server_id_t> ack_servers = get_servers_in_dc(machines, pair.first);
-        if (std::includes(all_relevant_servers.begin(), all_relevant_servers.end(),
-                          ack_servers.begin(), ack_servers.end())) {
+        if (std::includes(ack_servers.begin(), ack_servers.end(),
+                          all_relevant_servers.begin(), all_relevant_servers.end())) {
             /* Special-case the situation where all the replicas are in the same
             datacenter, by bundling the specific ack requirement for that datacenter in
             with the general ack requirement. The reason for special-casing this is that
@@ -350,6 +350,23 @@ namespace_semilattice_metadata_t migrate_table(
             acks, which is more user-friendly. */
             num_general_acks += pair.second.expectation_;
             continue;
+        }
+        if (pair.second.expectation_ == 1) {
+            bool all_directors_in_datacenter = true;
+            for (const table_config_t::shard_t &shard : repli_info.config.shards) {
+                if (ack_servers.count(shard.director) != 1) {
+                    all_directors_in_datacenter = false;
+                    break;
+                }
+            }
+            if (all_directors_in_datacenter) {
+                /* If this ack expectation is asking for a single ack from the primary
+                datacenter, we can safely treat it as a "general ack" because it's
+                guaranteed to be satisfied anyway. This is convenient because it might
+                let us use the simplified syntax. */
+                num_general_acks += 1;
+                continue;
+            }
         }
         name_string_t dc_name = get_name_of_dc(datacenters, pair.first);
         write_ack_config_t::req_t req = migrate_ack_req(
