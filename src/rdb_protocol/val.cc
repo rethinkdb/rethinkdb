@@ -25,7 +25,10 @@ public:
           key(std::move(_key)),
           row(std::move(_row)) { }
     virtual datum_t get() {
-        return row.has() ? row : tbl->get_row(env, key);
+        if (!row.has()) {
+            row = tbl->get_row(env, key);
+        }
+        return row;
     }
     virtual counted_t<datum_stream_t> read_changes() {
         return tbl->tbl->read_row_changes(env, key, bt, tbl->display_name());
@@ -76,13 +79,14 @@ public:
           slice(std::move(_slice)),
           err(std::move(_err)) { }
     virtual datum_t get() {
-        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
-        datum_t d = slice->as_seq(env, bt)->next(env, batchspec);
-        if (d.has()) {
-            return d;
-        } else {
-            rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+        if (!row.has()) {
+            batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+            row = slice->as_seq(env, bt)->next(env, batchspec);
+            if (!row.has()) {
+                rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+            }
         }
+        return row;
     }
     virtual counted_t<datum_stream_t> read_changes() {
         changefeed::keyspec_t::spec_t spec =
@@ -109,6 +113,7 @@ private:
     env_t *env;
     protob_t<const Backtrace> bt;
     counted_t<table_slice_t> slice;
+    datum_t row;
     std::string err;
 };
 
