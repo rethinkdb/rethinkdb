@@ -50,8 +50,8 @@ module 'TableView', ->
                                                 id: position
                                             ).coerceTo('array')))
                                 # Again, we must check if the table is available
-                                total_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum())
-                                status: r.branch(table('status')('all_replicas_ready'), 'ready', 'unready')
+                                total_keys: r.branch(master_down, null, r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum())
+                                status: table('status')
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
                                     num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position))

@@ -83,26 +83,30 @@ Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     reachability = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
     return new Handlebars.SafeString(reachability)
 
+humanize_table_status = (status) ->
+    if status.all_replicas_ready or status.ready_for_writes
+        "Ready"
+    else if status.ready_for_reads
+        'Reads only'
+    else if status.ready_for_outdated_reads
+        'Outdated reads'
+    else
+        'Unavailable'
+
 Handlebars.registerHelper 'humanize_table_readiness', (status, num, denom) ->
-    if status in ['all_replicas_ready', 'ready_for_writes']
-        value = "Ready #{num}/#{denom}"
-        if status is 'all_replicas_ready'
-            label = 'success'
-        else
-            label = 'partial-success'
+    if status.all_replicas_ready
+        label = 'success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
+    else if status.ready_for_writes
+        label = 'partial-success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
     else
         label = 'failure'
-        if status is 'not_ready'
-            value = 'Unavailable'
-        else if status is 'ready_for_reads'
-            value = 'Reads only'
-        else if status is 'ready_for_outdated_reads'
-            value = 'Outdated reads'
-        else
-            value = status
+        value = humanize_table_status(status)
     return new Handlebars.SafeString(
         "<div class='status label label-#{label}'>#{value}</div>")
 
+Handlebars.registerHelper 'humanize_table_status', humanize_table_status
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->

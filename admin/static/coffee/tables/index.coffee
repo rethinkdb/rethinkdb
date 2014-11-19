@@ -88,13 +88,7 @@ module 'TablesView', ->
                         replicas_ready: table('shards').map((shard) ->
                             shard('replicas').filter((replica) ->
                                 replica('state').eq('ready')).count()).sum()
-                        status:
-                            r.branch(table('status')('all_replicas_ready'), 'all_replicas_ready',
-                            r.branch(table('status')('ready_for_writes'), 'ready_for_writes',
-                            r.branch(table('status')('ready_for_reads'), 'ready_for_reads',
-                            r.branch(table('status')('ready_for_outdated_reads'), 'ready_for_outdated_reads',
-                            'not_ready'  # otherwise
-                            ))))
+                        status: table('status')
                         id: table('id')
                     )
 
