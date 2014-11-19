@@ -202,7 +202,8 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
         stream->add_transformation(
-                concatmap_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
+            concatmap_wire_func_t(result_hint_t::NO_HINT, args->arg(env, 1)->as_func()),
+                backtrace());
         return new_val(env->env, stream);
     }
     virtual const char *name() const { return "concatmap"; }
@@ -306,13 +307,60 @@ private:
     virtual const char *name() const { return "reduce"; }
 };
 
+struct rcheck_transform_visitor_t : public pb_rcheckable_t,
+                                    public boost::static_visitor<void> {
+    template<class... Args>
+    explicit rcheck_transform_visitor_t(Args &&... args)
+        : pb_rcheckable_t(std::forward<Args...>(args)...) { }
+    void check_f(const wire_func_t &f) const {
+        rcheck_src(f.get_bt().get(),
+                   f.compile_wire_func()->is_deterministic(),
+                   base_exc_t::GENERIC,
+                   "Cannot call `changes` after a non-deterministic function.");
+    }
+    void operator()(const map_wire_func_t &f) const {
+        check_f(f);
+    }
+    void operator()(const filter_wire_func_t &f) const {
+        check_f(f.filter_func);
+        if (f.default_filter_val) {
+            check_f(*f.default_filter_val);
+        }
+    }
+    void operator()(const concatmap_wire_func_t &f) const {
+        switch (f.result_hint) {
+        case result_hint_t::AT_MOST_ONE:
+            check_f(f);
+            break;
+        case result_hint_t::NO_HINT:
+            rfail(base_exc_t::GENERIC, "Cannot call `changes` after `concat_map`.");
+            // fallthru
+        default: unreachable();
+        }
+    }
+    NORETURN void operator()(const group_wire_func_t &) const {
+        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `group`.");
+    }
+    NORETURN void operator()(const distinct_wire_func_t &) const {
+        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `distinct`.");
+    }
+    NORETURN void operator()(const zip_wire_func_t &) const {
+        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `zip`.");
+    }
+};
+
 struct rcheck_spec_visitor_t : public pb_rcheckable_t,
                                public boost::static_visitor<void> {
     template<class... Args>
     explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
         : pb_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
-    void operator()(const changefeed::keyspec_t::range_t &) const { }
+    void operator()(const changefeed::keyspec_t::range_t &spec) const {
+        for (const auto &t : spec.transforms) {
+            boost::apply_visitor(rcheck_transform_visitor_t(backtrace()), t);
+        }
+    }
     void operator()(const changefeed::keyspec_t::limit_t &spec) const {
+        (*this)(spec.range);
         rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                strprintf(
                    "Array size limit `%zu` exceeded.  (`.limit(X).changes()` is illegal "
@@ -331,18 +379,18 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
-        if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            counted_t<selection_t> selection = v->as_selection(env->env);
-            counted_t<table_t> tbl = selection->table;
-            counted_t<datum_stream_t> seq = selection->seq;
-            auto spec = seq->get_change_spec();
-            boost::apply_visitor(
-                rcheck_spec_visitor_t(env->env, backtrace()),
-                spec.spec);
+        if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+            counted_t<datum_stream_t> seq = v->as_seq(env->env);
+            changefeed::keyspec_t keyspec = seq->get_change_spec();
+            boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
+                                 keyspec.spec);
             return new_val(
                 env->env,
-                tbl->tbl->read_changes(
-                    env->env, std::move(spec), backtrace(), tbl->display_name()));
+                keyspec.table->read_changes(
+                    env->env,
+                    std::move(keyspec.spec),
+                    backtrace(),
+                    keyspec.table_name));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
                 env->env, v->as_single_selection()->read_changes());

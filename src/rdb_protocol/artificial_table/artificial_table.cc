@@ -86,7 +86,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         UNUSED ql::env_t *env,
-        UNUSED ql::changefeed::keyspec_t &&spec,
+        UNUSED ql::changefeed::keyspec_t::spec_t &&spec,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */

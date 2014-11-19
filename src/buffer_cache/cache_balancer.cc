@@ -21,11 +21,12 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
-    rebalance_timer(rebalance_check_interval_ms, this),
+    rebalance_timer(make_scoped<repeating_timer_t>(rebalance_check_interval_ms, this)),
+    rebalance_timer_state(rebalance_timer_state_t::normal),
     last_rebalance_time(0),
     read_ahead_ok(true),
     bytes_toward_read_ahead_limit(0),
-    evicters_per_thread(get_num_threads()),
+    per_thread_data(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) {
 
     // We do some signed arithmetic with cache sizes, so the total cache size
@@ -38,15 +39,39 @@ alt_cache_balancer_t::~alt_cache_balancer_t() {
     assert_thread();
 }
 
+bool *alt_cache_balancer_t::notify_activity_boolean(threadnum_t thread) {
+    guarantee(thread == get_thread_id());
+    return &per_thread_data[thread.threadnum].wake_up_balancer;
+}
+
+void alt_cache_balancer_t::wake_up_activity_happened() {
+    assert_thread();
+
+    switch (rebalance_timer_state) {
+    case rebalance_timer_state_t::normal:
+        // Do nothing -- we're already awake.
+        break;
+    case rebalance_timer_state_t::examining_other_threads:
+        rebalance_timer_state = rebalance_timer_state_t::normal;
+        break;
+    case rebalance_timer_state_t::deactivated:
+        rebalance_timer_state = rebalance_timer_state_t::normal;
+        rebalance_timer = make_scoped<repeating_timer_t>(rebalance_check_interval_ms, this);
+        break;
+    default:
+        unreachable();
+    }
+}
+
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    auto res = evicters_per_thread[get_thread_id().threadnum].insert(evicter);
+    auto res = per_thread_data[get_thread_id().threadnum].evicters.insert(evicter);
     guarantee(res.second);
 }
 
 void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    size_t res = evicters_per_thread[get_thread_id().threadnum].erase(evicter);
+    size_t res = per_thread_data[get_thread_id().threadnum].evicters.erase(evicter);
     guarantee(res == 1);
 }
 
@@ -60,22 +85,27 @@ void alt_cache_balancer_t::on_ring() {
 
 void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
     assert_thread();
-    scoped_array_t<std::vector<cache_data_t> > per_thread_data(evicters_per_thread.size());
+    const size_t num_threads = per_thread_data.size();
+    scoped_array_t<std::vector<cache_data_t> > cache_data(num_threads);
+    scoped_array_t<bool> zero_access_counts(num_threads);
 
     // Get cache sizes from shards on each thread
+    rebalance_timer_state = rebalance_timer_state_t::examining_other_threads;
     pmap(per_thread_data.size(),
          std::bind(&alt_cache_balancer_t::collect_stats_from_thread,
-                   this, ph::_1, &per_thread_data));
+                   this, ph::_1, &cache_data, &zero_access_counts));
 
+    bool all_zero_access_counts = true;
     // Sum up the number of evicters, bytes loaded, and access counts
     size_t total_evicters = 0;
     uint64_t total_bytes_loaded = 0;
     uint64_t total_access_count = 0;
-    for (size_t i = 0; i < per_thread_data.size(); ++i) {
-        total_evicters += per_thread_data[i].size();
-        for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
-            total_bytes_loaded += per_thread_data[i][j].bytes_loaded;
-            total_access_count += per_thread_data[i][j].access_count;
+    for (size_t i = 0; i < num_threads; ++i) {
+        total_evicters += cache_data[i].size();
+        all_zero_access_counts &= zero_access_counts[i];
+        for (size_t j = 0; j < cache_data[i].size(); ++j) {
+            total_bytes_loaded += cache_data[i][j].bytes_loaded;
+            total_access_count += cache_data[i][j].access_count;
         }
     }
 
@@ -102,9 +132,9 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
     if (total_cache_size > 0 && total_evicters > 0) {
         uint64_t total_new_sizes = 0;
 
-        for (size_t i = 0; i < per_thread_data.size(); ++i) {
-            for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
-                cache_data_t *data = &per_thread_data[i][j];
+        for (size_t i = 0; i < cache_data.size(); ++i) {
+            for (size_t j = 0; j < cache_data[i].size(); ++j) {
+                cache_data_t *data = &cache_data[i][j];
 
                 double temp = data->old_size;
                 temp /= static_cast<double>(total_cache_size);
@@ -127,9 +157,9 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
             if (delta == 0) {
                 delta = ((extra_bytes < 0) ? -1 : 1);
             }
-            for (size_t i = 0; i < per_thread_data.size() && extra_bytes != 0; ++i) {
-                for (size_t j = 0; j < per_thread_data[i].size() && extra_bytes != 0; ++j) {
-                    cache_data_t *data = &per_thread_data[i][j];
+            for (size_t i = 0; i < cache_data.size() && extra_bytes != 0; ++i) {
+                for (size_t j = 0; j < cache_data[i].size() && extra_bytes != 0; ++j) {
+                    cache_data_t *data = &cache_data[i][j];
 
                     // Avoid underflow
                     if (static_cast<int64_t>(data->new_size) + delta >= 0) {
@@ -144,25 +174,44 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
         }
 
         // Send new cache sizes to each thread
-        pmap(per_thread_data.size(),
+        pmap(num_threads,
              std::bind(&alt_cache_balancer_t::apply_rebalance_to_thread,
-                       this, ph::_1, &per_thread_data, read_ahead_ok));
+                       this, ph::_1, &cache_data, read_ahead_ok));
+    }
+
+    if (all_zero_access_counts
+        && rebalance_timer_state == rebalance_timer_state_t::examining_other_threads) {
+        rebalance_timer_state = rebalance_timer_state_t::deactivated;
+        rebalance_timer.reset();
+    } else {
+        rebalance_timer_state = rebalance_timer_state_t::normal;
+        if (!rebalance_timer.has()) {
+            rebalance_timer = make_scoped<repeating_timer_t>(rebalance_check_interval_ms, this);
+        }
     }
 }
 
-void alt_cache_balancer_t::collect_stats_from_thread(int index,
-        scoped_array_t<std::vector<cache_data_t> > *data_out) {
+void alt_cache_balancer_t::collect_stats_from_thread(
+        int index,
+        scoped_array_t<std::vector<cache_data_t> > *data_out,
+        scoped_array_t<bool> *zero_access_count_out) {
     on_thread_t rethreader((threadnum_t(index)));
 
     ASSERT_NO_CORO_WAITING;
-    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
-    std::vector<cache_data_t> * per_evicter_data = &(*data_out)[index];
+    const std::set<alt::evicter_t *> *evicters = &per_thread_data[index].evicters;
+    std::vector<cache_data_t> *per_evicter_data = &(*data_out)[index];
+
+    bool all_access_counts_zero = true;
 
     per_evicter_data->reserve(evicters->size());
     for (auto j = evicters->begin(); j != evicters->end(); ++j) {
         cache_data_t data(*j);
+        all_access_counts_zero &= (data.access_count == 0);
         per_evicter_data->push_back(data);
     }
+
+    per_thread_data[index].wake_up_balancer = all_access_counts_zero;
+    (*zero_access_count_out)[index] = all_access_counts_zero;
 }
 
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
@@ -170,7 +219,7 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
         bool new_read_ahead_ok) {
     on_thread_t rethreader((threadnum_t(index)));
 
-    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
+    const std::set<alt::evicter_t *> *evicters = &per_thread_data[index].evicters;
     const std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;

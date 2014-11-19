@@ -28,7 +28,7 @@ struct variant_serializer_t;
 template <cluster_version_t W, int N, class... Ts>
 struct variant_serializer_t<W, N, boost::detail::variant::void_, Ts...> : public variant_serializer_t<W, N> {
 
-    variant_serializer_t(write_message_t *wm)
+    explicit variant_serializer_t(write_message_t *wm)
         : variant_serializer_t<W, N>(wm) { }
 
     using variant_serializer_t<W, N>::operator();
@@ -37,7 +37,7 @@ struct variant_serializer_t<W, N, boost::detail::variant::void_, Ts...> : public
 template <cluster_version_t W, int N, class T, class... Ts>
 struct variant_serializer_t<W, N, T, Ts...> : public variant_serializer_t<W, N + 1, Ts...> {
 
-    variant_serializer_t(write_message_t *wm)
+    explicit variant_serializer_t(write_message_t *wm)
         : variant_serializer_t<W, N + 1, Ts...>(wm) { }
 
     using variant_serializer_t<W, N + 1, Ts...>::operator();
@@ -56,7 +56,7 @@ template <cluster_version_t W, int N>
 struct variant_serializer_t<W, N> {
     struct end_of_variant { };
 
-    variant_serializer_t(write_message_t *wm) : wm_(wm) { }
+    explicit variant_serializer_t(write_message_t *wm) : wm_(wm) { }
 
     void operator()(const end_of_variant&){
         unreachable();

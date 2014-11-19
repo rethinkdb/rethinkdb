@@ -16,8 +16,6 @@
 #include "containers/name_string.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/geo/distances.hpp"
-#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -48,16 +46,14 @@ enum class sindex_geo_bool_t;
 
 namespace ql {
 class configured_limits_t;
-
+class env_t;
 class db_t : public single_threaded_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
     const uuid_u id;
     const std::string name;
 };
-
-class env_t;
-}   // namespace ql
+} // namespace ql
 
 class table_generate_config_params_t {
 public:
@@ -101,7 +97,7 @@ public:
         const std::string &table_name) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
-        ql::changefeed::keyspec_t &&spec,
+        ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;
     virtual counted_t<ql::datum_stream_t> read_intersecting(

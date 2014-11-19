@@ -29,6 +29,7 @@
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
+class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
 class namespace_interface_access_t;
@@ -56,6 +57,12 @@ typedef std::vector<item_t> item_vec_t;
 item_vec_t mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
+boost::optional<datum_t> apply_ops(
+    const datum_t &val,
+    const std::vector<scoped_ptr_t<op_t> > &ops,
+    env_t *env,
+    const datum_t &key) THROWS_NOTHING;
+
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
@@ -77,6 +84,7 @@ struct msg_t {
     };
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
+        store_key_t pkey;
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -108,65 +116,62 @@ RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
 RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 
-class feed_t;
+class real_feed_t;
 struct stamped_msg_t;
 
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
 struct keyspec_t {
     struct range_t {
-        range_t() { }
-        range_t(boost::optional<std::string> _sindex,
-                sorting_t _sorting,
-                datum_range_t _range)
-            : sindex(std::move(_sindex)),
-              sorting(_sorting),
-              range(std::move(_range)) { }
+        std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datum_range_t range;
     };
     struct limit_t {
-        limit_t() { }
-        limit_t(range_t _range, size_t _limit)
-            : range(std::move(_range)), limit(_limit) { }
         range_t range;
         size_t limit;
     };
     struct point_t {
-        point_t() { }
-        explicit point_t(datum_t _key) : key(std::move(_key)) { }
-        datum_t key;
+        store_key_t key;
     };
 
-    keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
-    template<class T>
-    explicit keyspec_t(T &&t) : spec(std::move(t)) { }
+    keyspec_t(keyspec_t &&keyspec);
+    ~keyspec_t();
+
+    // Accursed reference collapsing!
+    template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
+    explicit keyspec_t(T &&t,
+                       scoped_ptr_t<base_table_t> &&_table,
+                       std::string _table_name)
+        : spec(std::move(t)),
+          table(std::move(_table)),
+          table_name(std::move(_table_name)) { }
 
     // This needs to be copyable and assignable because it goes inside a
     // `changefeed_stamp_t`, which goes inside a variant.
     keyspec_t(const keyspec_t &keyspec) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    boost::variant<range_t, limit_t, point_t> spec;
-private:
-    keyspec_t() { }
+    typedef boost::variant<range_t, limit_t, point_t> spec_t;
+    spec_t spec;
+    scoped_ptr_t<base_table_t> table;
+    std::string table_name;
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 // The `client_t` exists on the server handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
 // should call `new_feed`.  The `client_t` will give it back a stream of rows.
 // The `client_t` does this by maintaining an internal map from table UUIDs to
-// `feed_t`s.  (It does this so that there is at most one `feed_t` per <table,
-// client> pair, to prevent redundant cluster messages.)  The actual logic for
-// subscribing to a changefeed server and distributing writes to streams can be
-// found in the `feed_t` class.
+// `real_feed_t`s.  (It does this so that there is at most one `real_feed_t` per
+// <table, client> pair, to prevent redundant cluster messages.)  The actual
+// logic for subscribing to a changefeed server and distributing writes to
+// streams can be found in the `real_feed_t` class.
 class client_t : public home_thread_mixin_t {
 public:
     typedef client_addr_t addr_t;
@@ -185,10 +190,9 @@ public:
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
-        const std::string &pkey,
-        const keyspec_t &keyspec);
+        const keyspec_t::spec_t &spec);
     void maybe_remove_feed(const namespace_id_t &uuid);
-    scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
+    scoped_ptr_t<real_feed_t> detach_feed(const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
@@ -197,7 +201,7 @@ private:
             const namespace_id_t &,
             signal_t *)
         > const namespace_source;
-    std::map<namespace_id_t, scoped_ptr_t<feed_t> > feeds;
+    std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever
     // `new_feed` is called with a table not already in the `feeds` map, or
@@ -360,12 +364,13 @@ public:
              store_key_t sk,
              is_primary_t is_primary,
              datum_t key,
-             datum_t val);
+             datum_t val) THROWS_NOTHING;
     void del(rwlock_in_line_t *spot,
              store_key_t sk,
-             is_primary_t is_primary);
+             is_primary_t is_primary) THROWS_NOTHING;
     void commit(rwlock_in_line_t *spot,
-                const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
+                const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref)
+        THROWS_NOTHING;
 
     void abort(exc_t e);
     bool is_aborted() { return aborted; }
@@ -387,6 +392,8 @@ private:
     client_t::addr_t parent_client;
 
     keyspec_t::limit_t spec;
+    std::vector<scoped_ptr_t<op_t> > ops;
+
     limit_order_t gt;
     item_queue_t item_queue;
 
@@ -400,7 +407,7 @@ public:
 };
 
 // There is one `server_t` per `store_t`, and it is used to send changes that
-// occur on that `store_t` to any subscribed `feed_t`s contained in a
+// occur on that `store_t` to any subscribed `real_feed_t`s contained in a
 // `client_t`.
 class server_t {
 public:
@@ -445,7 +452,7 @@ private:
                                uuid_u uuid);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
-    // The UUID of the server, used so that `feed_t`s can enforce on ordering on
+    // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
     // from before their own creation timestamp on a per-server basis).
     const uuid_u uuid;
@@ -499,6 +506,21 @@ private:
     // changefeed.
     mailbox_t<void(client_t::addr_t, boost::optional<std::string>, uuid_u)>
         limit_stop_mailbox;
+};
+
+class artificial_feed_t;
+class artificial_t {
+public:
+    artificial_t();
+    ~artificial_t();
+    counted_t<datum_stream_t> subscribe(
+        const keyspec_t::spec_t &spec,
+        const protob_t<const Backtrace> &bt);
+    void send_all(const msg_t &msg);
+private:
+    uint64_t stamp;
+    uuid_u uuid;
+    scoped_ptr_t<artificial_feed_t> feed;
 };
 
 } // namespace changefeed

@@ -519,10 +519,6 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 
 // This is a separate class because it needs to shard and unshard differently.
 struct changefeed_point_stamp_t {
-    changefeed_point_stamp_t() { }
-    explicit changefeed_point_stamp_t(ql::changefeed::client_t::addr_t _addr,
-                                      store_key_t &&_key)
-        : addr(std::move(_addr)), key(std::move(_key)) { }
     ql::changefeed::client_t::addr_t addr;
     store_key_t key;
 };

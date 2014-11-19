@@ -1234,6 +1234,7 @@ void rdb_modification_report_cb_t::on_mod_report(
                 ql::changefeed::msg_t::change_t{
                     old_keys,
                     new_keys,
+                    report.primary_key,
                     report.info.deleted.first,
                     report.info.added.first}),
             report.primary_key);
@@ -1498,7 +1499,7 @@ void rdb_update_single_sindex(
                         ql::changefeed::limit_manager_t *lm) {
                         guarantee(clients_spot->read_signal()->is_pulsed());
                         guarantee(limit_clients_spot->read_signal()->is_pulsed());
-                        for (const auto &pair :keys) {
+                        for (const auto &pair : keys) {
                             lm->del(lm_spot, pair.first, is_primary_t::NO);
                         }
                     });
