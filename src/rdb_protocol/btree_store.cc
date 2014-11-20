@@ -293,7 +293,7 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
     write_token_pair_t token_pair;
     new_write_token_pair(&token_pair);
 
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  expected_change_count,
                                  durability,
                                  &token_pair,
@@ -355,7 +355,7 @@ void store_t::reset_data(
         const int expected_change_count = 2 + max_erased_per_pass;
         write_token_pair_t token_pair;
         new_write_token_pair(&token_pair);
-        acquire_superblock_for_write(repli_timestamp_t::invalid,
+        acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                      expected_change_count,
                                      durability,
                                      &token_pair,
@@ -1307,10 +1307,9 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  1,
                                  write_durability_t::HARD,
                                  token,
