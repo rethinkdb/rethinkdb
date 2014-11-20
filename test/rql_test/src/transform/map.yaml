@@ -22,6 +22,11 @@ tests:
       rb: r.map(r.range(3)){0}
       ot: [0, 0, 0]
 
+    - js: r.range(3).map(r.range(4), function(){return 0})
+      py: r.range(3).map(r.range(4), lambda:0)
+      rb: r.range(3).map(r.range(4)){0}
+      ot: [0, 0, 0]
+
     - js: r.expr([1]).map(function(x){return [x]})
       py: r.expr([1]).map(lambda x:(x,))
       rb: r.map(r.expr([1])){|x| [x]}
