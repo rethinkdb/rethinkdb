@@ -1,3 +1,4 @@
+# call to query_result.size and other code assumes that result is an array
 # 400 bad request when aborting changefeed
 # table view shows no results when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
@@ -164,7 +165,7 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
-        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
+        delay_show_abort: 500 # If a query didn't return during this period (ms) we let people abort the query
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -3542,7 +3543,7 @@ module 'DataExplorerView', ->
                     show_more_data: has_more_data and not @container.state.cursor_timed_out
                     cursor_timed_out_template: (
                         @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
-                    execution_time_pretty: 12345 # @ATN_metadata.execution_time_pretty
+                    execution_time_pretty: 12345 # ATN Utils.prettify_duration args.metadata.execution_time
                     no_results: @query_result.ended and (
                         @query_result.value is [] or @query_result.results is []) # ATN: move to QueryResult class
                     num_results: 12345 # ATN
@@ -3561,13 +3562,6 @@ module 'DataExplorerView', ->
             @$('.tab-content').html @view_object.render().$el
             @init_after_dom_rendered()
             @set_scrollbar()
-
-        # ATN: conitnue ripping this into pieces
-        render_result: (args) =>
-
-            # ATN TODO
-            @ATN_metadata.execution_time_pretty = Utils.prettify_duration args.ATN_metadata.execution_time
-
 
         init_after_dom_rendered: =>
             @view_object?.init_after_dom_rendered?()
@@ -3591,7 +3585,7 @@ module 'DataExplorerView', ->
 
         show_next_batch: (event) =>
             event.preventDefault()
-            $(window).scrollTop(@$el.offset().top)
+            $(window).scrollTop(@$('.tab-content').offset().top)
             @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View
@@ -3746,36 +3740,53 @@ module 'DataExplorerView', ->
     class DriverHandler
         constructor: (options) ->
             @container = options.container
+            @concurrent = 0
+            @total_duration = 0
+
+        _begin: =>
+            if @concurrent == 0
+                @container.toggle_executing true
+                @begin_time = new Date()
+            @concurrent++
+
+        _end: =>
+            if @concurrent > 0
+                @concurrent--
+                now = new Date()
+                @total_duration += now - @begin_time
+                @begin_time = now
+            if @concurrent == 0
+                @container.toggle_executing false
 
         close_connection: =>
             if @connection?.open is true
                 driver.close @connection
                 @connection = null
-                @container.toggle_executing false
+                @_end()
 
         run_with_new_connection: (query, {callback, connection_error, optargs}) =>
             @close_connection()
+            @total_duration = 0
+            @concurrent = 0
 
-            @container.toggle_executing true
             driver.connect (error, connection) =>
                 if error?
-                    @container.toggle_executing false
                     connection_error error
                 connection.removeAllListeners 'error' # See issue 1347
                 connection.on 'error', (error) =>
-                    @container.toggle_executing false
                     connection_error error
                 @connection = connection
+                @_begin()
                 query.private_run connection, optargs, (error, result) =>
-                    @container.toggle_executing false
+                    @_end()
                     callback error, result
 
         cursor_next: (cursor, {error, row, end}) =>
             if not @connection?
                 end()
-            @container.toggle_executing true
+            @_begin()
             cursor.next (err, row_) =>
-                @container.toggle_executing false
+                @_end()
                 if err?
                     if err.message is 'No more rows in the cursor.'
                         end()
