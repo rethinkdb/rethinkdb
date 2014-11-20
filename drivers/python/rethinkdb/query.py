@@ -58,7 +58,11 @@ def branch(*args):
     return Branch(*args)
 
 def map(*args):
-    return Map(*args)
+    if len(args) > 0:
+        # `func_wrap` only the last argument
+        return Map(*(args[:-1] + (func_wrap(args[-1]), )))
+    else:
+        return Map()
 
 # orderBy orders
 

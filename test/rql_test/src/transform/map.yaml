@@ -96,7 +96,11 @@ tests:
       rb: r.map(r.range(3), lambda {|x| [x]})
       ot: [[0], [1], [2]]
 
+    - js: r.map(r.range(3), r.row.add(1))
+      py: r.map(r.range(3), r.row + 1)
+      ot: [1, 2, 3]
+
     - js: r.map(r.range(3), r.range(5), function(x, y){return [x, y]})
       py: r.map(r.range(3), r.range(5), lambda x, y:(x, y))
-      rb: r.map(r.range(3), r.range(5), lambda {|x, y| [x, y]})
+      rb: r.map(r.range(3), r.range(5)){|x, y| [x, y]}
       ot: [[0, 0], [1, 1], [2, 2]]
