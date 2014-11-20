@@ -20,7 +20,7 @@ protected:
         guarantee(prev_ == NULL,
                   "non-detached intrusive list node destroyed");
         guarantee(next_ == NULL,
-                "inconsistent intrusive list node!");
+                  "inconsistent intrusive list node!");
     }
 
     intrusive_list_node_t(intrusive_list_node_t &&movee) {
