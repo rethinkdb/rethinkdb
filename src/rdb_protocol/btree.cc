@@ -1794,7 +1794,7 @@ public:
                 // the cache to go into throttling, and that would interfere
                 // with other transactions on this table.
                 try {
-                    write_token_pair_t token_pair;
+                    write_token_t token_pair;
                     store_->new_write_token_pair(&token_pair);
 
                     scoped_ptr_t<real_superblock_t> superblock;

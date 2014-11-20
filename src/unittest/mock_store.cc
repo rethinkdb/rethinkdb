@@ -39,7 +39,7 @@ std::string mock_lookup(store_view_t *store, std::string key) {
     trivial_metainfo_checker_callback_t checker_cb;
     metainfo_checker_t checker(&checker_cb, store->get_region());
 #endif
-    read_token_pair_t token;
+    read_token_t token;
     store->new_read_token_pair(&token);
 
     read_t r = mock_read(key);
@@ -116,7 +116,7 @@ void mock_store_t::read(
         const read_t &read,
         read_response_t *response,
         order_token_t order_token,
-        read_token_pair_t *token,
+        read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
@@ -163,7 +163,7 @@ void mock_store_t::write(
         UNUSED write_durability_t durability,
         transition_timestamp_t timestamp,
         order_token_t order_token,
-        write_token_pair_t *token,
+        write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
@@ -216,7 +216,7 @@ bool mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         send_backfill_callback_t *send_backfill_cb,
         traversal_progress_combiner_t *progress,
-        read_token_pair_t *token,
+        read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
@@ -278,7 +278,7 @@ bool mock_store_t::send_backfill(
 
 void mock_store_t::receive_backfill(
         const backfill_chunk_t &chunk,
-        write_token_pair_t *token,
+        write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
@@ -312,7 +312,7 @@ void mock_store_t::reset_data(
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
 
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     new_write_token_pair(&token_pair);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t

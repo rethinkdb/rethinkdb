@@ -75,7 +75,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store_view_t::new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;

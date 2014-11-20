@@ -123,7 +123,7 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -135,7 +135,7 @@ public:
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -143,13 +143,13 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -351,7 +351,7 @@ public:
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
