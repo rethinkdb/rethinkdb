@@ -19,8 +19,8 @@ while (<>) {
         push @pairs, [$file, $sum];
         $file = $1;
         $sum = 0;
-    } elsif (/^user\s*0m(\d+\.\d+)s/) {
-        $sum += $1;
+    } elsif (/^user\s*(\d+)m(\d+\.\d+)s/) {
+        $sum += $1 * 60 + $2;
     }
 }
 
