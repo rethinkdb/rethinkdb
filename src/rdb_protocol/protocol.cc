@@ -105,7 +105,6 @@ void bring_sindexes_up_to_date(
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
-    // std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
     std::map<uuid_u, std::string> sindexes_to_bring_up_to_date_uuid_name;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
@@ -132,12 +131,11 @@ void bring_sindexes_up_to_date(
  */
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        std::map<uuid_u, std::string> const & sindexes_to_bring_up_to_date_uuid_name,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
-    // JEROEN
     std::set<uuid_u> sindexes_to_bring_up_to_date;
     std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
         sindex_sentries;

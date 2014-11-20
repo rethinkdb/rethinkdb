@@ -5,19 +5,38 @@
 #include <string>
 
 #include "btree/secondary_operations.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
 class job_report_t {
 public:
     job_report_t();
-    job_report_t(std::string const &type, uuid_u const &id, double duration);
+    job_report_t(
+            uuid_u const &id,
+            std::string const &type,
+            double duration,
+            uuid_u const &table = nil_uuid(),
+            std::string const &index = "");
 
-    std::string type;
+    ql::datum_t to_datum(
+            admin_identifier_format_t identifier_format,
+            server_name_client_t *name_client,
+            cluster_semilattice_metadata_t const &metadata) const;
+
+    // Unfortunately these a required to be public in order for them to be serialized.
     uuid_u id;
-    double duration;    // in microseconds
+    std::string type;
+    double duration;
+    uuid_u table;
+    std::string index;
+
+    // `servers` is used in `backend.cc` to aggregate the same job running on multiple
+    // machines.
+    std::set<uuid_u> servers;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_report_t);
 

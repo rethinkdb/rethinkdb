@@ -9,21 +9,19 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-// Extends the `job_report_t` with a `std::set<server_id_t>` servers, and the duration
-// will be treated as the maximum duration.
-class extended_job_report_t : public job_report_t {
-public:
-    extended_job_report_t(job_report_t const & job_report) : job_report_t(job_report) { }
-
-    std::set<server_id_t> servers;
-};
-
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
         mailbox_manager_t *_mailbox_manager,
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > _semilattice_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<
-            peer_id_t, cluster_directory_metadata_t> > > &_directory_view)
+            peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
+        server_name_client_t *_name_client,
+        admin_identifier_format_t _identifier_format)
     : mailbox_manager(_mailbox_manager),
-      directory_view(_directory_view) {
+      semilattice_view(_semilattice_view),
+      directory_view(_directory_view),
+      name_client(_name_client),
+      identifier_format(_identifier_format) {
 }
 
 std::string jobs_artificial_table_backend_t::get_primary_key_name() {
@@ -39,49 +37,44 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t rethreader(home_thread());
 
-    std::map<uuid_u, extended_job_report_t> extended_reports;
+    std::map<uuid_u, job_report_t> job_reports;
 
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_t;
     peers_t peers = directory_view->get().get_inner();
     pmap(peers.begin(), peers.end(), [&](peers_t::value_type const &peer) {
-        cond_t got_reports;
+        cond_t returned_job_reports;
         disconnect_watcher_t disconnect_watcher(mailbox_manager, peer.first);
 
         mailbox_t<void(std::vector<job_report_t>)> return_mailbox(
             mailbox_manager,
-            [&](UNUSED signal_t *, std::vector<job_report_t> const &reports) {
-                for (auto const &report : reports) {
-                    auto result = extended_reports.insert(
-                        std::make_pair(report.id, extended_job_report_t(report)));
+            [&](UNUSED signal_t *, std::vector<job_report_t> const &return_job_reports) {
+                for (auto const &return_job_report : return_job_reports) {
+                    auto result = job_reports.insert(
+                        std::make_pair(return_job_report.id, return_job_report));
 
                     // Note `std::map.insert` returns a `std::pair<iterator, bool>`,
-                    // here we update the `extended_report_t` regardless of the success.
-                    result.first->second.duration =
-                        std::max(result.first->second.duration, report.duration);
+                    // here we update the `job_report_t` if it already existed.
+                    if (result.second == false) {
+                        result.first->second.duration = std::max(
+                            result.first->second.duration, return_job_report.duration);
+                    }
                     result.first->second.servers.insert(peer.second.server_id);
                 }
 
-                got_reports.pulse();
+                returned_job_reports.pulse();
             });
         send(mailbox_manager,
              peer.second.jobs_mailbox.get_job_reports_mailbox_address,
              return_mailbox.get_address());
 
-        wait_any_t waiter(&got_reports, &disconnect_watcher);
+        wait_any_t waiter(&returned_job_reports, &disconnect_watcher);
         wait_interruptible(&waiter, &ct_interruptor);
     });
 
-    for (auto const &report : extended_reports) {
-        ql::datum_object_builder_t builder;
-        builder.overwrite("id", convert_uuid_to_datum(report.first));
-        builder.overwrite("servers", convert_set_to_datum<server_id_t>(
-            convert_uuid_to_datum, report.second.servers));
-        builder.overwrite("type", convert_string_to_datum(report.second.type));
-        if (report.second.duration >= 0) {
-            builder.overwrite(
-                "duration", ql::datum_t(report.second.duration / 1000000));  // microseconds -> seconds
-        }
-        rows_out->push_back(std::move(builder).to_datum());
+    cluster_semilattice_metadata_t metadata = semilattice_view->get();
+    for (auto const &job_report : job_reports) {
+        rows_out->push_back(
+            job_report.second.to_datum(identifier_format, name_client, metadata));
     }
 
     return true;

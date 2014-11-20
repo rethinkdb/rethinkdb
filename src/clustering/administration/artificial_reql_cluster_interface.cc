@@ -274,7 +274,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
-        mailbox_manager_t *mailbox_manager,
+        mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         boost::shared_ptr< semilattice_readwrite_view_t<
@@ -347,10 +347,16 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
 
-    jobs_backend.init(new jobs_artificial_table_backend_t(
-        mailbox_manager, _directory_view));
+    for (int i = 0; i < 2; ++i) {
+        jobs_backend[i].init(new jobs_artificial_table_backend_t(
+            _mailbox_manager,
+            _semilattice_view,
+            _directory_view,
+            _name_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
     backends[name_string_t::guarantee_valid("jobs")] =
-        std::make_pair(jobs_backend.get(), jobs_backend.get());
+        std::make_pair(jobs_backend[0].get(), jobs_backend[1].get());
 
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =

@@ -960,8 +960,6 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
                        buf_lock_t *sindex_block,
                        traversal_progress_combiner_t *progress,
                        signal_t *interruptor) THROWS_NOTHING {
-    // JEROEN
-
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
@@ -1167,10 +1165,10 @@ void store_t::delayed_clear_sindex(
     }
 }
 
-const namespace_id_t &store_t::get_namespace_id() const {
+namespace_id_t const &store_t::get_namespace_id() const {
     return namespace_id;
 }
 
-store_t::sindex_jobs_t * store_t::get_sindex_jobs() {
+store_t::sindex_jobs_t *store_t::get_sindex_jobs() {
     return &sindex_jobs;
 }

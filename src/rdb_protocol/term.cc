@@ -213,7 +213,6 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    // JEROEN
     map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
         ctx->get_query_jobs(), generate_uuid(), current_microtime());
 

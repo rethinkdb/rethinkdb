@@ -411,10 +411,10 @@ public:
                          const region_map_t<binary_blob_t> &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
-    const namespace_id_t &get_namespace_id() const;
+    namespace_id_t const &get_namespace_id() const;
 
     typedef std::map<uuid_u, std::pair<microtime_t, std::string> > sindex_jobs_t;
-    sindex_jobs_t * get_sindex_jobs();
+    sindex_jobs_t *get_sindex_jobs();
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;

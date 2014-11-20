@@ -12,14 +12,21 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 
+class server_name_client_t;
+
 class jobs_artificial_table_backend_t :
     public artificial_table_backend_t
 {
 public:
     jobs_artificial_table_backend_t(
         mailbox_manager_t *_mailbox_manager,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > > &_directory_view);
+        boost::shared_ptr<semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > _semilattice_view,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<
+            peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
+        server_name_client_t *_name_client,
+        admin_identifier_format_t _identifier_format);
+
 
     std::string get_primary_key_name();
 
@@ -41,8 +48,15 @@ public:
 private:
     mailbox_manager_t *mailbox_manager;
 
+    boost::shared_ptr< semilattice_readwrite_view_t<
+        cluster_semilattice_metadata_t> > semilattice_view;
+
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
+
+    server_name_client_t *name_client;
+
+    admin_identifier_format_t identifier_format;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_BACKEND_HPP_ */

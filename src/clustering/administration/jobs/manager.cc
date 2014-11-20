@@ -58,7 +58,7 @@ void jobs_manager_t::on_get_job_reports(
             if (rdb_context != nullptr) {
                 for (auto const &query : *(rdb_context->get_query_jobs())) {
                     job_reports_inner.emplace_back(
-                        "query", query.first, time - std::min(query.second, time));
+                        query.first, "query", time - std::min(query.second, time));
                 }
             }
         }
@@ -74,7 +74,11 @@ void jobs_manager_t::on_get_job_reports(
                 uuid_to_str(sindex_job.first.first) + sindex_job.first.second);
 
             job_reports.emplace_back(
-                "sindex", id, time - std::min(sindex_job.second.start_time, time));
+                id,
+                "index_construction",
+                time - std::min(sindex_job.second.start_time, time),
+                sindex_job.first.first,
+                sindex_job.first.second);
         }
 
         for (auto const &table : reactor_driver->get_tables_gc_active()) {
@@ -82,7 +86,7 @@ void jobs_manager_t::on_get_job_reports(
 
             // `disk_compaction` jobs do not have a duration, it's set to -1 to prevent
             // it being displayed later
-            job_reports.emplace_back("disk_compaction", id, -1);
+            job_reports.emplace_back(id, "disk_compaction", -1, table);
         }
     }
 

@@ -300,8 +300,6 @@ void lba_list_t::consider_gc() {
 }
 
 void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
-    // JEROEN metadata_compaction
-
     ++extent_manager->stats->pm_serializer_lba_gcs;
 
     // Start a transaction
