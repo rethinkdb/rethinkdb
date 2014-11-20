@@ -124,9 +124,9 @@ store_t::store_t(serializer_t *serializer,
                                      &superblock,
                                      &dummy_interruptor);
 
-        buf_lock_t sindex_block
-            = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                             superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
@@ -221,9 +221,8 @@ bool store_t::send_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
 
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(superblock->expose_buf(),
-                                        superblock->get_sindex_block_id());
+    buf_lock_t sindex_block(superblock->expose_buf(), superblock->get_sindex_block_id(),
+                            access_t::read);
 
     region_map_t<binary_blob_t> unmasked_metainfo;
     get_metainfo_internal(superblock->get(), &unmasked_metainfo);
@@ -313,9 +312,9 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
 
     // If we are hosting no regions, we can blow away secondary indexes
     if (empty_region) {
-        buf_lock_t sindex_block
-            = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                             superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
         ::get_secondary_indexes(&sindex_block, &sindexes);
@@ -398,9 +397,9 @@ void store_t::reset_data(
             highest_erased_key_so_far = counter_cb.end_key_;
         }
 
-        buf_lock_t sindex_block
-            = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                         superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
 
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
@@ -562,20 +561,6 @@ progress_completion_fraction_t store_t::get_progress(uuid_u id) {
     }
 }
 
-// KSI: If we're going to have these functions at all, we could just pass the
-// real_superblock_t directly.
-buf_lock_t store_t::acquire_sindex_block_for_read(
-        buf_parent_t parent,
-        block_id_t sindex_block_id) {
-    return buf_lock_t(parent, sindex_block_id, access_t::read);
-}
-
-buf_lock_t store_t::acquire_sindex_block_for_write(
-        buf_parent_t parent,
-        block_id_t sindex_block_id) {
-    return buf_lock_t(parent, sindex_block_id, access_t::write);
-}
-
 bool store_t::add_sindex(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
@@ -667,9 +652,9 @@ void store_t::clear_sindex(
             interruptor);
 
         /* Get the sindex block (1). */
-        buf_lock_t sindex_block = acquire_sindex_block_for_write(
-                superblock->expose_buf(),
-                superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
         superblock->release();
 
         /* Clear part of the index data */
@@ -739,9 +724,9 @@ void store_t::clear_sindex(
             interruptor);
 
         /* Get the sindex block (2). */
-        buf_lock_t sindex_block = acquire_sindex_block_for_write(
-                superblock->expose_buf(),
-                superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
         superblock->release();
 
         /* The root node should have been emptied at this point. Delete it */
@@ -1007,9 +992,8 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     rassert(sindex_uuid_out != NULL);
 
     /* Acquire the sindex block. */
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(superblock->expose_buf(),
-                                        superblock->get_sindex_block_id());
+    buf_lock_t sindex_block(superblock->expose_buf(), superblock->get_sindex_block_id(),
+                            access_t::read);
     superblock->release();
 
     /* Figure out what the superblock for this index is. */
@@ -1042,9 +1026,9 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     rassert(sindex_uuid_out != NULL);
 
     /* Get the sindex block. */
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                         superblock->get_sindex_block_id());
+    buf_lock_t sindex_block(superblock->expose_buf(),
+                            superblock->get_sindex_block_id(),
+                            access_t::write);
     superblock->release();
 
     /* Figure out what the superblock for this index is. */
@@ -1087,7 +1071,7 @@ void store_t::acquire_all_sindex_superblocks_for_write(
     assert_thread();
 
     /* Get the sindex block. */
-    buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
+    buf_lock_t sindex_block(parent, sindex_block_id, access_t::write);
 
     acquire_all_sindex_superblocks_for_write(&sindex_block, sindex_sbs_out);
 }

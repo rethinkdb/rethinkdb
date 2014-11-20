@@ -199,14 +199,6 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-    MUST_USE buf_lock_t acquire_sindex_block_for_read(
-            buf_parent_t parent,
-            block_id_t sindex_block_id);
-
-    MUST_USE buf_lock_t acquire_sindex_block_for_write(
-            buf_parent_t parent,
-            block_id_t sindex_block_id);
-
     MUST_USE bool add_sindex(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,

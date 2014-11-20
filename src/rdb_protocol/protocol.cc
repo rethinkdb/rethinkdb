@@ -177,9 +177,9 @@ void post_construct_and_drain_queue(
 
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-            buf_lock_t queue_sindex_block
-                = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                        sindex_block_id);
+            buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                          sindex_block_id,
+                                          access_t::write);
 
             queue_superblock->release();
 
@@ -258,9 +258,9 @@ void post_construct_and_drain_queue(
 
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-        buf_lock_t queue_sindex_block
-            = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                    sindex_block_id);
+        buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                      sindex_block_id,
+                                      access_t::write);
 
         queue_superblock->release();
 

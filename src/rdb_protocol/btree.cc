@@ -1816,10 +1816,8 @@ public:
                     // Acquire the sindex block.
                     const block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
-                    buf_lock_t sindex_block
-                        = store_->acquire_sindex_block_for_write(
-                            superblock->expose_buf(),
-                            sindex_block_id);
+                    buf_lock_t sindex_block(superblock->expose_buf(), sindex_block_id,
+                                            access_t::write);
 
                     superblock.reset();
 

@@ -149,9 +149,9 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     1, write_durability_t::SOFT, &token_pair,
                     &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block
-                = store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                       super_block->get_sindex_block_id());
+            buf_lock_t sindex_block(super_block->expose_buf(),
+                                    super_block->get_sindex_block_id(),
+                                    access_t::write);
 
             UNUSED bool b = store.add_sindex(name, std::vector<char>(), &sindex_block);
         }
@@ -167,10 +167,9 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                                                1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block
-                = store.acquire_sindex_block_for_write(
-                    super_block->expose_buf(),
-                    super_block->get_sindex_block_id());
+            buf_lock_t sindex_block(super_block->expose_buf(),
+                                    super_block->get_sindex_block_id(),
+                                    access_t::write);
 
             store.mark_index_up_to_date(name, &sindex_block);
         }
@@ -261,9 +260,9 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                                            1, write_durability_t::SOFT, &token_pair,
                                            &txn, &super_block, &dummy_interruptor);
 
-        buf_lock_t sindex_block
-            = store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                   super_block->get_sindex_block_id());
+        buf_lock_t sindex_block(super_block->expose_buf(),
+                                super_block->get_sindex_block_id(),
+                                access_t::write);
 
         store.drop_sindex(*it, &sindex_block);
     }
