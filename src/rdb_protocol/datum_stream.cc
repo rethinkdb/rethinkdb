@@ -1192,9 +1192,13 @@ bool map_datum_stream_t::is_exhausted() const {
 
 vector_datum_stream_t::vector_datum_stream_t(
         const protob_t<const Backtrace> &bt_source,
-        std::vector<datum_t> &&_rows) :
+        std::vector<datum_t> &&_rows,
+        scoped_ptr_t<ql::changefeed::keyspec_t> &&_changespec) :
     eager_datum_stream_t(bt_source),
-    rows(std::move(_rows)), index(0) { }
+    rows(std::move(_rows)),
+    index(0),
+    changespec(std::move(_changespec)),
+    has_changespec(changespec.has()) { }
 
 datum_t vector_datum_stream_t::next(
         env_t *env, const batchspec_t &bs) {
@@ -1237,6 +1241,25 @@ bool vector_datum_stream_t::is_cfeed() const {
 
 bool vector_datum_stream_t::is_array() const {
     return false;
+}
+
+changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
+    if (has_changespec) {
+        /* Note that this invalidates the `vector_datum_stream_t`; you can't call
+        `get_change_spec()` again. */
+        guarantee(changespec.has(), "Called get_change_spec() twice on same stream.");
+        changefeed::keyspec_t cs = std::move(*changespec);
+        changespec.reset();
+        guarantee(cs.table.has());
+        changefeed::keyspec_t::range_t *range =
+            boost::get<changefeed::keyspec_t::range_t>(&cs.spec);
+        guarantee(range);
+        range->transforms.insert(
+            range->transforms.end(), transforms.begin(), transforms.end());
+        return std::move(cs);
+    } else {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
+    }
 }
 
 } // namespace ql

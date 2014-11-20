@@ -625,7 +625,10 @@ class vector_datum_stream_t : public eager_datum_stream_t
 public:
     vector_datum_stream_t(
             const protob_t<const Backtrace> &bt_source,
-            std::vector<datum_t> &&_rows);
+            std::vector<datum_t> &&_rows,
+            /* This would have been a `boost::optional`, but `boost::optional` requires
+            that its contents are copyable. */
+            scoped_ptr_t<ql::changefeed::keyspec_t> &&_changespec);
 private:
     datum_t next(env_t *env, const batchspec_t &bs);
     datum_t next_impl(env_t *);
@@ -635,8 +638,12 @@ private:
     bool is_cfeed() const;
     bool is_array() const;
 
+    changefeed::keyspec_t get_change_spec();
+
     std::vector<datum_t> rows;
     size_t index;
+    scoped_ptr_t<ql::changefeed::keyspec_t> changespec;
+    bool has_changespec;
 };
 
 } // namespace ql

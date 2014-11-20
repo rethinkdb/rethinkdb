@@ -226,7 +226,10 @@ bool real_reql_cluster_interface_t::db_config(
     counted_t<ql::table_t> table = make_table_with_backend(
         admin_tables->db_config_backend.get(), "db_config", bt);
     counted_t<ql::datum_stream_t> stream =
-        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+        make_counted<ql::vector_datum_stream_t>(
+            bt,
+            std::move(result_array),
+            scoped_ptr_t<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -474,7 +477,10 @@ bool real_reql_cluster_interface_t::table_config(
 
     counted_t<ql::table_t> table = make_table_with_backend(backend, "table_config", bt);
     counted_t<ql::datum_stream_t> stream =
-        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+        make_counted<ql::vector_datum_stream_t>(
+            bt,
+            std::move(result_array),
+            scoped_ptr_t<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -502,7 +508,10 @@ bool real_reql_cluster_interface_t::table_status(
 
     counted_t<ql::table_t> table = make_table_with_backend(backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
-        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+        make_counted<ql::vector_datum_stream_t>(
+            bt,
+            std::move(result_array),
+            scoped_ptr_t<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -590,7 +599,10 @@ bool real_reql_cluster_interface_t::table_wait(
     counted_t<ql::table_t> table = make_table_with_backend(
         status_backend, "table_status", bt);
     counted_t<ql::datum_stream_t> stream =
-        make_counted<ql::vector_datum_stream_t>(bt, std::move(result_array));
+        make_counted<ql::vector_datum_stream_t>(
+            bt,
+            std::move(result_array),
+            scoped_ptr_t<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }

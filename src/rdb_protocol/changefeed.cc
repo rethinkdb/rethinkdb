@@ -1818,9 +1818,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
 
-keyspec_t::keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) {
-    guarantee(table.has());
-}
 keyspec_t::~keyspec_t() { }
 
 RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(

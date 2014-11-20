@@ -207,7 +207,7 @@ bool cfeed_artificial_table_backend_t::machinery_t::get_values(
         return false;
     }
     guarantee(!stream->is_cfeed());
-    ql::env_t env(nullptr, interruptor, { }, nullptr);
+    ql::env_t env(interruptor, reql_version_t::LATEST);
     while (!stream->is_exhausted()) {
         std::vector<ql::datum_t> datums;
         try {
