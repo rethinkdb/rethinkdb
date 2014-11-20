@@ -36,6 +36,7 @@ public:
         double queries_per_sec;
         double queries_total;
         double client_connections;
+        double clients_active;
 
         std::map<namespace_id_t, table_stats_t> tables;
     };

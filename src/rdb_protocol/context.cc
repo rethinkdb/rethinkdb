@@ -2,6 +2,7 @@
 #include "rdb_protocol/context.hpp"
 
 #include "rdb_protocol/datum.hpp"
+#include "time.hpp"
 
 const char *rql_perfmon_name = "query_engine";
 
@@ -9,9 +10,17 @@ rdb_context_t::rdb_context_t()
     : extproc_pool(nullptr),
       cluster_interface(nullptr),
       manager(nullptr),
-      ql_stats_membership(
-          &get_global_perfmon_collection(), &ql_stats_collection, rql_perfmon_name),
-      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      qe_stats_membership(
+          &get_global_perfmon_collection(), &qe_stats_collection, rql_perfmon_name),
+      client_connections_membership(&qe_stats_collection,
+                                    &client_connections, "client_connections"),
+      clients_active_membership(&qe_stats_collection,
+                                &clients_active, "clients_active"),
+      queries_per_sec(secs_to_ticks(1)),
+      queries_per_sec_membership(&qe_stats_collection,
+                                 &queries_per_sec, "queries_per_sec"),
+      queries_total_membership(&qe_stats_collection,
+                               &queries_total, "queries_total"),
       reql_http_proxy()
 { }
 
@@ -21,9 +30,17 @@ rdb_context_t::rdb_context_t(
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
       manager(nullptr),
-      ql_stats_membership(
-          &get_global_perfmon_collection(), &ql_stats_collection, rql_perfmon_name),
-      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      qe_stats_membership(
+          &get_global_perfmon_collection(), &qe_stats_collection, rql_perfmon_name),
+      client_connections_membership(&qe_stats_collection,
+                                    &client_connections, "client_connections"),
+      clients_active_membership(&qe_stats_collection,
+                                &clients_active, "clients_active"),
+      queries_per_sec(secs_to_ticks(1)),
+      queries_per_sec_membership(&qe_stats_collection,
+                                 &queries_per_sec, "queries_per_sec"),
+      queries_total_membership(&qe_stats_collection,
+                               &queries_total, "queries_total"),
       reql_http_proxy()
 { }
 
@@ -39,8 +56,16 @@ rdb_context_t::rdb_context_t(
       cluster_interface(_cluster_interface),
       auth_metadata(_auth_metadata),
       manager(_mailbox_manager),
-      ql_stats_membership(_global_stats, &ql_stats_collection, rql_perfmon_name),
-      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      qe_stats_membership(_global_stats, &qe_stats_collection, rql_perfmon_name),
+      client_connections_membership(&qe_stats_collection,
+                                    &client_connections, "client_connections"),
+      clients_active_membership(&qe_stats_collection,
+                                &clients_active, "clients_active"),
+      queries_per_sec(secs_to_ticks(1)),
+      queries_per_sec_membership(&qe_stats_collection,
+                                 &queries_per_sec, "queries_per_sec"),
+      queries_total_membership(&qe_stats_collection,
+                               &queries_total, "queries_total"),
       reql_http_proxy(_reql_http_proxy)
 { }
 

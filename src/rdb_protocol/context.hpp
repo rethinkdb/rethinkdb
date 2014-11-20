@@ -276,10 +276,16 @@ public:
 
     mailbox_manager_t *manager;
 
-    perfmon_collection_t ql_stats_collection;
-    perfmon_membership_t ql_stats_membership;
-    perfmon_counter_t ql_ops_running;
-    perfmon_membership_t ql_ops_running_membership;
+    perfmon_collection_t qe_stats_collection;
+    perfmon_membership_t qe_stats_membership;
+    perfmon_counter_t client_connections;
+    perfmon_membership_t client_connections_membership;
+    perfmon_counter_t clients_active;
+    perfmon_membership_t clients_active_membership;
+    perfmon_rate_monitor_t queries_per_sec;
+    perfmon_membership_t queries_per_sec_membership;
+    perfmon_counter_t queries_total;
+    perfmon_membership_t queries_total_membership;
 
     const std::string reql_http_proxy;
 

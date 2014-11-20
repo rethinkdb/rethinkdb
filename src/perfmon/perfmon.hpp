@@ -78,6 +78,15 @@ public:
     void operator-=(int64_t num) { get() -= num; }
 };
 
+class scoped_perfmon_counter_t {
+public:
+    explicit scoped_perfmon_counter_t(perfmon_counter_t *_counter);
+    ~scoped_perfmon_counter_t();
+private:
+    perfmon_counter_t *counter;
+    DISABLE_COPYING(scoped_perfmon_counter_t);
+};
+
 /* perfmon_sampler_t is a perfmon_t that keeps a log of events that happen.
  * When something happens, call the perfmon_sampler_t's record() method. The
  * perfmon_sampler_t will retain that record until 'length' ticks have passed.

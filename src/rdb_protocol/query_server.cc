@@ -3,6 +3,7 @@
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
+#include "perfmon/perfmon.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/profile.hpp"
@@ -36,20 +37,6 @@ namespace ql {
              Response *response_out);
 }
 
-class scoped_ops_running_stat_t {
-public:
-    explicit scoped_ops_running_stat_t(perfmon_counter_t *_counter)
-        : counter(_counter) {
-        ++(*counter);
-    }
-    ~scoped_ops_running_stat_t() {
-        --(*counter);
-    }
-private:
-    perfmon_counter_t *counter;
-    DISABLE_COPYING(scoped_ops_running_stat_t);
-};
-
 bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
                                    Response *response_out,
                                    client_context_t *client_ctx) {
@@ -61,7 +48,9 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
          noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply.as_bool());
     try {
-        scoped_ops_running_stat_t stat(&rdb_ctx->ql_ops_running);
+        scoped_perfmon_counter_t client_active(&rdb_ctx->clients_active);
+        ++rdb_ctx->queries_total;
+        rdb_ctx->queries_per_sec.record();
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(query,

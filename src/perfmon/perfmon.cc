@@ -60,6 +60,15 @@ ql::datum_t perfmon_counter_t::output_stat(const int64_t &stat) {
     return ql::datum_t(static_cast<double>(stat));
 }
 
+scoped_perfmon_counter_t::scoped_perfmon_counter_t(perfmon_counter_t *_counter)
+    : counter(_counter) {
+    ++(*counter);
+}
+
+scoped_perfmon_counter_t::~scoped_perfmon_counter_t() {
+    --(*counter);
+}
+
 /* perfmon_sampler_t */
 
 perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)

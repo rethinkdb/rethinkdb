@@ -15,6 +15,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/auth_key.hpp"
+#include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -302,6 +303,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->client_connections);
     for (;;) {
         ql::protob_t<Query> query(ql::make_counted_query());
 

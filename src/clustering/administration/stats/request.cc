@@ -8,6 +8,23 @@ const char *server_stats_request_t::server_request_type = "server";
 const char *table_stats_request_t::table_request_type = "table";
 const char *table_server_stats_request_t::table_server_request_type = "table_server";
 
+// Macros to make converting stats easier
+#define ADD_CLUSTER_SERVER_STAT(BUILDER, NAME, STATS) \
+    BUILDER.overwrite(#NAME, ql::datum_t( \
+        STATS.accumulate(&parsed_stats_t::server_stats_t::NAME)));
+
+#define ADD_CLUSTER_TABLE_STAT(BUILDER, NAME, STATS, TABLE) \
+    BUILDER.overwrite(#NAME, ql::datum_t( \
+        STATS.accumulate(&parsed_stats_t::server_stats_t::NAME)));
+
+#define ADD_TABLE_STAT(BUILDER, NAME, STATS, TABLE) \
+    BUILDER.overwrite(#NAME, ql::datum_t( \
+        STATS.accumulate_table(TABLE, &parsed_stats_t::table_stats_t::NAME)));
+
+#define ADD_SERVER_STAT(BUILDER, NAME, STATS, SERVER) \
+    BUILDER.overwrite(#NAME, ql::datum_t( \
+        STATS.accumulate_server(SERVER, &parsed_stats_t::table_stats_t::NAME)));
+
 parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) {
     for (auto const &serv_pair : stats) {
         server_stats_t &serv_stats = servers[serv_pair.first];
@@ -76,6 +93,7 @@ void parsed_stats_t::add_query_engine_stats(const ql::datum_t &qe_perf,
     add_perfmon_value(qe_perf, "queries_per_sec", &stats_out->queries_per_sec);
     add_perfmon_value(qe_perf, "queries_total", &stats_out->queries_total);
     add_perfmon_value(qe_perf, "client_connections", &stats_out->client_connections);
+    add_perfmon_value(qe_perf, "clients_active", &stats_out->clients_active);
 }
 
 void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
@@ -242,6 +260,10 @@ ql::datum_t cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
         stats.accumulate(&parsed_stats_t::table_stats_t::read_docs_per_sec)));
     qe_builder.overwrite("written_docs_per_sec", ql::datum_t(
         stats.accumulate(&parsed_stats_t::table_stats_t::written_docs_per_sec)));
+    qe_builder.overwrite("client_connections", ql::datum_t(
+        stats.accumulate(&parsed_stats_t::server_stats_t::client_connections)));
+    qe_builder.overwrite("clients_active", ql::datum_t(
+        stats.accumulate(&parsed_stats_t::server_stats_t::clients_active)));
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", std::move(id_builder).to_datum());
@@ -362,6 +384,8 @@ ql::datum_t server_stats_request_t::to_datum(const parsed_stats_t &stats,
         ql::datum_object_builder_t qe_builder;
         qe_builder.overwrite("client_connections",
                              ql::datum_t(server_stats.client_connections));
+        qe_builder.overwrite("clients_active",
+                             ql::datum_t(server_stats.clients_active));
         qe_builder.overwrite("queries_per_sec",
                              ql::datum_t(server_stats.queries_per_sec));
         qe_builder.overwrite("queries_total",
