@@ -86,7 +86,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
                 ),
                 w,
                 &response, write_durability_t::SOFT,
-                ts,
+                ts.timestamp_after(),
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,
                 &non_interruptor);

@@ -55,7 +55,7 @@ void dummy_performer_t::write(const write_t &write,
     store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
+            write, response, write_durability_t::SOFT, transition_timestamp.timestamp_after(), order_token, &token_pair, &non_interruptor);
 }
 
 

@@ -855,7 +855,7 @@ private:
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
-                             transition_timestamp_t timestamp,
+                             state_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
@@ -866,7 +866,7 @@ void store_t::protocol_write(const write_t &write,
                               this,
                               (*superblock)->expose_buf().txn(),
                               superblock,
-                              timestamp.timestamp_after().to_repli_timestamp(),
+                              timestamp.to_repli_timestamp(),
                               ctx,
                               trace.get_or_null(),
                               response,

@@ -187,7 +187,7 @@ void store_t::write(
         const write_t &write,
         write_response_t *response,
         const write_durability_t durability,
-        transition_timestamp_t timestamp,
+        state_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         write_token_pair_t *token_pair,
         signal_t *interruptor)
@@ -197,7 +197,7 @@ void store_t::write(
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(timestamp.timestamp_after().to_repli_timestamp(),
+    acquire_superblock_for_write(timestamp.to_repli_timestamp(),
                                  expected_change_count, durability, token_pair,
                                  &txn, &real_superblock, interruptor);
 
