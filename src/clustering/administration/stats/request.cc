@@ -8,22 +8,26 @@ const char *server_stats_request_t::server_request_type = "server";
 const char *table_stats_request_t::table_request_type = "table";
 const char *table_server_stats_request_t::table_server_request_type = "table_server";
 
-// Macros to make converting stats easier
-#define ADD_CLUSTER_SERVER_STAT(BUILDER, NAME, STATS) \
-    BUILDER.overwrite(#NAME, ql::datum_t( \
-        STATS.accumulate(&parsed_stats_t::server_stats_t::NAME)));
+// Macros to make converting stats easier and more consistent
+// The name of the field in the stats struct will be the same in the datum result
+#define ADD_STAT(BUILDER, SUB_STATS, NAME) \
+    (BUILDER).overwrite(#NAME, ql::datum_t((SUB_STATS).NAME))
 
-#define ADD_CLUSTER_TABLE_STAT(BUILDER, NAME, STATS, TABLE) \
-    BUILDER.overwrite(#NAME, ql::datum_t( \
-        STATS.accumulate(&parsed_stats_t::server_stats_t::NAME)));
+#define ADD_CLUSTER_SERVER_STAT(BUILDER, STATS, NAME) \
+    (BUILDER).overwrite(#NAME, ql::datum_t( \
+        (STATS).accumulate(&parsed_stats_t::server_stats_t::NAME)));
 
-#define ADD_TABLE_STAT(BUILDER, NAME, STATS, TABLE) \
-    BUILDER.overwrite(#NAME, ql::datum_t( \
-        STATS.accumulate_table(TABLE, &parsed_stats_t::table_stats_t::NAME)));
+#define ADD_CLUSTER_TABLE_STAT(BUILDER, STATS, NAME) \
+    (BUILDER).overwrite(#NAME, ql::datum_t( \
+        (STATS).accumulate(&parsed_stats_t::table_stats_t::NAME)));
 
-#define ADD_SERVER_STAT(BUILDER, NAME, STATS, SERVER) \
-    BUILDER.overwrite(#NAME, ql::datum_t( \
-        STATS.accumulate_server(SERVER, &parsed_stats_t::table_stats_t::NAME)));
+#define ADD_TABLE_STAT(BUILDER, STATS, TABLE, NAME) \
+    (BUILDER).overwrite(#NAME, ql::datum_t( \
+        (STATS).accumulate_table(TABLE, &parsed_stats_t::table_stats_t::NAME)));
+
+#define ADD_SERVER_STAT(BUILDER, STATS, SERVER, NAME) \
+    (BUILDER).overwrite(#NAME, ql::datum_t( \
+        (STATS).accumulate_server(SERVER, &parsed_stats_t::table_stats_t::NAME)));
 
 parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) {
     for (auto const &serv_pair : stats) {
@@ -253,17 +257,11 @@ ql::datum_t cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
     id_builder.add(ql::datum_t(get_name()));
 
     ql::datum_object_builder_t qe_builder;
-    // TODO: macro magic?
-    qe_builder.overwrite("queries_per_sec", ql::datum_t(
-        stats.accumulate(&parsed_stats_t::server_stats_t::queries_per_sec)));
-    qe_builder.overwrite("read_docs_per_sec", ql::datum_t(
-        stats.accumulate(&parsed_stats_t::table_stats_t::read_docs_per_sec)));
-    qe_builder.overwrite("written_docs_per_sec", ql::datum_t(
-        stats.accumulate(&parsed_stats_t::table_stats_t::written_docs_per_sec)));
-    qe_builder.overwrite("client_connections", ql::datum_t(
-        stats.accumulate(&parsed_stats_t::server_stats_t::client_connections)));
-    qe_builder.overwrite("clients_active", ql::datum_t(
-        stats.accumulate(&parsed_stats_t::server_stats_t::clients_active)));
+    ADD_CLUSTER_SERVER_STAT(qe_builder, stats, queries_per_sec);
+    ADD_CLUSTER_SERVER_STAT(qe_builder, stats, client_connections);
+    ADD_CLUSTER_SERVER_STAT(qe_builder, stats, clients_active);
+    ADD_CLUSTER_TABLE_STAT(qe_builder, stats, read_docs_per_sec);
+    ADD_CLUSTER_TABLE_STAT(qe_builder, stats, written_docs_per_sec);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", std::move(id_builder).to_datum());
@@ -312,10 +310,8 @@ ql::datum_t table_stats_request_t::to_datum(const parsed_stats_t &stats,
     id_builder.add(convert_uuid_to_datum(table_id));
 
     ql::datum_object_builder_t qe_builder;
-    qe_builder.overwrite("read_docs_per_sec", ql::datum_t(stats.accumulate_table(table_id,
-        &parsed_stats_t::table_stats_t::read_docs_per_sec)));
-    qe_builder.overwrite("written_docs_per_sec", ql::datum_t(stats.accumulate_table(table_id,
-        &parsed_stats_t::table_stats_t::written_docs_per_sec)));
+    ADD_TABLE_STAT(qe_builder, stats, table_id, read_docs_per_sec);
+    ADD_TABLE_STAT(qe_builder, stats, table_id, written_docs_per_sec);
 
     ql::datum_object_builder_t row_builder;
     row_builder.overwrite("id", std::move(id_builder).to_datum());
@@ -382,26 +378,14 @@ ql::datum_t server_stats_request_t::to_datum(const parsed_stats_t &stats,
         row_builder.overwrite("error", ql::datum_t("Timed out. Unable to retrieve stats."));
     } else {
         ql::datum_object_builder_t qe_builder;
-        qe_builder.overwrite("client_connections",
-                             ql::datum_t(server_stats.client_connections));
-        qe_builder.overwrite("clients_active",
-                             ql::datum_t(server_stats.clients_active));
-        qe_builder.overwrite("queries_per_sec",
-                             ql::datum_t(server_stats.queries_per_sec));
-        qe_builder.overwrite("queries_total",
-                             ql::datum_t(server_stats.queries_total));
-        qe_builder.overwrite("read_docs_per_sec",
-            ql::datum_t(stats.accumulate_server(server_id,
-                &parsed_stats_t::table_stats_t::read_docs_per_sec)));
-        qe_builder.overwrite("read_docs_total",
-            ql::datum_t(stats.accumulate_server(server_id,
-                &parsed_stats_t::table_stats_t::read_docs_total)));
-        qe_builder.overwrite("written_docs_per_sec",
-            ql::datum_t(stats.accumulate_server(server_id,
-                &parsed_stats_t::table_stats_t::written_docs_per_sec)));
-        qe_builder.overwrite("written_docs_total",
-            ql::datum_t(stats.accumulate_server(server_id,
-                &parsed_stats_t::table_stats_t::written_docs_total)));
+        ADD_STAT(qe_builder, server_stats, client_connections);
+        ADD_STAT(qe_builder, server_stats, clients_active);
+        ADD_STAT(qe_builder, server_stats, queries_per_sec);
+        ADD_STAT(qe_builder, server_stats, queries_total);
+        ADD_SERVER_STAT(qe_builder, stats, server_id, read_docs_per_sec);
+        ADD_SERVER_STAT(qe_builder, stats, server_id, read_docs_total);
+        ADD_SERVER_STAT(qe_builder, stats, server_id, written_docs_per_sec);
+        ADD_SERVER_STAT(qe_builder, stats, server_id, written_docs_total);
         row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
     }
 
@@ -478,25 +462,25 @@ ql::datum_t table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
         }
 
         ql::datum_object_builder_t qe_builder;
-        qe_builder.overwrite("read_docs_per_sec", ql::datum_t(table_stats.read_docs_per_sec));
-        qe_builder.overwrite("read_docs_total", ql::datum_t(table_stats.read_docs_total));
-        qe_builder.overwrite("written_docs_per_sec", ql::datum_t(table_stats.written_docs_per_sec));
-        qe_builder.overwrite("written_docs_total", ql::datum_t(table_stats.written_docs_total));
+        ADD_STAT(qe_builder, table_stats, read_docs_per_sec);
+        ADD_STAT(qe_builder, table_stats, read_docs_total);
+        ADD_STAT(qe_builder, table_stats, written_docs_per_sec);
+        ADD_STAT(qe_builder, table_stats, written_docs_total);
 
         ql::datum_object_builder_t se_cache_builder;
-        se_cache_builder.overwrite("in_use_bytes", ql::datum_t(table_stats.in_use_bytes));
+        ADD_STAT(se_cache_builder, table_stats, in_use_bytes);
 
         ql::datum_object_builder_t se_disk_space_builder;
-        se_disk_space_builder.overwrite("metadata_bytes", ql::datum_t(table_stats.metadata_bytes));
-        se_disk_space_builder.overwrite("data_bytes", ql::datum_t(table_stats.data_bytes));
-        se_disk_space_builder.overwrite("garbage_bytes", ql::datum_t(table_stats.garbage_bytes));
-        se_disk_space_builder.overwrite("preallocated_bytes", ql::datum_t(table_stats.preallocated_bytes));
+        ADD_STAT(se_disk_space_builder, table_stats, metadata_bytes);
+        ADD_STAT(se_disk_space_builder, table_stats, data_bytes);
+        ADD_STAT(se_disk_space_builder, table_stats, garbage_bytes);
+        ADD_STAT(se_disk_space_builder, table_stats, preallocated_bytes);
 
         ql::datum_object_builder_t se_disk_builder;
-        se_disk_builder.overwrite("read_bytes_per_sec", ql::datum_t(table_stats.read_bytes_per_sec));
-        se_disk_builder.overwrite("read_bytes_total", ql::datum_t(table_stats.read_bytes_total));
-        se_disk_builder.overwrite("written_bytes_per_sec", ql::datum_t(table_stats.written_bytes_per_sec));
-        se_disk_builder.overwrite("written_bytes_total", ql::datum_t(table_stats.written_bytes_total));
+        ADD_STAT(se_disk_builder, table_stats, read_bytes_per_sec);
+        ADD_STAT(se_disk_builder, table_stats, read_bytes_total);
+        ADD_STAT(se_disk_builder, table_stats, written_bytes_per_sec);
+        ADD_STAT(se_disk_builder, table_stats, written_bytes_total);
         se_disk_builder.overwrite("space_usage", std::move(se_disk_space_builder).to_datum());
 
         ql::datum_object_builder_t se_builder;
