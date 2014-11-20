@@ -1,3 +1,5 @@
+# abort button blinks
+
 # no element found when closing connection
 
 # split query result into:
@@ -2865,6 +2867,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             @parent = args.parent
             @query_result = args.query_result
+            @render()
             if @query_events?
                 for own event, handler of @query_events()
                     if event is 'ready'
@@ -2872,7 +2875,6 @@ module 'DataExplorerView', ->
                     else
                         @listenTo @query_result, event, handler
             @fetch_batch_rows()
-
 
         max_datum_threshold: 1000
 
@@ -2944,6 +2946,7 @@ module 'DataExplorerView', ->
                 @query_result.once 'add', (query_result, row) =>
                     @add_row row
                     @fetch_batch_rows()
+                @query_result.fetch_next()
 
         show_next_batch: =>
             @query_result.position += @parent.container.limit
@@ -3323,11 +3326,6 @@ module 'DataExplorerView', ->
 
         template: Handlebars.templates['dataexplorer_result_raw-template']
 
-        initialize: (args...) =>
-            super args...
-            @render()
-            @fetch_batch_rows (row) => @render()
-
         init_after_dom_rendered: =>
             height = @$('.raw_view_textarea')[0].scrollHeight
             if height > 0
@@ -3347,11 +3345,11 @@ module 'DataExplorerView', ->
             Handlebars.templates['dataexplorer_result_profile-template']
 
         initialize: (args) =>
-            super args
             ZeroClipboard.setDefaults
                 moviePath: 'js/ZeroClipboard.swf'
                 forceHandCursor: true #TODO Find a fix for chromium(/linux?)
             @clip = new ZeroClipboard()
+            super args
 
         compute_total_duration: (profile) ->
             total_duration = 0
@@ -3777,12 +3775,12 @@ module 'DataExplorerView', ->
                     @container.toggle_executing false
                     callback error, result
 
-        cursor_next: ({cursor, error, row, end}) =>
+        cursor_next: (cursor, {error, row, end}) =>
             @container.toggle_executing true
             cursor.next (err, row_) =>
                 @container.toggle_executing false
-                if error?
-                    if error.message is 'No more rows in the cursor.'
+                if err?
+                    if err.message is 'No more rows in the cursor.'
                         end()
                     else
                         error err
