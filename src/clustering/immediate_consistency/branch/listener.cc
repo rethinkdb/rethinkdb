@@ -400,13 +400,13 @@ void listener_t::try_start_receiving_writes(
 void listener_t::on_write(
         signal_t *interruptor,
         const write_t &write,
-        state_timestamp_t new_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING {
     try {
-        local_write(write, new_timestamp, order_token, fifo_token, interruptor);
+        local_write(write, timestamp, order_token, fifo_token, interruptor);
         send(mailbox_manager_, ack_addr);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -414,7 +414,7 @@ void listener_t::on_write(
 }
 
 void listener_t::local_write(const write_t &write,
-        state_timestamp_t new_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         signal_t *interruptor)
@@ -428,7 +428,7 @@ void listener_t::local_write(const write_t &write,
     fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
     wait_interruptible(&fifo_exit, &combined_interruptor);
     write_queue_semaphore_.co_lock_interruptible(&combined_interruptor);
-    write_queue_.push(write_queue_entry_t(write, new_timestamp, order_token, fifo_token));
+    write_queue_.push(write_queue_entry_t(write, timestamp, order_token, fifo_token));
 }
 
 void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
@@ -443,16 +443,16 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     write_token_pair_t write_token_pair;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
-        if (qe.new_timestamp <= backfill_end_timestamp) {
+        if (qe.timestamp <= backfill_end_timestamp) {
             return;
         }
         wait_interruptible(&fifo_exit, interruptor);
-        advance_current_timestamp_and_pulse_waiters(qe.new_timestamp);
+        advance_current_timestamp_and_pulse_waiters(qe.timestamp);
         svs_->new_write_token_pair(&write_token_pair);
     }
 
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t metainfo_checker_callback(qe.new_timestamp.pred());
+        version_leq_metainfo_checker_callback_t metainfo_checker_callback(qe.timestamp.pred());
         metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
@@ -464,11 +464,11 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<binary_blob_t>(svs_->get_region(),
-            binary_blob_t(version_range_t(version_t(branch_id_, qe.new_timestamp)))),
+            binary_blob_t(version_range_t(version_t(branch_id_, qe.timestamp)))),
         qe.write,
         &response,
         write_durability_t::SOFT,
-        qe.new_timestamp,
+        qe.timestamp,
         qe.order_token,
         &write_token_pair,
         interruptor);
@@ -477,14 +477,14 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
 void listener_t::on_writeread(
         signal_t *interruptor,
         const write_t &write,
-        state_timestamp_t new_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(write_response_t)> ack_addr,
         write_durability_t durability)
         THROWS_NOTHING {
     try {
-        write_response_t response = local_writeread(write, new_timestamp,
+        write_response_t response = local_writeread(write, timestamp,
                                                     order_token, fifo_token,
                                                     durability, interruptor);
         send(mailbox_manager_, ack_addr, response);
@@ -494,7 +494,7 @@ void listener_t::on_writeread(
 }
 
 write_response_t listener_t::local_writeread(const write_t &write,
-        state_timestamp_t new_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         write_durability_t durability,
@@ -518,7 +518,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
         fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
         wait_interruptible(&fifo_exit_2, &combined_interruptor);
 
-        advance_current_timestamp_and_pulse_waiters(new_timestamp);
+        advance_current_timestamp_and_pulse_waiters(timestamp);
 
         svs_->new_write_token_pair(&write_token_pair);
     }
@@ -528,7 +528,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
 
 #ifndef NDEBUG
-    version_leq_metainfo_checker_callback_t metainfo_checker_callback(new_timestamp.pred());
+    version_leq_metainfo_checker_callback_t metainfo_checker_callback(timestamp.pred());
     metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
@@ -536,11 +536,11 @@ write_response_t listener_t::local_writeread(const write_t &write,
     write_response_t response;
     svs_->write(DEBUG_ONLY(metainfo_checker, )
                 region_map_t<binary_blob_t>(svs_->get_region(),
-                                            binary_blob_t(version_range_t(version_t(branch_id_, new_timestamp)))),
+                                            binary_blob_t(version_range_t(version_t(branch_id_, timestamp)))),
                 write,
                 &response,
                 durability,
-                new_timestamp,
+                timestamp,
                 order_token,
                 &write_token_pair,
                 &combined_interruptor);
@@ -640,5 +640,5 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(state_timestamp_t t
 }
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
-        listener_t::write_queue_entry_t, write, order_token, new_timestamp,
+        listener_t::write_queue_entry_t, write, order_token, timestamp,
         fifo_token);

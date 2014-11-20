@@ -130,7 +130,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     write_response_t local_writeread(const write_t &write,
-            state_timestamp_t new_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             write_durability_t durability,
@@ -138,7 +138,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void local_write(const write_t &write,
-            state_timestamp_t new_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             signal_t *interruptor)
@@ -149,9 +149,9 @@ public:
     public:
         write_queue_entry_t() { }
         write_queue_entry_t(const write_t &w, state_timestamp_t ts, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
-            write(w), new_timestamp(ts), order_token(_order_token), fifo_token(ft) { }
+            write(w), timestamp(ts), order_token(_order_token), fifo_token(ft) { }
         write_t write;
-        state_timestamp_t new_timestamp;
+        state_timestamp_t timestamp;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
     };
@@ -176,7 +176,7 @@ private:
     void on_write(
             signal_t *interruptor,
             const write_t &write,
-            state_timestamp_t new_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
@@ -191,7 +191,7 @@ private:
     void on_writeread(
             signal_t *interruptor,
             const write_t &write,
-            state_timestamp_t new_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(write_response_t)> ack_addr,
