@@ -475,7 +475,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
 }
 
 void listener_t::on_writeread(
-        signal_t *interruptor,        
+        signal_t *interruptor,
         const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
