@@ -1,3 +1,14 @@
+# no element found when closing connection
+
+# split query result into:
+# QueryResult/CursorResult/ValueResult/PositionedResult
+
+# switching back to the dataexplorer shows the "enable the profiler" message instead of the previous query's profile
+# the load next batch button flashes a message I can't read and switches to the dashboard
+# server errors show as "[object Object]"
+
+# container limit -> global constant
+
 # ATN: remove jquery migration:
 #   $.browser
 # ATN: change query nomenclature:
@@ -28,7 +39,6 @@
 # returned/displayed/skipped has extra comma and is generally ugly
 # removing id_connection may have introduced bugs
 # round-trip time for cursors is inconsistent
-# get rid of current_results and allow looking at previous results
 # cursor_timed_out is only called on connection errors
 
 # save_query gets called too often with no effect -> symptom that it is
@@ -45,7 +55,7 @@ module 'DataExplorerView', ->
         current_query: null
         query_result: null
         cursor_timed_out: true
-        view: 'profile' # ATN 'tree'
+        view: 'raw' # ATN 'tree'
         history_state: 'hidden'
         last_keys: []
         last_columns_size: {}
@@ -92,39 +102,21 @@ module 'DataExplorerView', ->
                     @profile = result.profile
                     value = result.value
                 else
-                    value = result
+                    @profile = null
+                    value = result 
                 if typeof value._next is 'function' # if it's a cursor
+                    @type = 'cursor'
                     @results = []
                     @cursor = value
                     @is_feed = @cursor.toString() == '[object Feed]'
                     @missing = 0
                     @ended = false
-                    @start_index = 0
                 else
-                    @start_index = 0
+                    @type = 'value'
                     @value = value
                     @ended = true
                 @ready = true
                 @trigger 'ready', @
-
-        # Remove n elements from the result set of a cursor Waits for
-        # n+1 elements, or the end before returning
-        #
-        # Note: the callbacks are not ordered. In this code, `f` is
-        # never called: `qr.shift 2 f; cb = -> qr.shift 1 cb`
-        shift: (n, k) =>
-            cb = =>
-                if @results.length > n or @ended
-                    @off 'end', cb
-                    ret = @results[0...n]
-                    @results = @results[n...]
-                    @start_index += n
-                    k @, ret
-                else
-                    @once 'add', cb
-                    @more()
-            @once 'end', cb
-            cb()
 
         # Discard the results
         discard: =>
@@ -136,13 +128,6 @@ module 'DataExplorerView', ->
             delete @results
             @cursor?.close()
             delete @cursor
-
-        # Ask for more results from the cursor
-        more: (n) =>
-            prev_missing = @missing
-            @missing = prev_missing + (n ? 1)
-            if prev_missing <= 0
-                @fetch_next()
 
         # Gets the next result from the cursor
         fetch_next: =>
@@ -159,17 +144,15 @@ module 'DataExplorerView', ->
                                 return
                             @results.push row
                             @trigger 'add', @, row
-                            @missing--
-                            if @missing >= 0
-                                @fetch_next()
                 catch error
                     @set_error error
 
         set_error: (error) =>
+            @type = 'error'
             @error = error
             @trigger 'error', @, error
             @discard_results = true
-            @ended = true
+            @ended = true 
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -668,7 +651,8 @@ module 'DataExplorerView', ->
             $(window).mousedown @handle_mousedown
             @keep_suggestions_on_blur = false
 
-            @render()
+            # ATN: this seems unecessary: render is called later
+            # @render()
 
             @databases_available = {}
             @fetch_data()
@@ -2543,7 +2527,6 @@ module 'DataExplorerView', ->
                     }
 
         abort_query: =>
-            @state.query_result?.discard()
             @driver_handler.close_connection()
 
         # Function that execute the queries in a synchronous way.
@@ -2638,7 +2621,7 @@ module 'DataExplorerView', ->
                             raw_query: @raw_queries[@index]
                             driver_handler: @driver_handler
                             events:
-                                error: (err) =>
+                                error: (query_result, err) =>
                                     @results_view_wrapper.render_error(@query, err)
 
                         @state.query_result = query_result
@@ -2884,9 +2867,13 @@ module 'DataExplorerView', ->
             @query_result = args.query_result
             if @query_events?
                 for own event, handler of @query_events()
-                    @query_result.on event, handler
+                    if event is 'ready'
+                        handler @query_result
+                    else
+                        @listenTo @query_result, event, handler
+            @fetch_batch_rows()
 
-        current_result: []
+
         max_datum_threshold: 1000
 
         # Return whether there are too many datums
@@ -2944,6 +2931,27 @@ module 'DataExplorerView', ->
             $('.'+classname_to_change).css 'max-width', 'none'
             dom_element.css 'max-width', 'none'
             @parent.set_scrollbar()
+
+        current_batch: =>
+            switch @query_result.type
+                when 'value'
+                    return @query_result.value
+                when 'cursor'
+                    return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
+
+        fetch_batch_rows:  =>
+            if @query_result.results?.length - @query_result.position < @parent.container.limit
+                @query_result.once 'add', (query_result, row) =>
+                    @add_row row
+                    @fetch_batch_rows()
+
+        show_next_batch: =>
+            @query_result.position += @parent.container.limit
+            @fetch_batch_rows()
+            @render()
+
+        add_row: =>
+            throw "Unimplemented add_row for #{@.constructor.name}"
 
     class TreeView extends ResultView
         className: 'results tree_view_container'
@@ -3308,12 +3316,17 @@ module 'DataExplorerView', ->
                             @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
                         expandable_columns = []
 
-            @
+            return @
 
     class RawView extends ResultView
         className: 'results raw_view_container'
 
         template: Handlebars.templates['dataexplorer_result_raw-template']
+
+        initialize: (args...) =>
+            super args...
+            @render()
+            @fetch_batch_rows (row) => @render()
 
         init_after_dom_rendered: =>
             height = @$('.raw_view_textarea')[0].scrollHeight
@@ -3321,8 +3334,11 @@ module 'DataExplorerView', ->
                 @$('.raw_view_textarea').height(height)
 
         render: =>
-            @$el.html @template JSON.stringify(@parent.results)
-            @
+            @$el.html @template JSON.stringify @current_batch()
+            return @
+
+        add_row: (row) =>
+            @render()
 
     class ProfileView extends ResultView
         className: 'results profile_view_container'
@@ -3402,6 +3418,7 @@ module 'DataExplorerView', ->
             'click .link_to_table_view': 'show_table'
             'click .link_to_raw_view': 'show_raw'
             'click .activate_profiler': 'activate_profiler'
+            'click .more_results_link': 'show_next_batch'
 
         initialize: (args) =>
             @container = args.container
@@ -3501,7 +3518,8 @@ module 'DataExplorerView', ->
 
         render_error: (query, err, js_error) =>
             @view_object?.remove()
-            @view_object = undefined
+            @view_object = null
+            @query_result?.discard()
             @$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
@@ -3552,7 +3570,6 @@ module 'DataExplorerView', ->
             @$('.tab-content').html @view_object.render().$el
             @init_after_dom_rendered()
             @set_scrollbar()
-            # ATN @delegateEvents() ?
 
         # ATN: conitnue ripping this into pieces
         render_result: (args) =>
@@ -3580,6 +3597,9 @@ module 'DataExplorerView', ->
 
         handle_mousemove: (event) =>
             @view_object?.handle_mousedown?(event)
+
+        show_next_batch: (event) =>
+            @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
