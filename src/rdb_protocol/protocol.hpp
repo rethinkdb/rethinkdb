@@ -846,7 +846,7 @@ struct backfill_chunk_t {
     }
 
     /* This is for `store_t`; it's not part of the ICL protocol API. */
-    repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
+    repli_timestamp_t max_inserted_repli_timestamp() const THROWS_NOTHING;
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);

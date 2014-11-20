@@ -898,11 +898,7 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         repli_timestamp_t most_recent = repli_timestamp_t::invalid;
         rassert(!kv.backfill_atoms.empty());
         for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            if (most_recent == repli_timestamp_t::invalid
-                || most_recent < kv.backfill_atoms[i].recency) {
-
-                most_recent = kv.backfill_atoms[i].recency;
-            }
+            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
         }
         return most_recent;
     }
@@ -912,7 +908,8 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
     }
 };
 
-repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
+// Returns the maximum key/value timestamp that is inserted.
+repli_timestamp_t backfill_chunk_t::max_inserted_repli_timestamp() const THROWS_NOTHING {
     rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t v;
     return boost::apply_visitor(v, val);
 }
