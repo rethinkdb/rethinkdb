@@ -7,3 +7,6 @@ void debug_print(printf_buffer_t *buf, state_timestamp_t ts) {
     debug_print(buf, ts.num);
     buf->appendf("}");
 }
+
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(transition_timestamp_t, before);
+

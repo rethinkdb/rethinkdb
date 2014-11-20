@@ -86,13 +86,12 @@ public:
         return before.to_repli_timestamp();
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(before);
-
-private:
+    // RSI: Temporarily public to prove that it's only serialized for cluster.
+public:
     state_timestamp_t before;
 };
 
-RDB_SERIALIZE_OUTSIDE(transition_timestamp_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(transition_timestamp_t);
 
 
 #endif /* TIMESTAMPS_HPP_ */
