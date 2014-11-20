@@ -369,7 +369,7 @@ void broadcaster_t::listener_write(
         THROWS_ONLY(interrupted_exc_t)
 {
     if (mirror->local_listener != NULL) {
-        mirror->local_listener->local_write(w, ts, order_token, token, interruptor);
+        mirror->local_listener->local_write(w, ts.timestamp_after(), order_token, token, interruptor);
     } else {
         cond_t ack_cond;
         mailbox_t<void()> ack_mailbox(
@@ -377,7 +377,7 @@ void broadcaster_t::listener_write(
             [&](signal_t *) { ack_cond.pulse(); });
 
         send(mailbox_manager, mirror->write_mailbox,
-             w, ts, order_token, token, ack_mailbox.get_address());
+             w, ts.timestamp_after(), order_token, token, ack_mailbox.get_address());
 
         wait_interruptible(&ack_cond, interruptor);
     }
@@ -581,7 +581,7 @@ void broadcaster_t::background_writeread(
         write_response_t response;
         if (mirror->local_listener != NULL) {
             response = mirror->local_listener->local_writeread(
-                    write_ref.get()->write, write_ref.get()->timestamp, order_token,
+                    write_ref.get()->write, write_ref.get()->timestamp.timestamp_after(), order_token,
                     token, durability, mirror_lock.get_drain_signal());
         } else {
             cond_t response_cond;
@@ -593,7 +593,7 @@ void broadcaster_t::background_writeread(
                 });
 
             send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write,
-                 write_ref.get()->timestamp, order_token, token,
+                 write_ref.get()->timestamp.timestamp_after(), order_token, token,
                  response_mailbox.get_address(), durability);
 
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
