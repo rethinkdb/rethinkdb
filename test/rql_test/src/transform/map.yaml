@@ -89,3 +89,14 @@ tests:
       py: r.range().map(r.range(), lambda x, y:(x, y)).count()
       rb: r.map(r.range(), r.range()){|x, y| [x, y]}.count()
       ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
+
+    # Prefix notation
+    - js: r.map(r.range(3), function(x){return [x]})
+      py: r.map(r.range(3), lambda x:(x,))
+      rb: r.map(r.range(3), lambda {|x| [x]})
+      ot: [[0], [1], [2]]
+
+    - js: r.map(r.range(3), r.range(5), function(x, y){return [x, y]})
+      py: r.map(r.range(3), r.range(5), lambda x, y:(x, y))
+      rb: r.map(r.range(3), r.range(5), lambda {|x, y| [x, y]})
+      ot: [[0, 0], [1, 1], [2, 2]]

@@ -57,6 +57,9 @@ def table_list(*args):
 def branch(*args):
     return Branch(*args)
 
+def map(*args):
+    return Map(*args)
+
 # orderBy orders
 
 def asc(*args):
