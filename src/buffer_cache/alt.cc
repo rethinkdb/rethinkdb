@@ -43,7 +43,6 @@ private:
     // declare_snapshotted() called).
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
-    // KSI: std::map memory usage.  Just use a vector of pairs?
     // A NULL pointer associated with a block id indicates that the block is deleted.
     std::map<block_id_t, alt_snapshot_node_t *> children_;
 
@@ -195,8 +194,7 @@ txn_t::txn_t(cache_conn_t *cache_conn,
 
     // Treat an invalid timestamp like distant_past since that's how we really want
     // it to behave.
-    // KSI: Callers should not be specifying invalid timestamps, but maybe they
-    // shouldn't be passing a timestamp at all....
+    // Callers _should_ not be specifying invalid timestamps.
     if (txn_timestamp == repli_timestamp_t::invalid) {
         txn_timestamp = repli_timestamp_t::distant_past;
     }
