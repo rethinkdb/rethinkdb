@@ -273,7 +273,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
         rassert(coro_t::self());
 
         buf_lock_t block(parent, block_id, state->helper->btree_node_mode());
-        acq_start_cb->on_in_line();  // KSI: this is dumb.
+        acq_start_cb->on_in_line();
 
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
