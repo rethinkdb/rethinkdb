@@ -1,5 +1,9 @@
+# render in initializer, not when attaching?
+# ticker shows throughout
+# clicking abort doesn't stop loading the changefeed batch
+# table view shows no results when it means "no more results" or "no results yet"
+# load next batch button is never hidden
 # abort button blinks
-
 # no element found when closing connection
 
 # split query result into:
@@ -57,7 +61,7 @@ module 'DataExplorerView', ->
         current_query: null
         query_result: null
         cursor_timed_out: true
-        view: 'raw' # ATN 'tree'
+        view: 'tree'
         history_state: 'hidden'
         last_keys: []
         last_columns_size: {}
@@ -653,8 +657,7 @@ module 'DataExplorerView', ->
             $(window).mousedown @handle_mousedown
             @keep_suggestions_on_blur = false
 
-            # ATN: this seems unecessary: render is called later
-            # @render()
+            @render()
 
             @databases_available = {}
             @fetch_data()
@@ -711,11 +714,9 @@ module 'DataExplorerView', ->
 
             # Let's bring back the data explorer to its old state (if there was)
             if @state?.query_result?
-                # ATN: set_query_result?
                 @results_view_wrapper.set_query_result
                     query_result: @state.query_result
 
-            # ATN: results_view_wrapper.render?
             @$('.results_container').html @results_view_wrapper.render(query_has_changed: @query_has_changed).$el
 
             # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
@@ -2954,16 +2955,15 @@ module 'DataExplorerView', ->
             @render()
 
         add_row: =>
-            throw "Unimplemented add_row for #{@.constructor.name}"
+            @render()
 
     class TreeView extends ResultView
         className: 'results tree_view_container'
         template: Handlebars.templates['dataexplorer_result_tree-template']
 
         render: =>
-            @copy_parent_results() # ATN
             @$el.html @template
-                tree: @json_to_tree @results
+                tree: @json_to_tree @current_batch()
             @
 
     class TableView extends ResultView
@@ -2978,6 +2978,7 @@ module 'DataExplorerView', ->
             td_value: Handlebars.templates['dataexplorer_result_json_table_td_value-template']
             td_value_content: Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             data_inline: Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+            no_result: Handlebars.templates['dataexplorer_result_empty-template']
 
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
         mouse_down: false
@@ -3252,22 +3253,18 @@ module 'DataExplorerView', ->
                     flatten_attr: flatten_attr
 
         tag_record: (doc, i) =>
-            doc.record = @ATN_metadata.skip_value + i
+            doc.record = @query_result.position + i
 
         render: =>
-            @copy_parent_results() # ATN
-
             previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-            if Object::toString.call(@results) is '[object Array]'
-                if @results.length is 0
-                    @$el.html @templates.wrapper content: @template_no_result()
+            results = @current_batch()
+            if Object::toString.call(results) is '[object Array]'
+                if results.length is 0
+                    @$el.html @templates.wrapper content: @templates.no_result()
                 else
-                    @$el.html @templates.wrapper content: @json_to_table @results
+                    @$el.html @templates.wrapper content: @json_to_table results
             else
-                if not @ATN_results_array?
-                    @ATN_results_array = []
-                    @ATN_results_array.push @results
-                @$el.html @templates.wrapper content: @json_to_table @ATN_results_array
+                @$el.html @templates.wrapper content: @json_to_table [results]
 
             # Check if the keys are the same
             if @parent.container.state.last_keys.length isnt previous_keys.length
@@ -3400,7 +3397,6 @@ module 'DataExplorerView', ->
         metadata_template: Handlebars.templates['dataexplorer-metadata-template']
         option_template: Handlebars.templates['dataexplorer-option_page-template']
         error_template: Handlebars.templates['dataexplorer-error-template']
-        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
         primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
@@ -3597,6 +3593,7 @@ module 'DataExplorerView', ->
             @view_object?.handle_mousedown?(event)
 
         show_next_batch: (event) =>
+            event.preventDefault()
             @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View
