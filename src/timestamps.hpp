@@ -41,11 +41,19 @@ public:
         return t;
     }
 
+    // (It wouldn't be the end of the world if you had to remove this NDEBUG wrapper
+    // for some reason.  Right now we only use pred() in certain assertions that the
+    // preceding state has the appropriate timestamp, when doing a write operation.
+    // But beware: I suspect that certain assertions (of the metainfo or something)
+    // might be invalid in the face of canceled write operations?  There is some
+    // peculiar code in the broadcaster.)
+#ifndef NDEBUG
     state_timestamp_t pred() const {
         state_timestamp_t t;
         t.num = num - 1;
         return t;
     }
+#endif  // NDEBUG
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     repli_timestamp_t to_repli_timestamp() const {
