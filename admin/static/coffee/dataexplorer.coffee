@@ -1,12 +1,12 @@
-# history is broken
-# render in initializer, not when attaching?
-# ticker shows throughout
-# clicking abort doesn't stop loading the changefeed batch
+# 400 bad request when aborting changefeed
 # table view shows no results when it means "no more results" or "no results yet"
-# load next batch button is never hidden
-# abort button blinks
+# abort button blinks when runnign a normal query
+# abort blinks constantly when running a changefeed
 # no element found when closing connection
 
+# refactor query_result
+
+# ticker shows throughout
 # move more results button into individual views
 # returned/displayed/skipped has extra comma and is generally ugly
 
@@ -50,8 +50,9 @@ module 'DataExplorerView', ->
     # This class represents the results of a query.
     #
     # If there is a profile, `profile` is set. After a 'ready' event,
-    # one of `error`, `value` or `cursor` is always set. `ended`
-    # indicates whether there are any more results to read.
+    # one of `error`, `value` or `cursor` is always set, `type`
+    # indicates which. `ended` indicates whether there are any more
+    # results to read.
     #
     # It triggers the following events:
     #  * ready: The first response has been received
@@ -134,6 +135,13 @@ module 'DataExplorerView', ->
             @trigger 'error', @, error
             @discard_results = true
             @ended = true 
+
+        size: =>
+            switch @type
+                when 'value'
+                    return @value.length
+                when 'cursor'
+                    return @results.length
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -2925,16 +2933,21 @@ module 'DataExplorerView', ->
                     return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
 
         fetch_batch_rows:  =>
-            if @query_result.results?.length - @query_result.position < @parent.container.limit
+            if @query_result.type is not 'cursor'
+                return
+            if @query_result.size() < @query_result.position + @parent.container.limit
                 @query_result.once 'add', (query_result, row) =>
                     @add_row row
                     @fetch_batch_rows()
                 @query_result.fetch_next()
+            else
+                @parent.render()
 
         show_next_batch: =>
             @query_result.position += @parent.container.limit
-            @fetch_batch_rows()
             @render()
+            @parent.render()
+            @fetch_batch_rows()
 
         add_row: =>
             @render()
@@ -3399,6 +3412,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             @container = args.container
             @view = args.view
+            @view_object = null 
 
         show_tree: (event) =>
             event.preventDefault()
@@ -3517,14 +3531,15 @@ module 'DataExplorerView', ->
         render: (args) =>
             # ATN many of these fields don't get updated when their value changes
             if @query_result?.ready
+                @view_object?.$el.detach()
+                has_more_data = not @query_result.ended and @query_result.position + @container.limit <= @query_result.size()
                 @$el.html @template
                     limit_value: @container.limit
                     skip_value: @query_result.position
                     execution_time: 12345 # ATN
                     query: "query" # ATN
-                    has_more_data: not @query_result.ended
                     query_has_changed: args?.query_has_changed
-                    show_more_data: not @query_result.ended and not @container.state.cursor_timed_out
+                    show_more_data: has_more_data and not @container.state.cursor_timed_out
                     cursor_timed_out_template: (
                         @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
                     execution_time_pretty: 12345 # @ATN_metadata.execution_time_pretty
@@ -3576,7 +3591,7 @@ module 'DataExplorerView', ->
 
         show_next_batch: (event) =>
             event.preventDefault()
-            $(window).scrollTop(@$('.results_container').offset().top)
+            $(window).scrollTop(@$el.offset().top)
             @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View
@@ -3756,6 +3771,8 @@ module 'DataExplorerView', ->
                     callback error, result
 
         cursor_next: (cursor, {error, row, end}) =>
+            if not @connection?
+                end()
             @container.toggle_executing true
             cursor.next (err, row_) =>
                 @container.toggle_executing false
