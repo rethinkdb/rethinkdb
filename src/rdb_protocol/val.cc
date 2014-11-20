@@ -27,8 +27,13 @@ public:
     virtual datum_t get() {
         return row.has() ? row : tbl->get_row(env, key);
     }
-    virtual counted_t<datum_stream_t> read_changes() {
-        return tbl->tbl->read_row_changes(env, key, bt, tbl->display_name());
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+        return tbl->tbl->read_changes(
+            env,
+            squash,
+            changefeed::keyspec_t::point_t{store_key_t(key.print_primary())},
+            bt,
+            tbl->display_name());
     }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
@@ -84,11 +89,11 @@ public:
             rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
         }
     }
-    virtual counted_t<datum_stream_t> read_changes() {
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
-            env, std::move(spec), bt, slice->get_tbl()->display_name());
+            env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
         s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);
         return s;
     }

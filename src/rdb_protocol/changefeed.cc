@@ -44,7 +44,7 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.old_key).c_str(),
                      print(change.new_val).c_str());
 }
-}  // namespace debug
+} // namespace debug
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -901,7 +901,7 @@ public:
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
 protected:
-    explicit subscription_t(feed_t *_feed);
+    explicit subscription_t(feed_t *_feed, const datum_t &squash);
     void maybe_signal_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
@@ -912,10 +912,13 @@ protected:
     // continuing.
     size_t skipped;
     // The feed we're subscribed to.
-    feed_t *feed;
+    const feed_t *feed;
+    const bool squash;
 private:
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
+
+    const double min_interval;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -1150,8 +1153,8 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, store_key_t _key)
-        : flat_sub_t(feed), key(std::move(_key)), stamp(0) {
+    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
+        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0) {
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
@@ -1214,8 +1217,8 @@ private:
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
-        : flat_sub_t(feed), spec(std::move(_spec)) {
+    range_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::range_t _spec)
+        : flat_sub_t(feed, squash), spec(std::move(_spec)) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -1324,8 +1327,8 @@ private:
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed, keyspec_t::limit_t _spec)
-        : subscription_t(feed),
+    limit_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::limit_t _spec)
+        : subscription_t(feed, squash),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -1725,7 +1728,13 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed) : skipped(0), feed(_feed), cond(NULL) {
+
+subscription_t::subscription_t(feed_t *_feed, const datum_t &squash)
+    : skipped(0),
+      feed(_feed),
+      squash(squash.as_bool()),
+      min_interval(squash.get_type() == datum_t::R_NUM ? squash.as_num() : 0.0),
+      cond(NULL) {
     guarantee(feed != NULL);
 }
 
@@ -2059,30 +2068,33 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed, const keyspec_t::spec_t &spec) {
+    feed_t *feed, const datum_t &squash, const keyspec_t::spec_t &spec) {
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
-        explicit spec_visitor_t(feed_t *_feed) : feed(_feed) { }
+        explicit spec_visitor_t(feed_t *_feed, const datum_t *_squash)
+            : feed(_feed), squash(_squash) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, range);
+            return new range_sub_t(feed, *squash, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, limit);
+            return new limit_sub_t(feed, *squash, limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, point.key);
+            return new point_sub_t(feed, *squash, point.key);
         }
         feed_t *feed;
+        const datum_t *squash;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(spec_visitor_t(feed), spec));
+        boost::apply_visitor(spec_visitor_t(feed, &squash), spec));
 }
 
-counted_t<datum_stream_t>
-client_t::new_feed(env_t *env,
-                   const namespace_id_t &uuid,
-                   const protob_t<const Backtrace> &bt,
-                   const std::string &table_name,
-                   const keyspec_t::spec_t &spec) {
+counted_t<datum_stream_t> client_t::new_stream(
+    env_t *env,
+    const datum_t &squash,
+    const namespace_id_t &uuid,
+    const protob_t<const Backtrace> &bt,
+    const std::string &table_name,
+    const keyspec_t::spec_t &spec) {
     try {
         scoped_ptr_t<subscription_t> sub;
         boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
@@ -2113,7 +2125,7 @@ client_t::new_feed(env_t *env,
             on_thread_t th2(old_thread);
             real_feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub = new_sub(feed, spec);
+            sub = new_sub(feed, squash, spec);
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
