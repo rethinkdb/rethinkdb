@@ -167,7 +167,7 @@ private:
 
     void listener_write(
         broadcaster_t::dispatchee_t *mirror,
-        const write_t &w, transition_timestamp_t ts,
+        const write_t &w, state_timestamp_t new_timestamp,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
