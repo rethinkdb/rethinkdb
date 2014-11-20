@@ -844,9 +844,6 @@ struct backfill_chunk_t {
     static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
         return backfill_chunk_t(sindexes_t(sindexes));
     }
-
-    /* This is for `store_t`; it's not part of the ICL protocol API. */
-    repli_timestamp_t max_inserted_repli_timestamp() const THROWS_NOTHING;
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);

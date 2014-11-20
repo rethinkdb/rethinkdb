@@ -885,35 +885,6 @@ void store_t::protocol_write(const write_t &write,
     response->event_log.push_back(profile::stop_t());
 }
 
-struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return del.recency;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
-        return repli_timestamp_t::invalid;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
-        rassert(!kv.backfill_atoms.empty());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
-        }
-        return most_recent;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
-        return repli_timestamp_t::invalid;
-    }
-};
-
-// Returns the maximum key/value timestamp that is inserted.
-repli_timestamp_t backfill_chunk_t::max_inserted_repli_timestamp() const THROWS_NOTHING {
-    rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t v;
-    return boost::apply_visitor(v, val);
-}
-
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;

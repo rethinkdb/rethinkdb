@@ -252,6 +252,29 @@ void store_t::throttle_backfill_chunk(signal_t *interruptor)
     }
 }
 
+struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp_t> {
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
+        return del.recency;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
+        return repli_timestamp_t::distant_past;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        repli_timestamp_t most_recent = repli_timestamp_t::distant_past;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
+        }
+        return most_recent;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
+        return repli_timestamp_t::distant_past;
+    }
+};
+
 void store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_pair_t *token_pair,
@@ -269,7 +292,8 @@ void store_t::receive_backfill(
     // exhaust the cache's dirty page limit and bring down the whole table.
     // Other than that, the hard durability guarantee is not actually
     // needed here.
-    acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
+    acquire_superblock_for_write(boost::apply_visitor(backfill_chunk_timestamp_t(),
+                                                      chunk.val),
                                  expected_change_count,
                                  write_durability_t::HARD,
                                  token_pair,
