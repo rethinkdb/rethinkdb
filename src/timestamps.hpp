@@ -35,6 +35,12 @@ public:
         return t;
     }
 
+    state_timestamp_t next() const {
+        state_timestamp_t t;
+        t.num = num + 1;
+        return t;
+    }
+
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;

@@ -37,7 +37,7 @@ void fifo_enforcer_queue_t<T>::finish_read(DEBUG_VAR fifo_enforcer_read_token_t 
 
     assert_thread();
 
-    rassert(state.timestamp == read_token.timestamp);
+    rassert(state.last_timestamp == read_token.timestamp);
 
     state.num_reads++;
     consider_changing_available();
@@ -60,17 +60,17 @@ void fifo_enforcer_queue_t<T>::finish_write(fifo_enforcer_write_token_t write_to
 
     assert_thread();
 
-    rassert(state.timestamp == write_token.timestamp.timestamp_before());
+    rassert(state.last_timestamp.next() == write_token.timestamp);
     rassert(state.num_reads == write_token.num_preceding_reads);
 
-    state.timestamp = write_token.timestamp.timestamp_after();
+    state.last_timestamp = write_token.timestamp;
     state.num_reads = 0;
     consider_changing_available();
 }
 
 template <class T>
 T fifo_enforcer_queue_t<T>::produce_next_value() {
-    typename read_queue_t::iterator rit = read_queue.find(state.timestamp);
+    typename read_queue_t::iterator rit = read_queue.find(state.last_timestamp);
     if (rit != read_queue.end()) {
         T res = rit->second;
         read_queue.erase(rit);
@@ -79,7 +79,7 @@ T fifo_enforcer_queue_t<T>::produce_next_value() {
     }
 
     typename write_queue_t::iterator wit =
-        write_queue.find(transition_timestamp_t::starting_from(state.timestamp));
+        write_queue.find(state.last_timestamp.next());
     if (wit != write_queue.end()) {
         int64_t expected_num_reads = wit->second.first;
         rassert(state.num_reads <= expected_num_reads);
@@ -99,10 +99,10 @@ T fifo_enforcer_queue_t<T>::produce_next_value() {
 
 template <class T>
 void fifo_enforcer_queue_t<T>::consider_changing_available() {
-    if (std_contains(read_queue, state.timestamp)) {
+    if (std_contains(read_queue, state.last_timestamp)) {
         control.set_available(true);
-    } else if (std_contains(write_queue, transition_timestamp_t::starting_from(state.timestamp)) &&
-            write_queue.find(transition_timestamp_t::starting_from(state.timestamp))->second.first == state.num_reads) {
+    } else if (std_contains(write_queue, state.last_timestamp.next()) &&
+               write_queue.find(state.last_timestamp.next())->second.first == state.num_reads) {
         control.set_available(true);
     } else {
         control.set_available(false);
