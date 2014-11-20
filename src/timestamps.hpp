@@ -67,38 +67,5 @@ RDB_SERIALIZE_OUTSIDE(state_timestamp_t);
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
-class transition_timestamp_t {
-public:
-    bool operator==(transition_timestamp_t t) const { return before == t.before; }
-    bool operator!=(transition_timestamp_t t) const { return before != t.before; }
-    bool operator<(transition_timestamp_t t) const { return before < t.before; }
-    bool operator>(transition_timestamp_t t) const { return before > t.before; }
-    bool operator<=(transition_timestamp_t t) const { return before <= t.before; }
-    bool operator>=(transition_timestamp_t t) const { return before >= t.before; }
-
-    static transition_timestamp_t starting_from(state_timestamp_t before) {
-        transition_timestamp_t t;
-        t.before = before;
-        return t;
-    }
-
-    state_timestamp_t timestamp_before() const {
-        return before;
-    }
-
-    state_timestamp_t timestamp_after() const {
-        state_timestamp_t after;
-        after.num = before.num + 1;
-        guarantee(after > before, "timestamp counter overflowed");
-        return after;
-    }
-
-    // RSI: Temporarily public to prove that it's only serialized for cluster.
-public:
-    state_timestamp_t before;
-};
-
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(transition_timestamp_t);
-
 
 #endif /* TIMESTAMPS_HPP_ */
