@@ -756,18 +756,16 @@ void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
                                                   scoped_ptr_t<txn_t> *txn_out) {
     txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
-    // KSI: Does using a backfill account needlessly slow other operations down?
     txn->set_account(backfill_account);
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
-    // KSI: This is bad -- we want to backfill, we don't want to snapshot from the
-    // superblock (and therefore secondary indexes)-- we really want to snapshot the
-    // subtree underneath the root node.
     (*got_superblock_out)->get()->snapshot_subdag();
 }
 
 // KSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
+// However, if you quickly release the superblock, you'll release any snapshotting of
+// secondary index nodes that you could not possibly access.
 void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
@@ -777,7 +775,6 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
 
     get_btree_superblock(txn, access_t::read, got_superblock_out);
 
-    // KSI: As mentioned, snapshotting here is stupid.
     if (snapshotted == CACHE_SNAPSHOTTED_YES) {
         (*got_superblock_out)->get()->snapshot_subdag();
     }
@@ -789,8 +786,6 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
  * keyvalue_location_t that's passed in (keyvalue_location_out) is destroyed.
  * This is because it may need to use the superblock for some of its methods.
  * */
-// KSI: It seems like really we should pass the superblock_t via rvalue reference.
-// Is that possible?  (promise_t makes it hard.)
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
@@ -806,9 +801,6 @@ void find_keyvalue_location_for_write(
 
     keyvalue_location_out->stats = stats;
 
-    // KSI: Make sure we do the logic smart here -- don't needlessly hold both
-    // buffers.  (This finds the keyvalue for _write_ so that probably won't really
-    // happen.)
     buf_lock_t last_buf;
     buf_lock_t buf;
     {
