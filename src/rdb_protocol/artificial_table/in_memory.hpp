@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
 #include "rdb_protocol/datum.hpp"
 
 /* This is the backend for an artificial table that acts as much as possible like a real
@@ -14,7 +15,7 @@ table. It accepts all reads and writes, storing the results in a `std::map`. It'
 for testing `artificial_table_t`. */
 
 class in_memory_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public cfeed_artificial_table_backend_t
 {
 public:
     std::string get_primary_key_name() {
@@ -63,6 +64,7 @@ public:
         } else {
             data.erase(primary_key.print_primary());
         }
+        notify_row(primary_key);
         return true;
     }
 

@@ -66,33 +66,14 @@ bool common_table_artificial_table_backend_t::read_row(
                       &interruptor2, row_out, error_out);
 }
 
-#if 0
-RSI: remove me completely
-name_string_t common_table_artificial_table_backend_t::get_db_name(
-        const database_id_t &db_id) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
-    auto it = dbs.databases.find(db_id);
-    guarantee(it != dbs.databases.end());
-    if (it->second.is_deleted()) {
-        return name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        return it->second.get_ref().name.get_ref();
-    }
+bool common_table_artificial_table_backend_t::read_changes(
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
+        UNUSED signal_t *interruptor,
+        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
+        std::string *error_out) {
+    /* RSI(reql_admin): support changefeeds */
+    *error_out = "The `rethinkdb.table_*` tables don't support changefeeds.";
+    return false;
 }
-
-ql::datum_t common_table_artificial_table_backend_t::get_db_name_or_uuid(
-        const database_id_t &db_id) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
-    ql::datum_t res;
-    if (!convert_database_id_to_datum(db_id, identifier_format, dbs, &res)) {
-        /* This can occur due to a race condition, if a new table is added to a database
-        at the same time as it is being deleted. */
-        res = convert_name_to_datum(
-            name_string_t::guarantee_valid("__deleted_database__"));
-    }
-    return res;
-}
-#endif
 

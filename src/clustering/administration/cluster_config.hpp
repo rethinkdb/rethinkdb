@@ -46,6 +46,13 @@ public:
             signal_t *interruptor,
             std::string *error_out);
 
+    bool read_changes(
+        const ql::protob_t<const Backtrace> &bt,
+        const ql::changefeed::keyspec_t::spec_t &spec,
+        signal_t *interruptor,
+        counted_t<ql::datum_stream_t> *cfeed_out,
+        std::string *error_out);
+
 private:
     /* The abstract class `doc_t` represents a row in the `cluster_config` table. In the
     future it will have more subclasses. We might eventually want to move it and its

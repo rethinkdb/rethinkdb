@@ -85,6 +85,8 @@ struct msg_t {
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
         store_key_t pkey;
+        /* For a newly-creatd row, `old_val` is `datum_t::null()`. For a deleted row,
+        `new_val` is `datum_t::null()`. */
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -512,11 +514,20 @@ class artificial_feed_t;
 class artificial_t {
 public:
     artificial_t();
-    ~artificial_t();
+    virtual ~artificial_t();
+
     counted_t<datum_stream_t> subscribe(
         const keyspec_t::spec_t &spec,
         const protob_t<const Backtrace> &bt);
     void send_all(const msg_t &msg);
+
+    /* `can_be_removed()` returns `true` if there are no changefeeds currently using the
+    `artificial_t`. `maybe_remove()` is called when the last changefeed stops using the
+    `artificial_t`, but new changfeeds may be subscribed after `maybe_remove()` is
+    called. */ 
+    bool can_be_removed();
+    virtual void maybe_remove() { }
+
 private:
     uint64_t stamp;
     uuid_u uuid;

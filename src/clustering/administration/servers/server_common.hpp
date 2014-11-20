@@ -45,6 +45,13 @@ public:
             ql::datum_t *row_out,
             std::string *error_out);
 
+    bool read_changes(
+        const ql::protob_t<const Backtrace> &bt,
+        const ql::changefeed::keyspec_t::spec_t &spec,
+        signal_t *interruptor,
+        counted_t<ql::datum_stream_t> *cfeed_out,
+        std::string *error_out);
+
 protected:
     virtual bool format_row(name_string_t const & name,
                             server_id_t const & server_id,

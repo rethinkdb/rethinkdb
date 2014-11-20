@@ -85,13 +85,16 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
-        UNUSED ql::env_t *env,
-        UNUSED ql::changefeed::keyspec_t::spec_t &&spec,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
+        ql::env_t *env,
+        ql::changefeed::keyspec_t::spec_t &&spec,
+        const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
-    /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Artificial tables don't support changefeeds.");
+    counted_t<ql::datum_stream_t> stream;
+    std::string error;
+    if (!backend->read_changes(bt, spec, env->interruptor, &stream, &error)) {
+        rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
+    }
+    return stream;
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(

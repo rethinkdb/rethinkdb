@@ -2162,20 +2162,20 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
 
 class artificial_feed_t : public feed_t {
 public:
-    artificial_feed_t() { }
+    artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
-    // This is a NOP because we aren't registered with a client.
-    virtual void maybe_remove_feed() { }
+    virtual void maybe_remove_feed() { parent->maybe_remove(); }
     NORETURN virtual void stop_limit_sub(limit_sub_t *) {
         crash("Limit subscriptions are not supported on artificial feeds.");
     }
 private:
+    artificial_t *parent;
     auto_drainer_t drainer;
 };
 
 artificial_t::artificial_t()
-    : stamp(0), uuid(generate_uuid()), feed(make_scoped<artificial_feed_t>()) { }
+    : stamp(0), uuid(generate_uuid()), feed(make_scoped<artificial_feed_t>(this)) { }
 artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
@@ -2190,6 +2190,10 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 void artificial_t::send_all(const msg_t &msg) {
     msg_visitor_t visitor(feed.get(), uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);
+}
+
+bool artificial_t::can_be_removed() {
+    return feed->can_be_removed();
 }
 
 } // namespace changefeed
