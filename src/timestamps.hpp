@@ -87,11 +87,6 @@ public:
         return after;
     }
 
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    repli_timestamp_t to_repli_timestamp() const {
-        return before.to_repli_timestamp();
-    }
-
     // RSI: Temporarily public to prove that it's only serialized for cluster.
 public:
     state_timestamp_t before;
