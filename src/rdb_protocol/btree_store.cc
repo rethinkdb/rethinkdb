@@ -253,15 +253,15 @@ void store_t::throttle_backfill_chunk(signal_t *interruptor)
 }
 
 struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) const {
         return del.recency;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) const {
         return repli_timestamp_t::distant_past;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) const {
         repli_timestamp_t most_recent = repli_timestamp_t::distant_past;
         rassert(!kv.backfill_atoms.empty());
         for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
@@ -270,7 +270,7 @@ struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp
         return most_recent;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
+    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) const {
         return repli_timestamp_t::distant_past;
     }
 };
