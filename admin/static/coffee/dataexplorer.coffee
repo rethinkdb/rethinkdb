@@ -1,3 +1,4 @@
+# history is broken
 # render in initializer, not when attaching?
 # ticker shows throughout
 # clicking abort doesn't stop loading the changefeed batch
@@ -6,54 +7,27 @@
 # abort button blinks
 # no element found when closing connection
 
-# split query result into:
-# QueryResult/CursorResult/ValueResult/PositionedResult
+# move more results button into individual views
+# returned/displayed/skipped has extra comma and is generally ugly
 
-# switching back to the dataexplorer shows the "enable the profiler" message instead of the previous query's profile
-# the load next batch button flashes a message I can't read and switches to the dashboard
-# server errors show as "[object Object]"
+# round-trip time for cursors is inconsistent
 
-# container limit -> global constant
-
-# ATN: remove jquery migration:
-#   $.browser
 # ATN: change query nomenclature:
 # raw: text from the data explorer
 # clean: cleaned somehow. how?
 # query: a single query
 # query_group: multiple queries
-
 # TODO: standardize on result or results
 
-# Move load more results into view
-# and scroll to top: $(window).scrollTop(@$('.results_container').offset().top)
-
-# handle sync inside the result view
-
-# ATN tags
+# container limit -> global constant
 
 # history load/remove buttons display is broken
-
 # view tabs display is different
-
 # compare look to old version, make sure nothing changed
-
 # test wrapper_scrollbar
 
-# move more results button into individual views
-
-# returned/displayed/skipped has extra comma and is generally ugly
-# removing id_connection may have introduced bugs
-# round-trip time for cursors is inconsistent
-# cursor_timed_out is only called on connection errors
-
-# save_query gets called too often with no effect -> symptom that it is
-# called in the wrong places
-
-# typeof value._next is 'function' is NOT a good test for cursors
-
-# table view doesn't work with arrays
-
+# ATN: remove jquery migration:
+#   $.browser
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -128,6 +102,7 @@ module 'DataExplorerView', ->
         discard: =>
             @trigger 'discard', @
             @off()
+            @type = 'discarded'
             @discard_results = true
             delete @profile
             delete @value
@@ -656,8 +631,6 @@ module 'DataExplorerView', ->
             $(window).mouseup @handle_mouseup
             $(window).mousedown @handle_mousedown
             @keep_suggestions_on_blur = false
-
-            @render()
 
             @databases_available = {}
             @fetch_data()
@@ -2638,11 +2611,20 @@ module 'DataExplorerView', ->
                             timeFormat: "raw"
                             profile: @state.options.profiler
                         connection_error: (error) =>
+                            @save_query
+                                query: @raw_query
+                                broken_query: true
                             @error_on_connect error
                         callback: (error, result) =>
                             if final_query
+                                @save_query
+                                    query: @raw_query
+                                    broken_query: false
                                 query_result.set error, result
                             else if error
+                                @save_query
+                                    query: @raw_query
+                                    broken_query: true
                                 @results_view_wrapper.render_error(@query, err)
                             else
                                 @execute_portion()
@@ -3594,6 +3576,7 @@ module 'DataExplorerView', ->
 
         show_next_batch: (event) =>
             event.preventDefault()
+            $(window).scrollTop(@$('.results_container').offset().top)
             @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View
