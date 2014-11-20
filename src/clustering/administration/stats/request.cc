@@ -73,13 +73,24 @@ void parsed_stats_t::add_shard_values(const ql::datum_t &shard_perf,
         std::pair<datum_string_t, ql::datum_t> pair = shard_perf.get_pair(i);
         if (pair.first.to_std().find("shard_") == 0) {
             r_sanity_check(pair.second.get_type() == ql::datum_t::R_OBJECT);
-            ql::datum_t pkey_stats = pair.second.get_field("btree-primary", ql::throw_bool_t::NOTHROW);
-            if (pkey_stats.has()) {
-                r_sanity_check(pkey_stats.get_type() == ql::datum_t::R_OBJECT);
-                add_perfmon_value(pkey_stats, "keys_read", &stats_out->read_docs_per_sec);
-                add_perfmon_value(pkey_stats, "keys_set", &stats_out->written_docs_per_sec);
-                add_perfmon_value(pkey_stats, "total_keys_read", &stats_out->read_docs_total);
-                add_perfmon_value(pkey_stats, "total_keys_read", &stats_out->written_docs_total);
+            for (size_t j = 0; j < pair.second.obj_size(); ++j) {
+                std::pair<datum_string_t, ql::datum_t> sub_pair = pair.second.get_pair(j);
+                std::string key = sub_pair.first.to_std();
+
+                if (key.find("btree-") == 0) {
+                    r_sanity_check(sub_pair.second.get_type() == ql::datum_t::R_OBJECT);
+                    add_perfmon_value(sub_pair.second, "keys_read",
+                                      &stats_out->read_docs_per_sec);
+                    add_perfmon_value(sub_pair.second, "keys_set",
+                                      &stats_out->written_docs_per_sec);
+                    add_perfmon_value(sub_pair.second, "total_keys_read",
+                                      &stats_out->read_docs_total);
+                    add_perfmon_value(sub_pair.second, "total_keys_read",
+                                      &stats_out->written_docs_total);
+                } else if (key == "cache") {
+                    add_perfmon_value(sub_pair.second, "in_use_bytes",
+                                      &stats_out->in_use_bytes);
+                }
             }
         }
     }

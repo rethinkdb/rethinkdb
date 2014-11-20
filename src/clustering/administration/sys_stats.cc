@@ -49,9 +49,12 @@ ql::datum_t sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(vo
     ql::datum_object_builder_t builder;
 
     disk_stat_t disk_stat(base_path.path());
-    builder.overwrite("global_disk_space_free", ql::datum_t(static_cast<double>(disk_stat.disk_space_free)));
-    builder.overwrite("global_disk_space_used", ql::datum_t(static_cast<double>(disk_stat.disk_space_used)));
-    builder.overwrite("global_disk_space_total", ql::datum_t(static_cast<double>(disk_stat.disk_space_total)));
+    builder.overwrite("global_disk_space_free",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_free)));
+    builder.overwrite("global_disk_space_used",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_used)));
+    builder.overwrite("global_disk_space_total",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_total)));
 
     return std::move(builder).to_datum();
 }
