@@ -623,12 +623,20 @@ boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
 
 scoped_ptr_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
+    rcheck(!is_infinite(),
+           base_exc_t::GENERIC,
+           "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.");
+
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
+    rcheck(!is_infinite(),
+           base_exc_t::GENERIC,
+           "Cannot coerce an infinite stream to an array.");
+
     scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
@@ -811,6 +819,9 @@ bool lazy_datum_stream_t::is_exhausted() const {
 bool lazy_datum_stream_t::is_cfeed() const {
     return false;
 }
+bool lazy_datum_stream_t::is_infinite() const {
+    return false;
+}
 
 array_datum_stream_t::array_datum_stream_t(datum_t _arr,
                                            const protob_t<const Backtrace> &bt_source)
@@ -827,6 +838,9 @@ bool array_datum_stream_t::is_exhausted() const {
     return index >= arr.arr_size();
 }
 bool array_datum_stream_t::is_cfeed() const {
+    return false;
+}
+bool array_datum_stream_t::is_infinite() const {
     return false;
 }
 
@@ -1027,6 +1041,9 @@ bool slice_datum_stream_t::is_exhausted() const {
 bool slice_datum_stream_t::is_cfeed() const {
     return source->is_cfeed();
 }
+bool slice_datum_stream_t::is_infinite() const {
+    return source->is_infinite() && right == std::numeric_limits<size_t>::max();
+}
 
 // UNION_DATUM_STREAM_T
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
@@ -1087,6 +1104,9 @@ bool union_datum_stream_t::is_exhausted() const {
 bool union_datum_stream_t::is_cfeed() const {
     return is_cfeed_union;
 }
+bool union_datum_stream_t::is_infinite() const {
+    return is_infinite_union;
+}
 
 std::vector<datum_t>
 union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
@@ -1101,23 +1121,17 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
 }
 
 // RANGE_DATUM_STREAM_T
-range_datum_stream_t::range_datum_stream_t(bool _is_infinite,
+range_datum_stream_t::range_datum_stream_t(bool _is_infinite_range,
                                            int64_t _start,
                                            int64_t _stop,
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(bt_source),
-      is_infinite(_is_infinite),
+      is_infinite_range(_is_infinite_range),
       start(_start),
       stop(_stop) { }
 
 std::vector<datum_t>
 range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
-    rcheck(!is_infinite
-           || batchspec.get_batch_type() == batch_type_t::NORMAL
-           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
-           base_exc_t::GENERIC,
-           "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.");
-
     std::vector<datum_t> v;
     // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
     // think strongly it should be something else you're probably right.
@@ -1142,7 +1156,7 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
 }
 
 bool range_datum_stream_t::is_exhausted() const {
-    return !is_infinite && start >= stop && batch_cache_exhausted();
+    return !is_infinite_range && start >= stop && batch_cache_exhausted();
 }
 
 // MAP_DATUM_STREAM_T
@@ -1150,24 +1164,27 @@ map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &
                                        counted_t<const func_t> &&_func,
                                        const protob_t<const Backtrace> &bt_src)
     : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
-      is_array_map(true), is_cfeed_map(false) {
+      is_array_map(true), is_cfeed_map(false), is_infinite_map(true) {
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
         is_cfeed_map |= stream->is_cfeed();
+        is_infinite_map &= stream->is_infinite();
     }
 }
 
 std::vector<datum_t>
 map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     std::vector<datum_t> batch;
-    batcher_t batcher = batchspec.to_batcher();
+    batcher_t batcher =
+        batchspec.to_batcher();
 
     std::vector<datum_t> args;
     args.reserve(streams.size());
     while (!is_exhausted()) {
         args.clear();   // This prevents allocating a new vector every iteration.
         for (const auto &stream : streams) {
-            args.push_back(stream->next(env, batchspec));
+            args.push_back(
+                stream->next(env, batchspec_t::default_for(batch_type_t::NORMAL)));
         }
 
         datum_t datum = func->call(env, args)->as_datum();

@@ -1710,6 +1710,7 @@ public:
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
+    virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL

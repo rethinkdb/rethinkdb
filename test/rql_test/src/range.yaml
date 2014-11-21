@@ -43,5 +43,8 @@ tests:
     - cd: r.range().count()
       ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
 
+    - cd: r.range().coerce_to("ARRAY")
+      ot: err("RqlRuntimeError", "Cannot coerce an infinite stream to an array.", [])
+
     - cd: r.range(4).count()
       ot: 4

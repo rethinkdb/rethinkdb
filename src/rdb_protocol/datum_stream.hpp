@@ -62,6 +62,7 @@ public:
     virtual datum_t next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
     virtual bool is_cfeed() const = 0;
+    virtual bool is_infinite() const = 0;
 
     virtual void accumulate(
         env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) = 0;
@@ -130,6 +131,9 @@ private:
     virtual bool is_cfeed() const {
         return source->is_cfeed();
     }
+    virtual bool is_infinite() const {
+        return source->is_infinite();
+    }
 
 protected:
     const counted_t<datum_stream_t> source;
@@ -162,6 +166,7 @@ public:
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
+    virtual bool is_infinite() const;
 
 private:
     virtual bool is_array();
@@ -188,6 +193,7 @@ private:
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
+    virtual bool is_infinite() const;
     uint64_t index, left, right;
 };
 
@@ -216,12 +222,11 @@ public:
     union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src), streams(_streams), streams_index(0),
-          is_cfeed_union(false) {
-        for (auto it = streams.begin(); it != streams.end(); ++it) {
-            if ((*it)->is_cfeed()) {
-                is_cfeed_union = true;
-                break;
-            }
+          is_cfeed_union(false),
+          is_infinite_union(false) {
+        for (auto const &stream : streams) {
+            is_cfeed_union |= stream->is_cfeed();
+            is_infinite_union |= stream->is_infinite();
         }
     }
 
@@ -234,6 +239,7 @@ public:
     virtual datum_t as_array(env_t *env);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
+    virtual bool is_infinite() const;
 
 private:
     virtual changefeed::keyspec_t get_change_spec() {
@@ -244,12 +250,12 @@ private:
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
-    bool is_cfeed_union;
+    bool is_cfeed_union, is_infinite_union;
 };
 
 class range_datum_stream_t : public eager_datum_stream_t {
 public:
-    range_datum_stream_t(bool is_infite,
+    range_datum_stream_t(bool _is_infite_range,
                          int64_t _start,
                          int64_t _stop,
                          const protob_t<const Backtrace> &);
@@ -264,9 +270,12 @@ public:
     virtual bool is_cfeed() const {
         return false;
     }
+    virtual bool is_infinite() const {
+        return is_infinite_range;
+    }
 
 private:
-    bool is_infinite;
+    bool is_infinite_range;
     int64_t start, stop;
 };
 
@@ -286,11 +295,14 @@ public:
     virtual bool is_cfeed() const {
         return is_cfeed_map;
     }
+    virtual bool is_infinite() const {
+        return is_infinite_map;
+    }
 
 private:
     std::vector<counted_t<datum_stream_t> > streams;
     counted_t<const func_t> func;
-    bool is_array_map, is_cfeed_map;
+    bool is_array_map, is_cfeed_map, is_infinite_map;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by
@@ -598,6 +610,8 @@ public:
 
     bool is_exhausted() const;
     virtual bool is_cfeed() const;
+    virtual bool is_infinite() const;
+
 private:
     virtual changefeed::keyspec_t get_change_spec() {
         return reader->get_change_spec();
