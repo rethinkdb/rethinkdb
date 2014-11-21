@@ -10,17 +10,17 @@
 
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class db_config_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public cfeed_artificial_table_backend_t
 {
 public:
     db_config_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view) :
-        database_sl_view(_database_sl_view) { }
+                databases_semilattice_metadata_t> > _database_sl_view);
+    ~db_config_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 
@@ -52,6 +52,7 @@ public:
 private:
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
+    semilattice_read_view_t<databases_semilattice_metadata_t>::subscription_t subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_ */

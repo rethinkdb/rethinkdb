@@ -280,6 +280,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             auth_semilattice_metadata_t> > _auth_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
         server_name_client_t *_name_client) {
@@ -318,11 +319,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
         _name_client,
-        _directory_view,
-        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-            _semilattice_view),
-        metadata_field(&cluster_semilattice_metadata_t::databases,
-            _semilattice_view)));
+        _directory_map_view));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 

@@ -4,6 +4,18 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
+common_server_artificial_table_backend_t::common_server_artificial_table_backend_t(
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            servers_semilattice_metadata_t> > _servers_sl_view,
+        server_name_client_t *_name_client) :
+    servers_sl_view(_servers_sl_view),
+    name_client(_name_client),
+    subs([this]() { notify_all(); }, _servers_sl_view)
+{
+    servers_sl_view->assert_thread();
+    name_client->assert_thread();
+}
+
 std::string common_server_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
@@ -16,6 +28,14 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
     rows_out->clear();
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
     bool result = true;
+    /* Note that we don't have a subscription watching `get_server_id_to_name_map()`,
+    even though we use it in this calculation. This is OK because any time
+    `get_server_id_to_name_map()` changes, we'll also get a notification through
+    `servers_sl_view`, and since the `cfeed_artificial_table_backend_t` does its
+    recalculations asynchronously, it shouldn't matter that there is a slight delay
+    between when we get a notification through `servers_sl_view` and when
+    `get_server_id_to_name_map()` actually changes. But it's still a bit fragile, and
+    maybe we shouldn't do it. */
     name_client->get_server_id_to_name_map()->apply_read(
         [&](const std::map<server_id_t, name_string_t> *map) {
             for (auto it = map->begin(); it != map->end(); ++it) {
@@ -53,17 +73,6 @@ bool common_server_artificial_table_backend_t::read_row(
     } else {
         return format_row(server_name, server_id, *server_sl, row_out, error_out);
     }
-}
-
-bool common_server_artificial_table_backend_t::read_changes(
-        UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
-        UNUSED signal_t *interruptor,
-        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
-    /* RSI(reql_admin): support changefeeds */
-    *error_out = "The `rethinkdb.server_*` tables don't support changefeeds.";
-    return false;
 }
 
 bool common_server_artificial_table_backend_t::lookup(

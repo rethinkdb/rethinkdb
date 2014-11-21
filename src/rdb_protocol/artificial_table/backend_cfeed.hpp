@@ -6,7 +6,13 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/changefeed.hpp"
 
-class cfeed_artificial_table_backend_t : public artificial_table_backend_t {
+/* `cfeed_artificial_table_backend_t` is a mixin for artificial table backends that want
+to support change-feeds by storing a copy of all of the values in the table, and then
+fetching values that have changed and comparing against the stored value. Subclasses must
+call `notify_*` to tell the `cfeed_artificial_table_backend_t` which rows need to be
+re-fetched. */
+
+class cfeed_artificial_table_backend_t : public virtual artificial_table_backend_t {
 public:
     bool read_changes(
         const ql::protob_t<const Backtrace> &bt,
@@ -18,18 +24,29 @@ public:
 protected:
     virtual ~cfeed_artificial_table_backend_t();
 
-    /* `set_notifications()` is allowed to block. It will never be called from within
-    `notify_*()`. */
+    /* The `cfeed_artificial_table_backend_t` calls `set_notifications()` to tell the
+    subclass whether it needs notifications or not. The default is no; it will call
+    `set_notifications(true)` when the first changefeed is connected, and
+    `set_notifications(false)` if no changefeeds have used this artificial table for a
+    while. It's OK for the subclass to call `notify_*` even if `set_notifications(false)`
+    is called; this is just provided as an optimization for subclasses that would need to
+    do expensive work to subscribe for notifications. `set_notifications()` is allowed to
+    block. It will never be called from within `notify_*()`. */
     virtual void set_notifications(bool) { }
 
-    /* `notify_*` will not block. */
+    /* `notify_*` will not block. `notify_row()` indicates that a particular row may have
+    changed. `notify_all()` indicates that the entire table may have changed, including
+    rows appearing or disappearing. `notify_break()` is like `notify_all()` except that
+    it sends an error to any changefeeds instead of sending them all the changes. It's
+    always safe to call these even if nothing has actually changed; if nothing has
+    actually changed, no notification will be sent. */
     void notify_row(const ql::datum_t &pkey);
     void notify_all();
     void notify_break();
 
-    /* Subclasses must call this when their destructor begins, to avoid the risk that any
-    running instances of `machinery` will call virtual functions like `read_row()` after
-    the subclass is destroyed. */
+    /* Subclasses must call this when their destructor begins, to avoid the risk that the
+    `cfeed_artificial_taable_backend_t` will call virtual functions like `read_row()`
+    after the subclass is destroyed. */
     void begin_changefeed_destruction();
 
 private:

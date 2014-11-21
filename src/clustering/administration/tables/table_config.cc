@@ -7,6 +7,10 @@
 #include "clustering/administration/tables/split_points.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
+table_config_artificial_table_backend_t::~table_config_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 ql::datum_t convert_replica_list_to_datum(
         const std::set<server_id_t> &replicas,
         admin_identifier_format_t identifier_format,
