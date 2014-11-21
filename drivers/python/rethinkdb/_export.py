@@ -300,9 +300,6 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         if writer is not None and writer.is_alive():
             task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
             writer.join()
-        else:
-            error_queue.put((RuntimeError, RuntimeError("writer unexpectedly stopped"),
-                             traceback.extract_tb(sys.exc_info()[2])))
 
 def abort_export(signum, frame, exit_event, interrupt_event):
     interrupt_event.set()
@@ -337,6 +334,7 @@ def run_clients(options, db_table_set):
     stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
 
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
+    errors = [ ]
 
     try:
         progress_info = []
@@ -361,14 +359,15 @@ def run_clients(options, db_table_set):
         # Wait for all tables to finish
         while len(processes) > 0:
             time.sleep(0.1)
-            if not error_queue.empty():
+            while not error_queue.empty():
                 exit_event.set() # Stop rather immediately if an error occurs
+                errors.append(error_queue.get())
             processes = [process for process in processes if process.is_alive()]
             update_progress(progress_info)
 
         # If we were successful, make sure 100% progress is reported
         # (rows could have been deleted which would result in being done at less than 100%)
-        if error_queue.empty() and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set():
             print_progress(1.0)
 
         # Continue past the progress output line and print total rows processed
@@ -376,7 +375,7 @@ def run_clients(options, db_table_set):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
         print("")
-        print("%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
+        print("%s exported from %s" % (plural(sum([max(0, info[0].value) for info in progress_info]), "row"),
                                        plural(len(db_table_set), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -384,14 +383,13 @@ def run_clients(options, db_table_set):
     if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
 
-    if not error_queue.empty():
+    if len(errors) != 0:
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
-        while not error_queue.empty():
-            error = error_queue.get()
+        for error in errors:
             print("%s" % error[1], file=sys.stderr)
             if options["debug"]:
                 print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
-            raise RuntimeError("Errors occurred during export")
+        raise RuntimeError("Errors occurred during export")
 
 def main():
     try:
