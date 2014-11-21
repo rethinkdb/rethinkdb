@@ -700,7 +700,10 @@ repli_timestamp_t buf_lock_t::get_recency() const {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return cpa->recency();
+    repli_timestamp_t ret = cpa->recency();
+    // You may not call this on a buf lock that was marked deleted.a
+    guarantee(ret != repli_timestamp_t::invalid);
+    return ret;
 }
 
 void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
