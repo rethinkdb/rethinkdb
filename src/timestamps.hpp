@@ -15,10 +15,9 @@ class printf_buffer_t;
 `repli_timestamp_t`, which is used internally within the btree code, is defined
 elsewhere. */
 
-/* `state_timestamp_t` is a unique identifier of a particular point in a
-timeline. `transition_timestamp_t` is the unique identifier of a transition from
-one `state_timestamp_t` to the next. Databases have `state_timestamp_t`s, and
-transactions have `transition_timestamp_t`s. */
+/* `state_timestamp_t` is a unique identifier of a particular point in a series of
+writes.  Writes carry the identifier of the new point in time that will exist when
+said write is applied. */
 
 class state_timestamp_t {
 public:
@@ -71,7 +70,6 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 
 private:
-    friend class transition_timestamp_t;
     uint64_t num;
 };
 
