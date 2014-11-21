@@ -32,10 +32,6 @@ public:
     // blocks until a full line is available
     std::string readLine(signal_t *closer);
 
-    // Both ensures that next line read is exactly bytes long and is able
-    // to operate more efficiently than readLine.
-    std::string readLineOf(size_t bytes, signal_t *closer);
-
     // Reads a single space terminated word from the TCP conn
     std::string readWord(signal_t *closer);
 

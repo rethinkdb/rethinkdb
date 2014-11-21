@@ -23,32 +23,6 @@ std::string LineParser::readLine(signal_t *closer) {
     return line;
 }
 
-// Both ensures that next line read is exactly bytes long and is able
-// to operate more efficiently than readLine.
-std::string LineParser::readLineOf(size_t bytes, signal_t *closer) {
-    // TODO: Don't use alloca.
-
-    // Since we know exactly how much we want to read we'll buffer ourselves
-    // +2 is for expected terminating CRLF
-    char *buff = static_cast<char *>(alloca(bytes + 2));
-    conn->read(buff, bytes + 2, closer);
-
-    // Now we expect the line to be demarcated by a CRLF
-    if ((buff[bytes] == '\r') && (buff[bytes+1] == '\n')) {
-        return std::string(buff, buff + bytes);
-    } else {
-        // Error: line incorrectly terminated.
-        /* Note: Redis behavior seems to be to assume that the line is
-           always correctly terminated. It will just take the rest of
-           the input as the start of the next line and then probably
-           end up in an error state. We can probably be more fastidious.
-        */
-        throw ParseError();
-    }
-
-    // No need to pop or anything. Did not use tcp_conn's buffer or bytes_read.
-}
-
 std::string LineParser::readWord(signal_t *closer) {
     while (current(closer) != ' ') {
         bytes_read++;
