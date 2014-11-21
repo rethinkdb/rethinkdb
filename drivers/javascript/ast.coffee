@@ -105,7 +105,6 @@ class TermBase
         new Promise( (resolve, reject) =>
             wrappedCb = (err, result) ->
                 if err?
-                    console.log 'reject'
                     reject(err)
                 else
                     resolve(result)
