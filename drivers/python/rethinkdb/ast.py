@@ -384,7 +384,11 @@ class RqlQuery(object):
         return Max(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def map(self, *args):
-        return Map(self, *[func_wrap(arg) for arg in args])
+        if len(args) > 0:
+            # `func_wrap` only the last argument
+            return Map(self, *(args[:-1] + (func_wrap(args[-1]), )))
+        else:
+            return Map(self)
 
     def filter(self, *args, **kwargs):
         return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)
