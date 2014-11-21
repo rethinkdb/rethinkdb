@@ -36,7 +36,8 @@ TPTEST(BTreeSindex, LowLevelOps) {
     cache_conn_t cache_conn(&cache);
 
     {
-        txn_t txn(&cache_conn, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
+        txn_t txn(&cache_conn, write_durability_t::HARD,
+                  repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         buf_write_t sb_write(&superblock);
         btree_slice_t::init_superblock(&superblock,
@@ -51,7 +52,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
+                                     repli_timestamp_t::distant_past,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
 
@@ -76,7 +77,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
+                                     repli_timestamp_t::distant_past,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
@@ -90,7 +91,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
+                                     repli_timestamp_t::distant_past,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
@@ -145,7 +146,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::invalid,
+            store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
                     1, write_durability_t::SOFT, &token,
                     &txn, &super_block, &dummy_interruptor);
 
@@ -163,7 +164,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::invalid,
+            store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                                1, write_durability_t::SOFT, &token,
                                                &txn, &super_block, &dummy_interruptor);
 
@@ -183,7 +184,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
-                    repli_timestamp_t::invalid, 1, write_durability_t::SOFT,
+                    repli_timestamp_t::distant_past, 1, write_durability_t::SOFT,
                     &token, &txn, &super_block,
                     &dummy_interruptor);
 
@@ -206,7 +207,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store_key_t key("foo");
             rdb_live_deletion_context_t deletion_context;
             rdb_set(key, data, true, store.get_sindex_slice(sindex_uuid),
-                    repli_timestamp_t::invalid,
+                    repli_timestamp_t::distant_past,
                     sindex_super_block.get(), &deletion_context, &response,
                     &mod_info, static_cast<profile::trace_t *>(NULL));
         }
@@ -256,7 +257,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
-        store.acquire_superblock_for_write(repli_timestamp_t::invalid,
+        store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                            1, write_durability_t::SOFT, &token,
                                            &txn, &super_block, &dummy_interruptor);
 

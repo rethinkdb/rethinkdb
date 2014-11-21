@@ -161,7 +161,7 @@ void mock_store_t::write(
         const write_t &write,
         write_response_t *response,
         UNUSED write_durability_t durability,
-        transition_timestamp_t timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -200,7 +200,7 @@ void mock_store_t::write(
         const bool had_value = table_.find(point_write->key) != table_.end();
         if (point_write->overwrite || !had_value) {
             table_[point_write->key]
-                = std::make_pair(timestamp.timestamp_after().to_repli_timestamp(),
+                = std::make_pair(timestamp.to_repli_timestamp(),
                                  point_write->data);
         }
         res->result = had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED;

@@ -40,12 +40,12 @@ void dummy_performer_t::read_outdated(const read_t &read,
 
 void dummy_performer_t::write(const write_t &write,
                               write_response_t *response,
-                              transition_timestamp_t transition_timestamp,
+                              state_timestamp_t timestamp,
                               order_token_t order_token) THROWS_NOTHING {
     cond_t non_interruptor;
 
 #ifndef NDEBUG
-    equality_metainfo_checker_callback_t metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
+    equality_metainfo_checker_callback_t metainfo_checker_callback(binary_blob_t(timestamp.pred()));
     metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
@@ -54,8 +54,8 @@ void dummy_performer_t::write(const write_t &write,
 
     store->write(
             DEBUG_ONLY(metainfo_checker, )
-            region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token, &non_interruptor);
+            region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(timestamp)),
+            write, response, write_durability_t::SOFT, timestamp, order_token, &token, &non_interruptor);
 }
 
 
@@ -90,9 +90,8 @@ void dummy_timestamper_t::read(const read_t &read, read_response_t *response, or
 
 void dummy_timestamper_t::write(const write_t &write, write_response_t *response, order_token_t otok) THROWS_NOTHING {
     order_sink.check_out(otok);
-    transition_timestamp_t transition_timestamp = transition_timestamp_t::starting_from(current_timestamp);
-    current_timestamp = transition_timestamp.timestamp_after();
-    next->write(write, response, transition_timestamp, otok);
+    current_timestamp = current_timestamp.next();
+    next->write(write, response, current_timestamp, otok);
 }
 
 void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) {

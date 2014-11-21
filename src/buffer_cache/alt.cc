@@ -189,15 +189,10 @@ txn_t::txn_t(cache_conn_t *cache_conn,
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::write),
       durability_(durability) {
+
     // Write transactions need to specify a timestamp, even if it's
     // repli_timestamp_t::distant_past.
-
-    // Treat an invalid timestamp like distant_past since that's how we really want
-    // it to behave.
-    // Callers _should_ not be specifying invalid timestamps.
-    if (txn_timestamp == repli_timestamp_t::invalid) {
-        txn_timestamp = repli_timestamp_t::distant_past;
-    }
+    guarantee(txn_timestamp != repli_timestamp_t::invalid);
 
     help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
@@ -702,7 +697,10 @@ repli_timestamp_t buf_lock_t::get_recency() const {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return cpa->recency();
+    repli_timestamp_t ret = cpa->recency();
+    // You may not call this on a buf lock that was marked deleted.a
+    guarantee(ret != repli_timestamp_t::invalid);
+    return ret;
 }
 
 void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {

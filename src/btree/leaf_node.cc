@@ -343,7 +343,9 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
 
     int i = 0;
     bool seen_tstamp_cutpoint = false;
-    repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
+    static_assert(std::is_same<uint64_t, decltype(repli_timestamp_t::longtime)>::value,
+                  "This code assumes repli_timestamp_t is a uint64_t.");
+    uint64_t earliest_so_far = UINT64_MAX;
     while (!iter.done(sizer)) {
         int offset = iter.offset;
 
@@ -362,11 +364,11 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
 
         if (offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, offset);
-            if (tstamp > earliest_so_far) {
-                *msg_out = strprintf("timestamps out of order (%" PRIu64 " after %" PRIu64 ")\n", tstamp.longtime, earliest_so_far.longtime);
+            if (tstamp.longtime > earliest_so_far) {
+                *msg_out = strprintf("timestamps out of order (%" PRIu64 " after %" PRIu64 ")\n", tstamp.longtime, earliest_so_far);
                 return false;
             }
-            earliest_so_far = tstamp;
+            earliest_so_far = tstamp.longtime;
         }
 
         const entry_t *ent = get_entry(node, offset);
@@ -1495,13 +1497,19 @@ void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repl
 
     // First, determine stop_offset: offset of the first [tstamp][entry] which has tstamp < minimum_tstamp
     {
-        repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
+        static_assert(std::is_same<uint64_t, decltype(repli_timestamp_t::longtime)>::value,
+                      "This code assumes repli_timestamp_t is a uint64_t.");
+#ifndef NDEBUG
+        uint64_t earliest_so_far = UINT64_MAX;
+#endif
 
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")", earliest_so_far.longtime, tstamp.longtime);
-            earliest_so_far = tstamp;
+#ifndef NDEBUG
+            rassert(earliest_so_far >= tstamp.longtime, "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")", earliest_so_far, tstamp.longtime);
+            earliest_so_far = tstamp.longtime;
+#endif
 
             if (tstamp < minimum_tstamp) {
                 stop_offset = iter.offset;
