@@ -110,9 +110,9 @@ TPTEST(BTreeSindex, LowLevelOps) {
             }
             ASSERT_TRUE(jt != mirror.end());
 
-            ASSERT_TRUE(it.first == jt.first);
-            ASSERT_TRUE(it.superblock == jt.superblock &&
-                        it.opaque_definition == jt.opaque_definition);
+            ASSERT_TRUE(it->first == jt->first);
+            ASSERT_TRUE(it->second.superblock == jt->second.superblock &&
+                        it->second.opaque_definition == jt->second.opaque_definition);
             ++it;
             ++jt;
         }

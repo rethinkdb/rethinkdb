@@ -516,8 +516,7 @@ void check_and_handle_split(value_sizer_t *sizer,
     {
         buf_write_t last_write(last_buf);
         DEBUG_VAR bool success
-            = internal_node::insert(sizer->block_size(),
-                                    static_cast<internal_node_t *>(last_write.get_data_write()),
+            = internal_node::insert(static_cast<internal_node_t *>(last_write.get_data_write()),
                                     median,
                                     buf->block_id(), rbuf.block_id());
         rassert(success, "could not insert internal btree node");

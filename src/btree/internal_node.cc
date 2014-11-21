@@ -47,9 +47,7 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     return get_pair_by_index(node, index)->lnode;
 }
 
-// TODO: If it's unused, let's get rid of it.
-bool insert(UNUSED block_size_t block_size, internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
-    //TODO: write a unit test for this
+bool insert(internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
     rassert(key->size <= MAX_KEY_SIZE, "key too large");
     if (is_full(node)) return false;
     if (node->npairs == 0) {
