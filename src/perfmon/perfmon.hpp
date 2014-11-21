@@ -176,7 +176,7 @@ protected:
     stddev_t combine_stats(const stddev_t *);
     scoped_ptr_t<perfmon_result_t> output_stat(const stddev_t&);
 private:
-    stddev_t thread_data[MAX_THREADS]; // TODO(rntz) should this be cache-line padded?
+    cache_line_padded_t<stddev_t> thread_data[MAX_THREADS];
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event
@@ -192,7 +192,9 @@ private:
         int current_interval;
 
         thread_info_t() : current_count(0), last_count(0), current_interval(1) { }
-    } thread_data[MAX_THREADS];
+    };
+
+    cache_line_padded_t<thread_info_t> thread_data[MAX_THREADS];
     void update(ticks_t now);
     ticks_t length;
 
