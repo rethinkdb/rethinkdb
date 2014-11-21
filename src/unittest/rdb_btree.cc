@@ -37,7 +37,7 @@ void insert_rows(int start, int finish, store_t *store) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(
-            repli_timestamp_t::invalid,
+            repli_timestamp_t::distant_past,
             1, write_durability_t::SOFT,
             &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
@@ -50,7 +50,7 @@ void insert_rows(int start, int finish, store_t *store) {
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
                 ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits),
-                false, store->btree.get(), repli_timestamp_t::invalid,
+                false, store->btree.get(), repli_timestamp_t::distant_past,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
 
@@ -94,7 +94,7 @@ sindex_name_t create_sindex(store_t *store) {
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
-    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                         1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block,
                                         &dummy_interruptor);
@@ -134,7 +134,7 @@ void drop_sindex(store_t *store,
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
-    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                         1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interruptor);
 
@@ -155,7 +155,7 @@ void bring_sindexes_up_to_date(
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                         1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
@@ -180,7 +180,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
-        repli_timestamp_t::invalid,
+        repli_timestamp_t::distant_past,
         1, write_durability_t::SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
@@ -437,7 +437,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
-        store.acquire_superblock_for_write(repli_timestamp_t::invalid,
+        store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                            1,
                                            write_durability_t::SOFT,
                                            &token_pair,

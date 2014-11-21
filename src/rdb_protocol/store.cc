@@ -855,7 +855,7 @@ private:
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
-                             transition_timestamp_t timestamp,
+                             state_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
@@ -883,38 +883,6 @@ void store_t::protocol_write(const write_t &write,
 
     // TODO: Is this the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
-}
-
-struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return del.recency;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
-        return repli_timestamp_t::invalid;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
-        rassert(!kv.backfill_atoms.empty());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            if (most_recent == repli_timestamp_t::invalid
-                || most_recent < kv.backfill_atoms[i].recency) {
-
-                most_recent = kv.backfill_atoms[i].recency;
-            }
-        }
-        return most_recent;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
-        return repli_timestamp_t::invalid;
-    }
-};
-
-repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
-    rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t v;
-    return boost::apply_visitor(v, val);
 }
 
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {

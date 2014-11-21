@@ -74,7 +74,7 @@ public:
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token,
             signal_t *interruptor)
@@ -238,7 +238,7 @@ public:
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
             signal_t *interruptor)

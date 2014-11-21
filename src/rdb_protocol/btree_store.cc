@@ -187,7 +187,7 @@ void store_t::write(
         const write_t &write,
         write_response_t *response,
         const write_durability_t durability,
-        transition_timestamp_t timestamp,
+        state_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         write_token_pair_t *token_pair,
         signal_t *interruptor)
@@ -252,6 +252,29 @@ void store_t::throttle_backfill_chunk(signal_t *interruptor)
     }
 }
 
+struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp_t> {
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) const {
+        return del.recency;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) const {
+        return repli_timestamp_t::distant_past;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) const {
+        repli_timestamp_t most_recent = repli_timestamp_t::distant_past;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
+        }
+        return most_recent;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) const {
+        return repli_timestamp_t::distant_past;
+    }
+};
+
 void store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_pair_t *token_pair,
@@ -269,7 +292,8 @@ void store_t::receive_backfill(
     // exhaust the cache's dirty page limit and bring down the whole table.
     // Other than that, the hard durability guarantee is not actually
     // needed here.
-    acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
+    acquire_superblock_for_write(boost::apply_visitor(backfill_chunk_timestamp_t(),
+                                                      chunk.val),
                                  expected_change_count,
                                  write_durability_t::HARD,
                                  token_pair,
@@ -293,7 +317,7 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
     write_token_pair_t token_pair;
     new_write_token_pair(&token_pair);
 
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  expected_change_count,
                                  durability,
                                  &token_pair,
@@ -355,7 +379,7 @@ void store_t::reset_data(
         const int expected_change_count = 2 + max_erased_per_pass;
         write_token_pair_t token_pair;
         new_write_token_pair(&token_pair);
-        acquire_superblock_for_write(repli_timestamp_t::invalid,
+        acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                      expected_change_count,
                                      durability,
                                      &token_pair,
@@ -1307,10 +1331,9 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  1,
                                  write_durability_t::HARD,
                                  token,
