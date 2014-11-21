@@ -3,6 +3,7 @@
 
 #include "concurrency/cond_var.hpp"
 #include "containers/backindex_bag.hpp"
+#include "containers/half_intrusive_list.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/types.hpp"
@@ -137,8 +138,7 @@ private:
 
     // A list of waiters that expect the value to be loaded, and (as long as there
     // are waiters) expect the value to never be evicted.
-    // KSI: This could be a single pointer instead of two.
-    intrusive_list_t<page_acq_t> waiters_;
+    half_intrusive_list_t<page_acq_t> waiters_;
 
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one
     // of unevictable_pages_, etc).  Which bag we should be in:
@@ -222,7 +222,7 @@ private:
 
 // This type's purpose is to wait for the page to be loaded, and to prevent it from
 // being unloaded.
-class page_acq_t : public intrusive_list_node_t<page_acq_t> {
+class page_acq_t : public half_intrusive_list_node_t<page_acq_t> {
 public:
     page_acq_t();
     ~page_acq_t();

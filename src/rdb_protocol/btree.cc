@@ -1774,7 +1774,6 @@ public:
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
 
-        // KSI: FML
         scoped_ptr_t<txn_t> wtxn;
         store_t::sindex_access_vector_t sindexes;
 
@@ -1794,7 +1793,7 @@ public:
                 // the cache to go into throttling, and that would interfere
                 // with other transactions on this table.
                 try {
-                    write_token_pair_t token_pair;
+                    write_token_t token_pair;
                     store_->new_write_token_pair(&token_pair);
 
                     scoped_ptr_t<real_superblock_t> superblock;
@@ -1817,10 +1816,8 @@ public:
                     // Acquire the sindex block.
                     const block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
-                    buf_lock_t sindex_block
-                        = store_->acquire_sindex_block_for_write(
-                            superblock->expose_buf(),
-                            sindex_block_id);
+                    buf_lock_t sindex_block(superblock->expose_buf(), sindex_block_id,
+                                            access_t::write);
 
                     superblock.reset();
 

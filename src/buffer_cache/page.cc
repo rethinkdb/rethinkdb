@@ -413,7 +413,7 @@ void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
 void page_t::add_waiter(page_acq_t *acq, cache_account_t *account) {
     eviction_bag_t *old_bag
         = acq->page_cache()->evicter().correct_eviction_category(this);
-    waiters_.push_back(acq);
+    waiters_.push_front(acq);
     acq->page_cache()->evicter().change_to_correct_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();

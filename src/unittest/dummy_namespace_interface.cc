@@ -10,7 +10,7 @@ void dummy_performer_t::read(const read_t &read,
                              DEBUG_VAR state_timestamp_t expected_timestamp,
                              order_token_t order_token,
                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    read_token_pair_t token_pair;
+    read_token_t token_pair;
     store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
@@ -24,7 +24,7 @@ void dummy_performer_t::read(const read_t &read,
 void dummy_performer_t::read_outdated(const read_t &read,
                                       read_response_t *response,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    read_token_pair_t token_pair;
+    read_token_t token_pair;
     store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
@@ -49,7 +49,7 @@ void dummy_performer_t::write(const write_t &write,
     metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     store->write(

@@ -34,6 +34,6 @@ uid_t os_signal_cond_t::get_source_uid() const {
 }
 
 void os_signal_cond_t::on_thread_switch() {
-    // KSI: There's probably an outside chance of a use-after-free bug here.
+    // TODO: There's probably an outside chance of a use-after-free bug here.
     do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
 }

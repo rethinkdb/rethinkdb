@@ -75,7 +75,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store_view_t::new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -88,9 +88,9 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
                                  &superblock,
                                  &dummy_interruptor);
 
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                        superblock->get_sindex_block_id());
+    buf_lock_t sindex_block(superblock->expose_buf(),
+                            superblock->get_sindex_block_id(),
+                            access_t::write);
 
     superblock.reset();
 
@@ -492,9 +492,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
-        buf_lock_t sindex_block
-            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
-                                                   superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::read);
         superblock->release();
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -514,9 +514,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
-        buf_lock_t sindex_block
-            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
-                                                   superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::read);
         superblock->release();
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -822,10 +822,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        trace(_trace) {
-        sindex_block =
-            store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
-                                                  (*superblock)->get_sindex_block_id());
+        trace(_trace),
+        sindex_block((*superblock)->expose_buf(),
+                     (*superblock)->get_sindex_block_id(),
+                     access_t::write) {
     }
 
 private:
@@ -989,11 +989,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                    scoped_ptr_t<superblock_t> &&_superblock,
                                    signal_t *_interruptor) :
         store(_store), btree(_btree), txn(_txn), superblock(std::move(_superblock)),
-        interruptor(_interruptor) {
-        sindex_block =
-            store->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                  superblock->get_sindex_block_id());
-    }
+        interruptor(_interruptor),
+        sindex_block(superblock->expose_buf(),
+                     superblock->get_sindex_block_id(),
+                     access_t::write) { }
 
     void operator()(const backfill_chunk_t::delete_key_t &delete_key) {
         point_delete_response_t response;

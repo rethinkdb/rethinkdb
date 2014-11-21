@@ -23,7 +23,7 @@ void direct_reader_t::on_read(
         const mailbox_addr_t<void(read_response_t)> &cont) {
 
     try {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         svs->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG

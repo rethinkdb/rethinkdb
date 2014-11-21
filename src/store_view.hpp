@@ -24,10 +24,10 @@ public:
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
 
-    void new_read_token_pair(read_token_pair_t *token_pair_out) {
+    void new_read_token_pair(read_token_t *token_pair_out) {
         new_read_token(&token_pair_out->main_read_token);
     }
-    void new_write_token_pair(write_token_pair_t *token_pair_out) {
+    void new_write_token_pair(write_token_t *token_pair_out) {
         new_write_token(&token_pair_out->main_write_token);
     }
 
@@ -58,7 +58,7 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -76,7 +76,7 @@ public:
             write_durability_t durability,
             state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -91,7 +91,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -103,7 +103,7 @@ public:
     */
     virtual void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -223,7 +223,7 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -240,7 +240,7 @@ public:
             write_durability_t durability,
             state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -254,7 +254,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *p,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -265,7 +265,7 @@ public:
 
     void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();

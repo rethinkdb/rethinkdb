@@ -34,7 +34,7 @@ void insert_rows(int start, int finish, store_t *store) {
         cond_t dummy_interruptor;
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
@@ -55,9 +55,9 @@ void insert_rows(int start, int finish, store_t *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         {
-            buf_lock_t sindex_block
-                = store->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                        sindex_block_id);
+            buf_lock_t sindex_block(superblock->expose_buf(),
+                                    sindex_block_id,
+                                    access_t::write);
             store_t::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      &sindex_block,
@@ -88,7 +88,7 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 sindex_name_t create_sindex(store_t *store) {
     cond_t dummy_interruptor;
     sindex_name_t sindex_name(uuid_to_str(generate_uuid()));
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -115,9 +115,9 @@ sindex_name_t create_sindex(store_t *store) {
     int res = send_write_message(&stream, &wm);
     guarantee(res == 0);
 
-    buf_lock_t sindex_block
-        = store->acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                super_block->get_sindex_block_id());
+    buf_lock_t sindex_block(super_block->expose_buf(),
+                            super_block->get_sindex_block_id(),
+                            access_t::write);
     UNUSED bool b = store->add_sindex(
             sindex_name,
             stream.vector(),
@@ -128,7 +128,7 @@ sindex_name_t create_sindex(store_t *store) {
 void drop_sindex(store_t *store,
                  const sindex_name_t &sindex_name) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -138,9 +138,9 @@ void drop_sindex(store_t *store,
                                         1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interruptor);
 
-    buf_lock_t sindex_block
-        = store->acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                super_block->get_sindex_block_id());
+    buf_lock_t sindex_block(super_block->expose_buf(),
+                            super_block->get_sindex_block_id(),
+                            access_t::write);
     std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_name,
@@ -150,7 +150,7 @@ void drop_sindex(store_t *store,
 void bring_sindexes_up_to_date(
         store_t *store, sindex_name_t sindex_name) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -159,9 +159,9 @@ void bring_sindexes_up_to_date(
                                         1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    buf_lock_t sindex_block
-        = store->acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                super_block->get_sindex_block_id());
+    buf_lock_t sindex_block(super_block->expose_buf(),
+                            super_block->get_sindex_block_id(),
+                            access_t::write);
 
     std::set<sindex_name_t> created_sindexes;
     created_sindexes.insert(sindex_name);
@@ -174,7 +174,7 @@ void bring_sindexes_up_to_date(
 void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
         sindex_name_t sindex_name, cond_t *background_inserts_done) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -184,9 +184,9 @@ void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
         1, write_durability_t::SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    buf_lock_t sindex_block
-        = store->acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                super_block->get_sindex_block_id());
+    buf_lock_t sindex_block(super_block->expose_buf(),
+                            super_block->get_sindex_block_id(),
+                            access_t::write);
 
     coro_t::spawn_sometime(std::bind(&insert_rows_and_pulse_when_done,
                 (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
@@ -204,7 +204,7 @@ void _check_keys_are_present(store_t *store,
     cond_t dummy_interruptor;
     ql::configured_limits_t limits;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -281,7 +281,7 @@ void _check_keys_are_NOT_present(store_t *store,
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -432,7 +432,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
     {
         /* Now we erase all of the keys we just inserted. */
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -447,9 +447,9 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol::range_key_tester_t tester(&test_range);
-        buf_lock_t sindex_block
-            = store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                   super_block->get_sindex_block_id());
+        buf_lock_t sindex_block(super_block->expose_buf(),
+                                super_block->get_sindex_block_id(),
+                                access_t::write);
 
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports_out;

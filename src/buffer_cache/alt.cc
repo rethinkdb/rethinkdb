@@ -43,7 +43,6 @@ private:
     // declare_snapshotted() called).
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
-    // KSI: std::map memory usage.  Just use a vector of pairs?
     // A NULL pointer associated with a block id indicates that the block is deleted.
     std::map<block_id_t, alt_snapshot_node_t *> children_;
 
@@ -458,7 +457,6 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_attachments before constructing the
     // current_page_acq_t.
-    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -533,7 +531,6 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_attachments before constructing the
     // current_page_acq_t.
-    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),

@@ -1046,7 +1046,6 @@ real_feed_t::real_feed_t(client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
-                         // RSI: remove // std::string pkey,
                          signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
