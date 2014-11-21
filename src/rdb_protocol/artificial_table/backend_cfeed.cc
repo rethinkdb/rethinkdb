@@ -10,6 +10,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *cfeed_out,
         std::string *error_out) {
+    guarantee(!begin_destruction_was_called);
     if (boost::get<ql::changefeed::keyspec_t::limit_t>(&spec) != nullptr) {
         *error_out = "System tables don't support changefeeds on `.limit()`.";
         return false;
@@ -28,7 +29,13 @@ bool cfeed_artificial_table_backend_t::read_changes(
     return true;
 }
 
+cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
+    /* Catch subclasses that forget to call `begin_changefeed_destruction()` */
+    guarantee(begin_destruction_was_called);
+}
+
 void cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pkey) {
+    ASSERT_FINITE_CORO_WAITING;
     if (machinery.has()) {
         if (!machinery->all_dirty) {
             store_key_t pkey2(pkey.print_primary());
@@ -41,6 +48,7 @@ void cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pkey) {
 }
 
 void cfeed_artificial_table_backend_t::notify_all() {
+    ASSERT_FINITE_CORO_WAITING;
     if (machinery.has()) {
         if (!machinery->all_dirty) {
             /* This is in an `if` block so we don't unset `should_break` it
@@ -56,6 +64,7 @@ void cfeed_artificial_table_backend_t::notify_all() {
 }
 
 void cfeed_artificial_table_backend_t::notify_break() {
+    ASSERT_FINITE_CORO_WAITING;
     if (machinery.has()) {
         machinery->all_dirty = true;
         machinery->dirty.clear();
@@ -66,6 +75,18 @@ void cfeed_artificial_table_backend_t::notify_break() {
     }
 }
 
+void cfeed_artificial_table_backend_t::begin_changefeed_destruction() {
+    new_mutex_in_line_t mutex_lock(&mutex);
+    mutex_lock.acq_signal()->wait_lazily_unordered();
+    guarantee(!begin_destruction_was_called);
+    if (machinery.has()) {
+        /* All changefeeds should be closed before we start destruction */
+        guarantee(machinery->can_be_removed());
+        machinery.reset();
+    }
+    begin_destruction_was_called = true;
+}
+
 cfeed_artificial_table_backend_t::machinery_t::machinery_t(
         cfeed_artificial_table_backend_t *_parent) :
     parent(_parent),
@@ -74,7 +95,6 @@ cfeed_artificial_table_backend_t::machinery_t::machinery_t(
     should_break(false),
     waker(nullptr)
 {
-    parent->set_notifications(true);
     coro_t::spawn_sometime(std::bind(
         &cfeed_artificial_table_backend_t::machinery_t::run,
         this,
@@ -83,7 +103,6 @@ cfeed_artificial_table_backend_t::machinery_t::machinery_t(
 
 cfeed_artificial_table_backend_t::machinery_t::~machinery_t() {
     guarantee(can_be_removed());
-    parent->set_notifications(false);
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::maybe_remove() {
@@ -95,6 +114,7 @@ void cfeed_artificial_table_backend_t::machinery_t::maybe_remove() {
 
 void cfeed_artificial_table_backend_t::machinery_t::run(
         auto_drainer_t::lock_t keepalive) {
+    parent->set_notifications(true);
     try {
         while (true) {
             /* Copy the dirtiness flags into local variables and reset them. Resetting
@@ -190,6 +210,7 @@ void cfeed_artificial_table_backend_t::machinery_t::run(
     } catch (const interrupted_exc_t &) {
         /* break out of the loop */
     }
+    parent->set_notifications(false);
 }
 
 bool cfeed_artificial_table_backend_t::machinery_t::get_values(
@@ -290,5 +311,18 @@ void cfeed_artificial_table_backend_t::maybe_remove_machinery(
     } catch (const interrupted_exc_t &) {
         /* We're shutting down. Take no special action. */
     }
+}
+
+void timer_cfeed_artificial_table_backend_t::set_notifications(bool notify) {
+    if (notify && !timer.has()) {
+        timer.init(new repeating_timer_t(1000, this));
+    }
+    if (!notify && timer.has()) {
+        timer.reset();
+    }
+}
+
+void timer_cfeed_artificial_table_backend_t::on_ring() {
+    notify_all();
 }
 

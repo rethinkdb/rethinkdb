@@ -18,6 +18,10 @@ class in_memory_artificial_table_backend_t :
     public cfeed_artificial_table_backend_t
 {
 public:
+    ~in_memory_artificial_table_backend_t() {
+        begin_changefeed_destruction();
+    }
+
     std::string get_primary_key_name() {
         return "id";
     }

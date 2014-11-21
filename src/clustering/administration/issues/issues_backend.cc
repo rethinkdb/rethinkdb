@@ -31,6 +31,10 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     trackers.insert(&name_collision_issue_tracker);
 }
 
+issues_artificial_table_backend_t::~issues_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string issues_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
@@ -103,17 +107,6 @@ bool issues_artificial_table_backend_t::write_row(UNUSED ql::datum_t primary_key
                                                   UNUSED signal_t *interruptor,
                                                   std::string *error_out) {
     error_out->assign("It's illegal to write to the `rethinkdb.issues` table.");
-    return false;
-}
-
-bool issues_artificial_table_backend_t::read_changes(
-        UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
-        UNUSED signal_t *interruptor,
-        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
-    /* RSI(reql_admin): support changefeeds */
-    *error_out = "The `rethinkdb.issues` table doesn't support changefeeds.";
     return false;
 }
 

@@ -16,13 +16,21 @@ public:
         std::string *error_out);
 
 protected:
-    virtual ~cfeed_artificial_table_backend_t() { }
+    virtual ~cfeed_artificial_table_backend_t();
 
+    /* `set_notifications()` is allowed to block. It will never be called from within
+    `notify_*()`. */
     virtual void set_notifications(bool) { }
 
+    /* `notify_*` will not block. */
     void notify_row(const ql::datum_t &pkey);
     void notify_all();
     void notify_break();
+
+    /* Subclasses must call this when their destructor begins, to avoid the risk that any
+    running instances of `machinery` will call virtual functions like `read_row()` after
+    the subclass is destroyed. */
+    void begin_changefeed_destruction();
 
 private:
     class machinery_t : public ql::changefeed::artificial_t {
@@ -72,8 +80,21 @@ private:
     };
     void maybe_remove_machinery(auto_drainer_t::lock_t keepalive);
     scoped_ptr_t<machinery_t> machinery;
+    bool begin_destruction_was_called;
     new_mutex_t mutex;
     auto_drainer_t drainer;
+};
+
+/* `timer_cfeed_artificial_table_backend_t` implements changefeeds by simply setting a
+repeating timer and retrieving the contents of the table every time the timer rings. It's
+inefficient, but for many tables it's the most practical choice. */
+class timer_cfeed_artificial_table_backend_t :
+    public cfeed_artificial_table_backend_t,
+    private repeating_timer_callback_t {
+private:
+    void set_notifications(bool);
+    void on_ring();
+    scoped_ptr_t<repeating_timer_t> timer;
 };
 
 #endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_BACKEND_CFEED_HPP_ */

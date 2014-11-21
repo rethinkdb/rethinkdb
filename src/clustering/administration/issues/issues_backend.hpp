@@ -8,7 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "clustering/administration/issues/invalid_config.hpp"
@@ -17,7 +17,7 @@
 
 
 class issues_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     issues_artificial_table_backend_t(
@@ -28,6 +28,7 @@ public:
                 &directory_view,
         server_name_client_t *name_client,
         admin_identifier_format_t identifier_format);
+    ~issues_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 
@@ -45,13 +46,6 @@ public:
                    ql::datum_t *new_value_inout,
                    signal_t *interruptor,
                    std::string *error_out);
-
-    bool read_changes(
-        const ql::protob_t<const Backtrace> &bt,
-        const ql::changefeed::keyspec_t::spec_t &spec,
-        signal_t *interruptor,
-        counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out);
 
 private:
     std::vector<scoped_ptr_t<issue_t> > all_issues() const;
