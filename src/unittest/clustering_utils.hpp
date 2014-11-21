@@ -57,7 +57,7 @@ public:
                   &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."), NULL) {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        write_token_t token;
         store.new_write_token(&token);
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
