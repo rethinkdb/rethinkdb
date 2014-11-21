@@ -9,8 +9,9 @@
 class printf_buffer_t;
 
 
-/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead
-it's an arbitrary counter. */
+// Note that repli_timestamp_t does NOT represent an actual wall-clock time; it's an
+// arbitrary counter.  This type is used in the cache and for backfilling timestamps.
+// Avoid the use of repli_timestamp_t::invalid outside the cache.
 
 class repli_timestamp_t {
 public:
