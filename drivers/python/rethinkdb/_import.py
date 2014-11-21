@@ -628,6 +628,7 @@ def spawn_import_clients(options, files_info):
             # If an error has occurred, exit out early
             if not error_queue.empty():
                 exit_event.set()
+                errors.append(error_queue.get())
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
             update_progress(progress_info)
 
@@ -641,7 +642,7 @@ def spawn_import_clients(options, files_info):
             client_procs = [client for client in client_procs if client.is_alive()]
 
         # If we were successful, make sure 100% progress is reported
-        if error_queue.empty() and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set():
             print_progress(1.0)
 
         def plural(num, text):
@@ -658,12 +659,11 @@ def spawn_import_clients(options, files_info):
         raise RuntimeError("Interrupted")
 
     if not task_queue.empty():
-        error_queue.put((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
+        errors.append((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
 
-    if not error_queue.empty():
+    if len(errors) != 0:
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
-        while not error_queue.empty():
-            error = error_queue.get()
+        for error in errors:
             print("%s" % error[1], file=sys.stderr)
             if options["debug"]:
                 print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
