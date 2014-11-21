@@ -55,7 +55,11 @@ public:
     }
 #endif  // NDEBUG
 
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    // Converts a "state_timestamp_t" too a repli_timestamp_t.  Really the only
+    // difference is that repli_timestamp_t::invalid exists (you shouldn't use it).
+    // Also, repli_timestamp_t's are generally used in the cache and serializer,
+    // where they don't necessarily come in a linear sequence -- state timestamps
+    // sort of live in their shards.
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;
         ts.longtime = num;
