@@ -45,7 +45,7 @@ bool is_full(const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);
 bool change_unsafe(const internal_node_t *node);
 bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);
-bool is_singleton(const internal_node_t *node);
+bool is_doubleton(const internal_node_t *node);
 
 void validate(block_size_t block_size, const internal_node_t *node);
 

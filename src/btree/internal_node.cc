@@ -333,7 +333,7 @@ bool is_mergable(block_size_t block_size, const internal_node_t *node, const int
         INTERNAL_EPSILON < block_size.value(); // must still have enough room for an arbitrary key  // TODO: we can't be tighter?
 }
 
-bool is_singleton(const internal_node_t *node) {
+bool is_doubleton(const internal_node_t *node) {
     return node->npairs == 2;
 }
 
