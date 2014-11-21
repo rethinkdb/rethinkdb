@@ -168,7 +168,7 @@ public:
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
-    // TODO(2014-08): Remove this constructor, it's a hack.
+    // TODO(2015-01): Remove this constructor, it's a hack.
     datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
     ~datum_t();
