@@ -440,7 +440,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    write_token_pair_t write_token_pair;
+    write_token_t write_token_pair;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -507,7 +507,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
     auto_drainer_t::lock_t keepalive(&drainer_);
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    write_token_pair_t write_token_pair;
+    write_token_t write_token_pair;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -577,7 +577,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
     auto_drainer_t::lock_t keepalive = drainer_.lock();
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    read_token_pair_t read_token_pair;
+    read_token_t read_token_pair;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
