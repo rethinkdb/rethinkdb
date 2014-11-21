@@ -23,6 +23,7 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "stl_utils.hpp"
+#include "store_subview.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
