@@ -100,7 +100,22 @@ TPTEST(BTreeSindex, LowLevelOps) {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
 
-        ASSERT_TRUE(sindexes == mirror);
+        auto it = sindexes.begin();
+        auto jt = mirror.begin();
+
+        for (;;) {
+            if (it == sindexes.end()) {
+                ASSERT_TRUE(jt == mirror.end());
+                break;
+            }
+            ASSERT_TRUE(jt != mirror.end());
+
+            ASSERT_TRUE(it.first == jt.first);
+            ASSERT_TRUE(it.superblock == jt.superblock &&
+                        it.opaque_definition == jt.opaque_definition);
+            ++it;
+            ++jt;
+        }
     }
 }
 
