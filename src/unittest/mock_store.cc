@@ -40,7 +40,7 @@ std::string mock_lookup(store_view_t *store, std::string key) {
     metainfo_checker_t checker(&checker_cb, store->get_region());
 #endif
     read_token_t token;
-    store->new_read_token_pair(&token);
+    store->new_read_token(&token);
 
     read_t r = mock_read(key);
     read_response_t rr;
@@ -60,26 +60,26 @@ mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
       metainfo_(get_region(), universe_metainfo) { }
 mock_store_t::~mock_store_t() { }
 
-void mock_store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+void mock_store_t::new_read_token(read_token_t *token_out) {
     assert_thread();
     fifo_enforcer_read_token_t token = token_source_.enter_read();
-    token_out->create(&token_sink_, token);
+    token_out->main_read_token.create(&token_sink_, token);
 }
 
-void mock_store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+void mock_store_t::new_write_token(write_token_t *token_out) {
     assert_thread();
     fifo_enforcer_write_token_t token = token_source_.enter_write();
-    token_out->create(&token_sink_, token);
+    token_out->main_write_token.create(&token_sink_, token);
 }
 
 void mock_store_t::do_get_metainfo(order_token_t order_token,
-                                   object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   read_token_t *token,
                                    signal_t *interruptor,
                                    region_map_t<binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token->main_read_token.get(), interruptor);
 
     order_sink_.check_out(order_token);
 
@@ -92,13 +92,13 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
 
 void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
-                                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                write_token_t *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token->main_write_token.get(), interruptor);
 
     order_sink_.check_out(order_token);
 
@@ -312,13 +312,13 @@ void mock_store_t::reset_data(
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
 
-    write_token_t token_pair;
-    new_write_token_pair(&token_pair);
+    write_token_t token;
+    new_write_token(&token);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-        destroyer(&token_pair.main_write_token);
+        destroyer(&token.main_write_token);
 
-    wait_interruptible(token_pair.main_write_token.get(), interruptor);
+    wait_interruptible(token.main_write_token.get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
 

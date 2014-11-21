@@ -34,12 +34,12 @@ void insert_rows(int start, int finish, store_t *store) {
         cond_t dummy_interruptor;
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        write_token_t token_pair;
-        store->new_write_token_pair(&token_pair);
+        write_token_t token;
+        store->new_write_token(&token);
         store->acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
             1, write_durability_t::SOFT,
-            &token_pair, &txn, &superblock, &dummy_interruptor);
+            &token, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
@@ -88,15 +88,15 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 sindex_name_t create_sindex(store_t *store) {
     cond_t dummy_interruptor;
     sindex_name_t sindex_name(uuid_to_str(generate_uuid()));
-    write_token_t token_pair;
-    store->new_write_token_pair(&token_pair);
+    write_token_t token;
+    store->new_write_token(&token);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                         1, write_durability_t::SOFT,
-                                        &token_pair, &txn, &super_block,
+                                        &token, &txn, &super_block,
                                         &dummy_interruptor);
 
     ql::sym_t one(1);
@@ -128,14 +128,14 @@ sindex_name_t create_sindex(store_t *store) {
 void drop_sindex(store_t *store,
                  const sindex_name_t &sindex_name) {
     cond_t dummy_interruptor;
-    write_token_t token_pair;
-    store->new_write_token_pair(&token_pair);
+    write_token_t token;
+    store->new_write_token(&token);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                        1, write_durability_t::SOFT, &token_pair,
+                                        1, write_durability_t::SOFT, &token,
                                         &txn, &super_block, &dummy_interruptor);
 
     buf_lock_t sindex_block(super_block->expose_buf(),
@@ -150,14 +150,14 @@ void drop_sindex(store_t *store,
 void bring_sindexes_up_to_date(
         store_t *store, sindex_name_t sindex_name) {
     cond_t dummy_interruptor;
-    write_token_t token_pair;
-    store->new_write_token_pair(&token_pair);
+    write_token_t token;
+    store->new_write_token(&token);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                         1, write_durability_t::SOFT,
-                                        &token_pair, &txn, &super_block, &dummy_interruptor);
+                                        &token, &txn, &super_block, &dummy_interruptor);
 
     buf_lock_t sindex_block(super_block->expose_buf(),
                             super_block->get_sindex_block_id(),
@@ -174,15 +174,15 @@ void bring_sindexes_up_to_date(
 void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
         sindex_name_t sindex_name, cond_t *background_inserts_done) {
     cond_t dummy_interruptor;
-    write_token_t token_pair;
-    store->new_write_token_pair(&token_pair);
+    write_token_t token;
+    store->new_write_token(&token);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
         repli_timestamp_t::distant_past,
         1, write_durability_t::SOFT,
-        &token_pair, &txn, &super_block, &dummy_interruptor);
+        &token, &txn, &super_block, &dummy_interruptor);
 
     buf_lock_t sindex_block(super_block->expose_buf(),
                             super_block->get_sindex_block_id(),
@@ -204,14 +204,14 @@ void _check_keys_are_present(store_t *store,
     cond_t dummy_interruptor;
     ql::configured_limits_t limits;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_t token_pair;
-        store->new_read_token_pair(&token_pair);
+        read_token_t token;
+        store->new_read_token(&token);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store->acquire_superblock_for_read(
-                &token_pair.main_read_token, &txn, &super_block,
+                &token, &txn, &super_block,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
@@ -281,14 +281,14 @@ void _check_keys_are_NOT_present(store_t *store,
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_t token_pair;
-        store->new_read_token_pair(&token_pair);
+        read_token_t token;
+        store->new_read_token(&token);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store->acquire_superblock_for_read(
-                &token_pair.main_read_token, &txn, &super_block,
+                &token, &txn, &super_block,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
@@ -432,15 +432,15 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
     {
         /* Now we erase all of the keys we just inserted. */
-        write_token_t token_pair;
-        store.new_write_token_pair(&token_pair);
+        write_token_t token;
+        store.new_write_token(&token);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                            1,
                                            write_durability_t::SOFT,
-                                           &token_pair,
+                                           &token,
                                            &txn,
                                            &super_block,
                                            &dummy_interruptor);

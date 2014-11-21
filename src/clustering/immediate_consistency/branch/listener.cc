@@ -118,7 +118,7 @@ listener_t::listener_t(const base_path_t &base_path,
 
     rassert(region_is_superset(our_branch_region_, svs_->get_region()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> start_point_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
@@ -183,7 +183,7 @@ listener_t::listener_t(const base_path_t &base_path,
         throw backfiller_lost_exc_t();
     }
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
+    read_token_t read_token2;
     svs_->new_read_token(&read_token2);
 
     region_map_t<binary_blob_t> backfill_end_point_blob;
@@ -288,7 +288,7 @@ listener_t::listener_t(const base_path_t &base_path,
     rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> initial_metainfo_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
@@ -440,7 +440,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    write_token_t write_token_pair;
+    write_token_t write_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.timestamp <= backfill_end_timestamp) {
@@ -448,7 +448,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.timestamp);
-        svs_->new_write_token_pair(&write_token_pair);
+        svs_->new_write_token(&write_token);
     }
 
 #ifndef NDEBUG
@@ -470,7 +470,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         write_durability_t::SOFT,
         qe.timestamp,
         qe.order_token,
-        &write_token_pair,
+        &write_token,
         interruptor);
 }
 
@@ -507,7 +507,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
     auto_drainer_t::lock_t keepalive(&drainer_);
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    write_token_t write_token_pair;
+    write_token_t write_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -520,7 +520,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
         advance_current_timestamp_and_pulse_waiters(timestamp);
 
-        svs_->new_write_token_pair(&write_token_pair);
+        svs_->new_write_token(&write_token);
     }
 
     // Make sure we can serve the entire operation without masking it.
@@ -542,7 +542,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
                 durability,
                 timestamp,
                 order_token,
-                &write_token_pair,
+                &write_token,
                 &combined_interruptor);
     return response;
 }
@@ -577,7 +577,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
     auto_drainer_t::lock_t keepalive = drainer_.lock();
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    read_token_t read_token_pair;
+    read_token_t read_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -592,7 +592,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
         guarantee(current_timestamp_ == expected_timestamp);
 
-        svs_->new_read_token_pair(&read_token_pair);
+        svs_->new_read_token(&read_token);
     }
 
 #ifndef NDEBUG
@@ -609,7 +609,7 @@ read_response_t listener_t::local_read(const read_t &read,
         read,
         &response,
         order_token,
-        &read_token_pair,
+        &read_token,
         &combined_interruptor);
     return response;
 }

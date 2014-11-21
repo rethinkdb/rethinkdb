@@ -83,7 +83,7 @@ public:
     virtual void destroy() = 0;
 };
 
-class store_t : public store_view_t {
+class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
@@ -101,12 +101,12 @@ public:
     void note_reshard();
 
     /* store_view_t interface */
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    void new_read_token(read_token_t *token_out);
+    void new_write_token(write_token_t *token_out);
 
     void do_get_metainfo(
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_t *token,
             signal_t *interruptor,
             region_map_t<binary_blob_t> *out)
         THROWS_ONLY(interrupted_exc_t);
@@ -114,7 +114,7 @@ public:
     void set_metainfo(
             const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -123,7 +123,7 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -135,7 +135,7 @@ public:
             write_durability_t durability,
             state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_t *token_pair,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -143,13 +143,13 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_t *token_pair,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -325,7 +325,7 @@ public:
         const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
@@ -333,7 +333,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_backfill(
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
@@ -343,7 +343,7 @@ public:
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
-            write_token_t *token_pair,
+            write_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
@@ -370,16 +370,6 @@ private:
             THROWS_ONLY(interrupted_exc_t);
 
     void help_construct_bring_sindexes_up_to_date();
-
-    void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool mark_secondary_index_deleted(
             buf_lock_t *sindex_block,

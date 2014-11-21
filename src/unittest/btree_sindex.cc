@@ -140,14 +140,14 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         sindex_name_t name = sindex_name_t(uuid_to_str(generate_uuid()));
         created_sindexs.insert(name);
         {
-            write_token_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                    1, write_durability_t::SOFT, &token_pair,
+                    1, write_durability_t::SOFT, &token,
                     &txn, &super_block, &dummy_interruptor);
 
             buf_lock_t sindex_block(super_block->expose_buf(),
@@ -158,14 +158,14 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         }
 
         {
-            write_token_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                               1, write_durability_t::SOFT, &token_pair,
+                                               1, write_durability_t::SOFT, &token,
                                                &txn, &super_block, &dummy_interruptor);
 
             buf_lock_t sindex_block(super_block->expose_buf(),
@@ -177,15 +177,15 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
         {
             //Insert a piece of data in to the btree.
-            write_token_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
                     repli_timestamp_t::distant_past, 1, write_durability_t::SOFT,
-                    &token_pair, &txn, &super_block,
+                    &token, &txn, &super_block,
                     &dummy_interruptor);
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
@@ -214,8 +214,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
         {
             //Read that data
-            read_token_t token_pair;
-            store.new_read_token_pair(&token_pair);
+            read_token_t token;
+            store.new_read_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> main_sb;
@@ -223,7 +223,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             uuid_u sindex_uuid;
 
             store.acquire_superblock_for_read(
-                    &token_pair.main_read_token, &txn, &main_sb,
+                    &token, &txn, &main_sb,
                     &dummy_interruptor, true);
 
             store_key_t key("foo");
@@ -251,14 +251,14 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
     for (auto it  = created_sindexs.begin(); it != created_sindexs.end(); ++it) {
         /* Drop the sindex */
-        write_token_t token_pair;
-        store.new_write_token_pair(&token_pair);
+        write_token_t token;
+        store.new_write_token(&token);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                           1, write_durability_t::SOFT, &token_pair,
+                                           1, write_durability_t::SOFT, &token,
                                            &txn, &super_block, &dummy_interruptor);
 
         buf_lock_t sindex_block(super_block->expose_buf(),

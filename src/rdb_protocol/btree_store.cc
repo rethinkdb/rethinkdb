@@ -112,14 +112,14 @@ store_t::store_t(serializer_t *serializer,
         // things yet, so this should work fairly quickly and does not need a real
         // interruptor.
         cond_t dummy_interruptor;
-        write_token_t token_pair;
-        store_view_t::new_write_token_pair(&token_pair);
+        write_token_t token;
+        new_write_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                      1,
                                      write_durability_t::SOFT,
-                                     &token_pair,
+                                     &token,
                                      &txn,
                                      &superblock,
                                      &dummy_interruptor);
@@ -165,14 +165,14 @@ void store_t::read(
         const read_t &read,
         read_response_t *response,
         UNUSED order_token_t order_token,  // TODO
-        read_token_t *token_pair,
+        read_token_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
-    acquire_superblock_for_read(&token_pair->main_read_token, &txn, &superblock,
+    acquire_superblock_for_read(token, &txn, &superblock,
                                 interruptor,
                                 read.use_snapshot());
 
@@ -189,7 +189,7 @@ void store_t::write(
         const write_durability_t durability,
         state_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
-        write_token_t *token_pair,
+        write_token_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -198,7 +198,7 @@ void store_t::write(
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(timestamp.to_repli_timestamp(),
-                                 expected_change_count, durability, token_pair,
+                                 expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
@@ -212,14 +212,14 @@ bool store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         send_backfill_callback_t *send_backfill_cb,
         traversal_progress_combiner_t *progress,
-        read_token_t *token_pair,
+        read_token_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
+    acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
 
     buf_lock_t sindex_block(superblock->expose_buf(), superblock->get_sindex_block_id(),
                             access_t::read);
@@ -276,7 +276,7 @@ struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp
 
 void store_t::receive_backfill(
         const backfill_chunk_t &chunk,
-        write_token_t *token_pair,
+        write_token_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -295,7 +295,7 @@ void store_t::receive_backfill(
                                                       chunk.val),
                                  expected_change_count,
                                  write_durability_t::HARD,
-                                 token_pair,
+                                 token,
                                  &txn,
                                  &real_superblock,
                                  interruptor);
@@ -313,13 +313,13 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
     scoped_ptr_t<real_superblock_t> superblock;
 
     const int expected_change_count = 1;
-    write_token_t token_pair;
-    new_write_token_pair(&token_pair);
+    write_token_t token;
+    new_write_token(&token);
 
     acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  expected_change_count,
                                  durability,
-                                 &token_pair,
+                                 &token,
                                  &txn,
                                  &superblock,
                                  interruptor);
@@ -376,12 +376,12 @@ void store_t::reset_data(
         scoped_ptr_t<real_superblock_t> superblock;
 
         const int expected_change_count = 2 + max_erased_per_pass;
-        write_token_t token_pair;
-        new_write_token_pair(&token_pair);
+        write_token_t token;
+        new_write_token(&token);
         acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                      expected_change_count,
                                      durability,
-                                     &token_pair,
+                                     &token,
                                      &txn,
                                      &superblock,
                                      interruptor);
@@ -661,8 +661,8 @@ void store_t::clear_sindex(
     for (bool reached_end = false; !reached_end;)
     {
         /* Start a transaction (1). */
-        write_token_t token_pair;
-        store_view_t::new_write_token_pair(&token_pair);
+        write_token_t token;
+        new_write_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
@@ -670,7 +670,7 @@ void store_t::clear_sindex(
             // Not really the right value, since many keys will share a leaf node:
             clear_sindex_traversal_cb_t::CHUNK_SIZE,
             write_durability_t::SOFT,
-            &token_pair,
+            &token,
             &txn,
             &superblock,
             interruptor);
@@ -734,15 +734,15 @@ void store_t::clear_sindex(
 
     {
         /* Start a transaction (2). */
-        write_token_t token_pair;
-        store_view_t::new_write_token_pair(&token_pair);
+        write_token_t token;
+        new_write_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
             2,
             write_durability_t::SOFT,
-            &token_pair,
+            &token,
             &txn,
             &superblock,
             interruptor);
@@ -1267,7 +1267,7 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
-                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                              read_token_t *token,
                               signal_t *interruptor,
                               region_map_t<binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
@@ -1311,7 +1311,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
 void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
-                           object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                           write_token_t *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
@@ -1331,7 +1331,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
 }
 
 void store_t::acquire_superblock_for_read(
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        read_token_t *token,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor,
@@ -1339,8 +1339,8 @@ void store_t::acquire_superblock_for_read(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
-    wait_interruptible(token->get(), interruptor);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
+    wait_interruptible(token->main_read_token.get(), interruptor);
 
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
@@ -1349,15 +1349,15 @@ void store_t::acquire_superblock_for_read(
 }
 
 void store_t::acquire_superblock_for_backfill(
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        read_token_t *token,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
-    wait_interruptible(token->get(), interruptor);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
+    wait_interruptible(token->main_read_token.get(), interruptor);
 
     get_btree_superblock_and_txn_for_backfilling(general_cache_conn.get(),
                                                  btree->get_backfill_account(),
@@ -1367,31 +1367,16 @@ void store_t::acquire_superblock_for_backfill(
 void store_t::acquire_superblock_for_write(
         repli_timestamp_t timestamp,
         int expected_change_count,
-        const write_durability_t durability,
-        write_token_t *token_pair,
-        scoped_ptr_t<txn_t> *txn_out,
-        scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    acquire_superblock_for_write(timestamp,
-                                 expected_change_count, durability,
-                                 &token_pair->main_write_token, txn_out, sb_out,
-                                 interruptor);
-}
-
-void store_t::acquire_superblock_for_write(
-        repli_timestamp_t timestamp,
-        int expected_change_count,
         write_durability_t durability,
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        write_token_t *token,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
-    wait_interruptible(token->get(), interruptor);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
+    wait_interruptible(token->main_write_token.get(), interruptor);
 
     get_btree_superblock_and_txn(general_cache_conn.get(), write_access_t::write,
                                  expected_change_count, timestamp,
@@ -1399,14 +1384,14 @@ void store_t::acquire_superblock_for_write(
 }
 
 /* store_view_t interface */
-void store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+void store_t::new_read_token(read_token_t *token_out) {
     assert_thread();
     fifo_enforcer_read_token_t token = main_token_source.enter_read();
-    token_out->create(&main_token_sink, token);
+    token_out->main_read_token.create(&main_token_sink, token);
 }
 
-void store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+void store_t::new_write_token(write_token_t *token_out) {
     assert_thread();
     fifo_enforcer_write_token_t token = main_token_source.enter_write();
-    token_out->create(&main_token_sink, token);
+    token_out->main_write_token.create(&main_token_sink, token);
 }

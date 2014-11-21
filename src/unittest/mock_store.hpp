@@ -25,17 +25,17 @@ public:
 
     void note_reshard() { }
 
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    void new_read_token(read_token_t *token_out);
+    void new_write_token(write_token_t *token_out);
 
     void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         read_token_t *token,
                          signal_t *interruptor,
                          region_map_t<binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
-                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                      write_token_t *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(

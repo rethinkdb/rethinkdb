@@ -141,7 +141,7 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
-/* {read,write}_token_pair_t hold the lock held when getting in line for the
+/* {read,write}_token_t hold the lock held when getting in line for the
    superblock. */
 struct read_token_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;

@@ -43,7 +43,7 @@ broadcaster_t::broadcaster_t(
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     initial_svs->new_read_token(&read_token);
 
     region_map_t<binary_blob_t> origins_blob;
@@ -84,7 +84,7 @@ broadcaster_t::broadcaster_t(
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_t write_token;
     initial_svs->new_write_token(&write_token);
     initial_svs->set_metainfo(region_map_t<binary_blob_t>(initial_svs->get_region(),
                                                           binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
