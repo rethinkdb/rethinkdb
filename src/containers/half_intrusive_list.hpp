@@ -65,14 +65,14 @@ public:
     }
 
     void push_front(T *elem) {
-        rassert(!elem->in_a_list());
+        guarantee(!elem->in_a_list());
         elem->prev_ = this;
         elem->next_ = this->next_;
         this->next_ = elem;
     }
 
     void remove(T *elem) {
-        rassert(elem->in_a_list());
+        guarantee(elem->in_a_list());
         if (elem->next_) {
             elem->next_->prev_ = elem->prev_;
         }
