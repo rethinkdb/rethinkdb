@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* The `rethinkdb.cluster_config` table is a catch-all for settings that don't fit
@@ -19,12 +19,13 @@ rows, each of which has a unique format and corresponds to a different setting.
 Right now the only row is `auth`, with the format `{"id": "auth", "auth_key": ...}`. */
 
 class cluster_config_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public cfeed_artificial_table_backend_t
 {
 public:
     cluster_config_artificial_table_backend_t(
             boost::shared_ptr<semilattice_readwrite_view_t<
                 auth_semilattice_metadata_t> > _sl_view);
+    ~cluster_config_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 
@@ -46,12 +47,7 @@ public:
             signal_t *interruptor,
             std::string *error_out);
 
-    bool read_changes(
-        const ql::protob_t<const Backtrace> &bt,
-        const ql::changefeed::keyspec_t::spec_t &spec,
-        signal_t *interruptor,
-        counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out);
+    void set_notifications(bool);
 
 private:
     /* The abstract class `doc_t` represents a row in the `cluster_config` table. In the
@@ -69,6 +65,9 @@ private:
                 signal_t *interruptor,
                 ql::datum_t *value_inout,
                 std::string *error_out) = 0;
+        /* Registers or deregisters a function that should be called if the row ever
+        changes. */
+        virtual void set_notification_callback(const std::function<void()> &) = 0;
     protected:
         virtual ~doc_t() { }   // make compiler happy
     };
@@ -85,9 +84,12 @@ private:
                 signal_t *interruptor,
                 ql::datum_t *value_inout,
                 std::string *error_out);
+        void set_notification_callback(const std::function<void()> &fun);
     private:
         boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             sl_view;
+        scoped_ptr_t<
+            semilattice_read_view_t<auth_semilattice_metadata_t>::subscription_t> subs;
     };
 
     auth_doc_t auth_doc;

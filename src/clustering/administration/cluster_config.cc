@@ -10,6 +10,10 @@ cluster_config_artificial_table_backend_t::cluster_config_artificial_table_backe
     docs["auth"] = &auth_doc;
 }
 
+cluster_config_artificial_table_backend_t::~cluster_config_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string cluster_config_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
@@ -72,15 +76,18 @@ bool cluster_config_artificial_table_backend_t::write_row(
     return it->second->write(interruptor, new_value_inout, error_out);
 }
 
-bool cluster_config_artificial_table_backend_t::read_changes(
-        UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
-        UNUSED signal_t *interruptor,
-        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
-    /* RSI(reql_admin): support changefeeds */
-    *error_out = "The `rethinkdb.cluster_config` table doesn't support changefeeds.";
-    return false;
+void cluster_config_artificial_table_backend_t::set_notifications(bool should_notify) {
+    for (const auto &pair : docs) {
+        if (should_notify) {
+            std::string name = pair.first;
+            pair.second->set_notification_callback(
+                [this, name]() {
+                    notify_row(ql::datum_t(datum_string_t(name)));
+                });
+        } else {
+            pair.second->set_notification_callback(nullptr);
+        }
+    }
 }
 
 ql::datum_t make_hidden_auth_key_datum() {
@@ -181,5 +188,22 @@ bool cluster_config_artificial_table_backend_t::auth_doc_t::write(
     }
 
     return true;
+}
+
+/* There's a weird corner case with changefeeds on the `auth` doc: If the user changes
+the authentication key from a non-empty value to another non-empty value, no entry will
+appear in the change feed, because the document hasn't changed from the point of view of
+the `cfeed_artificial_table_backend_t`. We could work around this by having a way of
+forcing the `cfeed_artificial_table_backend_t` to send a change for the row even if it
+looks the same, but it's probably not worth the effort. */
+
+void cluster_config_artificial_table_backend_t::auth_doc_t::set_notification_callback(
+        const std::function<void()> &fun) {
+    if (static_cast<bool>(fun)) {
+        subs = make_scoped<semilattice_read_view_t<
+            auth_semilattice_metadata_t>::subscription_t>(fun, sl_view);
+    } else {
+        subs.reset();
+    }
 }
 
