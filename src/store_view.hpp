@@ -1,6 +1,8 @@
 #ifndef STORE_VIEW_HPP_
 #define STORE_VIEW_HPP_
 
+#include "debug.hpp"
+
 /* `store_view_t` is an abstract class that represents a region of a key-value store
 for some protocol.  It covers some `region_t`, which is returned by `get_region()`.
 
@@ -21,21 +23,14 @@ public:
 
     virtual void note_reshard() = 0;
 
-    virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
-    virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
-
-    void new_read_token_pair(read_token_t *token_pair_out) {
-        new_read_token(&token_pair_out->main_read_token);
-    }
-    void new_write_token_pair(write_token_t *token_pair_out) {
-        new_write_token(&token_pair_out->main_write_token);
-    }
+    virtual void new_read_token(read_token_t *token_out) = 0;
+    virtual void new_write_token(write_token_t *token_out) = 0;
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
     virtual void do_get_metainfo(order_token_t order_token,
-                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                 read_token_t *token,
                                  signal_t *interruptor,
                                  region_map_t<binary_blob_t> *out)
         THROWS_ONLY(interrupted_exc_t) = 0;
@@ -46,7 +41,7 @@ public:
     [May block] */
     virtual void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                               order_token_t order_token,
-                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                              write_token_t *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a read.
@@ -91,7 +86,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -169,10 +164,7 @@ private:
     be able to fake it by using a key as a "lock".
 */
 
-#include "debug.hpp"
-
-class store_subview_t : public store_view_t
-{
+class store_subview_t final : public store_view_t {
 public:
     store_subview_t(store_view_t *_store_view, region_t region)
         : store_view_t(region), store_view(_store_view) {
@@ -188,18 +180,18 @@ public:
 
     using store_view_t::get_region;
 
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+    void new_read_token(read_token_t *token_out) {
         home_thread_mixin_t::assert_thread();
         store_view->new_read_token(token_out);
     }
 
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+    void new_write_token(write_token_t *token_out) {
         home_thread_mixin_t::assert_thread();
         store_view->new_write_token(token_out);
     }
 
     void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         read_token_t *token,
                          signal_t *interruptor,
                          region_map_t<binary_blob_t> *out)
             THROWS_ONLY(interrupted_exc_t) {
@@ -211,7 +203,7 @@ public:
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
-                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                      write_token_t *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
@@ -223,13 +215,13 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token_pair, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
     }
 
     void write(
@@ -240,36 +232,36 @@ public:
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_t *token_pair,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token, interruptor);
     }
 
     bool send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *p,
-            read_token_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token_pair, interruptor);
+        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
     }
 
     void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_t *token_pair,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token_pair, interruptor);
+        store_view->receive_backfill(chunk, token, interruptor);
     }
 
     void throttle_backfill_chunk(signal_t *interruptor)

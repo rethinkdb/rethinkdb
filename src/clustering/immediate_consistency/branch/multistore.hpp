@@ -85,9 +85,9 @@ private:
 
     void switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
 
-    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
+    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, read_token_t *store_token);
 
-    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
+    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, write_token_t *store_token);
 
     // We _own_ these pointers and must delete them at destruction.
     const scoped_array_t<store_view_t *> store_views_;
