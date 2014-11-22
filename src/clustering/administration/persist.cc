@@ -348,7 +348,9 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent) :
     persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
-    // Do nothing
+
+    /* Force migration to happen */
+    update_metadata(read_metadata());
 }
 
 auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
@@ -461,6 +463,9 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                                                      perfmon_collection_t *perfmon_parent) :
     persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
     construct_branch_history_managers(false);
+
+    /* Force migration to happen */
+    update_metadata(read_metadata());
 }
 
 cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,

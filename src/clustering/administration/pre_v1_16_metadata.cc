@@ -41,6 +41,7 @@ template<class T>
 T get_vclock_best(
         const pre_v1_16::vclock_t<T> &vclock,
         int *best_total_out) {
+    guarantee(!vclock.values.empty());
     /* If there are multiple versions in the vector clock, choose the one with the
     greatest sum of the vector clock versions. This is a heuristic that will tend to
     choose the most recently modified version. */
@@ -51,6 +52,7 @@ T get_vclock_best(
         for (const auto &pair : value.first) {
             total += pair.second;
         }
+        guarantee(total >= 0);
         if (total > best_total) {
             best_value = value.second;
             best_total = total;
@@ -117,7 +119,8 @@ database_semilattice_metadata_t migrate_database(
             if (old_name == name_string_t::guarantee_valid("rethinkdb")) {
                 logWRN("Found an existing database named `rethinkdb` when migrating "
                     "metadata. Since `rethinkdb` is a reserved database name as of "
-                    "v1.16, the existing database has been renamed to `rethinkdb_`.");
+                    "RethinkDB 1.16, the existing database has been renamed to "
+                    "`rethinkdb_`.");
                 return name_string_t::guarantee_valid("rethinkdb_");
             }
             return old_name;
@@ -196,9 +199,10 @@ write_ack_config_t::req_t migrate_ack_req(
         int majority_equivalent = (largest + 2) / 2;
         if (num_acks != majority_equivalent) {
             logWRN("For table `%s.%s`, you requested %d write acks %s; however, as of "
-                "v1.16, RethinkDB does not allow you to specify an arbitrary number of "
-                "acks. Your ack setting has been translated to the closest equivalent "
-                "setting, which is `majority`; this is equivalent to %d acks.",
+                "RethinkDB version 1.16, RethinkDB does not allow you to specify an "
+                "arbitrary number of acks. Your ack setting has been translated to the "
+                "closest equivalent setting, which is `majority`; this is equivalent to "
+                "%d acks.",
                 db_name.c_str(), table_name.c_str(), num_acks, where.c_str(),
                 majority_equivalent);
         }
@@ -295,8 +299,8 @@ namespace_semilattice_metadata_t migrate_table(
             if (it == server_roles.second.end()) {
                 /* The reason we handle this instead of crashing is that this
                 hypothetically might happen if the user wrote directly to `/ajax` */
-                logERR("Metadata corruption detected when migrating to v1.16 format: "
-                    "table `%s.%s` has different shard boundaries for different "
+                logERR("Metadata corruption detected when migrating to RethinkDB 1.16 "
+                    "format: table `%s.%s` has different shard boundaries for different "
                     "servers.",
                     db_name.c_str(), table_name.c_str());
                 /* This is a hack; if the server doesn't have any role for this exact
@@ -309,8 +313,8 @@ namespace_semilattice_metadata_t migrate_table(
             }
             if (role == blueprint_role_primary) {
                 if (!s->director.is_unset()) {
-                    logERR("Metadata corruption detected when migrating to v1.16 "
-                        "format: table `%s.%s` has two different servers listed as "
+                    logERR("Metadata corruption detected when migrating to RethinkDB "
+                        "1.16 format: table `%s.%s` has two different servers listed as "
                         "primary for a single shard.",
                         db_name.c_str(), table_name.c_str());
                     /* Choose one director arbitrarily. It's not the end of the world. */
@@ -437,7 +441,7 @@ namespace_semilattice_metadata_t migrate_table(
     if (num_hard > 0 && num_soft > 0) {
         /* This is only possible if the user manually tweaked something through the CLI
         or by messing with the HTTP admin interface */
-        logWRN("For table `%s.%s`, your pre-v1.16 settings specified hard write "
+        logWRN("For table `%s.%s`, your existing settings specified hard write "
             "durability when writing to some servers and soft write durability for "
             "others. As of version 1.16, RethinkDB no longer allows mixed durability "
             "settings. Your table will now use hard durability everywhere. You can "
@@ -484,7 +488,7 @@ namespaces_semilattice_metadata_t migrate_tables(
 
 cluster_semilattice_metadata_t migrate_cluster_metadata_to_v1_16(
         const pre_v1_16::cluster_semilattice_metadata_t &old_md) {
-    logINF("Migrating pre-v1.16 metadata to new format...");
+    logNTC("Migrating existing metadata to the new RethinkDB 1.16 format...");
     cluster_semilattice_metadata_t new_md;
     new_md.rdb_namespaces = cow_ptr_t<namespaces_semilattice_metadata_t>(
         migrate_tables(*old_md.rdb_namespaces,
