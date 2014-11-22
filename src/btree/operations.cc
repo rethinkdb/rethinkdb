@@ -1012,7 +1012,6 @@ void apply_keyvalue_change(
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
             {
                 buf_write_t write(&kv_loc->buf);
                 auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());

@@ -65,8 +65,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         write_t w = mock_overwrite(key, strprintf("%d", i));
 
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
-            transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
-            timestamp = ts.timestamp_after();
+            timestamp = timestamp.next();
 
             cond_t non_interruptor;
             write_token_t token;
@@ -74,7 +73,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
 #ifndef NDEBUG
             equality_metainfo_checker_callback_t
-                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
+                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp.pred()))));
             metainfo_checker_t metainfo_checker(&metainfo_checker_callback, region);
 #endif
 
@@ -86,7 +85,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
                 ),
                 w,
                 &response, write_durability_t::SOFT,
-                ts,
+                timestamp,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token,
                 &non_interruptor);

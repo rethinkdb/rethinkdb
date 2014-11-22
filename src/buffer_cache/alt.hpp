@@ -197,6 +197,8 @@ public:
         return current_page_acq()->block_id();
     }
 
+    // It is illegal to call this on a buf lock that has been mark_deleted.  This
+    // never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
     // Usually unnecessary -- the txn has a recency value that touches the recency.

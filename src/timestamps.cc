@@ -7,3 +7,4 @@ void debug_print(printf_buffer_t *buf, state_timestamp_t ts) {
     debug_print(buf, ts.num);
     buf->appendf("}");
 }
+
