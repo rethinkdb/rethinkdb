@@ -1531,7 +1531,7 @@ void rdb_update_single_sindex(
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
-    // TODO(2014-08): Actually get real profiling information for
+    // TODO(2015-01): Actually get real profiling information for
     // secondary index updates.
     profile::trace_t *const trace = nullptr;
 

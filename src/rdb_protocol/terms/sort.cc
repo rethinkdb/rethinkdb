@@ -94,12 +94,11 @@ private:
                 if (!rval.has()) {
                     return false != (it->first == DESC);
                 }
-                // TODO(2014-08): use datum_t::cmp instead to be faster
-                if (lval == rval) {
+                int cmp_res = lval.cmp(env->reql_version(), rval);
+                if (cmp_res == 0) {
                     continue;
                 }
-                return lval.compare_lt(env->reql_version(), rval) !=
-                    (it->first == DESC);
+                return (cmp_res < 0) != (it->first == DESC);
             }
 
             return false;
