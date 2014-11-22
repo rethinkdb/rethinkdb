@@ -56,10 +56,14 @@ public:
     }
 
     T *head() const {
+        rassert(this->next_ == nullptr || this->next_->prev_ == this);
         return static_cast<T *>(this->next_);
     }
 
     T *next(T *elem) const {
+        rassert(elem->next_ == nullptr || elem->next_->prev_ == elem);
+        rassert(elem->prev_->next_ == elem);
+        guarantee(elem->in_a_list());
         half_intrusive_list_node_t<T> *p = elem;
         return static_cast<T *>(p->next_);
     }
@@ -68,12 +72,16 @@ public:
         guarantee(!elem->in_a_list());
         elem->prev_ = this;
         elem->next_ = this->next_;
+        if (this->next_ != nullptr) {
+            rassert(this->next_->prev_ == this);
+            this->next_->prev_ = elem;
+        }
         this->next_ = elem;
     }
 
     void remove(T *elem) {
         guarantee(elem->in_a_list());
-        if (elem->next_) {
+        if (elem->next_ != nullptr) {
             elem->next_->prev_ = elem->prev_;
         }
         elem->prev_->next_ = elem->next_;
