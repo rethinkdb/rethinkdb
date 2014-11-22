@@ -516,8 +516,7 @@ void check_and_handle_split(value_sizer_t *sizer,
     {
         buf_write_t last_write(last_buf);
         DEBUG_VAR bool success
-            = internal_node::insert(sizer->block_size(),
-                                    static_cast<internal_node_t *>(last_write.get_data_write()),
+            = internal_node::insert(static_cast<internal_node_t *>(last_write.get_data_write()),
                                     median,
                                     buf->block_id(), rbuf.block_id());
         rassert(success, "could not insert internal btree node");
@@ -606,18 +605,14 @@ void check_and_handle_underfull(value_sizer_t *sizer,
                 buf->swap(sib_buf);
             }
 
-            bool parent_is_singleton;
+            bool parent_was_doubleton;
             {
                 buf_read_t last_buf_read(last_buf);
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
-                // TODO (daniel): `is_singleton()` is a bad name. What it really
-                //    means is `is_doubleton()`, or
-                //    `will_be_singleton_after_removing_one_more_child()` (not that
-                //    I'm suggesting using that as its name)
-                parent_is_singleton = internal_node::is_singleton(parent_node);
+                parent_was_doubleton = internal_node::is_doubleton(parent_node);
             }
-            if (parent_is_singleton) {
+            if (parent_was_doubleton) {
                 // `buf` will get a new parent below. Detach it from its old one.
                 // We can't detach it later because its value will already have
                 // been changed by then.
@@ -651,7 +646,7 @@ void check_and_handle_underfull(value_sizer_t *sizer,
             // it was before) and the current txn's recency.
             buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
 
-            if (!parent_is_singleton) {
+            if (!parent_was_doubleton) {
                 buf_write_t last_buf_write(last_buf);
                 internal_node::remove(sizer->block_size(),
                                       static_cast<internal_node_t *>(last_buf_write.get_data_write()),

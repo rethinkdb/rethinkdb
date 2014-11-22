@@ -507,10 +507,7 @@ void process_a_internal_node(traversal_state_t *state,
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         int level, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null) {
-    // TODO: The below comment is wrong because we acquire the stat block
-    // This can be run in the scheduler thread.
-    //
-    //
+    rassert(coro_t::self());
     int population_change = 0;
 
     try {
