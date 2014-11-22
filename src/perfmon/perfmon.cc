@@ -279,12 +279,14 @@ void perfmon_rate_monitor_t::record(double count) {
 }
 
 void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
-    update(get_ticks());
-    /* Return last_count instead of current_stats so that we can give a complete interval's
-    worth of stats. We might be halfway through an interval, in which case current_count will
-    only have half an interval worth. */
-    rassert(get_thread_id().threadnum >= 0);
-    *stat = thread_data[get_thread_id().threadnum].value.last_count;
+    ticks_t now = get_ticks();
+    update(now);
+
+    double ratio = 1.0 - (static_cast<double>(now % length) / length);
+
+    // Return a rolling average of the current count plus the last count
+    thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
+    *stat = thread.current_count + thread.last_count * ratio;
 }
 
 double perfmon_rate_monitor_t::combine_stats(const double *stats) {

@@ -50,7 +50,6 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
     try {
         scoped_perfmon_counter_t client_active(&rdb_ctx->clients_active);
         ++rdb_ctx->queries_total;
-        rdb_ctx->queries_per_sec.record();
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(query,
@@ -72,6 +71,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
 #endif // NDEBUG
     }
 
+    rdb_ctx->queries_per_sec.record();
     return response_needed;
 }
 
