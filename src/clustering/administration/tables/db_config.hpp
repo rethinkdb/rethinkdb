@@ -42,13 +42,6 @@ public:
             signal_t *interruptor,
             std::string *error_out);
 
-    bool read_changes(
-        const ql::protob_t<const Backtrace> &bt,
-        const ql::changefeed::keyspec_t::spec_t &spec,
-        signal_t *interruptor,
-        counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out);
-
 private:
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;

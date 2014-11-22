@@ -77,14 +77,3 @@ bool common_table_artificial_table_backend_t::read_row(
                       &interruptor2, row_out, error_out);
 }
 
-bool common_table_artificial_table_backend_t::read_changes(
-        UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
-        UNUSED signal_t *interruptor,
-        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
-    /* RSI(reql_admin): support changefeeds */
-    *error_out = "The `rethinkdb.table_*` tables don't support changefeeds.";
-    return false;
-}
-

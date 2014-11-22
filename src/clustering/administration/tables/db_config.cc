@@ -212,14 +212,3 @@ bool db_config_artificial_table_backend_t::write_row(
     return true;
 }
 
-bool db_config_artificial_table_backend_t::read_changes(
-        UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED const ql::changefeed::keyspec_t::spec_t &spec,
-        UNUSED signal_t *interruptor,
-        UNUSED counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
-    /* RSI(reql_admin): support changefeeds */
-    *error_out = "The `rethinkdb.db_config` table doesn't support changefeeds.";
-    return false;
-}
-
