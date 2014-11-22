@@ -61,9 +61,9 @@ public:
     }
 
     T *next(T *elem) const {
+        guarantee(elem->in_a_list());
         rassert(elem->next_ == nullptr || elem->next_->prev_ == elem);
         rassert(elem->prev_->next_ == elem);
-        guarantee(elem->in_a_list());
         half_intrusive_list_node_t<T> *p = elem;
         return static_cast<T *>(p->next_);
     }
