@@ -44,13 +44,6 @@ struct secondary_index_t {
      * switching targets. This issue is described in more detail here:
      * https://github.com/rethinkdb/rethinkdb/issues/657 */
     uuid_u id;
-
-    /* Used in unit tests. */
-    /* TODO(2014-08): This weird thing should be and can be eliminated. */
-    bool operator==(const secondary_index_t &other) const {
-        return superblock == other.superblock &&
-               opaque_definition == other.opaque_definition;
-    }
 };
 
 RDB_DECLARE_SERIALIZABLE(secondary_index_t);
