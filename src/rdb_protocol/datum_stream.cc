@@ -623,20 +623,12 @@ boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
 
 scoped_ptr_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
-    rcheck(!is_infinite(),
-           base_exc_t::GENERIC,
-           "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.");
-
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
-    rcheck(!is_infinite(),
-           base_exc_t::GENERIC,
-           "Cannot coerce an infinite stream to an array.");
-
     scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
@@ -1132,7 +1124,13 @@ range_datum_stream_t::range_datum_stream_t(bool _is_infinite_range,
 
 std::vector<datum_t>
 range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
-    std::vector<datum_t> v;
+    rcheck(!is_infinite_range
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::GENERIC,
+           "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.");
+
+    std::vector<datum_t> batch;
     // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
     // think strongly it should be something else you're probably right.
     batcher_t batcher = batchspec.with_at_most(500).to_batcher();
@@ -1146,13 +1144,14 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
         rcheck(risfinite(next), base_exc_t::GENERIC,
                "`range` out of safe double bounds.");
 
-        v.emplace_back(next);
-        batcher.note_el(v.back());
+        batch.emplace_back(next);
+        batcher.note_el(batch.back());
         if (batcher.should_send_batch()) {
             break;
         }
     }
-    return v;
+
+    return batch;
 }
 
 bool range_datum_stream_t::is_exhausted() const {
@@ -1174,17 +1173,24 @@ map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &
 
 std::vector<datum_t>
 map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    rcheck(!is_infinite_map
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::GENERIC,
+           "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.");
+
     std::vector<datum_t> batch;
-    batcher_t batcher =
-        batchspec.to_batcher();
+    batcher_t batcher = batchspec.to_batcher();
 
     std::vector<datum_t> args;
     args.reserve(streams.size());
+    // We need a separate batchspec for the streams to prevent calling `stream->next`
+    // with a `batch_type_t::TERMINAL` on an infinite stream.
+    batchspec_t batchspec_inner = batchspec_t::default_for(batch_type_t::NORMAL);
     while (!is_exhausted()) {
         args.clear();   // This prevents allocating a new vector every iteration.
         for (const auto &stream : streams) {
-            args.push_back(
-                stream->next(env, batchspec_t::default_for(batch_type_t::NORMAL)));
+            args.push_back(stream->next(env, batchspec_inner));
         }
 
         datum_t datum = func->call(env, args)->as_datum();
