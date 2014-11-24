@@ -3,6 +3,9 @@
 #ifndef BASE_DOCID_H_
 #define BASE_DOCID_H_
 
+// We need this for std::hash<T>
+#include <functional>
+
 #include <assert.h>
 
 // sys/types.h is only needed by this file if !defined(NDEBUG),

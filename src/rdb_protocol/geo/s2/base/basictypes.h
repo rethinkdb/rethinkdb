@@ -9,16 +9,6 @@
 #include "rdb_protocol/geo/s2/base/casts.h"
 #include "rdb_protocol/geo/s2/base/port.h"
 
-
-// We have to declare this on some platforms for being able to add hashing functions
-// for S2Point, DocID, S2CellId and S2PointPair later...
-#if !defined __SGI_STL_HASH_FUN_H       // taken from stl_decl.h
-HASH_NAMESPACE_DECLARATION_START
-template <class Key> struct hash;
-HASH_NAMESPACE_DECLARATION_END
-#endif
-
-
 namespace geo {
 
 
