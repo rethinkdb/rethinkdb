@@ -46,6 +46,16 @@ public:
         of depending on the order in which they are joined. */
         tiebreaker(generate_uuid()) { }
 
+    /* This constructor is only used when migrating from pre-v1.16 metadata files that
+    used vector clocks */
+    static versioned_t make_with_manual_timestamp(time_t time, const T &value) {
+        versioned_t v;
+        v.timestamp = time;
+        v.tiebreaker = generate_uuid();
+        v.value = value;
+        return v;
+    }
+
     const T &get_ref() const {
         return value;
     }
