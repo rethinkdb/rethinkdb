@@ -162,11 +162,6 @@ inline uint64 operator+(uint64 a, const DocId& b) { return a + b.docid(); }
 }  // namespace geo
 
 // Required for hashing docids.  docservercache.cc needs to fingerprint them.
-#if !defined __SGI_STL_HASH_FUN_H       // taken from stl_decl.h
-HASH_NAMESPACE_DECLARATION_START
-template <class Key> struct hash;
-HASH_NAMESPACE_DECLARATION_END
-#endif
 HASH_NAMESPACE_DECLARATION_START
 template<> struct hash<geo::DocId> {
   size_t operator()(const geo::DocId& d) const {
