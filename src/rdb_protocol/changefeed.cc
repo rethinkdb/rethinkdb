@@ -46,6 +46,85 @@ std::string print(const msg_t::limit_change_t &change) {
 }
 } // namespace debug
 
+enum class pop_type_t { RANGE, POINT };
+class maybe_squashing_queue_t {
+public:
+    virtual ~maybe_squashing_queue_t() { }
+    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) = 0;
+    virtual size_t size() const = 0;
+    virtual void clear() = 0;
+    virtual datum_t pop(pop_type_t pop_type) {
+        std::pair<datum_t, datum_t> pair = pop_impl();
+        switch (pop_type) {
+        case pop_type_t::RANGE: return datum_t(std::map<datum_string_t, datum_t>{
+            {datum_string_t("old_val"), pair.first},
+            {datum_string_t("new_val"), pair.second}});
+        case pop_type_t::POINT: return pair.second;
+        default: unreachable();
+        }
+    }
+private:
+    virtual std::pair<datum_t, datum_t> pop_impl() = 0;
+};
+
+class squashing_queue_t : public maybe_squashing_queue_t {
+    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
+        auto it = queue.find(key);
+        if (it == queue.end()) {
+            auto pair = std::make_pair(std::move(key), std::make_pair(old_val, new_val));
+            it = queue.insert(std::move(pair)).first;
+        }
+        guarantee(it != queue.end());
+        if (!it->second.first.has()) {
+            it->second.first = old_val;
+        }
+        it->second.second = new_val;
+        if (it->second.first == it->second.second) {
+            // RSI: make sure to test case where we squash down to no changes.
+            queue.erase(it);
+        }
+    }
+    virtual size_t size() const {
+        return queue.size();
+    }
+    virtual void clear() {
+        queue.clear();
+    }
+    virtual std::pair<datum_t, datum_t> pop_impl() {
+        guarantee(size() != 0);
+        auto it = queue.begin();
+        auto ret = std::move(it->second);
+        queue.erase(it);
+        return ret;
+    }
+    std::map<store_key_t, std::pair<datum_t, datum_t> > queue;
+};
+
+class nonsquashing_queue_t : public maybe_squashing_queue_t {
+    virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
+        queue.push_back(std::make_pair(std::move(old_val), std::move(new_val)));
+    }
+    virtual size_t size() const {
+        return queue.size();
+    }
+    virtual void clear() {
+        queue.clear();
+    }
+    virtual std::pair<datum_t, datum_t> pop_impl() {
+        guarantee(size() != 0);
+        auto ret = std::move(queue.front());
+        queue.pop_front();
+        return ret;
+    }
+    std::deque<std::pair<datum_t, datum_t> > queue;
+};
+
+scoped_ptr_t<maybe_squashing_queue_t> make_maybe_squashing_queue(bool squash) {
+    return squash
+        ? scoped_ptr_t<maybe_squashing_queue_t>(new squashing_queue_t())
+        : scoped_ptr_t<maybe_squashing_queue_t>(new nonsquashing_queue_t());
+}
+
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
     const std::vector<scoped_ptr_t<op_t> > &ops,
@@ -911,14 +990,14 @@ protected:
     // an error object to the user with the number of skipped elements before
     // continuing.
     size_t skipped;
-    // The feed we're subscribed to.
-    const feed_t *feed;
-    const bool squash;
+    feed_t *feed; // The feed we're subscribed to.
+    const bool squash; // Whether or not to squash changes.
+    // Whether we're in the middle of one logical batch (only matters for squashing).
+    bool mid_batch;
 private:
+    const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
-
-    const double min_interval;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -929,12 +1008,30 @@ class flat_sub_t : public subscription_t {
 public:
     template<class... Args>
     explicit flat_sub_t(Args &&... args)
-        : subscription_t(std::forward<Args>(args)...) { }
+        : subscription_t(std::forward<Args>(args)...),
+          queue(make_maybe_squashing_queue(squash)) { }
     virtual void add_el(
         const uuid_u &uuid,
         uint64_t stamp,
-        datum_t d,
-        const configured_limits_t &limits) = 0;
+        const store_key_t &key,
+        datum_t old_val,
+        datum_t new_val,
+        const configured_limits_t &limits) {
+        if (update_stamp(uuid, stamp)) {
+            queue->add(key, std::move(old_val), std::move(new_val));
+            if (queue->size() > limits.array_size_limit()) {
+                skipped += queue->size();
+                queue->clear();
+            }
+            maybe_signal_cond();
+        }
+    }
+protected:
+    // The queue of changes we've accumulated since the last time we were read from.
+    const scoped_ptr_t<maybe_squashing_queue_t> queue;
+private:
+    virtual bool has_el() { return queue->size() != 0; }
+    virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
 };
 
 class range_sub_t;
@@ -1158,7 +1255,8 @@ public:
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
-        destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
+        destructor_cleanup(
+            std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
     }
     virtual void start_artificial(const uuid_u &) { } // `stamp` already 0
     virtual void start_real(env_t *env,
@@ -1186,29 +1284,16 @@ public:
             el = std::move(resp->initial_val);
         }
     }
-    virtual void add_el(const uuid_u &,
-                        uint64_t d_stamp,
-                        datum_t d,
-                        const configured_limits_t &) {
-        assert_thread();
-        // We use `>=` because we might have the same stamp as the start stamp
-        // (the start stamp reads the stamp non-destructively on the shards).
-        // We do ordering and duplicate checking in the layer above, so apart
-        // from that we have a strict ordering.
-        if (d_stamp >= stamp) {
-            stamp = d_stamp;
-            el = std::move(d);
-            maybe_signal_cond();
+    virtual bool update_stamp(const uuid_u &, uint64_t new_stamp) {
+        if (new_stamp >= stamp) {
+            stamp = new_stamp;
+            return true;
         }
+        return false;
     }
 private:
-    virtual bool has_el() { return el.has(); }
-    virtual datum_t pop_el() {
-        guarantee(has_el());
-        datum_t ret = el;
-        el.reset();
-        return ret;
-    }
+    virtual datum_t pop_el() { return queue->pop(pop_type_t::POINT); }
+
     store_key_t key;
     uint64_t stamp;
     datum_t el;
@@ -1286,30 +1371,18 @@ public:
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
 
-    virtual void add_el(const uuid_u &uuid,
-                        uint64_t stamp,
-                        datum_t d,
-                        const configured_limits_t &limits) {
+    virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) {
         guarantee(active());
         auto it = start_stamps.find(uuid);
         guarantee(it != start_stamps.end());
-        if (stamp >= it->second) {
-            els.push_back(std::move(d));
-            if (els.size() > limits.array_size_limit()) {
-                skipped += els.size();
-                els.clear();
-            }
-            maybe_signal_cond();
-        }
+        // Note that we currently *DO NOT* update the stamp for range
+        // subscriptions.  If we get changes with stamps after the start stamp
+        // we eventually receive, they are just discarded.  This will change in
+        // the future when we support `return_initial` on range changefeeds.
+        return new_stamp >= it->second;
     }
 private:
-    virtual bool has_el() { return els.size() != 0; }
-    virtual datum_t pop_el() {
-        guarantee(has_el());
-        datum_t ret = std::move(els.front());
-        els.pop_front();
-        return ret;
-    }
+    virtual datum_t pop_el() { return queue->pop(pop_type_t::RANGE); }
 
     scoped_ptr_t<env_t> env;
     std::vector<scoped_ptr_t<op_t> > ops;
@@ -1318,8 +1391,6 @@ private:
     // read.  We use these to make sure we don't see changes from writes before
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
-    // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<datum_t> els;
     keyspec_t::range_t spec;
     auto_drainer_t drainer;
 };
@@ -1590,20 +1661,8 @@ public:
                     old_val = change.old_val;
                 }
             }
-            datum_t obj(std::map<datum_string_t, datum_t>{
-                {datum_string_t("new_val"), new_val},
-                {datum_string_t("old_val"), old_val}
-            });
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                datum_t del_obj(std::map<datum_string_t, datum_t>{
-                    {datum_string_t("new_val"), null},
-                    {datum_string_t("old_val"), old_val}
-                });
-                datum_t add_obj(std::map<datum_string_t, datum_t>{
-                    {datum_string_t("new_val"), new_val},
-                    {datum_string_t("old_val"), null}
-                });
                 size_t old_vals = 0, new_vals = 0;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
@@ -1622,23 +1681,27 @@ public:
                     }
                 }
                 while (new_vals > 0 && old_vals > 0) {
-                    sub->add_el(server_uuid, stamp, obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, new_val, default_limits);
                     --new_vals;
                     --old_vals;
                 }
                 while (old_vals > 0) {
                     guarantee(new_vals == 0);
-                    sub->add_el(server_uuid, stamp, del_obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, null, default_limits);
                     --old_vals;
                 }
                 while (new_vals > 0) {
                     guarantee(old_vals == 0);
-                    sub->add_el(server_uuid, stamp, add_obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                null, new_val, default_limits);
                     --new_vals;
                 }
             } else {
                 if (sub->contains(change.pkey)) {
-                    sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, new_val, default_limits);
                 }
             }
         });
@@ -1648,12 +1711,14 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
+                      change.pkey,
+                      change.old_val.has() ? change.old_val : null,
                       change.new_val.has() ? change.new_val : null,
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(std::bind(&subscription_t::stop,
+        feed->each_sub(std::bind(&flat_sub_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -1729,11 +1794,11 @@ private:
 };
 
 
-subscription_t::subscription_t(feed_t *_feed, const datum_t &squash)
+subscription_t::subscription_t(feed_t *_feed, const datum_t &_squash)
     : skipped(0),
       feed(_feed),
-      squash(squash.as_bool()),
-      min_interval(squash.get_type() == datum_t::R_NUM ? squash.as_num() : 0.0),
+      squash(_squash.as_bool()),
+      min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
       cond(NULL) {
     guarantee(feed != NULL);
 }
@@ -1745,28 +1810,51 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
-    if (!has_el() && !exc && skipped == 0) {
-        cond_t wait_for_data;
-        cond = &wait_for_data;
-        signal_timer_t timer;
-        if (batcher->get_batch_type() == batch_type_t::NORMAL
-            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer.start(batcher->microtime_left() / 1000);
-        }
-        try {
-            wait_any_t any_interruptor(interruptor, &timer);
-            // We don't need to wait on the drain signal because the interruptor
-            // will be pulsed if we're shutting down.
-            wait_interruptible(cond, &any_interruptor);
-        } catch (const interrupted_exc_t &e) {
-            cond = NULL;
-            if (timer.is_pulsed()) {
-                return std::vector<datum_t>();
+
+    if (!exc && skipped == 0) {
+        // We wait for data if we don't have any or if we're squashing and not
+        // in the middle of a logical batch.
+        if (!has_el() || (!mid_batch && min_interval > 0.0)) {
+            signal_timer_t timer;
+            if (batcher->get_batch_type() == batch_type_t::NORMAL
+                || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+                timer.start(batcher->microtime_left() / 1000);
             }
-            throw e;
+            // If we have to wait, wait.
+            if (min_interval > 0.0) {
+                signal_timer_t min_timer;
+                min_timer.start(min_interval * 1000);
+                // It's OK to let the `interrupted_exc_t` propagate up.
+                wait_interruptible(&min_timer, interruptor);
+            }
+            // If we still don't have data, wait for data with a timeout.  (Note
+            // that if we're squashing, we started the timeout *before* waiting
+            // on `min_timer`.)
+            if (!has_el()) {
+                cond_t wait_for_data;
+                cond = &wait_for_data;
+                try {
+                    wait_any_t any_interruptor(interruptor, &timer);
+                    // We don't need to wait on the drain signal because the interruptor
+                    // will be pulsed if we're shutting down.  Not that `cond` might
+                    // already be reset by the time we get here, so make sure to wait on
+                    // `&wait_for_data`.
+                    wait_interruptible(&wait_for_data, &any_interruptor);
+                } catch (const interrupted_exc_t &e) {
+                    cond = NULL;
+                    if (timer.is_pulsed()) {
+                        return std::vector<datum_t>();
+                    }
+                    throw e;
+                }
+                guarantee(cond == NULL);
+                if (!has_el()) {
+                    // If we don't have an element, it must be because we squashed
+                    // changes down to nothing, got an error, or skipped some rows.
+                    guarantee(squash || exc || skipped != 0);
+                }
+            }
         }
-        guarantee(cond == NULL);
-        guarantee(has_el() || exc || skipped != 0);
     }
 
     std::vector<datum_t> v;
@@ -1781,12 +1869,20 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
                                 strprintf("Changefeed cache over array size limit, "
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
-    } else {
+    } else if (has_el()) {
+        // RSI: handle case where batch is too big to send all at once
+        // (i.e. don't wait `min_interval` again).
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
             batcher->note_el(el);
             v.push_back(std::move(el));
         }
+        // We're in the middle of one logical batch if we stopped early because
+        // of the batcher rather than because we ran out of elements.  (This
+        // matters for squashing.)
+        mid_batch = batcher->should_send_batch();
+    } else {
+        return std::vector<datum_t>();
     }
     guarantee(v.size() != 0);
     return std::move(v);
@@ -2192,9 +2288,10 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     const keyspec_t::spec_t &spec,
+    const datum_t &squash,
     const protob_t<const Backtrace> &bt) {
     guarantee(feed.has());
-    scoped_ptr_t<subscription_t> sub = new_sub(feed.get(), spec);
+    scoped_ptr_t<subscription_t> sub = new_sub(feed.get(), squash, spec);
     sub->start_artificial(uuid);
     return make_counted<stream_t>(std::move(sub), bt);
 }

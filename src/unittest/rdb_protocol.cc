@@ -767,10 +767,12 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
               point_0(a->subscribe(
                           keyspec_t::point_t{
                               store_key_t(datum_t(0.0).print_primary())},
+                          datum_t::boolean(false),
                           bt)),
               point_10(a->subscribe(
                            keyspec_t::point_t{
                                store_key_t(datum_t(10.0).print_primary())},
+                           datum_t::boolean(false),
                            bt)),
               range(a->subscribe(
                         keyspec_t::range_t{
@@ -782,6 +784,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                               key_range_t::closed,
                               datum_t(10.0),
                               key_range_t::open)},
+                        datum_t::boolean(false),
                         bt)) { }
         protob_t<const Backtrace> bt;
         counted_t<datum_stream_t> point_0, point_10, range;

@@ -516,6 +516,7 @@ public:
     ~artificial_t();
     counted_t<datum_stream_t> subscribe(
         const keyspec_t::spec_t &spec,
+        const datum_t &squash,
         const protob_t<const Backtrace> &bt);
     void send_all(const msg_t &msg);
 private:

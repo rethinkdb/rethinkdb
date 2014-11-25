@@ -105,7 +105,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
 
 counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
-    const datum_t &squash,
+    const ql::datum_t &squash,
     ql::changefeed::keyspec_t::spec_t &&spec,
     const ql::protob_t<const Backtrace> &bt,
     const std::string &table_name) {
