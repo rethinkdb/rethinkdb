@@ -115,8 +115,11 @@ bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
             job_reports.find(job_report_id);
         if (iterator != job_reports.end()) {
             cluster_semilattice_metadata_t metadata = semilattice_view->get();
-            iterator->second.to_datum(
-                identifier_format, name_client, metadata, row_out);
+            ql::datum_t row;
+            if (iterator->second.to_datum(
+                   identifier_format, name_client, metadata, &row)) {
+                *row_out = std::move(row);
+            }
         }
     }
 
