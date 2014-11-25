@@ -21,8 +21,7 @@ public:
     // For `std::vector.emplace_back` this type needs to be movable, for which we need
     // to implement our own move constructor and move assignment operator since this type
     // has a user-defined destructor. As we set `rhs.map` to `nullptr` we must also be
-    // careful of self-assignment (checking `this != &rhs`). Watch
-    // https://www.youtube.com/watch?v=ECoLo17nG5c for more information on moving.
+    // careful of self-assignment (checking `this != &rhs`).
     map_insertion_sentry_t(map_insertion_sentry_t && rhs)
         : map(rhs.map),
           it(rhs.it) {

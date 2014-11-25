@@ -28,9 +28,11 @@ std::string jobs_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
 
-bool jobs_artificial_table_backend_t::get_all_job_reports(
+void jobs_artificial_table_backend_t::get_all_job_reports(
         signal_t *interruptor,
         std::map<uuid_u, job_report_t> *job_reports_out) {
+    assert_thread();  // Accessing `directory_view`
+
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_t;
     peers_t peers = directory_view->get().get_inner();
     pmap(peers.begin(), peers.end(), [&](peers_t::value_type const &peer) {
@@ -63,7 +65,9 @@ bool jobs_artificial_table_backend_t::get_all_job_reports(
         waiter.wait();
     });
 
-    return true;
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 
@@ -78,9 +82,7 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     on_thread_t rethreader(home_thread());
 
     std::map<uuid_u, job_report_t> job_reports;
-    if (!get_all_job_reports(&ct_interruptor, &job_reports)) {
-        return false;
-    }
+    get_all_job_reports(&ct_interruptor, &job_reports);
 
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     for (auto const &job_report : job_reports) {
@@ -97,28 +99,25 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
 bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
                                                signal_t *interruptor,
                                                ql::datum_t *row_out,
-                                               std::string *error_out) {
+                                               UNUSED std::string *error_out) {
     *row_out = ql::datum_t();
 
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t rethreader(home_thread());
 
     uuid_u job_report_id;
-    if (!convert_uuid_from_datum(primary_key, &job_report_id, error_out)) {
-        return false;
-    }
+    std::string dummy_error;
+    if (convert_uuid_from_datum(primary_key, &job_report_id, &dummy_error)) {
+        std::map<uuid_u, job_report_t> job_reports;
+        get_all_job_reports(&ct_interruptor, &job_reports);
 
-    std::map<uuid_u, job_report_t> job_reports;
-    if (!get_all_job_reports(&ct_interruptor, &job_reports)) {
-        return false;
-    }
-
-    std::map<uuid_u, job_report_t>::const_iterator iterator =
-        job_reports.find(job_report_id);
-    if (iterator != job_reports.end()) {
-        cluster_semilattice_metadata_t metadata = semilattice_view->get();
-        return iterator->second.to_datum(
-            identifier_format, name_client, metadata, row_out);
+        std::map<uuid_u, job_report_t>::const_iterator iterator =
+            job_reports.find(job_report_id);
+        if (iterator != job_reports.end()) {
+            cluster_semilattice_metadata_t metadata = semilattice_view->get();
+            iterator->second.to_datum(
+                identifier_format, name_client, metadata, row_out);
+        }
     }
 
     return true;

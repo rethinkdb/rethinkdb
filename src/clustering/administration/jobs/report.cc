@@ -30,7 +30,7 @@ bool job_report_t::to_datum(
                 identifier_format,
                 name_client,
                 &server_name_or_uuid,
-                nullptr) == true) {
+                nullptr)) {
             servers_builder.add(server_name_or_uuid);
         }
     }
