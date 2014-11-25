@@ -370,11 +370,6 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());
 
-    jobs_backend.init(new jobs_artificial_table_backend_t(
-        mailbox_manager, _directory_view));
-    backends[name_string_t::guarantee_valid("jobs")] =
-        jobs_backend.get();
-
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),
         backends,

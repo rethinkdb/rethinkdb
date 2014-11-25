@@ -72,7 +72,7 @@ public:
             uint16_t _reql_port,
             boost::optional<uint16_t> _http_admin_port,
             std::set<host_and_port_t> _canonical_addresses,
-            const job_manager_business_card_t& _jobs_mailbox,
+            const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
