@@ -32,6 +32,9 @@ public:
     typedef jobs_manager_business_card_t business_card_t;
     jobs_manager_business_card_t get_business_card();
 
+    // The `jobs_manager_t` object is constructed before either the `rdb_context_t` or
+    // `reactor_driver_t` is constructed in `main/serve.cc`, thus the pointers to the
+    // respective objects are set once they are constructed.
     void set_rdb_context(rdb_context_t *);
     void set_reactor_driver(reactor_driver_t *);
 

@@ -83,11 +83,9 @@ stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
     if (stores_.has()) {
         for (size_t i = 0; i < stores_.size(); ++i) {
             for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
-                sindex_job_t sindex_job(job.second.first);  // `microtime_t`
-
                 sindex_jobs.insert(std::make_pair(
-                    std::make_pair(stores_[i]->get_namespace_id(), job.second.second),  // `uuid_u`, `std::string`
-                    std::move(sindex_job)));
+                    std::make_pair(stores_[i]->get_table_id(), job.second.second),  // `uuid_u`, `std::string`
+                    job.second.first));
             }
         }
     }

@@ -56,7 +56,8 @@ void jobs_manager_t::on_get_job_reports(
             on_thread_t thread((threadnum_t(threadnum)));
 
             if (rdb_context != nullptr) {
-                for (auto const &query : *(rdb_context->get_query_jobs())) {
+                for (auto const &query
+                        : *rdb_context->get_query_jobs_for_this_thread()) {
                     job_reports_inner.emplace_back(
                         query.first, "query", time - std::min(query.second, time));
                 }
@@ -76,7 +77,7 @@ void jobs_manager_t::on_get_job_reports(
             job_reports.emplace_back(
                 id,
                 "index_construction",
-                time - std::min(sindex_job.second.start_time, time),
+                time - std::min(sindex_job.second, time),
                 sindex_job.first.first,
                 sindex_job.first.second);
         }

@@ -97,7 +97,7 @@ public:
             io_backender_t *io_backender,
             const base_path_t &base_path,
             outdated_index_report_t *_index_report,
-            namespace_id_t namespace_id);
+            namespace_id_t table_id);
     ~store_t();
 
     void note_reshard();
@@ -411,7 +411,7 @@ public:
                          const region_map_t<binary_blob_t> &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
-    namespace_id_t const &get_namespace_id() const;
+    namespace_id_t const &get_table_id() const;
 
     typedef std::map<uuid_u, std::pair<microtime_t, std::string> > sindex_jobs_t;
     sindex_jobs_t *get_sindex_jobs();
@@ -443,7 +443,7 @@ public:
     outdated_index_report_t *index_report;
 
 private:
-    namespace_id_t namespace_id;
+    namespace_id_t table_id;
 
     sindex_jobs_t sindex_jobs;
 

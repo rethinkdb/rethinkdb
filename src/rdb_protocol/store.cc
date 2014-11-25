@@ -1165,8 +1165,8 @@ void store_t::delayed_clear_sindex(
     }
 }
 
-namespace_id_t const &store_t::get_namespace_id() const {
-    return namespace_id;
+namespace_id_t const &store_t::get_table_id() const {
+    return table_id;
 }
 
 store_t::sindex_jobs_t *store_t::get_sindex_jobs() {

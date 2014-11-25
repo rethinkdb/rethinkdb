@@ -28,17 +28,9 @@ std::string jobs_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
 
-bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
+bool jobs_artificial_table_backend_t::get_all_job_reports(
         signal_t *interruptor,
-        std::vector<ql::datum_t> *rows_out,
-        UNUSED std::string *error_out) {
-    rows_out->clear();
-
-    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
-    on_thread_t rethreader(home_thread());
-
-    std::map<uuid_u, job_report_t> job_reports;
-
+        std::map<uuid_u, job_report_t> *job_reports_out) {
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_t;
     peers_t peers = directory_view->get().get_inner();
     pmap(peers.begin(), peers.end(), [&](peers_t::value_type const &peer) {
@@ -49,7 +41,7 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
             mailbox_manager,
             [&](UNUSED signal_t *, std::vector<job_report_t> const &return_job_reports) {
                 for (auto const &return_job_report : return_job_reports) {
-                    auto result = job_reports.insert(
+                    auto result = job_reports_out->insert(
                         std::make_pair(return_job_report.id, return_job_report));
 
                     // Note `std::map.insert` returns a `std::pair<iterator, bool>`,
@@ -67,25 +59,67 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
              peer.second.jobs_mailbox.get_job_reports_mailbox_address,
              return_mailbox.get_address());
 
-        wait_any_t waiter(&returned_job_reports, &disconnect_watcher);
-        wait_interruptible(&waiter, &ct_interruptor);
+        wait_any_t waiter(&returned_job_reports, &disconnect_watcher, interruptor);
+        waiter.wait();
     });
+
+    return true;
+}
+
+
+
+bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        UNUSED std::string *error_out) {
+    rows_out->clear();
+
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+    on_thread_t rethreader(home_thread());
+
+    std::map<uuid_u, job_report_t> job_reports;
+    if (!get_all_job_reports(&ct_interruptor, &job_reports)) {
+        return false;
+    }
 
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     for (auto const &job_report : job_reports) {
-        rows_out->push_back(
-            job_report.second.to_datum(identifier_format, name_client, metadata));
+        ql::datum_t row;
+        if (job_report.second.to_datum(
+                identifier_format, name_client, metadata, &row)) {
+            rows_out->push_back(row);
+        }
     }
 
     return true;
 }
 
-bool jobs_artificial_table_backend_t::read_row(UNUSED ql::datum_t primary_key,
-                                               UNUSED signal_t *interruptor,
+bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
+                                               signal_t *interruptor,
                                                ql::datum_t *row_out,
-                                               UNUSED std::string *error_out) {
-    on_thread_t rethreader(home_thread());
+                                               std::string *error_out) {
     *row_out = ql::datum_t();
+
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+    on_thread_t rethreader(home_thread());
+
+    uuid_u job_report_id;
+    if (!convert_uuid_from_datum(primary_key, &job_report_id, error_out)) {
+        return false;
+    }
+
+    std::map<uuid_u, job_report_t> job_reports;
+    if (!get_all_job_reports(&ct_interruptor, &job_reports)) {
+        return false;
+    }
+
+    std::map<uuid_u, job_report_t>::const_iterator iterator =
+        job_reports.find(job_report_id);
+    if (iterator != job_reports.end()) {
+        cluster_semilattice_metadata_t metadata = semilattice_view->get();
+        return iterator->second.to_datum(
+            identifier_format, name_client, metadata, row_out);
+    }
 
     return true;
 }

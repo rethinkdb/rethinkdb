@@ -284,7 +284,7 @@ public:
     const std::string reql_http_proxy;
 
     typedef std::map<uuid_u, microtime_t> query_jobs_t;
-    query_jobs_t * get_query_jobs();
+    query_jobs_t * get_query_jobs_for_this_thread();
 
 private:
     one_per_thread_t<query_jobs_t> query_jobs;

@@ -46,6 +46,10 @@ public:
                    std::string *error_out);
 
 private:
+    bool get_all_job_reports(
+            signal_t *interruptor,
+            std::map<uuid_u, job_report_t> *job_reports_out);
+
     mailbox_manager_t *mailbox_manager;
 
     boost::shared_ptr< semilattice_readwrite_view_t<

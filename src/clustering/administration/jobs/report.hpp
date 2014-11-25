@@ -19,32 +19,25 @@ public:
             uuid_u const &id,
             std::string const &type,
             double duration,
-            uuid_u const &table = nil_uuid(),
+            namespace_id_t const &table = nil_uuid(),
             std::string const &index = "");
 
-    ql::datum_t to_datum(
+    bool to_datum(
             admin_identifier_format_t identifier_format,
             server_name_client_t *name_client,
-            cluster_semilattice_metadata_t const &metadata) const;
+            cluster_semilattice_metadata_t const &metadata,
+            ql::datum_t *row_out) const;
 
-    // Unfortunately these a required to be public in order for them to be serialized.
     uuid_u id;
     std::string type;
     double duration;
-    uuid_u table;
+    namespace_id_t table;
     std::string index;
 
     // `servers` is used in `backend.cc` to aggregate the same job running on multiple
     // machines.
-    std::set<uuid_u> servers;
+    std::set<server_id_t> servers;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_report_t);
-
-class sindex_job_t {
-public:
-    sindex_job_t(microtime_t start_time);
-
-    microtime_t start_time;
-};
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

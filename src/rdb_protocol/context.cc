@@ -44,6 +44,6 @@ rdb_context_t::rdb_context_t(
 
 rdb_context_t::~rdb_context_t() { }
 
-rdb_context_t::query_jobs_t * rdb_context_t::get_query_jobs() {
+rdb_context_t::query_jobs_t * rdb_context_t::get_query_jobs_for_this_thread() {
     return query_jobs.get();
 }
