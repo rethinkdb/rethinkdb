@@ -101,8 +101,12 @@ bool server_status_artificial_table_backend_t::format_row(
         conn_builder.overwrite("time_connected", ql::datum_t::null());
         microtime_t disconnected_time =
             last_seen_tracker.get_disconnected_time(server_id);
-        conn_builder.overwrite("time_disconnected",
-            convert_microtime_to_datum(disconnected_time));
+        if (disconnected_time == 0) {
+            conn_builder.overwrite("time_disconnected", ql::datum_t::null());
+        } else {
+            conn_builder.overwrite("time_disconnected",
+                convert_microtime_to_datum(disconnected_time));
+        }
     }
     builder.overwrite("connection", std::move(conn_builder).to_datum());
 

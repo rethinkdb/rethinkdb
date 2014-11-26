@@ -17,10 +17,10 @@ last_seen_tracker_t::last_seen_tracker_t(
     servers_view_subs.reset(servers_view);
     server_id_map_subs.reset(server_id_map, &server_id_map_freeze);
 
-    update();
+    update(true);
 }
 
-void last_seen_tracker_t::update() {
+void last_seen_tracker_t::update(bool is_start) {
     std::set<server_id_t> visible;
     std::map<peer_id_t, server_id_t> server_ids = server_id_map->get().get_inner();
     for (std::map<peer_id_t, server_id_t>::iterator it = server_ids.begin();
@@ -32,8 +32,11 @@ void last_seen_tracker_t::update() {
     for (auto it = server_metadata.servers.begin();
          it != server_metadata.servers.end(); ++it) {
         if (!it->second.is_deleted() && visible.find(it->first) == visible.end()) {
+            /* If the server was disconnected at startup, return `0` from
+            `get_disconnected_time()` instead of our start time */
+            microtime_t t = is_start ? 0 : current_microtime();
             /* If it was already present, this will have no effect. */
-            disconnected_times.insert(std::make_pair(it->first, current_microtime()));
+            disconnected_times.insert(std::make_pair(it->first, t));
         } else {
             disconnected_times.erase(it->first);
         }
@@ -48,10 +51,10 @@ void last_seen_tracker_t::update() {
 
 void last_seen_tracker_t::on_servers_view_change() {
     watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze(server_id_map);
-    update();
+    update(false);
 }
 
 void last_seen_tracker_t::on_server_id_map_change() {
     /* We would freeze `servers_view` here if we could */
-    update();
+    update(false);
 }
