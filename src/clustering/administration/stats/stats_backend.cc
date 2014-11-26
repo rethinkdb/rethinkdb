@@ -1,5 +1,7 @@
 #include "clustering/administration/stats/stats_backend.hpp"
+
 #include "clustering/administration/stats/request.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 stats_artificial_table_backend_t::stats_artificial_table_backend_t(
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -70,7 +72,10 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         UNUSED std::string *error_out) {
-    assert_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+    on_thread_t rethreader(home_thread());
+    rows_out->clear();
+
     std::set<std::vector<std::string> > filter = stats_request_t::global_stats_filter();
     std::vector<std::pair<server_id_t, peer_id_t> > peers =
         stats_request_t::all_peers(name_client);
@@ -80,7 +85,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
     std::map<server_id_t, ql::datum_t> result_map;
-    perform_stats_request(peers, filter, &result_map, interruptor);
+    perform_stats_request(peers, filter, &result_map, &ct_interruptor);
     parsed_stats_t parsed_stats(result_map);
 
     // Start building results
@@ -90,7 +95,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     for (auto const &pair : parsed_stats.servers) {
         rows_out->push_back(server_stats_request_t(pair.first).to_datum(parsed_stats, metadata));
     }
-    
+
     for (auto const &table_id : parsed_stats.all_table_ids) {
         rows_out->push_back(table_stats_request_t(table_id).to_datum(parsed_stats, metadata));
     }
@@ -122,7 +127,9 @@ bool stats_artificial_table_backend_t::read_row(
         signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
-    assert_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+    on_thread_t rethreader(home_thread());
+
     // TODO: better error messages
     if (primary_key.get_type() != ql::datum_t::R_ARRAY) {
         *error_out = "A stats request needs to be an array.";
@@ -161,7 +168,7 @@ bool stats_artificial_table_backend_t::read_row(
     // TODO: is name client up-to-date?
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
-    perform_stats_request(peers, request->get_filter(), &results_map, interruptor);
+    perform_stats_request(peers, request->get_filter(), &results_map, &ct_interruptor);
     parsed_stats_t parsed_stats(results_map);
     *row_out = request->to_datum(parsed_stats, metadata);
     return true;

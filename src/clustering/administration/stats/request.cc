@@ -62,7 +62,7 @@ void parsed_stats_t::add_perfmon_value(const ql::datum_t &perf,
     ql::datum_t v = perf.get_field(key.c_str(), ql::throw_bool_t::NOTHROW);
     if (v.has()) {
         r_sanity_check(v.get_type() == ql::datum_t::R_NUM);
-        *value_out += v.as_num();   
+        *value_out += v.as_num();
     }
 }
 
