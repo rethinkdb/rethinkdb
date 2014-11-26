@@ -2,7 +2,9 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(listener_business_card_t, intro_mailbox, write_mailbox);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+        listener_business_card_t,
+        intro_mailbox, write_mailbox, server_id);
 
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
         listener_intro_t, broadcaster_begin_timestamp, upgrade_mailbox,

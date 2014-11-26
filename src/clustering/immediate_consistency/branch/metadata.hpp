@@ -60,11 +60,13 @@ public:
 
     listener_business_card_t() { }
     listener_business_card_t(const intro_mailbox_t::address_t &im,
-                             const write_mailbox_t::address_t &wm)
-        : intro_mailbox(im), write_mailbox(wm) { }
+                             const write_mailbox_t::address_t &wm,
+                             const server_id_t &si)
+        : intro_mailbox(im), write_mailbox(wm), server_id(si) { }
 
     intro_mailbox_t::address_t intro_mailbox;
     write_mailbox_t::address_t write_mailbox;
+    server_id_t server_id;
 };
 
 RDB_DECLARE_SERIALIZABLE(listener_business_card_t);

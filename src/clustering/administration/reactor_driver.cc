@@ -255,25 +255,11 @@ public:
         cached_durability = repli_info.config.durability;
     }
 
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        std::set<server_id_t> server_ids;
-        for (const peer_id_t &p : acks) {
-            boost::optional<server_id_t> s =
-                parent_->server_name_client->get_server_id_for_peer_id(p);
-            if (!static_cast<bool>(s)) {
-                /* This could happen due to a race condition if the peer acknowledged the
-                write but then disconnected, etc. We ignore the ack in this case because
-                there's no convenient way to find the `server_id_t`. This could result in
-                a few writes not being acked that could have been acked when a server has
-                just gone down, but it's not worth worrying about. */
-                continue;
-            }
-            server_ids.insert(*s);
-        }
-        return cached_write_ack_config->check_acks(server_ids);
+    bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const {
+        return cached_write_ack_config->check_acks(acks);
     }
 
-    write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
+    write_durability_t get_write_durability() const {
         return cached_durability;
     }
 
@@ -290,6 +276,7 @@ private:
             base_path,
             io_backender,
             parent_->mbox_manager,
+            parent_->server_id,
             &parent_->backfill_throttler,
             this,
             &table_directory,
@@ -338,6 +325,7 @@ reactor_driver_t::reactor_driver_t(
     const base_path_t &_base_path,
     io_backender_t *_io_backender,
     mailbox_manager_t *_mbox_manager,
+    const server_id_t &_server_id,
     watchable_map_t<
         std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t
@@ -353,6 +341,7 @@ reactor_driver_t::reactor_driver_t(
     : base_path(_base_path),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
+      server_id(_server_id),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
       semilattice_view(_semilattice_view),

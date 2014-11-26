@@ -25,8 +25,8 @@ class uuid_u;
 
 class ack_checker_t : public home_thread_mixin_t {
 public:
-    virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const = 0;
-    virtual write_durability_t get_write_durability(const peer_id_t &peer) const = 0;
+    virtual bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const = 0;
+    virtual write_durability_t get_write_durability() const = 0;
 
     ack_checker_t() { }
 protected:
@@ -221,7 +221,7 @@ private:
     `readable_dispatchees`. We keep it as a `std::set` because we need to pass it to
     `ack_checker->is_acceptable_ack_set()` for every single write operation, and this
     avoids the overhead of recreating the `std::set` each time. */
-    std::set<peer_id_t> readable_dispatchees_as_set;
+    std::set<server_id_t> readable_dispatchees_as_set;
 
     registrar_t<listener_business_card_t, broadcaster_t *, dispatchee_t>
         registrar;
