@@ -1456,7 +1456,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 address_ports,
-                                get_optional_option(opts, "--config-file"));
+                                get_optional_option(opts, "--config-file"),
+                                std::vector<std::string>(argv, argv + argc));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1537,7 +1538,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 address_ports,
-                                get_optional_option(opts, "--config-file"));
+                                get_optional_option(opts, "--config-file"),
+                                std::vector<std::string>(argv, argv + argc));
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
@@ -1699,7 +1701,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 address_ports,
-                                get_optional_option(opts, "--config-file"));
+                                get_optional_option(opts, "--config-file"),
+                                std::vector<std::string>(argv, argv + argc));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 

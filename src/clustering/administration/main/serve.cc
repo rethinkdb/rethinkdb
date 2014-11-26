@@ -165,6 +165,7 @@ bool do_serve(io_backender_t *io_backender,
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
+            serve_info.argv,
             jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
