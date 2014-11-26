@@ -144,7 +144,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_index_writes, "serializer_index_writes",
           &pm_serializer_index_writes_size, "serializer_index_writes_size",
           &pm_serializer_read_bytes_per_sec, "serializer_read_bytes_per_sec",
-          &pm_serializer_read_bytes_total, "serializer_read_total",
+          &pm_serializer_read_bytes_total, "serializer_read_bytes_total",
           &pm_serializer_written_bytes_per_sec, "serializer_written_bytes_per_sec",
           &pm_serializer_written_bytes_total, "serializer_written_bytes_total",
           &pm_extents_in_use, "serializer_extents_in_use",

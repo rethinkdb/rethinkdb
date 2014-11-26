@@ -97,9 +97,17 @@ void parsed_stats_t::add_shard_values(const ql::datum_t &shard_perf,
 }
 
 void parsed_stats_t::add_serializer_values(const ql::datum_t &ser_perf,
-                                           table_stats_t *) {
+                                           table_stats_t *stats_out) {
     r_sanity_check(ser_perf.get_type() == ql::datum_t::R_OBJECT);
     // TODO: implement after modifying the perfmons to be closer to the stats we want
+    add_perfmon_value(ser_perf, "serializer_read_bytes_per_sec",
+                      &stats_out->read_bytes_per_sec);
+    add_perfmon_value(ser_perf, "serializer_read_bytes_total",
+                      &stats_out->read_bytes_total);
+    add_perfmon_value(ser_perf, "serializer_written_bytes_per_sec",
+                      &stats_out->written_bytes_per_sec);
+    add_perfmon_value(ser_perf, "serializer_written_bytes_total",
+                      &stats_out->written_bytes_total);
 }
 
 void parsed_stats_t::add_query_engine_stats(const ql::datum_t &qe_perf,
