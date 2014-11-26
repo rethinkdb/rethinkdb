@@ -117,7 +117,7 @@ public:
         return &watchable_var;
     }
 
-    std::set<namespace_id_t> get_tables_gc_active() const;
+    bool is_gc_active() const;
 
     typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
