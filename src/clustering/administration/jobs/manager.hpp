@@ -27,7 +27,8 @@ class reactor_driver_t;
 
 class jobs_manager_t {
 public:
-    explicit jobs_manager_t(mailbox_manager_t* mailbox_manager);
+    explicit jobs_manager_t(mailbox_manager_t *mailbox_manager,
+                            server_id_t const &server_id);
 
     typedef jobs_manager_business_card_t business_card_t;
     jobs_manager_business_card_t get_business_card();
@@ -48,6 +49,8 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
+
+    server_id_t server_id;
 
     rdb_context_t *rdb_context;
     reactor_driver_t *reactor_driver;

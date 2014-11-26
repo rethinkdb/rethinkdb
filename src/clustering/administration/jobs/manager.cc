@@ -17,12 +17,13 @@ const uuid_u jobs_manager_t::base_sindex_id =
 const uuid_u jobs_manager_t::base_disk_compaction_id =
     str_to_uuid("b8766ece-d15c-4f96-bee5-c0edacf10c9c");
 
-jobs_manager_t::jobs_manager_t(mailbox_manager_t* _mailbox_manager) :
+jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
+                               server_id_t const &_server_id) :
     mailbox_manager(_mailbox_manager),
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
-                                      this, ph::_1, ph::_2))
-    { }
+                                      this, ph::_1, ph::_2)),
+    server_id(_server_id) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
@@ -82,12 +83,12 @@ void jobs_manager_t::on_get_job_reports(
                 sindex_job.first.second);
         }
 
-        for (auto const &table : reactor_driver->get_tables_gc_active()) {
-            uuid_u id = uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(table));
+        if (reactor_driver->is_gc_active()) {
+            uuid_u id = uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id));
 
             // `disk_compaction` jobs do not have a duration, it's set to -1 to prevent
-            // it being displayed later
-            job_reports.emplace_back(id, "disk_compaction", -1, table);
+            // it being displayed later.
+            job_reports.emplace_back(id, "disk_compaction", -1);
         }
     }
 

@@ -412,16 +412,14 @@ reactor_driver_t::~reactor_driver_t() {
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
 }
 
-std::set<namespace_id_t> reactor_driver_t::get_tables_gc_active() const {
-    std::set<namespace_id_t> tables_gc_active;
-
+bool reactor_driver_t::is_gc_active() const {
     for (auto const &reactor : reactor_data) {
         if (reactor.second->is_gc_active()) {
-            tables_gc_active.insert(reactor.first);
+            return true;
         }
     }
 
-    return tables_gc_active;
+    return false;
 }
 
 reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
