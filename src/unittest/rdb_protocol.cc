@@ -79,7 +79,7 @@ void run_with_namespace_interface(
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t("."),
-                        static_cast<outdated_index_report_t *>(NULL)));
+                        static_cast<outdated_index_report_t *>(NULL), generate_uuid()));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;

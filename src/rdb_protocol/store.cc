@@ -1164,3 +1164,11 @@ void store_t::delayed_clear_sindex(
         is next started up. */
     }
 }
+
+namespace_id_t const &store_t::get_table_id() const {
+    return table_id;
+}
+
+store_t::sindex_jobs_t *store_t::get_sindex_jobs() {
+    return &sindex_jobs;
+}

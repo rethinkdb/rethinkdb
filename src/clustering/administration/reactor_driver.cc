@@ -77,6 +77,22 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
+stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
+    stores_lifetimer_t::sindex_jobs_t sindex_jobs;
+
+    if (stores_.has()) {
+        for (size_t i = 0; i < stores_.size(); ++i) {
+            for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
+                sindex_jobs.insert(std::make_pair(
+                    std::make_pair(stores_[i]->get_table_id(), job.second.second),  // `uuid_u`, `std::string`
+                    job.second.first));
+            }
+        }
+    }
+
+    return sindex_jobs;
+}
+
 /* If the config refers to a server name for which there are multiple servers, we don't
 update the blueprint until the conflict is resolved. */
 class server_name_collision_exc_t : public std::exception {
@@ -271,6 +287,14 @@ public:
         return write_durability_cross_threader.get_watchable()->get();
     }
 
+    bool is_gc_active() const {
+        return stores_lifetimer_.is_gc_active();
+    }
+
+    stores_lifetimer_t::sindex_jobs_t get_sindex_jobs() const {
+        return stores_lifetimer_.get_sindex_jobs();
+    }
+
 private:
     void initialize_reactor(io_backender_t *io_backender) {
         perfmon_collection_repo_t::collections_t *perfmon_collections = parent_->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id_);
@@ -387,6 +411,30 @@ reactor_driver_t::reactor_driver_t(
 reactor_driver_t::~reactor_driver_t() {
     /* This must be defined in the `.cc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
+}
+
+std::set<namespace_id_t> reactor_driver_t::get_tables_gc_active() const {
+    std::set<namespace_id_t> tables_gc_active;
+
+    for (auto const &reactor : reactor_data) {
+        if (reactor.second->is_gc_active()) {
+            tables_gc_active.insert(reactor.first);
+        }
+    }
+
+    return tables_gc_active;
+}
+
+reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
+    reactor_driver_t::sindex_jobs_t sindex_jobs;
+
+    for (auto const &reactor : reactor_data) {
+        auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
+        sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
+                           std::make_move_iterator(reactor_sindex_jobs.end()));
+    }
+
+    return sindex_jobs;
 }
 
 void reactor_driver_t::delete_reactor_data(
