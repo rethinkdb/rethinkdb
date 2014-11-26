@@ -138,7 +138,7 @@ public:
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
     virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
         const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
-    virtual std::vector<std::string> sindex_list(ql::env_t *env) = 0;
+    virtual std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated) = 0;
     virtual std::map<std::string, ql::datum_t> sindex_status(
         ql::env_t *env, const std::set<std::string> &sindexes) = 0;
 

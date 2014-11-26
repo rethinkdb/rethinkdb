@@ -318,7 +318,7 @@ MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
 }
 
 datum_t table_t::sindex_list(env_t *env) {
-    std::vector<std::string> sindexes = tbl->sindex_list(env);
+    std::vector<std::string> sindexes = tbl->sindex_list(env, use_outdated);
     std::vector<datum_t> array;
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
