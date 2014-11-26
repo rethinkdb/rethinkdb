@@ -116,14 +116,6 @@ int write_pid_file(const std::string &pid_filepath) {
     return EXIT_SUCCESS;
 }
 
-std::vector<std::string> argv_to_vector(int argc, char *argv[]) {
-    std::vector<std::string> vec;
-    for (int i = 0; i < argc; ++i) {
-        vec.push_back(argv[i]);
-    }
-    return vec;
-}
-
 // Extracts an option that appears either zero or once.  Multiple appearances are not allowed (or
 // expected).
 boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
@@ -1465,7 +1457,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 std::move(web_path),
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                argv_to_vector(argc, argv));
+                                std::vector<std::string>(argv, argv + argc));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1547,7 +1539,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 std::move(web_path),
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                argv_to_vector(argc, argv));
+                                std::vector<std::string>(argv, argv + argc));
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
@@ -1710,7 +1702,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 std::move(web_path),
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                argv_to_vector(argc, argv));
+                                std::vector<std::string>(argv, argv + argc));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 

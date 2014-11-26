@@ -99,7 +99,7 @@ public:
         web_assets(std::move(_web_assets)),
         ports(_ports),
         config_file(_config_file),
-        argv(_argv)
+        argv(std::move(_argv))
     { }
 
     void look_up_peers() {
