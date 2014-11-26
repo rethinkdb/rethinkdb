@@ -159,6 +159,8 @@ permanently removed. The reason it's an object instead of a function is that it 
 intermediate results for best performance. */
 class write_ack_config_checker_t {
 public:
+    /* The default constructor produces a meaningless `write_ack_config_checker_t()` */
+    write_ack_config_checker_t() { }
     write_ack_config_checker_t(const table_config_t &config,
                                const servers_semilattice_metadata_t &servers);
     bool check_acks(const std::set<server_id_t> &acks) const;

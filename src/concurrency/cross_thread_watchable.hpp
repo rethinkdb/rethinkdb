@@ -115,6 +115,18 @@ private:
     DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
 
+template<class value_t>
+class all_thread_watchable_variable_t {
+public:
+    all_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &input);
+    clone_ptr_t<watchable_t<value_t> > get_watchable() const {
+        return vars[get_thread_id().threadnum]->get_watchable();
+    }
+private:
+    std::vector<scoped_ptr_t<cross_thread_watchable_variable_t<value_t> > > vars;
+};
+
 template<class key_t, class value_t>
 class cross_thread_watchable_map_var_t {
 public:
