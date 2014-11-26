@@ -22,7 +22,7 @@
 #include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
-class server_name_client_t;
+class server_config_client_t;
 
 /* The `artificial_reql_cluster_interface_t` is responsible for handling queries to the
 `rethinkdb` database. It's implemented as a proxy over the
@@ -147,7 +147,7 @@ public:
                 cluster_directory_metadata_t> > > _directory_view,
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
-            server_name_client_t *_name_client);
+            server_config_client_t *_server_config_client);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }

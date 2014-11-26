@@ -2,7 +2,7 @@
 #include "clustering/administration/tables/debug_table_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 /* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
 type without this */
@@ -129,7 +129,7 @@ ql::datum_t convert_debug_table_status_to_datum(
         const namespace_semilattice_metadata_t &metadata,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", db_name_or_uuid);
@@ -142,12 +142,12 @@ ql::datum_t convert_debug_table_status_to_datum(
                 return;
             }
             boost::optional<server_id_t> server_id =
-                name_client->get_server_id_for_peer_id(key.first);
+                server_config_client->get_server_id_for_peer_id(key.first);
             if (!static_cast<bool>(server_id)) {
                 return;
             }
             boost::optional<name_string_t> name =
-                name_client->get_name_for_server_id(*server_id);
+                server_config_client->get_name_for_server_id(*server_id);
             if (!static_cast<bool>(name)) {
                 name = boost::optional<name_string_t>(
                     name_string_t::guarantee_valid("__no_valid_name__"));
@@ -190,7 +190,7 @@ bool debug_table_status_artificial_table_backend_t::format_row(
         table_id,
         metadata,
         directory_view,
-        name_client);
+        server_config_client);
     return true;
 }
 

@@ -2,7 +2,7 @@
 #include "clustering/administration/servers/server_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 std::string common_server_artificial_table_backend_t::get_primary_key_name() {
     return "id";
@@ -16,7 +16,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
     rows_out->clear();
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
     bool result = true;
-    name_client->get_server_id_to_name_map()->apply_read(
+    server_config_client->get_server_id_to_name_map()->apply_read(
         [&](const std::map<server_id_t, name_string_t> *map) {
             for (auto it = map->begin(); it != map->end(); ++it) {
                 ql::datum_t row;
@@ -72,7 +72,7 @@ bool common_server_artificial_table_backend_t::lookup(
     }
     *server_out = it->second.get_mutable();
     boost::optional<name_string_t> res =
-        name_client->get_name_for_server_id(*server_id_out);
+        server_config_client->get_name_for_server_id(*server_id_out);
     if (!res) {
         /* This is probably impossible, but it could conceivably be possible due to a
         race condition */

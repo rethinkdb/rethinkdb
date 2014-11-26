@@ -2,7 +2,7 @@
 #include "clustering/administration/servers/server_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
 ql::datum_t convert_ip_to_datum(const ip_address_t &ip) {
@@ -40,14 +40,14 @@ bool table_has_role_for_server(const server_id_t &server,
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
     boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
         _servers_sl_view,
-    server_name_client_t *_name_client,
+    server_config_client_t *_server_config_client,
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > _directory_view,
     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
         namespaces_semilattice_metadata_t> > > _table_sl_view,
     boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> >
         _database_sl_view) :
-    common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
+    common_server_artificial_table_backend_t(_servers_sl_view, _server_config_client),
     directory_view(_directory_view), table_sl_view(_table_sl_view),
     database_sl_view(_database_sl_view),
     last_seen_tracker(
@@ -71,7 +71,7 @@ bool server_status_artificial_table_backend_t::format_row(
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     boost::optional<peer_id_t> peer_id =
-        name_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_peer_id_for_server_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
     if (static_cast<bool>(peer_id)) {
         directory_view->apply_read(

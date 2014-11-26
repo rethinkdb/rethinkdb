@@ -10,7 +10,7 @@
 
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -25,11 +25,11 @@ public:
     common_server_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
-            server_name_client_t *_name_client) :
+            server_config_client_t *_server_config_client) :
         servers_sl_view(_servers_sl_view),
-        name_client(_name_client) {
+        server_config_client(_server_config_client) {
         servers_sl_view->assert_thread();
-        name_client->assert_thread();
+        server_config_client->assert_thread();
     }
 
     std::string get_primary_key_name();
@@ -64,7 +64,7 @@ protected:
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         servers_semilattice_metadata_t> > servers_sl_view;
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_COMMON_HPP_ */

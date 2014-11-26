@@ -58,7 +58,7 @@ server_name_collision_issue_t::server_name_collision_issue_t(
 
 bool server_name_collision_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
-        UNUSED server_name_client_t *name_client,
+        UNUSED server_config_client_t *server_config_client,
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -76,7 +76,7 @@ db_name_collision_issue_t::db_name_collision_issue_t(
 
 bool db_name_collision_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
-        UNUSED server_name_client_t *name_client,
+        UNUSED server_config_client_t *server_config_client,
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -96,7 +96,7 @@ table_name_collision_issue_t::table_name_collision_issue_t(
 
 bool table_name_collision_issue_t::build_info_and_description(
         const metadata_t &metadata,
-        UNUSED server_name_client_t *name_client,
+        UNUSED server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {

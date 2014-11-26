@@ -1,9 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 #include "debug.hpp"
 
-server_name_client_t::server_name_client_t(
+server_config_client_t::server_config_client_t(
         mailbox_manager_t *_mailbox_manager,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
@@ -32,7 +32,7 @@ server_name_client_t::server_name_client_t(
     recompute_name_to_server_id_map();
 }
 
-std::set<server_id_t> server_name_client_t::get_servers_with_tag(
+std::set<server_id_t> server_config_client_t::get_servers_with_tag(
         const name_string_t &tag) {
     std::set<server_id_t> servers;
     servers_semilattice_metadata_t md = semilattice_view->get();
@@ -49,7 +49,7 @@ std::set<server_id_t> server_name_client_t::get_servers_with_tag(
     return servers;
 }
 
-bool server_name_client_t::rename_server(
+bool server_config_client_t::rename_server(
         const server_id_t &server_id,
         const name_string_t &server_name,
         const name_string_t &new_name,
@@ -92,15 +92,15 @@ bool server_name_client_t::rename_server(
         return false;
     }
 
-    server_name_business_card_t::rename_mailbox_t::address_t rename_addr;
+    server_config_business_card_t::rename_mailbox_t::address_t rename_addr;
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t>
                 *dir_metadata) {
             auto it = dir_metadata->get_inner().find(peer);
             if (it != dir_metadata->get_inner().end()) {
-                guarantee(it->second.server_name_business_card, "We shouldn't be trying "
-                    "to rename a proxy.");
-                rename_addr = it->second.server_name_business_card.get().rename_addr;
+                guarantee(it->second.server_config_business_card, "We shouldn't be "
+                    "trying to rename a proxy.");
+                rename_addr = it->second.server_config_business_card.get().rename_addr;
             }
         });
     if (rename_addr.is_nil()) {
@@ -135,7 +135,7 @@ bool server_name_client_t::rename_server(
     return true;
 }
 
-bool server_name_client_t::retag_server(
+bool server_config_client_t::retag_server(
         const server_id_t &server_id,
         const name_string_t &server_name,
         const std::set<name_string_t> &new_tags,
@@ -160,15 +160,15 @@ bool server_name_client_t::retag_server(
         return false;
     }
 
-    server_name_business_card_t::retag_mailbox_t::address_t retag_addr;
+    server_config_business_card_t::retag_mailbox_t::address_t retag_addr;
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t>
                 *dir_metadata) {
             auto it = dir_metadata->get_inner().find(peer);
             if (it != dir_metadata->get_inner().end()) {
-                guarantee(it->second.server_name_business_card, "We shouldn't be trying "
-                    "to retag a proxy.");
-                retag_addr = it->second.server_name_business_card.get().retag_addr;
+                guarantee(it->second.server_config_business_card, "We shouldn't be "
+                    "trying to retag a proxy.");
+                retag_addr = it->second.server_config_business_card.get().retag_addr;
             }
         });
     if (retag_addr.is_nil()) {
@@ -203,7 +203,7 @@ bool server_name_client_t::retag_server(
     return true; 
 }
 
-bool server_name_client_t::permanently_remove_server(const name_string_t &name,
+bool server_config_client_t::permanently_remove_server(const name_string_t &name,
         std::string *error_out) {
     assert_thread();
 
@@ -246,7 +246,7 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
     return true;
 }
 
-void server_name_client_t::recompute_name_to_server_id_map() {
+void server_config_client_t::recompute_name_to_server_id_map() {
     std::multimap<name_string_t, server_id_t> new_map_n2m;
     std::map<server_id_t, name_string_t> new_map_m2n;
     servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
@@ -267,7 +267,7 @@ void server_name_client_t::recompute_name_to_server_id_map() {
     server_id_to_name_map.set_value(new_map_m2n);
 }
 
-void server_name_client_t::recompute_server_id_to_peer_id_map() {
+void server_config_client_t::recompute_server_id_to_peer_id_map() {
     std::map<server_id_t, peer_id_t> new_map_s2p;
     std::map<peer_id_t, server_id_t> new_map_p2s;
     directory_view->apply_read(

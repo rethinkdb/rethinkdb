@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_
-#define CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_
 
 #include <map>
 #include <set>
@@ -8,13 +8,13 @@
 
 #include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/servers/name_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
-class server_name_client_t : public home_thread_mixin_t {
+class server_config_client_t : public home_thread_mixin_t {
 public:
-    server_name_client_t(
+    server_config_client_t(
         mailbox_manager_t *_mailbox_manager,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
@@ -135,5 +135,5 @@ private:
         semilattice_subs;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_ */
 

@@ -111,9 +111,9 @@ TODO: This is pretty hacky. Eventually the `reactor_t` will deal with server IDs
 directly. */
 class blueprint_id_translator_t {
 public:
-    explicit blueprint_id_translator_t(server_name_client_t *name_client) :
+    explicit blueprint_id_translator_t(server_config_client_t *server_config_client) :
         server_id_to_peer_id_map(
-            name_client->get_server_id_to_peer_id_map()->get())
+            server_config_client->get_server_id_to_peer_id_map()->get())
         { }
     peer_id_t server_id_to_peer_id(const server_id_t &server_id) {
         auto it = server_id_to_peer_id_map.find(server_id);
@@ -128,18 +128,18 @@ private:
 };
 
 blueprint_t construct_blueprint(const table_replication_info_t &info,
-                                server_name_client_t *name_client) {
+                                server_config_client_t *server_config_client) {
     rassert(info.config.shards.size() ==
         static_cast<size_t>(info.shard_scheme.num_shards()));
 
-    blueprint_id_translator_t trans(name_client);
+    blueprint_id_translator_t trans(server_config_client);
 
     blueprint_t blueprint;
 
     /* Put the primaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         peer_id_t peer;
-        if (!static_cast<bool>(name_client->get_name_for_server_id(
+        if (!static_cast<bool>(server_config_client->get_name_for_server_id(
                 info.config.shards[i].director))) {
             /* The server was permanently removed. `table_config` will show `null` in
             the `director` field. Pick a random peer ID to make sure that the table acts
@@ -161,7 +161,8 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         const table_config_t::shard_t &shard = info.config.shards[i];
         for (const server_id_t &server : shard.replicas) {
-            if (!static_cast<bool>(name_client->get_name_for_server_id(server))) {
+            if (!static_cast<bool>(
+                    server_config_client->get_name_for_server_id(server))) {
                 /* The server was permanently removed. It won't appear in the list of
                 replicas shown in `table_config` or `table_status`. Act as though we
                 never saw it. */
@@ -183,7 +184,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     /* Make sure that every known peer appears in the blueprint in some form, so that the
     reactor doesn't proceed without approval of every known peer */
     std::map<server_id_t, peer_id_t> server_id_to_peer_id_map =
-        name_client->get_server_id_to_peer_id_map()->get();
+        server_config_client->get_server_id_to_peer_id_map()->get();
     for (auto it = server_id_to_peer_id_map.begin();
               it != server_id_to_peer_id_map.end();
             ++it) {
@@ -275,7 +276,7 @@ public:
         std::set<server_id_t> server_ids;
         for (const peer_id_t &p : acks) {
             boost::optional<server_id_t> s =
-                parent_->server_name_client->get_server_id_for_peer_id(p);
+                parent_->server_config_client->get_server_id_for_peer_id(p);
             if (!static_cast<bool>(s)) {
                 /* This could happen due to a race condition if the peer acknowledged the
                 write but then disconnected, etc. We ignore the ack in this case because
@@ -369,7 +370,7 @@ reactor_driver_t::reactor_driver_t(
     branch_history_manager_t *_branch_history_manager,
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > _semilattice_view,
-    server_name_client_t *_server_name_client,
+    server_config_client_t *_server_config_client,
     signal_t *_we_were_permanently_removed,
     svs_by_namespace_t *_svs_by_namespace,
     perfmon_collection_repo_t *_perfmon_collection_repo,
@@ -380,7 +381,7 @@ reactor_driver_t::reactor_driver_t(
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
       semilattice_view(_semilattice_view),
-      server_name_client(_server_name_client),
+      server_config_client(_server_config_client),
       we_were_permanently_removed(_we_were_permanently_removed),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
@@ -394,15 +395,15 @@ reactor_driver_t::reactor_driver_t(
 {
     watchable_t< std::multimap<name_string_t, server_id_t> >::freeze_t
         name_to_server_id_freeze(
-            server_name_client->get_name_to_server_id_map());
+            server_config_client->get_name_to_server_id_map());
     name_to_server_id_subscription.reset(
-        server_name_client->get_name_to_server_id_map(),
+        server_config_client->get_name_to_server_id_map(),
         &name_to_server_id_freeze);
     watchable_t< std::map<server_id_t, peer_id_t> >::freeze_t
         server_id_to_peer_id_freeze(
-            server_name_client->get_server_id_to_peer_id_map());
+            server_config_client->get_server_id_to_peer_id_map());
     server_id_to_peer_id_subscription.reset(
-        server_name_client->get_server_id_to_peer_id_map(),
+        server_config_client->get_server_id_to_peer_id_map(),
         &server_id_to_peer_id_freeze);
     on_change();
 }
@@ -474,7 +475,7 @@ void reactor_driver_t::on_change() {
 
             blueprint_t bp;
             try {
-                bp = construct_blueprint(*repli_info, server_name_client);
+                bp = construct_blueprint(*repli_info, server_config_client);
             } catch (server_name_collision_exc_t) {
                 /* Leave the blueprint the way it was before. The user should fix their
                 name collision. This is a bit hacky and it might confuse the user, but
@@ -484,7 +485,7 @@ void reactor_driver_t::on_change() {
             if (!std_contains(bp.peers_roles,
                               mbox_manager->get_connectivity_cluster()->get_me())) {
                 /* This can occur because there is a brief period during startup where
-                our server ID might not appear in `server_name_client`'s mapping of
+                our server ID might not appear in `server_config_client`'s mapping of
                 server IDs and peer IDs. We just ignore it; in a moment, the mapping
                 will be updated to include us and `on_change()` will run again. */
                 continue;

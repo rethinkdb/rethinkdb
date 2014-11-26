@@ -14,7 +14,7 @@
 
 class admin_artificial_tables_t;
 class artificial_table_backend_t;
-class server_name_client_t;
+class server_config_client_t;
 
 /* `real_reql_cluster_interface_t` is a concrete subclass of `reql_cluster_interface_t`
 that translates the user's `table_create()`, `table_drop()`, etc. requests into specific
@@ -31,7 +31,7 @@ public:
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *directory_root_view,
             rdb_context_t *rdb_context,
-            server_name_client_t *server_name_client
+            server_config_client_t *server_config_client
             );
 
     bool db_create(const name_string_t &name,
@@ -136,7 +136,7 @@ private:
 
     namespace_repo_t namespace_repo;
     ql::changefeed::client_t changefeed_client;
-    server_name_client_t *server_name_client;
+    server_config_client_t *server_config_client;
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);

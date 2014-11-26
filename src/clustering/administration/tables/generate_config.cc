@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/tables/generate_config.hpp"
 
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "containers/counted.hpp"
 
 /* `long_calculation_yielder_t` is used in a long-running calculation to periodically
@@ -239,7 +239,7 @@ void pick_best_pairings(
 }
 
 bool table_generate_config(
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         namespace_id_t table_id,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *directory_view,
@@ -254,13 +254,15 @@ bool table_generate_config(
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
-    tag. We have to make local copies because the values returned by `name_client` could
-    change at any time, but we need the values to be consistent. */
+    tag. We have to make local copies because the values returned by
+    `server_config_client` could change at any time, but we need the values to be
+    consistent. */
     std::map<server_id_t, name_string_t> server_names =
-        name_client->get_server_id_to_name_map()->get();
+        server_config_client->get_server_id_to_name_map()->get();
     std::map<name_string_t, std::set<server_id_t> > servers_with_tags;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        std::set<server_id_t> servers = name_client->get_servers_with_tag(it->first);
+        std::set<server_id_t> servers =
+            server_config_client->get_servers_with_tag(it->first);
         auto pair = servers_with_tags.insert(
             std::make_pair(it->first, std::set<server_id_t>()));
         for (const server_id_t &server : servers) {
@@ -287,7 +289,7 @@ bool table_generate_config(
             for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
                 server_id_t server_id = *jt;
                 boost::optional<peer_id_t> peer_id =
-                    name_client->get_peer_id_for_server_id(server_id);
+                    server_config_client->get_peer_id_for_server_id(server_id);
                 if (!static_cast<bool>(peer_id)) {
                     missing.insert(server_id);
                     continue;

@@ -25,6 +25,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(servers_semilattice_metadata_t, servers);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
 RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
 
+RDB_IMPL_SERIALIZABLE_2(server_config_business_card_t,
+                        rename_addr, retag_addr);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_config_business_card_t);
+
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(
         cluster_semilattice_metadata_t,
         rdb_namespaces, servers, databases);
@@ -52,7 +56,7 @@ RDB_IMPL_SERIALIZABLE_17_FOR_CLUSTER(cluster_directory_metadata_t,
      jobs_mailbox,
      get_stats_mailbox_address,
      log_mailbox,
-     server_name_business_card,
+     server_config_business_card,
      local_issues,
      peer_type);
 

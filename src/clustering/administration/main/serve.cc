@@ -24,8 +24,8 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
-#include "clustering/administration/servers/name_server.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "containers/incremental_lenses.hpp"
@@ -126,9 +126,9 @@ bool do_serve(io_backender_t *io_backender,
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
-        scoped_ptr_t<server_name_server_t> server_name_server;
+        scoped_ptr_t<server_config_server_t> server_config_server;
         if (i_am_a_server) {
-            server_name_server.init(new server_name_server_t(
+            server_config_server.init(new server_config_server_t(
                 &mailbox_manager,
                 server_id,
                 directory_read_manager.get_root_view(),
@@ -137,7 +137,7 @@ bool do_serve(io_backender_t *io_backender,
                     semilattice_manager_cluster.get_root_view())));
         }
 
-        server_name_client_t server_name_client(&mailbox_manager,
+        server_config_client_t server_config_client(&mailbox_manager,
             directory_read_manager.get_root_view(),
             metadata_field(
                 &cluster_semilattice_metadata_t::servers,
@@ -169,8 +169,8 @@ bool do_serve(io_backender_t *io_backender,
             stat_manager.get_address(),
             log_server.get_business_card(),
             i_am_a_server
-                ? boost::make_optional(server_name_server->get_business_card())
-                : boost::optional<server_name_business_card_t>(),
+                ? boost::make_optional(server_config_server->get_business_card())
+                : boost::optional<server_config_business_card_t>(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
         watchable_variable_t<cluster_directory_metadata_t>
@@ -191,8 +191,8 @@ bool do_serve(io_backender_t *io_backender,
                 &local_issue_aggregator,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_map_view(),
-                &server_name_client,
-                server_name_server.get()));
+                &server_config_client,
+                server_config_server.get()));
         }
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
@@ -282,7 +282,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
-                &server_name_client);
+                &server_config_client);
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
@@ -291,7 +291,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 reactor_directory_read_manager.get_root_view(),
-                &server_name_client);
+                &server_config_client);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -336,8 +336,8 @@ bool do_serve(io_backender_t *io_backender,
                         reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         semilattice_manager_cluster.get_root_view(),
-                        &server_name_client,
-                        server_name_server->get_permanently_removed_signal(),
+                        &server_config_client,
+                        server_config_server->get_permanently_removed_signal(),
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));

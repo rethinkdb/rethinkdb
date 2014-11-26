@@ -1,26 +1,28 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_SERVERS_NAME_SERVER_HPP_
-#define CLUSTERING_ADMINISTRATION_SERVERS_NAME_SERVER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_SERVER_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_SERVER_HPP_
 
 #include <set>
 
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/servers/name_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/semilattice/view.hpp"
 
-/* A `server_name_server_t` is responsible for managing a server's name. Server names are
+/* A `server_config_server_t` is responsible for managing a server's name. Server names are
 set on the command line when RethinkDB is first started, and they can be changed at
 runtime. They are stored in the semilattices and persisted across restarts.
 
 A server's name entry in the semilattices should only be modified by that server itself,
 although other servers may delete the entry if the server is being permanently removed;
-so all rename requests must be first sent to the `server_name_server_t` for the server
-being renamed. */
+so all rename requests must be first sent to the `server_config_server_t` for the server
+being renamed.
 
-class server_name_server_t : public home_thread_mixin_t {
+A server's tags and cache size are also handled and configured in the same way. */
+
+class server_config_server_t : public home_thread_mixin_t {
 public:
-    server_name_server_t(
+    server_config_server_t(
         mailbox_manager_t *_mailbox_manager,
         server_id_t _my_server_id,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -29,7 +31,7 @@ public:
             _semilattice_view
         );
 
-    server_name_business_card_t get_business_card();
+    server_config_business_card_t get_business_card();
 
     name_string_t get_my_name() {
         guarantee(!permanently_removed_cond.is_pulsed());
@@ -73,11 +75,11 @@ private:
     boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
         semilattice_view;
 
-    server_name_business_card_t::rename_mailbox_t rename_mailbox;
-    server_name_business_card_t::retag_mailbox_t retag_mailbox;
+    server_config_business_card_t::rename_mailbox_t rename_mailbox;
+    server_config_business_card_t::retag_mailbox_t retag_mailbox;
     semilattice_readwrite_view_t<servers_semilattice_metadata_t>::subscription_t
         semilattice_subs;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_NAME_SERVER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_SERVER_HPP_ */
 

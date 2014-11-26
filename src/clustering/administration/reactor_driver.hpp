@@ -10,7 +10,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_id_to_peer_id.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
@@ -105,7 +105,7 @@ public:
          branch_history_manager_t *branch_history_manager,
          boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > semilattice_view,
-         server_name_client_t *server_name_client,
+         server_config_client_t *server_config_client,
          signal_t *we_were_permanently_removed,
          svs_by_namespace_t *svs_by_namespace,
          perfmon_collection_repo_t *,
@@ -145,7 +145,7 @@ private:
     branch_history_manager_t *branch_history_manager;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         semilattice_view;
-    server_name_client_t *server_name_client;
+    server_config_client_t *server_config_client;
     signal_t *we_were_permanently_removed;
     rdb_context_t *ctx;
     svs_by_namespace_t *const svs_by_namespace;

@@ -10,13 +10,14 @@
 ql::datum_t convert_replica_list_to_datum(
         const std::set<server_id_t> &replicas,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
     for (const server_id_t &replica : replicas) {
         ql::datum_t replica_datum;
         /* This will return `false` for replicas that have been permanently removed */
         if (convert_server_id_to_datum(
-                replica, identifier_format, name_client, &replica_datum, nullptr)) {
+                replica, identifier_format, server_config_client, &replica_datum,
+                nullptr)) {
             replicas_builder.add(replica_datum);
         }
     }
@@ -26,7 +27,7 @@ ql::datum_t convert_replica_list_to_datum(
 bool convert_replica_list_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         std::set<server_id_t> *replicas_out,
         std::string *error_out) {
     if (datum.get_type() != ql::datum_t::R_ARRAY) {
@@ -37,8 +38,8 @@ bool convert_replica_list_from_datum(
     for (size_t i = 0; i < datum.arr_size(); ++i) {
         server_id_t server_id;
         name_string_t server_name;
-        if (!convert_server_id_from_datum(datum.get(i), identifier_format, name_client,
-                &server_id, &server_name, error_out)) {
+        if (!convert_server_id_from_datum(datum.get(i), identifier_format,
+                server_config_client, &server_id, &server_name, error_out)) {
             return false;
         }
         auto pair = replicas_out->insert(server_id);
@@ -54,10 +55,11 @@ bool convert_replica_list_from_datum(
 ql::datum_t convert_write_ack_config_req_to_datum(
         const write_ack_config_t::req_t &req,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("replicas",
-        convert_replica_list_to_datum(req.replicas, identifier_format, name_client));
+        convert_replica_list_to_datum(req.replicas, identifier_format,
+                                      server_config_client));
     const char *acks =
         (req.mode == write_ack_config_t::mode_t::majority) ? "majority" : "single";
     builder.overwrite("acks", ql::datum_t(acks));
@@ -67,7 +69,7 @@ ql::datum_t convert_write_ack_config_req_to_datum(
 bool convert_write_ack_config_req_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         write_ack_config_t::req_t *req_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
@@ -79,8 +81,8 @@ bool convert_write_ack_config_req_from_datum(
     if (!converter.get("replicas", &replicas_datum, error_out)) {
         return false;
     }
-    if (!convert_replica_list_from_datum(replicas_datum, identifier_format, name_client,
-            &req_out->replicas, error_out)) {
+    if (!convert_replica_list_from_datum(replicas_datum, identifier_format,
+            server_config_client, &req_out->replicas, error_out)) {
         *error_out = "In `replicas`: " + *error_out;
         return false;
     }
@@ -109,7 +111,7 @@ bool convert_write_ack_config_req_from_datum(
 ql::datum_t convert_write_ack_config_to_datum(
         const write_ack_config_t &config,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     if (config.mode == write_ack_config_t::mode_t::single) {
         return ql::datum_t("single");
     } else if (config.mode == write_ack_config_t::mode_t::majority) {
@@ -118,7 +120,7 @@ ql::datum_t convert_write_ack_config_to_datum(
         return convert_vector_to_datum<write_ack_config_t::req_t>(
             [&](const write_ack_config_t::req_t &req) {
                 return convert_write_ack_config_req_to_datum(
-                    req, identifier_format, name_client);
+                    req, identifier_format, server_config_client);
             }, config.complex_reqs);
     }
 }
@@ -126,7 +128,7 @@ ql::datum_t convert_write_ack_config_to_datum(
 bool convert_write_ack_config_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         write_ack_config_t *config_out,
         std::string *error_out) {
     if (datum == ql::datum_t("single")) {
@@ -141,7 +143,8 @@ bool convert_write_ack_config_from_datum(
                 [&](const ql::datum_t &datum_2, write_ack_config_t::req_t *req_out,
                         std::string *error_out_2) {
                     return convert_write_ack_config_req_from_datum(
-                        datum_2, identifier_format, name_client, req_out, error_out_2);
+                        datum_2, identifier_format, server_config_client,
+                        req_out, error_out_2);
                 }, datum, &config_out->complex_reqs, error_out)) {
             return false;
         }
@@ -184,15 +187,17 @@ bool convert_durability_from_datum(
 ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
 
     builder.overwrite("replicas",
-        convert_replica_list_to_datum(shard.replicas, identifier_format, name_client));
+        convert_replica_list_to_datum(shard.replicas, identifier_format,
+                                      server_config_client));
 
     ql::datum_t director;
     if (!convert_server_id_to_datum(
-            shard.director, identifier_format, name_client, &director, nullptr)) {
+            shard.director, identifier_format, server_config_client, &director,
+            nullptr)) {
         /* If the previous director was declared dead, just display `null`. The user will
         have to change this to a new server before the table will come back online. */
         director = ql::datum_t::null();
@@ -205,7 +210,7 @@ ql::datum_t convert_table_config_shard_to_datum(
 bool convert_table_config_shard_from_datum(
         ql::datum_t datum,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         table_config_t::shard_t *shard_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
@@ -217,8 +222,8 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("replicas", &replicas_datum, error_out)) {
         return false;
     }
-    if (!convert_replica_list_from_datum(replicas_datum, identifier_format, name_client,
-            &shard_out->replicas, error_out)) {
+    if (!convert_replica_list_from_datum(replicas_datum, identifier_format,
+            server_config_client, &shard_out->replicas, error_out)) {
         *error_out = "In `replicas`: " + *error_out;
         return false;
     }
@@ -241,8 +246,8 @@ bool convert_table_config_shard_from_datum(
         shard_out->director = nil_uuid();
     } else {
         name_string_t director_name;
-        if (!convert_server_id_from_datum(director_datum, identifier_format, name_client,
-                &shard_out->director, &director_name, error_out)) {
+        if (!convert_server_id_from_datum(director_datum, identifier_format,
+                server_config_client, &shard_out->director, &director_name, error_out)) {
             *error_out = "In `director`: " + *error_out;
             return false;
         }
@@ -265,18 +270,18 @@ bool convert_table_config_shard_from_datum(
 ql::datum_t convert_table_config_to_datum(
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             [&](const table_config_t::shard_t &shard) {
                 return convert_table_config_shard_to_datum(
-                    shard, identifier_format, name_client);
+                    shard, identifier_format, server_config_client);
             },
             config.shards));
     builder.overwrite("write_acks",
         convert_write_ack_config_to_datum(
-            config.write_ack_config, identifier_format, name_client));
+            config.write_ack_config, identifier_format, server_config_client));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
     return std::move(builder).to_datum();
@@ -293,7 +298,8 @@ bool table_config_artificial_table_backend_t::format_row(
     assert_thread();
 
     ql::datum_t start = convert_table_config_to_datum(
-        metadata.replication_info.get_ref().config, identifier_format, name_client);
+        metadata.replication_info.get_ref().config, identifier_format,
+        server_config_client);
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", db_name_or_uuid);
@@ -310,7 +316,7 @@ bool convert_table_config_and_name_from_datum(
         bool existed_before,
         const cluster_semilattice_metadata_t &all_metadata,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         signal_t *interruptor,
         name_string_t *table_name_out,
         ql::datum_t *db_out,
@@ -371,7 +377,7 @@ bool convert_table_config_and_name_from_datum(
                 [&](ql::datum_t shard_datum, table_config_t::shard_t *shard_out,
                         std::string *error_out_2) {
                     return convert_table_config_shard_from_datum(
-                        shard_datum, identifier_format, name_client,
+                        shard_datum, identifier_format, server_config_client,
                         shard_out, error_out_2);
                 },
                 shards_datum,
@@ -394,7 +400,7 @@ bool convert_table_config_and_name_from_datum(
                 pair.second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         if (!table_generate_config(
-                name_client, nil_uuid(), nullptr, server_usage,
+                server_config_client, nil_uuid(), nullptr, server_usage,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
                 interruptor, config_out, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
@@ -408,7 +414,7 @@ bool convert_table_config_and_name_from_datum(
             return false;
         }
         if (!convert_write_ack_config_from_datum(write_acks_datum, identifier_format,
-                name_client, &config_out->write_ack_config, error_out)) {
+                server_config_client, &config_out->write_ack_config, error_out)) {
             *error_out = "In `write_acks`: " + *error_out;
             return false;
         }
@@ -494,7 +500,7 @@ bool table_config_artificial_table_backend_t::write_row(
         namespace_id_t new_table_id;
         std::string new_primary_key;
         if (!convert_table_config_and_name_from_datum(*new_value_inout, existed_before,
-                md, identifier_format, name_client, interruptor,
+                md, identifier_format, server_config_client, interruptor,
                 &new_table_name, &new_db_name_or_uuid, &new_table_id,
                 &replication_info.config, &new_primary_key, error_out)) {
             *error_out = "The change you're trying to make to "

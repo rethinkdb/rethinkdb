@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/servers/name_server.hpp"
+#include "clustering/administration/servers/config_server.hpp"
 
-server_name_server_t::server_name_server_t(
+server_config_server_t::server_config_server_t(
         mailbox_manager_t *_mailbox_manager,
         server_id_t _my_server_id,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -13,10 +13,10 @@ server_name_server_t::server_name_server_t(
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
     rename_mailbox(mailbox_manager,
-        std::bind(&server_name_server_t::on_rename_request, this,
+        std::bind(&server_config_server_t::on_rename_request, this,
             ph::_1, ph::_2, ph::_3)),
     retag_mailbox(mailbox_manager,
-        std::bind(&server_name_server_t::on_retag_request, this,
+        std::bind(&server_config_server_t::on_retag_request, this,
             ph::_1, ph::_2, ph::_3)),
     semilattice_subs([this]() {
         on_semilattice_change();
@@ -38,14 +38,14 @@ server_name_server_t::server_name_server_t(
     semilattice_subs.reset(semilattice_view);
 }
 
-server_name_business_card_t server_name_server_t::get_business_card() {
-    server_name_business_card_t bcard;
+server_config_business_card_t server_config_server_t::get_business_card() {
+    server_config_business_card_t bcard;
     bcard.rename_addr = rename_mailbox.get_address();
     bcard.retag_addr = retag_mailbox.get_address();
     return bcard;
 }
 
-void server_name_server_t::on_rename_request(UNUSED signal_t *interruptor,
+void server_config_server_t::on_rename_request(UNUSED signal_t *interruptor,
                                              const name_string_t &new_name,
                                              mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed() && new_name != my_name) {
@@ -65,7 +65,7 @@ void server_name_server_t::on_rename_request(UNUSED signal_t *interruptor,
     send(mailbox_manager, ack_addr);
 }
 
-void server_name_server_t::on_retag_request(UNUSED signal_t *interruptor,
+void server_config_server_t::on_retag_request(UNUSED signal_t *interruptor,
                                             const std::set<name_string_t> &new_tags,
                                             mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed() && new_tags != my_tags) {
@@ -95,7 +95,7 @@ void server_name_server_t::on_retag_request(UNUSED signal_t *interruptor,
     send(mailbox_manager, ack_addr);
 }
 
-void server_name_server_t::on_semilattice_change() {
+void server_config_server_t::on_semilattice_change() {
     ASSERT_FINITE_CORO_WAITING;
     servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
     guarantee(sl_metadata.servers.count(my_server_id) == 1);

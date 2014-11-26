@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/datum_adapter.hpp"
 
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
@@ -78,10 +78,11 @@ ql::datum_t convert_name_or_uuid_to_datum(
 bool convert_server_id_to_datum(
         const server_id_t &server_id,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         ql::datum_t *server_name_or_uuid_out,
         name_string_t *server_name_out) {
-    boost::optional<name_string_t> name = name_client->get_name_for_server_id(server_id);
+    boost::optional<name_string_t> name =
+        server_config_client->get_name_for_server_id(server_id);
     if (!static_cast<bool>(name)) {
         return false;
     }
@@ -96,7 +97,7 @@ bool convert_server_id_to_datum(
 bool convert_server_id_from_datum(
         const ql::datum_t &server_name_or_uuid,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         server_id_t *server_id_out,
         name_string_t *server_name_out,
         std::string *error_out) {
@@ -107,7 +108,7 @@ bool convert_server_id_from_datum(
             return false;
         }
         bool ok;
-        name_client->get_name_to_server_id_map()->apply_read(
+        server_config_client->get_name_to_server_id_map()->apply_read(
             [&](const std::multimap<name_string_t, server_id_t> *map) {
                 if (map->count(name) == 0) {
                     *error_out = strprintf("Server `%s` does not exist.", name.c_str());
@@ -130,7 +131,8 @@ bool convert_server_id_from_datum(
         if (!convert_uuid_from_datum(server_name_or_uuid, &id, error_out)) {
             return false;
         }
-        boost::optional<name_string_t> name = name_client->get_name_for_server_id(id);
+        boost::optional<name_string_t> name =
+            server_config_client->get_name_for_server_id(id);
         if (!static_cast<bool>(name)) {
             *error_out = strprintf("There is no server with UUID `%s`.",
                 uuid_to_str(id).c_str());

@@ -12,7 +12,6 @@
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
-#include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
@@ -75,7 +74,7 @@ public:
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
-            const boost::optional<server_name_business_card_t> &nsbc,
+            const boost::optional<server_config_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
         server_id(_server_id),
         peer_id(_peer_id),
@@ -91,7 +90,7 @@ public:
         jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
-        server_name_business_card(nsbc),
+        server_config_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
     cluster_directory_metadata_t(const cluster_directory_metadata_t &) = default;
@@ -117,7 +116,7 @@ public:
         jobs_mailbox = other.jobs_mailbox;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         log_mailbox = other.log_mailbox;
-        server_name_business_card = other.server_name_business_card;
+        server_config_business_card = other.server_config_business_card;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
         return *this;
@@ -141,7 +140,7 @@ public:
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
-    boost::optional<server_name_business_card_t> server_name_business_card;
+    boost::optional<server_config_business_card_t> server_config_business_card;
     local_issues_t local_issues;
     cluster_directory_peer_type_t peer_type;
 };

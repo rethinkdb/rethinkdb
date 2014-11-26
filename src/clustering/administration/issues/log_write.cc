@@ -15,7 +15,7 @@ log_write_issue_t::log_write_issue_t(const std::string &_message) :
 
 bool log_write_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -25,8 +25,8 @@ bool log_write_issue_t::build_info_and_description(
     for (auto const &server_id : affected_server_ids) {
         ql::datum_t server_name_or_uuid;
         name_string_t server_name;
-        if (!convert_server_id_to_datum(server_id, identifier_format, name_client,
-                &server_name_or_uuid, &server_name)) {
+        if (!convert_server_id_to_datum(server_id, identifier_format,
+                server_config_client, &server_name_or_uuid, &server_name)) {
             server_name_or_uuid = ql::datum_t("__deleted_server__");
             server_name = name_string_t::guarantee_valid("__deleted_server__");
         }

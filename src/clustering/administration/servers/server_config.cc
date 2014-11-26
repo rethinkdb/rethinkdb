@@ -2,7 +2,7 @@
 #include "clustering/administration/servers/server_config.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 bool convert_server_config_and_name_from_datum(
@@ -112,13 +112,13 @@ bool server_config_artificial_table_backend_t::write_row(
         guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
             "primary key is unchanged.");
         if (new_server_name != server_name) {
-            if (!name_client->rename_server(server_id, server_name, new_server_name,
-                                            &interruptor2, error_out)) {
+            if (!server_config_client->rename_server(
+                    server_id, server_name, new_server_name, &interruptor2, error_out)) {
                 return false;
             }
         }
         if (new_tags != server_sl->tags.get_ref()) {
-            if (!name_client->retag_server(
+            if (!server_config_client->retag_server(
                     server_id, server_name, new_tags, &interruptor2, error_out)) {
                 return false;
             }
