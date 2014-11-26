@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP_
 
 #include <map>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -62,6 +63,13 @@ public:
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
     scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
+    bool is_gc_active() const {
+        return serializer_->is_gc_active();
+    }
+
+    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    sindex_jobs_t get_sindex_jobs() const;
+
 private:
     scoped_ptr_t<serializer_t> serializer_;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer_;
@@ -109,6 +117,11 @@ public:
         return &watchable_var;
     }
 
+    std::set<namespace_id_t> get_tables_gc_active() const;
+
+    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    sindex_jobs_t get_sindex_jobs() const;
+
 private:
     friend class watchable_and_reactor_t;
 
@@ -152,7 +165,7 @@ private:
         server_id_to_peer_id_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
-    //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;
+
     DISABLE_COPYING(reactor_driver_t);
 };
 

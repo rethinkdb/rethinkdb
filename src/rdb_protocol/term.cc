@@ -213,6 +213,9 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
+    map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
+        ctx->get_query_jobs_for_this_thread(), generate_uuid(), current_microtime());
+
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
 

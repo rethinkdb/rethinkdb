@@ -4,9 +4,9 @@
 #include "rdb_protocol/datum.hpp"
 
 rdb_context_t::rdb_context_t()
-    : extproc_pool(NULL),
-      cluster_interface(NULL),
-      manager(NULL),
+    : extproc_pool(nullptr),
+      cluster_interface(nullptr),
+      manager(nullptr),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
@@ -18,7 +18,7 @@ rdb_context_t::rdb_context_t(
         reql_cluster_interface_t *_cluster_interface)
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
-      manager(NULL),
+      manager(nullptr),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
@@ -44,3 +44,6 @@ rdb_context_t::rdb_context_t(
 
 rdb_context_t::~rdb_context_t() { }
 
+rdb_context_t::query_jobs_t * rdb_context_t::get_query_jobs_for_this_thread() {
+    return query_jobs.get();
+}

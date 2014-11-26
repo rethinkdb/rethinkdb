@@ -11,6 +11,7 @@
 
 #include "errors.hpp"
 #include "concurrency/cache_line_padded.hpp"
+#include "utils.hpp"
 
 /*
  * We have to make sure that access to thread local storage (TLS) is only performed

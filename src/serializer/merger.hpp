@@ -102,6 +102,10 @@ public:
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }
 
+    /* Return true if the garbage collector is active */
+    bool is_gc_active() const {
+        return inner->is_gc_active();
+    }
 
 private:
     // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if

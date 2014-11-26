@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/counted.hpp"
 #include "containers/name_string.hpp"
@@ -281,6 +282,12 @@ public:
     perfmon_membership_t ql_ops_running_membership;
 
     const std::string reql_http_proxy;
+
+    typedef std::map<uuid_u, microtime_t> query_jobs_t;
+    query_jobs_t * get_query_jobs_for_this_thread();
+
+private:
+    one_per_thread_t<query_jobs_t> query_jobs;
 
 private:
     DISABLE_COPYING(rdb_context_t);
