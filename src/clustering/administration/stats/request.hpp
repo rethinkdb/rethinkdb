@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_STATS_REQUEST_HPP_
 #define CLUSTERING_ADMINISTRATION_STATS_REQUEST_HPP_
 
@@ -41,7 +42,7 @@ public:
         std::map<namespace_id_t, table_stats_t> tables;
     };
 
-    parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats);
+    explicit parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats);
 
     // Accumulate a field in all servers
     double accumulate(double server_stats_t::*field) const;
@@ -95,8 +96,10 @@ public:
                            std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
                            std::string *error_out) const = 0;
 
-    virtual ql::datum_t to_datum(const parsed_stats_t &stats,
-                                 const metadata_t &metadata) const = 0;
+    virtual bool to_datum(const parsed_stats_t &stats,
+                          const metadata_t &metadata,
+                          admin_identifier_format_t admin_format,
+                          ql::datum_t *result_out) const = 0;
 };
 
 class cluster_stats_request_t : public stats_request_t {
@@ -115,8 +118,10 @@ public:
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
                    std::string *error_out) const;
 
-    ql::datum_t to_datum(const parsed_stats_t &stats,
-                         UNUSED const metadata_t &metadata) const;
+    virtual bool to_datum(const parsed_stats_t &stats,
+                          const metadata_t &metadata,
+                          admin_identifier_format_t admin_format,
+                          ql::datum_t *result_out) const;
 };
 
 class table_stats_request_t : public stats_request_t {
@@ -129,7 +134,7 @@ public:
                       scoped_ptr_t<stats_request_t> *request_out,
                       std::string *error_out);
 
-    table_stats_request_t(const namespace_id_t &_table_id);
+    explicit table_stats_request_t(const namespace_id_t &_table_id);
 
     std::set<std::vector<std::string> > get_filter() const;
 
@@ -137,8 +142,10 @@ public:
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
                    std::string *error_out) const;
 
-    ql::datum_t to_datum(const parsed_stats_t &stats,
-                         const metadata_t &metadata) const;
+    virtual bool to_datum(const parsed_stats_t &stats,
+                          const metadata_t &metadata,
+                          admin_identifier_format_t admin_format,
+                          ql::datum_t *result_out) const;
 };
 
 class server_stats_request_t : public stats_request_t {
@@ -150,7 +157,7 @@ public:
                       scoped_ptr_t<stats_request_t> *request_out,
                       std::string *error_out);
 
-    server_stats_request_t(const server_id_t &_server_id);
+    explicit server_stats_request_t(const server_id_t &_server_id);
 
     std::set<std::vector<std::string> > get_filter() const;
 
@@ -158,8 +165,10 @@ public:
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
                    std::string *error_out) const;
 
-    ql::datum_t to_datum(const parsed_stats_t &stats,
-                         const metadata_t &metadata) const;
+    virtual bool to_datum(const parsed_stats_t &stats,
+                          const metadata_t &metadata,
+                          admin_identifier_format_t admin_format,
+                          ql::datum_t *result_out) const;
 };
 
 class table_server_stats_request_t : public stats_request_t {
@@ -180,8 +189,11 @@ public:
     bool get_peers(server_name_client_t *name_client,
                    std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
                    std::string *error_out) const;
-    ql::datum_t to_datum(const parsed_stats_t &stats,
-                         const metadata_t &metadata) const;
+
+    virtual bool to_datum(const parsed_stats_t &stats,
+                          const metadata_t &metadata,
+                          admin_identifier_format_t admin_format,
+                          ql::datum_t *result_out) const;
 };
 
 #endif // CLUSTERING_ADMINISTRATION_STATS_REQUEST_HPP_

@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/stats/request.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
@@ -194,50 +195,53 @@ double parsed_stats_t::accumulate_server(const server_id_t &server_id,
     return res;
 }
 
-void add_table_fields(const namespace_id_t &table_id,
+bool add_table_fields(const namespace_id_t &table_id,
                       const cluster_semilattice_metadata_t &metadata,
+                      admin_identifier_format_t admin_format,
                       ql::datum_object_builder_t *builder) {
-    // TODO: maybe drop the stats if the table wasn't found
+    database_id_t db_id;
+    name_string_t db_name;
+    name_string_t table_name;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
         ::const_iterator table_it;
     if (!search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
                                       table_id, &table_it)) {
-        // TODO: leave out db_id and db_name?
-        builder->overwrite("table_name", ql::datum_t("__deleted_table__"));
+        return false; // The table was deleted or does not exist - drop it
     } else {
-        const database_id_t &db_id = table_it->second.get_ref().database.get_ref();
+        db_id = table_it->second.get_ref().database.get_ref();
         auto db_it = metadata.databases.databases.find(db_id);
         if (db_it == metadata.databases.databases.end() ||
             db_it->second.is_deleted()) {
-            builder->overwrite("db_name", ql::datum_t("__deleted_database__"));
+            db_name = name_string_t::guarantee_valid("__deleted_database__");
         } else {
-            builder->overwrite("db_name",
-                convert_name_to_datum(db_it->second.get_ref().name.get_ref()));
+            db_name = db_it->second.get_ref().name.get_ref();
         }
-
-        builder->overwrite("table_name",
-            convert_name_to_datum(table_it->second.get_ref().name.get_ref()));
-        builder->overwrite("db_id", convert_uuid_to_datum(db_id));
+        table_name = table_it->second.get_ref().name.get_ref();
     }
 
-    builder->overwrite("table_id", convert_uuid_to_datum(table_id));
+    builder->overwrite("db", convert_name_or_uuid_to_datum(
+        db_name, db_id, admin_format));
+    builder->overwrite("table", convert_name_or_uuid_to_datum(
+        table_name, table_id, admin_format));
+    return true;
 }
 
 void add_server_fields(const server_id_t &server_id,
                        const cluster_semilattice_metadata_t &metadata,
+                       admin_identifier_format_t admin_format,
                        ql::datum_object_builder_t *builder) {
+    name_string_t server_name;
     auto server_it = metadata.servers.servers.find(server_id);
     if (server_it == metadata.servers.servers.end() ||
         server_it->second.is_deleted()) {
-        builder->overwrite("server_name", ql::datum_t("__deleted_server__"));
+        server_name = name_string_t::guarantee_valid("__deleted_server__");
     } else {
-        builder->overwrite("server_name",
-            convert_name_to_datum(server_it->second.get_ref().name.get_ref()));
+        server_name = server_it->second.get_ref().name.get_ref();
     }
 
-    builder->overwrite("server_id", convert_uuid_to_datum(server_id));
+    builder->overwrite("server", convert_name_or_uuid_to_datum(
+        server_name, server_id, admin_format));
 }
-
 
 std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
     return std::set<std::vector<std::string> >(
@@ -284,8 +288,10 @@ bool cluster_stats_request_t::get_peers(
     return true;
 }
 
-ql::datum_t cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
-                                              UNUSED const metadata_t &metadata) const {
+bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
+                                       const metadata_t &,
+                                       admin_identifier_format_t,
+                                       ql::datum_t *result_out) const {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
 
@@ -299,7 +305,8 @@ ql::datum_t cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
     ql::datum_object_builder_t builder;
     builder.overwrite("id", std::move(id_builder).to_datum());
     builder.overwrite("query_engine", std::move(qe_builder).to_datum());
-    return std::move(builder).to_datum();
+    *result_out = std::move(builder).to_datum();
+    return true;
 }
 
 bool table_stats_request_t::parse(const ql::datum_t &info,
@@ -336,8 +343,10 @@ bool table_stats_request_t::get_peers(
     return true;
 }
 
-ql::datum_t table_stats_request_t::to_datum(const parsed_stats_t &stats,
-                                            const metadata_t &metadata) const {
+bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
+                                     const metadata_t &metadata,
+                                     admin_identifier_format_t admin_format,
+                                     ql::datum_t *result_out) const {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(table_id));
@@ -349,8 +358,11 @@ ql::datum_t table_stats_request_t::to_datum(const parsed_stats_t &stats,
     ql::datum_object_builder_t row_builder;
     row_builder.overwrite("id", std::move(id_builder).to_datum());
     row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
-    add_table_fields(table_id, metadata, &row_builder);
-    return std::move(row_builder).to_datum();
+    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
+    *result_out = std::move(row_builder).to_datum();
+    return true;
 }
 
 bool server_stats_request_t::parse(const ql::datum_t &info,
@@ -386,7 +398,6 @@ bool server_stats_request_t::get_peers(
         std::string *error_out) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        // TODO: make this use the same error as a timeout?
         *error_out = "Server not available.";
         return false;
     }
@@ -396,8 +407,10 @@ bool server_stats_request_t::get_peers(
     return true;
 }
 
-ql::datum_t server_stats_request_t::to_datum(const parsed_stats_t &stats,
-                                             const metadata_t &metadata) const {
+bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
+                                      const metadata_t &metadata,
+                                      admin_identifier_format_t admin_format,
+                                      ql::datum_t *result_out) const {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(server_id));
@@ -423,10 +436,10 @@ ql::datum_t server_stats_request_t::to_datum(const parsed_stats_t &stats,
     }
 
     row_builder.overwrite("id", std::move(id_builder).to_datum());
-    add_server_fields(server_id, metadata, &row_builder);
-    return std::move(row_builder).to_datum();
+    add_server_fields(server_id, metadata, admin_format, &row_builder);
+    *result_out = std::move(row_builder).to_datum();
+    return true;
 }
-
 
 bool table_server_stats_request_t::parse(const ql::datum_t &info,
                                          scoped_ptr_t<stats_request_t> *request_out,
@@ -465,7 +478,6 @@ bool table_server_stats_request_t::get_peers(server_name_client_t *name_client,
                std::string *error_out) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        // TODO: make this use the same error as a timeout?
         *error_out = "Server not available.";
         return false;
     }
@@ -475,8 +487,10 @@ bool table_server_stats_request_t::get_peers(server_name_client_t *name_client,
     return true;
 }
 
-ql::datum_t table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
-                                                   const metadata_t &metadata) const {
+bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
+                                            const metadata_t &metadata,
+                                            admin_identifier_format_t admin_format,
+                                            ql::datum_t *result_out) const {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(table_id));
@@ -525,7 +539,10 @@ ql::datum_t table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     }
 
     row_builder.overwrite("id", std::move(id_builder).to_datum());
-    add_server_fields(server_id, metadata, &row_builder);
-    add_table_fields(table_id, metadata, &row_builder);
-    return std::move(row_builder).to_datum();
+    add_server_fields(server_id, metadata, admin_format, &row_builder);
+    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
+    *result_out = std::move(row_builder).to_datum();
+    return true;
 }

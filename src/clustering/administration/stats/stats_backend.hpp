@@ -24,7 +24,8 @@ public:
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         server_name_client_t *_name_client,
-        mailbox_manager_t *_mailbox_manager);
+        mailbox_manager_t *_mailbox_manager,
+        admin_identifier_format_t _admin_format);
 
     std::string get_primary_key_name();
 
@@ -60,6 +61,9 @@ private:
         cluster_sl_view;
     server_name_client_t *name_client;
     mailbox_manager_t *mailbox_manager;
+    admin_identifier_format_t admin_format;
+
+    auto_drainer_t drainer;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_ */

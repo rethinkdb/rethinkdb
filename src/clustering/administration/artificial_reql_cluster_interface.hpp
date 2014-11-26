@@ -166,7 +166,7 @@ public:
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
-    scoped_ptr_t<stats_artificial_table_backend_t> stats_backend;
+    scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];
 

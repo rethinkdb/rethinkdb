@@ -328,10 +328,13 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
-    stats_backend.init(new stats_artificial_table_backend_t(
-        _directory_view, _semilattice_view, _name_client, _mailbox_manager));
+    for (int i = 0; i < 2; ++i) {
+        stats_backend[i].init(new stats_artificial_table_backend_t(
+            _directory_view, _semilattice_view, _name_client, _mailbox_manager,
+            static_cast<admin_identifier_format_t>(i)));
+    }
     backends[name_string_t::guarantee_valid("stats")] =
-        std::make_pair(stats_backend.get(), stats_backend.get());
+        std::make_pair(stats_backend[0].get(), stats_backend[1].get());
 
     for (int i = 0; i < 2; ++i) {
         table_config_backend[i].init(new table_config_artificial_table_backend_t(

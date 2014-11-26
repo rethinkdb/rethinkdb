@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/stats/stats_backend.hpp"
 
 #include "clustering/administration/stats/request.hpp"
@@ -10,17 +11,18 @@ stats_artificial_table_backend_t::stats_artificial_table_backend_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         server_name_client_t *_name_client,
-        mailbox_manager_t *_mailbox_manager) :
+        mailbox_manager_t *_mailbox_manager,
+        admin_identifier_format_t _admin_format) :
     directory_view(_directory_view),
     cluster_sl_view(_cluster_sl_view),
     name_client(_name_client),
-    mailbox_manager(_mailbox_manager) { }
+    mailbox_manager(_mailbox_manager),
+    admin_format(_admin_format) { }
 
 std::string stats_artificial_table_backend_t::get_primary_key_name() {
     return std::string("id");
 }
 
-// TODO: auto_drainer, keepalive
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
         const std::set<std::vector<std::string> > &filter,
@@ -40,7 +42,7 @@ void stats_artificial_table_backend_t::get_peer_stats(
         // Create response mailbox
         cond_t done;
         mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
-            [&](UNUSED signal_t *mbox_interruptor, ql::datum_t stats) {
+            [&](signal_t *, ql::datum_t stats) {
                 *result_out = stats;
                 done.pulse_if_not_already_pulsed();
             });
@@ -48,11 +50,14 @@ void stats_artificial_table_backend_t::get_peer_stats(
         // Send request
         send(mailbox_manager, request_addr, return_mailbox.get_address(), filter);
 
-        // Allow 5 seconds - on timeout return without setting result
         signal_timer_t timer_interruptor;
         timer_interruptor.start(5000);
         wait_any_t combined_interruptor(interruptor, &timer_interruptor);
-        wait_interruptible(&done, &combined_interruptor);
+        try {
+            wait_interruptible(&done, &combined_interruptor);
+        } catch (const interrupted_exc_t &) {
+            // No response after timeout - we return an empty result
+        }
     }
 }
 
@@ -61,10 +66,13 @@ void stats_artificial_table_backend_t::perform_stats_request(
         const std::set<std::vector<std::string> > &filter,
         std::map<server_id_t, ql::datum_t> *results_out,
         signal_t *interruptor) {
+    auto_drainer_t::lock_t keepalive(&drainer);
+    wait_any_t combined_interruptor(interruptor, keepalive.get_drain_signal());
     pmap(peers.size(),
         [&](int index) {
             get_peer_stats(peers[index].second, filter,
-                           &(*results_out)[peers[index].first], interruptor);
+                           &(*results_out)[peers[index].first],
+                           &combined_interruptor);
         });
 }
 
@@ -81,7 +89,6 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
         stats_request_t::all_peers(name_client);
 
     // Save the metadata from when we sent the requests to avoid race conditions
-    // TODO: is name client up-to-date?
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
     std::map<server_id_t, ql::datum_t> result_map;
@@ -90,20 +97,37 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
 
     // Start building results
     rows_out->clear();
-    rows_out->push_back(cluster_stats_request_t().to_datum(result_map, metadata));
+    {
+        ql::datum_t row;
+        if (cluster_stats_request_t().to_datum(result_map, metadata, admin_format, &row)) {
+            rows_out->push_back(std::move(row));
+        }
+    }
 
     for (auto const &pair : parsed_stats.servers) {
-        rows_out->push_back(server_stats_request_t(pair.first).to_datum(parsed_stats, metadata));
+        ql::datum_t row;
+        if (server_stats_request_t(pair.first).to_datum(parsed_stats, metadata,
+                                                        admin_format, &row)) {
+            rows_out->push_back(row);
+        }
     }
 
     for (auto const &table_id : parsed_stats.all_table_ids) {
-        rows_out->push_back(table_stats_request_t(table_id).to_datum(parsed_stats, metadata));
+        ql::datum_t row;
+        if (table_stats_request_t(table_id).to_datum(parsed_stats, metadata,
+                                                     admin_format, &row)) {
+            rows_out->push_back(row);
+        }
     }
 
     for (auto const &pair : parsed_stats.servers) {
         for (auto const &table_id : parsed_stats.all_table_ids) {
-            rows_out->push_back(
-                table_server_stats_request_t(table_id, pair.first).to_datum(parsed_stats, metadata));
+            ql::datum_t row;
+            if (table_server_stats_request_t(table_id,
+                                             pair.first).to_datum(parsed_stats, metadata,
+                                                                  admin_format, &row)) {
+                rows_out->push_back(row);
+            }
         }
     }
 
@@ -154,7 +178,13 @@ bool stats_artificial_table_backend_t::read_row(
     }
 
     if (!request.has()) {
-        *error_out = "Unknown stats request type.";
+        *error_out = strprintf("Unknown stats request type '%s', available types are "
+                               "'%s', '%s', '%s', or '%s'.",
+                               primary_key.get(0).as_str().to_std().c_str(),
+                               cluster_stats_request_t::get_name(),
+                               table_stats_request_t::get_name(),
+                               server_stats_request_t::get_name(),
+                               table_server_stats_request_t::get_name());
         return false;
     }
 
@@ -165,12 +195,14 @@ bool stats_artificial_table_backend_t::read_row(
     }
 
     // Save the metadata from when we sent the requests to avoid race conditions
-    // TODO: is name client up-to-date?
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
     perform_stats_request(peers, request->get_filter(), &results_map, &ct_interruptor);
     parsed_stats_t parsed_stats(results_map);
-    *row_out = request->to_datum(parsed_stats, metadata);
+    if (!request->to_datum(parsed_stats, metadata, admin_format, row_out)) {
+        // The row was rejected due to an entity missing in the metadata
+        *row_out = ql::datum_t();
+    }
     return true;
 }
 
@@ -181,7 +213,6 @@ bool stats_artificial_table_backend_t::write_row(
         UNUSED signal_t *interruptor,
         std::string *error_out) {
     assert_thread();
-    // TODO: error message
-    *error_out = "Cannot write to the stats table.";
+    *error_out = "It's illegal to write to the `rethinkdb.stats` table.";
     return false;
 }
