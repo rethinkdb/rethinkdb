@@ -88,23 +88,33 @@ public:
     RSI(reql_admin): Decide if this should count disconnected servers or not. */
     std::set<server_id_t> get_servers_with_tag(const name_string_t &tag);
 
-    /* `rename_server` changes the name of the peer named `old_name` to `new_name`. On
-    success, returns `true`. On failure, returns `false` and sets `*error_out` to an
+    /* `change_server_name` changes the name of the peer named `old_name` to `new_name`.
+    On success, returns `true`. On failure, returns `false` and sets `*error_out` to an
     informative message. */
-    bool rename_server(
+    bool change_server_name(
         const server_id_t &server_id,
         const name_string_t &server_name,   /* for error messages */
         const name_string_t &new_name,
         signal_t *interruptor,
         std::string *error_out);
 
-    /* `retag_server` changes the tags of the server with the given server ID. On
+    /* `change_server_tags` changes the tags of the server with the given server ID. On
     success, returns `true`. On failure, returns `false` and sets `*error_out` to an
     informative message. */
-    bool retag_server(
+    bool change_server_tags(
         const server_id_t &server,
         const name_string_t &server_name,   /* for error messages */
         const std::set<name_string_t> &new_tags,
+        signal_t *interruptor,
+        std::string *error_out);
+
+    /* `change_server_cache_size` changes the cache size of the server with the given
+    server ID. On success, returns `true`. On failure, returns `false` and sets
+    `*error_out` to an informative message. */
+    bool change_server_cache_size(
+        const server_id_t &server,
+        const name_string_t &server_name,   /* for error messages */
+        uint64_t new_cache_size_mb,
         signal_t *interruptor,
         std::string *error_out);
 
@@ -114,6 +124,18 @@ public:
     bool permanently_remove_server(const name_string_t &name, std::string *error_out);
 
 private:
+    /* Helper function for `change_server_*()` */
+    bool do_change(
+        const server_id_t &server,
+        const name_string_t &server_name,   /* for error messages */
+        const std::string &what_is_changing,   /* for error messages */
+        const std::function<void(
+            const server_config_business_card_t &bc,
+            const mailbox_t<void(std::string)>::address_t &reply_addr
+            )> &sender,
+        signal_t *interruptor,
+        std::string *error_out);
+
     void recompute_name_to_server_id_map();
     void recompute_server_id_to_peer_id_map();
 

@@ -33,14 +33,18 @@ public:
 
     server_config_business_card_t get_business_card();
 
-    name_string_t get_my_name() {
+    clone_ptr_t<watchable_t<name_string_t> > get_my_name() {
         guarantee(!permanently_removed_cond.is_pulsed());
-        return my_name;
+        return my_name.get_watchable();
     }
 
-    std::set<name_string_t> get_my_tags() {
+    clone_ptr_t<watchable_t<std::set<name_string_t> > > get_my_tags() {
         guarantee(!permanently_removed_cond.is_pulsed());
-        return my_tags;
+        return my_tags.get_watchable();
+    }
+
+    clone_ptr_t<watchable_t<uint64_t> > get_cache_size_bytes() {
+        return cache_size_bytes.get_watchable();
     }
 
     signal_t *get_permanently_removed_signal() {
@@ -48,17 +52,26 @@ public:
     }
 
 private:
-    /* `on_rename_request()` is called in response to a rename request over the network.
-    It renames unconditionally, without checking for name collisions. */
-    void on_rename_request(signal_t *interruptor,
-                           const name_string_t &new_name,
-                           mailbox_t<void()>::address_t ack_addr);
+    /* `on_change_name_request()` is called in response to a rename request over the
+    network. It renames unconditionally, without checking for name collisions. */
+    void on_change_name_request(
+        signal_t *interruptor,
+        const name_string_t &new_name,
+        mailbox_t<void(std::string)>::address_t ack_addr);
 
-    /* `on_retag_request()` is called in response to a tag change request over the
+    /* `on_change_tags_request()` is called in response to a tag change request over the
     network */
-    void on_retag_request(signal_t *interruptor,
-                          const std::set<name_string_t> &new_tags,
-                          mailbox_t<void()>::address_t ack_addr);
+    void on_change_tags_request(
+        signal_t *interruptor,
+        const std::set<name_string_t> &new_tags,
+        mailbox_t<void(std::string)>::address_t ack_addr);
+
+    /* `on_change_cache_size_request()` is called in response to a cache-size change
+    request over the network. */
+    void on_change_cache_size_request(
+        signal_t *interruptor,
+        uint64_t new_cache_size,
+        mailbox_t<void(std::string)>::address_t ack_addr);
 
     /* `on_semilattice_change()` checks if we have been permanently removed. It does not
     block. */
@@ -66,8 +79,9 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     server_id_t my_server_id;
-    name_string_t my_name;
-    std::set<name_string_t> my_tags;
+    watchable_variable_t<name_string_t> my_name;
+    watchable_variable_t<std::set<name_string_t> > my_tags;
+    watchable_variable_t<uint64_t> cache_size_bytes;
     cond_t permanently_removed_cond;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -75,8 +89,9 @@ private:
     boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
         semilattice_view;
 
-    server_config_business_card_t::rename_mailbox_t rename_mailbox;
-    server_config_business_card_t::retag_mailbox_t retag_mailbox;
+    server_config_business_card_t::change_name_mailbox_t change_name_mailbox;
+    server_config_business_card_t::change_tags_mailbox_t change_tags_mailbox;
+    server_config_business_card_t::change_cache_size_mailbox_t change_cache_size_mailbox;
     semilattice_readwrite_view_t<servers_semilattice_metadata_t>::subscription_t
         semilattice_subs;
 };

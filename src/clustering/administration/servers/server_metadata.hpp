@@ -18,10 +18,11 @@
 
 class server_semilattice_metadata_t {
 public:
-    /* `name` and `tags` should only be modified by the server that this metadata is
+    /* These fields should only be modified by the server that this metadata is
     describing. */
     versioned_t<name_string_t> name;
     versioned_t<std::set<name_string_t> > tags;
+    versioned_t<uint64_t> cache_size_bytes;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_semilattice_metadata_t);
@@ -40,19 +41,25 @@ RDB_DECLARE_EQUALITY_COMPARABLE(servers_semilattice_metadata_t);
 
 class server_config_business_card_t {
 public:
-    /* The address to send name-change orders. */
+    /* In all cases, an empty reply string means success */
+
     typedef mailbox_t< void(
             name_string_t,
-            mailbox_t<void()>::address_t
-        ) > rename_mailbox_t;
-    rename_mailbox_t::address_t rename_addr;
+            mailbox_t<void(std::string)>::address_t
+        ) > change_name_mailbox_t;
+    change_name_mailbox_t::address_t change_name_addr;
 
-    /* The address to send tag-change orders. */
     typedef mailbox_t< void(
             std::set<name_string_t>,
-            mailbox_t<void()>::address_t
-        ) > retag_mailbox_t;
-    retag_mailbox_t::address_t retag_addr;
+            mailbox_t<void(std::string)>::address_t
+        ) > change_tags_mailbox_t;
+    change_tags_mailbox_t::address_t change_tags_addr;
+
+    typedef mailbox_t< void(
+            uint64_t,   /* in bytes */
+            mailbox_t<void(std::string)>::address_t
+        ) > change_cache_size_mailbox_t;
+    change_cache_size_mailbox_t::address_t change_cache_size_addr;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_config_business_card_t);

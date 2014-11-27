@@ -63,7 +63,6 @@ public:
             server_id_t _server_id,
             peer_id_t _peer_id,
             const std::string &_version,
-            uint64_t _cache_size,
             microtime_t _time_started,
             int64_t _pid,
             const std::string &_hostname,
@@ -79,7 +78,6 @@ public:
         server_id(_server_id),
         peer_id(_peer_id),
         version(_version),
-        cache_size(_cache_size),
         time_started(_time_started),
         pid(_pid),
         hostname(_hostname),
@@ -105,7 +103,6 @@ public:
         server_id = other.server_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
-        cache_size = other.cache_size;
         time_started = other.time_started;
         pid = other.pid;
         hostname = std::move(other.hostname);
@@ -129,7 +126,6 @@ public:
 
     /* This group of fields are for showing in `rethinkdb.server_status` */
     std::string version;   /* server version string, e.g. "rethinkdb 1.X.Y ..." */
-    uint64_t cache_size;
     microtime_t time_started;
     int64_t pid;   /* really a `pid_t`, but we need a platform-independent type */
     std::string hostname;

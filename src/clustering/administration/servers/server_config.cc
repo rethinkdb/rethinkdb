@@ -10,6 +10,7 @@ bool convert_server_config_and_name_from_datum(
         name_string_t *name_out,
         server_id_t *server_id_out,
         std::set<name_string_t> *tags_out,
+        uint64_t *cache_size_bytes_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
@@ -50,6 +51,26 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
+    ql::datum_t cache_size_datum;
+    if (!converter.get("cache_size_mb", &cache_size_datum, error_out)) {
+        return false;
+    }
+    if (cache_size_datum.get_type() != ql::datum_t::R_NUM) {
+        *error_out = "In `cache_size_mb`: Expected a number, got " +
+            cache_size_datum.print();
+        return false;
+    }
+    double cache_size_mb = cache_size_datum.as_num();
+    if (cache_size_mb * MEGABYTE > std::numeric_limits<int64_t>::max()) {
+        *error_out = "In `cache_size_mb`: Value is too big.";
+        return false;
+    }
+    if (cache_size_mb < 0) {
+        *error_out = "In `cache_size_mb`: Cache size mustn't be negative.";
+        return false;
+    }
+    *cache_size_bytes_out = cache_size_mb * MEGABYTE;
+
     if (!converter.check_no_extra_keys(error_out)) {
         return false;
     }
@@ -69,6 +90,8 @@ bool server_config_artificial_table_backend_t::format_row(
     builder.overwrite("id", convert_uuid_to_datum(server_id));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum, server_sl.tags.get_ref()));
+    builder.overwrite("cache_size_mb", ql::datum_t(
+        static_cast<double>(server_sl.cache_size_bytes.get_ref()) / MEGABYTE));
 
     *row_out = std::move(builder).to_datum();
 
@@ -103,8 +126,10 @@ bool server_config_artificial_table_backend_t::write_row(
         name_string_t new_server_name;
         server_id_t new_server_id;
         std::set<name_string_t> new_tags;
+        uint64_t new_cache_size_bytes;
         if (!convert_server_config_and_name_from_datum(*new_value_inout,
-                &new_server_name, &new_server_id, &new_tags, error_out)) {
+                &new_server_name, &new_server_id, &new_tags, &new_cache_size_bytes,
+                error_out)) {
             *error_out = "The row you're trying to put into `rethinkdb.server_config` "
                 "has the wrong format. " + *error_out;
             return false;
@@ -112,14 +137,21 @@ bool server_config_artificial_table_backend_t::write_row(
         guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
             "primary key is unchanged.");
         if (new_server_name != server_name) {
-            if (!server_config_client->rename_server(
+            if (!server_config_client->change_server_name(
                     server_id, server_name, new_server_name, &interruptor2, error_out)) {
                 return false;
             }
         }
         if (new_tags != server_sl->tags.get_ref()) {
-            if (!server_config_client->retag_server(
+            if (!server_config_client->change_server_tags(
                     server_id, server_name, new_tags, &interruptor2, error_out)) {
+                return false;
+            }
+        }
+        if (new_cache_size_bytes != server_sl->cache_size_bytes.get_ref()) {
+            if (!server_config_client->change_server_cache_size(
+                    server_id, server_name, new_cache_size_bytes,
+                    &interruptor2, error_out)) {
                 return false;
             }
         }

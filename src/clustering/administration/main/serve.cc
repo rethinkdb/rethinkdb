@@ -82,7 +82,6 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
-              uint64_t total_cache_size,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
     try {
@@ -153,7 +152,6 @@ bool do_serve(io_backender_t *io_backender,
             server_id,
             connectivity_cluster.get_me(),
             RETHINKDB_VERSION_STR,
-            total_cache_size,
             current_microtime(),
             getpid(),
             str_gethostname(),
@@ -313,7 +311,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 // Proxies do not have caches to balance
-                cache_balancer.init(new alt_cache_balancer_t(total_cache_size));
+                cache_balancer.init(new alt_cache_balancer_t(
+                    server_config_server->get_cache_size_bytes()));
             }
 
             // Reactor drivers
@@ -488,7 +487,6 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
@@ -496,7 +494,6 @@ bool serve(io_backender_t *io_backender,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
-                    total_cache_size,
                     serve_info,
                     stop_cond);
 }
@@ -510,7 +507,6 @@ bool serve_proxy(const serve_info_t &serve_info,
                     base_path_t(""),
                     NULL,
                     NULL,
-                    0,
                     serve_info,
                     stop_cond);
 }

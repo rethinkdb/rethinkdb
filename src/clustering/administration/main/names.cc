@@ -111,7 +111,7 @@ char rand_alnum() {
     return (rand_val < 10) ? ('0' + rand_val) : ('a' + rand_val - 10);
 }
 
-name_string_t get_server_name() {
+name_string_t get_default_server_name() {
     char h[64];
     h[sizeof(h) - 1] = '\0';
 

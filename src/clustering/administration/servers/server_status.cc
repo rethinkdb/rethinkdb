@@ -116,13 +116,10 @@ bool server_status_artificial_table_backend_t::format_row(
             convert_microtime_to_datum(directory->time_started));
         proc_builder.overwrite("version",
             ql::datum_t(datum_string_t(directory->version)));
-        proc_builder.overwrite("cache_size_mb",
-            ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
         proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
     } else {
         proc_builder.overwrite("time_started", ql::datum_t::null());
         proc_builder.overwrite("version", ql::datum_t::null());
-        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
         proc_builder.overwrite("pid", ql::datum_t::null());
     }
     builder.overwrite("process", std::move(proc_builder).to_datum());

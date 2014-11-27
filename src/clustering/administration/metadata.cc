@@ -17,16 +17,19 @@ migrate serialized metadata from pre-ReQL-admin versions into the new format. Gi
 issue #2869 is tracking this discussion. As a temporary measure so that development can
 proceed, deserialization of old versions has been disabled. */
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(server_semilattice_metadata_t, name, tags);
-RDB_IMPL_SEMILATTICE_JOINABLE_2(server_semilattice_metadata_t, name, tags);
-RDB_IMPL_EQUALITY_COMPARABLE_2(server_semilattice_metadata_t, name, tags);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(server_semilattice_metadata_t,
+                                    name, tags, cache_size_bytes);
+RDB_IMPL_SEMILATTICE_JOINABLE_3(server_semilattice_metadata_t,
+                                name, tags, cache_size_bytes);
+RDB_IMPL_EQUALITY_COMPARABLE_3(server_semilattice_metadata_t,
+                               name, tags, cache_size_bytes);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(servers_semilattice_metadata_t, servers);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
 RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
 
-RDB_IMPL_SERIALIZABLE_2(server_config_business_card_t,
-                        rename_addr, retag_addr);
+RDB_IMPL_SERIALIZABLE_3(server_config_business_card_t,
+                        change_name_addr, change_tags_addr, change_cache_size_addr);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_config_business_card_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(
@@ -41,11 +44,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_17_FOR_CLUSTER(cluster_directory_metadata_t,
+RDB_IMPL_SERIALIZABLE_16_FOR_CLUSTER(cluster_directory_metadata_t,
      server_id,
      peer_id,
      version,
-     cache_size,
      time_started,
      pid,
      hostname,
@@ -65,7 +67,6 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metad
     json_adapter_if_t::json_adapter_map_t res;
     res["server_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<server_id_t>(&target->server_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
-    res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint64_t>(&target->cache_size));
     res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t>(&target->peer_type));
     return res;
 }
