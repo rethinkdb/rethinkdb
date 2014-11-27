@@ -113,19 +113,32 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     maybe_append_result(cluster_stats_request_t(),
                         parsed_stats, metadata, admin_format, rows_out);
 
-    for (auto const &pair : parsed_stats.servers) {
-        maybe_append_result(server_stats_request_t(pair.first),
+    for (auto const &server_pair : metadata.servers.servers) {
+        if (server_pair.second.is_deleted()) {
+            continue;
+        }
+        maybe_append_result(server_stats_request_t(server_pair.first),
                             parsed_stats, metadata, admin_format, rows_out);
     }
 
-    for (auto const &table_id : parsed_stats.all_table_ids) {
-        maybe_append_result(table_stats_request_t(table_id),
+    for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
+        if (table_pair.second.is_deleted()) {
+            continue;
+        }
+        maybe_append_result(table_stats_request_t(table_pair.first),
                             parsed_stats, metadata, admin_format, rows_out);
     }
 
-    for (auto const &pair : parsed_stats.servers) {
-        for (auto const &table_id : parsed_stats.all_table_ids) {
-            maybe_append_result(table_server_stats_request_t(table_id, pair.first),
+    for (auto const &server_pair : metadata.servers.servers) {
+        if (server_pair.second.is_deleted()) {
+            continue;
+        }
+        for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
+            if (table_pair.second.is_deleted()) {
+                continue;
+            }
+            maybe_append_result(table_server_stats_request_t(table_pair.first,
+                                                             server_pair.first),
                                 parsed_stats, metadata, admin_format, rows_out);
         }
     }
@@ -171,18 +184,19 @@ bool stats_artificial_table_backend_t::read_row(
 
     // Save the metadata from when we sent the request to avoid race conditions
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
-    std::vector<std::pair<server_id_t, peer_id_t> > peers;
     std::map<server_id_t, ql::datum_t> results_map;
 
     if (!request.has() ||
-        !request->check_existence(metadata) ||
-        !request->get_peers(name_client, &peers) ||
-        peers.empty()) {
+        !request->check_existence(metadata)) {
         *row_out = ql::datum_t();
         return true;
     }
 
-    perform_stats_request(peers, request->get_filter(), &results_map, &ct_interruptor);
+    perform_stats_request(request->get_peers(name_client),
+                          request->get_filter(),
+                          &results_map,
+                          &ct_interruptor);
+
     parsed_stats_t parsed_stats(results_map);
     bool to_datum_res = request->to_datum(parsed_stats, metadata, admin_format, row_out);
 

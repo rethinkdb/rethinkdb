@@ -143,7 +143,6 @@ void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
         r_sanity_check(sers_perf.get_type() == ql::datum_t::R_OBJECT);
         table_stats_t &table_stats_out = stats_out->tables[table_id];
         table_stats_out = { };
-        all_table_ids.insert(table_id);
 
         add_shard_values(sers_perf, &table_stats_out);
 
@@ -279,11 +278,9 @@ std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const 
           {".*", "serializers", "shard[0-9]+", "keys_.*" } });
 }
 
-bool cluster_stats_request_t::get_peers(
-        server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
-    *peers_out = all_peers(name_client);
-    return true;
+std::vector<std::pair<server_id_t, peer_id_t> > cluster_stats_request_t::get_peers(
+        server_name_client_t *name_client) const {
+    return all_peers(name_client);
 }
 
 bool cluster_stats_request_t::check_existence(const metadata_t &) const {
@@ -294,8 +291,10 @@ bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
                                        const metadata_t &,
                                        admin_identifier_format_t,
                                        ql::datum_t *result_out) const {
+    ql::datum_object_builder_t row_builder;
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
+    row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_object_builder_t qe_builder;
     ADD_CLUSTER_SERVER_STAT(qe_builder, stats, queries_per_sec);
@@ -303,11 +302,9 @@ bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
     ADD_CLUSTER_SERVER_STAT(qe_builder, stats, clients_active);
     ADD_CLUSTER_TABLE_STAT(qe_builder, stats, read_docs_per_sec);
     ADD_CLUSTER_TABLE_STAT(qe_builder, stats, written_docs_per_sec);
+    row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
 
-    ql::datum_object_builder_t builder;
-    builder.overwrite("id", std::move(id_builder).to_datum());
-    builder.overwrite("query_engine", std::move(qe_builder).to_datum());
-    *result_out = std::move(builder).to_datum();
+    *result_out = std::move(row_builder).to_datum();
     return true;
 }
 
@@ -339,11 +336,9 @@ std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
         { uuid_to_str(table_id), "serializers", "shard[0-9]+", "keys_.*" } });
 }
 
-bool table_stats_request_t::get_peers(
-        server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
-    *peers_out = all_peers(name_client);
-    return true;
+std::vector<std::pair<server_id_t, peer_id_t> > table_stats_request_t::get_peers(
+        server_name_client_t *name_client) const {
+    return all_peers(name_client);
 }
 
 bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -357,20 +352,21 @@ bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
                                      const metadata_t &metadata,
                                      admin_identifier_format_t admin_format,
                                      ql::datum_t *result_out) const {
+    ql::datum_object_builder_t row_builder;
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(table_id));
+    row_builder.overwrite("id", std::move(id_builder).to_datum());
+
+    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
 
     ql::datum_object_builder_t qe_builder;
     ADD_TABLE_STAT(qe_builder, stats, table_id, read_docs_per_sec);
     ADD_TABLE_STAT(qe_builder, stats, table_id, written_docs_per_sec);
-
-    ql::datum_object_builder_t row_builder;
-    row_builder.overwrite("id", std::move(id_builder).to_datum());
     row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
-    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
-        return false;
-    }
+
     *result_out = std::move(row_builder).to_datum();
     return true;
 }
@@ -404,17 +400,14 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
           {".*", "serializers", "shard[0-9]+", "keys_.*" } });
 }
 
-bool server_stats_request_t::get_peers(
-        server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
+std::vector<std::pair<server_id_t, peer_id_t> > server_stats_request_t::get_peers(
+        server_name_client_t *name_client) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        return false;
+        return std::vector<std::pair<server_id_t, peer_id_t> >();
     }
-
-    *peers_out = std::vector<std::pair<server_id_t, peer_id_t> >(1,
+    return std::vector<std::pair<server_id_t, peer_id_t> >(1,
         std::make_pair(server_id, peer.get()));
-    return true;
 }
 
 bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -426,18 +419,22 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                       const metadata_t &metadata,
                                       admin_identifier_format_t admin_format,
                                       ql::datum_t *result_out) const {
+    ql::datum_object_builder_t row_builder;
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(server_id));
+    row_builder.overwrite("id", std::move(id_builder).to_datum());
+
+    if (!add_server_fields(server_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
 
     auto const &server_it = stats.servers.find(server_id);
-    r_sanity_check(server_it != stats.servers.end());
-    const parsed_stats_t::server_stats_t &server_stats = server_it->second;
-
-    ql::datum_object_builder_t row_builder;
-    if (!server_stats.responsive) {
+    if (server_it == stats.servers.end() ||
+        !server_it->second.responsive) {
         row_builder.overwrite("error", ql::datum_t("Timed out. Unable to retrieve stats."));
     } else {
+        const parsed_stats_t::server_stats_t &server_stats = server_it->second;
         ql::datum_object_builder_t qe_builder;
         ADD_STAT(qe_builder, server_stats, client_connections);
         ADD_STAT(qe_builder, server_stats, clients_active);
@@ -448,11 +445,6 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
         ADD_SERVER_STAT(qe_builder, stats, server_id, written_docs_per_sec);
         ADD_SERVER_STAT(qe_builder, stats, server_id, written_docs_total);
         row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
-    }
-
-    row_builder.overwrite("id", std::move(id_builder).to_datum());
-    if (!add_server_fields(server_id, metadata, admin_format, &row_builder)) {
-        return false;
     }
     *result_out = std::move(row_builder).to_datum();
     return true;
@@ -491,16 +483,14 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
         { uuid_to_str(table_id), "serializers" } });
 }
 
-bool table_server_stats_request_t::get_peers(server_name_client_t *name_client,
-               std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
+std::vector<std::pair<server_id_t, peer_id_t> > table_server_stats_request_t::get_peers(
+        server_name_client_t *name_client) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        return false;
+        return std::vector<std::pair<server_id_t, peer_id_t> >();
     }
-
-    *peers_out = std::vector<std::pair<server_id_t, peer_id_t> >(1,
+    return std::vector<std::pair<server_id_t, peer_id_t> >(1,
         std::make_pair(server_id, peer.get()));
-    return true;
 }
 
 bool table_server_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -519,15 +509,21 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                             const metadata_t &metadata,
                                             admin_identifier_format_t admin_format,
                                             ql::datum_t *result_out) const {
+    ql::datum_object_builder_t row_builder;
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(table_id));
     id_builder.add(convert_uuid_to_datum(server_id));
+    row_builder.overwrite("id", std::move(id_builder).to_datum());
 
-    ql::datum_object_builder_t row_builder;
-    auto const server_it = stats.servers.find(server_id);
-    r_sanity_check(server_it != stats.servers.end());
-    if (!server_it->second.responsive) {
+    if (!add_server_fields(server_id, metadata, admin_format, &row_builder) ||
+        !add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
+
+    auto const &server_it = stats.servers.find(server_id);
+    if (server_it == stats.servers.end() ||
+        !server_it->second.responsive) {
         row_builder.overwrite("error", ql::datum_t("Timed out. Unable to retrieve stats."));
     } else {
         auto const table_it = server_it->second.tables.find(table_id);
@@ -564,12 +560,6 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
 
         row_builder.overwrite("query_engine", std::move(qe_builder).to_datum());
         row_builder.overwrite("storage_engine", std::move(se_builder).to_datum());
-    }
-
-    row_builder.overwrite("id", std::move(id_builder).to_datum());
-    if (!add_server_fields(server_id, metadata, admin_format, &row_builder) ||
-        !add_table_fields(table_id, metadata, admin_format, &row_builder)) {
-        return false;
     }
     *result_out = std::move(row_builder).to_datum();
     return true;

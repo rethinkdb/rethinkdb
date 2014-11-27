@@ -59,7 +59,6 @@ public:
                              double table_stats_t::*field) const;
 
     std::map<server_id_t, server_stats_t> servers;
-    std::set<namespace_id_t> all_table_ids;
 
 private:
     void add_perfmon_value(const ql::datum_t &perf,
@@ -94,8 +93,8 @@ public:
     virtual std::set<std::vector<std::string> > get_filter() const = 0;
 
     // Gets the list of servers/peers the request should be sent to
-    virtual bool get_peers(server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const = 0;
+    virtual std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+        server_name_client_t *name_client) const = 0;
 
     // Checks that the requested entity exists in the metadata
     virtual bool check_existence(const metadata_t &metadata) const = 0;
@@ -118,8 +117,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+        server_name_client_t *name_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
@@ -142,8 +141,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+        server_name_client_t *name_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
@@ -165,8 +164,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+        server_name_client_t *name_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
@@ -190,8 +189,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+        server_name_client_t *name_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
