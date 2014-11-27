@@ -80,7 +80,6 @@ class squashing_queue_t : public maybe_squashing_queue_t {
         }
         it->second.second = new_val;
         if (it->second.first == it->second.second) {
-            // RSI: make sure to test case where we squash down to no changes.
             queue.erase(it);
         }
     }
@@ -998,6 +997,8 @@ private:
     const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
+    virtual void note_data_wait() = 0;
+    virtual bool active() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -1031,6 +1032,7 @@ protected:
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
     virtual bool has_el() { return queue->size() != 0; }
+    virtual void note_data_wait() { }
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
 };
 
@@ -1146,7 +1148,6 @@ real_feed_t::real_feed_t(client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
-                         // RSI: remove // std::string pkey,
                          signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
@@ -1251,14 +1252,16 @@ class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
     point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
-        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0) {
+        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0), started(false) {
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
         destructor_cleanup(
             std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
     }
-    virtual void start_artificial(const uuid_u &) { } // `stamp` already 0
+    virtual void start_artificial(const uuid_u &) {
+        started = true;
+    }
     virtual void start_real(env_t *env,
                             std::string,
                             namespace_interface_t *nif,
@@ -1283,6 +1286,7 @@ public:
             stamp = start_stamp;
             el = std::move(resp->initial_val);
         }
+        started = true;
     }
     virtual bool update_stamp(const uuid_u &, uint64_t new_stamp) {
         if (new_stamp >= stamp) {
@@ -1293,10 +1297,12 @@ public:
     }
 private:
     virtual datum_t pop_el() { return queue->pop(pop_type_t::POINT); }
+    virtual bool active() { return started; }
 
     store_key_t key;
     uint64_t stamp;
     datum_t el;
+    bool started;
 };
 
 class range_sub_t : public flat_sub_t {
@@ -1347,7 +1353,7 @@ public:
         return spec.range.to_primary_keyrange().contains_key(pkey);
     }
 
-    bool active() {
+    virtual bool active() {
         // If we don't have start timestamps, we haven't started, and if we have
         // exc, we've stopped.
         return start_stamps.size() != 0 && !exc;
@@ -1413,6 +1419,16 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
+    void drain_queue() {
+        decltype(queued_changes) changes;
+        changes.swap(queued_changes);
+        for (const auto &pair : changes) {
+            note_change(pair.first, pair.second);
+        }
+        guarantee(queued_changes.size() == 0);
+        maybe_signal_cond();
+    }
+
     void maybe_start() {
         // When we later support not always returning the initial set, that
         // logic should go here.
@@ -1426,9 +1442,62 @@ public:
             }
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
-            for (auto &&pair : changes) {
+            for (const auto &pair : changes) {
                 note_change(pair.first, pair.second);
             }
+            guarantee(queued_changes.size() == 0);
+            maybe_signal_cond();
+        }
+    }
+
+    // For limit changefeeds, the easiest way to effectively squash changes is
+    // to delay applying them to the active data set until our timer is up.
+    virtual void note_data_wait() {
+        ASSERT_NO_CORO_WAITING;
+        if (queued_changes.size() != 0 && need_init == got_init) {
+            guarantee(squash);
+            decltype(queued_changes) changes;
+            changes.swap(queued_changes);
+
+            std::vector<std::pair<datum_t, datum_t> > pairs;
+            // This has to be a multimap because of multi-indexes.
+            std::multimap<datum_t, decltype(pairs)::iterator,
+                          std::function<bool(const datum_t &, const datum_t &)> >
+                new_val_index(
+                    [](const datum_t &a, const datum_t &b) {
+                        if (!a.has() || !b.has()) {
+                            return a.has() < b.has();
+                        } else {
+                            return a.compare_lt(reql_version_t::LATEST, b);
+                        }
+                    });
+
+            // We do things this way rather than simply diffing the active sets
+            // because it's easier to avoid irrational intermediate states.
+            for (const auto &change_pair : changes) {
+                std::pair<datum_t, datum_t> pair
+                    = note_change_impl(change_pair.first, change_pair.second);
+                if (pair.first.has() || pair.second.has()) {
+                    auto it = new_val_index.find(pair.first);
+                    decltype(pairs)::iterator pairs_it;
+                    if (it == new_val_index.end()) {
+                        pairs.push_back(pair);
+                        pairs_it = pairs.end()-1;
+                    } else {
+                        pairs_it = it->second;
+                        pairs_it->second = pair.second;
+                        new_val_index.erase(it);
+                    }
+                    new_val_index.insert(std::make_pair(pair.second, pairs_it));
+                }
+            }
+
+            for (auto &&pair : pairs) {
+                if (pair.first != pair.second) {
+                    push_el(std::move(pair.first), std::move(pair.second));
+                }
+            }
+
             guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
         }
@@ -1497,17 +1566,39 @@ public:
         maybe_start();
     }
 
+    void push_el(datum_t old_val, datum_t new_val) {
+        // Empty changes should have been caught above us.
+        guarantee(old_val.has() || new_val.has());
+        els.push_back(
+            datum_t(std::map<datum_string_t, datum_t> {
+                { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
+                { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() }
+            }));
+        maybe_signal_cond();
+    }
+
     virtual void note_change(
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
         // If we aren't done initializing yet, just queue up the change.  It
-        // will be sent in `maybe_start`.
-        if (need_init != got_init) {
+        // will be sent in `maybe_start`.  We also queue up changes in the case
+        // where we're squashing.
+        if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
-            return;
+        } else {
+            std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
+            if (pair.first.has() || pair.second.has()) {
+                push_el(std::move(pair.first), std::move(pair.second));
+            }
         }
+    }
+
+    std::pair<datum_t, datum_t> note_change_impl(
+        const boost::optional<std::string> &old_key,
+        const boost::optional<item_t> &new_val) {
+        ASSERT_NO_CORO_WAITING;
 
         boost::optional<item_t> old_send, new_send;
         if (old_key) {
@@ -1565,20 +1656,16 @@ public:
         guarantee(active_data.size() == spec.limit
                   || active_data.size() == item_queue.size());
 
-        if ((old_send || new_send)
-            && !(old_send && new_send && (*old_send == *new_send))) {
-            datum_t d =
-                datum_t(std::map<datum_string_t, datum_t> {
-                    { datum_string_t("old_val"),
-                      old_send ? (*old_send).second.second : datum_t::null() },
-                    { datum_string_t("new_val"),
-                      new_send ? (*new_send).second.second : datum_t::null() } });
-            els.push_back(d);
-            maybe_signal_cond();
+        datum_t old_d = old_send ? (*old_send).second.second : datum_t();
+        datum_t new_d = new_send ? (*new_send).second.second : datum_t();
+        if (old_d.has() && new_d.has() && old_d == new_d) {
+            old_d = new_d = datum_t();
         }
+        return std::make_pair(old_d, new_d);
     }
 
     virtual bool has_el() { return els.size() != 0; }
+    virtual bool active() { return need_init == got_init; }
     virtual datum_t pop_el() {
         guarantee(has_el());
         datum_t ret = std::move(els.front());
@@ -1793,7 +1880,6 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-
 subscription_t::subscription_t(feed_t *_feed, const datum_t &_squash)
     : skipped(0),
       feed(_feed),
@@ -1811,48 +1897,49 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
 
-    if (!exc && skipped == 0) {
-        // We wait for data if we don't have any or if we're squashing and not
-        // in the middle of a logical batch.
-        if (!has_el() || (!mid_batch && min_interval > 0.0)) {
-            signal_timer_t timer;
-            if (batcher->get_batch_type() == batch_type_t::NORMAL
-                || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-                timer.start(batcher->microtime_left() / 1000);
+    // We wait for data if we don't have any or if we're squashing and not
+    // in the middle of a logical batch.
+    if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
+        signal_timer_t timer;
+        if (batcher->get_batch_type() == batch_type_t::NORMAL
+            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+            timer.start(batcher->microtime_left() / 1000);
+        }
+        // If we have to wait, wait.
+        if (min_interval > 0.0
+            && active()
+            && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
+            signal_timer_t min_timer;
+            min_timer.start(min_interval * 1000);
+            // It's OK to let the `interrupted_exc_t` propagate up.
+            wait_interruptible(&min_timer, interruptor);
+        }
+        // If we still don't have data, wait for data with a timeout.  (Note
+        // that if we're squashing, we started the timeout *before* waiting
+        // on `min_timer`.)
+        if (!has_el()) {
+            note_data_wait();
+            cond_t wait_for_data;
+            cond = &wait_for_data;
+            try {
+                wait_any_t any_interruptor(interruptor, &timer);
+                // We don't need to wait on the drain signal because the interruptor
+                // will be pulsed if we're shutting down.  Not that `cond` might
+                // already be reset by the time we get here, so make sure to wait on
+                // `&wait_for_data`.
+                wait_interruptible(&wait_for_data, &any_interruptor);
+            } catch (const interrupted_exc_t &e) {
+                cond = NULL;
+                if (timer.is_pulsed()) {
+                    return std::vector<datum_t>();
+                }
+                throw e;
             }
-            // If we have to wait, wait.
-            if (min_interval > 0.0) {
-                signal_timer_t min_timer;
-                min_timer.start(min_interval * 1000);
-                // It's OK to let the `interrupted_exc_t` propagate up.
-                wait_interruptible(&min_timer, interruptor);
-            }
-            // If we still don't have data, wait for data with a timeout.  (Note
-            // that if we're squashing, we started the timeout *before* waiting
-            // on `min_timer`.)
+            guarantee(cond == NULL);
             if (!has_el()) {
-                cond_t wait_for_data;
-                cond = &wait_for_data;
-                try {
-                    wait_any_t any_interruptor(interruptor, &timer);
-                    // We don't need to wait on the drain signal because the interruptor
-                    // will be pulsed if we're shutting down.  Not that `cond` might
-                    // already be reset by the time we get here, so make sure to wait on
-                    // `&wait_for_data`.
-                    wait_interruptible(&wait_for_data, &any_interruptor);
-                } catch (const interrupted_exc_t &e) {
-                    cond = NULL;
-                    if (timer.is_pulsed()) {
-                        return std::vector<datum_t>();
-                    }
-                    throw e;
-                }
-                guarantee(cond == NULL);
-                if (!has_el()) {
-                    // If we don't have an element, it must be because we squashed
-                    // changes down to nothing, got an error, or skipped some rows.
-                    guarantee(squash || exc || skipped != 0);
-                }
+                // If we don't have an element, it must be because we squashed
+                // changes down to nothing, got an error, or skipped some rows.
+                guarantee(squash || exc || skipped != 0);
             }
         }
     }
@@ -1870,8 +1957,6 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else if (has_el()) {
-        // RSI: handle case where batch is too big to send all at once
-        // (i.e. don't wait `min_interval` again).
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
             batcher->note_el(el);
