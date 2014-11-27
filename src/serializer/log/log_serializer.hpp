@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 
+#include "arch/types.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
@@ -14,6 +15,7 @@
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/scoped.hpp"
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -151,8 +153,7 @@ public:
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
-                     const std::vector<index_write_op_t> &write_ops,
-                     file_account_t *io_account);
+                     const std::vector<index_write_op_t> &write_ops);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);
@@ -249,6 +250,7 @@ private:
     } state;
 
     file_t *dbfile;
+    scoped_ptr_t<file_account_t> index_writes_io_account;
 
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;

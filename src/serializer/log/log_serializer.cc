@@ -196,6 +196,8 @@ struct ls_start_existing_fsm_t :
         scoped_ptr_t<file_t> dbfile;
         file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
+        ser->index_writes_io_account.init(
+            new file_account_t(ser->dbfile, INDEX_WRITE_IO_PRIORITY));
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
@@ -447,8 +449,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                   const std::vector<index_write_op_t> &write_ops,
-                                   file_account_t *io_account) {
+                                   const std::vector<index_write_op_t> &write_ops) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -498,11 +499,11 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             lba_index->set_block_info(op.block_id, recency,
                                       offset, ser_block_size,
-                                      io_account, &txn);
+                                      index_writes_io_account.get(), &txn);
         }
     }
 
-    index_write_finish(mutex_acq, &txn, io_account);
+    index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -863,6 +864,7 @@ bool log_serializer_t::next_shutdown_step() {
 }
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {
+    index_writes_io_account.reset();
     rassert(dbfile != NULL);
     delete dbfile;
     dbfile = NULL;

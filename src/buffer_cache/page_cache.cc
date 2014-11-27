@@ -1307,8 +1307,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         rassert(!write_ops.empty());
         mutex_acq.acq_signal()->wait();
         page_cache->serializer_->index_write(&mutex_acq,
-                                             write_ops,
-                                             page_cache->writes_io_account_.get());
+                                             write_ops);
     }
 
     // Set the page_t's block token field to their new block tokens.  KSI: Can we

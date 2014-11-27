@@ -51,6 +51,9 @@
 // useful.
 #define DEFAULT_IO_BATCH_FACTOR                   1
 
+// I/O priority of index writes in the log serializer
+#define INDEX_WRITE_IO_PRIORITY                   128
+
 // Currently, each cache uses two IO accounts:
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
@@ -91,10 +94,6 @@
 // There is a theoretic chance of increased latencies on SSDs for
 // small values of this variable.
 #define MERGER_SERIALIZER_MAX_ACTIVE_WRITES       1
-
-// I/O priority of (merged) index writes used by the
-// merger serializer.
-#define MERGED_INDEX_WRITE_IO_PRIORITY            128
 
 
 // Maximum number of threads we support
