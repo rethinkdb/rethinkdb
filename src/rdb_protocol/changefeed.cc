@@ -1419,16 +1419,6 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
-    void drain_queue() {
-        decltype(queued_changes) changes;
-        changes.swap(queued_changes);
-        for (const auto &pair : changes) {
-            note_change(pair.first, pair.second);
-        }
-        guarantee(queued_changes.size() == 0);
-        maybe_signal_cond();
-    }
-
     void maybe_start() {
         // When we later support not always returning the initial set, that
         // logic should go here.
