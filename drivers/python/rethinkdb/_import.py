@@ -693,6 +693,8 @@ def tables_check(progress, conn, files_info, force):
     # Ensure that all needed databases exist and tables don't
     db_list = r.db_list().run(conn)
     for db in set([file_info["db"] for file_info in files_info]):
+        if db == "rethinkdb":
+            raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
         if db not in db_list:
             r.db_create(db).run(conn)
 
@@ -780,6 +782,9 @@ def import_directory(options):
     spawn_import_clients(options, files_info)
 
 def table_check(progress, conn, db, table, pkey, force):
+    if db == "rethinkdb":
+        raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
+
     if db not in r.db_list().run(conn):
         r.db_create(db).run(conn)
 
