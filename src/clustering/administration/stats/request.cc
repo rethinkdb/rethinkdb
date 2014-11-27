@@ -30,10 +30,22 @@ const char *table_server_stats_request_t::table_server_request_type = "table_ser
     (BUILDER).overwrite(#NAME, ql::datum_t( \
         (STATS).accumulate_server(SERVER, &parsed_stats_t::table_stats_t::NAME)));
 
+parsed_stats_t::server_stats_t::server_stats_t() :
+    responsive(false),
+    queries_per_sec(0), queries_total(0),
+    client_connections(0), clients_active(0) { }
+
+parsed_stats_t::table_stats_t::table_stats_t() :
+    read_docs_per_sec(0), read_docs_total(0),
+    written_docs_per_sec(0), written_docs_total(0),
+    in_use_bytes(0), metadata_bytes(0), data_bytes(0),
+    garbage_bytes(0), preallocated_bytes(0),
+    read_bytes_per_sec(0), read_bytes_total(0),
+    written_bytes_per_sec(0), written_bytes_total(0) { }
+
 parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) {
     for (auto const &serv_pair : stats) {
         server_stats_t &serv_stats = servers[serv_pair.first];
-        serv_stats = { };
 
         if (!serv_pair.second.has()) {
             continue;
@@ -142,7 +154,6 @@ void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
     if (sers_perf.has()) {
         r_sanity_check(sers_perf.get_type() == ql::datum_t::R_OBJECT);
         table_stats_t &table_stats_out = stats_out->tables[table_id];
-        table_stats_out = { };
 
         add_shard_values(sers_perf, &table_stats_out);
 
@@ -527,7 +538,7 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
         row_builder.overwrite("error", ql::datum_t("Timed out. Unable to retrieve stats."));
     } else {
         auto const table_it = server_it->second.tables.find(table_id);
-        parsed_stats_t::table_stats_t table_stats = { };
+        parsed_stats_t::table_stats_t table_stats;
         if (table_it != server_it->second.tables.end()) {
             table_stats = table_it->second;
         }

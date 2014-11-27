@@ -16,12 +16,13 @@ class server_name_client_t;
 class parsed_stats_t {
 public:
     struct table_stats_t {
+        table_stats_t();
+
         double read_docs_per_sec;
         double read_docs_total;
         double written_docs_per_sec;
         double written_docs_total;
         double in_use_bytes;
-        double cache_size;
         double metadata_bytes;
         double data_bytes;
         double garbage_bytes;
@@ -33,6 +34,8 @@ public:
     };
 
     struct server_stats_t {
+        server_stats_t();
+
         bool responsive;
         double queries_per_sec;
         double queries_total;
