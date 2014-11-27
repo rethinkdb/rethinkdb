@@ -115,6 +115,11 @@ private:
     DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
 
+/* `all_thread_watchable_variable_t` is like a `cross_thread_watchable_variable_t` except
+that `get_watchable()` works on every thread, not just a specified thread. Internally it
+constructs one `cross_thread_watchable_variable_t` for each thread, so it's a pretty
+heavy-weight object. */
+
 template<class value_t>
 class all_thread_watchable_variable_t {
 public:
