@@ -76,6 +76,19 @@ void stats_artificial_table_backend_t::perform_stats_request(
         });
 }
 
+// A row is excluded if it fails to convert to a datum - which should only
+// happen if the entity was deleted from the metadata
+void maybe_append_result(const stats_request_t &request,
+                         const parsed_stats_t &parsed_stats,
+                         const cluster_semilattice_metadata_t &metadata,
+                         admin_identifier_format_t admin_format,
+                         std::vector<ql::datum_t> *rows_out) {
+    ql::datum_t row;
+    if (request.to_datum(parsed_stats, metadata, admin_format, &row)) {
+        rows_out->push_back(row);
+    }
+}
+
 bool stats_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
@@ -97,37 +110,23 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
 
     // Start building results
     rows_out->clear();
-    {
-        ql::datum_t row;
-        if (cluster_stats_request_t().to_datum(result_map, metadata, admin_format, &row)) {
-            rows_out->push_back(std::move(row));
-        }
-    }
+    maybe_append_result(cluster_stats_request_t(),
+                        parsed_stats, metadata, admin_format, rows_out);
 
     for (auto const &pair : parsed_stats.servers) {
-        ql::datum_t row;
-        if (server_stats_request_t(pair.first).to_datum(parsed_stats, metadata,
-                                                        admin_format, &row)) {
-            rows_out->push_back(row);
-        }
+        maybe_append_result(server_stats_request_t(pair.first),
+                            parsed_stats, metadata, admin_format, rows_out);
     }
 
     for (auto const &table_id : parsed_stats.all_table_ids) {
-        ql::datum_t row;
-        if (table_stats_request_t(table_id).to_datum(parsed_stats, metadata,
-                                                     admin_format, &row)) {
-            rows_out->push_back(row);
-        }
+        maybe_append_result(table_stats_request_t(table_id),
+                            parsed_stats, metadata, admin_format, rows_out);
     }
 
     for (auto const &pair : parsed_stats.servers) {
         for (auto const &table_id : parsed_stats.all_table_ids) {
-            ql::datum_t row;
-            if (table_server_stats_request_t(table_id,
-                                             pair.first).to_datum(parsed_stats, metadata,
-                                                                  admin_format, &row)) {
-                rows_out->push_back(row);
-            }
+            maybe_append_result(table_server_stats_request_t(table_id, pair.first),
+                                parsed_stats, metadata, admin_format, rows_out);
         }
     }
 
@@ -136,10 +135,9 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
 
 template <class T>
 bool parse_stats_request(const ql::datum_t &info,
-                         scoped_ptr_t<stats_request_t> *request_out,
-                         std::string *error_out) {
+                         scoped_ptr_t<stats_request_t> *request_out) {
     if (info.get(0).as_str() == T::get_name()) {
-        if (!T::parse(info, request_out, error_out)) {
+        if (!T::parse(info, request_out)) {
             return false;
         }
     }
@@ -150,59 +148,46 @@ bool stats_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
         signal_t *interruptor,
         ql::datum_t *row_out,
-        std::string *error_out) {
+        UNUSED std::string *error_out) {
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t rethreader(home_thread());
 
-    // TODO: better error messages
-    if (primary_key.get_type() != ql::datum_t::R_ARRAY) {
-        *error_out = "A stats request needs to be an array.";
-        return false;
-    }
-    if (primary_key.arr_size() == 0) {
-        *error_out = "The stats request is empty.";
-        return false;
-    }
-
-    if (primary_key.get(0).get_type() != ql::datum_t::R_STR) {
-        *error_out = "The first element of a stats request must be a string.";
-        return false;
+    // Check format - any incorrect format means the row doesn't exist
+    if (primary_key.get_type() != ql::datum_t::R_ARRAY ||
+        primary_key.arr_size() == 0 ||
+        primary_key.get(0).get_type() != ql::datum_t::R_STR) {
+        *row_out = ql::datum_t();
+        return true;
     }
 
     scoped_ptr_t<stats_request_t> request;
-    if (!parse_stats_request<cluster_stats_request_t>(primary_key, &request, error_out) ||
-        !parse_stats_request<table_stats_request_t>(primary_key, &request, error_out) ||
-        !parse_stats_request<server_stats_request_t>(primary_key, &request, error_out) ||
-        !parse_stats_request<table_server_stats_request_t>(primary_key, &request, error_out)) {
-        return false;
+    if (!parse_stats_request<cluster_stats_request_t>(primary_key, &request) ||
+        !parse_stats_request<table_stats_request_t>(primary_key, &request) ||
+        !parse_stats_request<server_stats_request_t>(primary_key, &request) ||
+        !parse_stats_request<table_server_stats_request_t>(primary_key, &request)) {
+        *row_out = ql::datum_t();
+        return true;
     }
 
-    if (!request.has()) {
-        *error_out = strprintf("Unknown stats request type '%s', available types are "
-                               "'%s', '%s', '%s', or '%s'.",
-                               primary_key.get(0).as_str().to_std().c_str(),
-                               cluster_stats_request_t::get_name(),
-                               table_stats_request_t::get_name(),
-                               server_stats_request_t::get_name(),
-                               table_server_stats_request_t::get_name());
-        return false;
-    }
-
+    // Save the metadata from when we sent the request to avoid race conditions
+    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     std::vector<std::pair<server_id_t, peer_id_t> > peers;
     std::map<server_id_t, ql::datum_t> results_map;
-    if (!request->get_peers(name_client, &peers, error_out)) {
-        return false;
-    }
 
-    // Save the metadata from when we sent the requests to avoid race conditions
-    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
+    if (!request.has() ||
+        !request->check_existence(metadata) ||
+        !request->get_peers(name_client, &peers) ||
+        peers.empty()) {
+        *row_out = ql::datum_t();
+        return true;
+    }
 
     perform_stats_request(peers, request->get_filter(), &results_map, &ct_interruptor);
     parsed_stats_t parsed_stats(results_map);
-    if (!request->to_datum(parsed_stats, metadata, admin_format, row_out)) {
-        // The row was rejected due to an entity missing in the metadata
-        *row_out = ql::datum_t();
-    }
+    bool to_datum_res = request->to_datum(parsed_stats, metadata, admin_format, row_out);
+
+     // The stats request target should have been located earlier in `check_existence`
+    r_sanity_check(to_datum_res);
     return true;
 }
 

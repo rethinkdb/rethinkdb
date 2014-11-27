@@ -90,12 +90,17 @@ public:
 
     virtual ~stats_request_t() { }
 
+    // Gets the regex filter to be applied to the perfmons on every server
     virtual std::set<std::vector<std::string> > get_filter() const = 0;
 
+    // Gets the list of servers/peers the request should be sent to
     virtual bool get_peers(server_name_client_t *name_client,
-                           std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-                           std::string *error_out) const = 0;
+        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const = 0;
 
+    // Checks that the requested entity exists in the metadata
+    virtual bool check_existence(const metadata_t &metadata) const = 0;
+
+    // Converts stats from the response into the row format for the stats table
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           admin_identifier_format_t admin_format,
@@ -107,16 +112,16 @@ class cluster_stats_request_t : public stats_request_t {
 public:
     static const char *get_name() { return cluster_request_type; }
     static bool parse(const ql::datum_t &info,
-                      scoped_ptr_t<stats_request_t> *request_out,
-                      std::string *error_out);
+                      scoped_ptr_t<stats_request_t> *request_out);
 
     cluster_stats_request_t();
 
     std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-                   std::string *error_out) const;
+                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+
+    bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
@@ -131,16 +136,16 @@ public:
 
     static const char *get_name() { return table_request_type; }
     static bool parse(const ql::datum_t &info,
-                      scoped_ptr_t<stats_request_t> *request_out,
-                      std::string *error_out);
+                      scoped_ptr_t<stats_request_t> *request_out);
 
     explicit table_stats_request_t(const namespace_id_t &_table_id);
 
     std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-                   std::string *error_out) const;
+                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+
+    bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
@@ -154,16 +159,16 @@ class server_stats_request_t : public stats_request_t {
 public:
     static const char *get_name() { return server_request_type; }
     static bool parse(const ql::datum_t &info,
-                      scoped_ptr_t<stats_request_t> *request_out,
-                      std::string *error_out);
+                      scoped_ptr_t<stats_request_t> *request_out);
 
     explicit server_stats_request_t(const server_id_t &_server_id);
 
     std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-                   std::string *error_out) const;
+                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+
+    bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
@@ -178,8 +183,7 @@ class table_server_stats_request_t : public stats_request_t {
 public:
     static const char *get_name() { return table_server_request_type; }
     static bool parse(const ql::datum_t &info,
-                      scoped_ptr_t<stats_request_t> *request_out,
-                      std::string *error_out);
+                      scoped_ptr_t<stats_request_t> *request_out);
 
     table_server_stats_request_t(const namespace_id_t &_table_id,
                                  const server_id_t &_server_id);
@@ -187,8 +191,9 @@ public:
     std::set<std::vector<std::string> > get_filter() const;
 
     bool get_peers(server_name_client_t *name_client,
-                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-                   std::string *error_out) const;
+                   std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const;
+
+    bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,

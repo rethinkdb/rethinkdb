@@ -199,49 +199,48 @@ bool add_table_fields(const namespace_id_t &table_id,
                       const cluster_semilattice_metadata_t &metadata,
                       admin_identifier_format_t admin_format,
                       ql::datum_object_builder_t *builder) {
-    database_id_t db_id;
-    name_string_t db_name;
-    name_string_t table_name;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
         ::const_iterator table_it;
     if (!search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
                                       table_id, &table_it)) {
-        return false; // The table was deleted or does not exist - drop it
+        return false; // The table was deleted or does not exist
+    }
+
+    database_id_t db_id = table_it->second.get_ref().database.get_ref();
+    name_string_t db_name;
+    auto db_it = metadata.databases.databases.find(db_id);
+    if (db_it == metadata.databases.databases.end() ||
+        db_it->second.is_deleted()) {
+        db_name = name_string_t::guarantee_valid("__deleted_database__");
     } else {
-        db_id = table_it->second.get_ref().database.get_ref();
-        auto db_it = metadata.databases.databases.find(db_id);
-        if (db_it == metadata.databases.databases.end() ||
-            db_it->second.is_deleted()) {
-            db_name = name_string_t::guarantee_valid("__deleted_database__");
-        } else {
-            db_name = db_it->second.get_ref().name.get_ref();
-        }
-        table_name = table_it->second.get_ref().name.get_ref();
+        db_name = db_it->second.get_ref().name.get_ref();
     }
 
     builder->overwrite("db", convert_name_or_uuid_to_datum(
         db_name, db_id, admin_format));
     builder->overwrite("table", convert_name_or_uuid_to_datum(
-        table_name, table_id, admin_format));
+        table_it->second.get_ref().name.get_ref(), table_id, admin_format));
     return true;
 }
 
-void add_server_fields(const server_id_t &server_id,
+bool add_server_fields(const server_id_t &server_id,
                        const cluster_semilattice_metadata_t &metadata,
                        admin_identifier_format_t admin_format,
                        ql::datum_object_builder_t *builder) {
-    name_string_t server_name;
     auto server_it = metadata.servers.servers.find(server_id);
     if (server_it == metadata.servers.servers.end() ||
         server_it->second.is_deleted()) {
-        server_name = name_string_t::guarantee_valid("__deleted_server__");
-    } else {
-        server_name = server_it->second.get_ref().name.get_ref();
+        return false;
     }
 
     builder->overwrite("server", convert_name_or_uuid_to_datum(
-        server_name, server_id, admin_format));
+        server_it->second.get_ref().name.get_ref(), server_id, admin_format));
+    return true;
 }
+
+// ------------------------------------
+// stats_request_t
+// ------------------------------------
 
 std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
     return std::set<std::vector<std::string> >(
@@ -258,14 +257,14 @@ std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
     return res;
 }
 
+// ------------------------------------
+// cluster_stats_request_t
+// ------------------------------------
+
 bool cluster_stats_request_t::parse(const ql::datum_t &info,
-                                    scoped_ptr_t<stats_request_t> *request_out,
-                                    std::string *error_out) {
+                                    scoped_ptr_t<stats_request_t> *request_out) {
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
     if (info.arr_size() != 1 || info.get(0).as_str() != get_name()) {
-        *error_out =
-            strprintf("A '%s' stats request should have the format ['%s'].",
-                      get_name(), get_name());
         return false;
     }
     request_out->init(new cluster_stats_request_t());
@@ -282,10 +281,13 @@ std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const 
 
 bool cluster_stats_request_t::get_peers(
         server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-        UNUSED std::string *error_out) const {
+        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
     *peers_out = all_peers(name_client);
     return true;
+}
+
+bool cluster_stats_request_t::check_existence(const metadata_t &) const {
+    return true; // Cluster stats always exist
 }
 
 bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -309,18 +311,20 @@ bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
     return true;
 }
 
+// ------------------------------------
+// table_stats_request_t
+// ------------------------------------
+
 bool table_stats_request_t::parse(const ql::datum_t &info,
-                                  scoped_ptr_t<stats_request_t> *request_out,
-                                  std::string *error_out) {
+                                  scoped_ptr_t<stats_request_t> *request_out) {
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 1 || info.get(0).as_str() != get_name()) {
-        *error_out = strprintf("A '%s' stats request should have the format "
-                               "['%s', <TABLE_ID>].", get_name(), get_name());
+    if (info.arr_size() != 2 || info.get(0).as_str() != get_name()) {
         return false;
     }
 
+    std::string dummy_error;
     namespace_id_t t;
-    if (!convert_uuid_from_datum(info.get(1), &t, error_out)) {
+    if (!convert_uuid_from_datum(info.get(1), &t, &dummy_error)) {
         return false;
     }
     request_out->init(new table_stats_request_t(t));
@@ -337,10 +341,16 @@ std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
 
 bool table_stats_request_t::get_peers(
         server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-        UNUSED std::string *error_out) const {
+        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
     *peers_out = all_peers(name_client);
     return true;
+}
+
+bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+        ::const_iterator table_it;
+    return search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
+                                         table_id, &table_it);
 }
 
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -365,18 +375,20 @@ bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
     return true;
 }
 
+// ------------------------------------
+// server_stats_request_t
+// ------------------------------------
+
 bool server_stats_request_t::parse(const ql::datum_t &info,
-                                   scoped_ptr_t<stats_request_t> *request_out,
-                                   std::string *error_out) {
+                                   scoped_ptr_t<stats_request_t> *request_out) {
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 1 || info.get(0).as_str() != get_name()) {
-        *error_out = strprintf("A '%s' stats request should have the format "
-                               "['%s', <SERVER_ID>].", get_name(), get_name());
+    if (info.arr_size() != 2 || info.get(0).as_str() != get_name()) {
         return false;
     }
 
+    std::string dummy_error;
     server_id_t s;
-    if (!convert_uuid_from_datum(info.get(2), &s, error_out)) {
+    if (!convert_uuid_from_datum(info.get(1), &s, &dummy_error)) {
         return false;
     }
     request_out->init(new server_stats_request_t(s));
@@ -394,17 +406,20 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
 
 bool server_stats_request_t::get_peers(
         server_name_client_t *name_client,
-        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-        std::string *error_out) const {
+        std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        *error_out = "Server not available.";
         return false;
     }
 
     *peers_out = std::vector<std::pair<server_id_t, peer_id_t> >(1,
         std::make_pair(server_id, peer.get()));
     return true;
+}
+
+bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
+    auto server_it = metadata.servers.servers.find(server_id);
+    return server_it != metadata.servers.servers.end();
 }
 
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -436,28 +451,31 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
     }
 
     row_builder.overwrite("id", std::move(id_builder).to_datum());
-    add_server_fields(server_id, metadata, admin_format, &row_builder);
+    if (!add_server_fields(server_id, metadata, admin_format, &row_builder)) {
+        return false;
+    }
     *result_out = std::move(row_builder).to_datum();
     return true;
 }
 
+// ------------------------------------
+// table_server_stats_request_t
+// ------------------------------------
+
 bool table_server_stats_request_t::parse(const ql::datum_t &info,
-                                         scoped_ptr_t<stats_request_t> *request_out,
-                                         std::string *error_out) {
+                                         scoped_ptr_t<stats_request_t> *request_out) {
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
     if (info.arr_size() != 3 || info.get(0).as_str() != get_name()) {
-        *error_out = strprintf("A '%s' stats request should have the format "
-                               "['%s', <TABLE_ID>, <SERVER_ID>].",
-                               get_name(), get_name());
         return false;
     }
 
+    std::string dummy_error;
     namespace_id_t t;
     server_id_t s;
-    if (!convert_uuid_from_datum(info.get(1), &t, error_out)) {
+    if (!convert_uuid_from_datum(info.get(1), &t, &dummy_error)) {
         return false;
     }
-    if (!convert_uuid_from_datum(info.get(2), &s, error_out)) {
+    if (!convert_uuid_from_datum(info.get(2), &s, &dummy_error)) {
         return false;
     }
     request_out->init(new table_server_stats_request_t(t, s));
@@ -474,17 +492,27 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
 }
 
 bool table_server_stats_request_t::get_peers(server_name_client_t *name_client,
-               std::vector<std::pair<server_id_t, peer_id_t> > *peers_out,
-               std::string *error_out) const {
+               std::vector<std::pair<server_id_t, peer_id_t> > *peers_out) const {
     boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        *error_out = "Server not available.";
         return false;
     }
 
     *peers_out = std::vector<std::pair<server_id_t, peer_id_t> >(1,
         std::make_pair(server_id, peer.get()));
     return true;
+}
+
+bool table_server_stats_request_t::check_existence(const metadata_t &metadata) const {
+    auto server_it = metadata.servers.servers.find(server_id);
+    if (server_it == metadata.servers.servers.end()) {
+        return false;
+    }
+
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+        ::const_iterator table_it;
+    return search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
+                                         table_id, &table_it);
 }
 
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -539,8 +567,8 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     }
 
     row_builder.overwrite("id", std::move(id_builder).to_datum());
-    add_server_fields(server_id, metadata, admin_format, &row_builder);
-    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+    if (!add_server_fields(server_id, metadata, admin_format, &row_builder) ||
+        !add_table_fields(table_id, metadata, admin_format, &row_builder)) {
         return false;
     }
     *result_out = std::move(row_builder).to_datum();
