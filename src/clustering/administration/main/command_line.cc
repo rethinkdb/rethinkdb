@@ -759,7 +759,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 /* Apply change to cache size */
                 cluster_semilattice_metadata_t md =
                     cluster_metadata_file->read_metadata();
-                auto it = md.servers.servers.find(*our_server_id);
+                server_id_t server_id = cluster_metadata_file->read_server_id();
+                auto it = md.servers.servers.find(server_id);
                 if (it != md.servers.servers.end() && !it->second.is_deleted()) {
                     it->second.get_mutable()->cache_size_bytes.set(*total_cache_size);
                     cluster_metadata_file->update_metadata(md);
