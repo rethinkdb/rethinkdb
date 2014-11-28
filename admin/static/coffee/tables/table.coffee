@@ -24,7 +24,7 @@ module 'TableView', ->
             query =
                 r.db(system_db).table('server_config').count().do( (num_servers) ->
                     r.db(system_db).table('table_status').get(this_id).do((table) ->
-                        master_down = table('status')('ready_for_reads').not()
+                        master_down = table('status')('ready_for_outdated_reads').not()
                         r.branch(
                             table.eq(null),
                             null,
@@ -40,7 +40,7 @@ module 'TableView', ->
                                 num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
                                 # Here we check if the table is available, otherwise table.info() will bomb
                                 distribution: r.branch(master_down, [], r.db(table('db'))
-                                    .table(table('name')) \
+                                    .table(table('name'), useOutdated: true) \
                                     .info()('doc_count_estimates')\
                                     .do((doc_counts) ->
                                         doc_counts.map(r.range(doc_counts.count()),
@@ -49,11 +49,13 @@ module 'TableView', ->
                                                 id: position
                                             ).coerceTo('array')))
                                 # Again, we must check if the table is available
-                                total_keys: r.branch(master_down, null, r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum())
+                                total_keys: r.branch(master_down, null,
+                                    r.db(table('db')).table(table('name'), useOutdated: true).info()('doc_count_estimates').sum())
                                 status: table('status')
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
-                                    num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position))
+                                    num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name'),
+                                        useOutdated: true).info()('doc_count_estimates')(position))
                                     primary:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")
