@@ -478,7 +478,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
         on_thread_t th3(svs->home_thread());
-        listener_t listener(base_path, io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
+        listener_t listener(base_path, io_backender, mailbox_manager, server_id,
+            ct_broadcaster_business_card.get_watchable(), branch_history_manager,
+            &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
         replier_t replier(&listener, mailbox_manager, branch_history_manager);
         master_t master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t direct_reader(mailbox_manager, svs);

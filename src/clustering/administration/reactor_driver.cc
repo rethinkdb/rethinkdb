@@ -227,13 +227,16 @@ public:
                             rdb_context_t *_ctx) :
         table_directory(parent->directory_view, namespace_id),
         base_path(_base_path),
-        watchable(blueprint_t()),
+        watchable(blueprint),
         ctx(_ctx),
         parent_(parent),
         namespace_id_(namespace_id),
-        svs_by_namespace_(svs_by_namespace)
+        svs_by_namespace_(svs_by_namespace),
+        write_ack_config_var(write_ack_config_checker_t(repli_info.config, server_md)),
+        write_durability_var(repli_info.config.durability),
+        write_ack_config_cross_threader(write_ack_config_var.get_watchable()),
+        write_durability_cross_threader(write_durability_var.get_watchable())
     {
-        update_repli_info(blueprint, repli_info, server_md);
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t::initialize_reactor, this, io_backender));
     }
 
@@ -266,31 +269,22 @@ public:
                            const table_replication_info_t &repli_info,
                            const servers_semilattice_metadata_t &server_md) {
         watchable.set_value(blueprint);
-        cached_write_ack_config =
-            make_scoped<write_ack_config_checker_t>(repli_info.config, server_md);
-        cached_durability = repli_info.config.durability;
+        write_ack_config_var.set_value_no_equals(
+            write_ack_config_checker_t(repli_info.config, server_md));
+        write_durability_var.set_value(repli_info.config.durability);
     }
 
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        std::set<server_id_t> server_ids;
-        for (const peer_id_t &p : acks) {
-            boost::optional<server_id_t> s =
-                parent_->server_name_client->get_server_id_for_peer_id(p);
-            if (!static_cast<bool>(s)) {
-                /* This could happen due to a race condition if the peer acknowledged the
-                write but then disconnected, etc. We ignore the ack in this case because
-                there's no convenient way to find the `server_id_t`. This could result in
-                a few writes not being acked that could have been acked when a server has
-                just gone down, but it's not worth worrying about. */
-                continue;
-            }
-            server_ids.insert(*s);
-        }
-        return cached_write_ack_config->check_acks(server_ids);
+    bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const {
+        bool ok;
+        write_ack_config_cross_threader.get_watchable()->apply_read(
+            [&](const write_ack_config_checker_t *checker) {
+                ok = checker->check_acks(acks);
+            });
+        return ok;
     }
 
-    write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
-        return cached_durability;
+    write_durability_t get_write_durability() const {
+        return write_durability_cross_threader.get_watchable()->get();
     }
 
     bool is_gc_active() const {
@@ -314,6 +308,7 @@ private:
             base_path,
             io_backender,
             parent_->mbox_manager,
+            parent_->server_id,
             &parent_->backfill_throttler,
             this,
             &table_directory,
@@ -345,8 +340,12 @@ private:
     const namespace_id_t namespace_id_;
     svs_by_namespace_t *const svs_by_namespace_;
 
-    scoped_ptr_t<write_ack_config_checker_t> cached_write_ack_config;
-    write_durability_t cached_durability;
+    watchable_variable_t<write_ack_config_checker_t> write_ack_config_var;
+    watchable_variable_t<write_durability_t> write_durability_var;
+    all_thread_watchable_variable_t<write_ack_config_checker_t>
+        write_ack_config_cross_threader;
+    all_thread_watchable_variable_t<write_durability_t>
+        write_durability_cross_threader;
 
     stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t> svs_;
@@ -362,6 +361,7 @@ reactor_driver_t::reactor_driver_t(
     const base_path_t &_base_path,
     io_backender_t *_io_backender,
     mailbox_manager_t *_mbox_manager,
+    const server_id_t &_server_id,
     watchable_map_t<
         std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t
@@ -377,6 +377,7 @@ reactor_driver_t::reactor_driver_t(
     : base_path(_base_path),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
+      server_id(_server_id),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
       semilattice_view(_semilattice_view),

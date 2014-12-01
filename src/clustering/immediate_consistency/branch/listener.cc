@@ -62,6 +62,7 @@ private:
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        backfill_throttler_t *backfill_throttler,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
@@ -74,6 +75,7 @@ listener_t::listener_t(const base_path_t &base_path,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -243,6 +245,7 @@ listener_t::listener_t(const base_path_t &base_path,
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        broadcaster_t *broadcaster,
@@ -250,6 +253,7 @@ listener_t::listener_t(const base_path_t &base_path,
                        signal_t *interruptor,
                        DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
@@ -378,10 +382,12 @@ void listener_t::try_start_receiving_writes(
             });
 
     try {
+        listener_business_card_t our_bcard(
+            intro_mailbox.get_address(), write_mailbox_.get_address(), server_id_);
         registrant_.init(new registrant_t<listener_business_card_t>(
             mailbox_manager_,
             broadcaster->subview(&listener_t::get_registrar_from_broadcaster_bcard),
-            listener_business_card_t(intro_mailbox.get_address(), write_mailbox_.get_address())));
+            our_bcard));
     } catch (const resource_lost_exc_t &) {
         throw broadcaster_lost_exc_t();
     }

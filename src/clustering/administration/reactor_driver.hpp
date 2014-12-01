@@ -96,20 +96,21 @@ class reactor_driver_t {
 public:
     reactor_driver_t(
         const base_path_t &base_path,
-         io_backender_t *io_backender,
-         mailbox_manager_t *mbox_manager,
-         watchable_map_t<
+        io_backender_t *io_backender,
+        mailbox_manager_t *mbox_manager,
+        const server_id_t &sid,
+        watchable_map_t<
             std::pair<peer_id_t, namespace_id_t>,
             namespace_directory_metadata_t
             > *directory_view,
-         branch_history_manager_t *branch_history_manager,
-         boost::shared_ptr< semilattice_readwrite_view_t<
+        branch_history_manager_t *branch_history_manager,
+        boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > semilattice_view,
-         server_name_client_t *server_name_client,
-         signal_t *we_were_permanently_removed,
-         svs_by_namespace_t *svs_by_namespace,
-         perfmon_collection_repo_t *,
-         rdb_context_t *);
+        server_name_client_t *server_name_client,
+        signal_t *we_were_permanently_removed,
+        svs_by_namespace_t *svs_by_namespace,
+        perfmon_collection_repo_t *,
+        rdb_context_t *);
 
     ~reactor_driver_t();
 
@@ -138,6 +139,7 @@ private:
     const base_path_t base_path;
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
+    server_id_t server_id;
     watchable_map_t<
         std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t
