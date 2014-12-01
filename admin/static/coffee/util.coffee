@@ -94,7 +94,10 @@ humanize_table_status = (status) ->
         'Unavailable'
 
 Handlebars.registerHelper 'humanize_table_readiness', (status, num, denom) ->
-    if status.all_replicas_ready
+    if status is undefined
+        label = 'failure'
+        value = 'unknown'
+    else if status.all_replicas_ready
         label = 'success'
         value = "#{humanize_table_status(status)} #{num}/#{denom}"
     else if status.ready_for_writes
