@@ -32,11 +32,7 @@ module 'ServerView', ->
                                         ).filter( (replica) ->
                                             replica('server').eq(server("name"))
                                     )
-                                ).filter( (shard) ->
-                                    shard.isEmpty().not()
-                                ).concatMap( (roles) -> roles
                                 ).coerceTo('array')
-
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
