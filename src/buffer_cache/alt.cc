@@ -43,7 +43,6 @@ private:
     // declare_snapshotted() called).
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
-    // KSI: std::map memory usage.  Just use a vector of pairs?
     // A NULL pointer associated with a block id indicates that the block is deleted.
     std::map<block_id_t, alt_snapshot_node_t *> children_;
 
@@ -190,16 +189,10 @@ txn_t::txn_t(cache_conn_t *cache_conn,
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::write),
       durability_(durability) {
+
     // Write transactions need to specify a timestamp, even if it's
     // repli_timestamp_t::distant_past.
-
-    // Treat an invalid timestamp like distant_past since that's how we really want
-    // it to behave.
-    // KSI: Callers should not be specifying invalid timestamps, but maybe they
-    // shouldn't be passing a timestamp at all....
-    if (txn_timestamp == repli_timestamp_t::invalid) {
-        txn_timestamp = repli_timestamp_t::distant_past;
-    }
+    guarantee(txn_timestamp != repli_timestamp_t::invalid);
 
     help_construct(txn_timestamp, expected_change_count, cache_conn);
 }
@@ -464,7 +457,6 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_attachments before constructing the
     // current_page_acq_t.
-    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -539,7 +531,6 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
     // Otherwise, we'd need to make choosing a block id a separate function, and call
     // create_empty_child_snapshot_attachments before constructing the
     // current_page_acq_t.
-    // KSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -706,7 +697,10 @@ repli_timestamp_t buf_lock_t::get_recency() const {
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
-    return cpa->recency();
+    repli_timestamp_t ret = cpa->recency();
+    // You may not call this on a buf lock that was marked deleted.a
+    guarantee(ret != repli_timestamp_t::invalid);
+    return ret;
 }
 
 void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {

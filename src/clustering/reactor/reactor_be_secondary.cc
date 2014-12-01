@@ -164,7 +164,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                 backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+                read_token_t read_token;
                 svs->new_read_token(&read_token);
 
                 region_map_t<binary_blob_t> metainfo_blob;

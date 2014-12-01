@@ -166,8 +166,8 @@ void post_construct_and_drain_queue(
             // Yield while we are not holding any locks yet.
             coro_t::yield();
 
-            write_token_pair_t token_pair;
-            store->new_write_token_pair(&token_pair);
+            write_token_t token;
+            store->new_write_token(&token);
 
             scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
@@ -182,16 +182,16 @@ void post_construct_and_drain_queue(
                 repli_timestamp_t::distant_past,
                 2,
                 write_durability_t::HARD,
-                &token_pair,
+                &token,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
 
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-            buf_lock_t queue_sindex_block
-                = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                        sindex_block_id);
+            buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                          sindex_block_id,
+                                          access_t::write);
 
             queue_superblock->release();
 
@@ -253,8 +253,8 @@ void post_construct_and_drain_queue(
     } else {
         /* The sindexes we were post constructing were all deleted. Time to
          * deregister the queue. */
-        write_token_pair_t token_pair;
-        store->new_write_token_pair(&token_pair);
+        write_token_t token;
+        store->new_write_token(&token);
 
         scoped_ptr_t<txn_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
@@ -263,16 +263,16 @@ void post_construct_and_drain_queue(
             repli_timestamp_t::distant_past,
             2,
             write_durability_t::HARD,
-            &token_pair,
+            &token,
             &queue_txn,
             &queue_superblock,
             lock.get_drain_signal());
 
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-        buf_lock_t queue_sindex_block
-            = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                    sindex_block_id);
+        buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                      sindex_block_id,
+                                      access_t::write);
 
         queue_superblock->release();
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
 # process_headers.pl
 
@@ -46,6 +46,8 @@
 use strict;
 use File::Find;
 
+chdir 'src';  # (Does nothing if we're already in the src directory.)
+
 my @paths;
 
 my %edges;
@@ -54,7 +56,7 @@ my %boosts;
 sub callback {
     my $path = $File::Find::name;
 
-    if ($path !~ /\.(cc|hpp|tcc)/) {
+    if ($path !~ /\.(h|cc|hpp|tcc)/) {
         return;
     }
 
@@ -71,7 +73,7 @@ for my $path (@paths) {
     $boosts{$path} = {};
 
     while (<$FH>) {
-        if (/^#include\s+"(.*)"/) {
+        if (/^#include\s+"(.*)"/ && !/NOPROCESS/) {
             my $header = $1;
             $header =~ s!^!./!;
             $header =~ s!^\./\./!./!;
@@ -107,9 +109,9 @@ sub traverse ($$$) {
             my $prev = $parents->[-1];
             my $untrunc_prev;
 
-            $tmp =~ s/\.(tcc|hpp)$/\./;
+            $tmp =~ s/\.(tcc|hpp|h)$/\./;
             if ($1 eq 'tcc') {
-                $prev =~ s/\.hpp$/\./;
+                $prev =~ s/\.(hpp|h)$/\./;
             } else {
                 $prev =~ s/\.tcc$/\./;
             }
@@ -177,12 +179,18 @@ sub includes_header ($$) {
     return $edges{$val}->{$header};
 }
 
+sub unprepend_src ($) {
+    my ($path) = @_;
+    $path =~ s!^\./src/!./!;
+    return $path;
+}
+
 my @pairs;
 if ($ARGV[0] && $ARGV[0] eq '-x') {
-    @pairs = sort { $a->[1] <=> $b->[1] } map { [$_, $counts{$_}] } (keys %{$edges{$ARGV[1]}});
+    @pairs = sort { $a->[1] <=> $b->[1] } map { [$_, $counts{$_}] } (keys %{$edges{unprepend_src($ARGV[1])}});
 
 } elsif ($ARGV[0]) {
-    @pairs = sort { $a->[1] <=> $b->[1] } map { [$_, $counts{$_}] } grep { includes_header($ARGV[0], $_) } keys %counts;
+    @pairs = sort { $a->[1] <=> $b->[1] } map { [$_, $counts{$_}] } grep { includes_header(unprepend_src($ARGV[0]), $_) } keys %counts;
 
 } else {
 

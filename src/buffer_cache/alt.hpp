@@ -83,11 +83,10 @@ public:
     // Constructor for read-only transactions.
     txn_t(cache_conn_t *cache_conn, read_access_t read_access);
 
-    // KSI: Remove default parameter for expected_change_count.
     txn_t(cache_conn_t *cache_conn,
           write_durability_t durability,
           repli_timestamp_t txn_timestamp,
-          int64_t expected_change_count = 2);
+          int64_t expected_change_count);
 
     ~txn_t();
 
@@ -198,6 +197,8 @@ public:
         return current_page_acq()->block_id();
     }
 
+    // It is illegal to call this on a buf lock that has been mark_deleted.  This
+    // never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
     // Usually unnecessary -- the txn has a recency value that touches the recency.

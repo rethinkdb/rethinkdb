@@ -173,7 +173,7 @@ private:
             args->arg(env, args->num_args() - 1)->as_func();
         boost::optional<std::size_t> func_arity = func->arity();
         if (!!func_arity) {
-            rcheck(func_arity.get() == args->num_args() - 1,
+            rcheck(func_arity.get() == 0 || func_arity.get() == args->num_args() - 1,
                    base_exc_t::GENERIC,
                    strprintf("The function passed to `map` expects %zu argument%s, "
                              "but %zu sequence%s found.",

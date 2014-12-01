@@ -8,16 +8,8 @@
 #include "concurrency/signal.hpp"
 #include "utils.hpp"
 
-class ParseError {
-public:
-    virtual ~ParseError() {}
-    virtual const char *what() const throw() {
-        return "parse failure";
-    }
-};
-
 // Parses CRLF terminated lines from a TCP connection
-class LineParser {
+class line_parser_t {
 private:
     tcp_conn_t *conn;
 
@@ -26,15 +18,11 @@ private:
     const char *end_position;
 
 public:
-    explicit LineParser(tcp_conn_t *conn_);
+    explicit line_parser_t(tcp_conn_t *conn_);
 
     // Returns a charslice to the next CRLF line in the TCP conn's buffer
     // blocks until a full line is available
     std::string readLine(signal_t *closer);
-
-    // Both ensures that next line read is exactly bytes long and is able
-    // to operate more efficiently than readLine.
-    std::string readLineOf(size_t bytes, signal_t *closer);
 
     // Reads a single space terminated word from the TCP conn
     std::string readWord(signal_t *closer);

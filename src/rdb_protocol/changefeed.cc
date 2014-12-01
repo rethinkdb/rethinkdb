@@ -1046,7 +1046,6 @@ real_feed_t::real_feed_t(client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
-                         // RSI: remove // std::string pkey,
                          signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
@@ -1711,6 +1710,7 @@ public:
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
+    virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL

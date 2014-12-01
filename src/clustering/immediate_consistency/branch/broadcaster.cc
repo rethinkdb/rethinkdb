@@ -43,7 +43,7 @@ broadcaster_t::broadcaster_t(
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     initial_svs->new_read_token(&read_token);
 
     region_map_t<binary_blob_t> origins_blob;
@@ -84,7 +84,7 @@ broadcaster_t::broadcaster_t(
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_t write_token;
     initial_svs->new_write_token(&write_token);
     initial_svs->set_metainfo(region_map_t<binary_blob_t>(initial_svs->get_region(),
                                                           binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
@@ -122,11 +122,15 @@ store_view_t *broadcaster_t::release_bootstrap_svs_for_listener() {
    but not completed yet. */
 class broadcaster_t::incomplete_write_t : public home_thread_mixin_debug_only_t {
 public:
-    incomplete_write_t(broadcaster_t *p, const write_t &w, transition_timestamp_t ts, const ack_checker_t *ac, write_callback_t *cb) :
+    incomplete_write_t(broadcaster_t *p,
+                       const write_t &w,
+                       state_timestamp_t ts,
+                       const ack_checker_t *ac,
+                       write_callback_t *cb) :
         write(w), timestamp(ts), ack_checker(ac), callback(cb), parent(p), incomplete_count(0) { }
 
     const write_t write;
-    const transition_timestamp_t timestamp;
+    const state_timestamp_t timestamp;
     const ack_checker_t *ack_checker;
 
     /* This is a callback to notify when the write has either succeeded or
@@ -363,7 +367,7 @@ Important: These functions must send the message before responding to
 
 void broadcaster_t::listener_write(
         broadcaster_t::dispatchee_t *mirror,
-        const write_t &w, transition_timestamp_t ts,
+        const write_t &w, state_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -454,12 +458,12 @@ void broadcaster_t::spawn_write(const write_t &write,
         return;
     }
 
-    transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
-    current_timestamp = timestamp.timestamp_after();
+    state_timestamp_t timestamp = current_timestamp.next();
+    current_timestamp = timestamp;
     order_token = order_checkpoint.check_through(order_token);
 
     boost::shared_ptr<incomplete_write_t> write_wrapper = boost::make_shared<incomplete_write_t>(
-        this, write, timestamp, ack_checker, cb);
+            this, write, timestamp, ack_checker, cb);
     incomplete_writes.push_back(write_wrapper);
 
     // You can't reuse the same callback for two writes.
@@ -636,11 +640,11 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
     from the queue. This loop makes one iteration on average for every call to
     `end_write()`, but it could make multiple iterations or zero iterations on
     any given call. */
-    while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
+    while (newest_complete_timestamp < write->timestamp) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
         incomplete_writes.pop_front();
-        guarantee(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
-        newest_complete_timestamp = removed_write->timestamp.timestamp_after();
+        guarantee(newest_complete_timestamp.next() == removed_write->timestamp);
+        newest_complete_timestamp = removed_write->timestamp;
     }
     /* `write->callback` could be `NULL` if we already called `on_success()` on
     it */
@@ -775,8 +779,8 @@ void broadcaster_t::sanity_check() {
     state_timestamp_t ts = newest_complete_timestamp;
     for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
          it != incomplete_writes.end(); it++) {
-        rassert(ts == (*it)->timestamp.timestamp_before());
-        ts = (*it)->timestamp.timestamp_after();
+        rassert(ts.next() == (*it)->timestamp);
+        ts = (*it)->timestamp;
     }
     rassert(ts == current_timestamp);
 #endif

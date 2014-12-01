@@ -130,7 +130,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     write_response_t local_writeread(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             write_durability_t durability,
@@ -138,7 +138,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void local_write(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             signal_t *interruptor)
@@ -148,10 +148,10 @@ public:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
-        write_queue_entry_t(const write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
-            write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
+        write_queue_entry_t(const write_t &w, state_timestamp_t ts, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
+            write(w), timestamp(ts), order_token(_order_token), fifo_token(ft) { }
         write_t write;
-        transition_timestamp_t transition_timestamp;
+        state_timestamp_t timestamp;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
     };
@@ -176,7 +176,7 @@ private:
     void on_write(
             signal_t *interruptor,
             const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
@@ -191,7 +191,7 @@ private:
     void on_writeread(
             signal_t *interruptor,
             const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(write_response_t)> ack_addr,
@@ -207,7 +207,7 @@ private:
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
-    void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
+    void advance_current_timestamp_and_pulse_waiters(state_timestamp_t timestamp);
 
     mailbox_manager_t *const mailbox_manager_;
 

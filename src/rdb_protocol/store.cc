@@ -76,22 +76,22 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
-    store_view_t::new_write_token_pair(&token_pair);
+    write_token_t token;
+    new_write_token(&token);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(repli_timestamp_t::distant_past,
                                  1,
                                  write_durability_t::SOFT,
-                                 &token_pair,
+                                 &token,
                                  &txn,
                                  &superblock,
                                  &dummy_interruptor);
 
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                        superblock->get_sindex_block_id());
+    buf_lock_t sindex_block(superblock->expose_buf(),
+                            superblock->get_sindex_block_id(),
+                            access_t::write);
 
     superblock.reset();
 
@@ -493,9 +493,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
-        buf_lock_t sindex_block
-            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
-                                                   superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::read);
         superblock->release();
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -515,9 +515,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
-        buf_lock_t sindex_block
-            = store->acquire_sindex_block_for_read(superblock->expose_buf(),
-                                                   superblock->get_sindex_block_id());
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::read);
         superblock->release();
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -818,10 +818,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        trace(_trace) {
-        sindex_block =
-            store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
-                                                  (*superblock)->get_sindex_block_id());
+        trace(_trace),
+        sindex_block((*superblock)->expose_buf(),
+                     (*superblock)->get_sindex_block_id(),
+                     access_t::write) {
     }
 
 private:
@@ -851,7 +851,7 @@ private:
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
-                             transition_timestamp_t timestamp,
+                             state_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
@@ -879,38 +879,6 @@ void store_t::protocol_write(const write_t &write,
 
     // TODO: Is this the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
-}
-
-struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return del.recency;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
-        return repli_timestamp_t::invalid;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
-        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
-        rassert(!kv.backfill_atoms.empty());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            if (most_recent == repli_timestamp_t::invalid
-                || most_recent < kv.backfill_atoms[i].recency) {
-
-                most_recent = kv.backfill_atoms[i].recency;
-            }
-        }
-        return most_recent;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
-        return repli_timestamp_t::invalid;
-    }
-};
-
-repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
-    rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t v;
-    return boost::apply_visitor(v, val);
 }
 
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
@@ -1017,11 +985,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                    scoped_ptr_t<superblock_t> &&_superblock,
                                    signal_t *_interruptor) :
         store(_store), btree(_btree), txn(_txn), superblock(std::move(_superblock)),
-        interruptor(_interruptor) {
-        sindex_block =
-            store->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                  superblock->get_sindex_block_id());
-    }
+        interruptor(_interruptor),
+        sindex_block(superblock->expose_buf(),
+                     superblock->get_sindex_block_id(),
+                     access_t::write) { }
 
     void operator()(const backfill_chunk_t::delete_key_t &delete_key) {
         point_delete_response_t response;

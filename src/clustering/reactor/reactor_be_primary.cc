@@ -334,7 +334,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
 
     /* Figure out what version of the data is already present in our
      * store so we don't backfill anything prior to it. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs->new_read_token(&read_token);
     region_map_t<binary_blob_t> metainfo_blob;
     svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
