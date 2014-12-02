@@ -69,10 +69,25 @@ parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) 
     }
 }
 
+void parsed_stats_t::store_perfmon_value(const ql::datum_t &perf,
+                                       const std::string &key,
+                                       double *value_out) {
+    rassert(*value_out == 0);
+    ql::datum_t v = perf.get_field(key.c_str(), ql::throw_bool_t::NOTHROW);
+    // If the value is missing, it should mean that the given stat was not specified
+    // in the request, and therefore isn't needed - so we ignore any missing values.
+    if (v.has()) {
+        r_sanity_check(v.get_type() == ql::datum_t::R_NUM);
+        *value_out = v.as_num();
+    }
+}
+
 void parsed_stats_t::add_perfmon_value(const ql::datum_t &perf,
                                        const std::string &key,
                                        double *value_out) {
     ql::datum_t v = perf.get_field(key.c_str(), ql::throw_bool_t::NOTHROW);
+    // If the value is missing, it should mean that the given stat was not specified
+    // in the request, and therefore isn't needed - so we ignore any missing values.
     if (v.has()) {
         r_sanity_check(v.get_type() == ql::datum_t::R_NUM);
         *value_out += v.as_num();
@@ -112,25 +127,25 @@ void parsed_stats_t::add_shard_values(const ql::datum_t &shard_perf,
 void parsed_stats_t::add_serializer_values(const ql::datum_t &ser_perf,
                                            table_stats_t *stats_out) {
     r_sanity_check(ser_perf.get_type() == ql::datum_t::R_OBJECT);
-    add_perfmon_value(ser_perf, "serializer_read_bytes_per_sec",
-                      &stats_out->read_bytes_per_sec);
-    add_perfmon_value(ser_perf, "serializer_read_bytes_total",
-                      &stats_out->read_bytes_total);
-    add_perfmon_value(ser_perf, "serializer_written_bytes_per_sec",
-                      &stats_out->written_bytes_per_sec);
-    add_perfmon_value(ser_perf, "serializer_written_bytes_total",
-                      &stats_out->written_bytes_total);
+    store_perfmon_value(ser_perf, "serializer_read_bytes_per_sec",
+                        &stats_out->read_bytes_per_sec);
+    store_perfmon_value(ser_perf, "serializer_read_bytes_total",
+                        &stats_out->read_bytes_total);
+    store_perfmon_value(ser_perf, "serializer_written_bytes_per_sec",
+                        &stats_out->written_bytes_per_sec);
+    store_perfmon_value(ser_perf, "serializer_written_bytes_total",
+                        &stats_out->written_bytes_total);
 
     // TODO: these are not entirely accurate, but the underlying stats would need
     // a good overhaul
-    add_perfmon_value(ser_perf, "serializer_data_extents",
-                      &stats_out->data_bytes);
-    add_perfmon_value(ser_perf, "serializer_lba_extents",
-                      &stats_out->metadata_bytes);
-    add_perfmon_value(ser_perf, "serializer_old_garbage_block_bytes",
-                      &stats_out->garbage_bytes);
-    add_perfmon_value(ser_perf, "serializer_bytes_in_use",
-                      &stats_out->preallocated_bytes);
+    store_perfmon_value(ser_perf, "serializer_data_extents",
+                        &stats_out->data_bytes);
+    store_perfmon_value(ser_perf, "serializer_lba_extents",
+                        &stats_out->metadata_bytes);
+    store_perfmon_value(ser_perf, "serializer_old_garbage_block_bytes",
+                        &stats_out->garbage_bytes);
+    store_perfmon_value(ser_perf, "serializer_bytes_in_use",
+                        &stats_out->preallocated_bytes);
     stats_out->data_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->metadata_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->preallocated_bytes -= stats_out->data_bytes +
@@ -140,24 +155,26 @@ void parsed_stats_t::add_serializer_values(const ql::datum_t &ser_perf,
 void parsed_stats_t::add_query_engine_stats(const ql::datum_t &qe_perf,
                                             server_stats_t *stats_out) {
     r_sanity_check(qe_perf.get_type() == ql::datum_t::R_OBJECT);
-    add_perfmon_value(qe_perf, "queries_per_sec", &stats_out->queries_per_sec);
-    add_perfmon_value(qe_perf, "queries_total", &stats_out->queries_total);
-    add_perfmon_value(qe_perf, "client_connections", &stats_out->client_connections);
-    add_perfmon_value(qe_perf, "clients_active", &stats_out->clients_active);
+    store_perfmon_value(qe_perf, "queries_per_sec", &stats_out->queries_per_sec);
+    store_perfmon_value(qe_perf, "queries_total", &stats_out->queries_total);
+    store_perfmon_value(qe_perf, "client_connections", &stats_out->client_connections);
+    store_perfmon_value(qe_perf, "clients_active", &stats_out->clients_active);
 }
 
 void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
                                      const ql::datum_t &table_perf,
                                      server_stats_t *stats_out) {
     r_sanity_check(table_perf.get_type() == ql::datum_t::R_OBJECT);
-    ql::datum_t sers_perf = table_perf.get_field("serializers", ql::throw_bool_t::NOTHROW);
+    ql::datum_t sers_perf = table_perf.get_field("serializers",
+                                                 ql::throw_bool_t::NOTHROW);
     if (sers_perf.has()) {
         r_sanity_check(sers_perf.get_type() == ql::datum_t::R_OBJECT);
         table_stats_t &table_stats_out = stats_out->tables[table_id];
 
         add_shard_values(sers_perf, &table_stats_out);
 
-        ql::datum_t sub_sers_perf = sers_perf.get_field("serializer", ql::throw_bool_t::NOTHROW);
+        ql::datum_t sub_sers_perf = sers_perf.get_field("serializer",
+                                                        ql::throw_bool_t::NOTHROW);
         if (sub_sers_perf.has()) {
             add_serializer_values(sub_sers_perf, &table_stats_out);
         }
@@ -209,42 +226,15 @@ bool add_table_fields(const namespace_id_t &table_id,
                       const cluster_semilattice_metadata_t &metadata,
                       admin_identifier_format_t admin_format,
                       ql::datum_object_builder_t *builder) {
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-        ::const_iterator table_it;
-    if (!search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
-                                      table_id, &table_it)) {
+    ql::datum_t db_identifier;
+    ql::datum_t table_identifier;
+    if (!convert_table_id_to_datums(table_id, admin_format, metadata,
+                                    &table_identifier, nullptr,
+                                    &db_identifier, nullptr)) {
         return false; // The table was deleted or does not exist
     }
-
-    database_id_t db_id = table_it->second.get_ref().database.get_ref();
-    name_string_t db_name;
-    auto db_it = metadata.databases.databases.find(db_id);
-    if (db_it == metadata.databases.databases.end() ||
-        db_it->second.is_deleted()) {
-        db_name = name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        db_name = db_it->second.get_ref().name.get_ref();
-    }
-
-    builder->overwrite("db", convert_name_or_uuid_to_datum(
-        db_name, db_id, admin_format));
-    builder->overwrite("table", convert_name_or_uuid_to_datum(
-        table_it->second.get_ref().name.get_ref(), table_id, admin_format));
-    return true;
-}
-
-bool add_server_fields(const server_id_t &server_id,
-                       const cluster_semilattice_metadata_t &metadata,
-                       admin_identifier_format_t admin_format,
-                       ql::datum_object_builder_t *builder) {
-    auto server_it = metadata.servers.servers.find(server_id);
-    if (server_it == metadata.servers.servers.end() ||
-        server_it->second.is_deleted()) {
-        return false;
-    }
-
-    builder->overwrite("server", convert_name_or_uuid_to_datum(
-        server_it->second.get_ref().name.get_ref(), server_id, admin_format));
+    builder->overwrite("db", db_identifier);
+    builder->overwrite("table", table_identifier);
     return true;
 }
 
@@ -273,8 +263,9 @@ std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
 
 bool cluster_stats_request_t::parse(const ql::datum_t &info,
                                     scoped_ptr_t<stats_request_t> *request_out) {
+    rassert(info.get(0).as_str() == get_name());
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 1 || info.get(0).as_str() != get_name()) {
+    if (info.arr_size() != 1) {
         return false;
     }
     request_out->init(new cluster_stats_request_t());
@@ -285,8 +276,8 @@ cluster_stats_request_t::cluster_stats_request_t() { }
 
 std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const {
     return std::set<std::vector<std::string> >(
-        { {"query_engine", "queries_per_sec" },
-          {".*", "serializers", "shard[0-9]+", "keys_.*" } });
+        { {"query_engine" },
+          {".*", "serializers", "shard_[0-9]+", "btree-.*", "keys_.*" } });
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > cluster_stats_request_t::get_peers(
@@ -300,6 +291,7 @@ bool cluster_stats_request_t::check_existence(const metadata_t &) const {
 
 bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
                                        const metadata_t &,
+                                       server_name_client_t *,
                                        admin_identifier_format_t,
                                        ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -325,8 +317,9 @@ bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
 
 bool table_stats_request_t::parse(const ql::datum_t &info,
                                   scoped_ptr_t<stats_request_t> *request_out) {
+    rassert(info.get(0).as_str() == get_name());
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 2 || info.get(0).as_str() != get_name()) {
+    if (info.arr_size() != 2) {
         return false;
     }
 
@@ -344,7 +337,8 @@ table_stats_request_t::table_stats_request_t(const namespace_id_t &_table_id) :
 
 std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
     return std::set<std::vector<std::string> >({
-        { uuid_to_str(table_id), "serializers", "shard[0-9]+", "keys_.*" } });
+        { uuid_to_str(table_id), "serializers", "shard_[0-9]+", "btree-.*", "keys_.*" }
+        });
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > table_stats_request_t::get_peers(
@@ -361,6 +355,7 @@ bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
 
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
                                      const metadata_t &metadata,
+                                     server_name_client_t *,
                                      admin_identifier_format_t admin_format,
                                      ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -388,8 +383,9 @@ bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
 
 bool server_stats_request_t::parse(const ql::datum_t &info,
                                    scoped_ptr_t<stats_request_t> *request_out) {
+    rassert(info.get(0).as_str() == get_name());
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 2 || info.get(0).as_str() != get_name()) {
+    if (info.arr_size() != 2) {
         return false;
     }
 
@@ -408,7 +404,7 @@ server_stats_request_t::server_stats_request_t(const server_id_t &_server_id) :
 std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
     return std::set<std::vector<std::string> >(
         { {"query_engine"},
-          {".*", "serializers", "shard[0-9]+", "keys_.*" } });
+          {".*", "serializers", "shard_[0-9]+", "btree-.*" } });
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > server_stats_request_t::get_peers(
@@ -427,7 +423,8 @@ bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
 }
 
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
-                                      const metadata_t &metadata,
+                                      const metadata_t &,
+                                      server_name_client_t *name_client,
                                       admin_identifier_format_t admin_format,
                                       ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -436,14 +433,18 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
     id_builder.add(convert_uuid_to_datum(server_id));
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
-    if (!add_server_fields(server_id, metadata, admin_format, &row_builder)) {
+    ql::datum_t server_identifier;
+    if (!convert_server_id_to_datum(server_id, admin_format, name_client,
+                                    &server_identifier, nullptr)) {
         return false;
     }
+    row_builder.overwrite("server", server_identifier);
 
     auto const &server_it = stats.servers.find(server_id);
     if (server_it == stats.servers.end() ||
         !server_it->second.responsive) {
-        row_builder.overwrite("error", ql::datum_t("Timed out. Unable to retrieve stats."));
+        row_builder.overwrite("error",
+                              ql::datum_t("Timed out. Unable to retrieve stats."));
     } else {
         const parsed_stats_t::server_stats_t &server_stats = server_it->second;
         ql::datum_object_builder_t qe_builder;
@@ -467,8 +468,9 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
 
 bool table_server_stats_request_t::parse(const ql::datum_t &info,
                                          scoped_ptr_t<stats_request_t> *request_out) {
+    rassert(info.get(0).as_str() == get_name());
     r_sanity_check(info.get_type() == ql::datum_t::R_ARRAY);
-    if (info.arr_size() != 3 || info.get(0).as_str() != get_name()) {
+    if (info.arr_size() != 3) {
         return false;
     }
 
@@ -485,8 +487,9 @@ bool table_server_stats_request_t::parse(const ql::datum_t &info,
     return true;
 }
 
-table_server_stats_request_t::table_server_stats_request_t(const namespace_id_t &_table_id,
-                                                           const server_id_t &_server_id) :
+table_server_stats_request_t::table_server_stats_request_t(
+        const namespace_id_t &_table_id,
+        const server_id_t &_server_id) :
     table_id(_table_id), server_id(_server_id) { }
 
 std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() const {
@@ -518,6 +521,7 @@ bool table_server_stats_request_t::check_existence(const metadata_t &metadata) c
 
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                             const metadata_t &metadata,
+                                            server_name_client_t *name_client,
                                             admin_identifier_format_t admin_format,
                                             ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -527,8 +531,14 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     id_builder.add(convert_uuid_to_datum(server_id));
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
-    if (!add_server_fields(server_id, metadata, admin_format, &row_builder) ||
-        !add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+    ql::datum_t server_identifier;
+    if (!convert_server_id_to_datum(server_id, admin_format, name_client,
+                                    &server_identifier, nullptr)) {
+        return false;
+    }
+    row_builder.overwrite("server", server_identifier);
+    
+    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
         return false;
     }
 

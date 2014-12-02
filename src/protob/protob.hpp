@@ -45,7 +45,7 @@ public:
             in_use(false),
             last_accessed(time(0)),
             client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor),
-            counter(&rdb_ctx->client_connections) {
+            counter(&rdb_ctx->stats.client_connections) {
         }
 
         client_context_t *get_ctx() {

@@ -99,6 +99,9 @@ extent_t::~extent_t() {
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
     file->read_async(extent_ref.offset() + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
+
+    // Ideally we would count these stats when the io operation completes,
+    // but this is more generic than doing it in each callback
     em->stats->bytes_read(length);
 }
 

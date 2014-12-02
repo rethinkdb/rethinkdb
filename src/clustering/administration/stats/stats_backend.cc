@@ -81,10 +81,11 @@ void stats_artificial_table_backend_t::perform_stats_request(
 void maybe_append_result(const stats_request_t &request,
                          const parsed_stats_t &parsed_stats,
                          const cluster_semilattice_metadata_t &metadata,
+                         server_name_client_t *name_client,
                          admin_identifier_format_t admin_format,
                          std::vector<ql::datum_t> *rows_out) {
     ql::datum_t row;
-    if (request.to_datum(parsed_stats, metadata, admin_format, &row)) {
+    if (request.to_datum(parsed_stats, metadata, name_client, admin_format, &row)) {
         rows_out->push_back(row);
     }
 }
@@ -111,14 +112,14 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     // Start building results
     rows_out->clear();
     maybe_append_result(cluster_stats_request_t(),
-                        parsed_stats, metadata, admin_format, rows_out);
+                        parsed_stats, metadata, name_client, admin_format, rows_out);
 
     for (auto const &server_pair : metadata.servers.servers) {
         if (server_pair.second.is_deleted()) {
             continue;
         }
         maybe_append_result(server_stats_request_t(server_pair.first),
-                            parsed_stats, metadata, admin_format, rows_out);
+                            parsed_stats, metadata, name_client, admin_format, rows_out);
     }
 
     for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
@@ -126,7 +127,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
             continue;
         }
         maybe_append_result(table_stats_request_t(table_pair.first),
-                            parsed_stats, metadata, admin_format, rows_out);
+                            parsed_stats, metadata, name_client, admin_format, rows_out);
     }
 
     for (auto const &server_pair : metadata.servers.servers) {
@@ -137,9 +138,9 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
             if (table_pair.second.is_deleted()) {
                 continue;
             }
-            maybe_append_result(table_server_stats_request_t(table_pair.first,
-                                                             server_pair.first),
-                                parsed_stats, metadata, admin_format, rows_out);
+            maybe_append_result(
+                table_server_stats_request_t(table_pair.first, server_pair.first),
+                parsed_stats, metadata, name_client, admin_format, rows_out);
         }
     }
 
@@ -198,7 +199,8 @@ bool stats_artificial_table_backend_t::read_row(
                           &ct_interruptor);
 
     parsed_stats_t parsed_stats(results_map);
-    bool to_datum_res = request->to_datum(parsed_stats, metadata, admin_format, row_out);
+    bool to_datum_res = request->to_datum(parsed_stats, metadata, name_client,
+                                          admin_format, row_out);
 
      // The stats request target should have been located earlier in `check_existence`
     r_sanity_check(to_datum_res);

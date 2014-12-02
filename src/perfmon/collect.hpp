@@ -6,8 +6,7 @@
 
 /* `perfmon_get_stats()` collects all the stats about the server and puts them
  * into the `ql::datum_t` object. It must be run in a coroutine and it
- * blocks until it is done. The caller must destroy the `ql::datum_t` object
- * when it's done with it.
+ * blocks until it is done.
  */
 ql::datum_t perfmon_get_stats();
 

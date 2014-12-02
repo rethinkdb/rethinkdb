@@ -148,7 +148,8 @@ perfmon_collection_t &get_global_perfmon_collection() {
     // before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
     // might be initialized before `collection` was initialized.
 
-    // FIXME: probably use "new" to create the perfmon_collection_t. For more info check out C++ FAQ Lite answer
+    // FIXME: probably use "new" to create the perfmon_collection_t. For more info
+    // check out C++ FAQ Lite answer 10.16.
     static perfmon_collection_t collection;
     return collection;
 }

@@ -303,7 +303,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
-    scoped_perfmon_counter_t connection_counter(&rdb_ctx->client_connections);
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
     for (;;) {
         ql::protob_t<Query> query(ql::make_counted_query());
 

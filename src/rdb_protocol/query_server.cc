@@ -48,7 +48,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
          noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply.as_bool());
     try {
-        scoped_perfmon_counter_t client_active(&rdb_ctx->clients_active);
+        scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active);
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(query,
@@ -70,8 +70,8 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
 #endif // NDEBUG
     }
 
-    rdb_ctx->queries_per_sec.record();
-    ++rdb_ctx->queries_total;
+    rdb_ctx->stats.queries_per_sec.record();
+    ++rdb_ctx->stats.queries_total;
     return response_needed;
 }
 

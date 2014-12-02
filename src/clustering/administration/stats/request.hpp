@@ -13,6 +13,10 @@
 
 class server_name_client_t;
 
+// A `parsed_stats_t` represents all the values that have been gathered from other
+// servers in the cluster.  At construction, it parses the given responses to create
+// per-server/table stats structures.  These stats can later be used to build multiple
+// rows in the `stats` table, without performing more requests.
 class parsed_stats_t {
 public:
     struct table_stats_t {
@@ -64,9 +68,17 @@ public:
     std::map<server_id_t, server_stats_t> servers;
 
 private:
+    // Adds a given stat value to an existing value, useful for summing stats
+    // that are spread out across multiple objects.
     void add_perfmon_value(const ql::datum_t &perf,
                            const std::string &key,
                            double *value_out);
+
+    // Stores a given stat value and asserts that the value is the default (0);
+    // use `add_perfmon_value` for summing stats from multple sources.
+    void store_perfmon_value(const ql::datum_t &perf,
+                             const std::string &key,
+                             double *value_out);
 
     void add_shard_values(const ql::datum_t &shard_perf,
                           table_stats_t *stats_out);
@@ -82,6 +94,16 @@ private:
                          server_stats_t *stats_out);
 };
 
+// A `stats_request_t` encapsulates all the behavior that differentiates between
+// different types of rows in the `stats` table.  First, `get_filter` provides
+// a set of regular expressions for which stats are needed by the request.  Then,
+// `get_peers` will tell us which peers should be contacted to get the relevant
+// data.  `check_existence` checks for a malformed request by verifying that the
+// specified objects exist in the metadata.  Finally, `to_datum` will take the
+// `parsed_stats_t` obtained from the cross-cluster stats and format it into the
+// appropriate row format.
+// Each subclass of `stats_request_t` should correspond to a category within the
+// admin `stats` table.
 class stats_request_t {
 public:
     typedef cluster_semilattice_metadata_t metadata_t;
@@ -99,12 +121,14 @@ public:
     virtual std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
         server_name_client_t *name_client) const = 0;
 
-    // Checks that the requested entity exists in the metadata
+    // Checks that the requested entity exists in the metadata, so we can avoid
+    // a round-trip if the request is non-sensical.
     virtual bool check_existence(const metadata_t &metadata) const = 0;
 
     // Converts stats from the response into the row format for the stats table
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
+                          server_name_client_t *name_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const = 0;
 };
@@ -127,6 +151,7 @@ public:
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
+                          server_name_client_t *name_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -151,6 +176,7 @@ public:
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
+                          server_name_client_t *name_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -174,6 +200,7 @@ public:
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
+                          server_name_client_t *name_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -199,6 +226,7 @@ public:
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
+                          server_name_client_t *name_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
