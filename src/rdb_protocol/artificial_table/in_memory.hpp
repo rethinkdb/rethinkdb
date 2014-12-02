@@ -59,6 +59,9 @@ public:
         random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         if (new_value_inout->has()) {
+            ql::datum_t primary_key_2 = new_value_inout->get_field("id", ql::NOTHROW);
+            guarantee(primary_key_2.has());
+            guarantee(primary_key == primary_key_2);
             data[primary_key.print_primary()] = *new_value_inout;
         } else {
             data.erase(primary_key.print_primary());
