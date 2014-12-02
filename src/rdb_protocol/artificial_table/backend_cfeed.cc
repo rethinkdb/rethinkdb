@@ -258,7 +258,7 @@ bool cfeed_artificial_table_backend_t::machinery_t::get_values(
         std::vector<ql::datum_t> datums;
         try {
             datums = stream->next_batch(&env, ql::batchspec_t::all());
-        } catch (const ql::exc_t &) {
+        } catch (const ql::base_exc_t &) {
             return false;
         }
         for (const ql::datum_t &doc : datums) {

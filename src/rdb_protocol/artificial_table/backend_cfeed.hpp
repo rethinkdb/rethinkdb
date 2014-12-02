@@ -14,6 +14,8 @@ re-fetched. */
 
 class cfeed_artificial_table_backend_t : public virtual artificial_table_backend_t {
 public:
+    cfeed_artificial_table_backend_t() : begin_destruction_was_called(false) { }
+
     bool read_changes(
         const ql::protob_t<const Backtrace> &bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
