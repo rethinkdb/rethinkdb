@@ -85,8 +85,8 @@ struct msg_t {
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
         store_key_t pkey;
-        /* For a newly-created row, `old_val` is `datum_t::null()`. For a deleted row,
-        `new_val` is `datum_t::null()`. */
+        /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
+        `new_val` is an empty `datum_t`. */
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };

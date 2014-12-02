@@ -66,8 +66,6 @@ private:
                              const ql::datum_t &old_val,
                              const ql::datum_t &new_val);
         void send_all_stop();
-        void send_all_diff(const std::map<store_key_t, ql::datum_t> &old_vals,
-                           const std::map<store_key_t, ql::datum_t> &new_vals);
 
         cfeed_artificial_table_backend_t *parent;
 

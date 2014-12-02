@@ -195,14 +195,11 @@ bool cfeed_artificial_table_backend_t::machinery_t::diff_one(
     /* Fetch old value from `old_values` map */
     ql::datum_t old_val;
     auto it = old_values.find(store_key_t(key.print_primary()));
-    if (it == old_values.end()) {
-        old_val = ql::datum_t::null();
-    } else {
+    if (it != old_values.end()) {
         old_val = it->second;
     }
     /* Update `old_values` map */
     if (!new_val.has()) {
-        new_val = ql::datum_t::null();
         if (it != old_values.end()) {
             old_values.erase(it);
         }
@@ -232,7 +229,28 @@ bool cfeed_artificial_table_backend_t::machinery_t::diff_all(
         send_all_stop();
     } else {
         /* Diff old values against new values and notify subscribers */
-        send_all_diff(old_values, new_values);
+        auto old_it = old_values.begin();
+        auto new_it = new_values.begin();
+        while (old_it != old_values.end() || new_it != new_values.end()) {
+            if (old_it == old_values.end() ||
+                    (new_it != new_values.end() && new_it->first < old_it->first)) {
+                send_all_change(new_it->first, ql::datum_t(), new_it->second);
+                ++new_it;
+            } else if (new_it == new_values.end() || 
+                    (old_it != old_values.end() && old_it->first < new_it->first)) {
+                send_all_change(old_it->first, old_it->second, ql::datum_t());
+                ++old_it;
+            } else {
+                guarantee(old_it != old_values.end());
+                guarantee(new_it != new_values.end());
+                guarantee(old_it->first == new_it->first);
+                if (old_it->second != new_it->second) {
+                    send_all_change(old_it->first, old_it->second, new_it->second);
+                }
+                ++old_it;
+                ++new_it;
+            }
+        }
     }
     old_values = std::move(new_values);
     return true;
@@ -287,33 +305,6 @@ void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_stop() {
     send_all(ql::changefeed::msg_t(ql::changefeed::msg_t::stop_t()));
-}
-
-void cfeed_artificial_table_backend_t::machinery_t::send_all_diff(
-        const std::map<store_key_t, ql::datum_t> &old_vals,
-        const std::map<store_key_t, ql::datum_t> &new_vals) {
-    auto old_it = old_vals.begin();
-    auto new_it = new_vals.begin();
-    while (old_it != old_vals.end() || new_it != new_vals.end()) {
-        if (old_it == old_vals.end() ||
-                (new_it != new_vals.end() && new_it->first < old_it->first)) {
-            send_all_change(new_it->first, ql::datum_t::null(), new_it->second);
-            ++new_it;
-        } else if (new_it == new_vals.end() || 
-                (old_it != old_vals.end() && old_it->first < new_it->first)) {
-            send_all_change(old_it->first, old_it->second, ql::datum_t::null());
-            ++old_it;
-        } else {
-            guarantee(old_it != old_vals.end());
-            guarantee(new_it != new_vals.end());
-            guarantee(old_it->first == new_it->first);
-            if (old_it->second != new_it->second) {
-                send_all_change(old_it->first, old_it->second, new_it->second);
-            }
-            ++old_it;
-            ++new_it;
-        }
-    }
 }
 
 void cfeed_artificial_table_backend_t::maybe_remove_machinery(
