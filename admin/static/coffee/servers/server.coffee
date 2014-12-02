@@ -22,13 +22,19 @@ module 'ServerView', ->
                     server.merge( (server) ->
                         responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
-                                shards: table("shards").indexesOf( () -> true ).map( (index) ->
-                                    table("shards").nth(index).merge({num_keys: "TODO", index: index.add(1), num_shards: table("shards").count()}).filter( (replica) ->
-                                        replica('server').eq(server("name"))
-                                    )
-                                ).filter( (shard) ->
-                                    shard.isEmpty().not()
-                                ).concatMap( (roles) -> roles )
+                                shards: table("shards").map(r.range(table('shards').count()), (shard, index) ->
+                                    shard.merge(
+                                        num_keys: r.db(table('db')) \
+                                            .table(table('name')) \
+                                            .info()('doc_count_estimates')(index)
+                                        index: index.add(1)
+                                        num_shards: table('shards').count()
+                                        role: r.branch(server('name').eq(shard('director')),
+                                            'primary', 'secondary')
+                                        )
+                                ).filter((shard) ->
+                                    shard('replicas')('server').contains(server('name'))
+                                ).coerceTo('array')
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
@@ -65,6 +71,7 @@ module 'ServerView', ->
                                 is_table: true
                                 db: table.db
                                 table: table.name
+                                table_id: table.id
                                 id: table.db+"."+table.name
 
                             for shard in table.shards
@@ -149,10 +156,13 @@ module 'ServerView', ->
                 collection: @collection
 
             @stats = new Stats
-            @stats_timer = driver.run r.expr(
-                keys_read: r.random(2000, 3000)
-                keys_set: r.random(1500, 2500)
-            ), 1000, @stats.on_result
+            @stats_timer = driver.run(
+                r.db('rethinkdb_mock').table('stats')
+                .get(['server', @model.get('id')])
+                .do((stat) ->
+                    keys_read: stat('query_engine')('read_docs_per_sec'),
+                    keys_set: stat('query_engine')('written_docs_per_sec'),
+                ), 1000, @stats.on_result)
 
             @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
@@ -212,16 +222,24 @@ module 'ServerView', ->
             @listenTo @collection, 'remove', @render
 
         render: =>
-            # TODO Try with a release/clean version
-            version = @model.get('version').split(' ')[1].split('-')[0]
+            if @model.get('status') != 'available'
+                last_seen = $.timeago(
+                    @model.get('connection').time_disconnected).slice(0, -4)
+                uptime = null
+                version = "unknown"
+            else
+                last_seen = null
+                uptime = $.timeago(
+                    @model.get('connection').time_connected).slice(0, -4)
+                version = @model.get('process').version?.split(' ')[1].split('-')[0]
+
             @$el.html @template
-                main_ip: @model.get 'hostname'
-                uptime: $.timeago(@model.get('time_started')).slice(0, -4)
+                main_ip: @model.get('network').hostname
+                uptime: uptime
                 version: version
                 num_shards: @collection.length
-                reachability:
-                    reachable: @model.get('status') is 'available'
-                    last_seen: $.timeago(@model.get('time_disconnected')).slice(0, -4) if @model.get('status') isnt 'available'
+                status: @model.get('status')
+                last_seen: last_seen
             @
 
         remove: =>

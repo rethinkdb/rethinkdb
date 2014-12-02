@@ -75,16 +75,21 @@ module 'TablesView', ->
                 container: @
 
             @query = r.db(system_db).table('db_config').filter( (db) ->
-                db("name").ne('rethinkdb')
+                db("name").ne(system_db)
             ).map (db) ->
                 name: db("name")
                 id: db("id")
                 tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
-                    .filter({db: db("name")}).merge( (table) ->
+                    .filter({db: db("name")})
+                    .merge( (table) ->
                         shards: table("shards").count()
-                        replicas: table("shards").nth(0).count()
-                    ).merge( (table) ->
-                        id: table("id")
+                        replicas: table("shards").map((shard) ->
+                            shard('replicas').count()).sum()
+                        replicas_ready: table('shards').map((shard) ->
+                            shard('replicas').filter((replica) ->
+                                replica('state').eq('ready')).count()).sum()
+                        status: table('status')
+                        id: table('id')
                     )
 
             @fetch_data()
@@ -290,7 +295,7 @@ module 'TablesView', ->
             @listenTo @model, 'change', @render
 
         render: =>
-            @$el.html @template#@model.toJSON()
+            @$el.html @template
                 id: @model.get 'id'
                 db_json: JSON.stringify @model.get('db')
                 name_json: JSON.stringify @model.get('name')
@@ -298,7 +303,8 @@ module 'TablesView', ->
                 name: @model.get('name')
                 shards: @model.get 'shards'
                 replicas: @model.get 'replicas'
-                ready_completely: @model.get 'ready_completely'
+                replicas_ready: @model.get 'replicas_ready'
+                status: @model.get 'status'
             @
 
         remove: =>
