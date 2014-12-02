@@ -13,6 +13,7 @@
 merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner,
                                          int _max_active_writes) :
     inner(std::move(_inner)),
+    block_writes_io_account(make_io_account(MERGER_BLOCK_WRITE_IO_PRIORITY)),
     on_inner_index_write_complete(new counted_cond_t()),
     unhandled_index_write_waiter_exists(false),
     num_active_writes(0),

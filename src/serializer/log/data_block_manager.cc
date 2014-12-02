@@ -36,7 +36,7 @@ const size_t MAX_CONCURRENT_GCS = 32;
 // doesn't grow indefinitely.
 const int GC_IO_PRIORITY_NICE = 8;
 // 4 times the priority of all caches combined
-const int GC_IO_PRIORITY_HIGH = (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR);
+const int GC_IO_PRIORITY_HIGH = 4 * MERGER_BLOCK_WRITE_IO_PRIORITY;
 
 // The ratio at which we start GCing.
 const double GC_START_RATIO = 0.15;

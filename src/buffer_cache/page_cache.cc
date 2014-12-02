@@ -214,7 +214,6 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
-        writes_io_account_.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
         index_write_sink_.init(new page_cache_index_write_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -254,7 +253,6 @@ page_cache_t::~page_cache_t() {
         // of making its destructor switch back to the serializer thread a second
         // time.
         default_reads_account_.reset();
-        writes_io_account_.reset();
         index_write_sink_.reset();
     }
 }
@@ -1261,7 +1259,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
-                                                    page_cache->writes_io_account_.get(),
+                                                    /* disk account is overridden
+                                                     * by merger_serializer_t */
+                                                    DEFAULT_DISK_ACCOUNT,
                                                     &blocks_releasable_cb);
 
         rassert(tokens.size() == write_infos.size());
