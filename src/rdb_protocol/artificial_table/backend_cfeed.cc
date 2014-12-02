@@ -11,7 +11,19 @@ bool cfeed_artificial_table_backend_t::read_changes(
         counted_t<ql::datum_stream_t> *cfeed_out,
         std::string *error_out) {
     guarantee(!begin_destruction_was_called);
-    if (boost::get<ql::changefeed::keyspec_t::limit_t>(&spec) != nullptr) {
+    class visitor_t : public boost::static_visitor<bool> {
+    public:
+        bool operator()(const ql::changefeed::keyspec_t::limit_t &) const {
+            return false;
+        }
+        bool operator()(const ql::changefeed::keyspec_t::range_t &) const {
+            return true;
+        }
+        bool operator()(const ql::changefeed::keyspec_t::point_t &) const {
+            return true;
+        }
+    };
+    if (!boost::apply_visitor(visitor_t(), spec)) {
         *error_out = "System tables don't support changefeeds on `.limit()`.";
         return false;
     }
