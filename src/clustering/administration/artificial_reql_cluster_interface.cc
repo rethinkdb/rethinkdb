@@ -283,7 +283,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
-        server_name_client_t *_name_client) {
+        server_name_client_t *_name_client,
+        mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
 

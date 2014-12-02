@@ -68,15 +68,32 @@ timespec clock_realtime() {
 }
 
 void add_to_timespec(timespec *ts, int32_t nanoseconds) {
-    guarantee(ts->nanoseconds >= 0 && ts->nanoseconds < BILLION);
-    int64_t new_nanoseconds = ts->nanoseconds + nanoseconds;
-    if (new_nanoseconds >= 0) {
-        ts->seconds += new_nanoseconds / BILLION;
-        ts->nanoseconds = new_nanoseconds % BILLION;
+    guarantee(ts->tv_nsec >= 0 && ts->tv_nsec < BILLION);
+    int64_t new_tv_nsec = ts->tv_nsec + nanoseconds;
+    if (new_tv_nsec >= 0) {
+        ts->tv_sec += new_tv_nsec / BILLION;
+        ts->tv_nsec = new_tv_nsec % BILLION;
     } else {
-        ts->seconds += new_nanoseconds / BILLION - 1;
-        ts->nanoseconds = BILLION + new_nanoseconds % BILLION;
+        ts->tv_sec += new_tv_nsec / BILLION - 1;
+        ts->tv_nsec = BILLION + new_tv_nsec % BILLION;
     }
+    guarantee(ts->tv_nsec >= 0 && ts->tv_nsec < BILLION);
+}
+
+bool operator<(const struct timespec &t1, const struct timespec &t2) {
+    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec < t2.tv_nsec);
+}
+
+bool operator>(const struct timespec &t1, const struct timespec &t2) {
+    return t2 < t1;
+}
+
+bool operator<=(const struct timespec &t1, const struct timespec &t2) {
+    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec <= t2.tv_nsec);
+}
+
+bool operator>=(const struct timespec &t1, const struct timespec &t2) {
+    return t2 <= t1;
 }
 
 ticks_t get_ticks() {

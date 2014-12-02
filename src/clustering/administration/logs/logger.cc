@@ -341,7 +341,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     }
 }
 
-log_message_t fallback_log_write_t::assemble_log_message(
+log_message_t fallback_log_writer_t::assemble_log_message(
         log_level_t level, const std::string &m) {
     struct timespec timestamp = clock_realtime();
 
@@ -525,22 +525,6 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
 void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
     *ok_out = fallback_log_writer.write(msg, error_out);
     return;
-}
-
-bool operator<(const struct timespec &t1, const struct timespec &t2) {
-    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec < t2.tv_nsec);
-}
-
-bool operator>(const struct timespec &t1, const struct timespec &t2) {
-    return t2 < t1;
-}
-
-bool operator<=(const struct timespec &t1, const struct timespec &t2) {
-    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec <= t2.tv_nsec);
-}
-
-bool operator>=(const struct timespec &t1, const struct timespec &t2) {
-    return t2 <= t1;
 }
 
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {

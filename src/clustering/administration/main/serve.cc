@@ -287,7 +287,8 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
                 reactor_directory_read_manager.get_root_view(),
-                &server_name_client);
+                &server_name_client,
+                &mailbox_manager);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when

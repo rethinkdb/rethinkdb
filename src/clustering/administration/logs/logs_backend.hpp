@@ -2,7 +2,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 #define CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 
-#include "rdb_protocol/artificial_table/cfeed_backend.hpp"
+#include <string>
+#include <vector>
+
+#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "clustering/administration/metadata.hpp"
+
+class server_name_client_t;
 
 class logs_artificial_table_backend_t :
     public timer_cfeed_artificial_table_backend_t
@@ -17,6 +23,7 @@ public:
         directory(_directory),
         name_client(_name_client),
         identifier_format(_identifier_format) { }
+    ~logs_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 
