@@ -126,78 +126,36 @@ void cfeed_artificial_table_backend_t::machinery_t::run(
             std::swap(all_dirty, local_all_dirty);
             std::swap(should_break, local_should_break);
 
+            guarantee(local_all_dirty || !local_dirty.empty(),
+                "If nothing is dirty, we shouldn't have gotten here");
+
+            bool error = false;
             if (local_all_dirty) {
-                guarantee(local_dirty.empty());
-                /* Fetch the new values of everything */
-                std::map<store_key_t, ql::datum_t> new_values;
-                if (!get_values(keepalive.get_drain_signal(), &new_values)) {
-                    /* Kick off any subscribers since we got an error. */
-                    send_all_stop();
-                    /* Ensure that we try again the next time around the loop. */
-                    parent->notify_all();
-                    /* Go around the loop and try again. But first wait a second so we
-                    don't eat too much CPU if it keeps failing. */
-                    nap(1000, keepalive.get_drain_signal());
-                    continue;
-                }
-                if (!ready.is_pulsed()) {
-                    /* This is the initialization step. We can't possibly have any
-                    subscribers yet, so don't bother with the diff. */
-                    ready.pulse();
-                } else if (local_should_break) {
-                    /* Don't bother with the diff; just kick off all the subscribers */
-                    send_all_stop();
+                guarantee(local_dirty.empty(), "if local_all_dirty is true, local_dirty "
+                    "should be empty (that's just the convention)");
+                if (!diff_all(should_break, keepalive.get_drain_signal())) {
+                    error = true;
                 } else {
-                    /* Diff old values against new values and notify subscribers */
-                    send_all_diff(old_values, new_values);
+                    ready.pulse_if_not_already_pulsed();
                 }
-                old_values = std::move(new_values);
             } else {
-                guarantee(!local_dirty.empty());
                 for (const auto &pair : local_dirty) {
-                    /* Fetch new value from backend */
-                    ql::datum_t new_val;
-                    std::string error;
-                    if (!parent->read_row(
-                            pair.second,
-                            keepalive.get_drain_signal(),
-                            &new_val,
-                            &error)) {
-                        /* Kick off any subscribers since we got an error. */
-                        send_all_stop();
-                        /* Ensure that we try again the next time around the loop. */
-                        parent->notify_row(pair.second);
-                        /* Go around the loop and try again. But first wait a second so
-                        we don't eat too much CPU if it keeps failing. */
-                        nap(1000, keepalive.get_drain_signal());
-                        continue;
-                    }
-                    /* Fetch old value from `old_values` map */
-                    ql::datum_t old_val;
-                    auto it = old_values.find(pair.first);
-                    if (it == old_values.end()) {
-                        old_val = ql::datum_t::null();
-                    } else {
-                        old_val = it->second;
-                    }
-                    /* Update `old_values` map */
-                    if (!new_val.has()) {
-                        new_val = ql::datum_t::null();
-                        if (it != old_values.end()) {
-                            old_values.erase(it);
-                        }
-                    } else {
-                        if (it != old_values.end()) {
-                            it->second = new_val;
-                        } else {
-                            old_values.insert(std::make_pair(pair.first, new_val));
-                        }
-                    }
-                    /* Send notification if it actually changed */
-                    if (new_val != old_val) {
-                        send_all_change(pair.first, old_val, new_val);
+                    if (!diff_one(pair.second, keepalive.get_drain_signal())) {
+                        error = true;
+                        break;
                     }
                 }
+            }
+
+            if (error) {
+                /* Kick off any subscribers since we got an error. */
+                send_all_stop();
+                /* Ensure that we try again the next time around the loop. */
+                parent->notify_all();
+                /* Go around the loop and try again. But first wait a second so we
+                don't eat too much CPU if it keeps failing. */
+                nap(1000, keepalive.get_drain_signal());
+                continue;
             }
 
             /* Wait until the next change */
@@ -211,6 +169,60 @@ void cfeed_artificial_table_backend_t::machinery_t::run(
         /* break out of the loop */
     }
     parent->set_notifications(false);
+}
+
+bool cfeed_artificial_table_backend_t::machinery_t::diff_one(
+        const ql::datum_t &key, signal_t *interruptor) {
+    /* Fetch new value from backend */
+    ql::datum_t new_val;
+    std::string error;
+    if (!parent->read_row(key, interruptor, &new_val, &error)) {
+        return false;
+    }
+    /* Fetch old value from `old_values` map */
+    ql::datum_t old_val;
+    auto it = old_values.find(store_key_t(key.print_primary()));
+    if (it == old_values.end()) {
+        old_val = ql::datum_t::null();
+    } else {
+        old_val = it->second;
+    }
+    /* Update `old_values` map */
+    if (!new_val.has()) {
+        new_val = ql::datum_t::null();
+        if (it != old_values.end()) {
+            old_values.erase(it);
+        }
+    } else {
+        if (it != old_values.end()) {
+            it->second = new_val;
+        } else {
+            old_values.insert(std::make_pair(store_key_t(key.print_primary()), new_val));
+        }
+    }
+    /* Send notification if it actually changed */
+    if (new_val != old_val) {
+        send_all_change(store_key_t(key.print_primary()), old_val, new_val);
+    }
+    return true;
+}
+
+bool cfeed_artificial_table_backend_t::machinery_t::diff_all(
+        bool is_break, signal_t *interruptor) {
+    /* Fetch the new values of everything */
+    std::map<store_key_t, ql::datum_t> new_values;
+    if (!get_values(interruptor, &new_values)) {
+        return false;
+    }
+    if (is_break) {
+        /* Don't bother with the diff; just kick off all the subscribers */
+        send_all_stop();
+    } else {
+        /* Diff old values against new values and notify subscribers */
+        send_all_diff(old_values, new_values);
+    }
+    old_values = std::move(new_values);
+    return true;
 }
 
 bool cfeed_artificial_table_backend_t::machinery_t::get_values(
