@@ -29,9 +29,11 @@ module 'ServerView', ->
                                             .info()('doc_count_estimates')(index)
                                         index: index.add(1)
                                         num_shards: table('shards').count()
-                                        ).filter( (replica) ->
-                                            replica('server').eq(server("name"))
-                                    )
+                                        role: r.branch(server('name').eq(shard('director')),
+                                            'primary', 'secondary')
+                                        )
+                                ).filter((shard) ->
+                                    shard('replicas')('server').contains(server('name'))
                                 ).coerceTo('array')
                             )
                         ).filter( (table) ->
@@ -221,16 +223,18 @@ module 'ServerView', ->
 
         render: =>
             if @model.get('status') != 'available'
-                last_seen = $.timeago(@model.get('time_disconnected')).slice(0, -4)
+                last_seen = $.timeago(
+                    @model.get('connection').time_disconnected).slice(0, -4)
                 uptime = null
                 version = "unknown"
             else
                 last_seen = null
-                uptime = $.timeago(@model.get('time_started')).slice(0, -4)
-                version = @model.get('version')?.split(' ')[1].split('-')[0]
+                uptime = $.timeago(
+                    @model.get('connection').time_connected).slice(0, -4)
+                version = @model.get('process').version?.split(' ')[1].split('-')[0]
 
             @$el.html @template
-                main_ip: @model.get 'hostname'
+                main_ip: @model.get('network').hostname
                 uptime: uptime
                 version: version
                 num_shards: @collection.length
