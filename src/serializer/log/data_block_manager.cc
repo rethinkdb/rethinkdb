@@ -36,7 +36,7 @@ const size_t MAX_CONCURRENT_GCS = 32;
 // doesn't grow indefinitely.
 const int GC_IO_PRIORITY_NICE = 8;
 // 4 times the priority of all caches combined
-const int GC_IO_PRIORITY_HIGH = (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR);
+const int GC_IO_PRIORITY_HIGH = 4 * MERGER_BLOCK_WRITE_IO_PRIORITY;
 
 // The ratio at which we start GCing.
 const double GC_START_RATIO = 0.15;
@@ -1284,8 +1284,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
     // Step 4B: Commit the transaction to the serializer, emptying
     // out all the i_array bits.
     new_mutex_in_line_t dummy_acq;
-    serializer->index_write(&dummy_acq, index_write_ops,
-                            choose_gc_io_account());
+    serializer->index_write(&dummy_acq, index_write_ops);
 }
 
 void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
