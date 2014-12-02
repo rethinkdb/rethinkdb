@@ -16,7 +16,7 @@ class cfeed_artificial_table_backend_t : public virtual artificial_table_backend
 public:
     bool read_changes(
         const ql::protob_t<const Backtrace> &bt,
-        const ql::changefeed::keyspec_t::spec_t &spec,
+        ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *cfeed_out,
         std::string *error_out);

@@ -6,7 +6,7 @@
 
 bool cfeed_artificial_table_backend_t::read_changes(
         const ql::protob_t<const Backtrace> &bt,
-        const ql::changefeed::keyspec_t::spec_t &spec,
+        ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *cfeed_out,
         std::string *error_out) {
@@ -25,7 +25,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
         wait_interruptible(&machinery->ready, &interruptor2);
     }
     on_thread_t thread_switcher_2(request_thread);
-    *cfeed_out = machinery->subscribe(spec, bt);
+    *cfeed_out = machinery->subscribe(std::move(spec), bt);
     return true;
 }
 
