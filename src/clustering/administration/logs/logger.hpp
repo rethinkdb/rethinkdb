@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_LOGGER_HPP_
-#define CLUSTERING_ADMINISTRATION_LOGGER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_LOGS_LOGGER_HPP_
+#define CLUSTERING_ADMINISTRATION_LOGS_LOGGER_HPP_
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -80,4 +80,4 @@ public:
     ~thread_log_writer_disabler_t();
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOGGER_HPP_ */

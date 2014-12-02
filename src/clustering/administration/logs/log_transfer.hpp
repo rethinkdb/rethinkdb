@@ -1,11 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
-#define CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_
+#define CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_
 
 #include <string>
 #include <vector>
 
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/logs/logger.hpp"
 #include "clustering/generic/resource.hpp"
 
 class log_server_business_card_t {
@@ -46,4 +46,4 @@ std::vector<log_message_t> fetch_log_file(
     int max_entries, struct timespec min_timestamp, struct timespec max_timestamp,
     signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_ */

@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-#include "clustering/administration/log_transfer.hpp"
+#include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "http/http.hpp"
 

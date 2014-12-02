@@ -9,7 +9,7 @@
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
-#include "clustering/administration/log_transfer.hpp"
+#include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
