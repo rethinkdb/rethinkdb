@@ -45,7 +45,7 @@ protected:
     void notify_break();
 
     /* Subclasses must call this when their destructor begins, to avoid the risk that the
-    `cfeed_artificial_taable_backend_t` will call virtual functions like `read_row()`
+    `cfeed_artificial_table_backend_t` will call virtual functions like `read_row()`
     after the subclass is destroyed. */
     void begin_changefeed_destruction();
 

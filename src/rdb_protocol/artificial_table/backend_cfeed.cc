@@ -38,8 +38,9 @@ void cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pkey) {
     ASSERT_FINITE_CORO_WAITING;
     if (machinery.has()) {
         if (!machinery->all_dirty) {
-            store_key_t pkey2(pkey.print_primary());
-            machinery->dirty.insert(std::make_pair(pkey2, pkey));
+            machinery->dirty.insert(std::make_pair(
+                store_key_t(pkey.print_primary()),
+                pkey));
             if (machinery->waker) {
                 machinery->waker->pulse_if_not_already_pulsed();
             }
@@ -51,7 +52,7 @@ void cfeed_artificial_table_backend_t::notify_all() {
     ASSERT_FINITE_CORO_WAITING;
     if (machinery.has()) {
         if (!machinery->all_dirty) {
-            /* This is in an `if` block so we don't unset `should_break` it
+            /* This is in an `if` block so we don't unset `should_break` if
             `notify_break()` set it to `true` before. */
             machinery->should_break = false;
         }
