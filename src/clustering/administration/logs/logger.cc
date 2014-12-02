@@ -19,6 +19,14 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
+/* We must make sure that the timestamps of log messages are different so that the
+`rethinkdb.logs` system table can use timestamps in its primary key. But it's not enough
+for them to differ by a few nanoseconds, since ReQL represents timestamps as doubles
+internally. A double has 52 bits of precision, and 1/2^52 of (say) 100 years is about a
+microsecond. So to play it safe, we make sure that log entries are separated by at least
+100 microseconds. */
+const int32_t log_timestamp_interval_ns = 100 * THOUSAND;
+
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
 
@@ -176,19 +184,6 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     return log_message_t(timestamp, uptime, level, message);
 }
 
-log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime_reference) {
-    struct timespec timestamp = clock_realtime();
-    struct timespec uptime = clock_monotonic();
-    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
-        uptime.tv_nsec += BILLION;
-        uptime.tv_sec -= 1;
-    }
-    uptime.tv_nsec -= uptime_reference.tv_nsec;
-    uptime.tv_sec -= uptime_reference.tv_sec;
-
-    return log_message_t(timestamp, uptime, level, message);
-}
-
 void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
         throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(get_errno()).c_str() + ")");
@@ -275,6 +270,8 @@ public:
     void install(const std::string &logfile_name);
     friend class thread_pool_log_writer_t;
 
+    log_message_t assemble_log_message(log_level_t level, const std::string &m);
+
 private:
     friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
@@ -284,6 +281,8 @@ private:
     void initiate_write(log_level_t level, const std::string &message);
     base_path_t filename;
     struct timespec uptime_reference;
+    struct timespec last_msg_timestamp;
+    spinlock_t last_msg_timestamp_lock;
     struct flock filelock, fileunlock;
     scoped_fd_t fd;
 
@@ -293,6 +292,7 @@ private:
 fallback_log_writer_t::fallback_log_writer_t() :
     filename("-") {
     uptime_reference = clock_monotonic();
+    last_msg_timestamp = clock_realtime();
 
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;
@@ -339,6 +339,39 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
         logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
             filename.path().c_str(), errno_str);
     }
+}
+
+log_message_t fallback_log_write_t::assemble_log_message(
+        log_level_t level, const std::string &m) {
+    struct timespec timestamp = clock_realtime();
+
+    {
+        /* Make sure timestamps on log messages are separated by at least
+        `log_timestamp_interval_ns`. */
+
+        /* We grab the spinlock to avoid races if multiple threads get here at once.
+        There's usually no possibility of lock contention because log messages
+        originating from within the thread pool will all get sent to thread 0 before
+        being written; but the `log*()` functions are supposed to work even outside of
+        the thread pool, including in the blocker pool. */
+        spinlock_acq_t lock_acq(&last_msg_timestamp_lock);
+        struct timespec last_plus = last_msg_timestamp;
+        add_to_timespec(&last_plus, log_timestamp_interval_ns);
+        if (last_plus > timestamp) {
+            timestamp = last_plus;
+        }
+        last_msg_timestamp = timestamp;
+    }
+
+    struct timespec uptime = clock_monotonic();
+    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
+        uptime.tv_nsec += BILLION;
+        uptime.tv_sec -= 1;
+    }
+    uptime.tv_nsec -= uptime_reference.tv_nsec;
+    uptime.tv_sec -= uptime_reference.tv_sec;
+
+    return log_message_t(timestamp, uptime, level, m);
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
@@ -411,7 +444,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 }
 
 void fallback_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
-    log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
+    log_message_t log_msg = assemble_log_message(level, message);
     std::string error_message;
     if (!write(log_msg, &error_message)) {
         fprintf(stderr, "Previous message may not have been written to the log file (%s).\n", error_message.c_str());
@@ -514,7 +547,7 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
     try {
         file_reverse_reader_t reader(fallback_log_writer.filename.path());
         std::string line;
-        while (messages_out->size() < static_cast<size_t>(max_lines) && reader.get_next(&line) && !*cancel) {
+        while (max_lines-- > 0 && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {
                 continue;
             }
@@ -535,7 +568,7 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
 void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    log_message_t log_msg = assemble_log_message(level, message, fallback_log_writer.uptime_reference);
+    log_message_t log_msg = fallback_log_writer.assemble_log_message(level, message);
     writer->write(log_msg);
 }
 

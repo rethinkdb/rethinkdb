@@ -162,6 +162,7 @@ public:
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
+    scoped_ptr_t<logs_artificial_table_backend_t> logs_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];

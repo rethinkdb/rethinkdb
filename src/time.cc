@@ -67,6 +67,17 @@ timespec clock_realtime() {
 #endif
 }
 
+void add_to_timespec(timespec *ts, int32_t nanoseconds) {
+    guarantee(ts->nanoseconds >= 0 && ts->nanoseconds < BILLION);
+    int64_t new_nanoseconds = ts->nanoseconds + nanoseconds;
+    if (new_nanoseconds >= 0) {
+        ts->seconds += new_nanoseconds / BILLION;
+        ts->nanoseconds = new_nanoseconds % BILLION;
+    } else {
+        ts->seconds += new_nanoseconds / BILLION - 1;
+        ts->nanoseconds = BILLION + new_nanoseconds % BILLION;
+    }
+}
 
 ticks_t get_ticks() {
     timespec tv = clock_monotonic();

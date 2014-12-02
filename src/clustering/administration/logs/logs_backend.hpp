@@ -2,15 +2,21 @@
 #ifndef CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 #define CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/cfeed_backend.hpp"
 
 class logs_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     logs_artificial_table_backend_t(
-        mailbox_manager_t *mailbox_manager,
-        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory);
+            mailbox_manager_t *_mailbox_manager,
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
+            server_name_client_t *_name_client,
+            admin_identifier_format_t _identifier_format) :
+        mailbox_manager(_mailbox_manager),
+        directory(_directory),
+        name_client(_name_client),
+        identifier_format(_identifier_format) { }
 
     std::string get_primary_key_name();
 
@@ -32,6 +38,8 @@ public:
 private:
     mailbox_manager_t *mailbox_manager;
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory;
+    server_name_client_t *name_client;
+    admin_identifier_format_t identifier_format;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_ */

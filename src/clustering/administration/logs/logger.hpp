@@ -19,6 +19,10 @@
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(log_level_t, int, log_level_debug, log_level_error);
 RDB_DECLARE_SERIALIZABLE(struct timespec);
 
+/* The logger will ensure that timestamps of adjacent log messages are separated by at
+least this interval. */
+extern const int32_t log_timestamp_interval_ns;
+
 class log_message_t {
 public:
     log_message_t() { }

@@ -43,7 +43,12 @@ private:
 std::vector<log_message_t> fetch_log_file(
     mailbox_manager_t *mailbox_manager,
     const log_server_business_card_t &server_bcard,
-    int max_entries, struct timespec min_timestamp, struct timespec max_timestamp,
-    signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
+    /* Note `max_entries` is the maximum number of entries the server will examine, not
+    the maximum number it will return. */
+    int max_entries,
+    struct timespec min_timestamp,
+    struct timespec max_timestamp,
+    signal_t *interruptor)
+    THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_ */
