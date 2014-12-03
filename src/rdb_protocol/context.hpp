@@ -280,7 +280,7 @@ public:
     
     class stats_t {
     public:
-        stats_t(perfmon_collection_t *global_stats);
+        explicit stats_t(perfmon_collection_t *global_stats);
 
         perfmon_collection_t qe_stats_collection;
         perfmon_membership_t qe_stats_membership;
