@@ -245,7 +245,7 @@ bool add_table_fields(const namespace_id_t &table_id,
 std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
     return std::set<std::vector<std::string> >(
         { {"query_engine"},
-          {"[0-9a-f-]+", "serializers" } });
+          {"[0-9A-Fa-f-]+", "serializers" } });
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
