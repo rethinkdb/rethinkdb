@@ -11,7 +11,7 @@
 class server_name_client_t;
 
 class logs_artificial_table_backend_t :
-    public timer_cfeed_artificial_table_backend_t
+    public cfeed_artificial_table_backend_t
 {
 public:
     logs_artificial_table_backend_t(
@@ -43,6 +43,51 @@ public:
                    std::string *error_out);
 
 private:
+    class cfeed_machinery_t : public cfeed_artificial_table_backend_t::machinery_t {
+    public:
+        cfeed_machinery_t(logs_artificial_table_backend_t *_parent);
+
+        /* `on_change()` checks for newly-connected peers. If it finds one, it puts an
+        entry in `peers_handled` and spawns an instance of `run()`. */
+        void on_change(const peer_id_t &peer, const cluster_directory_metadata_t *dir);
+
+        /* One instance of `run` will be running for each server we're in contact with
+        that hasn't been permanently removed. It first fetches the latest entry of each
+        server's log, then repeatedly checks for newer log entries at a regular interval.
+        If it sees that the server is disconnected, then it removes itself from
+        `peers_handled` and stops. */
+        void run(
+            const peer_id_t &peer,
+            const server_id_t &server_id,
+            const log_server_business_card_t &bcard,
+            bool is_a_starter,
+            auto_drainer_t::lock_t keepalive);
+
+        /* Helper function for `run()`. Checks if the server is no longer present in the
+        directory; if so, removes the entry from `peers_handled` and returns `false`. */
+        bool check_disconnected(const peer_id_t &peer);
+
+        logs_artificial_table_backend_t *parent;
+        std::set<peer_id_t> peers_handled;
+
+        /* `all_starters_done` is pulsed when we've fetched logs from every peer that was
+        connected to the `cfeed_machinery_t` when it was first created. When the
+        `cfeed_machinery_t` is first created, `starting` is true, and any instance of
+        `run()` that are spawned in the first group have `is_a_starter` set to `true`.
+        `num_starters_left` is initially the number of such coroutines. As each instance
+        finishes fetching the initial timestamp, it decrements `num_starters_left`. The
+        last one pulses `all_starters_done`.*/
+        bool starting;
+        int num_starters_left;
+        cond_t all_starters_done;
+
+        auto_drainer_t drainer;
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t dir_subs;
+    };
+
+    scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>
+        construct_changefeed_machinery(signal_t *interruptor);
+
     mailbox_manager_t *mailbox_manager;
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory;
     server_name_client_t *name_client;

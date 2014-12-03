@@ -40,11 +40,14 @@ private:
     DISABLE_COPYING(log_server_t);
 };
 
+/* Fetches a block of entries from another server's log file. It examines the last
+`max_entries` entries from the server's log, and filters out those whose timestamps are
+not between `min_timestamp` and `max_timestamp`, inclusive. It returns the results in
+reverse chronological order. Throws `resource_lost_exc_t` if the server disconnected or
+`std::runtime_error` if there's a problem with reading the log file. */
 std::vector<log_message_t> fetch_log_file(
     mailbox_manager_t *mailbox_manager,
     const log_server_business_card_t &server_bcard,
-    /* Note `max_entries` is the maximum number of entries the server will examine, not
-    the maximum number it will return. */
     int max_entries,
     struct timespec min_timestamp,
     struct timespec max_timestamp,

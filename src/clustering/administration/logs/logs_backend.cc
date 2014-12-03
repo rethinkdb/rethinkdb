@@ -236,3 +236,210 @@ bool logs_artificial_table_backend_t::write_row(
     return false;
 }
 
+logs_artificial_table_backend_t::cfeed_machinery_t::cfeed_machinery_t(
+        logs_artificial_table_backend_t *_parent) :
+    parent(_parent),
+    starting(true),
+    num_starters_left(0),
+    dir_subs(
+        parent->directory,
+        std::bind(&cfeed_machinery_t::on_change, this, ph::_1, ph::_2),
+        true)
+{
+    starting = false;
+    /* In the unlikely event that we're not connected to any servers (not even ourself)
+    there will be nothing to pulse `all_starters_done`, so we have to do it here. */
+    if (num_starters_left == 0) {
+        all_starters_done.pulse_if_not_already_pulsed();
+    }
+}
+
+void logs_artificial_table_backend_t::cfeed_machinery_t::on_change(
+        const peer_id_t &peer,
+        const cluster_directory_metadata_t *dir) {
+    if (dir == nullptr || peers_handled.count(peer) != 0) {
+        return;
+    }
+    server_id_t server_id = dir->server_id;
+    if (!static_cast<bool>(parent->name_client->get_name_for_server_id(server_id))) {
+        /* The server was permanently removed. Don't bother retrieving its log messages.
+        */
+        return;
+    }
+    peers_handled.insert(peer);
+    if (starting) {
+        ++num_starters_left;
+    }
+    coro_t::spawn_sometime(std::bind(
+        &cfeed_machinery_t::run, this,
+        peer, dir->server_id, dir->log_mailbox, starting,
+        auto_drainer_t::lock_t(&drainer)));
+}
+
+void logs_artificial_table_backend_t::cfeed_machinery_t::run(
+        const peer_id_t &peer,
+        const server_id_t &server_id,
+        const log_server_business_card_t &bcard,
+        bool is_a_starter,
+        auto_drainer_t::lock_t keepalive) {
+    /* `poll_interval_ms` is how long to wait between polling for new messages. */
+    static const int poll_interval_ms = 1000;
+
+    try {
+        timespec last_timestamp;
+
+        /* First, fetch the initial value of `last_timestamp`. The reason this is in a
+        loop is so that we keep retrying if something goes wrong: the log file is empty,
+        we can't read it for some reason, etc. */
+        while (true) {
+            if (!check_disconnected(peer)) {
+                /* The peer is disconnected, so this instance of `run()` is going to
+                exit. So we have to check this here because we're not going to get to it
+                later. */
+                if (is_a_starter) {
+                    guarantee(num_starters_left > 0);
+                    --num_starters_left;
+                    if (num_starters_left == 0) {
+                        all_starters_done.pulse();
+                    }
+                }
+                return;
+            }
+
+            /* Fetch the last message in the server's log file */
+            std::vector<log_message_t> messages;
+            try {
+                timespec min_time = { 0, 0 };
+                timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
+                messages = fetch_log_file(
+                    parent->mailbox_manager,
+                    bcard,
+                    1,   /* only fetch latest entry */
+                    min_time,
+                    max_time,
+                    keepalive.get_drain_signal());
+            } catch (const resource_lost_exc_t &) {
+                /* The server disconnected. However, to avoid race conditions, we can't
+                exit unless we see that the server is absent from the directory, which we
+                check above. So we ignore the error and go around the loop again. */
+            } catch (const std::runtime_error &) {
+                /* Something went wrong reading the log file on the other server. Go
+                around the loop again. */
+            }
+
+            if (messages.empty()) {
+                /* This could mean that the log file is empty, or that an error
+                occurred. In either case, retry after a short delay. */
+                nap(poll_interval_ms, keepalive.get_drain_signal());
+                continue;
+            }
+
+            guarantee(messages.size() == 1, "We asked for at most 1 log message.");
+            last_timestamp = messages[0].timestamp;
+            break;
+        }
+
+        /* Now that we've fetched the initial timestamp, we can let the call to
+        `.changes()` return */
+        if (is_a_starter) {
+            guarantee(num_starters_left > 0);
+            --num_starters_left;
+            if (num_starters_left == 0) {
+                all_starters_done.pulse();
+            }
+        }
+
+        /* Loop forever to check for new messages. */
+        while (true) {
+            if (!check_disconnected(peer)) {
+                return;
+            }
+
+            /* Fetch messages since our last request */
+            std::vector<log_message_t> messages;
+            try {
+                /* We choose `min_time` so as to exclude the last message from before */
+                timespec min_time = last_timestamp;
+                add_to_timespec(&min_time, 1);
+                timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
+                messages = fetch_log_file(
+                    parent->mailbox_manager,
+                    bcard,
+                    /* We might miss some notifications if more than `entries_per_server`
+                    entries are appended to the log file in one iteration of the loop.
+                    But this table already "cheats" regarding the relationship between
+                    the contents of the table and the changefeed, so it's no big deal. */
+                    entries_per_server,
+                    min_time,
+                    max_time,
+                    keepalive.get_drain_signal());
+            } catch (const resource_lost_exc_t &) {
+                /* Just like in the earlier loop, we ignore the error and rely on
+                `check_disconnected()` to do the work. */
+            } catch (const std::runtime_error &) {
+                /* Just like in the earlier loop. */
+            }
+
+            if (!messages.empty()) {
+                /* Compute the server name to attach to the log messages */
+                ql::datum_t server_datum;
+                if (!convert_server_id_to_datum(server_id, parent->identifier_format,
+                        parent->name_client, &server_datum, nullptr)) {
+                    /* The server was permanently removed. Don't retrieve log messages
+                    from it. */
+                    peers_handled.erase(peer);
+                    return;
+                }
+
+                for (auto it = messages.rbegin(); it != messages.rend(); ++it) {
+                    ql::datum_t row = convert_log_message_to_datum(
+                        *it, server_id, server_datum);
+                    store_key_t key(
+                        convert_log_key_to_datum(
+                            it->timestamp,
+                            server_id
+                        ).print_primary());
+                    send_all_change(key, ql::datum_t(), row);
+
+                    /* The log messages should be in chronological order, so we could
+                    just take the timestamp of the last one in the list. But this
+                    gives slightly better behavior if they aren't in order. */
+                    last_timestamp = std::max(last_timestamp, it->timestamp);
+                }
+            }
+
+            nap(poll_interval_ms, keepalive.get_drain_signal());
+        }
+
+    } catch (const interrupted_exc_t &) {
+        /* we're shutting down, do nothing */
+    }
+}
+
+bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
+        const peer_id_t &peer) {
+    /* We have to do this atomically. If we don't, then we would lose the guarantee that
+    there is exactly one instance of `run()` for each connected peer. For example, if we
+    delayed between checking the directory and removing `peer` from `peers_handled`, and
+    the server reconnected in that time, then `on_change()` wouldn't spawn a new instance
+    of `run()`, but we would still end up returning `false`, so there would be no
+    instance of `run()` for that server. */
+    ASSERT_FINITE_CORO_WAITING;
+    bool still_connected;
+    parent->directory->read_key(peer, [&](const cluster_directory_metadata_t *md) {
+        still_connected = (md != nullptr);
+        });
+    if (!still_connected) {
+        peers_handled.erase(peer);
+    }
+    return still_connected;
+}
+
+scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>
+    logs_artificial_table_backend_t::
+        construct_changefeed_machinery(signal_t *interruptor) {
+    scoped_ptr_t<cfeed_machinery_t> m(new cfeed_machinery_t(this));
+    wait_interruptible(&m->all_starters_done, interruptor);
+    return scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>(m.release());
+}
+
