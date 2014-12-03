@@ -117,7 +117,6 @@ class timer_cfeed_artificial_table_backend_t :
     public cfeed_artificial_table_backend_t {
 private:
     void set_notifications(bool);
-    void on_ring();
     scoped_ptr_t<repeating_timer_t> timer;
 };
 
