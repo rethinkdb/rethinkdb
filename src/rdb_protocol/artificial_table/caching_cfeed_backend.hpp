@@ -38,6 +38,12 @@ protected:
 private:
     class caching_machinery_t : public cfeed_artificial_table_backend_t::machinery_t {
     public:
+        enum class dirtiness_t {
+            none_or_some,
+            all,
+            all_stop
+        };
+
         explicit caching_machinery_t(caching_cfeed_artificial_table_backend_t *parent);
         ~caching_machinery_t();
         void run(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
@@ -54,14 +60,16 @@ private:
         the `old_val` field on changefeed changes. */
         std::map<store_key_t, ql::datum_t> old_values;
 
-        /* `dirty` is the set of keys that have changed since `run()` last fetched their
-        values. */
-        std::set<ql::datum_t, latest_version_optional_datum_less_t> dirty;
+        /* If `dirtiness` is `none_or_some`, then either none of the keys are dirty, or
+        a finite set of specific keys are dirty (stored in `dirty_keys`). If it's `all`,
+        then all the keys could have changed, so the entire table needs to be reloaded.
+        If it's `all_stop`, then all the keys could have changed, but instead of sending
+        the new values to the changefeeds we should cut off all the changefeeds. */
+        dirtiness_t dirtiness;
 
-        /* If `all_dirty` or `all_dirty_break` is `true`, then all keys are considered to
-        have changed. The difference is that `all_dirty_break` will stop all changefeeds
-        instead of sending them the changes. Either or both can be true. */
-        bool all_dirty, all_dirty_break;
+        /* `dirty_keys` is the set of keys that have changed since `run()` last fetched
+        their values. */
+        std::set<ql::datum_t, latest_version_optional_datum_less_t> dirty_keys;
 
         /* If `waker` is non-null, it should be pulsed whenever something becomes dirty.
         */

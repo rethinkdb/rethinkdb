@@ -6,11 +6,13 @@
 void caching_cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pkey) {
     ASSERT_FINITE_CORO_WAITING;
     if (caching_machinery != nullptr) {
-        /* If `all_dirty` is true don't bother storing this individual row */
-        if (caching_machinery->all_dirty || caching_machinery->all_dirty_break) {
+        /* If we're going to reload all the rows anyway, don't bother storing this
+        individual row */
+        if (caching_machinery->dirtiness !=
+                caching_machinery_t::dirtiness_t::none_or_some) {
             return;
         }
-        caching_machinery->dirty.insert(pkey);
+        caching_machinery->dirty_keys.insert(pkey);
         if (caching_machinery->waker != nullptr) {
             caching_machinery->waker->pulse_if_not_already_pulsed();
         }
@@ -20,7 +22,12 @@ void caching_cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pke
 void caching_cfeed_artificial_table_backend_t::notify_all() {
     ASSERT_FINITE_CORO_WAITING;
     if (caching_machinery != nullptr) {
-        caching_machinery->all_dirty = true;
+        /* If the previous value was `all_stop`, then leave it the way it is instead of
+        changing it to `all`. */
+        if (caching_machinery->dirtiness ==
+                caching_machinery_t::dirtiness_t::none_or_some) {
+            caching_machinery->dirtiness = caching_machinery_t::dirtiness_t::all;
+        }
         if (caching_machinery->waker) {
             caching_machinery->waker->pulse_if_not_already_pulsed();
         }
@@ -30,7 +37,7 @@ void caching_cfeed_artificial_table_backend_t::notify_all() {
 void caching_cfeed_artificial_table_backend_t::notify_break() {
     ASSERT_FINITE_CORO_WAITING;
     if (caching_machinery != nullptr) {
-        caching_machinery->all_dirty_break = true;
+        caching_machinery->dirtiness = caching_machinery_t::dirtiness_t::all_stop;
         if (caching_machinery->waker) {
             caching_machinery->waker->pulse_if_not_already_pulsed();
         }
@@ -40,11 +47,11 @@ void caching_cfeed_artificial_table_backend_t::notify_break() {
 caching_cfeed_artificial_table_backend_t::caching_machinery_t::caching_machinery_t(
             caching_cfeed_artificial_table_backend_t *_parent) :
         parent(_parent),
-        all_dirty(false),
-        /* Set `all_dirty_break` to `true` to force an initial recomputation. The reason
-        for using `all_dirty_break` instead of `all_dirty` is that there are no
-        subscribers, so we can save a few CPU cycles by not computing the diff. */
-        all_dirty_break(true),
+        /* Set `dirtiness` to force us to load initial values. Either `dirtiness_t::all`
+        or `dirtiness_t::all_stop` would work equally well here since we don't have any
+        subscribers yet, but `all_stop` saves us a few CPU cycles by not diffing the old
+        values against the new ones. */
+        dirtiness(dirtiness_t::all_stop),
         waker(nullptr) {
     guarantee(parent->caching_machinery == nullptr);
     parent->caching_machinery = this;
@@ -65,24 +72,25 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
             /* Copy the dirtiness flags into local variables and reset them. Resetting
             them now is important because it means that notifications that arrive while
             we're processing the current batch will be queued up instead of ignored. */
-            std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty;
-            bool local_all_dirty = false, local_all_dirty_break = false;
-            std::swap(dirty, local_dirty);
-            std::swap(all_dirty, local_all_dirty);
-            std::swap(all_dirty_break, local_all_dirty_break);
+            std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty_keys;
+            dirtiness_t local_dirtiness = dirtiness_t::none_or_some;
+            std::swap(dirty_keys, local_dirty_keys);
+            std::swap(dirtiness, local_dirtiness);
 
-            guarantee(local_all_dirty || local_all_dirty_break || !local_dirty.empty(),
+            guarantee(local_dirtiness != dirtiness_t::none_or_some ||
+                !local_dirty_keys.empty(),
                 "If nothing is dirty, we shouldn't have gotten here");
 
             bool error = false;
-            if (local_all_dirty || local_all_dirty_break) {
-                if (!diff_all(local_all_dirty_break, keepalive.get_drain_signal())) {
+            if (local_dirtiness != dirtiness_t::none_or_some) {
+                if (!diff_all(local_dirtiness == dirtiness_t::all_stop,
+                              keepalive.get_drain_signal())) {
                     error = true;
                 } else {
                     ready.pulse_if_not_already_pulsed();
                 }
             } else {
-                for (const auto &key : local_dirty) {
+                for (const auto &key : local_dirty_keys) {
                     if (!diff_one(key, keepalive.get_drain_signal())) {
                         error = true;
                         break;
@@ -94,7 +102,7 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
                 /* Kick off any subscribers since we got an error. */
                 send_all_stop();
                 /* Ensure that we try again the next time around the loop. */
-                all_dirty = true;
+                dirtiness = dirtiness_t::all;
                 /* Go around the loop and try again. But first wait a second so we
                 don't eat too much CPU if it keeps failing. */
                 nap(1000, keepalive.get_drain_signal());
@@ -102,7 +110,7 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
             }
 
             /* Wait until the next change */
-            if (dirty.empty() && !all_dirty) {
+            if (dirtiness == dirtiness_t::none_or_some && dirty_keys.empty()) {
                 cond_t cond;
                 assignment_sentry_t<cond_t *> cond_sentry(&waker, &cond);
                 wait_interruptible(&cond, keepalive.get_drain_signal());
