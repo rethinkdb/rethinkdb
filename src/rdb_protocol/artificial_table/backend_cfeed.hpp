@@ -12,9 +12,10 @@ fetching values that have changed and comparing against the stored value. Subcla
 call `notify_*` to tell the `cfeed_artificial_table_backend_t` which rows need to be
 re-fetched. */
 
-class cfeed_artificial_table_backend_t : public virtual artificial_table_backend_t {
+class cfeed_artificial_table_backend_t :
+    public virtual artificial_table_backend_t {
 public:
-    cfeed_artificial_table_backend_t() : begin_destruction_was_called(false) { }
+    cfeed_artificial_table_backend_t();
 
     bool read_changes(
         const ql::protob_t<const Backtrace> &bt,
@@ -95,21 +96,25 @@ private:
         */
         cond_t *waker;
 
+        /* If we don't have any subscribers, this is the time when the last subscriber
+        disconnected. If we do have subscribers, this is meaningless. */
+        microtime_t last_subscriber_time;
+
         auto_drainer_t drainer;
     };
-    void maybe_remove_machinery(auto_drainer_t::lock_t keepalive);
+    void maybe_remove_machinery();
     scoped_ptr_t<machinery_t> machinery;
     bool begin_destruction_was_called;
     new_mutex_t mutex;
     auto_drainer_t drainer;
+    repeating_timer_t remove_machinery_timer;
 };
 
 /* `timer_cfeed_artificial_table_backend_t` implements changefeeds by simply setting a
 repeating timer and retrieving the contents of the table every time the timer rings. It's
 inefficient, but for many tables it's the most practical choice. */
 class timer_cfeed_artificial_table_backend_t :
-    public cfeed_artificial_table_backend_t,
-    private repeating_timer_callback_t {
+    public cfeed_artificial_table_backend_t {
 private:
     void set_notifications(bool);
     void on_ring();

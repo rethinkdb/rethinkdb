@@ -4,6 +4,17 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/env.hpp"
 
+/* If we haven't had any subscribers for `machinery_expiration_us` time, then we delete
+the `machinery_t` to save resources */
+static const int machinery_expiration_us = 60 * MILLION;
+
+cfeed_artificial_table_backend_t::cfeed_artificial_table_backend_t() :
+    begin_destruction_was_called(false),
+    remove_machinery_timer(
+        machinery_expiration_us / THOUSAND,
+        [this]() { maybe_remove_machinery(); })
+    { }
+
 bool cfeed_artificial_table_backend_t::read_changes(
         const ql::protob_t<const Backtrace> &bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
@@ -106,7 +117,8 @@ cfeed_artificial_table_backend_t::machinery_t::machinery_t(
     /* Initialize `all_dirty` to `true` so that we'll fetch the initial values */
     all_dirty(true),
     should_break(false),
-    waker(nullptr)
+    waker(nullptr),
+    last_subscriber_time(current_microtime())
 {
     coro_t::spawn_sometime(std::bind(
         &cfeed_artificial_table_backend_t::machinery_t::run,
@@ -119,10 +131,9 @@ cfeed_artificial_table_backend_t::machinery_t::~machinery_t() {
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::maybe_remove() {
-    coro_t::spawn_sometime(std::bind(
-        &cfeed_artificial_table_backend_t::maybe_remove_machinery,
-        parent,
-        parent->drainer.lock()));
+    last_subscriber_time = current_microtime();
+    /* The `cfeed_artificial_table_backend_t` has a repeating timer that will eventually
+    come along and clean us up */
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::run(
@@ -307,38 +318,41 @@ void cfeed_artificial_table_backend_t::machinery_t::send_all_stop() {
     send_all(ql::changefeed::msg_t(ql::changefeed::msg_t::stop_t()));
 }
 
-void cfeed_artificial_table_backend_t::maybe_remove_machinery(
-        auto_drainer_t::lock_t keepalive) {
-    try {
-        assert_thread();
-        /* Wait 60 seconds between when the last changefeed closes and when we destroy
-        the `machinery_t`, so we don't have to re-create the `machinery_t` if the user
-        starts another changefeed in that time. */
-        nap(60 * 1000, keepalive.get_drain_signal());
-        new_mutex_in_line_t mutex_lock(&mutex);
-        wait_interruptible(mutex_lock.acq_signal(), keepalive.get_drain_signal());
-        if (machinery.has() && machinery->can_be_removed()) {
-            /* Make sure that we unset `machinery` before we start deleting the
-            underlying `machinery_t`, because calls to `notify_*` may otherwise try to
-            access the `machinery_t` while it is being deleted */
-            scoped_ptr_t<machinery_t> temp;
-            std::swap(temp, machinery);
-        }
-    } catch (const interrupted_exc_t &) {
-        /* We're shutting down. Take no special action. */
+void cfeed_artificial_table_backend_t::maybe_remove_machinery() {
+    /* This is called periodically by a repeating timer */
+    assert_thread();
+    if (machinery.has() && machinery->can_be_removed() &&
+            machinery->last_subscriber_time + machinery_expiration_us <
+                current_microtime()) {
+        auto_drainer_t::lock_t keepalive(&drainer);
+        coro_t::spawn_sometime([this, keepalive   /* important to capture */]() {
+            try {
+                new_mutex_in_line_t mutex_lock(&mutex);
+                wait_interruptible(mutex_lock.acq_signal(),
+                                   keepalive.get_drain_signal());
+                if (machinery.has() && machinery->can_be_removed()) {
+                    /* Make sure that we unset `machinery` before we start deleting the
+                    underlying `machinery_t`, because calls to `notify_*` may otherwise
+                    try to access the `machinery_t` while it is being deleted */
+                    scoped_ptr_t<machinery_t> temp;
+                    std::swap(temp, machinery);
+                }
+            } catch (const interrupted_exc_t &) {
+                /* We're shutting down. The machinery will get cleaned up anyway */
+            }
+        });
     }
 }
 
 void timer_cfeed_artificial_table_backend_t::set_notifications(bool notify) {
     if (notify && !timer.has()) {
-        timer.init(new repeating_timer_t(1000, this));
+        timer.init(new repeating_timer_t(
+            1000,
+            [this]() { notify_all(); }
+            ));
     }
     if (!notify && timer.has()) {
         timer.reset();
     }
-}
-
-void timer_cfeed_artificial_table_backend_t::on_ring() {
-    notify_all();
 }
 
