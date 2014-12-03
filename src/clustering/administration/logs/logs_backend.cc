@@ -18,7 +18,7 @@ ql::datum_t convert_timespec_duration_to_datum(const timespec &t) {
 
 ql::datum_t convert_log_key_to_datum(const timespec &ts, const server_id_t &si) {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
-    id_builder.add(ql::datum_t(datum_string_t(format_time(ts))));
+    id_builder.add(ql::datum_t(datum_string_t(format_time(ts, true))));
     id_builder.add(convert_uuid_to_datum(si));
     return std::move(id_builder).to_datum();
 }

@@ -137,9 +137,14 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, printf_buffer_t *buf) {
+void format_time(struct timespec time, printf_buffer_t *buf, bool use_utc) {
     struct tm t;
-    struct tm *res1 = localtime_r(&time.tv_sec, &t);
+    struct tm *res1;
+    if (use_utc) {
+        res1 = gmtime_r(&time.tv_sec, &t);
+    } else {
+        res1 = localtime_r(&time.tv_sec, &t);
+    }
     guarantee_err(res1 == &t, "gmtime_r() failed.");
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
@@ -152,9 +157,9 @@ void format_time(struct timespec time, printf_buffer_t *buf) {
         time.tv_nsec);
 }
 
-std::string format_time(struct timespec time) {
+std::string format_time(struct timespec time, bool use_utc) {
     printf_buffer_t buf;
-    format_time(time, &buf);
+    format_time(time, &buf, use_utc);
     return std::string(buf.c_str());
 }
 

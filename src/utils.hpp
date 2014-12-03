@@ -84,8 +84,8 @@ std::string vstrprintf(const char *format, va_list ap) __attribute__((format (pr
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, printf_buffer_t *buf);
-std::string format_time(struct timespec time);
+void format_time(struct timespec time, printf_buffer_t *buf, bool use_utc);
+std::string format_time(struct timespec time, bool use_utc);
 
 bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out);
 
