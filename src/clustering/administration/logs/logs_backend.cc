@@ -12,27 +12,13 @@ ql::datum_t convert_timespec_to_datum(const timespec &t) {
         t.tv_sec + static_cast<double>(t.tv_nsec) / BILLION, "+00:00");
 }
 
-bool convert_timespec_from_datum(
-        const ql::datum_t &d, timespec *t_out, std::string *error_out) {
-    if (!d.is_ptype(ql::pseudo::time_string)) {
-        *error_out = "Expected a timestamp, got: " + d.print();
-        return false;
-    }
-    double epoch_time = ql::pseudo::time_to_epoch_time(d);
-    double ipart, fpart;
-    fpart = modf(epoch_time, &ipart);
-    t_out->tv_sec = ipart;
-    t_out->tv_nsec = fpart * BILLION;
-    return true;
-}
-
 ql::datum_t convert_timespec_duration_to_datum(const timespec &t) {
     return ql::datum_t(t.tv_sec + static_cast<double>(t.tv_nsec) / BILLION);
 }
 
 ql::datum_t convert_log_key_to_datum(const timespec &ts, const server_id_t &si) {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
-    id_builder.add(convert_timespec_to_datum(ts));
+    id_builder.add(ql::datum_t(datum_string_t(format_time(ts))));
     id_builder.add(convert_uuid_to_datum(si));
     return std::move(id_builder).to_datum();
 }
@@ -43,7 +29,12 @@ bool convert_log_key_from_datum(const ql::datum_t &d,
         *error_out = "Expected two-element array, got:" + d.print();
         return false;
     }
-    if (!convert_timespec_from_datum(d.get(0), ts_out, error_out)) {
+    if (d.get(0).get_type() != ql::datum_t::R_STR) {
+        *error_out = "Expected string, got:" + d.print();
+        return false;
+    }
+    if (!parse_time(d.get(0).as_str().to_std(), ts_out, error_out)) {
+        *error_out = "In timestamp: " + *error_out;
         return false;
     }
     if (!convert_uuid_from_datum(d.get(1), si_out, error_out)) {
@@ -179,16 +170,12 @@ bool logs_artificial_table_backend_t::read_row(
         return true;
     }
 
-    /* When fetching the log entry, we want to allow a wide margin of error to avoid
-    rounding errors. */
-    timespec min_timespec = timestamp, max_timespec = timestamp;
-    add_to_timespec(&min_timespec, -log_timestamp_interval_ns / 2);
-    add_to_timespec(&max_timespec, log_timestamp_interval_ns / 2);
-
     std::vector<log_message_t> messages;
     try {
+        /* The timestamp filter is set so that we'll only get messages with the exact
+        timestamp we're looking for, and there should be at most one such message. */
         messages = fetch_log_file(mailbox_manager, *bcard,
-            entries_per_server, min_timespec, max_timespec, interruptor);
+            entries_per_server, timestamp, timestamp, interruptor);
     } catch (const resource_lost_exc_t &) {
         /* Server disconnected during the query. */
         *row_out = ql::datum_t();
@@ -208,7 +195,7 @@ bool logs_artificial_table_backend_t::read_row(
         clock ran backwards while the server was shut down (and even then it's very
         unlikely) */
         *error_out = strprintf("Problem when reading log file on server `%s`: Found "
-            "multiple log entries with identical or similar timestamps.",
+            "multiple log entries with identical timestamps.",
             server_name.c_str());
         return false;
     }

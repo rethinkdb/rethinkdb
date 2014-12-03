@@ -19,14 +19,6 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
-/* We must make sure that the timestamps of log messages are different so that the
-`rethinkdb.logs` system table can use timestamps in its primary key. But it's not enough
-for them to differ by a few nanoseconds, since ReQL represents timestamps as doubles
-internally. A double has 52 bits of precision, and 1/2^52 of (say) 100 years is about a
-microsecond. So to play it safe, we make sure that log entries are separated by at least
-100 microseconds. */
-const int32_t log_timestamp_interval_ns = 100 * THOUSAND;
-
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
 
@@ -356,7 +348,7 @@ log_message_t fallback_log_writer_t::assemble_log_message(
         the thread pool, including in the blocker pool. */
         spinlock_acq_t lock_acq(&last_msg_timestamp_lock);
         struct timespec last_plus = last_msg_timestamp;
-        add_to_timespec(&last_plus, log_timestamp_interval_ns);
+        add_to_timespec(&last_plus, 1);
         if (last_plus > timestamp) {
             timestamp = last_plus;
         }
