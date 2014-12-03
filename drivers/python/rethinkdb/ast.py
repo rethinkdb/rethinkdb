@@ -253,8 +253,8 @@ class RqlQuery(object):
     def keys(self, *args):
         return Keys(self, *args)
 
-    def changes(self, *args):
-        return Changes(self, *args)
+    def changes(self, *args, **kwargs):
+        return Changes(self, *args, **kwargs)
 
     # Polymorphic object/sequence operations
     def pluck(self, *args):
