@@ -137,7 +137,8 @@ void cfeed_artificial_table_backend_t::machinery_t::maybe_remove() {
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::run(
-        auto_drainer_t::lock_t keepalive) {
+        auto_drainer_t::lock_t keepalive)
+        THROWS_NOTHING {
     parent->set_notifications(true);
     try {
         while (true) {

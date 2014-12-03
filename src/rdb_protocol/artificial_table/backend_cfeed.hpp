@@ -59,7 +59,7 @@ private:
         ~machinery_t();
 
         void maybe_remove();
-        void run(auto_drainer_t::lock_t keepalive);
+        void run(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
         bool diff_one(const ql::datum_t &key, signal_t *interruptor);
         bool diff_all(bool is_break, signal_t *interruptor);
         bool get_values(signal_t *interruptor, std::map<store_key_t, ql::datum_t> *out);
