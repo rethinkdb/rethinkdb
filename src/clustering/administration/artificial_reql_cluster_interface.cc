@@ -274,7 +274,6 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
-        mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         boost::shared_ptr< semilattice_readwrite_view_t<
