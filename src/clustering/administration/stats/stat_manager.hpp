@@ -25,7 +25,6 @@ private:
         signal_t *interruptor,
         const return_address_t& reply_address,
         const std::set<std::vector<stat_id_t> >& requested_stats);
-    void perform_stats_request(const return_address_t& reply_address, const std::set<std::vector<stat_id_t> >& requested_stats, auto_drainer_t::lock_t);
 
     mailbox_manager_t *mailbox_manager;
     get_stats_mailbox_t get_stats_mailbox;

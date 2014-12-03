@@ -62,8 +62,6 @@ private:
     server_name_client_t *name_client;
     mailbox_manager_t *mailbox_manager;
     admin_identifier_format_t admin_format;
-
-    auto_drainer_t drainer;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_ */

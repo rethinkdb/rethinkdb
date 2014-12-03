@@ -23,6 +23,8 @@ std::string stats_artificial_table_backend_t::get_primary_key_name() {
     return std::string("id");
 }
 
+// Since this is called through pmap, it will not throw an `interrupted_exc_t`,
+// instead, result_out will be uninitialized.
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
         const std::set<std::vector<std::string> > &filter,
@@ -56,7 +58,7 @@ void stats_artificial_table_backend_t::get_peer_stats(
         try {
             wait_interruptible(&done, &combined_interruptor);
         } catch (const interrupted_exc_t &) {
-            // No response after timeout - we return an empty result
+            // No response after timeout - we return an uninitialized result
         }
     }
 }
@@ -66,14 +68,15 @@ void stats_artificial_table_backend_t::perform_stats_request(
         const std::set<std::vector<std::string> > &filter,
         std::map<server_id_t, ql::datum_t> *results_out,
         signal_t *interruptor) {
-    auto_drainer_t::lock_t keepalive(&drainer);
-    wait_any_t combined_interruptor(interruptor, keepalive.get_drain_signal());
-    pmap(peers.size(),
-        [&](int index) {
-            get_peer_stats(peers[index].second, filter,
-                           &(*results_out)[peers[index].first],
-                           &combined_interruptor);
+    pmap(peers.begin(), peers.end(),
+        [&](std::pair<server_id_t, peer_id_t> pair) {
+            get_peer_stats(pair.second, filter,
+                           &(*results_out)[pair.first],
+                           interruptor);
         });
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 // A row is excluded if it fails to convert to a datum - which should only
