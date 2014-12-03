@@ -17,7 +17,7 @@ own subclass of `cfeed_artificial_table_backend_t::machinery_t` that subscribes 
 notifications and calls `send_all_change()` and `send_all_stop()` as necessary. */
 
 class cfeed_artificial_table_backend_t :
-    public virtual artificial_table_backend_t {
+    public artificial_table_backend_t {
 public:
     bool read_changes(
         const ql::protob_t<const Backtrace> &bt,
