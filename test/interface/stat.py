@@ -3,15 +3,11 @@
 
 from __future__ import print_function
 
-import sys, os, time, re, multiprocessing
+import sys, os, time, re, multiprocessing, random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse, workload_runner
 
 r = utils.import_python_driver()
-
-op = vcoptparse.OptParser()
-scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
 
 db = 'test'
 server_names = ['nate', 'grey']
@@ -19,13 +15,21 @@ table_names = ['foo', 'bar']
 
 def read_write_workload(port, table, stop_event):
     conn = r.connect("localhost", port)
+    ids = list(r.range(100).map(lambda x: r.uuid()).run(conn))
+    r.db(db).table(table).insert([{'id': i, 'value': 0} for i in ids]).run(conn)
+
+    # Increment this every loop so the update actually results in a write
+    counter = 0
     while not stop_event.is_set():
+        counter += 1
         try:
-            r.db(db).table(table).insert({'id':1}, conflict='replace').run(conn)
+            r.db(db).table(table).get(random.choice(ids)).run(conn)
+            r.db(db).table(table).insert({'id':random.choice(ids), 'value': counter},
+                                         conflict='replace').run(conn)
+            time.sleep(0.05)
         except r.RqlRuntimeError:
             # Ignore runtime errors and keep going until stopped
             pass
-        time.sleep(0.05)
 
 # Per-second values are floats, so do a fuzzy comparison to allow for accumulated error
 def fuzzy_compare(left, right):
@@ -128,8 +132,6 @@ def get_individual_stats(global_stats, conn):
 # The only thing we know about `per_sec` stats is that they are non-zero
 # For `total` stats, we can check that they only increase with time
 def compare_global_and_individual_stats(global_stats, individual_stats, expected_timeouts=[]):
-    print("Global stats: %s" % repr(global_stats))
-    print("Individual stats: %s" % repr(individual_stats))
     assert len(global_stats) == len(individual_stats)
     for i in xrange(len(global_stats)):
         a = global_stats[i]
@@ -137,10 +139,10 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
         assert a['id'] == b['id']
         if a['id'][0] == 'cluster':
             assert a['query_engine']['queries_per_sec'] > 0
-            assert a['query_engine']['read_docs_per_sec'] > 0
-            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['queries_per_sec'] > 0
+            assert a['query_engine']['read_docs_per_sec'] > 0
             assert b['query_engine']['read_docs_per_sec'] > 0
+            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['written_docs_per_sec'] > 0
             assert a['query_engine']['client_connections'] == b['query_engine']['client_connections'] == len(table_names) + 1
         elif a['id'][0] == 'server':
@@ -150,11 +152,11 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
                 assert a['error'] == b['error']
                 assert a['server'] in expected_timeouts
                 continue
-            assert a['query_engine']['queries_per_sec'] > 0
+            assert a['query_engine']['queries_per_sec'] >= 0
+            assert b['query_engine']['queries_per_sec'] >= 0
             assert a['query_engine']['read_docs_per_sec'] > 0
-            assert a['query_engine']['written_docs_per_sec'] > 0
-            assert b['query_engine']['queries_per_sec'] > 0
             assert b['query_engine']['read_docs_per_sec'] > 0
+            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['written_docs_per_sec'] > 0
             assert a['query_engine']['queries_total'] <= b['query_engine']['queries_total']
             assert a['query_engine']['read_docs_total'] <= b['query_engine']['read_docs_total']
@@ -163,8 +165,8 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
             assert a['db'] == b['db']
             assert a['table'] == b['table']
             assert a['query_engine']['read_docs_per_sec'] > 0
-            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['read_docs_per_sec'] > 0
+            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['written_docs_per_sec'] > 0
         elif a['id'][0] == 'table_server':
             assert a['db'] == b['db']
@@ -176,8 +178,8 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
                 assert a['server'] in expected_timeouts
                 continue
             assert a['query_engine']['read_docs_per_sec'] > 0
-            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['read_docs_per_sec'] > 0
+            assert a['query_engine']['written_docs_per_sec'] > 0
             assert b['query_engine']['written_docs_per_sec'] > 0
             assert a['query_engine']['read_docs_total'] <= b['query_engine']['read_docs_total']
             assert a['query_engine']['written_docs_total'] <= b['query_engine']['written_docs_total']
@@ -187,8 +189,9 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
             assert b['storage_engine']['disk']['written_bytes_per_sec'] > 0
             assert a['storage_engine']['disk']['read_bytes_total'] <= b['storage_engine']['disk']['read_bytes_total']
             assert a['storage_engine']['disk']['written_bytes_total'] <= b['storage_engine']['disk']['written_bytes_total']
-            assert a['storage_engine']['cache']['in_use_bytes'] > 0
-            assert b['storage_engine']['cache']['in_use_bytes'] > 0
+            # even though cache size is 0, the server may use more while processing a query
+            assert a['storage_engine']['cache']['in_use_bytes'] >= 0
+            assert b['storage_engine']['cache']['in_use_bytes'] >= 0
             # unfortunately we can't make many assumptions about the disk space
             assert a['storage_engine']['disk']['space_usage']['data_bytes'] >= 0
             assert a['storage_engine']['disk']['space_usage']['metadata_bytes'] >= 0
@@ -197,10 +200,15 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
         else:
             assert False, "Unrecognized stats row id: %s" % repr(a['id'])
 
+op = vcoptparse.OptParser()
+scenario_common.prepare_option_parser_mode_flags(op)
+opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    # We use a cache size of 0 to force disk reads
+    serve_options += ['--cache-size', '0']
     
     print('Spinning up %d processes...' % len(server_names))
     servers = [ ]
@@ -227,12 +235,11 @@ with driver.Metacluster() as metacluster:
     tables = [ ]
     for name in table_names:
         info = { 'name': name }
-        r.db(db).table_create(name).run(conn)
+        r.db(db).table_create(name, shards=2, replicas=1).run(conn)
         info['db_id'] = r.db('rethinkdb').table('db_config') \
                          .filter(r.row['name'].eq(db))[0]['id'].run(conn)
         info['id'] = r.db('rethinkdb').table('table_config') \
                       .filter(r.row['name'].eq(info['name']))[0]['id'].run(conn)
-        # Start a workload on each table so we have stats to check
         info['workload'] = multiprocessing.Process(target=read_write_workload, args=(servers[0]['process'].driver_port, name, stop_event))
         info['workload'].start()
         tables.append(info)
@@ -240,6 +247,9 @@ with driver.Metacluster() as metacluster:
     for server in servers:
         server['id'] = r.db('rethinkdb').table('server_config') \
                         .filter(r.row['name'].eq(server['name']))[0]['id'].run(conn)
+
+    # Allow some time for the workload to get the stats going
+    time.sleep(1)
 
     try:
         # Perform table scan, get each row individually, and check the integrity of the results
@@ -255,13 +265,15 @@ with driver.Metacluster() as metacluster:
         # Perform table scan, observe timeouts
         all_stats = get_and_check_global_stats(tables, servers, conn)
         also_stats = get_individual_stats(all_stats, conn)
-        compare_global_and_individual_stats(all_stats, also_stats, expected_timeouts=[servers[1]['id']])
+        compare_global_and_individual_stats(all_stats, also_stats, expected_timeouts=[servers[1]['name']])
 
         # Restart server
         print("Restarting second server...")
         servers[1]['process'] = driver.Process(cluster, servers[1]['files'],
-                                               console_output='server-output-1',
+                                               console_output='serve-output-1',
                                                command_prefix=command_prefix, extra_options=serve_options)
+        servers[1]['process'].wait_until_started_up()
+        time.sleep(5)
 
         # Perform table scan
         all_stats = get_and_check_global_stats(tables, servers, conn)
