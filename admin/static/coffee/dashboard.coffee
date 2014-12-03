@@ -39,7 +39,7 @@ module 'DashboardView', ->
                         .filter( (assignment) -> assignment("state").eq("ready"))
                         .count()
                     tables_with_primaries_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                        shards: table("shards").map(r.range(), (doc, position) ->
                             doc.merge
                                 id: r.add(
                                     table("db"),
@@ -57,7 +57,7 @@ module 'DashboardView', ->
                     ).filter (table) ->
                         table("shards").isEmpty().not()
                     tables_with_replicas_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                        shards: table("shards").map(r.range(), (doc, position) ->
                             doc.merge
                                 id: r.add(
                                     table("db"),

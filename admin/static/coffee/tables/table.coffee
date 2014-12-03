@@ -22,9 +22,12 @@ module 'TableView', ->
         fetch_data: =>
             this_id = @id
             query =
-                r.db(system_db).table('server_config').count().do( (num_servers) ->
-                    r.db(system_db).table('table_status').get(this_id).do((table) ->
-                        master_down = table('status')('ready_for_outdated_reads').not()
+                r.do(
+                    r.db(system_db).table('server_config').coerceTo('array'),
+                    r.db(system_db).table('server_config').count(),
+                    r.db(system_db).table('table_status').get(this_id),
+                    r.db(system_db).table('table_config').get(this_id),
+                    (server_config, num_servers, table, table_config) ->
                         r.branch(
                             table.eq(null),
                             null,
@@ -38,36 +41,28 @@ module 'TableView', ->
                                     shard('replicas').filter({state: "ready"})).count()
                                 max_replicas_per_shard: num_servers
                                 num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
-                                # Here we check if the table is available, otherwise table.info() will bomb
-                                distribution: r.branch(master_down, [], r.db(table('db'))
-                                    .table(table('name'), useOutdated: true) \
-                                    .info()('doc_count_estimates')\
-                                    .do((doc_counts) ->
-                                        doc_counts.map(r.range(doc_counts.count()),
-                                            (num_keys, position) ->
-                                                num_keys: num_keys
-                                                id: position
-                                            ).coerceTo('array')))
-                                # Again, we must check if the table is available
-                                total_keys: r.branch(master_down, null,
-                                    r.db(table('db')).table(table('name'), useOutdated: true).info()('doc_count_estimates').sum())
                                 status: table('status')
-                                shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
+                                shards_assignments: table_config("shards").map(r.range(), (shard, position) ->
                                     id: position.add(1)
-                                    num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name'),
-                                        useOutdated: true).info()('doc_count_estimates')(position))
+                                    num_keys: 'N/A' # updated below if table is ready
                                     primary:
-                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")}).nth(0)("id")
-                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")
-                                    replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
-                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica"))
-                                    ).map (name) ->
-                                        id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("id")
-                                        name: name
+                                        id: server_config.filter({name: shard("primary_replica")}).nth(0)("id")
+                                        name: shard("primary_replica")
+                                    replicas: shard("replicas")
+                                        .filter( (replica) -> replica.ne(shard("primary_replica")))
+                                        .map (name) ->
+                                            id: server_config.filter({name: name}).nth(0)("id")
+                                            name: name
+                                ).coerceTo('array')
                                 id: table("id")
+                                # These are updated below if the table is ready
+                                indexes: null
+                                distribution: []
+                                total_keys: null
                             ).do( (table) ->
-                                r.branch( # We must be sure that the table is ready before retrieving the indexes
-                                    table("num_available_shards").eq(table("num_shards")), #TODO Is that a sufficient condition?
+                                r.branch( # We must be sure that the table is ready before retrieving these keys
+                                    table('status')('ready_for_outdated_reads').not(),
+                                    table,
                                     table.merge({
                                         indexes: r.db(table("db")).table(table("name")).indexStatus()
                                             .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
@@ -76,13 +71,29 @@ module 'TableView', ->
                                                 db: table("db")
                                                 table: table("name")
                                             }) # add an id for backbone
-                                    }),
-                                    table.merge({indexes: null})
+                                        distribution: r.db(table('db'))
+                                            .table(table('name'), useOutdated: true)
+                                            .info()('doc_count_estimates')
+                                            .map(r.range(), (num_keys, position) ->
+                                                num_keys: num_keys
+                                                id: position)
+                                            .coerceTo('array')
+                                        total_keys: r.db(table('db'))
+                                            .table(table('name'), useOutdated: true)
+                                            .info()('doc_count_estimates')
+                                            .sum()
+                                        shards_assignments: table('shards_assignments').map(r.range(), (shard_assignment, position) ->
+                                            shard_assignment.merge {
+                                                num_keys: r.db(table('db'))
+                                                    .table(table('name'), useOutdated: true)
+                                                    .info()('doc_count_estimates')(position)
+                                            }
+                                        ).coerceTo('array')
+                                    })
                                 )
                             ).without('shards')
                         )
                     )
-                )
 
             @timer = driver.run query, 5000, (error, result) =>
                 if error?
