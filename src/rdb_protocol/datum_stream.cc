@@ -17,7 +17,7 @@ namespace ql {
 
 // RANGE/READGEN STUFF
 rget_response_reader_t::rget_response_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : table(_table),
@@ -122,7 +122,7 @@ bool rget_response_reader_t::is_finished() const {
 
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
-    table.read_with_profile(env, read, &res, use_outdated);
+    table->read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
@@ -132,7 +132,7 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
 }
 
 rget_reader_t::rget_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
@@ -222,7 +222,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
 }
 
 intersecting_reader_t::intersecting_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
@@ -1193,12 +1193,11 @@ bool map_datum_stream_t::is_exhausted() const {
 vector_datum_stream_t::vector_datum_stream_t(
         const protob_t<const Backtrace> &bt_source,
         std::vector<datum_t> &&_rows,
-        scoped_ptr_t<ql::changefeed::keyspec_t> &&_changespec) :
+        boost::optional<ql::changefeed::keyspec_t> &&_changespec) :
     eager_datum_stream_t(bt_source),
     rows(std::move(_rows)),
     index(0),
-    changespec(std::move(_changespec)),
-    has_changespec(changespec.has()) { }
+    changespec(std::move(_changespec)) { }
 
 datum_t vector_datum_stream_t::next(
         env_t *env, const batchspec_t &bs) {
@@ -1244,19 +1243,8 @@ bool vector_datum_stream_t::is_array() const {
 }
 
 changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
-    if (has_changespec) {
-        /* Note that this invalidates the `vector_datum_stream_t`; you can't call
-        `get_change_spec()` again. */
-        guarantee(changespec.has(), "Called get_change_spec() twice on same stream.");
-        changefeed::keyspec_t cs = std::move(*changespec);
-        changespec.reset();
-        guarantee(cs.table.has());
-        changefeed::keyspec_t::range_t *range =
-            boost::get<changefeed::keyspec_t::range_t>(&cs.spec);
-        guarantee(range);
-        range->transforms.insert(
-            range->transforms.end(), transforms.begin(), transforms.end());
-        return std::move(cs);
+    if (static_cast<bool>(changespec)) {
+        return *changespec;
     } else {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
     }

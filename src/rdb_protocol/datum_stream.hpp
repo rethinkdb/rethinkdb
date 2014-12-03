@@ -511,7 +511,7 @@ public:
 class rget_response_reader_t : public reader_t {
 public:
     rget_response_reader_t(
-        const real_table_t &table,
+        const counted_t<real_table_t> &table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
@@ -523,7 +523,7 @@ public:
     virtual changefeed::keyspec_t get_change_spec() const {
         return changefeed::keyspec_t(
             readgen->get_change_spec(transforms),
-            make_scoped<real_table_t>(table),
+            table,
             readgen->get_table_name());
     }
 protected:
@@ -532,7 +532,7 @@ protected:
     virtual bool load_items(env_t *env, const batchspec_t &batchspec) = 0;
     rget_read_response_t do_read(env_t *env, const read_t &read);
 
-    real_table_t table;
+    counted_t<real_table_t> table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
 
@@ -548,7 +548,7 @@ protected:
 class rget_reader_t : public rget_response_reader_t {
 public:
     rget_reader_t(
-        const real_table_t &_table,
+        const counted_t<real_table_t> &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
@@ -568,7 +568,7 @@ private:
 class intersecting_reader_t : public rget_response_reader_t {
 public:
     intersecting_reader_t(
-        const real_table_t &_table,
+        const counted_t<real_table_t> &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
@@ -626,9 +626,7 @@ public:
     vector_datum_stream_t(
             const protob_t<const Backtrace> &bt_source,
             std::vector<datum_t> &&_rows,
-            /* This would have been a `boost::optional`, but `boost::optional` requires
-            that its contents are copyable. */
-            scoped_ptr_t<ql::changefeed::keyspec_t> &&_changespec);
+            boost::optional<ql::changefeed::keyspec_t> &&_changespec);
 private:
     datum_t next(env_t *env, const batchspec_t &bs);
     datum_t next_impl(env_t *);
@@ -642,8 +640,7 @@ private:
 
     std::vector<datum_t> rows;
     size_t index;
-    scoped_ptr_t<ql::changefeed::keyspec_t> changespec;
-    bool has_changespec;
+    boost::optional<ql::changefeed::keyspec_t> changespec;
 };
 
 } // namespace ql

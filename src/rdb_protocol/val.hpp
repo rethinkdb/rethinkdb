@@ -32,7 +32,7 @@ class val_t;
 onto it. */
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(scoped_ptr_t<base_table_t> &&,
+    table_t(counted_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
     const std::string &get_pkey();
@@ -104,7 +104,7 @@ public:
         const datum_range_t &bounds,
         sorting_t sorting);
 
-    scoped_ptr_t<base_table_t> tbl;
+    counted_t<base_table_t> tbl;
 
 private:
     friend class distinct_term_t;

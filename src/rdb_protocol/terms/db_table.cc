@@ -585,7 +585,7 @@ private:
         }
 
         std::string error;
-        scoped_ptr_t<base_table_t> table;
+        counted_t<base_table_t> table;
         if (!env->env->reql_cluster_interface()->table_find(name, db,
                 identifier_format, env->env->interruptor, &table, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
