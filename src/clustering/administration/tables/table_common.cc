@@ -6,7 +6,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 common_table_artificial_table_backend_t::common_table_artificial_table_backend_t(
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        boost::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         admin_identifier_format_t _identifier_format) :
     semilattice_view(_semilattice_view),

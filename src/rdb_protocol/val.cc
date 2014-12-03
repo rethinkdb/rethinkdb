@@ -189,7 +189,7 @@ counted_t<datum_stream_t> table_t::as_seq(
     return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
 }
 
-table_t::table_t(scoped_ptr_t<base_table_t> &&_tbl,
+table_t::table_t(counted_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),

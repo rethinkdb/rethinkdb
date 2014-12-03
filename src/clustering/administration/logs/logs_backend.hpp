@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 
 class server_name_client_t;

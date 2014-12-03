@@ -8,7 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "clustering/administration/issues/invalid_config.hpp"

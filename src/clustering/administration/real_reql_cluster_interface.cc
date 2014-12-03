@@ -23,7 +23,7 @@ counted_t<ql::table_t> make_table_with_backend(
         const char *table_name,
         const ql::protob_t<const Backtrace> &bt) {
     return make_counted<ql::table_t>(
-        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
+        counted_t<base_table_t>(new artificial_table_t(backend)),
         make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"),
         table_name, false, bt);
 }
@@ -229,7 +229,7 @@ bool real_reql_cluster_interface_t::db_config(
         make_counted<ql::vector_datum_stream_t>(
             bt,
             std::move(result_array),
-            scoped_ptr_t<ql::changefeed::keyspec_t>());
+            boost::optional<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -390,7 +390,7 @@ bool real_reql_cluster_interface_t::table_find(
         const name_string_t &name, counted_t<const ql::db_t> db,
         UNUSED boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor,
-        scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
+        counted_t<base_table_t> *table_out, std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
     /* Find the specified table in the semilattice metadata */
@@ -410,7 +410,7 @@ bool real_reql_cluster_interface_t::table_find(
     and a real table, and they might specify `identifier_format` as a global optarg.
     So then they would get a spurious error for the real table. This behavior is also
     consistent with that of system tables that aren't affected by `identifier_format`. */
-    table_out->init(new real_table_t(
+    table_out->reset(new real_table_t(
         ns_metadata_it->first,
         namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor),
         ns_metadata_it->second.get_ref().primary_key.get_ref(),
@@ -480,7 +480,7 @@ bool real_reql_cluster_interface_t::table_config(
         make_counted<ql::vector_datum_stream_t>(
             bt,
             std::move(result_array),
-            scoped_ptr_t<ql::changefeed::keyspec_t>());
+            boost::optional<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -511,7 +511,7 @@ bool real_reql_cluster_interface_t::table_status(
         make_counted<ql::vector_datum_stream_t>(
             bt,
             std::move(result_array),
-            scoped_ptr_t<ql::changefeed::keyspec_t>());
+            boost::optional<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }
@@ -602,7 +602,7 @@ bool real_reql_cluster_interface_t::table_wait(
         make_counted<ql::vector_datum_stream_t>(
             bt,
             std::move(result_array),
-            scoped_ptr_t<ql::changefeed::keyspec_t>());
+            boost::optional<ql::changefeed::keyspec_t>());
     resp_out->init(new ql::val_t(make_counted<ql::selection_t>(table, stream), bt));
     return true;
 }

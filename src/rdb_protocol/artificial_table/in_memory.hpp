@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/backend.hpp"
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rdb_protocol/datum.hpp"
 
 /* This is the backend for an artificial table that acts as much as possible like a real
@@ -15,7 +15,7 @@ table. It accepts all reads and writes, storing the results in a `std::map`. It'
 for testing `artificial_table_t`. */
 
 class in_memory_artificial_table_backend_t :
-    public cfeed_artificial_table_backend_t
+    public caching_cfeed_artificial_table_backend_t
 {
 public:
     ~in_memory_artificial_table_backend_t() {

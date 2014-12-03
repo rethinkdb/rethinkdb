@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* The `rethinkdb.cluster_config` table is a catch-all for settings that don't fit
@@ -19,7 +19,7 @@ rows, each of which has a unique format and corresponds to a different setting.
 Right now the only row is `auth`, with the format `{"id": "auth", "auth_key": ...}`. */
 
 class cluster_config_artificial_table_backend_t :
-    public cfeed_artificial_table_backend_t
+    public caching_cfeed_artificial_table_backend_t
 {
 public:
     cluster_config_artificial_table_backend_t(

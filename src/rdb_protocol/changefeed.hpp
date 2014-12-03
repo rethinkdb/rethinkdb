@@ -85,8 +85,8 @@ struct msg_t {
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
         store_key_t pkey;
-        /* For a newly-creatd row, `old_val` is `datum_t::null()`. For a deleted row,
-        `new_val` is `datum_t::null()`. */
+        /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
+        `new_val` is an empty `datum_t`. */
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -144,7 +144,7 @@ struct keyspec_t {
     // Accursed reference collapsing!
     template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
     explicit keyspec_t(T &&t,
-                       scoped_ptr_t<base_table_t> &&_table,
+                       counted_t<base_table_t> &&_table,
                        std::string _table_name)
         : spec(std::move(t)),
           table(std::move(_table)),
@@ -157,7 +157,7 @@ struct keyspec_t {
 
     typedef boost::variant<range_t, limit_t, point_t> spec_t;
     spec_t spec;
-    scoped_ptr_t<base_table_t> table;
+    counted_t<base_table_t> table;
     std::string table_name;
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);

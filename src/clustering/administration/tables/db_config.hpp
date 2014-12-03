@@ -10,11 +10,11 @@
 
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class db_config_artificial_table_backend_t :
-    public cfeed_artificial_table_backend_t
+    public caching_cfeed_artificial_table_backend_t
 {
 public:
     db_config_artificial_table_backend_t(

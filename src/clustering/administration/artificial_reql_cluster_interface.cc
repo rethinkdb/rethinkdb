@@ -107,7 +107,7 @@ bool artificial_reql_cluster_interface_t::table_find(
         const name_string_t &name, counted_t<const ql::db_t> db,
         boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor,
-        scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
+        counted_t<base_table_t> *table_out, std::string *error_out) {
     if (db->name == database.str()) {
         auto it = tables.find(name);
         if (it != tables.end()) {
@@ -118,7 +118,7 @@ bool artificial_reql_cluster_interface_t::table_find(
             } else {
                 b = it->second.second;
             }
-            table_out->init(new artificial_table_t(b));
+            table_out->reset(new artificial_table_t(b));
             return true;
         } else {
             *error_out = strprintf("Table `%s.%s` does not exist.",
