@@ -975,7 +975,11 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
              "how many simultaneous I/O operations can happen at the same time");
     options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
                                              options::OPTIONAL_NO_PARAMETER));
-    help.add("--no-direct-io", "disable direct I/O");
+    // `--no-direct-io` is deprecated (it's now the default). Not adding to help.
+    // TODO: Remove it completely after 1.16
+    options_out->push_back(options::option_t(options::names_t("--direct-io"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--direct-io", "use direct I/O for file access");
     options_out->push_back(options::option_t(options::names_t("--cache-size"),
                                              options::OPTIONAL));
     help.add("--cache-size mb", "total cache size (in megabytes) for the process");
@@ -1307,9 +1311,14 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
 }
 
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
-    return exists_option(opts, "--no-direct-io") ?
-        file_direct_io_mode_t::buffered_desired :
-        file_direct_io_mode_t::direct_desired;
+    if (exists_option(opts, "--no-direct-io")) {
+        logWRN("Ignoring 'no-direct-io' option. 'no-direct-io' is deprecated and "
+               "will be removed in future versions of RethinkDB. "
+               "Indirect (buffered) I/O is now used by default.");
+    }
+    return exists_option(opts, "--direct-io") ?
+        file_direct_io_mode_t::direct_desired :
+        file_direct_io_mode_t::buffered_desired;
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
