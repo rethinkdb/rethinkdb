@@ -1,6 +1,27 @@
 #!/usr/bin/env python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
+# This file tests the `rethinkdb.stats` admin table.
+# The scenario works by starting a cluster of two servers and two tables. The tables are
+# then sharded across the two servers (no replicas), and populated with 100 rows.
+# A small read/write workload runs in the background during the entire test to ensure
+# that we have stats to read.  In addition, we run with a cache-size of zero to force
+# disk reads and writes.
+#
+# 1. Cluster is started, table populated
+# 2. Gather and verify stats
+# 3. Shut down the second server
+# 4. Gather and verify stats - observe timeouts for the missing server
+# 5. Restart the second server
+# 6. Gather and verify stats
+#
+# Stats verification is rather weak because we can't expect specific values for many
+# fields.  For most of them, we simple assert that they are greater than zero.  In
+# addition, the full scan of the `stats` table in verified for internal consistency.
+# That is, we make sure the tables' and servers' stats add up to the cluster stats,
+# and so on.  This is not valid when getting rows from the stats table individually,
+# as there will be race conditions then.
+
 from __future__ import print_function
 
 import sys, os, time, re, multiprocessing, random
