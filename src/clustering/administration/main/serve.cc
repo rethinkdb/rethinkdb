@@ -20,7 +20,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"

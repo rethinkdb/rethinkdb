@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_STAT_MANAGER_HPP_
-#define CLUSTERING_ADMINISTRATION_STAT_MANAGER_HPP_
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_
+#define CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_
 
 #include <map>
 #include <set>
@@ -35,5 +35,5 @@ private:
 
 typedef stat_manager_t::get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
 
-#endif /* CLUSTERING_ADMINISTRATION_STAT_MANAGER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_ */
 

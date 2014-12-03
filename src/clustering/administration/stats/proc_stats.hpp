@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_PROC_STATS_HPP_
-#define CLUSTERING_ADMINISTRATION_PROC_STATS_HPP_
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_ADMINISTRATION_STATS_PROC_STATS_HPP_
+#define CLUSTERING_ADMINISTRATION_STATS_PROC_STATS_HPP_
 
 #include "concurrency/auto_drainer.hpp"
 #include "perfmon/perfmon.hpp"
@@ -25,4 +25,4 @@ private:
     perfmon_multi_membership_t stats_membership;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_PROC_STATS_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_STATS_PROC_STATS_HPP_ */

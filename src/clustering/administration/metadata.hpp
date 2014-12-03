@@ -13,7 +13,7 @@
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
-#include "clustering/administration/stat_manager.hpp"
+#include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"

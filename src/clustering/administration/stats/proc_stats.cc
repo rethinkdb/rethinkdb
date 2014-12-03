@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 
 #include <inttypes.h>
 #include <stdlib.h>
