@@ -71,16 +71,21 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
         auto it = queue.find(key);
         if (it == queue.end()) {
-            auto pair = std::make_pair(std::move(key), std::make_pair(old_val, new_val));
+            auto pair = std::make_pair(std::move(key),
+                                       std::make_pair(std::move(old_val),
+                                                      std::move(new_val)));
             it = queue.insert(std::move(pair)).first;
-        }
-        guarantee(it != queue.end());
-        if (!it->second.first.has()) {
-            it->second.first = old_val;
-        }
-        it->second.second = new_val;
-        if (it->second.first == it->second.second) {
-            queue.erase(it);
+            // `add` should never be called with `old_val == new_val`, or else
+            // `nonsquashing_queue_t` is incorrect.
+            guarantee(it->second.first != it->second.second);
+        } else {
+            if (!it->second.first.has()) {
+                it->second.first = std::move(old_val);
+            }
+            it->second.second = std::move(new_val);
+            if (it->second.first == it->second.second) {
+                queue.erase(it);
+            }
         }
     }
     virtual size_t size() const {
@@ -101,7 +106,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
-        queue.push_back(std::make_pair(std::move(old_val), std::move(new_val)));
+        queue.emplace_back(std::move(old_val), std::move(new_val));
     }
     virtual size_t size() const {
         return queue.size();
