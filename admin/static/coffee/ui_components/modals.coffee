@@ -35,8 +35,8 @@ module 'UIComponents', ->
             template_data = {} if not template_data?
             template_data = _.extend template_data,
                 modal_class: @class
-            @$container.html @template_outer template_data
-            $('.modal-body', @$container).html @template template_data
+            @$container.html(@template_outer template_data).addClass('visible')
+            $('.modal-body', @$container).html(@template template_data)
 
             # Note: Bootstrap's modal JS moves the modal from the container element to the end of the body tag in the DOM
             @$modal = $('.modal', @$container).modal
@@ -58,6 +58,7 @@ module 'UIComponents', ->
                 @$('.custom_btn_placeholder > .' + btn.class_str).button()
 
         hide_modal: =>
+            @$container.removeClass('visible')
             @$modal.modal('hide') if @$modal?
 
         cancel_modal: (e) ->

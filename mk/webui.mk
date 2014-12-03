@@ -29,7 +29,7 @@ COFFEE_SOURCES := $(patsubst %, $(COFFEE_SOURCE_DIR)/%,\
                        body.coffee \
                        ui_components/modals.coffee ui_components/progressbar.coffee \
                        tables/database.coffee \
-                       tables/index.coffee tables/replicas.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
+                       tables/index.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
                        servers/index.coffee servers/server.coffee \
                        dashboard.coffee \
                        dataexplorer.coffee \
@@ -94,7 +94,7 @@ $(WEB_ASSETS_OBJ_DIR)/%.js: $(COFFEE_SOURCE_DIR)/%.coffee $(COFFEE_BIN_DEP) | $(
 	mkdir -p $(@D)
 	$(COFFEE) --bare --print --stdio < $< > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESS_SOURCES) $(LESSC_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P LESSC $@
 	$(LESSC) $(LESS_MAIN) > $@
 

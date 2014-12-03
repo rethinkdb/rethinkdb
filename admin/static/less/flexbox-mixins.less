@@ -1,0 +1,92 @@
+.flex() {
+    display: -webkit-box; 
+    display: -moz-box; 
+    display:-webkit-flex;
+    display: -ms-flexbox;
+    display:flex;
+}
+
+.flex-justify(@justifyStyle) {
+
+    .ms-flex-justify(@justifyStyle);
+    -webkit-justify-content: @justifyStyle;
+    justify-content: @justifyStyle;
+}
+
+.flex-direction(@direction) {
+  -ms-flex-direction:@direction;
+ -webkit-flex-direction:@direction;
+  flex-direction:@direction;
+}
+
+.flex-align-items(@alignStyle) {
+    -ms-flex-align:@alignStyle;
+    -webkit-align-items:@alignStyle;
+     align-items: @alignStyle;   
+}
+
+.flex-align-self(@selfAlignStyle) {
+  .ms-flex-align-self(@selfAlignStyle);
+  -webkit-align-self:@selfAlignStyle;
+  align-self: @selfAlignStyle;
+}
+
+.flex-order(@order) {
+  -ms-flex-order:@order;
+  -webkit-order:@order;
+  order:@order; 
+}
+
+.flex-wrap(@wrap) {
+  -ms-flex-wrap:@wrap;
+  -webkit-flex-wrap:@wrap;
+   flex-wrap:@wrap; 
+}
+
+.flex-grow(@grow: 0) {
+    -webkit-flex-grow: @grow;
+    -moz-flex-grow: @grow;
+    -ms-flex-grow: @grow;
+    flex-grow: @grow;
+}
+
+.flex-shrink(@shrink: 1) {
+    -webkit-flex-shrink: @shrink;
+    -moz-flex-shrink: @shrink;
+    -ms-flex-shrink: @shrink;
+    flex-shrink: @shrink;
+}
+
+
+/* These are the conditional mixins for the different syntax for IE10 Flexbox*/
+.ms-flex-justify(@msJustify) when (@msJustify = space-between)  {
+    -ms-flex-pack:justify;
+}
+
+.ms-flex-justify(@msJustify) when (@msJustify = space-around) {
+    -ms-flex-pack:distribute;
+}
+
+.ms-flex-justify(@msJustify) when (@msJustify = flex-end) {
+    -ms-flex-pack:end;
+}
+
+.ms-flex-justify(@msJustify) when (@msJustify = flex-start) {
+    -ms-flex-pack:start;
+}
+
+.ms-flex-justify(@msJustify) when (@msJustify = center) {
+    -ms-flex-pack:center;
+}
+
+.ms-flex-align-self(@msSelfAlign) when (@msSelfAlign = flex-end) {
+    -ms-flex-item-align: end;
+}
+
+.ms-flex-align-self(@msSelfAlign) when (@msSelfAlign = flex-start) {
+    -ms-flex-item-align: start;
+}
+
+.ms-flex-align-self(@msSelfAlign) when (@msSelfAlign = auto), (@msSelfAlign = center),(@msSelfAlign = baseline), (@msSelfAlign = stretch) {
+    -ms-flex-item-align: @msSelfAlign;
+}
