@@ -38,7 +38,7 @@ protected:
 private:
     class caching_machinery_t : public cfeed_artificial_table_backend_t::machinery_t {
     public:
-        caching_machinery_t(caching_cfeed_artificial_table_backend_t *parent);
+        explicit caching_machinery_t(caching_cfeed_artificial_table_backend_t *parent);
         ~caching_machinery_t();
         void run(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
         bool diff_one(const ql::datum_t &key, signal_t *interruptor);

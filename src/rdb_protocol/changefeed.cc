@@ -2159,7 +2159,7 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
 
 class artificial_feed_t : public feed_t {
 public:
-    artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
+    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }
