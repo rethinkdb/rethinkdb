@@ -80,18 +80,18 @@ private:
                              const std::string &key,
                              double *value_out);
 
-    void add_shard_values(const ql::datum_t &shard_perf,
-                          table_stats_t *stats_out);
+    void store_shard_values(const ql::datum_t &shard_perf,
+                            table_stats_t *stats_out);
 
-    void add_serializer_values(const ql::datum_t &ser_perf,
-                               table_stats_t *);
+    void store_serializer_values(const ql::datum_t &ser_perf,
+                                 table_stats_t *);
 
-    void add_query_engine_stats(const ql::datum_t &qe_perf,
-                                server_stats_t *stats_out);
+    void store_query_engine_stats(const ql::datum_t &qe_perf,
+                                  server_stats_t *stats_out);
 
-    void add_table_stats(const namespace_id_t &table_id,
-                         const ql::datum_t &table_perf,
-                         server_stats_t *stats_out);
+    void store_table_stats(const namespace_id_t &table_id,
+                           const ql::datum_t &table_perf,
+                           server_stats_t *stats_out);
 };
 
 // A `stats_request_t` encapsulates all the behavior that differentiates between

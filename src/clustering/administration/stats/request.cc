@@ -57,12 +57,12 @@ parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) 
             std::pair<datum_string_t, ql::datum_t> perf_pair =
                 serv_pair.second.get_pair(i);
             if (perf_pair.first == "query_engine") {
-                add_query_engine_stats(perf_pair.second, &serv_stats);
+                store_query_engine_stats(perf_pair.second, &serv_stats);
             } else {
                 namespace_id_t table_id;
                 bool res = str_to_uuid(perf_pair.first.to_std(), &table_id);
                 if (res) {
-                    add_table_stats(table_id, perf_pair.second, &serv_stats);
+                    store_table_stats(table_id, perf_pair.second, &serv_stats);
                 }
             }
         }
@@ -94,8 +94,8 @@ void parsed_stats_t::add_perfmon_value(const ql::datum_t &perf,
     }
 }
 
-void parsed_stats_t::add_shard_values(const ql::datum_t &shard_perf,
-                                      table_stats_t *stats_out) {
+void parsed_stats_t::store_shard_values(const ql::datum_t &shard_perf,
+                                        table_stats_t *stats_out) {
     r_sanity_check(shard_perf.get_type() == ql::datum_t::R_OBJECT);
     for (size_t i = 0; i < shard_perf.obj_size(); ++i) {
         std::pair<datum_string_t, ql::datum_t> pair = shard_perf.get_pair(i);
@@ -124,8 +124,8 @@ void parsed_stats_t::add_shard_values(const ql::datum_t &shard_perf,
     }
 }
 
-void parsed_stats_t::add_serializer_values(const ql::datum_t &ser_perf,
-                                           table_stats_t *stats_out) {
+void parsed_stats_t::store_serializer_values(const ql::datum_t &ser_perf,
+                                             table_stats_t *stats_out) {
     r_sanity_check(ser_perf.get_type() == ql::datum_t::R_OBJECT);
     store_perfmon_value(ser_perf, "serializer_read_bytes_per_sec",
                         &stats_out->read_bytes_per_sec);
@@ -152,8 +152,8 @@ void parsed_stats_t::add_serializer_values(const ql::datum_t &ser_perf,
         stats_out->garbage_bytes + stats_out->metadata_bytes;
 }
 
-void parsed_stats_t::add_query_engine_stats(const ql::datum_t &qe_perf,
-                                            server_stats_t *stats_out) {
+void parsed_stats_t::store_query_engine_stats(const ql::datum_t &qe_perf,
+                                              server_stats_t *stats_out) {
     r_sanity_check(qe_perf.get_type() == ql::datum_t::R_OBJECT);
     store_perfmon_value(qe_perf, "queries_per_sec", &stats_out->queries_per_sec);
     store_perfmon_value(qe_perf, "queries_total", &stats_out->queries_total);
@@ -161,9 +161,9 @@ void parsed_stats_t::add_query_engine_stats(const ql::datum_t &qe_perf,
     store_perfmon_value(qe_perf, "clients_active", &stats_out->clients_active);
 }
 
-void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
-                                     const ql::datum_t &table_perf,
-                                     server_stats_t *stats_out) {
+void parsed_stats_t::store_table_stats(const namespace_id_t &table_id,
+                                       const ql::datum_t &table_perf,
+                                       server_stats_t *stats_out) {
     r_sanity_check(table_perf.get_type() == ql::datum_t::R_OBJECT);
     ql::datum_t sers_perf = table_perf.get_field("serializers",
                                                  ql::throw_bool_t::NOTHROW);
@@ -171,12 +171,12 @@ void parsed_stats_t::add_table_stats(const namespace_id_t &table_id,
         r_sanity_check(sers_perf.get_type() == ql::datum_t::R_OBJECT);
         table_stats_t &table_stats_out = stats_out->tables[table_id];
 
-        add_shard_values(sers_perf, &table_stats_out);
+        store_shard_values(sers_perf, &table_stats_out);
 
         ql::datum_t sub_sers_perf = sers_perf.get_field("serializer",
                                                         ql::throw_bool_t::NOTHROW);
         if (sub_sers_perf.has()) {
-            add_serializer_values(sub_sers_perf, &table_stats_out);
+            store_serializer_values(sub_sers_perf, &table_stats_out);
         }
     }
 }
