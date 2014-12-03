@@ -11,7 +11,7 @@
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
-#include "rdb_protocol/artificial_table/backend_cfeed.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -20,7 +20,7 @@ pseudo-tables. Subclasses should implement `read_row()` and `write_row()`, in te
 `lookup()`. */
 
 class common_server_artificial_table_backend_t :
-    public cfeed_artificial_table_backend_t {
+    public caching_cfeed_artificial_table_backend_t {
 public:
     common_server_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
