@@ -77,7 +77,10 @@ bool cluster_config_artificial_table_backend_t::write_row(
 }
 
 void cluster_config_artificial_table_backend_t::set_notifications(bool should_notify) {
-    for (const auto &pair : docs) {
+    /* Note that we aren't actually modifying the `docs` map itself, just the objects
+    that it points at. So this could have been `const auto &pair`, but that might be
+    misleading. */
+    for (auto &&pair : docs) {
         if (should_notify) {
             std::string name = pair.first;
             pair.second->set_notification_callback(
