@@ -69,7 +69,7 @@ void stats_artificial_table_backend_t::perform_stats_request(
         std::map<server_id_t, ql::datum_t> *results_out,
         signal_t *interruptor) {
     pmap(peers.begin(), peers.end(),
-        [&](std::pair<server_id_t, peer_id_t> pair) {
+        [&](const std::pair<server_id_t, peer_id_t> &pair) {
             get_peer_stats(pair.second, filter,
                            &(*results_out)[pair.first],
                            interruptor);
