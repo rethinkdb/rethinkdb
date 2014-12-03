@@ -202,22 +202,22 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
     }
     guarantee(!stream->is_cfeed());
     ql::env_t env(interruptor, reql_version_t::LATEST);
-    while (!stream->is_exhausted()) {
-        std::vector<ql::datum_t> datums;
-        try {
-            datums = stream->next_batch(&env, ql::batchspec_t::all());
-        } catch (const ql::base_exc_t &) {
-            return false;
-        }
-        for (const ql::datum_t &doc : datums) {
-            ql::datum_t key = doc.get_field(
-                datum_string_t(parent->get_primary_key_name()),
-                ql::NOTHROW);
-            guarantee(key.has());
-            store_key_t key2(key.print_primary());
-            auto pair = out->insert(std::make_pair(key2, doc));
-            guarantee(pair.second);
-        }
+    std::vector<ql::datum_t> datums;
+    try {
+        datums = stream->next_batch(&env, ql::batchspec_t::all());
+    } catch (const ql::base_exc_t &) {
+        return false;
+    }
+    guarantee(stream->is_exhausted(), "We expect ql::batchspec_t::all() to read the "
+        "entire stream");
+    for (const ql::datum_t &doc : datums) {
+        ql::datum_t key = doc.get_field(
+            datum_string_t(parent->get_primary_key_name()),
+            ql::NOTHROW);
+        guarantee(key.has());
+        store_key_t key2(key.print_primary());
+        auto pair = out->insert(std::make_pair(key2, doc));
+        guarantee(pair.second);
     }
     return true;
 }
