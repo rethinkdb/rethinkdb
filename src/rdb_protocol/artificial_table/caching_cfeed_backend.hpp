@@ -55,10 +55,8 @@ private:
         std::map<store_key_t, ql::datum_t> old_values;
 
         /* `dirty` is the set of keys that have changed since `run()` last fetched their
-        values. The key in the map is always equal to the result of calling
-        `print_primary()` on the value. This is effectively a `std::set<ql::datum_t>`,
-        but `ql::datum_t` doesn't support `operator<`, so we have this instead. */
-        std::map<store_key_t, ql::datum_t> dirty;
+        values. */
+        std::set<ql::datum_t, latest_version_optional_datum_less_t> dirty;
 
         /* If `all_dirty` or `all_dirty_break` is `true`, then all keys are considered to
         have changed. The difference is that `all_dirty_break` will stop all changefeeds

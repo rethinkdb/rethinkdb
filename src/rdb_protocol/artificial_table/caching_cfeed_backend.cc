@@ -10,9 +10,7 @@ void caching_cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pke
         if (caching_machinery->all_dirty || caching_machinery->all_dirty_break) {
             return;
         }
-        caching_machinery->dirty.insert(std::make_pair(
-            store_key_t(pkey.print_primary()),
-            pkey));
+        caching_machinery->dirty.insert(pkey);
         if (caching_machinery->waker != nullptr) {
             caching_machinery->waker->pulse_if_not_already_pulsed();
         }
@@ -67,7 +65,7 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
             /* Copy the dirtiness flags into local variables and reset them. Resetting
             them now is important because it means that notifications that arrive while
             we're processing the current batch will be queued up instead of ignored. */
-            std::map<store_key_t, ql::datum_t> local_dirty;
+            std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty;
             bool local_all_dirty = false, local_all_dirty_break = false;
             std::swap(dirty, local_dirty);
             std::swap(all_dirty, local_all_dirty);
@@ -84,8 +82,8 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
                     ready.pulse_if_not_already_pulsed();
                 }
             } else {
-                for (const auto &pair : local_dirty) {
-                    if (!diff_one(pair.second, keepalive.get_drain_signal())) {
+                for (const auto &key : local_dirty) {
+                    if (!diff_one(key, keepalive.get_drain_signal())) {
                         error = true;
                         break;
                     }
