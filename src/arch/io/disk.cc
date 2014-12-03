@@ -485,6 +485,27 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                       0);
     } break;
     case file_direct_io_mode_t::buffered_desired: {
+#ifdef __linux__
+        // On linux we can often improve read performance by disabling read-ahead.
+        // Our access patterns are usually pretty random, and on startup we already
+        // do read-ahead internally in our cache.
+        //
+        // From the man-page:
+        //  Under Linux, POSIX_FADV_NORMAL sets the readahead window to the
+        //  default size for the backing device; POSIX_FADV_SEQUENTIAL doubles
+        //  this size, and POSIX_FADV_RANDOM disables file readahead entirely.
+        //  These changes affect the entire file, not just the specified region
+        //  (but other open file handles to the same file are unaffected)
+        const int fadvise_res = posix_fadvise(fd.get(), 0, 0, POSIX_FADV_RANDOM);
+        if (fadvise_res != 0) {
+            // Non-critical error. Just print a warning and keep going.
+            logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
+                   "decreased read performance.", path, fadvise_res);
+        }
+#endif
+        // TODO: OS X doesn't have posix_fadvise(). Is there another way to
+        // disable read-ahead with buffered i/o on OS X?
+
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
     } break;
     default:
