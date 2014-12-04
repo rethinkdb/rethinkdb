@@ -60,7 +60,7 @@ TEST(UtilsTest, StrtofooStrict) {
     ASSERT_TRUE(!success && i_res == 0);
 }
 
-TEST(UtilsTest, Time) {
+TEST(UtilsTest, TimeLocal) {
     // Change the timezone for the duration of this test
     char *hastz = getenv("TZ");
     std::string oldtz(hastz ? hastz : "");
@@ -72,7 +72,7 @@ TEST(UtilsTest, Time) {
     EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
     struct timespec parsed;
     std::string errmsg;
-    bool success = parse_time(formatted, &parsed, &errmsg);
+    bool success = parse_time(formatted, false, &parsed, &errmsg);
     ASSERT_TRUE(success);
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
@@ -83,6 +83,18 @@ TEST(UtilsTest, Time) {
       unsetenv("TZ");
     }
     tzset();
+}
+
+TEST(UtilsTest, TimeUTC) {
+    struct timespec time = {1335301122, 1234};
+    std::string formatted = format_time(time, true);
+    EXPECT_EQ("2012-04-24T20:58:42.000001234", formatted);
+    struct timespec parsed;
+    std::string errmsg;
+    bool success = parse_time(formatted, true, &parsed, &errmsg);
+    ASSERT_TRUE(success);
+    EXPECT_EQ(time.tv_sec, parsed.tv_sec);
+    EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 }
 
 TEST(BtreeUtilsTest, SizedStrcmp) {

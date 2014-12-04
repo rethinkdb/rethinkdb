@@ -145,7 +145,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     {
         std::string errmsg;
         if (!parse_time(std::string(start_timestamp, end_timestamp - start_timestamp),
-                        &timestamp, &errmsg)) {
+                        false, &timestamp, &errmsg)) {
             throw std::runtime_error(errmsg);
         }
     }

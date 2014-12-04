@@ -33,7 +33,7 @@ bool convert_log_key_from_datum(const ql::datum_t &d,
         *error_out = "Expected string, got:" + d.print();
         return false;
     }
-    if (!parse_time(d.get(0).as_str().to_std(), ts_out, error_out)) {
+    if (!parse_time(d.get(0).as_str().to_std(), true, ts_out, error_out)) {
         *error_out = "In timestamp: " + *error_out;
         return false;
     }

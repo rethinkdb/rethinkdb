@@ -8,7 +8,6 @@
 #include <functional>
 #include <string>
 
-#include "errors.hpp"
 #include "debug.hpp"
 #include "config/args.hpp"
 
@@ -87,7 +86,8 @@ const size_t formatted_time_length = 29;    // not including null
 void format_time(struct timespec time, printf_buffer_t *buf, bool use_utc);
 std::string format_time(struct timespec time, bool use_utc);
 
-bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out);
+bool parse_time(
+    const std::string &str, bool use_utc, struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
