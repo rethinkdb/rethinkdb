@@ -21,6 +21,8 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     conn = r.connect(proc.host, proc.driver_port)
 
+    megabyte = 1048576
+
     def set_cache_size(size_mb):
         print("Setting cache size to %.2f MB." % size_mb)
         res = r.db("rethinkdb").table("server_config") \
@@ -33,13 +35,13 @@ with driver.Metacluster() as metacluster:
                      .table("stats") \
                      ["storage_engine"]["cache"]["in_use_bytes"] \
                      .nth(0) \
-                     .div(1e6) \
+                     .div(megabyte) \
                      .run(conn)
         print("Measured cache usage at %.2f MB (expected %.2f MB)" %
             (actual_mb, expect_mb))
-        assert expect_mb * 0.8 <= actual_mb <= expect_mb * 1.2
+        assert expect_mb * 0.9 <= actual_mb <= expect_mb * 1.01
 
-    high_cache_mb = 10
+    high_cache_mb = 20
     set_cache_size(high_cache_mb)
 
     print("Making a table.")
@@ -49,17 +51,18 @@ with driver.Metacluster() as metacluster:
 
     print("Filling table...")
     doc_size = 10000
-    num_docs = int(high_cache_mb * 1e6 / doc_size)
+    overfill_factor = 1.2
+    num_docs = int(high_cache_mb * megabyte * overfill_factor / doc_size)
     res = \
         r.range(num_docs).for_each(
             r.table("test").insert(
-                {"id": r.row, "payload": "a"*doc_size})) \
+                {"id": r.row, "payload": "a" * doc_size})) \
         .run(conn)
     assert res["inserted"] == num_docs and res["errors"] == 0, res
 
     check_cache_usage(high_cache_mb)
 
-    low_cache_mb = 5
+    low_cache_mb = 10
     set_cache_size(low_cache_mb)
 
     check_cache_usage(low_cache_mb)
