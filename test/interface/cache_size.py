@@ -45,7 +45,6 @@ with driver.Metacluster() as metacluster:
     set_cache_size(high_cache_mb)
 
     print("Making a table.")
-    # Create a table and fill the cache with data
     r.db_create("test").run(conn)
     r.table_create("test").run(conn)
 

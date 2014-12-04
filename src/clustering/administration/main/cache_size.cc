@@ -171,7 +171,19 @@ uint64_t get_avail_mem_size() {
 }
 
 uint64_t get_max_total_cache_size() {
-    return std::numeric_limits<intptr_t>::max();
+    /* We're checking for two things here:
+     1. That the cache size is not larger than the amount of RAM that a pointer can
+        address. This is for 32-bit systems.
+     2. That the cache size is not larger than a petabyte. This is partially to catch
+        people who think the cache size is specified in bytes rather than megabytes. But
+        it also serves the purpose of making it so that the max total cache size easily
+        fits into a 64-bit integer, so that we can test the code path where
+        `validate_total_cache_size()` fails even on a 64-bit system. When hardware
+        advances to the point where a petabyte of RAM is plausible for a server, we'll
+        increase the limit. */
+    return std::min(
+        static_cast<uint64_t>(std::numeric_limits<intptr_t>::max()),
+        static_cast<uint64_t>(MEGABYTE) * static_cast<uint64_t>(GIGABYTE));
 }
 
 uint64_t get_default_total_cache_size() {

@@ -237,6 +237,7 @@ bool server_config_client_t::do_change(
     if (!got_reply.wait().empty()) {
         *error_out = strprintf("Error when trying to change the %s of server `%s`: %s",
             what_is_changing.c_str(), server_name.c_str(), got_reply.wait().c_str());
+        return false;
     }
 
     try {

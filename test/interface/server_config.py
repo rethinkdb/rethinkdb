@@ -122,11 +122,21 @@ with driver.Metacluster() as metacluster:
     assert res == 234
 
     print("Checking that absurd cache sizes are rejected...")
+    # 2^40 is chosen so that it fits into a 64-bit integer when expressed in bytes, to
+    # test the code path where the value is sent to the other server but then rejected by
+    # validate_total_cache_size(). The second 
     res = r.db("rethinkdb").table("server_config") \
-           .get(uuid_b).update({"cache_size_mb": (1 << (64-20)) - 1}) \
+           .get(uuid_b).update({"cache_size_mb": 2**40}) \
            .run(reql_conn1)
-    print res
     assert res["errors"] == 1, res
+    assert "Error when trying to change the cache size of server" in res["first_error"]
+    # 2^100 is chosen so that it doesn't fit into a 64-bit integer, so it will take a
+    # different code path and get a different error message.
+    res = r.db("rethinkdb").table("server_config") \
+           .get(uuid_b).update({"cache_size_mb": 2**100}) \
+           .run(reql_conn1)
+    assert res["errors"] == 1, res
+    assert "wrong format" in res["first_error"]
 
     cluster.check_and_stop()
 
