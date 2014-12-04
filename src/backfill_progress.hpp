@@ -22,8 +22,6 @@ struct progress_completion_fraction_t {
     bool invalid() const { return estimate_of_total_nodes == -1; }
 };
 
-// TODO: Rename this to traversal_progress_t after it has been pushed
-// and merged into rdb_protocol.
 class traversal_progress_t : public home_thread_mixin_t {
 public:
     traversal_progress_t() { }

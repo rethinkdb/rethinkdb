@@ -113,28 +113,6 @@
 }
 */
 
-/* Inconsolata */
-@font-face {
-    font-family: 'Inconsolata';
-    src: url('inconsolata-regular-webfont.eot');
-    src: url('inconsolata-regular-webfont.eot?#iefix') format('embedded-opentype'),
-         url('inconsolata-regular-webfont.woff') format('woff'),
-         url('inconsolata-regular-webfont.ttf') format('truetype'),
-         url('inconsolata-regular-webfont.svg#inconsolataregular') format('svg');
-    font-weight: 400;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Inconsolata';
-    src: url('inconsolata-bold-webfont.eot');
-    src: url('inconsolata-bold-webfont.eot?#iefix') format('embedded-opentype'),
-         url('inconsolata-bold-webfont.woff') format('woff'),
-         url('inconsolata-bold-webfont.ttf') format('truetype'),
-         url('inconsolata-bold-webfont.svg#inconsolatabold') format('svg');
-    font-weight: 700;
-    font-style: normal;
-}
 
 /* Copse */
 @font-face {

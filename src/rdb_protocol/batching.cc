@@ -74,7 +74,7 @@ batchspec_t batchspec_t::all() {
                        std::numeric_limits<decltype(batchspec_t().max_els)>::max(),
                        std::numeric_limits<decltype(batchspec_t().max_size)>::max(),
                        1,
-                       0,
+                       0,  // Ignored when batch_type is TERMINAL.
                        current_microtime());
 }
 

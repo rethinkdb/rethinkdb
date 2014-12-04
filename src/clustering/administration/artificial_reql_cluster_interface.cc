@@ -274,7 +274,6 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
-        mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         boost::shared_ptr< semilattice_readwrite_view_t<
@@ -283,7 +282,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             cluster_directory_metadata_t> > > _directory_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
-        server_config_client_t *_server_config_client) {
+        server_config_client_t *_server_config_client,
+        mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
 
@@ -326,6 +326,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view)));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
+
+    for (int i = 0; i < 2; ++i) {
+        stats_backend[i].init(new stats_artificial_table_backend_t(
+            _directory_view, _semilattice_view, _server_config_client, _mailbox_manager,
+            static_cast<admin_identifier_format_t>(i)));
+    }
+    backends[name_string_t::guarantee_valid("stats")] =
+        std::make_pair(stats_backend[0].get(), stats_backend[1].get());
 
     for (int i = 0; i < 2; ++i) {
         table_config_backend[i].init(new table_config_artificial_table_backend_t(

@@ -24,6 +24,7 @@ reactor_t::reactor_t(
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
+        const server_id_t &sid,
         backfill_throttler_t *backfill_throttler_,
         ack_checker_t *ack_checker_,
         watchable_map_t<
@@ -40,6 +41,7 @@ reactor_t::reactor_t(
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     io_backender(_io_backender),
     mailbox_manager(mm),
+    server_id(sid),
     backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),

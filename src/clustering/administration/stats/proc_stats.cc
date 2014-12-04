@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -29,17 +29,17 @@ void proc_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *
     /* Do nothing; the things we need to get can be gotten on any thread */
 }
 
-scoped_ptr_t<perfmon_result_t> proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
-    scoped_ptr_t<perfmon_result_t> result = perfmon_result_t::alloc_map_result();
+ql::datum_t proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
+    ql::datum_object_builder_t builder;
 
     // Basic process stats (version, pid, uptime)
     struct timespec now = clock_monotonic();
 
-    result->insert("uptime", new perfmon_result_t(strprintf("%" PRIu64, now.tv_sec - start_time)));
-    result->insert("timestamp", new perfmon_result_t(format_time(now)));
+    builder.overwrite("uptime", ql::datum_t(static_cast<double>(now.tv_sec - start_time)));
+    builder.overwrite("timestamp", ql::datum_t(format_time(now).c_str()));
 
-    result->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
-    result->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
+    builder.overwrite("version", ql::datum_t(RETHINKDB_VERSION));
+    builder.overwrite("pid", ql::datum_t(static_cast<double>(getpid())));
 
-    return result;
+    return std::move(builder).to_datum();
 }

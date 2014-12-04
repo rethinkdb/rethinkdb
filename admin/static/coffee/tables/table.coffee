@@ -20,29 +20,41 @@ module 'TableView', ->
             @fetch_data()
 
         fetch_data: =>
-            ignore = (shard) -> shard('role').ne('nothing')
             this_id = @id
             query =
                 r.db(system_db).table('server_config').count().do( (num_servers) ->
-                    r.db(system_db).table('table_status').get(this_id).do( (table) ->
+                    r.db(system_db).table('table_status').get(this_id).do((table) ->
+                        master_down = table('status')('ready_for_reads').not()
                         r.branch(
                             table.eq(null),
                             null,
                             table.merge(
                                 num_shards: table("shards").count()
                                 # TODO: replace with primary once "director" is out
-                                num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
-                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
-                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
-                                num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
-                                max_replicas: num_servers
-                                num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
-                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: waiting for #2980 to get dist info
-                                    num_keys: r.random(0, 300000).add(400000)
-                                    id: position
-                                )
+                                num_available_shards: table("shards").filter((shard) ->
+                                    shard('replicas')(shard('replicas')('server').indexesOf(shard('director'))(0))('state').eq('ready')
+                                    ).count()
+                                num_replicas: table("shards").concatMap( (shard) -> shard('replicas')).count()
+                                num_available_replicas: table("shards").concatMap((shard) ->
+                                    shard('replicas').filter({state: "ready"})).count()
+                                max_replicas_per_shard: num_servers
+                                num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
+                                # Here we check if the table is available, otherwise table.info() will bomb
+                                distribution: r.branch(master_down, [], r.db(table('db'))
+                                    .table(table('name')) \
+                                    .info()('doc_count_estimates')\
+                                    .do((doc_counts) ->
+                                        doc_counts.map(r.range(doc_counts.count()),
+                                            (num_keys, position) ->
+                                                num_keys: num_keys
+                                                id: position
+                                            ).coerceTo('array')))
+                                # Again, we must check if the table is available
+                                total_keys: r.branch(master_down, null, r.db(table('db')).table(table('name')).info()('doc_count_estimates').sum())
+                                status: table('status')
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position.add(1)
+                                    num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position))
                                     primary:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
@@ -72,11 +84,6 @@ module 'TableView', ->
                 )
 
             @timer = driver.run query, 5000, (error, result) =>
-                ###
-                console.log '---- err, result -----'
-                console.log error
-                console.log JSON.stringify(result, null, 2)
-                ###
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     # TODO: Handle when the table is deleted
@@ -127,6 +134,7 @@ module 'TableView', ->
                                 shards_assignments.push
                                     id: "start_shard_#{shard.id}"
                                     shard_id: shard.id
+                                    num_keys: shard.num_keys
                                     start_shard: true
 
                                 shards_assignments.push
@@ -230,10 +238,13 @@ module 'TableView', ->
                 collection: @shards_assignments
 
             @stats = new Stats
-            @stats_timer = driver.run r.expr(
-                keys_read: r.random(2000, 3000)
-                keys_set: r.random(1500, 2500)
-            ), 1000, @stats.on_result
+            @stats_timer = driver.run(
+                r.db('rethinkdb').table('stats')
+                .get(["table", @model.get('id')])
+                .do((stat) ->
+                    keys_read: stat('query_engine')('read_docs_per_sec')
+                    keys_set: stat('query_engine')('written_docs_per_sec')
+                ), 1000, @stats.on_result)
 
             @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
@@ -360,8 +371,8 @@ module 'TableView', ->
 
         render: =>
             @$el.html @template
-                status: @model.get 'ready_completely'
-                total_keys: "TODO"
+                status: @model.get 'status'
+                total_keys: @model.get 'total_keys'
                 num_shards: @model.get 'num_shards'
                 num_available_shards: @model.get 'num_available_shards'
                 num_replicas: @model.get 'num_replicas'

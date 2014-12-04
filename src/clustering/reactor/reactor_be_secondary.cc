@@ -164,7 +164,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                 backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+                read_token_t read_token;
                 svs->new_read_token(&read_token);
 
                 region_map_t<binary_blob_t> metainfo_blob;
@@ -238,7 +238,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t listener(base_path, io_backender, mailbox_manager,
+                listener_t listener(base_path, io_backender, mailbox_manager, server_id,
                                     backfill_throttler, ct_broadcaster.get_watchable(),
                                     branch_history_manager, svs,
                                     ct_location_to_backfill_from.get_watchable(),

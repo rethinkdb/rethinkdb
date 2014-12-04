@@ -80,7 +80,7 @@ void reactor_t::be_nothing(region_t region,
 
             order_source_t order_source;  // TODO: order_token_t::ignore
 
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            read_token_t read_token;
             svs->new_read_token(&read_token);
             region_map_t<binary_blob_t> metainfo_blob;
             svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(),
@@ -169,7 +169,7 @@ void reactor_t::be_nothing(region_t region,
             /* Persist that we don't have any valid data anymore for this range */
             {
                 order_source_t order_source; // TODO: order_token_t::ignore
-                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+                write_token_t write_token;
                 svs->new_write_token(&write_token);
 
                 svs->set_metainfo(

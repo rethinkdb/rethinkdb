@@ -123,6 +123,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_block_writes(),
       pm_serializer_index_writes(secs_to_ticks(1)),
       pm_serializer_index_writes_size(secs_to_ticks(1), false),
+      pm_serializer_read_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_read_bytes_total(),
+      pm_serializer_written_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_written_bytes_total(),
       pm_extents_in_use(),
       pm_bytes_in_use(),
       pm_serializer_lba_extents(),
@@ -139,6 +143,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_block_writes, "serializer_block_writes",
           &pm_serializer_index_writes, "serializer_index_writes",
           &pm_serializer_index_writes_size, "serializer_index_writes_size",
+          &pm_serializer_read_bytes_per_sec, "serializer_read_bytes_per_sec",
+          &pm_serializer_read_bytes_total, "serializer_read_bytes_total",
+          &pm_serializer_written_bytes_per_sec, "serializer_written_bytes_per_sec",
+          &pm_serializer_written_bytes_total, "serializer_written_bytes_total",
           &pm_extents_in_use, "serializer_extents_in_use",
           &pm_bytes_in_use, "serializer_bytes_in_use",
           &pm_serializer_lba_extents, "serializer_lba_extents",
@@ -149,6 +157,16 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
           &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
+
+void log_serializer_stats_t::bytes_read(size_t count) {
+    pm_serializer_read_bytes_per_sec.record(count);
+    pm_serializer_read_bytes_total += count;
+}
+
+void log_serializer_stats_t::bytes_written(size_t count) {
+    pm_serializer_written_bytes_per_sec.record(count);
+    pm_serializer_written_bytes_total += count;
+}
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
@@ -906,17 +924,9 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
-    // KSI: read_ahead_callbacks should be an intrusive list.
-
-    for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
-        if (*cb_it == cb) {
-            read_ahead_callbacks.erase(cb_it);
-            break;
-        }
-    }
-
-    // KSI: This should not allow spurious unregister operations the way it currently
-    // does (it should crash here).
+    auto it = std::find(read_ahead_callbacks.begin(), read_ahead_callbacks.end(), cb);
+    guarantee(it != read_ahead_callbacks.end());
+    read_ahead_callbacks.erase(it);
 }
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(

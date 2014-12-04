@@ -27,7 +27,7 @@
 @accent: #0597d8;
 @sans: 'Open Sans', sans-serif;
 @serif: 'Copse', serif;
-@monospace: 'Inconsolata', monospace;
+@monospace: monospace;
 
 // Visualizations (graphs, etc.)
 @import "vis.less";
@@ -1173,9 +1173,12 @@ TODO: retire this
                 }
             }
 
-            .element-details { 
-                position: relative;
-                margin-left: 45px;
+            .element-details {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: stretch;
+                height: 100%;
 
                 @border_padding: 20px;
                 @offset: 8px;
@@ -1187,43 +1190,45 @@ TODO: retire this
                 }
                 .name, .quick_info, .status {
                     @offset: 8px;
-                    position: absolute;
-                    line-height: @line_height;
-                    margin-top: @offset;
+                    padding: 0 @offset * 2;
                     border-left: thin solid #e4e4e4;
+                    display: flex;
+                    align-items: center;
+                    height: 100%;
+                }
+                // mixin for icons
+                .with-icon(@url) {
+                    &::before {
+                        content: url(@url);
+                        padding-right: @offset;
+                        margin-top: @offset/2;
+                    }
                 }
                 .name {
-                    background: @border_padding center no-repeat url('images/server-icon.png');
-                    padding-left: 38px + @border_padding;
+                    .with-icon('images/server-icon.png');
                     a { color: #0597d8; }
                     font-size: 16px;
                     font-weight: bold;
-                    width: 400px;
-                    height: @line_height;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    flex-grow: 2;
                 }
                 .quick_info {
-                    left: 575px;
-                    background: @border_padding center no-repeat url('images/graph-icon.png');
+                    .with-icon('images/graph-icon.png');
                     color: #626264;
-                    padding-left: 30px + @border_padding;
+                    min-width: 165px;
                 }
                 .status {
-                    left: 775px;
-                    padding-right: 20px;
                     color: #818181;
-                    .label-success {
-                        background: @border_padding center no-repeat url('images/green-light_glow.png');
-                        padding-left: 23px + @border_padding;
+                    min-width: 120px;
+                    &.label-success {
+                        .with-icon('images/green-light_glow.png');
                     }
-                    .label-failure {
-                        background: @border_padding center no-repeat url('images/red-light_glow.png');
-                        padding-left: 23px + @border_padding;
+                    &.label-failure {
+                        .with-icon('images/red-light_glow.png');
                     }
-                    .label-unknown {
-                        background: @border_padding center no-repeat url('images/yellow-light_glow.png');
-                        padding-left: 23px + @border_padding;
+                    &.label-partial-success {
+                        .with-icon('images/yellow-light_glow.png');
                     }
                 }
             }
@@ -1551,6 +1556,7 @@ TODO: retire this
             left: 0px;
             z-index: 100;
             font-family: @monospace;
+            font-size: 11px;
             .suggestion_name_list{
                 background: #fff;
                 display: none;
@@ -1582,6 +1588,7 @@ TODO: retire this
                 border: 1px solid #d7d7d7;
                 color: #9ea2a8;
                 font-family: @monospace;
+                font-size: 11px;
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
@@ -1593,10 +1600,10 @@ TODO: retire this
                 }
                 p, code{
                     font-family: @monospace;
-                    font-size: 13px;
+                    font-size: 11px;
                     margin: 3px 0px;
                     .description_name{
-                        color: #000;
+                        color: #222;
                         font-weight: bold;
                     }
                     .description_arguments{
@@ -1608,8 +1615,9 @@ TODO: retire this
                 }
                 .grouped_data_warning{
                     font-family: @monospace;
+                    font-size: 11px;
                     background: #f8f8f8;
-                    color: #555;
+                    color: #666;
                     padding: 5px 6px;
                     border: 1px solid #e4e4e4;
                     margin: 5px 0px;
@@ -1618,7 +1626,8 @@ TODO: retire this
             }
         }
         .input_query_container{
-            font: @monospace;
+            font-family: @monospace;
+            font-size: 13px;
 
             padding: 0px;
             margin: 10px 0px;
@@ -1672,21 +1681,28 @@ TODO: retire this
                 .history_container{
                     display: none;
                     font-family: @monospace;
-                    font-size: 15px; // Exact match with codemirror
+                    font-size: 13px; // Exact match with codemirror
                     width: 100%;
                     .history_list{
                         margin: 0px 15px 0px 0px;
-                        display: block;
-                        clear: both;
                         list-style: none;
                         padding: 0px;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
                         .query_history{
                             margin: 0px;
                             padding: 0px;
                             overflow: auto;
                             border-bottom: 1px solid #e4e4e4;
+                            width: 100%;
+                            color: #999;
+                            &:hover{
+                                color: #444;
+                            }
                             &.displayed{
-                                display: block;
+                                display: auto;
                             }
                             &.hidden{
                                 display: none;
@@ -1695,30 +1711,32 @@ TODO: retire this
                                 margin: 0px;
                                 border-bottom: 0px;
                             }
-                            color: #999;
-                            &:hover{
-                                color: #444;
-                            }
                             .query_history_content{
                                 overflow: auto;
-                                word-break: break-word;
-                                white-space: pre;
-                                margin: -40px 0px 0px 30px;
-                                padding: 11px 4px;
+                                //word-break: break-word;
+                                margin: 10px;
+                                display: flex;
+                                flex-direction: row;
+                                justify-content: space-between;
                                 .right_container{
-                                    float: right;
+                                    width: 100%;
+                                    display: flex;
+                                    justify-content: flex-end;
+                                    align-items: flex-end;
+                                    .btn{
+                                        padding: 2px 10px;
+                                        margin: 10px;
+                                        .box-shadow(~"0px 0px 0px 0px #fff");
+                                    }
                                 }
-                                .btn{
-                                    padding: 2px 10px;
-                                    float: right;
-                                    margin: -8px 12px 0px 0px;
-                                    top: 5px;
-                                    .box-shadow(~"0px 0px 0px 0px #fff");
+                                .query {
+                                    font-size: 12pt;
+                                    margin: 0px;
+                                    font-family: @monospace;
+                                    width: 100%;
                                 }
                                 .broken_query{
-                                    float: right;
-                                    margin: 0px 12px 0px 0px;
-                                    top: 5px;
+                                    margin: 10px;
                                     visibility: hidden;
                                     height: 19px;
                                     width: 22px;
@@ -1726,8 +1744,8 @@ TODO: retire this
                                 }
                             }
                             .query_id{
-                                padding: 11px 0px;
-                                width: 28px;
+                                margin-right: 1em;
+                                width: 4em;
                                 text-align: center;
                             }
                             .btn{
@@ -1804,7 +1822,7 @@ TODO: retire this
                     margin: 0px;
                     padding: 9px 4px;
                     font-family: @monospace;
-                    font-size: 15px;
+                    font-size: 13px;
                 }
                 &:hover{
                     color: #444;
@@ -1860,6 +1878,7 @@ TODO: retire this
         .error_title{ font-weight: bold; }
         .error_details{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #CCC;
             border-radius: 3px;
@@ -1874,6 +1893,7 @@ TODO: retire this
         }
         .query{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #ccc;
             border-radius: 3px;
@@ -2926,7 +2946,7 @@ TODO: retire this
             margin-top: 7px;
             .error_detail{
                 font-family: @monospace;
-                font-size: 13px;
+                font-size: 11px;
             }
         }
         .cancel_delete_btn, .delete_index_btn{

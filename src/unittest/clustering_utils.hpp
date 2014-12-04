@@ -25,10 +25,10 @@ namespace unittest {
 class fake_ack_checker_t : public ack_checker_t {
 public:
     explicit fake_ack_checker_t(int e) : expected(e) { }
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &ack_set) const {
+    bool is_acceptable_ack_set(const std::set<server_id_t> &ack_set) const {
         return static_cast<int>(ack_set.size()) >= expected;
     }
-    write_durability_t get_write_durability(const peer_id_t &) const {
+    write_durability_t get_write_durability() const {
         return write_durability_t::SOFT;
     }
     int expected;
@@ -58,7 +58,7 @@ public:
                   generate_uuid()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        write_token_t token;
         store.new_write_token(&token);
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),

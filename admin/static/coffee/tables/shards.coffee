@@ -9,7 +9,6 @@ module 'TableView', ->
         template:
             main: Handlebars.templates['shards_container-template']
             status: Handlebars.templates['shard_status-template']
-            data_distribution: Handlebars.templates['data_distribution-template']
 
         view_template: Handlebars.templates['view_shards-template']
         edit_template: Handlebars.templates['edit_shards-template']

@@ -117,10 +117,15 @@ bool server_status_artificial_table_backend_t::format_row(
         proc_builder.overwrite("version",
             ql::datum_t(datum_string_t(directory->version)));
         proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
+        proc_builder.overwrite("argv",
+            convert_vector_to_datum<std::string>(
+                &convert_string_to_datum,
+                directory->argv));
     } else {
         proc_builder.overwrite("time_started", ql::datum_t::null());
         proc_builder.overwrite("version", ql::datum_t::null());
         proc_builder.overwrite("pid", ql::datum_t::null());
+        proc_builder.overwrite("argv", ql::datum_t::null());
     }
     builder.overwrite("process", std::move(proc_builder).to_datum());
 

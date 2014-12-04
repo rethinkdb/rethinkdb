@@ -20,7 +20,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
@@ -163,6 +163,7 @@ bool do_serve(io_backender_t *io_backender,
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
+            serve_info.argv,
             jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
@@ -284,12 +285,12 @@ bool do_serve(io_backender_t *io_backender,
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
-                &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 reactor_directory_read_manager.get_root_view(),
-                &server_config_client);
+                &server_config_client,
+                &mailbox_manager);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -332,6 +333,7 @@ bool do_serve(io_backender_t *io_backender,
                         base_path,
                         io_backender,
                         &mailbox_manager,
+                        server_id,
                         reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         semilattice_manager_cluster.get_root_view(),
@@ -390,7 +392,6 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.http_port,
                                 server_id,
                                 &mailbox_manager,
-                                semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));

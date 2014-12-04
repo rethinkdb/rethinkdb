@@ -21,12 +21,13 @@ public:
     }
 private:
     friend class alt::page_cache_t;
+    // Takes ownership of the file_account_t pointee.
     void init(threadnum_t thread, file_account_t *io_account);
     cache_account_t(threadnum_t thread, file_account_t *io_account);
     void reset();
 
-    // KSI: I hate having this thread_ variable, and it looks like the file_account_t
-    // already worries about going to the right thread anyway.
+    // I hate having this thread_ variable.  The file_account_t does need to be
+    // destroyed on the right thread, though.
     threadnum_t thread_;
     file_account_t *io_account_;
     DISABLE_COPYING(cache_account_t);

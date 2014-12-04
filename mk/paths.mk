@@ -58,8 +58,8 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += coro-prof
   endif
 
-  ifeq (1,$(NO_TCMALLOC))
-    BUILD_DIR += notcmalloc
+  ifneq ($(DEFAULT_ALLOCATOR),$(ALLOCATOR))
+    BUILD_DIR += $(ALLOCATOR)
   endif
 
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))

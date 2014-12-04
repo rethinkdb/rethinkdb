@@ -138,7 +138,7 @@ public:
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
     virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
         const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
-    virtual std::vector<std::string> sindex_list(ql::env_t *env) = 0;
+    virtual std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated) = 0;
     virtual std::map<std::string, ql::datum_t> sindex_status(
         ql::env_t *env, const std::set<std::string> &sindexes) = 0;
 
@@ -263,7 +263,7 @@ public:
                   boost::shared_ptr<
                     semilattice_readwrite_view_t<
                         auth_semilattice_metadata_t> > _auth_metadata,
-                  perfmon_collection_t *_global_stats,
+                  perfmon_collection_t *global_stats,
                   const std::string &_reql_http_proxy);
 
     ~rdb_context_t();
@@ -276,12 +276,25 @@ public:
 
     mailbox_manager_t *manager;
 
-    perfmon_collection_t ql_stats_collection;
-    perfmon_membership_t ql_stats_membership;
-    perfmon_counter_t ql_ops_running;
-    perfmon_membership_t ql_ops_running_membership;
-
     const std::string reql_http_proxy;
+    
+    class stats_t {
+    public:
+        explicit stats_t(perfmon_collection_t *global_stats);
+
+        perfmon_collection_t qe_stats_collection;
+        perfmon_membership_t qe_stats_membership;
+        perfmon_counter_t client_connections;
+        perfmon_membership_t client_connections_membership;
+        perfmon_counter_t clients_active;
+        perfmon_membership_t clients_active_membership;
+        perfmon_rate_monitor_t queries_per_sec;
+        perfmon_membership_t queries_per_sec_membership;
+        perfmon_counter_t queries_total;
+        perfmon_membership_t queries_total_membership;
+    private:
+        DISABLE_COPYING(stats_t);
+    } stats;
 
     typedef std::map<uuid_u, microtime_t> query_jobs_t;
     query_jobs_t * get_query_jobs_for_this_thread();

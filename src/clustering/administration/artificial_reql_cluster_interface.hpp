@@ -10,6 +10,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/servers/server_status.hpp"
+#include "clustering/administration/stats/stats_backend.hpp"
 #include "clustering/administration/tables/db_config.hpp"
 #include "clustering/administration/tables/debug_table_status.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -138,7 +139,6 @@ class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
             real_reql_cluster_interface_t *_next_reql_cluster_interface,
-            mailbox_manager_t *_mailbox_manager,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
@@ -147,7 +147,8 @@ public:
                 cluster_directory_metadata_t> > > _directory_view,
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
-            server_config_client_t *_server_config_client);
+            server_config_client_t *_server_config_client,
+            mailbox_manager_t *_mailbox_manager);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }
@@ -164,6 +165,7 @@ public:
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
+    scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];
 

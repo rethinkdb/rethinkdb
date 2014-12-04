@@ -281,11 +281,11 @@ sindex_rename_result_t real_table_t::sindex_rename(ql::env_t *env,
     return response->result;
 }
 
-std::vector<std::string> real_table_t::sindex_list(ql::env_t *env) {
+std::vector<std::string> real_table_t::sindex_list(ql::env_t *env, bool use_outdated) {
     sindex_list_t sindex_list;
     read_t read(sindex_list, env->profile());
     read_response_t res;
-    read_with_profile(env, read, &res, false);
+    read_with_profile(env, read, &res, use_outdated);
     sindex_list_response_t *s_res =
         boost::get<sindex_list_response_t>(&res.response);
     r_sanity_check(s_res);
