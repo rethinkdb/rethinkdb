@@ -1,5 +1,6 @@
 for interface_test_name in [
         'artificial_table',
+        'cache_size',
         'cluster_config',
         'db_config',
         'detect_dead',
