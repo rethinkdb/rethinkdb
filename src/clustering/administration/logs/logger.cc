@@ -528,8 +528,8 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
                 continue;
             }
             log_message_t lm = parse_log_message(line);
-            if (lm.timestamp >= max_timestamp) continue;
-            if (lm.timestamp <= min_timestamp) break;
+            if (lm.timestamp > max_timestamp) continue;
+            if (lm.timestamp < min_timestamp) break;
             messages_out->push_back(lm);
         }
         *ok_out = true;
