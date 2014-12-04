@@ -61,6 +61,17 @@ ql::datum_t make_row_replacement_stats(
         ql::datum_t new_row,
         return_changes_t return_changes,
         bool *was_changed_out) {
+
+#ifndef NDEBUG
+    try {
+        rcheck_row_replacement(primary_key_name, primary_key_value, old_row, new_row);
+    } catch (const ql::base_exc_t &) {
+        crash("Called make_row_replacement_stats() with invalid parameters. Use "
+            "rcheck_row_replacement() to validate parameters before calling "
+            "make_row_replacement_stats().");
+    }
+#endif
+
     guarantee(old_row.has());
     bool started_empty;
     if (old_row.get_type() == ql::datum_t::R_NULL) {
