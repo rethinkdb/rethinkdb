@@ -88,7 +88,7 @@ tests:
     - js: r.range().map(r.range(), function(x, y){return [x, y]}).count()
       py: r.range().map(r.range(), lambda x, y:(x, y)).count()
       rb: r.map(r.range(), r.range()){|x, y| [x, y]}.count()
-      ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
+      ot: err("RqlRuntimeError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
 
     # Prefix notation
     - js: r.map(r.range(3), function(x){return [x]})
