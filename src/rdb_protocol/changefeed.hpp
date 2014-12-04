@@ -526,7 +526,7 @@ public:
     `artificial_t`, but new changfeeds may be subscribed after `maybe_remove()` is
     called. */ 
     bool can_be_removed();
-    virtual void maybe_remove() { }
+    virtual void maybe_remove() = 0;
 
 private:
     uint64_t stamp;

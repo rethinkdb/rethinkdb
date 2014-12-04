@@ -761,7 +761,13 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     using ql::changefeed::artificial_t;
     using ql::changefeed::keyspec_t;
     using ql::changefeed::msg_t;
-    artificial_t artificial_cfeed;
+    class dummy_artificial_t : public artificial_t {
+    public:
+        /* This gets a notification when the last changefeed disconnects, but we don't
+        care about that. */
+        void maybe_remove() { }
+    };
+    dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
         explicit cfeed_bundle_t(artificial_t *a)
             : bt(ql::make_counted_backtrace()),
