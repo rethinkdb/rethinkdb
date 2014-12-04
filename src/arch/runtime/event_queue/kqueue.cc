@@ -27,11 +27,11 @@ std::set<int16_t> user_to_kevent_filters(int mode) {
     return filters;
 }
 
-int kevent_filter_to_user(int16_t mode) {
-    rassert(mode == EVFILT_READ || mode == EVFILT_WRITE);
+int kevent_filter_to_user(int16_t filter) {
+    rassert(filter == EVFILT_READ || filter == EVFILT_WRITE);
 
-    if (mode == EVFILT_READ) return poll_event_in;
-    if (mode == EVFILT_WRITE) return poll_event_out;
+    if (filter == EVFILT_READ) return poll_event_in;
+    if (filter == EVFILT_WRITE) return poll_event_out;
     unreachable();
 }
 
@@ -134,7 +134,7 @@ void kqueue_event_queue_t::adjust_resource(fd_t resource, int event_mask,
 
     // We generate a diff to find out which filters we have to delete from the
     // kqueue.
-    // On the other hand We re-add all events, which will cause kqueue to update the
+    // On the other hand we re-add all events, which will cause kqueue to update the
     // `udata` field (the callback) of the existing events in case it has changed.
     std::set<int16_t> filters_to_del = current_filters;
     for (auto f : new_filters) {
