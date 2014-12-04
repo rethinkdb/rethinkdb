@@ -52,8 +52,8 @@ with driver.Metacluster() as metacluster:
     cluster1.check()
 
     conn = r.connect(proc1.host, proc1.driver_port)
-    tables = ["cluster_config", "db_config", "issues", "server_config", "server_status",
-        "table_config", "table_status"]
+    tables = ["cluster_config", "db_config", "issues", "logs", "server_config",
+        "server_status", "table_config", "table_status"]
     feeds = { }
     for name in tables:
         feeds[name] = AsyncChangefeed(proc1.host, proc1.driver_port, "rethinkdb", name)
@@ -97,11 +97,12 @@ with driver.Metacluster() as metacluster:
     res = r.db("rethinkdb").table("server_config").filter({"name": "b"}) \
            .update({"name": "c"}).run(conn)
     assert res["replaced"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status"], 1.0)
+    check(["logs", "server_config", "server_status",
+        "table_config", "table_status"], 1.0)
 
     print("Killing one server...")
     proc2.check_and_stop()
-    check(["server_status", "table_status", "issues"], 1.0)
+    check(["logs", "server_status", "table_status", "issues"], 1.0)
 
     print("Declaring it dead...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "c"}).delete() \
