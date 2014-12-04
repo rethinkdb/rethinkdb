@@ -62,7 +62,7 @@ def db_list(*args):
     return ast.DbList(*args)
 
 def db_config(*args):
-    return DbConfig(*args)
+    return ast.DbConfig(*args)
 
 def table_create(*args, **kwargs):
     return ast.TableCreateTL(*args, **kwargs)
@@ -91,7 +91,7 @@ def branch(*args):
 def map(*args):
     if len(args) > 0:
         # `func_wrap` only the last argument
-        return ast.Map(*(args[:-1] + (func_wrap(args[-1]), )))
+        return ast.Map(*(args[:-1] + (ast.func_wrap(args[-1]), )))
     else:
         return ast.Map()
 
