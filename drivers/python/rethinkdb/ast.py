@@ -1,3 +1,7 @@
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+__all__ = ['expr', 'RqlQuery']
+
 import types
 import sys
 import datetime
@@ -10,7 +14,7 @@ import binascii
 import json as py_json
 from threading import Lock
 
-from .errors import *
+from .errors import RqlDriverError, QueryPrinter, T
 from . import repl # For the repl connection
 from . import ql2_pb2 as p
 
