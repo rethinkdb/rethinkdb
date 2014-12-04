@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-import datetime, os, re, socket, sys, tempfile, threading, unittest
+import datetime, os, random, re, socket, sys, tempfile, threading, time, unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
@@ -22,13 +22,6 @@ except:
 # -- import the rethinkdb driver
 
 r = utils.import_python_driver()
-
-# -- import it using the 'from rethinkdb import *' form
-
-sys.path.insert(0, os.path.dirname(r.__file__))
-from rethinkdb import *
-
-import time # overrides the import of rethinkdb.time for #2343
 
 # -- get settings
 
@@ -152,18 +145,18 @@ class TestNoConnection(TestCaseCompatible):
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
-        self.assertRaisesRegexp(RqlDriverError, "Could not connect to localhost:%d." % DEFAULT_DRIVER_PORT, r.connect)
+        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to localhost:%d." % DEFAULT_DRIVER_PORT, r.connect)
 
     def test_connect_port(self):
         port = utils.get_avalible_port()
-        self.assertRaisesRegexp(RqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
+        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
 
     def test_connect_host(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(
-            RqlDriverError, "Could not connect to 0.0.0.0:%d." % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0")
+            r.RqlDriverError, "Could not connect to 0.0.0.0:%d." % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0")
     
     def test_connnect_timeout(self):
         '''Test that we get a ReQL error if we connect to a non-responsive port'''
@@ -174,13 +167,13 @@ class TestNoConnection(TestCaseCompatible):
         port = useSocket.getsockname()[1]
         
         try:
-            self.assertRaisesRegexp(RqlDriverError, "Timed out during handshake with localhost:%d." % port, r.connect, port=port, timeout=2)
+            self.assertRaisesRegexp(r.RqlDriverError, "Timed out during handshake with localhost:%d." % port, r.connect, port=port, timeout=2)
         finally:
             useSocket.close()
     
     def test_connect_host(self):
         port = utils.get_avalible_port()
-        self.assertRaisesRegexp(RqlDriverError, "Could not connect to 0.0.0.0:%d." % port, r.connect, host="0.0.0.0", port=port)
+        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to 0.0.0.0:%d." % port, r.connect, host="0.0.0.0", port=port)
 
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and didn't call `repl`
@@ -191,7 +184,7 @@ class TestNoConnection(TestCaseCompatible):
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
-        self.assertRaisesRegexp(RqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
+        self.assertRaisesRegexp(r.RqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
 
 class TestPrivateServer(TestCaseCompatible):
     
@@ -268,7 +261,7 @@ class TestConnectionDefaultPort(TestPrivateServer):
         if not use_default_port:
             return
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, auth_key="hunter2")
 
 class TestAuthConnection(TestPrivateServer):
@@ -282,20 +275,20 @@ class TestAuthConnection(TestPrivateServer):
 
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port)
 
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="hunter3")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="hunter22")
 
     def test_connect_long_auth(self):
@@ -303,11 +296,11 @@ class TestAuthConnection(TestPrivateServer):
         not_long_key = str("k") * 2048
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
             r.connect, port=self.port, auth_key=long_key)
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
@@ -482,7 +475,6 @@ class TestPrinting(TestCaseCompatible):
 # batching works properly.
 class TestGetIntersectingBatching(TestWithConnection):
     def runTest(self):
-        import random # importing here to avoid issue #2343
 
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         

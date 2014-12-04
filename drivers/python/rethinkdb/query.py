@@ -1,4 +1,19 @@
-from .ast import *
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+__all__ = [
+    'js', 'http', 'json', 'args', 'error', 'random', 'do', 'row', 'branch', 'map',
+    'object', 'binary', 'uuid', 'type_of', 'info', 'range', 'literal', 'asc', 'desc',
+    'table', 'db', 'db_create', 'db_drop', 'db_list', 'table_create', 'table_drop', 'table_list',
+    'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'any', 'all', 'and_', 'or_', 'not_',
+    'add', 'sub', 'mul', 'div', 'mod',
+    'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december',
+    'geojson', 'point', 'line', 'polygon', 'distance', 'intersects', 'circle'
+]
+
+from . import ast
 from . import ql2_pb2 as p
 import datetime
 
@@ -8,145 +23,145 @@ pTerm = p.Term.TermType
 All top level functions defined here are the starting points for RQL queries
 """
 def json(*args):
-    return Json(*args)
+    return ast.Json(*args)
 
 def js(*args, **kwargs):
-    return JavaScript(*args, **kwargs)
+    return ast.JavaScript(*args, **kwargs)
 
 def args(*args):
-    return Args(*args)
+    return ast.Args(*args)
 
 def http(url, **kwargs):
-    return Http(func_wrap(url), **kwargs)
+    return ast.Http(ast.func_wrap(url), **kwargs)
 
 def error(*msg):
-    return UserError(*msg)
+    return ast.UserError(*msg)
 
 def random(*args, **kwargs):
-    return Random(*args, **kwargs)
+    return ast.Random(*args, **kwargs)
 
 def do(*args):
-    return FunCall(*args)
+    return ast.FunCall(*args)
 
-row = ImplicitVar()
+row = ast.ImplicitVar()
 
 def table(*args, **kwargs):
-    return Table(*args, **kwargs)
+    return ast.Table(*args, **kwargs)
 
 def db(*args):
-    return DB(*args)
+    return ast.DB(*args)
 
 def db_create(*args):
-    return DbCreate(*args)
+    return ast.DbCreate(*args)
 
 def db_drop(*args):
-    return DbDrop(*args)
+    return ast.DbDrop(*args)
 
 def db_list(*args):
-    return DbList(*args)
+    return ast.DbList(*args)
 
 def table_create(*args, **kwargs):
-    return TableCreateTL(*args, **kwargs)
+    return ast.TableCreateTL(*args, **kwargs)
 
 def table_drop(*args):
-    return TableDropTL(*args)
+    return ast.TableDropTL(*args)
 
 def table_list(*args):
-    return TableListTL(*args)
+    return ast.TableListTL(*args)
 
 def branch(*args):
-    return Branch(*args)
+    return ast.Branch(*args)
 
 def map(*args):
     if len(args) > 0:
         # `func_wrap` only the last argument
-        return Map(*(args[:-1] + (func_wrap(args[-1]), )))
+        return ast.Map(*(args[:-1] + (func_wrap(args[-1]), )))
     else:
-        return Map()
+        return ast.Map()
 
 # orderBy orders
 
 def asc(*args):
-    return Asc(*[func_wrap(arg) for arg in args])
+    return ast.Asc(*[ast.func_wrap(arg) for arg in args])
 
 def desc(*args):
-    return Desc(*[func_wrap(arg) for arg in args])
+    return ast.Desc(*[ast.func_wrap(arg) for arg in args])
 
 # math and logic
 
 def eq(*args):
-    return Eq(*args)
+    return ast.Eq(*args)
 
 def ne(*args):
-    return Ne(*args)
+    return ast.Ne(*args)
 
 def lt(*args):
-    return Lt(*args)
+    return ast.Lt(*args)
 
 def le(*args):
-    return Le(*args)
+    return ast.Le(*args)
 
 def gt(*args):
-    return Gt(*args)
+    return ast.Gt(*args)
 
 def ge(*args):
-    return Ge(*args)
+    return ast.Ge(*args)
 
 def add(*args):
-    return Add(*args)
+    return ast.Add(*args)
 
 def sub(*args):
-    return Sub(*args)
+    return ast.Sub(*args)
 
 def mul(*args):
-    return Mul(*args)
+    return ast.Mul(*args)
 
 def div(*args):
-    return Div(*args)
+    return ast.Div(*args)
 
 def mod(*args):
-    return Mod(*args)
+    return ast.Mod(*args)
 
 def not_(*args):
-    return Not(*args)
+    return ast.Not(*args)
 
 def and_(*args):
-    return All(*args)
+    return ast.All(*args)
 
 def or_(*args):
-    return Any(*args)
+    return ast.Any(*args)
 
 def all(*args):
-    return All(*args)
+    return ast.All(*args)
 
 def any(*args):
-    return Any(*args)
+    return ast.Any(*args)
 
 def type_of(*args):
-    return TypeOf(*args)
+    return ast.TypeOf(*args)
 
 def info(*args):
-    return Info(*args)
+    return ast.Info(*args)
 
 def binary(data):
-    return Binary(data)
+    return ast.Binary(data)
 
 def range(*args):
-    return Range(*args)
+    return ast.Range(*args)
 
 def time(*args):
-    return Time(*args)
+    return ast.Time(*args)
 
 def iso8601(*args, **kwargs):
-    return ISO8601(*args, **kwargs)
+    return ast.ISO8601(*args, **kwargs)
 
 def epoch_time(*args):
-    return EpochTime(*args)
+    return ast.EpochTime(*args)
 
 def now(*args):
-    return Now(*args)
+    return ast.Now(*args)
 
-class RqlTimeName(RqlQuery):
+class RqlTimeName(ast.RqlQuery):
     def compose(self, args, optargs):
         return 'r.'+self.st
 
@@ -173,36 +188,36 @@ november    = type('', (RqlTimeName,), {'tt': pTerm.NOVEMBER, 'st': 'november'})
 december    = type('', (RqlTimeName,), {'tt': pTerm.DECEMBER, 'st': 'december'})()
 
 def make_timezone(*args):
-    return RqlTzinfo(*args)
+    return ast.RqlTzinfo(*args)
 
 # Merge values
 def literal(*args):
-    return Literal(*args)
+    return ast.Literal(*args)
 
 def object(*args):
-    return Object(*args)
+    return ast.Object(*args)
 
 def uuid(*args):
-    return UUID(*args)
+    return ast.UUID(*args)
 
 # Global geospatial operations
 def geojson(*args):
-    return GeoJson(*args)
+    return ast.GeoJson(*args)
 
 def point(*args):
-    return Point(*args)
+    return ast.Point(*args)
 
 def line(*args):
-    return Line(*args)
+    return ast.Line(*args)
 
 def polygon(*args):
-    return Polygon(*args)
+    return ast.Polygon(*args)
 
 def distance(*args, **kwargs):
-    return Distance(*args, **kwargs)
+    return ast.Distance(*args, **kwargs)
 
 def intersects(*args):
-    return Intersects(*args)
+    return ast.Intersects(*args)
 
 def circle(*args, **kwargs):
-    return Circle(*args, **kwargs)
+    return ast.Circle(*args, **kwargs)
