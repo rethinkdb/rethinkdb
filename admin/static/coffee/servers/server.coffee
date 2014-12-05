@@ -157,7 +157,7 @@ module 'ServerView', ->
 
             @stats = new Stats
             @stats_timer = driver.run(
-                r.db('rethinkdb_mock').table('stats')
+                r.db(system_db).table('stats')
                 .get(['server', @model.get('id')])
                 .do((stat) ->
                     keys_read: stat('query_engine')('read_docs_per_sec'),

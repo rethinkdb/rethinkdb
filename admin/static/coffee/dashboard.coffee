@@ -134,7 +134,7 @@ module 'DashboardView', ->
 
             @stats = new Stats
             @stats_timer = driver.run(
-                r.db('rethinkdb_mock')
+                r.db(system_db)
                 .table('stats').get(['cluster'])
                 .do((stat) ->
                     keys_read: stat('query_engine')('read_docs_per_sec')
