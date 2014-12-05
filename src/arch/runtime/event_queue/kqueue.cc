@@ -47,11 +47,13 @@ kqueue_event_queue_t::kqueue_event_queue_t(linux_queue_parent_t *_parent)
 int call_kevent(int kq, const struct kevent *changelist, int nchanges,
                 struct kevent *eventlist, int nevents,
                 const struct timespec *timeout) {
-    const int res = kevent(kq, changelist, nchanges,
-                           eventlist, nevents, timeout);
+    int res;
+    do {
+        res = kevent(kq, changelist, nchanges, eventlist, nevents, timeout);
+    } while (res == -1 && get_errno() == EINTR);
 
-    // It doesn't seem like there's any error code that we can really handle here.
-    // Terminate instead if the call failed.
+    // Apart from EINTR, it doesn't seem like there's any error code that we can
+    // really handle here. Terminate instead if the call failed.
     guarantee_err(res != -1, "Call to kevent() failed");
 
     return res;
