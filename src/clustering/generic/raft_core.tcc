@@ -55,10 +55,12 @@ raft_member_t<state_t>::raft_member_t(
     /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
     mode(mode_t::follower),
     current_term_leader_id(nil_uuid()),
-    /* Set this so we start an election if we don't hear from a leader within an election
-    timeout of when the constructor was called */
+    /* `last_heard_from_candidate` is set so that we start a new election if we don't
+    hear from a candidate or leader within an election timeout of when the constructor is
+    called. `last_heard_from_leader` is set so that we don't reject RequestVote RPCs
+    because of thinking we have a leader. */
     last_heard_from_candidate(current_microtime()),
-    last_heard_from_leader(current_microtime()),
+    last_heard_from_leader(0),
     /* These must be false initially because we're a follower. */
     readiness_for_change(false),
     readiness_for_config_change(false),
@@ -1100,13 +1102,15 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     mutex_acq->guarantee_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
 
-    debugf("%s begin first election\n", uuid_to_str(this_member_id).substr(0,4).c_str());
-
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
     update_term(ps.current_term + 1, mutex_acq.get());
     /* `update_term()` changed `ps`, but we don't need to flush to stable storage
     immediately, because `candidate_run_election()` will do it. */
+
+    debugf("%s begin first election (term = %d)\n",
+        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        static_cast<int>(ps.current_term));
 
     mode = mode_t::candidate;
 
@@ -1139,7 +1143,9 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 RequestVote RPCs." */
                 update_term(ps.current_term + 1, mutex_acq.get());
                 /* Go around the `while`-loop again. */
-                debugf("%s election timeout\n", uuid_to_str(this_member_id).substr(0,4).c_str());
+                debugf("%s election timeout (term = %d)\n",
+                    uuid_to_str(this_member_id).substr(0,4).c_str(),
+                    static_cast<int>(ps.current_term));
             }
         }
 
@@ -1329,27 +1335,34 @@ bool raft_member_t<state_t>::candidate_run_election(
                             &reply_wrapper.reply);
                     guarantee(reply != nullptr, "Got wrong type of RPC response");
 
-                    new_mutex_acq_t mutex_acq_2(
-                        &mutex, request_vote_keepalive.get_drain_signal());
-                    DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
-                    /* We might soon be leader, but we shouldn't be leader quite yet */
-                    guarantee(mode == mode_t::candidate);
+                    {
+                        new_mutex_acq_t mutex_acq_2(
+                            &mutex, request_vote_keepalive.get_drain_signal());
+                        DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
+                        /* We might soon be leader, but we shouldn't be leader quite yet
+                        */
+                        guarantee(mode == mode_t::candidate);
 
-                    if (this->candidate_or_leader_note_term(reply->term, &mutex_acq_2)) {
-                        /* We got a response with a higher term than our current term.
-                        `candidate_and_leader_coro()` will be interrupted soon. */
-                        return;
-                    }
-
-                    if (reply->vote_granted) {
-                        votes_for_us.insert(peer);
-                        /* Raft paper, Section 5.2: "A candidate wins an election if it
-                        receives votes from a majority of the servers in the full cluster
-                        for the same term." */
-                        if (latest_state.get_ref().config.is_quorum(votes_for_us)) {
-                            we_won_the_election.pulse_if_not_already_pulsed();
+                        if (this->candidate_or_leader_note_term(
+                                reply->term, &mutex_acq_2)) {
+                            /* We got a response with a higher term than our current
+                            term. `candidate_and_leader_coro()` will be interrupted soon.
+                            */
+                            return;
                         }
-                        break;
+
+                        if (reply->vote_granted) {
+                            votes_for_us.insert(peer);
+                            /* Raft paper, Section 5.2: "A candidate wins an election if
+                            it receives votes from a majority of the servers in the full
+                            cluster for the same term." */
+                            if (latest_state.get_ref().config.is_quorum(votes_for_us)) {
+                                we_won_the_election.pulse_if_not_already_pulsed();
+                            }
+                            break;
+                        }
+
+                        /* Mutex is released here, so we don't hold it while sleeping */
                     }
 
                     /* If they didn't grant the vote, just keep pestering them until they
@@ -1358,9 +1371,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                     recently, so they might reject a vote and then later accept it in the
                     same term. But before we retry, we wait a bit, to avoid putting too
                     much traffic on the network. */
-                    signal_timer_t rate_limiter;
-                    rate_limiter.start(heartbeat_interval_ms);
-                    wait_interruptible(&rate_limiter,
+                    nap(heartbeat_interval_ms,
                         request_vote_keepalive.get_drain_signal());
                 }
 
