@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_
-#define CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_STATS_DEBUG_STATS_BACKEND_HPP_
+#define CLUSTERING_ADMINISTRATION_STATS_DEBUG_STATS_BACKEND_HPP_
 
 #include <string>
 #include <vector>
@@ -8,22 +8,25 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_common.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "clustering/administration/stats/stat_manager.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class server_name_client_t;
 
-class server_config_artificial_table_backend_t :
+class debug_stats_artificial_table_backend_t :
     public common_server_artificial_table_backend_t
 {
 public:
-    server_config_artificial_table_backend_t(
+    debug_stats_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
-            server_name_client_t *_name_client) :
-        common_server_artificial_table_backend_t(_servers_sl_view, _name_client) { }
+            server_name_client_t *_name_client,
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
+            mailbox_manager_t *_mailbox_manager);
 
     bool write_row(
             ql::datum_t primary_key,
@@ -41,11 +44,15 @@ private:
             ql::datum_t *row_out,
             std::string *error_out);
 
-    /* All writes to this pseudo-table must acquire this mutex. This makes it impossible
-    for multiple concurrent changes via this one server to cause a name conflict. Name
-    conflicts are still possible if changes are made via multiple servers. */
-    new_mutex_t write_mutex;
+    bool stats_for_server(
+            const server_id_t &server_id,
+            signal_t *interruptor,
+            ql::datum_t *stats_out,
+            std::string *error_out);
+
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
+    mailbox_manager_t *mailbox_manager;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_DEBUG_STATS_BACKEND_HPP_ */
 

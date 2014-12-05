@@ -34,5 +34,13 @@ private:
 
 typedef stat_manager_t::get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
 
+bool fetch_stats_from_server(
+        mailbox_manager_t *mailbox_manager,
+        const get_stats_mailbox_address_t &request_addr,
+        const std::set<std::vector<stat_manager_t::stat_id_t> > &filter,
+        signal_t *interruptor,
+        ql::datum_t *stats_out,
+        std::string *error_out);
+
 #endif /* CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_ */
 

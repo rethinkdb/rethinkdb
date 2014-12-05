@@ -44,6 +44,7 @@ private:
             name_string_t const & name,
             server_id_t const & server_id,
             server_semilattice_metadata_t const & server,
+            signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out);
 

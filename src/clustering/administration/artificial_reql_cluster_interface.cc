@@ -370,6 +370,15 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("_debug_scratch")] =
         std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
 
+    debug_stats_backend.init(new debug_stats_artificial_table_backend_t(
+        metadata_field(&cluster_semilattice_metadata_t::servers,
+            _semilattice_view),
+        _name_client,
+        _directory_map_view,
+        _mailbox_manager));
+    backends[name_string_t::guarantee_valid("_debug_stats")]    
+        std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());
+
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
         _reactor_directory_view,

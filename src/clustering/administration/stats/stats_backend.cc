@@ -23,8 +23,8 @@ std::string stats_artificial_table_backend_t::get_primary_key_name() {
     return std::string("id");
 }
 
-// Since this is called through pmap, it will not throw an `interrupted_exc_t`,
-// instead, result_out will be uninitialized.
+// Since this is called through pmap, it will not throw an `interrupted_exc_t`. Instead,
+// the behavior is undefined if `interruptor` is pulsed.
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
         const std::set<std::vector<std::string> > &filter,
@@ -41,24 +41,15 @@ void stats_artificial_table_backend_t::get_peer_stats(
         });
 
     if (!request_addr.is_nil()) {
-        // Create response mailbox
-        cond_t done;
-        mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
-            [&](signal_t *, ql::datum_t stats) {
-                *result_out = stats;
-                done.pulse_if_not_already_pulsed();
-            });
-
-        // Send request
-        send(mailbox_manager, request_addr, return_mailbox.get_address(), filter);
-
-        signal_timer_t timer_interruptor;
-        timer_interruptor.start(5000);
-        wait_any_t combined_interruptor(interruptor, &timer_interruptor);
         try {
-            wait_interruptible(&done, &combined_interruptor);
+            std::string dummy_error;
+            if (!fetch_stats_from_server(mailbox_manager, request_addr, filter, interruptor,
+                    result_out, &dummy_error)) {
+                /* Signal an error with an empty `datum_t` */
+                *result_out = ql::datum_t();
+            }
         } catch (const interrupted_exc_t &) {
-            // No response after timeout - we return an uninitialized result
+            /* It doesn't matter what we return */
         }
     }
 }

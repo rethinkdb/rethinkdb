@@ -9,7 +9,7 @@ std::string common_server_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
@@ -27,7 +27,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
                     continue;
                 }
                 if (!format_row(it->second, it->first, sl_it->second.get_ref(),
-                                &row, error_out)) {
+                                interruptor, &row, error_out)) {
                     result = false;
                     return;
                 }
@@ -39,7 +39,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
 
 bool common_server_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
@@ -51,7 +51,8 @@ bool common_server_artificial_table_backend_t::read_row(
         *row_out = ql::datum_t();
         return true;
     } else {
-        return format_row(server_name, server_id, *server_sl, row_out, error_out);
+        return format_row(server_name, server_id, *server_sl,
+            interruptor, row_out, error_out);
     }
 }
 

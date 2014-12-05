@@ -61,6 +61,7 @@ bool server_config_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
         server_id_t const & server_id,
         server_semilattice_metadata_t const & server_sl,
+        UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
