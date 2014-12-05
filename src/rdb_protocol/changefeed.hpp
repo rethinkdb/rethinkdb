@@ -511,7 +511,7 @@ private:
 };
 
 class artificial_feed_t;
-class artificial_t {
+class artificial_t : public home_thread_mixin_t {
 public:
     artificial_t();
     virtual ~artificial_t();
@@ -524,14 +524,14 @@ public:
     /* `can_be_removed()` returns `true` if there are no changefeeds currently using the
     `artificial_t`. `maybe_remove()` is called when the last changefeed stops using the
     `artificial_t`, but new changfeeds may be subscribed after `maybe_remove()` is
-    called. */ 
+    called. */
     bool can_be_removed();
     virtual void maybe_remove() = 0;
 
 private:
     uint64_t stamp;
-    uuid_u uuid;
-    scoped_ptr_t<artificial_feed_t> feed;
+    const uuid_u uuid;
+    const scoped_ptr_t<artificial_feed_t> feed;
 };
 
 } // namespace changefeed
