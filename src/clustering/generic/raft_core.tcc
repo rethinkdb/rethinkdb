@@ -414,11 +414,6 @@ void raft_member_t<state_t>::on_request_vote_rpc(
             "already.");
     }
 
-    /* Raft paper, Section 5.2: "A server remains in follower state as long as it
-    receives valid RPCs from a leader or candidate."
-    So candidate RPCs are sufficient to delay the watchdog timer. */
-    last_heard_from_candidate = current_microtime();
-
     /* Raft paper, Figure 2: "If votedFor is null or candidateId, and candidate's log is
     at least as up-to-date as receiver's log, grant vote */
 
@@ -448,6 +443,16 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     }
 
     ps.voted_for = request.candidate_id;
+
+    /* Raft paper, Section 5.2: "A server remains in follower state as long as it
+    receives valid RPCs from a leader or candidate."
+    So candidate RPCs are sufficient to delay the watchdog timer. It's also important
+    that we don't delay the watchdog timer for RPCs that we reject because they aren't
+    up-to-date; otherwise, you can get a situation where there is only one cluster member
+    that is sufficiently up-to-date to be elected leader, but it never stands for
+    election because it keeps hearing from other candidates. This is why this line is
+    below the `if (!candidate_is_at_least_as_up_to_date)` instead of above it. */
+    last_heard_from_candidate = current_microtime();
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
