@@ -286,6 +286,14 @@ with driver.Metacluster() as metacluster:
         also_stats = get_individual_stats(all_stats, conn)
         compare_global_and_individual_stats(all_stats, also_stats, expected_timeouts=[servers[1]['name']])
 
+        # Basic test of the `_debug_stats` table
+        debug_stats_0 = r.db('rethinkdb').table('_debug_stats') \
+                         .get(servers[0]["id"]).run(conn)
+        debug_stats_1 = r.db('rethinkdb').table('_debug_stats') \
+                         .get(servers[1]["id"]).run(conn)
+        assert debug_stats_0["stats"]["proc"]["pid"] == servers[0]['process'].process.pid
+        assert "error" in debug_stats_1
+
         # Restart server
         print("Restarting second server...")
         servers[1]['process'] = driver.Process(cluster, servers[1]['files'],
