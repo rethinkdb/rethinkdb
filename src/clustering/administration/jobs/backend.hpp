@@ -26,7 +26,7 @@ public:
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
         server_name_client_t *_name_client,
         admin_identifier_format_t _identifier_format);
-
+    ~jobs_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 

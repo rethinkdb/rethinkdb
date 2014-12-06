@@ -24,6 +24,10 @@ jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
       identifier_format(_identifier_format) {
 }
 
+jobs_artificial_table_backend_t::~jobs_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string jobs_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }

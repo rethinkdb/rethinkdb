@@ -3,6 +3,9 @@
 
 #include "rdb_protocol/env.hpp"
 
+caching_cfeed_artificial_table_backend_t::caching_cfeed_artificial_table_backend_t() :
+    caching_machinery(nullptr) { }
+
 void caching_cfeed_artificial_table_backend_t::notify_row(const ql::datum_t &pkey) {
     ASSERT_FINITE_CORO_WAITING;
     if (caching_machinery != nullptr) {

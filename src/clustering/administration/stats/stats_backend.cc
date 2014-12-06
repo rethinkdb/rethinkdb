@@ -19,6 +19,10 @@ stats_artificial_table_backend_t::stats_artificial_table_backend_t(
     mailbox_manager(_mailbox_manager),
     admin_format(_admin_format) { }
 
+stats_artificial_table_backend_t::~stats_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string stats_artificial_table_backend_t::get_primary_key_name() {
     return std::string("id");
 }
