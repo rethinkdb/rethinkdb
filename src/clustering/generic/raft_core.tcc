@@ -144,7 +144,9 @@ bool raft_member_t<state_t>::propose_change(
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
         if (!readiness_for_change.get_ref()) {
-            debugf("propose_change() not ready\n");
+            debugf("%s propose_change(%s) not ready\n",
+                uuid_to_str(this_member_id).substr(0,4).c_str(),
+                uuid_to_str(change).substr(0,2).c_str());
             return false;
         }
         guarantee(mode == mode_t::leader);
@@ -170,16 +172,22 @@ bool raft_member_t<state_t>::propose_change(
             &waiter);
     } catch (const interrupted_exc_t &) {
         if (soft_interruptor->is_pulsed() || hard_interruptor->is_pulsed()) {
-            debugf("propose_change() interrupted\n");
+            debugf("%s propose_change(%s) interrupted\n",
+                uuid_to_str(this_member_id).substr(0,4).c_str(),
+                uuid_to_str(change).substr(0,2).c_str());
             throw;
         } else {
             guarantee(lost_readiness.is_pulsed());
             /* Something went wrong before we could commit the entry. */
-            debugf("propose_change() lost readiness\n");
+            debugf("%s propose_change(%s) lost readiness\n",
+                uuid_to_str(this_member_id).substr(0,4).c_str(),
+                uuid_to_str(change).substr(0,2).c_str());
             return false;
         }
     }
-    // debugf("propose_change() success\n");
+    debugf("%s propose_change(%s) success\n",
+        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        uuid_to_str(change).substr(0,2).c_str());
     return true;
 }
 
@@ -631,6 +639,8 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     Raft paper, Section 5.1: "If a server receives a request with a stale term number, it
     rejects the request" */
     if (request.term < ps.current_term) {
+        debugf("%s on_append_entries_rpc() term out of date\n",
+            uuid_to_str(this_member_id).substr(0,4).c_str());
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
         reply_out->term = ps.current_term;
@@ -677,6 +687,8 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     if (request.entries.prev_index > ps.log.get_latest_index() ||
             ps.log.get_entry_term(request.entries.prev_index) !=
                 request.entries.prev_term) {
+        debugf("%s on_append_entries_rpc() log mismatch\n",
+            uuid_to_str(this_member_id).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -695,6 +707,29 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             break;
         }
     }
+
+    std::string new_entries;
+    for (raft_log_index_t i = ps.log.get_latest_index() + 1;
+            i <= request.entries.get_latest_index();
+            ++i) {
+        if (!new_entries.empty()) {
+            new_entries += ", ";
+        }
+        const raft_log_entry_t<state_t> &e = request.entries.get_entry_ref(i);
+        if (e.type == raft_log_entry_t<state_t>::type_t::regular) {
+            new_entries += uuid_to_str(*e.change).substr(0,2);
+        } else if (e.type == raft_log_entry_t<state_t>::type_t::config) {
+            new_entries += "CONFIG";
+        } else {
+            new_entries += "NOOP";
+        }
+    }
+    if (new_entries.empty()) {
+        new_entries = "<none>";
+    }
+    debugf("%s on_append_entries_rpc() recorded %s\n",
+        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        new_entries.c_str());
 
     /* Raft paper, Figure 2: "Append any new entries not already in the log" */
     for (raft_log_index_t i = ps.log.get_latest_index() + 1;
@@ -856,18 +891,25 @@ void raft_member_t<state_t>::check_invariants(
         "candidate_and_leader_coro() should be running unless we're a follower");
     switch (mode) {
     case mode_t::follower:
+        guarantee(match_indexes.empty(), "If we're a follower, `match_indexes` should "
+            "be empty.");
         break;
     case mode_t::candidate:
         guarantee(current_term_leader_id.is_nil(), "if we have a leader we shouldn't be "
             "having an election");
         guarantee(ps.voted_for == this_member_id, "if we're a candidate we should have "
             "voted for ourself");
+        guarantee(match_indexes.empty(), "If we're a candidate, `match_indexes` should "
+            "be empty.");
         break;
     case mode_t::leader:
         guarantee(ps.voted_for == this_member_id, "if we're a leader we should have "
             "voted for ourself");
         guarantee(latest_term_in_log == ps.current_term, "if we're a leader we should "
             "have put at least the initial noop entry in the log");
+        guarantee(match_indexes.at(this_member_id) == ps.log.get_latest_index(),
+            "If we're a leader, `match_indexes` should contain an up-to-date entry for "
+            "ourselves.");
         break;
     default:
         unreachable();
@@ -1016,7 +1058,6 @@ void raft_member_t<state_t>::update_commit_index(
 
 template<class state_t>
 void raft_member_t<state_t>::leader_update_match_index(
-        std::map<raft_member_id_t, raft_log_index_t> *match_index,
         raft_member_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
@@ -1024,10 +1065,15 @@ void raft_member_t<state_t>::leader_update_match_index(
     guarantee(mode == mode_t::leader);
     mutex_acq->guarantee_is_holding(&mutex);
 
-    auto it = match_index->find(key);
-    guarantee(it != match_index->end());
+    auto it = match_indexes.find(key);
+    guarantee(it != match_indexes.end());
     guarantee(it->second <= new_value);
     it->second = new_value;
+
+    debugf("%s leader_update_match_index for %s to %d\n",
+        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        uuid_to_str(key).substr(0,4).c_str(),
+        static_cast<int>(new_value));
 
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
@@ -1039,7 +1085,7 @@ void raft_member_t<state_t>::leader_update_match_index(
             continue;
         }
         std::set<raft_member_id_t> approving_members;
-        for (auto const &pair : *match_index) {
+        for (auto const &pair : match_indexes) {
             if (pair.second >= n) {
                 approving_members.insert(pair.first);
             }
@@ -1052,6 +1098,10 @@ void raft_member_t<state_t>::leader_update_match_index(
             break;
         }
     }
+    debugf("%s commit_index %d -> %d\n",
+        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        static_cast<int>(old_commit_index),
+        static_cast<int>(new_commit_index));
     if (new_commit_index != old_commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
         storage->write_persistent_state(ps, interruptor);
@@ -1172,6 +1222,13 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         replicate the no-op on the first try instead of having to try twice. */
         raft_log_index_t initial_next_index = ps.log.get_latest_index() + 1;
 
+        /* Now that we are leader, initialize `match_indexes`. For now we just fill in
+        the entry for ourselves; `leader_spawn_update_coros()` will handle filling in the
+        entries for the other members of the cluster. */
+        guarantee(match_indexes.empty(), "When we were not leader, `match_indexes` "
+            "should have been empty.");
+        match_indexes[this_member_id] = ps.log.get_latest_index();
+
         /* Raft paper, Section 8: "[Raft has] each leader commit a blank no-op entry into
         the log at the start of its term."
         This is to ensure that we'll commit any entries that are possible to commit,
@@ -1185,10 +1242,6 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 leader_keepalive.get_drain_signal());
         }
 
-        /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of
-        the Raft paper. */
-        std::map<raft_member_id_t, raft_log_index_t> match_indexes;
-
         /* `update_drainers` contains an `auto_drainer_t` for each running instance of
         `leader_send_updates()`. */
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > update_drainers;
@@ -1201,7 +1254,6 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
             RPC. */
             leader_spawn_update_coros(
                 initial_next_index,
-                &match_indexes,
                 &update_drainers,
                 mutex_acq.get());
 
@@ -1262,6 +1314,10 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     }
 
     mode = mode_t::follower;
+
+    /* `match_indexes` is supposed to be empty when we're not leader. This rule isn't
+    strictly necessary; it's basically a sanity check. */
+    match_indexes.clear();
 
     /* Now that `mode` has switched to `mode_leader`, we might need to flip
     `readiness_for_change`. */
@@ -1419,7 +1475,6 @@ bool raft_member_t<state_t>::candidate_run_election(
 template<class state_t>
 void raft_member_t<state_t>::leader_spawn_update_coros(
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
@@ -1439,7 +1494,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
             continue;
         }
         /* Raft paper, Figure 2: "[matchIndex is] initialized to 0" */
-        match_indexes->insert(std::make_pair(peer, 0));
+        match_indexes.insert(std::make_pair(peer, 0));
 
         scoped_ptr_t<auto_drainer_t> update_drainer(new auto_drainer_t);
         auto_drainer_t::lock_t update_keepalive(update_drainer.get());
@@ -1447,7 +1502,6 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
         coro_t::spawn_sometime(std::bind(&raft_member_t::leader_send_updates, this,
             peer,
             initial_next_index,
-            match_indexes,
             update_keepalive));
     }
 
@@ -1455,6 +1509,8 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
     for (auto it = update_drainers->begin(); it != update_drainers->end();
             ++it) {
         raft_member_id_t peer = it->first;
+        guarantee(peer != this_member_id, "We shouldn't have spawned a coroutine to "
+            "send updates to ourself");
         if (peers.count(peer) == 1) {
             /* `peer` is still a member of the cluster, so the coroutine should stay
             alive */
@@ -1465,7 +1521,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
         /* This will block until the update coroutine stops */
         update_drainers->erase(it);
         it = jt;
-        match_indexes->erase(peer);
+        match_indexes.erase(peer);
     }
 }
 
@@ -1473,12 +1529,11 @@ template<class state_t>
 void raft_member_t<state_t>::leader_send_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive) {
     try {
         guarantee(peer != this_member_id);
         guarantee(mode == mode_t::leader);
-        guarantee(match_indexes->count(peer) == 1);
+        guarantee(match_indexes.count(peer) == 1);
         scoped_ptr_t<new_mutex_acq_t> mutex_acq(
             new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
         DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
@@ -1577,7 +1632,6 @@ void raft_member_t<state_t>::leader_send_updates(
 
                 next_index = request.last_included_index + 1;
                 leader_update_match_index(
-                    match_indexes,
                     peer,
                     request.last_included_index,
                     mutex_acq.get(),
@@ -1636,9 +1690,8 @@ void raft_member_t<state_t>::leader_send_updates(
                     /* Raft paper, Figure 2: "If successful: update nextIndex and
                     matchIndex for follower */
                     next_index = request.entries.get_latest_index() + 1;
-                    if (match_indexes->at(peer) < request.entries.get_latest_index()) {
+                    if (match_indexes.at(peer) < request.entries.get_latest_index()) {
                         leader_update_match_index(
-                            match_indexes,
                             peer,
                             request.entries.get_latest_index(),
                             mutex_acq.get(),
@@ -1793,6 +1846,14 @@ raft_log_index_t raft_member_t<state_t>::leader_append_log_entry(
         apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
         return true;
     });
+
+    /* Figure 2 of the Raft paper defines `matchIndexes` as the "index of highest log
+    entry known to be replicated on each server". Although it's not explicitly stated
+    anywhere, this means the leader needs to increment its entry in `match_indexes`
+    whenever it appends to its own log. */
+    guarantee(match_indexes.at(this_member_id) + 1 == ps.log.get_latest_index());
+    leader_update_match_index(this_member_id, ps.log.get_latest_index(), mutex_acq,
+        interruptor);
 
     /* Note that we are holding the lock while we write the persistent state to disk.
     This might eventually become a performance problem. But currently it is important for

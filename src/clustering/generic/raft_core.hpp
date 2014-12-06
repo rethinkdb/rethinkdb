@@ -607,9 +607,6 @@ private:
     `leader_update_match_index()` handles that automatically. It may flush persistent
     state to stable storage before it returns. */
     void leader_update_match_index(
-        /* Since `match_index` lives on the stack of `candidate_and_leader_coro()`, we
-        have to pass in a pointer. */
-        std::map<raft_member_id_t, raft_log_index_t> *match_index,
         raft_member_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
@@ -662,9 +659,6 @@ private:
     void leader_spawn_update_coros(
         /* The value of `nextIndex` to use for each newly connected peer. */
         raft_log_index_t initial_next_index,
-        /* A map containing `matchIndex` for each connected peer, as described in Figure
-        2 of the Raft paper. This lives on the stack in `candidate_and_leader_coro()`. */
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         /* A map containing an `auto_drainer_t` for each running update coroutine. */
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq);
@@ -676,7 +670,6 @@ private:
     void leader_send_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
 
     /* `leader_continue_reconfiguration()` is a helper function for
@@ -745,6 +738,11 @@ private:
     are separate is because `on_request_vote_rpc()` should only disregard RPCs if it
     hasn't heard from a leader recently, even if it has heard from a candidate. */
     microtime_t last_heard_from_candidate, last_heard_from_leader;
+
+    /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of the
+    Raft paper. Note that it is only used if we are the leader; if we are not the leader,
+    then it must be empty. */
+    std::map<raft_member_id_t, raft_log_index_t> match_indexes;
 
     /* `readiness_for_change` and `readiness_for_config_change` track whether this member
     is ready to accept changes. A member is ready for changes if it is leader and in
