@@ -952,15 +952,22 @@ public:
     void add_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
     void del_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
 
-    void each_range_sub(const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
+    void each_range_sub(const auto_drainer_t::lock_t &lock,
+                        const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_active_range_sub(
+        const auto_drainer_t::lock_t &lock,
         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
-    void each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void each_sub(const auto_drainer_t::lock_t &lock,
+                  const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
-        store_key_t key, const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
+        store_key_t key,
+        const auto_drainer_t::lock_t &lock,
+        const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void on_limit_sub(
-        const uuid_u &uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
+        const uuid_u &uuid,
+        const auto_drainer_t::lock_t &lock,
+        const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
 
     bool can_be_removed();
 
@@ -982,6 +989,7 @@ private:
     void each_sub_in_vec(
         const std::vector<std::set<Sub *> > &vec,
         rwlock_in_line_t *spot,
+        const auto_drainer_t::lock_t &lock,
         const std::function<void(Sub *)> &f) THROWS_NOTHING;
     template<class Sub>
     void each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
@@ -1129,11 +1137,12 @@ void real_feed_t::constructor_cb() {
     disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
-        lock.reset(); // Otherwise our auto_drainer can never be destroyed.
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
-            each_sub(std::bind(&subscription_t::stop,
+            guarantee(lock.has());
+            each_sub(*lock,
+                     std::bind(&subscription_t::stop,
                                ph::_1,
                                std::make_exception_ptr(
                                    datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -1143,6 +1152,7 @@ void real_feed_t::constructor_cb() {
             // We only get here if we were removed before we were detached.
             guarantee(num_subs == 0);
         }
+        lock.reset(); // Otherwise our auto_drainer can never be destroyed.
     }
 }
 
@@ -1536,20 +1546,26 @@ void real_feed_t::stop_limit_sub(limit_sub_t *sub) {
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
-    msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
-        : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
+    msg_visitor_t(feed_t *_feed, const auto_drainer_t::lock_t *_lock,
+                  uuid_u _server_uuid, uint64_t _stamp)
+        : feed(_feed), lock(_lock), server_uuid(_server_uuid), stamp(_stamp) {
+        guarantee(feed != nullptr);
+        guarantee(lock != nullptr);
+        guarantee(lock->has_lock());
+    }
     void operator()(const msg_t::limit_start_t &msg) const {
         feed->on_limit_sub(
-            msg.sub, [&msg](limit_sub_t *sub) { sub->init(msg.start_data); });
+            msg.sub, *lock,
+            [&msg](limit_sub_t *sub) { sub->init(msg.start_data); });
     }
     void operator()(const msg_t::limit_change_t &msg) const {
         feed->on_limit_sub(
-            msg.sub,
+            msg.sub, *lock,
             [&msg](limit_sub_t *sub) { sub->note_change(msg.old_key, msg.new_val); });
     }
     void operator()(const msg_t::limit_stop_t &msg) const {
         feed->on_limit_sub(
-            msg.sub,
+            msg.sub, *lock,
             [&msg](limit_sub_t *sub) {
                 sub->stop(std::make_exception_ptr(msg.exc), detach_t::NO);
             });
@@ -1558,7 +1574,7 @@ public:
         configured_limits_t default_limits;
         datum_t null = datum_t::null();
 
-        feed->each_active_range_sub([&](range_sub_t *sub) {
+        feed->each_active_range_sub(*lock, [&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
@@ -1640,6 +1656,7 @@ public:
         });
         feed->on_point_sub(
             change.pkey,
+            *lock,
             std::bind(&point_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
@@ -1649,7 +1666,8 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(std::bind(&subscription_t::stop,
+        feed->each_sub(*lock,
+                       std::bind(&subscription_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -1657,6 +1675,7 @@ public:
     }
 private:
     feed_t *feed;
+    const auto_drainer_t::lock_t *lock;
     uuid_u server_uuid;
     uint64_t stamp;
 };
@@ -1692,7 +1711,7 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
             // Read as much as we can from the queue (this enforces ordering.)
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
                 const stamped_msg_t &curmsg = queue->map.top();
-                msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
+                msg_visitor_t visitor(this, &lock, curmsg.server_uuid, curmsg.stamp);
                 boost::apply_visitor(visitor, curmsg.submsg.op);
                 queue->map.pop();
                 queue->next += 1;
@@ -1933,9 +1952,10 @@ template<class Sub>
 void feed_t::each_sub_in_vec(
     const std::vector<std::set<Sub *> > &vec,
     rwlock_in_line_t *spot,
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(Sub *)> &f) THROWS_NOTHING {
     assert_thread();
-    auto_drainer_t::lock_t lock = get_drainer_lock();
+    guarantee(lock.has_lock());
     spot->read_signal()->wait_lazily_unordered();
 
     std::vector<int> subscription_threads;
@@ -1966,15 +1986,17 @@ void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
 }
 
 void feed_t::each_range_sub(
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&range_subs_lock, access_t::read);
-    each_sub_in_vec(range_subs, &spot, f);
+    each_sub_in_vec(range_subs, &spot, lock, f);
 }
 
 void feed_t::each_active_range_sub(
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
-    each_range_sub([&f](range_sub_t *sub) {
+    each_range_sub(lock, [&f](range_sub_t *sub) {
         if (sub->active()) {
             f(sub);
         }
@@ -2001,35 +2023,39 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
     }
 }
 
-void feed_t::each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
-    each_range_sub(f);
+void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
+                      const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+    each_range_sub(lock, f);
     each_point_sub(f);
 }
 
 void feed_t::on_point_sub(
     store_key_t key,
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    auto_drainer_t::lock_t lock = get_drainer_lock();
+    guarantee(lock.has_lock());
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
     auto point_sub = point_subs.find(key);
     if (point_sub != point_subs.end()) {
-        each_sub_in_vec(point_sub->second, &spot, f);
+        each_sub_in_vec(point_sub->second, &spot, lock, f);
     }
 }
 
 void feed_t::on_limit_sub(
-    const uuid_u &sub_uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    const uuid_u &sub_uuid,
+    const auto_drainer_t::lock_t &lock,
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    auto_drainer_t::lock_t lock = get_drainer_lock();
+    guarantee(lock.has_lock());
     rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
     auto limit_sub = limit_subs.find(sub_uuid);
     if (limit_sub != limit_subs.end()) {
-        each_sub_in_vec(limit_sub->second, &spot, f);
+        each_sub_in_vec(limit_sub->second, &spot, lock, f);
     }
 }
 
@@ -2188,7 +2214,8 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 }
 
 void artificial_t::send_all(const msg_t &msg) {
-    msg_visitor_t visitor(feed.get(), uuid, stamp++);
+    auto_drainer_t::lock_t lock = feed->get_drainer_lock();
+    msg_visitor_t visitor(feed.get(), &lock, uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);
 }
 
