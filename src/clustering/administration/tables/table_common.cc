@@ -5,6 +5,17 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
+common_table_artificial_table_backend_t::common_table_artificial_table_backend_t(
+        boost::shared_ptr<semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > _semilattice_view,
+        admin_identifier_format_t _identifier_format) :
+    semilattice_view(_semilattice_view),
+    identifier_format(_identifier_format),
+    subs([this]() { notify_all(); }, semilattice_view)
+{
+    semilattice_view->assert_thread();
+}
+
 std::string common_table_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
@@ -65,34 +76,4 @@ bool common_table_artificial_table_backend_t::read_row(
     return format_row(table_id, table_name, db_name_or_uuid, it->second.get_ref(),
                       &interruptor2, row_out, error_out);
 }
-
-#if 0
-RSI: remove me completely
-name_string_t common_table_artificial_table_backend_t::get_db_name(
-        const database_id_t &db_id) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
-    auto it = dbs.databases.find(db_id);
-    guarantee(it != dbs.databases.end());
-    if (it->second.is_deleted()) {
-        return name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        return it->second.get_ref().name.get_ref();
-    }
-}
-
-ql::datum_t common_table_artificial_table_backend_t::get_db_name_or_uuid(
-        const database_id_t &db_id) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = semilattice_view->get().databases;
-    ql::datum_t res;
-    if (!convert_database_id_to_datum(db_id, identifier_format, dbs, &res)) {
-        /* This can occur due to a race condition, if a new table is added to a database
-        at the same time as it is being deleted. */
-        res = convert_name_to_datum(
-            name_string_t::guarantee_valid("__deleted_database__"));
-    }
-    return res;
-}
-#endif
 

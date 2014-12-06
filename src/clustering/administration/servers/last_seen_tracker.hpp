@@ -7,8 +7,8 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/servers/server_metadata.hpp"
-#include "concurrency/watchable.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -17,7 +17,7 @@ class last_seen_tracker_t {
 public:
     last_seen_tracker_t(
             const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > &servers_view,
-            const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > > &server_id_map);
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory);
 
     /* Fetches the time the given server [dis]connected, on the assumption that it is
     currently [dis]connected. If the server was permanently removed, the behavior is
@@ -46,13 +46,9 @@ public:
 
 private:
     void update(bool is_start);
-    void on_servers_view_change();
-    void on_server_id_map_change();
 
     boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > servers_view;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > > server_id_map;
-    semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t servers_view_subs;
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t server_id_map_subs;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory;
 
     /* Servers are only present in this map if they are not connected but not
     declared dead. */
@@ -61,6 +57,10 @@ private:
     /* Servers are only present in this map if they are connected and not declared
     dead. */
     std::map<server_id_t, microtime_t> connected_times;
+
+    semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t
+        servers_view_subs;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 
     DISABLE_COPYING(last_seen_tracker_t);
 };

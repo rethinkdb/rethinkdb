@@ -16,6 +16,7 @@ for interface_test_name in [
         'server_status',
         'shard_balancing',
         'stat',
+        'system_changefeeds',
         'table_acks_durability',
         'table_config',
         'table_doc_count_estimates',

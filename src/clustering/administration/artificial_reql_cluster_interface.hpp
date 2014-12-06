@@ -74,7 +74,7 @@ public:
             std::set<name_string_t> *names_out, std::string *error_out);
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             boost::optional<admin_identifier_format_t> identifier_format,
-            signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
+            signal_t *interruptor, counted_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
             const std::vector<name_string_t> &tables,
@@ -146,6 +146,8 @@ public:
                 auth_semilattice_metadata_t> > _auth_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t>
+                *_directory_map_view,
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
             server_name_client_t *_name_client,

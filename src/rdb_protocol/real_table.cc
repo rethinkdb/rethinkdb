@@ -88,14 +88,14 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
     if (sindex == get_pkey()) {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
-                *this,
+                counted_t<real_table_t>(this),
                 use_outdated,
                 ql::primary_readgen_t::make(env, table_name, range, sorting)),
             bt);
     } else {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
-                *this,
+                counted_t<real_table_t>(this),
                 use_outdated,
                 ql::sindex_readgen_t::make(
                     env, table_name, sindex, range, sorting)),
@@ -133,7 +133,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
 
     return make_counted<ql::lazy_datum_stream_t>(
         make_scoped<ql::intersecting_reader_t>(
-            *this,
+            counted_t<real_table_t>(this),
             use_outdated,
             ql::intersecting_readgen_t::make(
                 env, table_name, sindex, query_geometry)),

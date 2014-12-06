@@ -37,6 +37,7 @@ public:
         reql_cluster_interface(_reql_cluster_interface),
         name_client(_name_client)
         { }
+    ~table_config_artificial_table_backend_t();
 
     bool write_row(
             ql::datum_t primary_key,

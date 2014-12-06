@@ -8,13 +8,13 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "concurrency/watchable.hpp"
 
 class stats_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     stats_artificial_table_backend_t(
@@ -26,6 +26,7 @@ public:
         server_name_client_t *_name_client,
         mailbox_manager_t *_mailbox_manager,
         admin_identifier_format_t _admin_format);
+    ~stats_artificial_table_backend_t();
 
     std::string get_primary_key_name();
 

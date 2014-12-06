@@ -107,7 +107,7 @@ bool artificial_reql_cluster_interface_t::table_find(
         const name_string_t &name, counted_t<const ql::db_t> db,
         boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor,
-        scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
+        counted_t<base_table_t> *table_out, std::string *error_out) {
     if (db->name == database.str()) {
         auto it = tables.find(name);
         if (it != tables.end()) {
@@ -118,7 +118,7 @@ bool artificial_reql_cluster_interface_t::table_find(
             } else {
                 b = it->second.second;
             }
-            table_out->init(new artificial_table_t(b));
+            table_out->reset(new artificial_table_t(b));
             return true;
         } else {
             *error_out = strprintf("Table `%s.%s` does not exist.",
@@ -280,6 +280,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             auth_semilattice_metadata_t> > _auth_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
         server_name_client_t *_name_client,
@@ -319,11 +320,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
         _name_client,
-        _directory_view,
-        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-            _semilattice_view),
-        metadata_field(&cluster_semilattice_metadata_t::databases,
-            _semilattice_view)));
+        _directory_map_view));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 

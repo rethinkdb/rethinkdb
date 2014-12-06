@@ -9,24 +9,20 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* This is a base class for the `rethinkdb.table_config` and `rethinkdb.table_status`
 pseudo-tables. Subclasses should implement `format_row()` and `write_row()`. */
 
 class common_table_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public caching_cfeed_artificial_table_backend_t
 {
 public:
     common_table_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            admin_identifier_format_t _identifier_format) :
-        semilattice_view(_semilattice_view),
-        identifier_format(_identifier_format) {
-        semilattice_view->assert_thread();
-    }
+            admin_identifier_format_t _identifier_format);
 
     std::string get_primary_key_name();
 
@@ -55,6 +51,7 @@ protected:
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;
     admin_identifier_format_t identifier_format;
+    semilattice_readwrite_view_t<cluster_semilattice_metadata_t>::subscription_t subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */

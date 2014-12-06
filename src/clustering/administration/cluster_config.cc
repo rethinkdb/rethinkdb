@@ -10,6 +10,10 @@ cluster_config_artificial_table_backend_t::cluster_config_artificial_table_backe
     docs["auth"] = &auth_doc;
 }
 
+cluster_config_artificial_table_backend_t::~cluster_config_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string cluster_config_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }
@@ -70,6 +74,23 @@ bool cluster_config_artificial_table_backend_t::write_row(
         return false;
     }
     return it->second->write(interruptor, new_value_inout, error_out);
+}
+
+void cluster_config_artificial_table_backend_t::set_notifications(bool should_notify) {
+    /* Note that we aren't actually modifying the `docs` map itself, just the objects
+    that it points at. So this could have been `const auto &pair`, but that might be
+    misleading. */
+    for (auto &&pair : docs) {
+        if (should_notify) {
+            std::string name = pair.first;
+            pair.second->set_notification_callback(
+                [this, name]() {
+                    notify_row(ql::datum_t(datum_string_t(name)));
+                });
+        } else {
+            pair.second->set_notification_callback(nullptr);
+        }
+    }
 }
 
 ql::datum_t make_hidden_auth_key_datum() {
@@ -170,5 +191,22 @@ bool cluster_config_artificial_table_backend_t::auth_doc_t::write(
     }
 
     return true;
+}
+
+/* There's a weird corner case with changefeeds on the `auth` doc: If the user changes
+the authentication key from a non-empty value to another non-empty value, no entry will
+appear in the change feed, because the document hasn't changed from the point of view of
+the `cfeed_artificial_table_backend_t`. We could work around this by having a way of
+forcing the `cfeed_artificial_table_backend_t` to send a change for the row even if it
+looks the same, but it's probably not worth the effort. */
+
+void cluster_config_artificial_table_backend_t::auth_doc_t::set_notification_callback(
+        const std::function<void()> &fun) {
+    if (static_cast<bool>(fun)) {
+        subs = make_scoped<semilattice_read_view_t<
+            auth_semilattice_metadata_t>::subscription_t>(fun, sl_view);
+    } else {
+        subs.reset();
+    }
 }
 

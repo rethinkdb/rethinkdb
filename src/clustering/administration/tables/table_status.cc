@@ -4,6 +4,27 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
+table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(
+            boost::shared_ptr< semilattice_readwrite_view_t<
+                cluster_semilattice_metadata_t> > _semilattice_view,
+            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                namespace_directory_metadata_t> *_directory_view,
+            admin_identifier_format_t _identifier_format,
+            server_name_client_t *_name_client) :
+        common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
+        directory_view(_directory_view),
+        name_client(_name_client),
+        directory_subs(directory_view,
+            [this](const std::pair<peer_id_t, namespace_id_t> &key,
+                   const namespace_directory_metadata_t *) {
+                notify_row(convert_uuid_to_datum(key.second));
+            })
+        { }
+
+table_status_artificial_table_backend_t::~table_status_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 /* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
 type without this */
 using reactor_business_card_details::primary_when_safe_t;
