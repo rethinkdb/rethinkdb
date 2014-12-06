@@ -217,9 +217,8 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
 
             try {
                 /* Generate a session id to do our backfill. */
-                backfill_session_id_t backfill_session_id = generate_uuid();
-
-                reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+                /* RSI(tim/backfill-progress): Backfill session IDs are now nonsense. */
+                reactor_business_card_details::backfill_location_t backfill_location(generate_uuid(),
                                                                                      peer_id,
                                                                                      activity_id);
 
@@ -242,7 +241,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                                     backfill_throttler, ct_broadcaster.get_watchable(),
                                     branch_history_manager, svs,
                                     ct_location_to_backfill_from.get_watchable(),
-                                    backfill_session_id, &region_perfmon_collection,
+                                    &region_perfmon_collection,
                                     &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once

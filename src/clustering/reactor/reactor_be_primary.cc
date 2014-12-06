@@ -288,7 +288,6 @@ void do_backfill(
         backfill_throttler_t *backfill_throttler,
         region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
-        backfill_session_id_t backfill_session_id,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
 
@@ -304,9 +303,9 @@ void do_backfill(
         {
             on_thread_t backfill_th(svs->home_thread());
 
+            /* RSI(tim/backfill-progress): Thread through progress indicator */
             backfillee(mailbox_manager, branch_history_manager, svs, region,
-                       ct_backfiller_metadata.get_watchable(), backfill_session_id,
-                       &ct_interruptor);
+                       ct_backfiller_metadata.get_watchable(), nullptr, &ct_interruptor);
 
             result = true;
         } // Return from svs thread
@@ -385,7 +384,6 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
         if (it->second.present_in_our_store) {
             continue;
         } else {
-            backfill_session_id_t backfill_session_id = generate_uuid();
             promise_t<bool> *p = new promise_t<bool>;
             promises.push_back(scoped_ptr_t<promise_t<bool> >(p));
             coro_t::spawn_sometime(boost::bind(&do_backfill,
@@ -395,10 +393,10 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
                                                backfill_throttler,
                                                it->first,
                                                it->second.places_to_get_this_version[0].backfiller,
-                                               backfill_session_id,
                                                p,
                                                interruptor));
-            reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+            /* RSI(tim/backfill_progress): Backfill ID is now nonsense. */
+            reactor_business_card_details::backfill_location_t backfill_location(generate_uuid(),
                                                                                  it->second.places_to_get_this_version[0].peer_id,
                                                                                  it->second.places_to_get_this_version[0].activity_id);
 

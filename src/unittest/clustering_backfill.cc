@@ -115,7 +115,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         &backfillee_store,
         backfillee_store.get_region(),
         pseudo_directory.get_watchable()->subview(&wrap_in_optional),
-        generate_uuid(),
+        nullptr,
         &interruptor);
 
     /* Make sure everything got transferred properly */

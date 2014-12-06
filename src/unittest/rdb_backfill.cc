@@ -194,7 +194,6 @@ void run_backfill_test(size_t value_padding_length,
         branch_history_manager,
         &store2.store,
         replier_business_card_variable.get_watchable(),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
         order_source);
@@ -314,7 +313,6 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         branch_history_manager,
         &store2.store,
         replier_business_card_variable.get_watchable(),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
         order_source);
