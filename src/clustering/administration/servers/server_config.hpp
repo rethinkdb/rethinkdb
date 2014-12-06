@@ -22,8 +22,8 @@ public:
     server_config_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
-            server_name_client_t *_name_client) :
-        common_server_artificial_table_backend_t(_servers_sl_view, _name_client) { }
+            server_name_client_t *_name_client);
+    ~server_config_artificial_table_backend_t();
 
     bool write_row(
             ql::datum_t primary_key,

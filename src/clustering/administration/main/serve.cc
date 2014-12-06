@@ -290,6 +290,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
+                directory_read_manager.get_root_map_view(),
                 reactor_directory_read_manager.get_root_view(),
                 &server_name_client,
                 &mailbox_manager);

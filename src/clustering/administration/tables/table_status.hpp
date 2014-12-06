@@ -38,10 +38,8 @@ public:
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *_directory_view,
             admin_identifier_format_t _identifier_format,
-            server_name_client_t *_name_client) :
-        common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
-        directory_view(_directory_view),
-        name_client(_name_client) { }
+            server_name_client_t *_name_client);
+    ~table_status_artificial_table_backend_t();
 
     bool write_row(
             ql::datum_t primary_key,
@@ -67,6 +65,8 @@ private:
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;
     server_name_client_t *name_client;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+        namespace_directory_metadata_t>::all_subs_t directory_subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */

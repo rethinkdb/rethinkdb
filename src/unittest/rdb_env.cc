@@ -430,7 +430,7 @@ class fake_ref_tracker_t : public namespace_interface_access_t::ref_tracker_t {
 bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         counted_t<const ql::db_t> db,
         boost::optional<admin_identifier_format_t> identifier_format,
-        UNUSED signal_t *local_interruptor, scoped_ptr_t<base_table_t> *table_out,
+        UNUSED signal_t *local_interruptor, counted_t<base_table_t> *table_out,
         std::string *error_out) {
     auto it = tables.find(std::make_pair(db->id, name));
     if (it == tables.end()) {
@@ -445,7 +445,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         static fake_ref_tracker_t fake_ref_tracker;
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
-        table_out->init(new real_table_t(nil_uuid(), table_access,
+        table_out->reset(new real_table_t(nil_uuid(), table_access,
             primary_keys.at(std::make_pair(db->id, name)), NULL));
         return true;
     }

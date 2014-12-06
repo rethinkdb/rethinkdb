@@ -1,5 +1,6 @@
 #include "backend.hpp"
 
+#include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
@@ -50,7 +51,18 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
             });
     }
 
-    *rows_out = make_counted<ql::vector_datum_stream_t>(bt, std::move(rows));
+    ql::changefeed::keyspec_t::range_t range_keyspec;
+    range_keyspec.sorting = sorting;
+    range_keyspec.range = range;
+    boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
+        std::move(range_keyspec),
+        counted_t<base_table_t>(new artificial_table_t(this)),
+        "<system table>"   /* I don't think this is ever used */
+        ));
+    guarantee(keyspec->table.has());
+
+    *rows_out = make_counted<ql::vector_datum_stream_t>(
+        bt, std::move(rows), std::move(keyspec));
     return true;
 }
 

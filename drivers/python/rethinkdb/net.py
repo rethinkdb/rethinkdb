@@ -1,4 +1,4 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
 __all__ = ['connect', 'Connection', 'Cursor']
 
@@ -8,14 +8,14 @@ import struct
 import json
 from os import environ
 
-from rethinkdb import ql2_pb2 as p
+from . import ql2_pb2 as p
 
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from rethinkdb import repl # For the repl connection
-from rethinkdb.errors import *
-from rethinkdb.ast import RqlQuery, DB, recursively_convert_pseudotypes
+from . import repl # For the repl connection
+from .errors import *
+from .ast import RqlQuery, DB, recursively_convert_pseudotypes
 
 try:
     {}.iteritems
@@ -53,7 +53,10 @@ class Query(object):
 
 class Response(object):
     def __init__(self, token, json_str):
-        json_str = json_str.decode('utf-8')
+        try:
+            json_str = json_str.decode('utf-8')
+        except AttributeError:
+            pass # Python3 str objects are already utf-8
         self.token = token
         full_response = json.loads(json_str)
         self.type = full_response["t"]

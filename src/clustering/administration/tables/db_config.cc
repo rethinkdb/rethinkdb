@@ -52,6 +52,16 @@ bool convert_db_config_and_name_from_datum(
     return true;
 }
 
+db_config_artificial_table_backend_t::db_config_artificial_table_backend_t(
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            databases_semilattice_metadata_t> > _database_sl_view) :
+    database_sl_view(_database_sl_view),
+    subs([this]() { notify_all(); }, database_sl_view)
+    { }
+
+db_config_artificial_table_backend_t::~db_config_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
 
 std::string db_config_artificial_table_backend_t::get_primary_key_name() {
     return "id";
@@ -201,3 +211,4 @@ bool db_config_artificial_table_backend_t::write_row(
 
     return true;
 }
+
