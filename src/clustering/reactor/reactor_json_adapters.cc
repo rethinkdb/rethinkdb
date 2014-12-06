@@ -11,29 +11,10 @@
 
 namespace reactor_business_card_details {
 
-// ctx-less json adapter concept for backfill location
-json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_session_id_t>(&target->backfill_session_id));
-    res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
-    res["activity_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_activity_id_t>(&target->activity_id));
-    return res;
-}
-
-cJSON *render_as_json(backfill_location_t *target) {
-    return render_as_directory(target);
-}
-
-void apply_json_to(cJSON *, backfill_location_t *) {
-    throw permission_denied_exc_t("Can't write to backfill_location_t objects.\n");
-}
-
-
 // ctx-less json adapter for primary_when_safe
-json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_when_safe_t *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_when_safe_t *) {
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary_when_safe"));
-    res["backfillers"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<backfill_location_t> >(&target->backfills_waited_on));
     return res;
 }
 
@@ -105,10 +86,9 @@ void apply_json_to(cJSON *, secondary_without_primary_t *) {
 
 
 // ctx-less json adapter for secondary_backfilling
-json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_backfilling_t *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_backfilling_t *) {
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_backfilling"));
-    res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_location_t>(&target->backfill));
     return res;
 }
 

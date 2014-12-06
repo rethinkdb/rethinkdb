@@ -70,7 +70,8 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             store_view_t *svs,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier, 
+            double *backfill_progress_out,   /* can be null */
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
             order_source_t *order_source) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);

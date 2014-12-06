@@ -41,6 +41,11 @@ public:
         reset();
     }
 
+    value_t *get_value() {
+        guarantee(map != nullptr);
+        return &it->second;
+    }
+
     void reset() {
         if (map != nullptr) {
             map->erase(it);

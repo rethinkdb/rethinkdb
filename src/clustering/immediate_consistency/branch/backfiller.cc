@@ -125,7 +125,7 @@ public:
         send(mailbox_manager_, chunk_cont_,
             chunk,
             frac.invalid()
-                ? -1.0
+                ? 0.0
                 : static_cast<double>(frac.estimate_of_released_nodes) /
                     frac.estimate_of_total_nodes,
             fifo_src_->enter_write());

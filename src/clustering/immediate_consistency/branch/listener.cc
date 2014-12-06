@@ -68,6 +68,7 @@ listener_t::listener_t(const base_path_t &base_path,
                        branch_history_manager_t *branch_history_manager,
                        store_view_t *svs,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
+                       double *backfill_progress_out,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
                        order_source_t *order_source)
@@ -172,13 +173,12 @@ listener_t::listener_t(const base_path_t &base_path,
                                                         interruptor);
 
             /* Backfill */
-            /* RSI(tim/backfill-progress): Thread through backfill progress */
             backfillee(mailbox_manager_,
                        branch_history_manager,
                        svs_,
                        svs_->get_region(),
                        replier->subview(&listener_t::get_backfiller_from_replier_bcard),
-                       nullptr,
+                       backfill_progress_out,
                        interruptor);
         } // Release throttler_lock
     } catch (const resource_lost_exc_t &) {
