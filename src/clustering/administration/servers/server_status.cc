@@ -79,8 +79,12 @@ bool server_status_artificial_table_backend_t::format_row(
         conn_builder.overwrite("time_connected", ql::datum_t::null());
         microtime_t disconnected_time =
             last_seen_tracker.get_disconnected_time(server_id);
-        conn_builder.overwrite("time_disconnected",
-            convert_microtime_to_datum(disconnected_time));
+        if (disconnected_time == 0) {
+            conn_builder.overwrite("time_disconnected", ql::datum_t::null());
+        } else {
+            conn_builder.overwrite("time_disconnected",
+                convert_microtime_to_datum(disconnected_time));
+        }
     }
     builder.overwrite("connection", std::move(conn_builder).to_datum());
 
@@ -93,11 +97,16 @@ bool server_status_artificial_table_backend_t::format_row(
         proc_builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
         proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
+        proc_builder.overwrite("argv",
+            convert_vector_to_datum<std::string>(
+                &convert_string_to_datum,
+                directory->argv));
     } else {
         proc_builder.overwrite("time_started", ql::datum_t::null());
         proc_builder.overwrite("version", ql::datum_t::null());
         proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
         proc_builder.overwrite("pid", ql::datum_t::null());
+        proc_builder.overwrite("argv", ql::datum_t::null());
     }
     builder.overwrite("process", std::move(proc_builder).to_datum());
 

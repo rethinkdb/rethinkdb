@@ -31,7 +31,7 @@ public:
 
     void write(const write_t &write,
                write_response_t *response,
-               transition_timestamp_t transition_timestamp,
+               state_timestamp_t timestamp,
                order_token_t order_token) THROWS_NOTHING;
 
     order_source_t bs_outdated_read_source;

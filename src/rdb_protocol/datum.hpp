@@ -168,7 +168,7 @@ public:
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
-    // TODO(2014-08): Remove this constructor, it's a hack.
+    // TODO(2015-01): Remove this constructor, it's a hack.
     datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
     ~datum_t();
@@ -478,6 +478,7 @@ public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
     explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
+    bool empty() const { return vector.empty(); }
     size_t size() const { return vector.size(); }
 
     void reserve(size_t n);

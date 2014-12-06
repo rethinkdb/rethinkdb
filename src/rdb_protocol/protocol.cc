@@ -57,7 +57,7 @@ namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
@@ -105,7 +105,7 @@ void bring_sindexes_up_to_date(
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
-    std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
+    std::map<uuid_u, std::string> sindexes_to_bring_up_to_date_uuid_name;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
@@ -113,13 +113,14 @@ void bring_sindexes_up_to_date(
                                       "being deleted");
         auto sindexes_it = sindexes.find(*it);
         guarantee(sindexes_it != sindexes.end());
-        sindexes_to_bring_up_to_date_uuid.insert(sindexes_it->second.id);
+        sindexes_to_bring_up_to_date_uuid_name.insert(
+            std::make_pair(sindexes_it->second.id, sindexes_it->first.name));
     }
 
     coro_t::spawn_sometime(std::bind(
                 &post_construct_and_drain_queue,
                 store_drainer_acq,
-                sindexes_to_bring_up_to_date_uuid,
+                sindexes_to_bring_up_to_date_uuid_name,
                 store,
                 mod_queue.release()));
 }
@@ -130,11 +131,22 @@ void bring_sindexes_up_to_date(
  */
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
+    std::set<uuid_u> sindexes_to_bring_up_to_date;
+    std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
+        sindex_sentries;
+    for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
+        sindexes_to_bring_up_to_date.insert(sindex.first);
+        sindex_sentries.emplace_back(
+            store->get_sindex_jobs(),
+            sindex.first,
+            std::make_pair(current_microtime(), sindex.second));
+    }
+
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
 
     rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);
@@ -154,8 +166,8 @@ void post_construct_and_drain_queue(
             // Yield while we are not holding any locks yet.
             coro_t::yield();
 
-            write_token_pair_t token_pair;
-            store->new_write_token_pair(&token_pair);
+            write_token_t token;
+            store->new_write_token(&token);
 
             scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
@@ -170,16 +182,16 @@ void post_construct_and_drain_queue(
                 repli_timestamp_t::distant_past,
                 2,
                 write_durability_t::HARD,
-                &token_pair,
+                &token,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
 
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-            buf_lock_t queue_sindex_block
-                = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                        sindex_block_id);
+            buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                          sindex_block_id,
+                                          access_t::write);
 
             queue_superblock->release();
 
@@ -241,8 +253,8 @@ void post_construct_and_drain_queue(
     } else {
         /* The sindexes we were post constructing were all deleted. Time to
          * deregister the queue. */
-        write_token_pair_t token_pair;
-        store->new_write_token_pair(&token_pair);
+        write_token_t token;
+        store->new_write_token(&token);
 
         scoped_ptr_t<txn_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
@@ -251,16 +263,16 @@ void post_construct_and_drain_queue(
             repli_timestamp_t::distant_past,
             2,
             write_durability_t::HARD,
-            &token_pair,
+            &token,
             &queue_txn,
             &queue_superblock,
             lock.get_drain_signal());
 
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-        buf_lock_t queue_sindex_block
-            = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
-                                                    sindex_block_id);
+        buf_lock_t queue_sindex_block(queue_superblock->expose_buf(),
+                                      sindex_block_id,
+                                      access_t::write);
 
         queue_superblock->release();
 

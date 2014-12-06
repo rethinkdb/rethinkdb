@@ -335,6 +335,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
     for (int i = 0; i < 2; ++i) {
+        stats_backend[i].init(new stats_artificial_table_backend_t(
+            _directory_view, _semilattice_view, _name_client, _mailbox_manager,
+            static_cast<admin_identifier_format_t>(i)));
+    }
+    backends[name_string_t::guarantee_valid("stats")] =
+        std::make_pair(stats_backend[0].get(), stats_backend[1].get());
+
+    for (int i = 0; i < 2; ++i) {
         table_config_backend[i].init(new table_config_artificial_table_backend_t(
             _semilattice_view,
             _next_reql_cluster_interface,
@@ -353,6 +361,17 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
+
+    for (int i = 0; i < 2; ++i) {
+        jobs_backend[i].init(new jobs_artificial_table_backend_t(
+            _mailbox_manager,
+            _semilattice_view,
+            _directory_view,
+            _name_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
+    backends[name_string_t::guarantee_valid("jobs")] =
+        std::make_pair(jobs_backend[0].get(), jobs_backend[1].get());
 
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =

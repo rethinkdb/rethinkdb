@@ -11,6 +11,7 @@
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -19,7 +20,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
@@ -142,9 +143,10 @@ bool do_serve(io_backender_t *io_backender,
                 &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
 
-        // Initialize the stat manager before the directory manager so that we
+        // Initialize the stat and jobs manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
-        // stat_manager mailbox address
+        // jobs_manager and stat_manager mailbox address
+        jobs_manager_t jobs_manager(&mailbox_manager, server_id);
         stat_manager_t stat_manager(&mailbox_manager);
 
         cluster_directory_metadata_t initial_directory(
@@ -163,6 +165,8 @@ bool do_serve(io_backender_t *io_backender,
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
+            serve_info.argv,
+            jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
             i_am_a_server
@@ -272,6 +276,7 @@ bool do_serve(io_backender_t *io_backender,
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
+        jobs_manager.set_rdb_context(&rdb_ctx);
 
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
@@ -330,6 +335,7 @@ bool do_serve(io_backender_t *io_backender,
                         base_path,
                         io_backender,
                         &mailbox_manager,
+                        server_id,
                         reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         semilattice_manager_cluster.get_root_view(),
@@ -338,6 +344,7 @@ bool do_serve(io_backender_t *io_backender,
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
+                jobs_manager.set_reactor_driver(rdb_reactor_driver.get());
                 reactor_directory_write_manager.init(
                     new directory_map_write_manager_t<
                             namespace_id_t, namespace_directory_metadata_t>(
@@ -387,7 +394,6 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.http_port,
                                 server_id,
                                 &mailbox_manager,
-                                semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));

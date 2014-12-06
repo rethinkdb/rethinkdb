@@ -335,7 +335,7 @@ datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
 
     // We don't sanitize the ptype because this is a fake ptype that should only
     // be used for serialization.
-    // TODO(2014-08): This is a bad thing.
+    // TODO(2015-01): This is a bad thing.
     return datum_t(std::move(map), datum_t::no_sanitize_ptype_t());
 }
 

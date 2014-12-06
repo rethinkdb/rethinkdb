@@ -104,8 +104,8 @@ class test_reactor_t : private ack_checker_t {
 public:
     test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs);
     ~test_reactor_t();
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const;
-    write_durability_t get_write_durability(const peer_id_t &) const {
+    bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const;
+    write_durability_t get_write_durability() const {
         return write_durability_t::SOFT;
     }
 
@@ -139,9 +139,10 @@ peer_id_t reactor_test_cluster_t::get_me() {
 
 test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, io_backender, &r->mailbox_manager, &backfill_throttler, this,
-            r->directory_read_manager.get_root_map_view(),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
+    reactor(base_path, io_backender, &r->mailbox_manager, generate_uuid(),
+            &backfill_throttler, this, r->directory_read_manager.get_root_map_view(),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs,
+            &get_global_perfmon_collection(), NULL),
     directory_write_manager(
         new directory_write_manager_t<namespace_directory_metadata_t>(
             &r->connectivity_cluster, 'D', reactor.get_reactor_directory())) {
@@ -150,7 +151,7 @@ test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_
 
 test_reactor_t::~test_reactor_t() { }
 
-bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
+bool test_reactor_t::is_acceptable_ack_set(const std::set<server_id_t> &acks) const {
     return acks.size() >= 1;
 }
 

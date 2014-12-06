@@ -68,7 +68,7 @@ void do_construct_existing_store(
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report);
+        index_report, store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -94,7 +94,7 @@ void do_create_new_store(
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report);
+        index_report, store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }

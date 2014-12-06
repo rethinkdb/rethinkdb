@@ -9,10 +9,11 @@
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
-#include "clustering/administration/stat_manager.hpp"
+#include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
@@ -71,6 +72,8 @@ public:
             uint16_t _reql_port,
             boost::optional<uint16_t> _http_admin_port,
             std::set<host_and_port_t> _canonical_addresses,
+            const std::vector<std::string> &_argv,
+            const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
@@ -86,6 +89,8 @@ public:
         reql_port(_reql_port),
         http_admin_port(_http_admin_port),
         canonical_addresses(_canonical_addresses),
+        argv(_argv),
+        jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
         server_name_business_card(nsbc),
@@ -111,6 +116,8 @@ public:
         reql_port = other.reql_port;
         http_admin_port = other.http_admin_port;
         canonical_addresses = std::move(other.canonical_addresses);
+        argv = std::move(other.argv);
+        jobs_mailbox = other.jobs_mailbox;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         log_mailbox = other.log_mailbox;
         server_name_business_card = other.server_name_business_card;
@@ -133,7 +140,9 @@ public:
     uint16_t cluster_port, reql_port;
     boost::optional<uint16_t> http_admin_port;
     std::set<host_and_port_t> canonical_addresses;
+    std::vector<std::string> argv;
 
+    jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
     boost::optional<server_name_business_card_t> server_name_business_card;

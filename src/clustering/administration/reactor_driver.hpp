@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP_
 
 #include <map>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -62,6 +63,13 @@ public:
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
     scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
+    bool is_gc_active() const {
+        return serializer_->is_gc_active();
+    }
+
+    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    sindex_jobs_t get_sindex_jobs() const;
+
 private:
     scoped_ptr_t<serializer_t> serializer_;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer_;
@@ -88,26 +96,32 @@ class reactor_driver_t {
 public:
     reactor_driver_t(
         const base_path_t &base_path,
-         io_backender_t *io_backender,
-         mailbox_manager_t *mbox_manager,
-         watchable_map_t<
+        io_backender_t *io_backender,
+        mailbox_manager_t *mbox_manager,
+        const server_id_t &sid,
+        watchable_map_t<
             std::pair<peer_id_t, namespace_id_t>,
             namespace_directory_metadata_t
             > *directory_view,
-         branch_history_manager_t *branch_history_manager,
-         boost::shared_ptr< semilattice_readwrite_view_t<
+        branch_history_manager_t *branch_history_manager,
+        boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > semilattice_view,
-         server_name_client_t *server_name_client,
-         signal_t *we_were_permanently_removed,
-         svs_by_namespace_t *svs_by_namespace,
-         perfmon_collection_repo_t *,
-         rdb_context_t *);
+        server_name_client_t *server_name_client,
+        signal_t *we_were_permanently_removed,
+        svs_by_namespace_t *svs_by_namespace,
+        perfmon_collection_repo_t *,
+        rdb_context_t *);
 
     ~reactor_driver_t();
 
     watchable_map_t<namespace_id_t, namespace_directory_metadata_t> *get_watchable() {
         return &watchable_var;
     }
+
+    bool is_gc_active() const;
+
+    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    sindex_jobs_t get_sindex_jobs() const;
 
 private:
     friend class watchable_and_reactor_t;
@@ -125,6 +139,7 @@ private:
     const base_path_t base_path;
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
+    server_id_t server_id;
     watchable_map_t<
         std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t
@@ -152,7 +167,7 @@ private:
         server_id_to_peer_id_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
-    //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;
+
     DISABLE_COPYING(reactor_driver_t);
 };
 

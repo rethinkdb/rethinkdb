@@ -231,7 +231,8 @@ sindex_rename_result_t artificial_table_t::sindex_rename(
         "Can't rename a secondary index on an artificial table.");
 }
 
-std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) {
+std::vector<std::string> artificial_table_t::sindex_list(
+        UNUSED ql::env_t *env, UNUSED bool use_outdated) {
     return std::vector<std::string>();
 }
 

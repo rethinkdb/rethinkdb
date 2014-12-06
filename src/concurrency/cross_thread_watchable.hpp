@@ -115,6 +115,23 @@ private:
     DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
 
+/* `all_thread_watchable_variable_t` is like a `cross_thread_watchable_variable_t` except
+that `get_watchable()` works on every thread, not just a specified thread. Internally it
+constructs one `cross_thread_watchable_variable_t` for each thread, so it's a pretty
+heavy-weight object. */
+
+template<class value_t>
+class all_thread_watchable_variable_t {
+public:
+    all_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &input);
+    clone_ptr_t<watchable_t<value_t> > get_watchable() const {
+        return vars[get_thread_id().threadnum]->get_watchable();
+    }
+private:
+    std::vector<scoped_ptr_t<cross_thread_watchable_variable_t<value_t> > > vars;
+};
+
 template<class key_t, class value_t>
 class cross_thread_watchable_map_var_t {
 public:

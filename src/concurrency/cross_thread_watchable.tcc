@@ -33,6 +33,15 @@ void cross_thread_watchable_variable_t<value_t>::deliver(value_t new_value) {
     publisher_controller.publish(&cross_thread_watchable_variable_t<value_t>::call);
 }
 
+template <class value_t>
+all_thread_watchable_variable_t<value_t>::all_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &input) {
+    for (int i = 0; i < get_num_threads(); ++i) {
+        vars.emplace_back(make_scoped<cross_thread_watchable_variable_t<value_t> >(
+            input, threadnum_t(i)));
+    }
+}
+
 template<class key_t, class value_t>
 cross_thread_watchable_map_var_t<key_t, value_t>::cross_thread_watchable_map_var_t(
         watchable_map_t<key_t, value_t> *input,

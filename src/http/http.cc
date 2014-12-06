@@ -486,7 +486,7 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
 
 // Parse a http request off of the tcp conn and stuff it into the http_req_t object. Returns parse success.
 bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
-    LineParser parser(conn);
+    line_parser_t parser(conn);
 
     std::string method = parser.readWord(closer);
     if (method == "HEAD") {

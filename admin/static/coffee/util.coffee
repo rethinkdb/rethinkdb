@@ -61,11 +61,12 @@ Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'h
 Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
 #
 # Helpers for capitalization
-Handlebars.registerHelper 'capitalize', (str) ->
+capitalize = (str) ->
     if str?
         str.charAt(0).toUpperCase() + str.slice(1)
     else
         "NULL"
+Handlebars.registerHelper 'capitalize', capitalize
 
 # Helpers for shortening uuids
 Handlebars.registerHelper 'humanize_uuid', (str) ->
@@ -77,23 +78,38 @@ Handlebars.registerHelper 'humanize_uuid', (str) ->
 # Helpers for printing reachability
 Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     if not status?
-        result = 'N/A'
-    else
-        if status.availability == 'available'
-            result = "<span class='label label-success'>Available</span>"
-        else
-            result = "<span class='label label-failure'>Unavailable</span>"
-    return new Handlebars.SafeString(result)
+        status = 'N/A'
+    success = if status == 'available' then 'success' else 'failure'
+    reachability = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
+    return new Handlebars.SafeString(reachability)
 
-Handlebars.registerHelper 'humanize_table_reachability', (status) ->
-    if status is true
-        result = "<span class='label label-success'>Live</span>"
-    else if status is false
-        result = "<span class='label label-failure'>Down</span>"
+humanize_table_status = (status) ->
+    if status.all_replicas_ready or status.ready_for_writes
+        "Ready"
+    else if status.ready_for_reads
+        'Reads only'
+    else if status.ready_for_outdated_reads
+        'Outdated reads'
     else
-        result = "<span class='label label-unknown'>?</span>"
-    return new Handlebars.SafeString(result)
+        'Unavailable'
 
+Handlebars.registerHelper 'humanize_table_readiness', (status, num, denom) ->
+    if status is undefined
+        label = 'failure'
+        value = 'unknown'
+    else if status.all_replicas_ready
+        label = 'success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
+    else if status.ready_for_writes
+        label = 'partial-success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
+    else
+        label = 'failure'
+        value = humanize_table_status(status)
+    return new Handlebars.SafeString(
+        "<div class='status label label-#{label}'>#{value}</div>")
+
+Handlebars.registerHelper 'humanize_table_status', humanize_table_status
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->

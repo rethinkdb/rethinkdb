@@ -127,7 +127,7 @@ public:
         const std::string &old_name,
         const std::string &new_name,
         bool overwrite);
-    std::vector<std::string> sindex_list(ql::env_t *env);
+    std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated);
     std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
         const std::set<std::string> &sindexes);
 

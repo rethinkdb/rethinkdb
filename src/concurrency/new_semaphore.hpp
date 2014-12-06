@@ -5,8 +5,6 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 
-// KSI: This is a horrible name, fix it.
-
 // This semaphore obeys first-in-line/first-acquisition semantics.  The
 // new_semaphore_acq_t's will receive access to the semaphore in the same order that
 // such access was requested.  Also, there aren't problems with starvation.  Also, it

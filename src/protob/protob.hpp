@@ -44,7 +44,8 @@ public:
         explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor) {
+            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor),
+            counter(&rdb_ctx->stats.client_connections) {
         }
 
         client_context_t *get_ctx() {
@@ -78,6 +79,7 @@ public:
         cond_t interruptor;
         time_t last_accessed;
         client_context_t client_ctx;
+        scoped_perfmon_counter_t counter;
         DISABLE_COPYING(http_conn_t);
     };
 

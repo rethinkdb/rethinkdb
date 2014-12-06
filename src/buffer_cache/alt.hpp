@@ -66,11 +66,11 @@ private:
     void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
 
-    scoped_ptr_t<alt_cache_stats_t> stats_;
-
     // throttler_ can cause the txn_t constructor to block
     alt_txn_throttler_t throttler_;
     alt::page_cache_t page_cache_;
+
+    scoped_ptr_t<alt_cache_stats_t> stats_;
 
     std::map<block_id_t, intrusive_list_t<alt_snapshot_node_t> >
         snapshot_nodes_by_block_id_;
@@ -83,11 +83,10 @@ public:
     // Constructor for read-only transactions.
     txn_t(cache_conn_t *cache_conn, read_access_t read_access);
 
-    // KSI: Remove default parameter for expected_change_count.
     txn_t(cache_conn_t *cache_conn,
           write_durability_t durability,
           repli_timestamp_t txn_timestamp,
-          int64_t expected_change_count = 2);
+          int64_t expected_change_count);
 
     ~txn_t();
 
@@ -198,6 +197,8 @@ public:
         return current_page_acq()->block_id();
     }
 
+    // It is illegal to call this on a buf lock that has been mark_deleted.  This
+    // never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
     // Usually unnecessary -- the txn has a recency value that touches the recency.

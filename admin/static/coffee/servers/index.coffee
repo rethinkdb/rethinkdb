@@ -40,9 +40,6 @@ module 'ServersView', ->
                     .concatMap((shard) -> shard("replicas"))
                     .filter((replica) -> replica.eq(server("name")))
                     .count()
-                status:
-                    availability: server('status')
-                    last_seen: server('time_disconnected')
             )
             @timer = driver.run query, 5000, (error, result) =>
                 ids = {}

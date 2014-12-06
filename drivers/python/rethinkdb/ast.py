@@ -1,3 +1,7 @@
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+__all__ = ['expr', 'RqlQuery']
+
 import types
 import sys
 import datetime
@@ -10,7 +14,7 @@ import binascii
 import json as py_json
 from threading import Lock
 
-from .errors import *
+from .errors import RqlDriverError, QueryPrinter, T
 from . import repl # For the repl connection
 from . import ql2_pb2 as p
 
@@ -384,7 +388,11 @@ class RqlQuery(object):
         return Max(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def map(self, *args):
-        return Map(self, *[func_wrap(arg) for arg in args])
+        if len(args) > 0:
+            # `func_wrap` only the last argument
+            return Map(self, *(args[:-1] + (func_wrap(args[-1]), )))
+        else:
+            return Map(self)
 
     def filter(self, *args, **kwargs):
         return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)

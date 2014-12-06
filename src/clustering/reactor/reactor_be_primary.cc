@@ -334,7 +334,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
 
     /* Figure out what version of the data is already present in our
      * store so we don't backfill anything prior to it. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs->new_read_token(&read_token);
     region_map_t<binary_blob_t> metainfo_blob;
     svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
@@ -478,7 +478,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
         on_thread_t th3(svs->home_thread());
-        listener_t listener(base_path, io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
+        listener_t listener(base_path, io_backender, mailbox_manager, server_id,
+            ct_broadcaster_business_card.get_watchable(), branch_history_manager,
+            &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
         replier_t replier(&listener, mailbox_manager, branch_history_manager);
         master_t master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t direct_reader(mailbox_manager, svs);

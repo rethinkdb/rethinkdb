@@ -6,7 +6,7 @@ module 'MainView', ->
         id: 'main_view'
         
         initialize: =>
-            @fetch_data()
+            @fetch_ajax_data()
 
             @databases = new Databases
             @tables = new Tables
@@ -39,22 +39,33 @@ module 'MainView', ->
 
             @navbar.init_typeahead()
 
-        fetch_data: =>
+        fetch_ajax_data: =>
+            $.ajax({
+                contentType: 'application/json'
+                url: 'ajax/me'
+                dataType: 'json'
+                success: (response) =>
+                    @fetch_data(response)
+                error: (response) =>
+                    @fetch_data(null)
+            })
+
+        fetch_data: (server_uuid) =>
             query = r.expr
                 databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 issues: r.db(system_db).table('issues').coerceTo("ARRAY")
                 num_issues: r.db(system_db).table('issues').count()
-                me: "TODO"
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
                     server("status").eq("available")
                 ).count()
                 num_tables: r.db(system_db).table('table_config').count()
-                num_available_tables: r.db(system_db).table('table_status').filter( (server) ->
-                    server("ready_completely").eq(true)
+                num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
+                    status("all_replicas_ready")
                 ).count()
+                me: r.db(system_db).table('server_status').get(server_uuid)('name')
 
 
             @timer = driver.run query, 5000, (error, result) =>

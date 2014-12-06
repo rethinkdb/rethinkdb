@@ -10,12 +10,14 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/servers/server_status.hpp"
+#include "clustering/administration/stats/stats_backend.hpp"
 #include "clustering/administration/tables/db_config.hpp"
 #include "clustering/administration/tables/debug_table_status.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
 #include "clustering/administration/logs/logs_backend.hpp"
+#include "clustering/administration/jobs/backend.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/in_memory.hpp"
@@ -167,6 +169,7 @@ public:
     scoped_ptr_t<logs_artificial_table_backend_t> logs_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
+    scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];
 
@@ -175,6 +178,7 @@ public:
         debug_table_status_backend;
 
     scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;
+    scoped_ptr_t<jobs_artificial_table_backend_t> jobs_backend[2];
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_ */

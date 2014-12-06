@@ -21,7 +21,8 @@ public:
 
     /* Fetches the time the given server [dis]connected, on the assumption that it is
     currently [dis]connected. If the server was permanently removed, the behavior is
-    undefined. */
+    undefined. Note that `get_disconnected_time()` will return `0` for servers that were
+    disconnected when we started up. */
     microtime_t get_connected_time(const server_id_t &server_id) {
         auto it = connected_times.find(server_id);
         if (it != connected_times.end()) {
@@ -44,7 +45,7 @@ public:
     }
 
 private:
-    void update();
+    void update(bool is_start);
 
     boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > servers_view;
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory;

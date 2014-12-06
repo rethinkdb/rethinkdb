@@ -11,14 +11,13 @@
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 
-static const char * stat_avg = "avg";
-static const char * stat_min = "min";
-static const char * stat_max = "max";
-static const char * stat_per_sec = "per_sec";
-static const char * stat_count = "count";
-static const char * stat_mean = "mean";
-static const char * stat_std_dev = "std_dev";
-static const char * no_value = "-";
+static const char *stat_avg = "avg";
+static const char *stat_min = "min";
+static const char *stat_max = "max";
+static const char *stat_per_sec = "per_sec";
+static const char *stat_count = "count";
+static const char *stat_mean = "mean";
+static const char *stat_std_dev = "std_dev";
 
 
 #ifdef FULL_PERFMON
@@ -57,8 +56,17 @@ int64_t perfmon_counter_t::combine_stats(const padded_int64_t *data) {
     return value;
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_counter_t::output_stat(const int64_t &stat) {
-    return make_scoped<perfmon_result_t>(strprintf("%" PRIi64, stat));
+ql::datum_t perfmon_counter_t::output_stat(const int64_t &stat) {
+    return ql::datum_t(static_cast<double>(stat));
+}
+
+scoped_perfmon_counter_t::scoped_perfmon_counter_t(perfmon_counter_t *_counter)
+    : counter(_counter) {
+    ++(*counter);
+}
+
+scoped_perfmon_counter_t::~scoped_perfmon_counter_t() {
+    --(*counter);
 }
 
 /* perfmon_sampler_t */
@@ -119,23 +127,25 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(const stats_t *stats
     return aggregated;
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_sampler_t::output_stat(const stats_t &aggregated) {
-    scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
+ql::datum_t perfmon_sampler_t::output_stat(const stats_t &aggregated) {
+    ql::datum_object_builder_t builder;
 
     if (aggregated.count > 0) {
-        stat->insert(stat_avg, new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
-        stat->insert(stat_min, new perfmon_result_t(strprintf("%.8f", aggregated.min)));
-        stat->insert(stat_max, new perfmon_result_t(strprintf("%.8f", aggregated.max)));
+        builder.overwrite(stat_avg, ql::datum_t(aggregated.sum / aggregated.count));
+        builder.overwrite(stat_min, ql::datum_t(aggregated.min));
+        builder.overwrite(stat_max, ql::datum_t(aggregated.max));
     } else {
-        stat->insert(stat_avg, new perfmon_result_t(no_value));
-        stat->insert(stat_min, new perfmon_result_t(no_value));
-        stat->insert(stat_max, new perfmon_result_t(no_value));
-    }
-    if (include_rate) {
-        stat->insert(stat_per_sec, new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
+        builder.overwrite(stat_avg, ql::datum_t::null());
+        builder.overwrite(stat_min, ql::datum_t::null());
+        builder.overwrite(stat_max, ql::datum_t::null());
     }
 
-    return stat;
+    if (include_rate) {
+        builder.overwrite(stat_per_sec,
+                          ql::datum_t(aggregated.count / ticks_to_secs(length)));
+    }
+
+    return std::move(builder).to_datum();
 }
 
 /* perfmon_stddev_t */
@@ -204,31 +214,31 @@ perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<stddev_t>() { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id().threadnum >= 0);
-    *stat = thread_data[get_thread_id().threadnum];
+    *stat = thread_data[get_thread_id().threadnum].value;
 }
 
 stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
-    scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
+ql::datum_t perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
+    ql::datum_object_builder_t builder;
 
-    stat->insert(stat_count, new perfmon_result_t(strprintf("%zu", stat_data.datapoints())));
+    builder.overwrite(stat_count, ql::datum_t(static_cast<double>(stat_data.datapoints())));
     if (stat_data.datapoints()) {
-        stat->insert(stat_mean, new perfmon_result_t(strprintf("%.8f", stat_data.mean())));
-        stat->insert(stat_std_dev, new perfmon_result_t(strprintf("%.8f", stat_data.standard_deviation())));
+        builder.overwrite(stat_mean, ql::datum_t(stat_data.mean()));
+        builder.overwrite(stat_std_dev, ql::datum_t(stat_data.standard_deviation()));
     } else {
         // No stats
-        stat->insert(stat_mean, new perfmon_result_t(no_value));
-        stat->insert(stat_std_dev, new perfmon_result_t(no_value));
+        builder.overwrite(stat_mean, ql::datum_t::null());
+        builder.overwrite(stat_std_dev, ql::datum_t::null());
     }
-    return stat;
+    return std::move(builder).to_datum();
 }
 
 void perfmon_stddev_t::record(double value) {
     rassert(get_thread_id().threadnum >= 0);
-    thread_data[get_thread_id().threadnum].add(value);
+    thread_data[get_thread_id().threadnum].value.add(value);
 }
 
 /* perfmon_rate_monitor_t */
@@ -237,14 +247,14 @@ perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
     : perfmon_perthread_t<double>(), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
-        thread_data[i].current_interval = get_ticks() / length;
+        thread_data[i].value.current_interval = get_ticks() / length;
     }
 }
 
 void perfmon_rate_monitor_t::update(ticks_t now) {
     int interval = now / length;
     rassert(get_thread_id().threadnum >= 0);
-    thread_info_t &thread = thread_data[get_thread_id().threadnum];
+    thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
 
     if (thread.current_interval == interval) {
         /* We're up to date; nothing to do */
@@ -264,17 +274,19 @@ void perfmon_rate_monitor_t::record(double count) {
     ticks_t now = get_ticks();
     update(now);
     rassert(get_thread_id().threadnum >= 0);
-    thread_info_t &thread = thread_data[get_thread_id().threadnum];
+    thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
     thread.current_count += count;
 }
 
 void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
-    update(get_ticks());
-    /* Return last_count instead of current_stats so that we can give a complete interval's
-    worth of stats. We might be halfway through an interval, in which case current_count will
-    only have half an interval worth. */
-    rassert(get_thread_id().threadnum >= 0);
-    *stat = thread_data[get_thread_id().threadnum].last_count;
+    ticks_t now = get_ticks();
+    update(now);
+
+    double ratio = 1.0 - (static_cast<double>(now % length) / length);
+
+    // Return a rolling average of the current count plus the last count
+    thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
+    *stat = thread.current_count + thread.last_count * ratio;
 }
 
 double perfmon_rate_monitor_t::combine_stats(const double *stats) {
@@ -285,8 +297,8 @@ double perfmon_rate_monitor_t::combine_stats(const double *stats) {
     return total;
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_rate_monitor_t::output_stat(const double &stat) {
-    return make_scoped<perfmon_result_t>(strprintf("%.8f", stat / ticks_to_secs(length)));
+ql::datum_t perfmon_rate_monitor_t::output_stat(const double &stat) {
+    return ql::datum_t(stat / ticks_to_secs(length));
 }
 
 perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon)
@@ -322,7 +334,7 @@ void perfmon_duration_sampler_t::visit_stats(void *data) {
     stat.visit_stats(data);
 }
 
-scoped_ptr_t<perfmon_result_t> perfmon_duration_sampler_t::end_stats(void *data) {
+ql::datum_t perfmon_duration_sampler_t::end_stats(void *data) {
     return stat.end_stats(data);
 }
 

@@ -393,7 +393,8 @@ cache_account_t page_cache_t::create_cache_account(int priority) {
 
     file_account_t *io_account;
     {
-        // KSI: We shouldn't have to switch to the serializer home thread.
+        // Ideally we shouldn't have to switch to the serializer thread.  But that's
+        // what the file account API is right now, deep in the I/O layer.
         on_thread_t thread_switcher(serializer_->home_thread());
         io_account = serializer_->make_io_account(io_priority,
                                                   outstanding_requests_limit);

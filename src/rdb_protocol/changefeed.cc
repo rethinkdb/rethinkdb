@@ -1046,7 +1046,6 @@ real_feed_t::real_feed_t(client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
-                         // RSI: remove // std::string pkey,
                          signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
@@ -1711,6 +1710,7 @@ public:
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
+    virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL
@@ -2031,6 +2031,7 @@ void feed_t::on_limit_sub(
 }
 
 bool feed_t::can_be_removed() {
+    assert_thread();
     return num_subs == 0;
 }
 
@@ -2159,7 +2160,7 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
 
 class artificial_feed_t : public feed_t {
 public:
-    artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
+    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }
@@ -2178,6 +2179,11 @@ artificial_t::~artificial_t() { }
 counted_t<datum_stream_t> artificial_t::subscribe(
     const keyspec_t::spec_t &spec,
     const protob_t<const Backtrace> &bt) {
+    // It's OK not to switch threads here because `feed.get()` can be called
+    // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
+    // which does the thread switch itself.  If you later change this to switch
+    // threads, make sure that the `subscription_t` and `stream_t` are allocated
+    // on the thread you want to use them on.
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(feed.get(), spec);
     sub->start_artificial(uuid);
@@ -2185,11 +2191,13 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 }
 
 void artificial_t::send_all(const msg_t &msg) {
+    assert_thread();
     msg_visitor_t visitor(feed.get(), uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);
 }
 
 bool artificial_t::can_be_removed() {
+    assert_thread();
     return feed->can_be_removed();
 }
 

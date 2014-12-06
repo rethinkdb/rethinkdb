@@ -273,7 +273,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
         rassert(coro_t::self());
 
         buf_lock_t block(parent, block_id, state->helper->btree_node_mode());
-        acq_start_cb->on_in_line();  // KSI: this is dumb.
+        acq_start_cb->on_in_line();
 
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
@@ -507,10 +507,7 @@ void process_a_internal_node(traversal_state_t *state,
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         int level, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null) {
-    // TODO: The below comment is wrong because we acquire the stat block
-    // This can be run in the scheduler thread.
-    //
-    //
+    rassert(coro_t::self());
     int population_change = 0;
 
     try {

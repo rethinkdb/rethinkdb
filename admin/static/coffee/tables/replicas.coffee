@@ -53,12 +53,12 @@ module 'TableView', ->
                     @$('.settings_alert').html @template.alert
                         not_int: true
                 return 1
-            if new_num_replicas > @model.get 'max_replicas'
+            if new_num_replicas > @model.get 'max_replicas_per_shard'
                 @render_replicas_error () =>
                     @$('.settings_alert').html @template.alert
                         too_many_replicas: true
                         num_replicas: new_num_replicas
-                        max_num_replicas: @model.get 'max_replicas'
+                        max_num_replicas: @model.get 'max_replicas_per_shard'
                 return 1
             if new_num_replicas < 1
                 @render_replicas_error () =>
@@ -158,7 +158,7 @@ module 'TableView', ->
         render: =>
             @$el.html @template.main
                 editable: @editable
-                max_replicas: @model.get 'max_replicas'
+                max_replicas_per_shard: @model.get 'max_replicas_per_shard'
                 num_replicas_per_shard: @model.get 'num_replicas_per_shard'
 
             if @editable is true
