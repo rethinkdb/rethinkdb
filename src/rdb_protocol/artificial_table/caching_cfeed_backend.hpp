@@ -12,6 +12,8 @@ row, compares it to the old value, and sends a notification if necessary. */
 class caching_cfeed_artificial_table_backend_t :
     public cfeed_artificial_table_backend_t {
 protected:
+    caching_cfeed_artificial_table_backend_t();
+
     /* The `caching_cfeed_artificial_table_backend_t` calls `set_notifications()` to tell
     the subclass whether it needs notifications or not. The default is no; it will call
     `set_notifications(true)` when the first changefeed is connected, and
