@@ -27,6 +27,7 @@ public:
             server_name_client_t *_name_client,
             watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
             mailbox_manager_t *_mailbox_manager);
+    ~debug_stats_artificial_table_backend_t();
 
     bool write_row(
             ql::datum_t primary_key,

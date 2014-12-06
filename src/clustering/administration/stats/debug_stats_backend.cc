@@ -9,10 +9,16 @@ debug_stats_artificial_table_backend_t::debug_stats_artificial_table_backend_t(
         boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
             _servers_sl_view,
         server_name_client_t *_name_client,
-        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view) :
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
+        mailbox_manager_t *_mailbox_manager) :
     common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
-    directory_view(_directory_view)
+    directory_view(_directory_view),
+    mailbox_manager(_mailbox_manager)
     { }
+
+debug_stats_artificial_table_backend_t::~debug_stats_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
 
 bool debug_stats_artificial_table_backend_t::write_row(
         UNUSED ql::datum_t primary_key,
@@ -41,7 +47,7 @@ bool debug_stats_artificial_table_backend_t::format_row(
     if (stats_for_server(server_id, interruptor, &stats, &stats_error)) {
         builder.overwrite("stats", stats);
     } else {
-        builder.overwrite("error", ql::datum_t(datum_string_t(errro)));
+        builder.overwrite("error", ql::datum_t(datum_string_t(stats_error)));
     }
 
     *row_out = std::move(builder).to_datum();
@@ -61,7 +67,7 @@ bool debug_stats_artificial_table_backend_t::stats_for_server(
     }
 
     get_stats_mailbox_address_t request_addr;
-    directory_view->read_key(*peer_id, [](const cluster_directory_metadata_t *md) {
+    directory_view->read_key(*peer_id, [&](const cluster_directory_metadata_t *md) {
         if (md != nullptr) {
             request_addr = md->get_stats_mailbox_address;
         }
@@ -73,7 +79,7 @@ bool debug_stats_artificial_table_backend_t::stats_for_server(
 
     /* Make a filter that includes everything */
     std::set<std::vector<std::string> > filter;
-    filter.push_back(std::vector<stat_manager_t::stat_id_t>());
+    filter.insert(std::vector<stat_manager_t::stat_id_t>());
 
     return fetch_stats_from_server(
         mailbox_manager,

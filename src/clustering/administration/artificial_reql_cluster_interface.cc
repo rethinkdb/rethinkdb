@@ -373,7 +373,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client,
         _directory_map_view,
         _mailbox_manager));
-    backends[name_string_t::guarantee_valid("_debug_stats")]    
+    backends[name_string_t::guarantee_valid("_debug_stats")] =
         std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(

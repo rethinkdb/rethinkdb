@@ -27,7 +27,6 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    bool result = true;
     /* Note that we don't have a subscription watching `get_server_id_to_name_map()`,
     even though we use it in this calculation. This is OK because any time
     `get_server_id_to_name_map()` changes, we'll also get a notification through
@@ -36,25 +35,22 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
     between when we get a notification through `servers_sl_view` and when
     `get_server_id_to_name_map()` actually changes. But it's still a bit fragile, and
     maybe we shouldn't do it. */
-    name_client->get_server_id_to_name_map()->apply_read(
-        [&](const std::map<server_id_t, name_string_t> *map) {
-            for (auto it = map->begin(); it != map->end(); ++it) {
-                ql::datum_t row;
-                std::map<
-                        server_id_t, deletable_t<server_semilattice_metadata_t>
-                    >::iterator sl_it;
-                if (!search_metadata_by_uuid(&servers_sl.servers, it->first, &sl_it)) {
-                    continue;
-                }
-                if (!format_row(it->second, it->first, sl_it->second.get_ref(),
-                                interruptor, &row, error_out)) {
-                    result = false;
-                    return;
-                }
-                rows_out->push_back(row);
-            }
-        });
-    return result;
+    std::map<server_id_t, name_string_t> server_map =
+        name_client->get_server_id_to_name_map()->get();
+    for (auto it = server_map.begin(); it != server_map.end(); ++it) {
+        ql::datum_t row;
+        std::map<server_id_t, deletable_t<server_semilattice_metadata_t> >
+            ::iterator sl_it;
+        if (!search_metadata_by_uuid(&servers_sl.servers, it->first, &sl_it)) {
+            continue;
+        }
+        if (!format_row(it->second, it->first, sl_it->second.get_ref(),
+                        interruptor, &row, error_out)) {
+            return false;
+        }
+        rows_out->push_back(row);
+    }
+    return true;
 }
 
 bool common_server_artificial_table_backend_t::read_row(
