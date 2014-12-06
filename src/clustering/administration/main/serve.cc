@@ -17,6 +17,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
@@ -454,7 +455,15 @@ bool do_serve(io_backender_t *io_backender,
                         logNTC("Proxy ready");
                     }
 
+                    // XXX here is where version checking should occur?
+                    cond_t version_cond;
+                    version_checker_t checker(&rdb_ctx, &version_cond);
+                    checker.initial_check();
+                    timer_token_t *timer = add_timer(1000, &checker);
+
                     stop_cond->wait_lazily_unordered();
+
+                    cancel_timer(timer);
 
 
                     if (stop_cond->get_source_signo() == SIGINT) {
