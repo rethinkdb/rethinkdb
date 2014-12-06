@@ -22,6 +22,7 @@ void cfeed_artificial_table_backend_t::machinery_t::send_all_stop() {
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::maybe_remove() {
+    assert_thread();
     last_subscriber_time = current_microtime();
     /* The `cfeed_artificial_table_backend_t` has a repeating timer that will eventually
     clean us up */
