@@ -252,6 +252,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             the user, but don't return it yet if we need to make changes. The reason for
             this odd order is that we need to validate the change before we write the
             change. */
+            rcheck_row_replacement(primary_key, key, old_val, new_val);
             bool was_changed;
             ql::datum_t resp = make_row_replacement_stats(
                 primary_key, key, old_val, new_val, return_changes, &was_changed);
