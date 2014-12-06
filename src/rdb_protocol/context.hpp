@@ -77,7 +77,7 @@ enum class admin_identifier_format_t {
     uuid = 1
 };
 
-class base_table_t {
+class base_table_t : public slow_atomic_countable_t<base_table_t> {
 public:
     virtual const std::string &get_pkey() = 0;
 
@@ -183,7 +183,7 @@ public:
             std::string *error_out) = 0;
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             boost::optional<admin_identifier_format_t> identifier_format,
-            signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
+            signal_t *interruptor, counted_t<base_table_t> *table_out,
             std::string *error_out) = 0;
     virtual bool table_config(counted_t<const ql::db_t> db,
             const std::vector<name_string_t> &tables,

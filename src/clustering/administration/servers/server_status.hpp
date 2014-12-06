@@ -25,12 +25,8 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
             server_name_client_t *_name_client,
-            clone_ptr_t< watchable_t< change_tracking_map_t<
-                peer_id_t, cluster_directory_metadata_t> > > _directory_view,
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view);
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view);
+    ~server_status_artificial_table_backend_t();
 
     bool write_row(
             ql::datum_t primary_key,
@@ -47,15 +43,10 @@ private:
             ql::datum_t *row_out,
             std::string *error_out);
 
-    name_string_t get_db_name(database_id_t db_id);
-
-    clone_ptr_t< watchable_t< change_tracking_map_t<
-        peer_id_t, cluster_directory_metadata_t> > > directory_view;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        databases_semilattice_metadata_t> > database_sl_view;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
     last_seen_tracker_t last_seen_tracker;
+
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_STATUS_HPP_ */

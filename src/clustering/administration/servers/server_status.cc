@@ -16,48 +16,28 @@ ql::datum_t convert_host_and_port_to_datum(const host_and_port_t &x) {
     return std::move(builder).to_datum();
 }
 
-bool directory_has_role_for_table(const reactor_business_card_t &business_card) {
-    for (auto it = business_card.activities.begin();
-              it != business_card.activities.end();
-            ++it) {
-        if (!boost::get<reactor_business_card_t::nothing_t>(&it->second.activity)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool table_has_role_for_server(const server_id_t &server,
-                               const table_config_t &table_config) {
-    for (const table_config_t::shard_t &shard : table_config.shards) {
-        if (shard.replicas.count(server) == 1) {
-            return true;
-        }
-    }
-    return false;
-}
-
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
-    boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
-        _servers_sl_view,
-    server_name_client_t *_name_client,
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-        cluster_directory_metadata_t> > > _directory_view,
-    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
-        namespaces_semilattice_metadata_t> > > _table_sl_view,
-    boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> >
-        _database_sl_view) :
+        boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
+            _servers_sl_view,
+        server_name_client_t *_name_client,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view) :
     common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
-    directory_view(_directory_view), table_sl_view(_table_sl_view),
-    database_sl_view(_database_sl_view),
-    last_seen_tracker(
-        _servers_sl_view,
-        _directory_view->incremental_subview(
-            incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
-                                    &cluster_directory_metadata_t::server_id)))
-{
-    table_sl_view->assert_thread();
-    database_sl_view->assert_thread();
+    directory_view(_directory_view),
+    last_seen_tracker(_servers_sl_view, _directory_view),
+    directory_subs(directory_view,
+        [this](const peer_id_t &, const cluster_directory_metadata_t *md) {
+            if (md == nullptr) {
+                notify_all();
+            } else {
+                /* This is one of the rare cases where we can tell exactly which row
+                needs to be recomputed */
+                notify_row(convert_uuid_to_datum(md->server_id));
+            }
+        }, false)
+    { }
+
+server_status_artificial_table_backend_t::~server_status_artificial_table_backend_t() {
+    begin_changefeed_destruction();
 }
 
 bool server_status_artificial_table_backend_t::format_row(
@@ -70,18 +50,16 @@ bool server_status_artificial_table_backend_t::format_row(
     builder.overwrite("name", convert_name_to_datum(server_name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
+    /* We don't have a subscription watching `get_peer_id_for_server_id()`, even though
+    we use it in this calculation. This is OK because it's computed from the directory,
+    and we do have a subscription watching the directory. It's true that there might be
+    a gap between when they update, but because `cfeed_artificial_table_backend_t`
+    recomputes asynchronously, it's OK. */
     boost::optional<peer_id_t> peer_id =
         name_client->get_peer_id_for_server_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
     if (static_cast<bool>(peer_id)) {
-        directory_view->apply_read(
-            [&](const change_tracking_map_t<peer_id_t,
-                    cluster_directory_metadata_t> *dv) {
-                auto it = dv->get_inner().find(*peer_id);
-                if (it != dv->get_inner().end()) {
-                    directory = it->second;
-                }
-            });
+        directory = directory_view->get_key(*peer_id);
     }
 
     if (directory) {
@@ -169,18 +147,5 @@ bool server_status_artificial_table_backend_t::write_row(
         std::string *error_out) {
     *error_out = "It's illegal to write to the `rethinkdb.server_status` table.";
     return false;
-}
-
-name_string_t server_status_artificial_table_backend_t::get_db_name(
-        database_id_t db_id) {
-    assert_thread();
-    databases_semilattice_metadata_t dbs = database_sl_view->get();
-    if (dbs.databases.at(db_id).is_deleted()) {
-        /* This can occur due to a race condition, if a new table is added to a database
-        at the same time as it is being deleted. */
-        return name_string_t::guarantee_valid("__deleted_database__");
-    } else {
-        return dbs.databases.at(db_id).get_ref().name.get_ref();
-    }
 }
 

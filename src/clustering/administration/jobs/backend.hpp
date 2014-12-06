@@ -8,14 +8,14 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 
 class server_name_client_t;
 
 class jobs_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     jobs_artificial_table_backend_t(

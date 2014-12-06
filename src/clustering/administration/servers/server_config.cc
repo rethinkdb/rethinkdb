@@ -57,6 +57,17 @@ bool convert_server_config_and_name_from_datum(
     return true;
 }
 
+server_config_artificial_table_backend_t::server_config_artificial_table_backend_t(
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            servers_semilattice_metadata_t> > _servers_sl_view,
+        server_name_client_t *_name_client) :
+    common_server_artificial_table_backend_t(_servers_sl_view, _name_client)
+    { }
+
+server_config_artificial_table_backend_t::~server_config_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 bool server_config_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
         server_id_t const & server_id,

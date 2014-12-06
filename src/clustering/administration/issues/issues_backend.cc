@@ -31,6 +31,10 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     trackers.insert(&name_collision_issue_tracker);
 }
 
+issues_artificial_table_backend_t::~issues_artificial_table_backend_t() {
+    begin_changefeed_destruction();
+}
+
 std::string issues_artificial_table_backend_t::get_primary_key_name() {
     return "id";
 }

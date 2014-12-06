@@ -1818,9 +1818,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
 
-keyspec_t::keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) {
-    guarantee(table.has());
-}
 keyspec_t::~keyspec_t() { }
 
 RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(
@@ -2034,6 +2031,7 @@ void feed_t::on_limit_sub(
 }
 
 bool feed_t::can_be_removed() {
+    assert_thread();
     return num_subs == 0;
 }
 
@@ -2162,25 +2160,30 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
 
 class artificial_feed_t : public feed_t {
 public:
-    artificial_feed_t() { }
+    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
-    // This is a NOP because we aren't registered with a client.
-    virtual void maybe_remove_feed() { }
+    virtual void maybe_remove_feed() { parent->maybe_remove(); }
     NORETURN virtual void stop_limit_sub(limit_sub_t *) {
         crash("Limit subscriptions are not supported on artificial feeds.");
     }
 private:
+    artificial_t *parent;
     auto_drainer_t drainer;
 };
 
 artificial_t::artificial_t()
-    : stamp(0), uuid(generate_uuid()), feed(make_scoped<artificial_feed_t>()) { }
+    : stamp(0), uuid(generate_uuid()), feed(make_scoped<artificial_feed_t>(this)) { }
 artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     const keyspec_t::spec_t &spec,
     const protob_t<const Backtrace> &bt) {
+    // It's OK not to switch threads here because `feed.get()` can be called
+    // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
+    // which does the thread switch itself.  If you later change this to switch
+    // threads, make sure that the `subscription_t` and `stream_t` are allocated
+    // on the thread you want to use them on.
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(feed.get(), spec);
     sub->start_artificial(uuid);
@@ -2188,8 +2191,14 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 }
 
 void artificial_t::send_all(const msg_t &msg) {
+    assert_thread();
     msg_visitor_t visitor(feed.get(), uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);
+}
+
+bool artificial_t::can_be_removed() {
+    assert_thread();
+    return feed->can_be_removed();
 }
 
 } // namespace changefeed

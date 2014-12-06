@@ -8,13 +8,13 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "concurrency/watchable.hpp"
 
 class stats_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     stats_artificial_table_backend_t(
