@@ -447,6 +447,8 @@ bool reactor_t::attempt_backfill_from_peers(
     if (all_backfills_succeeded) {
         progress_tracker_on_svs_thread->is_ready = true;
     } else {
+        /* Remove the entries that `do_backfill()` put in the progress tracker, because
+        we're going to loop around again using the same progress tracker. */
         progress_tracker_on_svs_thread->backfills.clear();
     }
 

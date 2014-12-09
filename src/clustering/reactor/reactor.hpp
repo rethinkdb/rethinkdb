@@ -237,7 +237,10 @@ private:
     std::map<region_t, current_role_t *> current_roles;
 
     /* `reactor_be_primary()` and `reactor_be_secondary()` automatically maintain their
-    own entries in this map. */
+    own entries in this map. Using `one_per_thread_t` is kind of overkill here because
+    it automatically switches threads to do the construction and destruction, but the
+    additional overhead from the thread switches isn't a big enough cost to justify
+    changing it. */
     one_per_thread_t<std::map<region_t, reactor_progress_report_t> > progress_map;
 
     auto_drainer_t drainer;
