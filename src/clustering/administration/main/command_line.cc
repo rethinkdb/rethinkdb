@@ -848,7 +848,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         }
 
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
-                            max_concurrent_io_requests, boost::optional<uint64_t>(),
+                            max_concurrent_io_requests,
+                            boost::optional<boost::optional<uint64_t> >(),
                             &our_server_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
