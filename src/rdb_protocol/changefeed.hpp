@@ -138,7 +138,10 @@ struct keyspec_t {
         store_key_t key;
     };
 
-    keyspec_t(keyspec_t &&keyspec) = default;
+    keyspec_t(keyspec_t &&other)
+        : spec(std::move(other.spec)),
+          table(std::move(other.table)),
+          table_name(std::move(other.table_name)) { }
     ~keyspec_t();
 
     // Accursed reference collapsing!
@@ -152,7 +155,7 @@ struct keyspec_t {
 
     // This needs to be copyable and assignable because it goes inside a
     // `changefeed_stamp_t`, which goes inside a variant.
-    keyspec_t(const keyspec_t &keyspec) = default;
+    keyspec_t(const keyspec_t &) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
     typedef boost::variant<range_t, limit_t, point_t> spec_t;
