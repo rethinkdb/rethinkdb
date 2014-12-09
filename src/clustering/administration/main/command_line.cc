@@ -19,12 +19,6 @@
 #include <sys/sysctl.h>
 #endif
 
-// Needed for determining available RAM for default cache size
-#if defined(__MACH__)
-#include <mach/host_info.h>
-#include <mach/mach_host.h>
-#endif
-
 #include <functional>
 #include <limits>
 
@@ -423,24 +417,32 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     return std::string();
 }
 
-boost::optional<uint64_t> parse_total_cache_size_option(
+/* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
+empty inner `boost::optional` means the cache size is set to `auto`. */
+boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
         const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--cache-size")) {
         const std::string cache_size_opt = get_single_option(opts, "--cache-size");
-        uint64_t cache_size_megs;
-        if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
-            throw std::runtime_error(strprintf(
-                    "ERROR: could not parse cache-size as a number (%s)",
-                    cache_size_opt.c_str()));
+        if (cache_size_opt == "auto") {
+            return boost::optional<boost::optional<uint64_t> >(
+                boost::optional<uint64_t>);
+        } else {
+            uint64_t cache_size_megs;
+            if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
+                throw std::runtime_error(strprintf(
+                        "ERROR: cache-size should be a number or 'auto', got '%s'",
+                        cache_size_opt.c_str()));
+            }
+            const uint64_t res = cache_size_megs * MEGABYTE;
+            if (res > get_max_total_cache_size()) {
+                throw std::runtime_error(strprintf(
+                    "ERROR: cache-size is %" PRIu64 " MB, which is larger than the "
+                    "maximum legal cache size for this platform (%" PRIu64 " MB)",
+                    res, get_max_total_cache_size()));
+            }
+            return boost::optional<boost::optional<uint64_t> >(
+                boost::optional<uint64_t>(res));
         }
-        const uint64_t res = cache_size_megs * MEGABYTE;
-
-        std::string error;
-        if (!validate_total_cache_size(res, &error)) {
-            throw std::runtime_error(error);
-        }
-
-        return boost::optional<uint64_t>(res);
     } else {
         return boost::optional<uint64_t>();
     }
@@ -647,7 +649,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
                           const std::set<name_string_t> &server_tags,
-                          uint64_t total_cache_size,
+                          boost::optional<uint64_t> total_cache_size,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
@@ -662,7 +664,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
     server_semilattice_metadata.tags =
         versioned_t<std::set<name_string_t> >(server_tags);
     server_semilattice_metadata.cache_size_bytes =
-        versioned_t<uint64_t>(total_cache_size);
+        versioned_t<boost::optional<int64_t> >(total_cache_size);
     cluster_metadata.servers.servers.insert(
         std::make_pair(our_server_id, make_deletable(server_semilattice_metadata)));
 
@@ -710,7 +712,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
-                         const boost::optional<uint64_t> &total_cache_size,
+                         const boost::optional<boost::optional<uint64_t> >
+                            &total_cache_size,
                          const server_id_t *our_server_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
@@ -744,7 +747,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                                                                  get_auth_metadata_filename(base_path),
                                                                  &auth_perfmon_collection,
                                                                  auth_semilattice_metadata_t()));
-            guarantee(!static_cast<bool>(total_cache_size));
+            guarantee(!static_cast<bool>(total_cache_size), "rethinkdb porcelain should "
+                "have already set up total_cache_size");
         } else {
             cluster_metadata_file.init(
                 new metadata_persistence::cluster_persistent_file_t(&io_backender,
@@ -794,7 +798,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const std::set<name_string_t> &server_tag_names,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
-                             const boost::optional<uint64_t> &total_cache_size,
+                             const boost::optional<boost::optional<uint64_t> >
+                                &total_cache_size,
                              const bool new_directory,
                              serve_info_t *serve_info,
                              directory_lock_t *data_directory_lock,
@@ -817,10 +822,10 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         our_server_metadata.tags =
             versioned_t<std::set<name_string_t> >(server_tag_names);
         our_server_metadata.cache_size_bytes =
-            versioned_t<uint64_t>(
+            versioned_t<boost::optional<uint64_t> >(
                 static_cast<bool>(total_cache_size)
                     ? *total_cache_size
-                    : get_default_total_cache_size());
+                    : boost::optional<uint64_t>()   /* default to 'auto' */);
         cluster_metadata.servers.servers.insert(
             std::make_pair(our_server_id, make_deletable(our_server_metadata)));
 
@@ -902,7 +907,8 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
     help.add("--no-direct-io", "disable direct I/O");
     options_out->push_back(options::option_t(options::names_t("--cache-size"),
                                              options::OPTIONAL));
-    help.add("--cache-size mb", "total cache size (in megabytes) for the process");
+    help.add("--cache-size mb", "total cache size (in megabytes) for the process. Can "
+        "be 'auto'.");
     return help;
 }
 
@@ -1261,11 +1267,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
-        uint64_t total_cache_size;
-        if (boost::optional<uint64_t> x = parse_total_cache_size_option(opts)) {
+        boost::optional<uint64_t> total_cache_size;
+        if (boost::optional<boost::optional<uint64_t> > x =
+                parse_total_cache_size_option(opts)) {
             total_cache_size = *x;
-        } else {
-            total_cache_size = get_default_total_cache_size();
         }
 
         int max_concurrent_io_requests;
@@ -1388,7 +1393,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        boost::optional<uint64_t> total_cache_size = parse_total_cache_size_option(opts);
+        boost::optional<boost::optional<uint64_t> > total_cache_size =
+            parse_total_cache_size_option(opts);
 
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
@@ -1640,7 +1646,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             }
         }
 
-        boost::optional<uint64_t> total_cache_size = parse_total_cache_size_option(opts);
+        boost::optional<boost::optional<uint64_t> > total_cache_size =
+            parse_total_cache_size_option(opts);
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;

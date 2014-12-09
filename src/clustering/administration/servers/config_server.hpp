@@ -43,8 +43,11 @@ public:
         return my_tags.get_watchable();
     }
 
-    clone_ptr_t<watchable_t<uint64_t> > get_cache_size_bytes() {
-        return cache_size_bytes.get_watchable();
+    /* Returns the actual cache size, not the cache size setting. If the cache size
+    setting is "auto", the actual cache size will be some reasonable automatically
+    selected value; otherwise, the actual cache size will be the cache size setting. */
+    clone_ptr_t<watchable_t<uint64_t> > get_actual_cache_size_bytes() {
+        return actual_cache_size_bytes.get_watchable();
     }
 
     signal_t *get_permanently_removed_signal() {
@@ -70,18 +73,20 @@ private:
     request over the network. */
     void on_change_cache_size_request(
         signal_t *interruptor,
-        uint64_t new_cache_size,
+        boost;:optional<uint64_t> new_cache_size,
         mailbox_t<void(std::string)>::address_t ack_addr);
 
     /* `on_semilattice_change()` checks if we have been permanently removed. It does not
     block. */
     void on_semilattice_change();
 
+    void update_actual_cache_size(const boost::optional<uint64_t> &setting);
+
     mailbox_manager_t *mailbox_manager;
     server_id_t my_server_id;
     watchable_variable_t<name_string_t> my_name;
     watchable_variable_t<std::set<name_string_t> > my_tags;
-    watchable_variable_t<uint64_t> cache_size_bytes;
+    watchable_variable_t<uint64_t> actual_cache_size_bytes;
     cond_t permanently_removed_cond;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,

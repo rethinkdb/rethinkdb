@@ -14,7 +14,7 @@ server_config_server_t::server_config_server_t(
     my_server_id(_my_server_id),
     my_name(name_string_t()),
     my_tags(std::set<name_string_t>()),
-    cache_size_bytes(0),
+    actual_cache_size_bytes(0),
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
     change_name_mailbox(mailbox_manager,
@@ -41,18 +41,7 @@ server_config_server_t::server_config_server_t(
     } else {
         my_name.set_value(it->second.get_ref().name.get_ref());
         my_tags.set_value(it->second.get_ref().tags.get_ref());
-        cache_size_bytes.set_value(it->second.get_ref().cache_size_bytes.get_ref());
-
-        std::string error;
-        if (!validate_total_cache_size(cache_size_bytes.get(), &error)) {
-            /* This is unlikely, but it could happen if the system parameters changed
-            while the server was shut down (e.g. if we moved from a 64-bit system to a
-            32-bit system). I'm not sure if that's actually possible, but let's play it
-            safe. */
-            logERR("%s", error.c_str());
-            cache_size_bytes.set_value(get_default_total_cache_size());
-        }
-        log_total_cache_size(cache_size_bytes.get());
+        update_cache_size(it->second.get_ref().cache_size_bytes.get_ref());
     }
 
     semilattice_subs.reset(semilattice_view);
@@ -120,17 +109,20 @@ void server_config_server_t::on_change_tags_request(
 
 void server_config_server_t::on_change_cache_size_request(
         UNUSED signal_t *interruptor,
-        uint64_t new_cache_size,
+        boost::optional<uint64_t> new_cache_size,
         mailbox_t<void(std::string)>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed() &&
             new_cache_size != cache_size_bytes.get()) {
         std::string error;
-        if (!validate_total_cache_size(new_cache_size, &error)) {
-            send(mailbox_manager, ack_addr, error);
+        if (static_cast<bool>(new_cache_size) &&
+                *new_cache_size > get_max_total_cache_size()) {
+            send(mailbox_manager, ack_addr,
+                strprintf("The proposed cache size of %" PRIu64 " MB is larger than the "
+                    "maximum legal value for this platform (%" PRIu64 " MB).",
+                    *new_cache_size, get_max_total_cache_size()));
             return;
         }
-        log_total_cache_size(new_cache_size);
-        cache_size_bytes.set_value(new_cache_size);
+        update_actual_cache_size(new_cache_size);
         servers_semilattice_metadata_t metadata = semilattice_view->get();
         deletable_t<server_semilattice_metadata_t> *entry =
             &metadata.servers.at(my_server_id);
@@ -157,5 +149,44 @@ void server_config_server_t::on_semilattice_change() {
             permanently_removed_cond.pulse();
         }
     }
+}
+
+void server_config_server_t::update_actual_cache_size(
+        const boost::optional<uint64_t> &setting) {
+    const uint64_t available_memory = get_avail_mem_size();
+    uint64_t actual_size;
+    if (!static_cast<bool>(setting)) {
+        actual_size = get_default_total_cache_size();
+        logINF("Automatically using cache size of %" PRIu64 " MB",
+            actual_size / static_cast<uint64_t>(MEGABYTE));
+    } else {
+        if (*setting > get_max_total_cache_size()) {
+            /* Usually this won't happen, because something else will reject the value
+            before it gets to here. However, this can happen if a large cache size is
+            recorded on disk and then the same data files are opened on a platform with a
+            lower limit. I'm not sure if it's currently possible to open 64-bit metadata
+            files on 32-bit platform, but better safe than sorry. */
+            logWRN("The cache size is set to %" PRIu64 " MB, which is larger than the "
+                "maximum legal value for this platform (%" PRIu64 " MB). The maximum "
+                "legal value will be used as the actual cache size.",
+                *setting, get_max_total_cache_size());
+            actual_size = get_max_total_cache_size();
+        } else {
+            actual_size = *set;
+            logINF("Cache size is set to %" PRIu64 " MB",
+                actual_size / static_cast<uint64_t>(MEGABYTE));
+        }
+    }
+    if (actual_size > available_memory) {
+        logWRN("Cache size is larger than available memory.");
+    } else if (actual_size + GIGABYTE > available_memory) {
+        logWRN("Cache size does not leave much memory for server and query "
+               "overhead (available memory: %" PRIu64 " MB).",
+               available_memory / static_cast<uint64_t>(MEGABYTE));
+    }
+    if (actual_size <= 100 * MEGABYTE) {
+        logWRN("Cache size is very low and may impact performance.");
+    }
+    actual_cache_size_bytes.set_value(actual_size);
 }
 

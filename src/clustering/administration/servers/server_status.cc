@@ -121,11 +121,14 @@ bool server_status_artificial_table_backend_t::format_row(
             convert_vector_to_datum<std::string>(
                 &convert_string_to_datum,
                 directory->argv));
+        proc_builder.overwrite("cache_size_mb", ql::datum_t(
+            static_cast<double>(directory->actual_cache_size_bytes) / MEGABYTE));
     } else {
         proc_builder.overwrite("time_started", ql::datum_t::null());
         proc_builder.overwrite("version", ql::datum_t::null());
         proc_builder.overwrite("pid", ql::datum_t::null());
         proc_builder.overwrite("argv", ql::datum_t::null());
+        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
     }
     builder.overwrite("process", std::move(proc_builder).to_datum());
 

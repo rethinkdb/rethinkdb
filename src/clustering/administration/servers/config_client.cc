@@ -106,7 +106,7 @@ bool server_config_client_t::change_server_tags(
 bool server_config_client_t::change_server_cache_size(
         const server_id_t &server_id,
         const name_string_t &server_name,   /* for error messages */
-        uint64_t new_cache_size_bytes,
+        const boost::optional<uint64_t> new_cache_size_bytes,
         signal_t *interruptor,
         std::string *error_out) {
     return do_change(

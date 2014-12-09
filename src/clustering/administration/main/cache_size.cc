@@ -198,34 +198,4 @@ uint64_t get_default_total_cache_size() {
     return res;
 }
 
-bool validate_total_cache_size(uint64_t total_cache_size, std::string *error_out) {
-    if (total_cache_size > get_max_total_cache_size()) {
-        *error_out = strprintf("Requested cache size (%" PRIu64 " MB) is higher than "
-            "the expected upper bound for this platform (%" PRIu64 " MB).",
-            total_cache_size / static_cast<uint64_t>(MEGABYTE),
-            get_max_total_cache_size() / static_cast<uint64_t>(MEGABYTE));
-        return false;
-    }
-    return true;
-}
-
-void log_total_cache_size(uint64_t total_cache_size) {
-    logINF("Using cache size of %" PRIu64 " MB",
-       total_cache_size / static_cast<uint64_t>(MEGABYTE));
-
-    /* Provide some warnings if the cache size or available memory seem inadequate. We
-    can't *really* tell what could go wrong given that we don't know how much data or
-    what kind of queries will be run, so these are just somewhat reasonable values. */
-    const uint64_t available_memory = get_avail_mem_size();
-    if (total_cache_size > available_memory) {
-        logWRN("Requested cache size is larger than available memory.");
-    } else if (total_cache_size + GIGABYTE > available_memory) {
-        logWRN("Cache size does not leave much memory for server and query "
-               "overhead (available memory: %" PRIu64 " MB).",
-               available_memory / static_cast<uint64_t>(MEGABYTE));
-    }
-    if (total_cache_size <= 100 * MEGABYTE) {
-        logWRN("Cache size is very low and may impact performance.");
-    }
-}
 

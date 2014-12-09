@@ -20,9 +20,12 @@ class server_semilattice_metadata_t {
 public:
     /* These fields should only be modified by the server that this metadata is
     describing. */
+
     versioned_t<name_string_t> name;
     versioned_t<std::set<name_string_t> > tags;
-    versioned_t<uint64_t> cache_size_bytes;
+
+    /* An empty `boost::optional` means to pick a reasonable cache size automatically. */
+    versioned_t<boost::optional<uint64_t> > cache_size_bytes;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_semilattice_metadata_t);
@@ -56,7 +59,7 @@ public:
     change_tags_mailbox_t::address_t change_tags_addr;
 
     typedef mailbox_t< void(
-            uint64_t,   /* in bytes */
+            boost::optional<uint64_t>,   /* in bytes */
             mailbox_t<void(std::string)>::address_t
         ) > change_cache_size_mailbox_t;
     change_cache_size_mailbox_t::address_t change_cache_size_addr;

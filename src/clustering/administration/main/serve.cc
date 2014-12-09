@@ -164,6 +164,7 @@ bool do_serve(io_backender_t *io_backender,
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
             serve_info.argv,
+            0,   /* we'll fill `actual_cache_size_bytes` in later */
             jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
@@ -174,6 +175,19 @@ bool do_serve(io_backender_t *io_backender,
 
         watchable_variable_t<cluster_directory_metadata_t>
             our_root_directory_variable(initial_directory);
+
+        /* This will take care of updating the directory every time our cache size
+        changes. It also fills in the initial value. */
+        scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
+            actual_cache_size_directory_copier;
+        if (i_am_a_server) {
+            actual_cache_size_directory_copier.init(
+                new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::actual_cache_size_bytes,
+                    server_config_server->get_actual_cache_size_bytes(),
+                    &our_root_directory_variable));
+        }
+
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -313,7 +327,7 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 // Proxies do not have caches to balance
                 cache_balancer.init(new alt_cache_balancer_t(
-                    server_config_server->get_cache_size_bytes()));
+                    server_config_server->get_actual_cache_size_bytes()));
             }
 
             // Reactor drivers

@@ -114,7 +114,7 @@ public:
     bool change_server_cache_size(
         const server_id_t &server,
         const name_string_t &server_name,   /* for error messages */
-        uint64_t new_cache_size_mb,
+        const boost::optional<uint64_t> &new_cache_size_bytes,
         signal_t *interruptor,
         std::string *error_out);
 
