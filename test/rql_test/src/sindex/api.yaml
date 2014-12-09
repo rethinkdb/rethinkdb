@@ -383,6 +383,8 @@ tests:
   - cd: tbl.index_create('broken')
     ot: ({'created':1})
 
+  - cd: tbl.index_wait('broken')
+
   - rb: tbl.get_all(1, :index => 'c').orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })

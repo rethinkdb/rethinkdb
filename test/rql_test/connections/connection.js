@@ -308,7 +308,7 @@ describe('Javascript connection API', function(){
         it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1', {useOutdated:true}).run(c, function(){
-                    r.table('t1').run(c, {useOutdated: true}, done);});});
+                    r.db('test').table('t1').run(c, {useOutdated: true}, done);});});
         }));
 
         it("test default durability", withConnection(function(done, c){

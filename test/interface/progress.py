@@ -1,20 +1,26 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+raise NotImplementedError('Needs Jobs table: https://github.com/rethinkdb/rethinkdb/issues/3115')
+
+import os, sys, time
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin, scenario_common, utils
-from vcoptparse import *
+import driver, http_admin, scenario_common, utils, vcoptparse
 
 r = utils.import_python_driver()
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
     processes = [
         driver.Process(

@@ -5,7 +5,9 @@
 
 from __future__ import print_function
 
-import sys, os, time, traceback, multiprocessing
+import multiprocessing, os, sys, time, traceback
+
+startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -14,7 +16,7 @@ r = utils.import_python_driver()
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
 db = "test"
 tables = ["table1", "table2", "table3"]
@@ -57,23 +59,23 @@ def spawn_table_wait(port, tbls):
     write_proc.start()
     return write_proc
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    
-    print("Spinning up two processes...")
-    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", command_prefix=command_prefix)
-    proc1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
-    files2 = driver.Files(metacluster, console_output = "create-output-2", server_name="b", command_prefix=command_prefix)
-    proc2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
-    proc1.wait_until_started_up()
-    proc2.wait_until_started_up()
+print("Spinning up two servers (%.2fs)" % (time.time() - startTime))
+with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
     cluster.check()
+    
+    proc1 = cluster[0]
+    proc2 = cluster[1]
+    files2 = proc2.files
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
 
     conn = r.connect("localhost", proc1.driver_port)
-    r.db_create(db).run(conn)
+    
+    if db not in r.db_list().run(conn):
+        print("Creating db (%.2fs)" % (time.time() - startTime))
+        r.db_create(db).run(conn)
 
-    print("Testing simple table (several times)...")
+    print("Testing simple table (several times) (%.2fs)" % (time.time() - startTime))
     for i in xrange(5):
         res = r.db(db).table_create("simple").run(conn)
         assert res == {"created": 1}
@@ -84,10 +86,10 @@ with driver.Metacluster() as metacluster:
         res = r.db(db).table_drop("simple").run(conn)
         assert res == {"dropped": 1}
 
-    print("Creating %d tables..." % (len(tables) + 1))
+    print("Creating %d tables (%.2fs)" % (len(tables) + 1, time.time() - startTime))
     create_tables(conn)
 
-    print("Killing second server...")
+    print("Killing second server (%.2fs)" % (time.time() - startTime))
     proc2.close()
 
     wait_for_table_states(conn, ready=False)
@@ -113,14 +115,14 @@ with driver.Metacluster() as metacluster:
     waiter_procs[0].join(15)
     assert all(map(lambda w: w.is_alive(), waiter_procs)), "Wait returned while a server was still down."
 
-    print("Restarting second server...")
-    proc2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
+    print("Restarting second server (%.2fs)" % (time.time() - startTime))
+    proc2 = driver.Process(cluster, files2, command_prefix=command_prefix, extra_options=serve_options)
     proc2.wait_until_started_up()
 
-    print("Waiting for table readiness...")
+    print("Waiting for table readiness (%.2fs)" % (time.time() - startTime))
     map(lambda w: w.join(), waiter_procs)
     assert check_table_states(conn, ready=True), "`table_wait` returned, but not all tables are ready"
 
-    cluster.check_and_stop()
-print("Done.")
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))
 

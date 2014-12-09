@@ -1,29 +1,31 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
 
-import os, sys
+"""The `interface.db_config` test checks that the special `rethinkdb.db_config` table behaves as expected."""
+
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
 
 r = utils.import_python_driver()
 
-"""The `interface.db_config` test checks that the special `rethinkdb.db_config` table behaves as expected."""
-
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+print("Starting server (%.2fs)" % (time.time() - startTime))
+with driver.Process(files='a', output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
     
-    print("Spinning up a process...")
-    files = driver.Files(metacluster, console_output="create-output", server_name="a", command_prefix=command_prefix)
-    proc = driver.Process(cluster, files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
-    proc.wait_until_started_up()
-    cluster.check()
-    conn = r.connect("localhost", proc.driver_port)
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Starting tests (%.2fs)" % (time.time() - startTime))
 
     assert list(r.db("rethinkdb").table("db_config").run(conn)) == []
     res = r.db_create("foo").run(conn)
@@ -76,7 +78,6 @@ with driver.Metacluster() as metacluster:
     assert res["errors"] == 0
     assert res["deleted"] == 1
     assert "baz" not in r.db_list().run(conn)
-
-    cluster.check_and_stop()
-print("Done.")
-
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

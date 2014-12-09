@@ -1,27 +1,29 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
+
 from __future__ import print_function
-import os, subprocess, sys, time
+
+import os, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
-r = utils.import_python_driver()
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+r = utils.import_python_driver()
+
+megabyte = 1024 * 1024
+
+print("Starting a server (%.2fs)" % (time.time() - startTime))
+with driver.Process(console_output=True, output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
     
-    print("Spinning up a process...")
-    files = driver.Files(metacluster, db_path="db", console_output="create-output", command_prefix=command_prefix)
-    proc = driver.Process(cluster, files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
-    proc.wait_until_started_up()
-    cluster.check()
-    conn = r.connect(proc.host, proc.driver_port)
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    conn = r.connect(host=server.host, port=server.driver_port)
 
-    megabyte = 1048576
 
     def set_cache_size(size_mb):
         print("Setting cache size to %.2f MB." % size_mb)
@@ -37,18 +39,16 @@ with driver.Metacluster() as metacluster:
                      .nth(0) \
                      .div(megabyte) \
                      .run(conn)
-        print("Measured cache usage at %.2f MB (expected %.2f MB)" %
-            (actual_mb, expect_mb))
-        assert expect_mb * 0.9 <= actual_mb <= expect_mb * 1.01
+        assert expect_mb * 0.9 <= actual_mb <= expect_mb * 1.01, "Measured cache usage at %.2f MB (expected %.2f MB)" % (actual_mb, expect_mb)
 
     high_cache_mb = 20
     set_cache_size(high_cache_mb)
 
-    print("Making a table.")
+    print("Making a table. (%.2fs)" % (time.time() - startTime))
     r.db_create("test").run(conn)
     r.table_create("test").run(conn)
 
-    print("Filling table...")
+    print("Filling table (%.2fs)" % (time.time() - startTime))
     doc_size = 10000
     overfill_factor = 1.2
     num_docs = int(high_cache_mb * megabyte * overfill_factor / doc_size)
@@ -74,5 +74,5 @@ with driver.Metacluster() as metacluster:
 
     check_cache_usage(high_cache_mb)
 
-    cluster.check_and_stop()
-
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))
