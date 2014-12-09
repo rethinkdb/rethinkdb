@@ -36,8 +36,6 @@ bool fetch_stats_from_server(
         signal_t *interruptor,
         ql::datum_t *stats_out,
         std::string *error_out) {
-    coro_t::yield();
-
     cond_t done;
     mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
         [&](signal_t *, ql::datum_t s) {
