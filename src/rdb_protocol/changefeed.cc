@@ -1152,7 +1152,9 @@ void real_feed_t::constructor_cb() {
             // We only get here if we were removed before we were detached.
             guarantee(num_subs == 0);
         }
-        lock.reset(); // Otherwise our auto_drainer can never be destroyed.
+        // We have to release the drainer lock before `self` is destroyed,
+        // otherwise we'll block forever.
+        lock.reset();
     }
 }
 
