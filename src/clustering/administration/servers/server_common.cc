@@ -2,18 +2,18 @@
 #include "clustering/administration/servers/server_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 common_server_artificial_table_backend_t::common_server_artificial_table_backend_t(
         boost::shared_ptr< semilattice_readwrite_view_t<
             servers_semilattice_metadata_t> > _servers_sl_view,
-        server_name_client_t *_name_client) :
+        server_config_client_t *_server_config_client) :
     servers_sl_view(_servers_sl_view),
-    name_client(_name_client),
+    server_config_client(_server_config_client),
     subs([this]() { notify_all(); }, _servers_sl_view)
 {
     servers_sl_view->assert_thread();
-    name_client->assert_thread();
+    server_config_client->assert_thread();
 }
 
 std::string common_server_artificial_table_backend_t::get_primary_key_name() {
@@ -36,7 +36,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
     `get_server_id_to_name_map()` actually changes. But it's still a bit fragile, and
     maybe we shouldn't do it. */
     std::map<server_id_t, name_string_t> server_map =
-        name_client->get_server_id_to_name_map()->get();
+        server_config_client->get_server_id_to_name_map()->get();
     for (auto it = server_map.begin(); it != server_map.end(); ++it) {
         ql::datum_t row;
         std::map<server_id_t, deletable_t<server_semilattice_metadata_t> >
@@ -89,7 +89,7 @@ bool common_server_artificial_table_backend_t::lookup(
     }
     *server_out = it->second.get_mutable();
     boost::optional<name_string_t> res =
-        name_client->get_name_for_server_id(*server_id_out);
+        server_config_client->get_name_for_server_id(*server_id_out);
     if (!res) {
         /* This is probably impossible, but it could conceivably be possible due to a
         race condition */

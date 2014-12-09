@@ -12,7 +12,6 @@
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
-#include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
@@ -64,7 +63,6 @@ public:
             server_id_t _server_id,
             peer_id_t _peer_id,
             const std::string &_version,
-            uint64_t _cache_size,
             microtime_t _time_started,
             int64_t _pid,
             const std::string &_hostname,
@@ -73,15 +71,15 @@ public:
             boost::optional<uint16_t> _http_admin_port,
             std::set<host_and_port_t> _canonical_addresses,
             const std::vector<std::string> &_argv,
+            uint64_t _actual_cache_size_bytes,
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
-            const boost::optional<server_name_business_card_t> &nsbc,
+            const boost::optional<server_config_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
         server_id(_server_id),
         peer_id(_peer_id),
         version(_version),
-        cache_size(_cache_size),
         time_started(_time_started),
         pid(_pid),
         hostname(_hostname),
@@ -90,10 +88,11 @@ public:
         http_admin_port(_http_admin_port),
         canonical_addresses(_canonical_addresses),
         argv(_argv),
+        actual_cache_size_bytes(_actual_cache_size_bytes),
         jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
-        server_name_business_card(nsbc),
+        server_config_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
     cluster_directory_metadata_t(const cluster_directory_metadata_t &) = default;
@@ -108,7 +107,6 @@ public:
         server_id = other.server_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
-        cache_size = other.cache_size;
         time_started = other.time_started;
         pid = other.pid;
         hostname = std::move(other.hostname);
@@ -117,10 +115,11 @@ public:
         http_admin_port = other.http_admin_port;
         canonical_addresses = std::move(other.canonical_addresses);
         argv = std::move(other.argv);
+        actual_cache_size_bytes = other.actual_cache_size_bytes;
         jobs_mailbox = other.jobs_mailbox;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         log_mailbox = other.log_mailbox;
-        server_name_business_card = other.server_name_business_card;
+        server_config_business_card = other.server_config_business_card;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
         return *this;
@@ -133,7 +132,6 @@ public:
 
     /* This group of fields are for showing in `rethinkdb.server_status` */
     std::string version;   /* server version string, e.g. "rethinkdb 1.X.Y ..." */
-    uint64_t cache_size;
     microtime_t time_started;
     int64_t pid;   /* really a `pid_t`, but we need a platform-independent type */
     std::string hostname;
@@ -141,11 +139,12 @@ public:
     boost::optional<uint16_t> http_admin_port;
     std::set<host_and_port_t> canonical_addresses;
     std::vector<std::string> argv;
+    uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
-    boost::optional<server_name_business_card_t> server_name_business_card;
+    boost::optional<server_config_business_card_t> server_config_business_card;
     local_issues_t local_issues;
     cluster_directory_peer_type_t peer_type;
 };

@@ -1,8 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/server.hpp"
 
-#include "clustering/administration/servers/name_client.hpp"
-#include "clustering/administration/servers/name_server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
+#include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 
 const datum_string_t server_down_issue_t::server_down_issue_type =
@@ -23,14 +23,14 @@ server_down_issue_t::server_down_issue_t(const server_id_t &_down_server_id) :
 
 bool server_down_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
     ql::datum_t down_server_name_or_uuid;
     name_string_t down_server_name;
-    if (!convert_server_id_to_datum(down_server_id, identifier_format, name_client,
-            &down_server_name_or_uuid, &down_server_name)) {
+    if (!convert_server_id_to_datum(down_server_id, identifier_format,
+            server_config_client, &down_server_name_or_uuid, &down_server_name)) {
         /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
         brief window of time before the `server_down_issue_t` is destroyed. During that
         time, if the user reads from `rethinkdb.issues`, we don't want to show them an
@@ -45,7 +45,7 @@ bool server_down_issue_t::build_info_and_description(
     for (const server_id_t &id : affected_server_ids) {
         ql::datum_t name_or_uuid;
         name_string_t name;
-        if (!convert_server_id_to_datum(id, identifier_format, name_client,
+        if (!convert_server_id_to_datum(id, identifier_format, server_config_client,
                 &name_or_uuid, &name)) {
             /* Ignore connectivity reports from servers that have been declared dead */
             continue;
@@ -82,7 +82,7 @@ server_ghost_issue_t::server_ghost_issue_t(const server_id_t &_ghost_server_id,
 
 bool server_ghost_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
-        UNUSED server_name_client_t *name_client,
+        UNUSED server_config_client_t *server_config_client,
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -107,8 +107,8 @@ server_issue_tracker_t::server_issue_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
-        server_name_client_t *_name_client,
-        server_name_server_t *_name_server) :
+        server_config_client_t *_server_config_client,
+        server_config_server_t *_server_config_server) :
     down_issues(std::vector<server_down_issue_t>()),
     ghost_issues(std::vector<server_ghost_issue_t>()),
     down_subs(parent, down_issues.get_watchable(),
@@ -117,18 +117,19 @@ server_issue_tracker_t::server_issue_tracker_t(
         &local_issues_t::server_ghost_issues),
     cluster_sl_view(_cluster_sl_view),
     directory_view(_directory_view),
-    name_client(_name_client),
-    name_server(_name_server),
+    server_config_client(_server_config_client),
+    server_config_server(_server_config_server),
     cluster_sl_subs(std::bind(&server_issue_tracker_t::recompute, this),
                     cluster_sl_view),
     directory_subs(directory_view,
                    std::bind(&server_issue_tracker_t::recompute, this),
                    false),
-    name_client_subs(std::bind(&server_issue_tracker_t::recompute, this))
+    server_config_client_subs(std::bind(&server_issue_tracker_t::recompute, this))
 {
     watchable_t<std::map<server_id_t, peer_id_t> >::freeze_t freeze(
-        name_client->get_server_id_to_peer_id_map());
-    name_client_subs.reset(name_client->get_server_id_to_peer_id_map(), &freeze);
+        server_config_client->get_server_id_to_peer_id_map());
+    server_config_client_subs.reset(
+        server_config_client->get_server_id_to_peer_id_map(), &freeze);
     recompute();   
 }
 
@@ -151,9 +152,9 @@ void server_issue_tracker_t::recompute() {
     std::vector<server_ghost_issue_t> ghost_list;
     for (auto const &pair : cluster_sl_view->get().servers.servers) {
         boost::optional<peer_id_t> peer_id =
-            name_client->get_peer_id_for_server_id(pair.first);
+            server_config_client->get_peer_id_for_server_id(pair.first);
         if (!pair.second.is_deleted() && !static_cast<bool>(peer_id)) {
-            if (name_server->get_permanently_removed_signal()->is_pulsed()) {
+            if (server_config_server->get_permanently_removed_signal()->is_pulsed()) {
                 /* We are a ghost server. Ghost servers don't make disconnection reports.
                 */
                 continue;
@@ -163,8 +164,9 @@ void server_issue_tracker_t::recompute() {
             directory_view->read_key(*peer_id,
                 [&](const cluster_directory_metadata_t *md) {
                     if (md == nullptr) {
-                        /* Race condition; the server appeared in `name_client`'s list of
-                        servers but hasn't appeared in the directory yet. */
+                        /* Race condition; the server appeared in
+                        `server_config_client`'s list of servers but hasn't appeared in
+                        the directory yet. */
                         return;
                     }
                     ghost_list.push_back(server_ghost_issue_t(

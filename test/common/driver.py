@@ -554,7 +554,7 @@ class Process(_Process):
         self.logfile_path = os.path.join(files.db_path, "log_file")
 
         if not '--cache-size' in extra_options:
-            extra_options += ['--cache-size', '512']
+            extra_options = extra_options + ['--cache-size', '512']
         
         options = ["serve", "--directory", self.files.db_path] + extra_options
 

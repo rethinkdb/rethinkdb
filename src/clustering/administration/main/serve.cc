@@ -24,8 +24,8 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
-#include "clustering/administration/servers/name_server.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "containers/incremental_lenses.hpp"
@@ -82,7 +82,6 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
-              uint64_t total_cache_size,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
     try {
@@ -126,9 +125,9 @@ bool do_serve(io_backender_t *io_backender,
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
-        scoped_ptr_t<server_name_server_t> server_name_server;
+        scoped_ptr_t<server_config_server_t> server_config_server;
         if (i_am_a_server) {
-            server_name_server.init(new server_name_server_t(
+            server_config_server.init(new server_config_server_t(
                 &mailbox_manager,
                 server_id,
                 directory_read_manager.get_root_view(),
@@ -137,7 +136,7 @@ bool do_serve(io_backender_t *io_backender,
                     semilattice_manager_cluster.get_root_view())));
         }
 
-        server_name_client_t server_name_client(&mailbox_manager,
+        server_config_client_t server_config_client(&mailbox_manager,
             directory_read_manager.get_root_view(),
             metadata_field(
                 &cluster_semilattice_metadata_t::servers,
@@ -153,7 +152,6 @@ bool do_serve(io_backender_t *io_backender,
             server_id,
             connectivity_cluster.get_me(),
             RETHINKDB_VERSION_STR,
-            total_cache_size,
             current_microtime(),
             getpid(),
             str_gethostname(),
@@ -166,16 +164,30 @@ bool do_serve(io_backender_t *io_backender,
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             serve_info.ports.canonical_addresses.hosts(),
             serve_info.argv,
+            0,   /* we'll fill `actual_cache_size_bytes` in later */
             jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
             i_am_a_server
-                ? boost::make_optional(server_name_server->get_business_card())
-                : boost::optional<server_name_business_card_t>(),
+                ? boost::make_optional(server_config_server->get_business_card())
+                : boost::optional<server_config_business_card_t>(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
         watchable_variable_t<cluster_directory_metadata_t>
             our_root_directory_variable(initial_directory);
+
+        /* This will take care of updating the directory every time our cache size
+        changes. It also fills in the initial value. */
+        scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
+            actual_cache_size_directory_copier;
+        if (i_am_a_server) {
+            actual_cache_size_directory_copier.init(
+                new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::actual_cache_size_bytes,
+                    server_config_server->get_actual_cache_size_bytes(),
+                    &our_root_directory_variable));
+        }
+
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -192,8 +204,8 @@ bool do_serve(io_backender_t *io_backender,
                 &local_issue_aggregator,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_map_view(),
-                &server_name_client,
-                server_name_server.get()));
+                &server_config_client,
+                server_config_server.get()));
         }
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
@@ -283,7 +295,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
-                &server_name_client);
+                &server_config_client);
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
@@ -292,7 +304,7 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
                 reactor_directory_read_manager.get_root_view(),
-                &server_name_client,
+                &server_config_client,
                 &mailbox_manager);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
@@ -315,7 +327,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 // Proxies do not have caches to balance
-                cache_balancer.init(new alt_cache_balancer_t(total_cache_size));
+                cache_balancer.init(new alt_cache_balancer_t(
+                    server_config_server->get_actual_cache_size_bytes()));
             }
 
             // Reactor drivers
@@ -339,8 +352,8 @@ bool do_serve(io_backender_t *io_backender,
                         reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         semilattice_manager_cluster.get_root_view(),
-                        &server_name_client,
-                        server_name_server->get_permanently_removed_signal(),
+                        &server_config_client,
+                        server_config_server->get_permanently_removed_signal(),
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
@@ -490,7 +503,6 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
@@ -498,7 +510,6 @@ bool serve(io_backender_t *io_backender,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
-                    total_cache_size,
                     serve_info,
                     stop_cond);
 }
@@ -512,7 +523,6 @@ bool serve_proxy(const serve_info_t &serve_info,
                     base_path_t(""),
                     NULL,
                     NULL,
-                    0,
                     serve_info,
                     stop_cond);
 }

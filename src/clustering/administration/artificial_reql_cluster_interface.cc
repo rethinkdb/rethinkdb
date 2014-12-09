@@ -283,7 +283,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                             namespace_directory_metadata_t> *_reactor_directory_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
@@ -303,7 +303,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         issues_backend[i].init(new issues_artificial_table_backend_t(
             _semilattice_view,
             _directory_view,
-            _name_client,
+            _server_config_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("issues")] =
@@ -312,21 +312,21 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
-        _name_client));
+        _server_config_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
-        _name_client,
+        _server_config_client,
         _directory_map_view));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
     for (int i = 0; i < 2; ++i) {
         stats_backend[i].init(new stats_artificial_table_backend_t(
-            _directory_view, _semilattice_view, _name_client, _mailbox_manager,
+            _directory_view, _semilattice_view, _server_config_client, _mailbox_manager,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("stats")] =
@@ -337,7 +337,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _next_reql_cluster_interface,
             static_cast<admin_identifier_format_t>(i),
-            _name_client));
+            _server_config_client));
     }
     backends[name_string_t::guarantee_valid("table_config")] =
         std::make_pair(table_config_backend[0].get(), table_config_backend[1].get());
@@ -347,7 +347,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _reactor_directory_view,
             static_cast<admin_identifier_format_t>(i),
-            _name_client));
+            _server_config_client));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
@@ -357,7 +357,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _mailbox_manager,
             _semilattice_view,
             _directory_view,
-            _name_client,
+            _server_config_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("jobs")] =
@@ -370,7 +370,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     debug_stats_backend.init(new debug_stats_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
-        _name_client,
+        _server_config_client,
         _directory_map_view,
         _mailbox_manager));
     backends[name_string_t::guarantee_valid("_debug_stats")] =
@@ -379,7 +379,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
         _reactor_directory_view,
-        _name_client));
+        _server_config_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());

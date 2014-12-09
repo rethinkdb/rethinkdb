@@ -15,7 +15,7 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
-class server_name_client_t;
+class server_config_client_t;
 
 class debug_stats_artificial_table_backend_t :
     public common_server_artificial_table_backend_t
@@ -24,7 +24,7 @@ public:
     debug_stats_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
                 servers_semilattice_metadata_t> > _servers_sl_view,
-            server_name_client_t *_name_client,
+            server_config_client_t *_server_config_client,
             watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
             mailbox_manager_t *_mailbox_manager);
     ~debug_stats_artificial_table_backend_t();

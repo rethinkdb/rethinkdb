@@ -87,7 +87,7 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
         for (size_t i = 0; i < info.config.shards.size(); ++i) {
             /* RSI(reql_admin): This should be set to the server ID of the director for
             the shard, rather than to `nil_uuid()`. We could compute the server ID by
-            looking it up in the `server_name_client`. But it's likely that we'll soon
+            looking it up in the `server_config_client`. But it's likely that we'll soon
             store the server ID directly instead of the name, so it's less effort to
             just fix this once that change has been implemented. */
             new_reg_to_pri_maps[it->first][info.shard_scheme.get_shard_range(i)] =

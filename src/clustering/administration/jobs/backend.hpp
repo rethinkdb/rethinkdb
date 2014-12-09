@@ -12,7 +12,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 
-class server_name_client_t;
+class server_config_client_t;
 
 class jobs_artificial_table_backend_t :
     public timer_cfeed_artificial_table_backend_t
@@ -24,7 +24,7 @@ public:
             cluster_semilattice_metadata_t> > _semilattice_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         admin_identifier_format_t _identifier_format);
     ~jobs_artificial_table_backend_t();
 
@@ -58,7 +58,7 @@ private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
 
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
 
     admin_identifier_format_t identifier_format;
 };

@@ -124,7 +124,6 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond);
 

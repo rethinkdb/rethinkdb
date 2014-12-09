@@ -4,6 +4,6 @@
 
 #include "containers/name_string.hpp"
 
-name_string_t get_server_name();
+name_string_t get_default_server_name();
 
 #endif // CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_

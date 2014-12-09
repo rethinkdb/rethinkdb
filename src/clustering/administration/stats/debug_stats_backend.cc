@@ -2,16 +2,16 @@
 #include "clustering/administration/stats/debug_stats_backend.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
 debug_stats_artificial_table_backend_t::debug_stats_artificial_table_backend_t(
         boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
             _servers_sl_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
         mailbox_manager_t *_mailbox_manager) :
-    common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
+    common_server_artificial_table_backend_t(_servers_sl_view, _server_config_client),
     directory_view(_directory_view),
     mailbox_manager(_mailbox_manager)
     { }
@@ -60,7 +60,7 @@ bool debug_stats_artificial_table_backend_t::stats_for_server(
         ql::datum_t *stats_out,
         std::string *error_out) {
     boost::optional<peer_id_t> peer_id =
-        name_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer_id)) {
         *error_out = "Server is not connected.";
         return false;
