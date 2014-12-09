@@ -313,8 +313,8 @@ void do_backfill(
                        svs,
                        region,
                        ct_backfiller_metadata.get_watchable(),
-                       &progress_tracker_on_svs_thread->backfills.back().second,
-                       &interruptor_on_svs_thread);
+                       &interruptor_on_svs_thread,
+                       &progress_tracker_on_svs_thread->backfills.back().second);
 
             result = true;
         } // Return from svs thread

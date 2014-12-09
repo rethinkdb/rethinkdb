@@ -28,11 +28,11 @@ void backfillee(
         /* The backfiller to backfill from. */
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
 
+        signal_t *interruptor,
+
         /* If this is non-null, `backfillee()` will periodically update it with the
         latest progress fraction in the range [0, 1]. */
-        double *progress_out,
-
-        signal_t *interruptor)
+        double *progress_out)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
 
 /* Convenience function for extracting the backfiller's peer_id_t from the

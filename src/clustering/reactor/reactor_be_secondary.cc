@@ -248,10 +248,11 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                     branch_history_manager,
                     svs,
                     ct_location_to_backfill_from.get_watchable(),
-                    &progress_tracker_on_svs_thread.get_value()->backfills.back().second,
                     &region_perfmon_collection,
                     &ct_interruptor,
-                    &order_source);
+                    &order_source,
+                    &progress_tracker_on_svs_thread.get_value()->backfills.back().second
+                    );
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

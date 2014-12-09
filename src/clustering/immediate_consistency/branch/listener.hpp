@@ -71,10 +71,11 @@ public:
             branch_history_manager_t *branch_history_manager,
             store_view_t *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier, 
-            double *backfill_progress_out,   /* can be null */
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
-            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
+            order_source_t *order_source,
+            double *backfill_progress_out   /* can be null */)
+            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
     becoming the first mirror of a new branch. It should only be called once for
