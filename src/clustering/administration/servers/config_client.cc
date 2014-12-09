@@ -1,8 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/config_client.hpp"
 
-#include "clustering/administration/main/cache_size.hpp"
-
 server_config_client_t::server_config_client_t(
         mailbox_manager_t *_mailbox_manager,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -106,7 +104,7 @@ bool server_config_client_t::change_server_tags(
 bool server_config_client_t::change_server_cache_size(
         const server_id_t &server_id,
         const name_string_t &server_name,   /* for error messages */
-        const boost::optional<uint64_t> new_cache_size_bytes,
+        const boost::optional<uint64_t> &new_cache_size_bytes,
         signal_t *interruptor,
         std::string *error_out) {
     return do_change(

@@ -65,7 +65,7 @@ bool convert_server_config_and_name_from_datum(
             return false;
         }
         if (cache_size_mb < 0) {
-            *error_out = "In `cache_size_mb`: Cache size mustn't be negative.";
+            *error_out = "In `cache_size_mb`: Cache size cannot be negative.";
             return false;
         }
         *cache_size_bytes_out = boost::optional<uint64_t>(cache_size_mb * MEGABYTE);

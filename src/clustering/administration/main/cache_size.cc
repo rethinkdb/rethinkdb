@@ -198,4 +198,19 @@ uint64_t get_default_total_cache_size() {
     return res;
 }
 
+void log_warnings_for_cache_size(uint64_t bytes) {
+    const uint64_t available_memory = get_avail_mem_size();
+    if (bytes > available_memory) {
+        logWRN("Cache size is larger than available memory.");
+    } else if (bytes + GIGABYTE > available_memory) {
+        logWRN("Cache size does not leave much memory for server and query "
+               "overhead (available memory: %" PRIu64 " MB).",
+               available_memory / static_cast<uint64_t>(MEGABYTE));
+    }
+    if (bytes <= 100 * MEGABYTE) {
+        logWRN("Cache size is very low and may impact performance.");
+    }
+}
+
+
 

@@ -41,7 +41,7 @@ server_config_server_t::server_config_server_t(
     } else {
         my_name.set_value(it->second.get_ref().name.get_ref());
         my_tags.set_value(it->second.get_ref().tags.get_ref());
-        update_cache_size(it->second.get_ref().cache_size_bytes.get_ref());
+        update_actual_cache_size(it->second.get_ref().cache_size_bytes.get_ref());
     }
 
     semilattice_subs.reset(semilattice_view);
@@ -111,8 +111,11 @@ void server_config_server_t::on_change_cache_size_request(
         UNUSED signal_t *interruptor,
         boost::optional<uint64_t> new_cache_size,
         mailbox_t<void(std::string)>::address_t ack_addr) {
-    if (!permanently_removed_cond.is_pulsed() &&
-            new_cache_size != cache_size_bytes.get()) {
+    servers_semilattice_metadata_t metadata = semilattice_view->get();
+    deletable_t<server_semilattice_metadata_t> *entry =
+        &metadata.servers.at(my_server_id);
+    if (!permanently_removed_cond.is_pulsed() && !entry->is_deleted() &&
+            new_cache_size != entry->get_ref().cache_size_bytes.get_ref()) {
         std::string error;
         if (static_cast<bool>(new_cache_size) &&
                 *new_cache_size > get_max_total_cache_size()) {
@@ -123,13 +126,8 @@ void server_config_server_t::on_change_cache_size_request(
             return;
         }
         update_actual_cache_size(new_cache_size);
-        servers_semilattice_metadata_t metadata = semilattice_view->get();
-        deletable_t<server_semilattice_metadata_t> *entry =
-            &metadata.servers.at(my_server_id);
-        if (!entry->is_deleted()) {
-            entry->get_mutable()->cache_size_bytes.set(new_cache_size);
-            semilattice_view->join(metadata);
-        }
+        entry->get_mutable()->cache_size_bytes.set(new_cache_size);
+        semilattice_view->join(metadata);
     }
     send(mailbox_manager, ack_addr, std::string());
 }
@@ -153,7 +151,6 @@ void server_config_server_t::on_semilattice_change() {
 
 void server_config_server_t::update_actual_cache_size(
         const boost::optional<uint64_t> &setting) {
-    const uint64_t available_memory = get_avail_mem_size();
     uint64_t actual_size;
     if (!static_cast<bool>(setting)) {
         actual_size = get_default_total_cache_size();
@@ -172,21 +169,12 @@ void server_config_server_t::update_actual_cache_size(
                 *setting, get_max_total_cache_size());
             actual_size = get_max_total_cache_size();
         } else {
-            actual_size = *set;
+            actual_size = *setting;
             logINF("Cache size is set to %" PRIu64 " MB",
                 actual_size / static_cast<uint64_t>(MEGABYTE));
         }
     }
-    if (actual_size > available_memory) {
-        logWRN("Cache size is larger than available memory.");
-    } else if (actual_size + GIGABYTE > available_memory) {
-        logWRN("Cache size does not leave much memory for server and query "
-               "overhead (available memory: %" PRIu64 " MB).",
-               available_memory / static_cast<uint64_t>(MEGABYTE));
-    }
-    if (actual_size <= 100 * MEGABYTE) {
-        logWRN("Cache size is very low and may impact performance.");
-    }
+    log_warnings_for_cache_size(actual_size);
     actual_cache_size_bytes.set_value(actual_size);
 }
 

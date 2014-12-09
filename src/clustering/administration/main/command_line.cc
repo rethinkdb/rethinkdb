@@ -425,7 +425,7 @@ boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
         const std::string cache_size_opt = get_single_option(opts, "--cache-size");
         if (cache_size_opt == "auto") {
             return boost::optional<boost::optional<uint64_t> >(
-                boost::optional<uint64_t>);
+                boost::optional<uint64_t>());
         } else {
             uint64_t cache_size_megs;
             if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
@@ -664,7 +664,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
     server_semilattice_metadata.tags =
         versioned_t<std::set<name_string_t> >(server_tags);
     server_semilattice_metadata.cache_size_bytes =
-        versioned_t<boost::optional<int64_t> >(total_cache_size);
+        versioned_t<boost::optional<uint64_t> >(total_cache_size);
     cluster_metadata.servers.servers.insert(
         std::make_pair(our_server_id, make_deletable(server_semilattice_metadata)));
 

@@ -73,7 +73,7 @@ private:
     request over the network. */
     void on_change_cache_size_request(
         signal_t *interruptor,
-        boost;:optional<uint64_t> new_cache_size,
+        boost::optional<uint64_t> new_cache_size,
         mailbox_t<void(std::string)>::address_t ack_addr);
 
     /* `on_semilattice_change()` checks if we have been permanently removed. It does not
