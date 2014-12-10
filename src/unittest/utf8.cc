@@ -27,6 +27,16 @@ TEST(UTF8ValidationTest, ValidSurrogates) {
     ASSERT_TRUE(utf8::is_valid("foo\xe2\x82\xac"));
     // U+10348 hwair
     ASSERT_TRUE(utf8::is_valid("foo\xf0\x90\x8d\x88"));
+
+    // From RFC 3629 examples:
+    // U+0041 U+2262 U+0391 U+002E A<NOT IDENTICAL TO><ALPHA>
+    ASSERT_TRUE(utf8::is_valid("\x41\xe2\x89\xa2\xce\x91\x2e"));
+    // U+D55C U+AD6D U+C5B4 Korean "hangugeo", the Korean language
+    ASSERT_TRUE(utf8::is_valid("\xed\x95\x9c\xea\xb5\xad\xec\x96\xb4"));
+    // U+65E5 U+672C U+8A9E Japanese "nihongo", the Japanese language
+    ASSERT_TRUE(utf8::is_valid("\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"));
+    // U+233B4 Chinese character meaning 'stump of a tree' prefixed with a UTF-8 BOM
+    ASSERT_TRUE(utf8::is_valid("\xef\xbb\xbf\xf0\xa3\x8e\xb4"));
 }
 
 TEST(UTF8ValidationTest, InvalidCharacters) {
