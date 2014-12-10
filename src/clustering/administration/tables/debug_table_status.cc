@@ -2,7 +2,7 @@
 #include "clustering/administration/tables/debug_table_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 debug_table_status_artificial_table_backend_t::
             debug_table_status_artificial_table_backend_t(
@@ -10,12 +10,12 @@ debug_table_status_artificial_table_backend_t::
             cluster_semilattice_metadata_t> > _semilattice_view,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
             namespace_directory_metadata_t> *_directory_view,
-        server_name_client_t *_name_client) :
+        server_config_client_t *_server_config_client) :
     common_table_artificial_table_backend_t(
         _semilattice_view,
         admin_identifier_format_t::uuid),
     directory_view(_directory_view),
-    name_client(_name_client),
+    server_config_client(_server_config_client),
     directory_subs(directory_view,
         [this](const std::pair<peer_id_t, namespace_id_t> &key, 
                const namespace_directory_metadata_t *) {
@@ -153,7 +153,7 @@ ql::datum_t convert_debug_table_status_to_datum(
         const namespace_semilattice_metadata_t &metadata,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", db_name_or_uuid);
@@ -166,12 +166,12 @@ ql::datum_t convert_debug_table_status_to_datum(
                 return;
             }
             boost::optional<server_id_t> server_id =
-                name_client->get_server_id_for_peer_id(key.first);
+                server_config_client->get_server_id_for_peer_id(key.first);
             if (!static_cast<bool>(server_id)) {
                 return;
             }
             boost::optional<name_string_t> name =
-                name_client->get_name_for_server_id(*server_id);
+                server_config_client->get_name_for_server_id(*server_id);
             if (!static_cast<bool>(name)) {
                 name = boost::optional<name_string_t>(
                     name_string_t::guarantee_valid("__no_valid_name__"));
@@ -214,7 +214,7 @@ bool debug_table_status_artificial_table_backend_t::format_row(
         table_id,
         metadata,
         directory_view,
-        name_client);
+        server_config_client);
     return true;
 }
 

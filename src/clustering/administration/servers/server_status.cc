@@ -2,7 +2,7 @@
 #include "clustering/administration/servers/server_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
 ql::datum_t convert_ip_to_datum(const ip_address_t &ip) {
@@ -19,9 +19,9 @@ ql::datum_t convert_host_and_port_to_datum(const host_and_port_t &x) {
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
         boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
             _servers_sl_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view) :
-    common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
+    common_server_artificial_table_backend_t(_servers_sl_view, _server_config_client),
     directory_view(_directory_view),
     last_seen_tracker(_servers_sl_view, _directory_view),
     directory_subs(directory_view,
@@ -44,6 +44,7 @@ bool server_status_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
         server_id_t const & server_id,
         UNUSED server_semilattice_metadata_t const & server,
+        UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
@@ -56,7 +57,7 @@ bool server_status_artificial_table_backend_t::format_row(
     a gap between when they update, but because `cfeed_artificial_table_backend_t`
     recomputes asynchronously, it's OK. */
     boost::optional<peer_id_t> peer_id =
-        name_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_peer_id_for_server_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
     if (static_cast<bool>(peer_id)) {
         directory = directory_view->get_key(*peer_id);
@@ -94,19 +95,19 @@ bool server_status_artificial_table_backend_t::format_row(
             convert_microtime_to_datum(directory->time_started));
         proc_builder.overwrite("version",
             ql::datum_t(datum_string_t(directory->version)));
-        proc_builder.overwrite("cache_size_mb",
-            ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
         proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
         proc_builder.overwrite("argv",
             convert_vector_to_datum<std::string>(
                 &convert_string_to_datum,
                 directory->argv));
+        proc_builder.overwrite("cache_size_mb", ql::datum_t(
+            static_cast<double>(directory->actual_cache_size_bytes) / MEGABYTE));
     } else {
         proc_builder.overwrite("time_started", ql::datum_t::null());
         proc_builder.overwrite("version", ql::datum_t::null());
-        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
         proc_builder.overwrite("pid", ql::datum_t::null());
         proc_builder.overwrite("argv", ql::datum_t::null());
+        proc_builder.overwrite("cache_size_mb", ql::datum_t::null());
     }
     builder.overwrite("process", std::move(proc_builder).to_datum());
 

@@ -5,7 +5,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -35,7 +35,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *_directory_root_view,
         rdb_context_t *_rdb_context,
-        server_name_client_t *_server_name_client
+        server_config_client_t *_server_config_client
         ) :
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
@@ -53,7 +53,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         [this](const namespace_id_t &id, signal_t *interruptor) {
             return this->namespace_repo.get_namespace_interface(id, interruptor);
         }),
-    server_name_client(_server_name_client)
+    server_config_client(_server_config_client)
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(
@@ -282,7 +282,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         if (!table_generate_config(
-                server_name_client, nil_uuid(), nullptr, server_usage,
+                server_config_client, nil_uuid(), nullptr, server_usage,
                 config_params, table_shard_scheme_t(), &interruptor2,
                 &repli_info.config, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
@@ -616,7 +616,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    rassert(get_thread_id() == server_name_client->home_thread());
+    rassert(get_thread_id() == server_config_client->home_thread());
     std::vector<std::pair<namespace_id_t, name_string_t> > table_map;
     table_map.push_back(std::make_pair(table_id, table_name));
 
@@ -638,7 +638,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             convert_table_config_to_datum(
                 ns_metadata_it->second.get_ref().replication_info.get_ref().config,
                 admin_identifier_format_t::name,
-                server_name_client));
+                server_config_client));
 
         table_status_artificial_table_backend_t *backend =
             admin_tables->table_status_backend[
@@ -683,7 +683,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     /* This just generates a new configuration; it doesn't put it in the
     semilattices. */
     if (!table_generate_config(
-            server_name_client,
+            server_config_client,
             table_id,
             directory_root_view,
             server_usage,
@@ -711,7 +711,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             convert_table_config_to_datum(
                 new_repli_info.config,
                 admin_identifier_format_t::name,
-                server_name_client));
+                server_config_client));
 
         table_status_artificial_table_backend_t *backend =
             admin_tables->table_status_backend[
@@ -741,8 +741,9 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(
+        interruptor, server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
 
     std::vector<std::pair<namespace_id_t, name_string_t> > tables;
     if (!get_table_ids_for_query(db, { name }, &tables, error_out)) {
@@ -763,8 +764,9 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
 
     std::vector<std::pair<namespace_id_t, name_string_t> > tables;
     if (!get_table_ids_for_query(db, std::vector<name_string_t>(), &tables, error_out)) {
@@ -856,8 +858,9 @@ bool real_reql_cluster_interface_t::table_rebalance(
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
 
     std::vector<std::pair<namespace_id_t, name_string_t> > tables;
     if (!get_table_ids_for_query(db, { name }, &tables, error_out)) {
@@ -876,8 +879,9 @@ bool real_reql_cluster_interface_t::db_rebalance(
         std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
 
     std::vector<std::pair<namespace_id_t, name_string_t> > tables;
     if (!get_table_ids_for_query(db, std::vector<name_string_t>(), &tables, error_out)) {

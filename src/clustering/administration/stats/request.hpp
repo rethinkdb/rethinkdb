@@ -11,7 +11,7 @@
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
 
-class server_name_client_t;
+class server_config_client_t;
 
 // A `parsed_stats_t` represents all the values that have been gathered from other
 // servers in the cluster.  At construction, it parses the given responses to create
@@ -110,7 +110,7 @@ public:
 
     static std::set<std::vector<std::string> > global_stats_filter();
     static std::vector<std::pair<server_id_t, peer_id_t> > all_peers(
-            server_name_client_t *name_client);
+            server_config_client_t *server_config_client);
 
     virtual ~stats_request_t() { }
 
@@ -119,7 +119,7 @@ public:
 
     // Gets the list of servers/peers the request should be sent to
     virtual std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
-        server_name_client_t *name_client) const = 0;
+        server_config_client_t *server_config_client) const = 0;
 
     // Checks that the requested entity exists in the metadata, so we can avoid
     // a round-trip if the request is non-sensical.
@@ -128,7 +128,7 @@ public:
     // Converts stats from the response into the row format for the stats table
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
-                          server_name_client_t *name_client,
+                          server_config_client_t *server_config_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const = 0;
 };
@@ -145,13 +145,13 @@ public:
     std::set<std::vector<std::string> > get_filter() const;
 
     std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
-        server_name_client_t *name_client) const;
+        server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
-                          server_name_client_t *name_client,
+                          server_config_client_t *server_config_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -170,13 +170,13 @@ public:
     std::set<std::vector<std::string> > get_filter() const;
 
     std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
-        server_name_client_t *name_client) const;
+        server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
-                          server_name_client_t *name_client,
+                          server_config_client_t *server_config_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -194,13 +194,13 @@ public:
     std::set<std::vector<std::string> > get_filter() const;
 
     std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
-        server_name_client_t *name_client) const;
+        server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
-                          server_name_client_t *name_client,
+                          server_config_client_t *server_config_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -220,13 +220,13 @@ public:
     std::set<std::vector<std::string> > get_filter() const;
 
     std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
-        server_name_client_t *name_client) const;
+        server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
-                          server_name_client_t *name_client,
+                          server_config_client_t *server_config_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };

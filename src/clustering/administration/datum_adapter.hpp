@@ -12,7 +12,7 @@
 #include "time.hpp"
 
 class cluster_semilattice_metadata_t;
-class server_name_client_t;
+class server_config_client_t;
 
 /* Note that we generally use `ql::configured_limits_t::unlimited` when converting
 things to datum, rather than using a user-specified limit. This is mostly for consistency
@@ -55,13 +55,13 @@ permanently removed server. */
 bool convert_server_id_to_datum(
         const server_id_t &server_id,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         ql::datum_t *server_name_or_uuid_out,
         name_string_t *server_name_out);
 bool convert_server_id_from_datum(
         const ql::datum_t &server_name_or_uuid,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         server_id_t *server_id_out,
         name_string_t *server_name_out,
         std::string *error_out);

@@ -2,7 +2,7 @@
 #include "clustering/administration/stats/request.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 const char *cluster_stats_request_t::cluster_request_type = "cluster";
 const char *server_stats_request_t::server_request_type = "server";
@@ -249,9 +249,10 @@ std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
-        server_name_client_t *name_client) {
+        server_config_client_t *server_config_client) {
     std::vector<std::pair<server_id_t, peer_id_t> > res;
-    for (auto const &pair : name_client->get_server_id_to_peer_id_map()->get()) {
+    for (auto const &pair :
+            server_config_client->get_server_id_to_peer_id_map()->get()) {
         res.push_back(pair);
     }
     return res;
@@ -281,8 +282,8 @@ std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const 
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > cluster_stats_request_t::get_peers(
-        server_name_client_t *name_client) const {
-    return all_peers(name_client);
+        server_config_client_t *server_config_client) const {
+    return all_peers(server_config_client);
 }
 
 bool cluster_stats_request_t::check_existence(const metadata_t &) const {
@@ -291,7 +292,7 @@ bool cluster_stats_request_t::check_existence(const metadata_t &) const {
 
 bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
                                        const metadata_t &,
-                                       server_name_client_t *,
+                                       server_config_client_t *,
                                        admin_identifier_format_t,
                                        ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -342,8 +343,8 @@ std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > table_stats_request_t::get_peers(
-        server_name_client_t *name_client) const {
-    return all_peers(name_client);
+        server_config_client_t *server_config_client) const {
+    return all_peers(server_config_client);
 }
 
 bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -355,7 +356,7 @@ bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
 
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
                                      const metadata_t &metadata,
-                                     server_name_client_t *,
+                                     server_config_client_t *,
                                      admin_identifier_format_t admin_format,
                                      ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -408,8 +409,9 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > server_stats_request_t::get_peers(
-        server_name_client_t *name_client) const {
-    boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
+        server_config_client_t *server_config_client) const {
+    boost::optional<peer_id_t> peer =
+        server_config_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
         return std::vector<std::pair<server_id_t, peer_id_t> >();
     }
@@ -424,7 +426,7 @@ bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
 
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                       const metadata_t &,
-                                      server_name_client_t *name_client,
+                                      server_config_client_t *server_config_client,
                                       admin_identifier_format_t admin_format,
                                       ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -434,7 +436,7 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;
-    if (!convert_server_id_to_datum(server_id, admin_format, name_client,
+    if (!convert_server_id_to_datum(server_id, admin_format, server_config_client,
                                     &server_identifier, nullptr)) {
         return false;
     }
@@ -498,8 +500,9 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
 }
 
 std::vector<std::pair<server_id_t, peer_id_t> > table_server_stats_request_t::get_peers(
-        server_name_client_t *name_client) const {
-    boost::optional<peer_id_t> peer = name_client->get_peer_id_for_server_id(server_id);
+        server_config_client_t *server_config_client) const {
+    boost::optional<peer_id_t> peer =
+        server_config_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
         return std::vector<std::pair<server_id_t, peer_id_t> >();
     }
@@ -521,7 +524,7 @@ bool table_server_stats_request_t::check_existence(const metadata_t &metadata) c
 
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                             const metadata_t &metadata,
-                                            server_name_client_t *name_client,
+                                            server_config_client_t *server_config_client,
                                             admin_identifier_format_t admin_format,
                                             ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -532,7 +535,7 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;
-    if (!convert_server_id_to_datum(server_id, admin_format, name_client,
+    if (!convert_server_id_to_datum(server_id, admin_format, server_config_client,
                                     &server_identifier, nullptr)) {
         return false;
     }

@@ -20,7 +20,7 @@ with driver.Metacluster() as metacluster:
     files1 = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", server_name="a", server_tags=["foo"], command_prefix=command_prefix)
     files2 = driver.Files(metacluster, db_path="db-2", console_output="create_output-2", server_name="b", server_tags=["foo", "bar"], command_prefix=command_prefix)
     process1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
-    process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
+    process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     process1.wait_until_started_up()
     process2.wait_until_started_up()
     cluster.check()
@@ -52,8 +52,6 @@ with driver.Metacluster() as metacluster:
     assert st["process"]["version"].startswith("rethinkdb")
 
     assert st["process"]["pid"] == process1.process.pid
-
-    assert st["process"]["cache_size_mb"] == 123
 
     assert st["network"]["hostname"] == socket.gethostname()
     assert st["network"]["reql_port"] == process1.driver_port

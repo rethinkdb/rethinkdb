@@ -19,7 +19,7 @@ job_report_t::job_report_t(
 
 bool job_report_t::to_datum(
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
@@ -28,7 +28,7 @@ bool job_report_t::to_datum(
         if (convert_server_id_to_datum(
                 server,
                 identifier_format,
-                name_client,
+                server_config_client,
                 &server_name_or_uuid,
                 nullptr)) {
             servers_builder.add(server_name_or_uuid);

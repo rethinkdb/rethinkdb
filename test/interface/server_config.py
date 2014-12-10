@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
 
-import sys, os, time
+import sys, os, time, pprint
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -18,9 +18,9 @@ with driver.Metacluster() as metacluster:
     
     print("Spinning up two processes...")
     files1 = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", server_name="a", server_tags=["foo"], command_prefix=command_prefix)
-    files2 = driver.Files(metacluster, db_path="db-2", console_output="create-output-2", server_name="a", server_tags=["foo"], command_prefix=command_prefix)
-    process1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
-    process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
+    files2 = driver.Files(metacluster, db_path="db-2", console_output="create-output-2", server_name="b", server_tags=["foo", "bar"], command_prefix=command_prefix)
+    process1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "auto"])
+    process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
     process1.wait_until_started_up()
     process2.wait_until_started_up()
     cluster.check()
@@ -106,6 +106,47 @@ with driver.Metacluster() as metacluster:
     check_tags(uuid_a, ["baz"])
     check_tags(uuid_b, ["quz"])
     cluster.check()
+
+    print("Checking initial cache size...")
+    res = r.db("rethinkdb").table("server_config") \
+           .get(uuid_a)["cache_size_mb"].run(reql_conn1)
+    assert res == "auto", res
+    res = r.db("rethinkdb").table("server_config") \
+           .get(uuid_b)["cache_size_mb"].run(reql_conn1)
+    assert res == 123, res
+    res = r.db("rethinkdb").table("server_status") \
+           .get(uuid_b)["process"]["cache_size_mb"].run(reql_conn1)
+    assert res == 123, res
+
+    print("Checking that cache size can be changed...")
+    res = r.db("rethinkdb").table("server_config") \
+           .get(uuid_b).update({"cache_size_mb": 234}) \
+           .run(reql_conn1)
+    assert res["errors"] == 0, res
+    res = r.db("rethinkdb").table("server_config") \
+           .get(uuid_b)["cache_size_mb"].run(reql_conn1)
+    assert res == 234
+    res = r.db("rethinkdb").table("server_status") \
+           .get(uuid_b)["process"]["cache_size_mb"].run(reql_conn1)
+    assert res == 234, res
+
+    print("Checking that absurd cache sizes are rejected...")
+    def try_bad_cache_size(size, message):
+        res = r.db("rethinkdb").table("server_config") \
+               .get(uuid_b).update({"cache_size_mb": r.literal(size)}) \
+               .run(reql_conn1)
+        assert res["errors"] == 1, res
+        assert message in res["first_error"]
+    try_bad_cache_size("foobar", "wrong format")
+    try_bad_cache_size(-30, "wrong format")
+    try_bad_cache_size({}, "wrong format")
+    # 2**40 is chosen so that it fits into a 64-bit integer when expressed in bytes, to
+    # test the code path where the value is sent to the other server but then rejected by
+    # validate_total_cache_size().
+    try_bad_cache_size(2**40, "Error when trying to change the cache size of server")
+    # 2**100 is chosen so that it doesn't fit into a 64-bit integer, so it will take a
+    # different code path and get a different error message.
+    try_bad_cache_size(2**100, "wrong format")
 
     cluster.check_and_stop()
 

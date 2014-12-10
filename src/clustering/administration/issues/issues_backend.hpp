@@ -26,7 +26,7 @@ public:
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
                 &directory_view,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format);
     ~issues_artificial_table_backend_t();
 
@@ -55,7 +55,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
 
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
 
     std::set<issue_tracker_t *> trackers;
 

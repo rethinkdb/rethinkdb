@@ -37,7 +37,7 @@ private:
     static const issue_id_t base_issue_id;
     bool build_info_and_description(
         const metadata_t &metadata,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -56,7 +56,7 @@ private:
     static const issue_id_t base_issue_id;
     bool build_info_and_description(
         const metadata_t &metadata,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -77,7 +77,7 @@ private:
     const database_id_t db_id;
     bool build_info_and_description(
         const metadata_t &metadata,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
