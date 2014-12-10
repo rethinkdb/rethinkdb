@@ -32,6 +32,10 @@ TEST(UTF8ValidationTest, ValidSurrogates) {
 TEST(UTF8ValidationTest, InvalidCharacters) {
     // totally incoherent
     ASSERT_FALSE(utf8::is_valid("\xff"));
+    // also illegal
+    ASSERT_FALSE(utf8::is_valid("\xc0"));
+    ASSERT_FALSE(utf8::is_valid("\xc1"));
+    ASSERT_FALSE(utf8::is_valid("\xf5"));
     // continuation byte with no leading byte
     ASSERT_FALSE(utf8::is_valid("\xbf"));
     // two byte character with two continuation bytes
