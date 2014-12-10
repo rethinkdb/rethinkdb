@@ -1,9 +1,10 @@
 desc: Tests meta queries for databases
 tests:
 
-    # We should always start out with a 'test' database
+    # We should always start out with a 'test' database and the special 'rethinkdb'
+    # database
     - cd: r.db_list()
-      ot: ['test']
+      ot: bag(['rethinkdb', 'test'])
     
     ## DB create
 
@@ -15,7 +16,15 @@ tests:
     ## DB list
     
     - cd: r.db_list()
-      ot: bag(['a', 'b', 'test'])
+      ot: bag(['rethinkdb', 'a', 'b', 'test'])
+
+    ## DB config
+
+    - cd: r.db_config().pluck('name')
+      ot: bag([{'name':'test'},{'name':'a'},{'name':'b'}])
+
+    - cd: r.db_config('a', 'b').pluck('name')
+      ot: bag([{'name':'a'},{'name':'b'}])
 
     ## DB drop
 
@@ -23,13 +32,13 @@ tests:
       ot: ({'dropped':1})
 
     - cd: r.db_list()
-      ot: bag(['a', 'test'])
+      ot: bag(['rethinkdb', 'a', 'test'])
 
     - cd: r.db_drop('a')
       ot: ({'dropped':1})
 
     - cd: r.db_list()
-      ot: bag(['test'])
+      ot: bag(['rethinkdb', 'test'])
 
     ## DB errors
     - cd: r.db_create('bar')

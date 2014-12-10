@@ -1,57 +1,57 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2012-2014 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
-import sys, os, time, socket, random
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin, scenario_common
-from vcoptparse import *
+import os, random, socket, sys, time
 
-op = OptParser()
+startTime = time.time()
+
+try:
+    xrange
+except NameError:
+    xrange = range
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, vcoptparse
+
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
 def garbage(n):
     return "".join(chr(random.randint(0, 255)) for i in xrange(n))
 
-with driver.Metacluster() as metacluster:
-    print("Spinning up a process...")
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", command_prefix=command_prefix)
-    proc = driver.Process(cluster, files, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
-    proc.wait_until_started_up()
-    cluster.check()
-    print("Generating garbage traffic...")
+print("Starting first server (%.2fs)" % (time.time() - startTime))
+with driver.Process(files='db1', output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
+    server.check()
+    
+    print("Generating garbage traffic (%.2fs)" % (time.time() - startTime))
     for i in xrange(30):
         print(i + 1, end=' ')
         sys.stdout.flush()
         s = socket.socket()
-        s.connect(("localhost", proc.cluster_port))
+        s.connect((server.host, server.cluster_port))
         s.send(garbage(random.randint(0, 500)))
         time.sleep(3)
         s.close()
-        cluster.check()
-    print
-    cluster.check_and_stop()
-print("Done.")
+        server.check()
+    print("Cleaning up first server (%.2fs)" % (time.time() - startTime))
 
-with driver.Metacluster() as metacluster:
-    print("Spinning up another process...")
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files = driver.Files(metacluster, db_path="db-2", command_prefix=command_prefix)
-    proc = driver.Process(cluster, files, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
-    proc.wait_until_started_up()
-    cluster.check()
-    print("Opening and holding a connection...")
+print("Starting second server (%.2fs)" % (time.time() - startTime))
+with driver.Process(files='db2', output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
+    server.check()
+    
+    print("Opening and holding a connection (%.2fs)" % (time.time() - startTime))
     s = socket.socket()
-    s.connect(("localhost", proc.cluster_port))
-    print("Trying to stop cluster...")
-    cluster.check_and_stop()
+    s.connect((server.host, server.cluster_port))
+    
+    print("Stopping the server (%.2fs)" % (time.time() - startTime))
+    server.check_and_stop()
     s.close()
-print("Done.")
+    
+    print("Cleaning up second server (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))
 
 # TODO: Corrupt actual traffic between two processes instead of generating
 # complete garbage. This might be tricky.

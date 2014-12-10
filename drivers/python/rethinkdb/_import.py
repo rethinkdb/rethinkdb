@@ -693,6 +693,8 @@ def tables_check(progress, conn, files_info, force):
     # Ensure that all needed databases exist and tables don't
     db_list = r.db_list().run(conn)
     for db in set([file_info["db"] for file_info in files_info]):
+        if db == "rethinkdb":
+            raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
         if db not in db_list:
             r.db_create(db).run(conn)
 
@@ -759,6 +761,7 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    rdb_call_wrapper(conn_fn, "version check", check_version)
     already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
@@ -779,6 +782,9 @@ def import_directory(options):
     spawn_import_clients(options, files_info)
 
 def table_check(progress, conn, db, table, pkey, force):
+    if db == "rethinkdb":
+        raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
+
     if db not in r.db_list().run(conn):
         r.db_create(db).run(conn)
 
@@ -805,6 +811,7 @@ def import_file(options):
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    rdb_call_wrapper(conn_fn, "version check", check_version)
     pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory

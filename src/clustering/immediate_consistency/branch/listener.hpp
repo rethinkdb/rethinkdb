@@ -65,6 +65,7 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
+            const server_id_t &server_id,
             backfill_throttler_t *backfill_throttler,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
@@ -82,6 +83,7 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
+            const server_id_t &server_id,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             broadcaster_t *broadcaster,
@@ -210,6 +212,8 @@ private:
     void advance_current_timestamp_and_pulse_waiters(state_timestamp_t timestamp);
 
     mailbox_manager_t *const mailbox_manager_;
+
+    server_id_t const server_id_;
 
     store_view_t *const svs_;
 

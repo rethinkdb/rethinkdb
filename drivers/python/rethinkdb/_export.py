@@ -135,13 +135,15 @@ def parse_options():
 # connection errors occur.  Don't bother setting progress, because this is a
 # fairly small operation.
 def get_tables(progress, conn, tables):
-    dbs = r.db_list().run(conn)
+    dbs = r.db_list().filter(r.row.ne('rethinkdb')).run(conn)
     res = []
 
     if len(tables) == 0:
         tables = [(db, None) for db in dbs]
 
     for db_table in tables:
+        if db_table[0] == 'rethinkdb':
+            raise RuntimeError("Error: Cannot export tables from the system database: 'rethinkdb'")
         if db_table[0] not in dbs:
             raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
@@ -401,6 +403,7 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        rdb_call_wrapper(conn_fn, "version check", check_version)
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
         del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 

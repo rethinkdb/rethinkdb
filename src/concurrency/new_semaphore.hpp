@@ -12,7 +12,7 @@
 
 class new_semaphore_acq_t;
 
-class new_semaphore_t {
+class new_semaphore_t : public home_thread_mixin_debug_only_t {
 public:
     explicit new_semaphore_t(int64_t capacity);
     ~new_semaphore_t();

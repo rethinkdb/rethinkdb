@@ -83,6 +83,8 @@ public:
     void shutdown_gc();
     void shutdown();
 
+    bool is_any_gc_active() const;
+
 private:
     // Whether we are currently garbage-collecting a shard.
     bool gc_active[LBA_SHARD_FACTOR];
@@ -120,8 +122,6 @@ private:
 
     // Garbage-collect the given shard
     void gc(int lba_shard, auto_drainer_t::lock_t gc_drainer_lock);
-
-    bool is_any_gc_active() const;
 
     // Returns true if the garbage ratio is bad enough that we want to
     // gc. The integer is which shard to GC.

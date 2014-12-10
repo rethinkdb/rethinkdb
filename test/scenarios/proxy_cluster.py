@@ -1,23 +1,33 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
 import sys, os, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse, workload_runner
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["workload"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
+op["workload"] = vcoptparse.PositionalArg()
+op["timeout"] = vcoptparse.IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+print("Starting server (%.2fs)" % (time.time() - startTime))
+with driver.Process(output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as server:
     
-    print "Starting cluster..."
-    serve_files = driver.Files(metacluster, db_path="db", console_output="create-output", command_prefix=command_prefix)
-    serve_process = driver.Process(cluster, serve_files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Starting proxy server (%.2fs)" % (time.time() - startTime))
     
     # remove --cache-size
     for option in serve_options[:]:
@@ -30,20 +40,21 @@ with driver.Metacluster() as metacluster:
         elif option.startswith('--cache-size='):
             serve_options.remove(option)
     
-    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
-    processes = [serve_process, proxy_process]
-    for process in processes:
-        process.wait_until_started_up()
+    proxy_process = driver.ProxyProcess(server.cluster, 'proxy-logfile', console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
+    server.cluster.wait_until_ready()
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Starting workload: %s (%.2fs)" % (opts["workload"], time.time() - startTime))
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", proxy_process.http_port)])
-    dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary=dc)
-    http.wait_until_blueprint_satisfied(ns)
-
-    workload_ports = scenario_common.get_workload_ports(ns, [proxy_process])
+    workload_ports = scenario_common.get_workload_ports([proxy_process], tableName, dbName)
     workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
-
-    cluster.check_and_stop()
+    
+    print("Ended workload: %s (%.2fs)" % (opts["workload"], time.time() - startTime))
+print("Done (%.2fs)" % (time.time() - startTime))

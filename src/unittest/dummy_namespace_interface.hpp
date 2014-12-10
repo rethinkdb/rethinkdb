@@ -100,6 +100,10 @@ public:
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
+    bool check_readiness(table_readiness_t, signal_t *) {
+        throw cannot_perform_query_exc_t("unimplemented");
+    }
+
 private:
     std::vector<scoped_ptr_t<dummy_performer_t> > performers;
     std::vector<scoped_ptr_t<dummy_timestamper_t> > timestampers;

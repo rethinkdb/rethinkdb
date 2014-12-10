@@ -36,7 +36,7 @@ class resource_access_t {
 public:
     /* Starts monitoring the resource. Throws `resource_lost_exc_t` if the
     resource is inaccessible. In general, `v` refers to something in the
-    directory; the outer `boost::optional` is empty if the machine is not
+    directory; the outer `boost::optional` is empty if the server is not
     connected, and the inner one is empty if the resource was destroyed. */
     explicit resource_access_t(
             clone_ptr_t<watchable_t<boost::optional<boost::optional<business_card_t> > > > v)
@@ -91,14 +91,14 @@ private:
         boost::optional<boost::optional<business_card_t> > maybe_maybe_value = metadata_view->get();
         if (!maybe_maybe_value) {
             if (!failed_signal.is_pulsed()) {
-                failed_reason = "The machine hosting the resource went down.";
+                failed_reason = "The server hosting the resource went down.";
                 failed_signal.pulse();
             }
         } else {
             boost::optional<business_card_t> maybe_value = maybe_maybe_value.get();
             if (!maybe_value) {
                 if (!failed_signal.is_pulsed()) {
-                    failed_reason = "The machine hosting the resource took the "
+                    failed_reason = "The server hosting the resource took the "
                         "resource down.";
                     failed_signal.pulse();
                 }

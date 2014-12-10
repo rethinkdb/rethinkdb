@@ -25,6 +25,7 @@ module RethinkDB
       :between => 2,
       :table => -1,
       :table_create => -1,
+      :reconfigure => 0,
       :get_all => -1,
       :eq_join => -1,
       :javascript => -1,

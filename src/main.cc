@@ -4,7 +4,6 @@
 #include <set>
 
 #include "clustering/administration/main/command_line.hpp"
-#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
 
@@ -36,8 +35,6 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_serve(argc, argv);
         } else if (subcommand == "proxy") {
             return main_rethinkdb_proxy(argc, argv);
-        } else if (subcommand == "admin") {
-            return main_rethinkdb_admin(argc, argv);
         } else if (subcommand == "export") {
             return main_rethinkdb_export(argc, argv);
         } else if (subcommand == "import") {
@@ -67,13 +64,6 @@ int main(int argc, char *argv[]) {
                     return 0;
                 } else if (subcommand2 == "serve") {
                     help_rethinkdb_serve();
-                    return 0;
-                } else if (subcommand2 == "admin") {
-                    admin_command_parser_t admin_parser(std::string(),
-                                                        peer_address_set_t(),
-                                                        peer_address_t(),
-                                                        0, NULL);
-                    admin_parser.do_usage(false);
                     return 0;
                 } else if (subcommand2 == "proxy") {
                     help_rethinkdb_proxy();

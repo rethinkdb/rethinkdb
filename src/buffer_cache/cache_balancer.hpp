@@ -12,6 +12,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
+#include "concurrency/watchable.hpp"
 #include "containers/scoped.hpp"
 
 namespace alt {
@@ -92,7 +93,8 @@ class alt_cache_balancer_t final :
     public coro_pool_callback_t<alt_cache_balancer_dummy_value_t>,
     public repeating_timer_callback_t {
 public:
-    explicit alt_cache_balancer_t(uint64_t _total_cache_size);
+    explicit alt_cache_balancer_t(
+        clone_ptr_t<watchable_t<uint64_t> > _total_cache_size_watchable);
     ~alt_cache_balancer_t();
 
     uint64_t base_mem_per_store() const final {
@@ -158,7 +160,7 @@ private:
                                    const scoped_array_t<std::vector<cache_data_t> > *new_sizes,
                                    bool new_read_ahead_ok);
 
-    const uint64_t total_cache_size;
+    clone_ptr_t<watchable_t<uint64_t> > total_cache_size_watchable;
     scoped_ptr_t<repeating_timer_t> rebalance_timer;
     enum class rebalance_timer_state_t {
         // Normal operating condition: there is a timer, and it'll ping soon.  Can
@@ -196,6 +198,8 @@ private:
     // The single_value_producer_t makes sure we never build up a backlog
     single_value_producer_t<alt_cache_balancer_dummy_value_t> pool_queue;
     coro_pool_t<alt_cache_balancer_dummy_value_t> rebalance_pool;
+
+    watchable_t<uint64_t>::subscription_t cache_size_change_subscription;
 
     DISABLE_COPYING(alt_cache_balancer_t);
 };
