@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "arch/address.hpp"
 #include "btree/secondary_operations.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -15,6 +16,13 @@
 class job_report_t {
 public:
     job_report_t();
+
+    job_report_t(
+            uuid_u const &id,
+            std::string const &type,
+            double duration,
+            ip_and_port_t const &client_addr_port);
+
     job_report_t(
             uuid_u const &id,
             std::string const &type,
@@ -31,6 +39,7 @@ public:
     uuid_u id;
     std::string type;
     double duration;
+    ip_and_port_t client_addr_port;
     namespace_id_t table;
     std::string index;
 
@@ -39,5 +48,13 @@ public:
     std::set<server_id_t> servers;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_report_t);
+
+class query_job_t {
+public:
+    query_job_t(microtime_t _start_time, ip_and_port_t const &_client_addr_port);
+
+    microtime_t start_time;
+    ip_and_port_t client_addr_port;
+};
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

@@ -8,14 +8,24 @@ job_report_t::job_report_t(
         uuid_u const &_id,
         std::string const &_type,
         double _duration,
+        ip_and_port_t const &_client_addr_port)
+    : id(_id),
+      type(_type),
+      duration(_duration),
+      client_addr_port(_client_addr_port),
+      table(nil_uuid()) { }
+
+job_report_t::job_report_t(
+        uuid_u const &_id,
+        std::string const &_type,
+        double _duration,
         namespace_id_t const &_table,
         std::string const &_index)
     : id(_id),
       type(_type),
       duration(_duration),
       table(_table),
-      index(_index) {
-}
+      index(_index) { }
 
 bool job_report_t::to_datum(
         admin_identifier_format_t identifier_format,
@@ -57,6 +67,11 @@ bool job_report_t::to_datum(
     }
     if (type == "index_construction") {
         info_builder.overwrite("index", convert_string_to_datum(index));
+    } else if (type == "query") {
+        info_builder.overwrite("client_address",
+            convert_string_to_datum(client_addr_port.ip().to_string()));
+        double port = client_addr_port.port().value();
+        info_builder.overwrite("client_port", ql::datum_t(port));
     }
 
     ql::datum_object_builder_t builder;
@@ -70,5 +85,9 @@ bool job_report_t::to_datum(
 
     return true;
 }
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
+    job_report_t, type, id, duration, client_addr_port, table, index, servers);
 
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(job_report_t, type, id, duration, table, index, servers);
+query_job_t::query_job_t(microtime_t _start_time, ip_and_port_t const &_client_addr_port)
+    : start_time(_start_time), client_addr_port(_client_addr_port) { }
+

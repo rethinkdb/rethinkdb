@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
+#include "arch/address.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -202,6 +204,7 @@ void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
          stream_cache_t *stream_cache,
+         ip_and_port_t const &peer,
          Response *res) {
     try {
         validate_pb(*q);
@@ -213,8 +216,10 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
-        ctx->get_query_jobs_for_this_thread(), generate_uuid(), current_microtime());
+    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
+        ctx->get_query_jobs_for_this_thread(),
+        generate_uuid(),
+        query_job_t(current_microtime(), peer));
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;

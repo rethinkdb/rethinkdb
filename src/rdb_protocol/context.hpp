@@ -243,6 +243,7 @@ protected:
 };
 
 class mailbox_manager_t;
+class query_job_t;
 
 class rdb_context_t {
 public:
@@ -273,7 +274,7 @@ public:
     mailbox_manager_t *manager;
 
     const std::string reql_http_proxy;
-    
+
     class stats_t {
     public:
         explicit stats_t(perfmon_collection_t *global_stats);
@@ -292,7 +293,7 @@ public:
         DISABLE_COPYING(stats_t);
     } stats;
 
-    typedef std::map<uuid_u, microtime_t> query_jobs_t;
+    typedef std::map<uuid_u, query_job_t> query_jobs_t;
     query_jobs_t * get_query_jobs_for_this_thread();
 
 private:

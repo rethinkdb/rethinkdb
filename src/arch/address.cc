@@ -371,20 +371,42 @@ bool ip_address_t::is_any() const {
     return false;
 }
 
-port_t::port_t(int _value) : value_(_value) {
-    guarantee(value_ <= MAX_PORT);
+port_t::port_t(int _value)
+    : value_(_value) {
+    guarantee(value_ <= port_t::max_port);
+}
+
+port_t::port_t(sockaddr const *sa) {
+    switch (sa->sa_family) {
+    case AF_INET:
+        value_ = ntohs(reinterpret_cast<sockaddr_in const *>(sa)->sin_port);
+        break;
+    case AF_INET6:
+        value_ = ntohs(reinterpret_cast<sockaddr_in6 const *>(sa)->sin6_port);
+        break;
+    default:
+        value_ = 0;
+    }
 }
 
 int port_t::value() const {
     return value_;
 }
 
-ip_and_port_t::ip_and_port_t() :
-    port_(0)
+std::string port_t::to_string() const {
+    return std::to_string(value_);
+}
+
+ip_and_port_t::ip_and_port_t()
+    : port_(0)
 { }
 
-ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, port_t _port) :
-    ip_(_ip), port_(_port)
+ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, port_t _port)
+    : ip_(_ip), port_(_port)
+{ }
+
+ip_and_port_t::ip_and_port_t(sockaddr const *sa)
+    : ip_(sa), port_(sa)
 { }
 
 bool ip_and_port_t::operator < (const ip_and_port_t &other) const {
@@ -404,6 +426,14 @@ const ip_address_t & ip_and_port_t::ip() const {
 
 port_t ip_and_port_t::port() const {
     return port_;
+}
+
+std::string ip_and_port_t::to_string() const {
+    if (ip_.is_ipv6()) {
+        return "[" + ip_.to_string() + "]:" + port_.to_string();
+    } else {
+        return ip_.to_string() + ":" + port_.to_string();
+    }
 }
 
 bool is_similar_ip_address(const ip_and_port_t &left,

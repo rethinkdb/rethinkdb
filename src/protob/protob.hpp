@@ -11,6 +11,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -133,7 +134,8 @@ public:
 
     virtual MUST_USE bool run_query(const ql::protob_t<Query> &query,
                                     Response *response_out,
-                                    client_context_t *client_ctx) = 0;
+                                    client_context_t *client_ctx,
+                                    ip_and_port_t const &peer) = 0;
 
     virtual void unparseable_query(int64_t token,
                                    Response *response_out,
