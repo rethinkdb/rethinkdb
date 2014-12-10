@@ -1033,7 +1033,7 @@ def main():
                 pass
             
             if testProcess.wait() != 0:
-                if server is not None:
+                if server is not None and hasattr(server, 'check_and_stop'):
                     try:
                         server.check_and_stop()
                     except Exception as e:
@@ -1041,7 +1041,7 @@ def main():
                         if serverOutput:
                             serverOutput.seek(0)
                             serverLog = '\nServer log:\n%s' % serverOutput.read()
-                        sys.stderr.write('RethinkDB server failed: %s' % (str(e), serverLog))
+                        sys.stderr.write('RethinkDB server failed: %s%s' % (str(e), serverLog))
                     server = None
                     serverOutput = None
                 

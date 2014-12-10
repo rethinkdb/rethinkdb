@@ -93,8 +93,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
                     .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
@@ -272,6 +272,9 @@ class RDBVal extends TermBase
     tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
     tableDrop: (args...) -> new TableDrop {}, @, args...
     tableList: (args...) -> new TableList {}, @, args...
+    tableConfig: (args...) -> new TableConfig {}, @, args...
+    tableStatus: (args...) -> new TableStatus {}, @, args...
+    tableWait: (args...) -> new TableWait {}, @, args...
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
@@ -338,6 +341,9 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
+
     sync: (args...) -> new Sync {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
@@ -398,6 +404,9 @@ translateBackOptargs = (optargs) ->
             when 'default_timezone' then 'defaultTimezone'
             when 'result_format' then 'resultFormat'
             when 'page_limit' then 'pageLimit'
+            when 'director_tag' then 'directorTag'
+            when 'dry_run' then 'dryRun'
+            when 'identifier_format' then 'identifierFormat'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
             when 'max_results' then 'maxResults'
@@ -422,6 +431,9 @@ translateOptargs = (optargs) ->
             when 'defaultTimezone' then 'default_timezone'
             when 'resultFormat' then 'result_format'
             when 'pageLimit' then 'page_limit'
+            when 'directorTag' then 'director_tag'
+            when 'dryRun' then 'dry_run'
+            when 'identifierFormat' then 'identifier_format'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
             when 'maxResults' then 'max_results'
@@ -911,6 +923,10 @@ class DbList extends RDBOp
     tt: protoTermType.DB_LIST
     st: 'dbList'
 
+class DbConfig extends RDBOp
+    tt: protoTermType.DB_CONFIG
+    st: 'dbConfig'
+
 class TableCreate extends RDBOp
     tt: protoTermType.TABLE_CREATE
     mt: 'tableCreate'
@@ -922,6 +938,18 @@ class TableDrop extends RDBOp
 class TableList extends RDBOp
     tt: protoTermType.TABLE_LIST
     mt: 'tableList'
+
+class TableConfig extends RDBOp
+    tt: protoTermType.TABLE_CONFIG
+    mt: 'tableConfig'
+
+class TableStatus extends RDBOp
+    tt: protoTermType.TABLE_STATUS
+    mt: 'tableStatus'
+
+class TableWait extends RDBOp
+    tt: protoTermType.TABLE_WAIT
+    mt: 'tableWait'
 
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
@@ -946,6 +974,14 @@ class IndexStatus extends RDBOp
 class IndexWait extends RDBOp
     tt: protoTermType.INDEX_WAIT
     mt: 'indexWait'
+
+class Reconfigure extends RDBOp
+    tt: protoTermType.RECONFIGURE
+    mt: 'reconfigure'
+
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC
@@ -1225,10 +1261,17 @@ rethinkdb.db = (args...) -> new Db {}, args...
 rethinkdb.dbCreate = (args...) -> new DbCreate {}, args...
 rethinkdb.dbDrop = (args...) -> new DbDrop {}, args...
 rethinkdb.dbList = (args...) -> new DbList {}, args...
+rethinkdb.dbConfig = (args...) -> new DbConfig {}, args...
 
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
+rethinkdb.tableConfig = (args...) -> new TableConfig {}, args...
+rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
+rethinkdb.tableWait = (args...) -> new TableWait {}, args...
+
+rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

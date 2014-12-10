@@ -180,19 +180,6 @@ void run_until_satisfied_apply(const callable_type &_fun, const value_type *val,
         bool *is_done_out) {
     *is_done_out = _fun(*val);
 }
-template<class a_type, class b_type, class callable_type>
-void run_until_satisfied_2_apply_inner(const callable_type &_fun,
-        const a_type *a_val, const b_type *b_val, bool *is_done_out) {
-    *is_done_out = _fun(*a_val, *b_val);
-}
-template<class a_type, class b_type, class callable_type>
-void run_until_satisfied_2_apply_outer(const callable_type &_fun,
-        const clone_ptr_t<watchable_t<b_type> > &_b, const a_type *a_val,
-        bool *is_done_out) {
-    _b->apply_read(std::bind(
-        &run_until_satisfied_2_apply_inner<a_type, b_type, callable_type>, _fun, a_val,
-        std::placeholders::_1, is_done_out));
-}
 
 template<class value_type>
 template<class callable_type>
@@ -229,45 +216,3 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
     }
 }
 
-template<class a_type, class b_type, class callable_type>
-void run_until_satisfied_2(
-        const clone_ptr_t<watchable_t<a_type> > &a,
-        const clone_ptr_t<watchable_t<b_type> > &b,
-        const callable_type &fun,
-        signal_t *interruptor,
-        int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
-    a->assert_thread();
-    b->assert_thread();
-
-    bool is_done = false;
-    auto op = std::bind(&run_until_satisfied_2_apply_outer<a_type, b_type, callable_type>,
-                        fun,
-                        b,
-                        std::placeholders::_1,
-                        &is_done);
-
-    while (true) {
-        cond_t changed;
-        typename watchable_t<a_type>::subscription_t a_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
-        typename watchable_t<b_type>::subscription_t b_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
-        {
-            typename watchable_t<a_type>::freeze_t a_freeze(a);
-            typename watchable_t<b_type>::freeze_t b_freeze(b);
-            ASSERT_FINITE_CORO_WAITING;
-            a->apply_read(op);
-            if (is_done) {
-                return;
-            }
-            a_subs.reset(a, &a_freeze);
-            b_subs.reset(b, &b_freeze);
-        }
-        // Nap a little so changes to the watchables can accumulate.
-        // This is purely a performance optimization to save CPU cycles,
-        // in case that applying `fun` is expensive (which it is in our
-        // applications in the reactors as of 12/10/2013).
-        if (nap_before_retry_ms > 0) {
-            nap(nap_before_retry_ms, interruptor);
-        }
-        wait_interruptible(&changed, interruptor);
-    }
-}

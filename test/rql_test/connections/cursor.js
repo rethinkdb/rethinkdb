@@ -72,7 +72,7 @@ var port = parseInt(process.argv[2], 10)
 r.connect({port:port}, function(err, c) {
     assertNoError(err);
 
-    var tbl = r.table('test');
+    var tbl = r.db('test').table('test');
     var num_rows = parseInt(process.argv[3], 10);
     console.log("Testing for "+num_rows);
 

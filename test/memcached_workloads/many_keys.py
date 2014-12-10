@@ -1,20 +1,25 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import random, sys, os
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
+import os, random, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import rdb_workload_common
-from vcoptparse import *
+import rdb_workload_common, vcoptparse
 
 op = rdb_workload_common.option_parser_for_connect()
-op["num_keys"] = IntFlag("--num-keys", 5000)
-op["sequential"] = BoolFlag("--sequential")
-op["phase"] = ChoiceFlag("--phase", ["w", "r", "wr"], "wr")
+op["num_keys"] = vcoptparse.IntFlag("--num-keys", 5000)
+op["sequential"] = vcoptparse.BoolFlag("--sequential")
+op["phase"] = vcoptparse.ChoiceFlag("--phase", ["w", "r", "wr"], "wr")
 opts = op.parse(sys.argv)
 
 with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
 
     if "w" in opts["phase"]:
-        print "Inserting"
+        print("Inserting (%.2fs)" % (time.time() - startTime))
         keys = [str(x) for x in xrange(opts["num_keys"])]
         if not opts["sequential"]:
             random.shuffle(keys)
@@ -25,17 +30,17 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
                 raise ValueError("Could not set %r" % key)
             i += 1
         if "r" not in opts["phase"]:
-            print "Dumping chosen keys to disk"
+            print("Dumping chosen keys to disk (%.2fs)" % (time.time() - startTime))
             with open("keys", "w") as keys_file:
                 keys_file.write(" ".join(keys))
 
     if "r" in opts["phase"]:
         if "w" not in opts["phase"]:
-            print "Loading chosen keys from disk"
+            print("Loading chosen keys from disk (%.2fs)" % (time.time() - startTime))
             with open("keys", "r") as keys_file:
                 keys = keys_file.read().split(" ")
         # Verify everything
-        print "Verifying"
+        print("Verifying (%.2fs)" % (time.time() - startTime))
         i = 0
         for key in keys:
             if i % 16 == 0:
@@ -46,4 +51,4 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
                 raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))
             i += 1
 
-    print "Success"
+    print("Success (%.2fs)" % (time.time() - startTime))

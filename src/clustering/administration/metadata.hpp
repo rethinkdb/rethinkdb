@@ -2,22 +2,19 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
-#include <list>
 #include <map>
 #include <string>
 #include <vector>
 #include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
-#include "clustering/administration/datacenter_metadata.hpp"
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/issues/outdated_index.hpp"
+#include "clustering/administration/issues/local_issue_aggregator.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/log_transfer.hpp"
-#include "clustering/administration/machine_metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/stat_manager.hpp"
-#include "clustering/administration/metadata_change_handler.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
+#include "clustering/administration/stats/stat_manager.hpp"
+#include "clustering/administration/tables/database_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
@@ -32,8 +29,7 @@ public:
 
     cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
-    machines_semilattice_metadata_t machines;
-    datacenters_semilattice_metadata_t datacenters;
+    servers_semilattice_metadata_t servers;
     databases_semilattice_metadata_t databases;
 };
 
@@ -41,125 +37,115 @@ RDB_DECLARE_SERIALIZABLE(cluster_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(cluster_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
-//json adapter concept for cluster_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &);
-
 class auth_semilattice_metadata_t {
 public:
     auth_semilattice_metadata_t() { }
 
-    vclock_t<auth_key_t> auth_key;
+    versioned_t<auth_key_t> auth_key;
 };
 
 RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(auth_semilattice_metadata_t);
 
-// json adapter concept for auth_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(auth_semilattice_metadata_t *, const vclock_ctx_t &);
-
 enum cluster_directory_peer_type_t {
-    ADMIN_PEER,
     SERVER_PEER,
     PROXY_PEER
 };
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_directory_peer_type_t, int8_t, ADMIN_PEER, PROXY_PEER);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_directory_peer_type_t, int8_t, SERVER_PEER, PROXY_PEER);
 
 class cluster_directory_metadata_t {
 public:
 
     cluster_directory_metadata_t() { }
     cluster_directory_metadata_t(
-            machine_id_t mid,
-            peer_id_t pid,
-            uint64_t _cache_size,
-            const std::vector<std::string> &_ips,
+            server_id_t _server_id,
+            peer_id_t _peer_id,
+            const std::string &_version,
+            microtime_t _time_started,
+            int64_t _pid,
+            const std::string &_hostname,
+            uint16_t _cluster_port,
+            uint16_t _reql_port,
+            boost::optional<uint16_t> _http_admin_port,
+            std::set<host_and_port_t> _canonical_addresses,
+            const std::vector<std::string> &_argv,
+            uint64_t _actual_cache_size_bytes,
+            const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
-            const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
-            const metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t& _auth_change_mailbox,
-            const outdated_index_issue_server_t::request_address_t& _outdated_indexes_mailbox,
             const log_server_business_card_t &lmb,
+            const boost::optional<server_config_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid),
-        peer_id(pid),
-        cache_size(_cache_size),
-        ips(_ips),
+        server_id(_server_id),
+        peer_id(_peer_id),
+        version(_version),
+        time_started(_time_started),
+        pid(_pid),
+        hostname(_hostname),
+        cluster_port(_cluster_port),
+        reql_port(_reql_port),
+        http_admin_port(_http_admin_port),
+        canonical_addresses(_canonical_addresses),
+        argv(_argv),
+        actual_cache_size_bytes(_actual_cache_size_bytes),
+        jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
-        semilattice_change_mailbox(_semilattice_change_mailbox),
-        auth_change_mailbox(_auth_change_mailbox),
-        get_outdated_indexes_mailbox(_outdated_indexes_mailbox),
         log_mailbox(lmb),
+        server_config_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
+    cluster_directory_metadata_t(const cluster_directory_metadata_t &) = default;
+    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &)
+        = default;
     cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
         *this = std::move(other);
     }
-    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) {
-        *this = other;
-    }
-
-    /* Move assignment operator */
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
-        rdb_namespaces = std::move(other.rdb_namespaces);
-        machine_id = other.machine_id;
+        /* We have to define this manually instead of using `= default` because older
+        versions of `boost::optional` don't support moving */
+        server_id = other.server_id;
         peer_id = other.peer_id;
-        cache_size = other.cache_size;
-        ips = std::move(other.ips);
+        version = std::move(other.version);
+        time_started = other.time_started;
+        pid = other.pid;
+        hostname = std::move(other.hostname);
+        cluster_port = other.cluster_port;
+        reql_port = other.reql_port;
+        http_admin_port = other.http_admin_port;
+        canonical_addresses = std::move(other.canonical_addresses);
+        argv = std::move(other.argv);
+        actual_cache_size_bytes = other.actual_cache_size_bytes;
+        jobs_mailbox = other.jobs_mailbox;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
-        semilattice_change_mailbox = other.semilattice_change_mailbox;
-        auth_change_mailbox = other.auth_change_mailbox;
-        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
+        server_config_business_card = other.server_config_business_card;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
-
         return *this;
     }
 
-    /* Unfortunately having specified the move copy operator requires us to also specify the copy
-     * assignment operator explicitly. */
-    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other) {
-        rdb_namespaces = other.rdb_namespaces;
-        machine_id = other.machine_id;
-        peer_id = other.peer_id;
-        cache_size = other.cache_size;
-        ips = other.ips;
-        get_stats_mailbox_address = other.get_stats_mailbox_address;
-        semilattice_change_mailbox = other.semilattice_change_mailbox;
-        auth_change_mailbox = other.auth_change_mailbox;
-        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
-        log_mailbox = other.log_mailbox;
-        local_issues = other.local_issues;
-        peer_type = other.peer_type;
+    server_id_t server_id;
 
-        return *this;
-    }
-
-    namespaces_directory_metadata_t rdb_namespaces;
-
-    /* Tell the other peers what our machine ID is */
-    machine_id_t machine_id;
+    /* this is redundant, since a directory entry is always associated with a peer */
     peer_id_t peer_id;
 
-    /* Tell everyone how much cache we have */
-    uint64_t cache_size;
+    /* This group of fields are for showing in `rethinkdb.server_status` */
+    std::string version;   /* server version string, e.g. "rethinkdb 1.X.Y ..." */
+    microtime_t time_started;
+    int64_t pid;   /* really a `pid_t`, but we need a platform-independent type */
+    std::string hostname;
+    uint16_t cluster_port, reql_port;
+    boost::optional<uint16_t> http_admin_port;
+    std::set<host_and_port_t> canonical_addresses;
+    std::vector<std::string> argv;
+    uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
-    /* To tell everyone what our ips are. */
-    std::vector<std::string> ips;
-
+    jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
-    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
-    metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t auth_change_mailbox;
-    outdated_index_issue_server_t::request_address_t get_outdated_indexes_mailbox;
     log_server_business_card_t log_mailbox;
-    std::list<local_issue_t> local_issues;
+    boost::optional<server_config_business_card_t> server_config_business_card;
+    local_issues_t local_issues;
     cluster_directory_peer_type_t peer_type;
 };
 
@@ -193,8 +179,42 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 
 enum metadata_search_status_t {
-    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE, METADATA_CONFLICT
+    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE
 };
+
+bool check_metadata_status(metadata_search_status_t status,
+                           const char *entity_type,
+                           const std::string &entity_name,
+                           bool expect_present,
+                           std::string *error_out);
+
+template<class T>
+bool search_metadata_by_uuid(
+        std::map<uuid_u, deletable_t<T> > *map,
+        const uuid_u &uuid,
+        typename std::map<uuid_u, deletable_t<T> >::iterator *it_out) {
+    auto it = map->find(uuid);
+    if (it != map->end() && !it->second.is_deleted()) {
+        *it_out = it;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template<class T>
+bool search_const_metadata_by_uuid(
+        const std::map<uuid_u, deletable_t<T> > *map,
+        const uuid_u &uuid,
+        typename std::map<uuid_u, deletable_t<T> >::const_iterator *it_out) {
+    auto it = map->find(uuid);
+    if (it != map->end() && !it->second.is_deleted()) {
+        *it_out = it;
+        return true;
+    } else {
+        return false;
+    }
+}
 
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
@@ -256,7 +276,7 @@ public:
 
     struct name_predicate_t {
         bool operator()(T metadata) const {
-            return !metadata.name.in_conflict() && metadata.name.get() == *name;
+            return metadata.name.get_ref() == *name;
         }
         explicit name_predicate_t(const name_string_t *_name): name(_name) { }
     private:
@@ -291,9 +311,9 @@ public:
 class namespace_predicate_t {
 public:
     bool operator()(const namespace_semilattice_metadata_t &ns) const {
-        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+        if (name && ns.name.get_ref() != *name) {
             return false;
-        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+        } else if (db_id && ns.database.get_ref() != *db_id) {
             return false;
         }
         return true;

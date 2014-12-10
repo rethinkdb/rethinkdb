@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
-import os, signal, socket, subprocess, sys, tempfile, threading, time
+import collections, fcntl, os, random, signal, socket, string, subprocess, sys, tempfile, threading, time
 
 import test_exceptions
+
+try:
+    unicode
+except NameError:
+    unicode = str
 
 # -- constants
 
@@ -45,7 +50,7 @@ def find_rethinkdb_executable(mode=None):
     result_path = os.environ.get('RDB_EXE_PATH') or os.path.join(latest_build_dir(check_executable=True, mode=mode), 'rethinkdb')
     
     if not os.access(result_path, os.X_OK):
-    	raise test_exceptions.NotBuiltException(detail='The rethinkdb server executable is not avalible: %s' % str(result_path))
+        raise test_exceptions.NotBuiltException(detail='The rethinkdb server executable is not avalible: %s' % str(result_path))
     
     return result_path
 
@@ -278,6 +283,26 @@ def supportsTerminalColors():
         return False
     return True
 
+def get_test_db_table():
+    '''Get the standard name for the table for this test'''
+    
+    # - name of __main__ module or a random name
+    
+    name = None
+    if hasattr(sys.modules['__main__'], '__file__'):
+        name = os.path.basename(sys.modules['__main__'].__file__).split('.')[0]
+    else:
+        name = 'random_' + ''.join(random.choice(string.ascii_uppercase for _ in range(4)))
+    
+    # - interpreter version
+    
+    interpreter = '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
+    
+    # -
+    
+    return ('test', name + interpreter)
+    
+
 def get_avalible_port(interface='localhost'):
     testSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     testSocket.bind((interface, 0))
@@ -373,3 +398,66 @@ def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
     
     raise Warning('Unable to kill all of the processes for process group %d after %d seconds:\n%s\n' % (processGroupId, timeout, output))
     # ToDo: better categorize the error
+
+def nonblocking_readline(source):
+    
+    # - ensure we have a file
+    
+    if isinstance(source, (str, unicode)):
+        if not os.path.isfile(source):
+            raise ValueError('can not find the source file: %s' % str(source))
+        try:
+            source = open(source, 'rU')
+        except Exception as e:
+            raise ValueError('bad source file: %s got error: %s' % (str(source), str(e)))
+    
+    elif isinstance(source, file):
+        try:
+            int(source.fileno())
+        except:
+            raise ValueError('bad source file, it does not have a fileno: %s' % repr(source))
+    else:
+        raise ValueError('bad source: %s' % repr(source))
+    
+    # - set non-blocking IO
+    
+    fcntl.fcntl(source, fcntl.F_SETFL, fcntl.fcntl(source, fcntl.F_GETFL) | os.O_NONBLOCK)
+    
+    # -
+    
+    waitingLines = collections.deque()
+    unprocessed = ''
+    lastRead = 0
+    
+    while True:
+        
+        # - return an already-processed line
+        
+        try:
+            yield waitingLines.popleft()
+            continue
+        except IndexError: pass
+        
+        # - try to read in a new chunk and split it
+        
+        source.seek(lastRead)
+        chunk = source.read(1024)
+        
+        if len(chunk) == 0:
+            yield None
+            continue
+        lastRead = source.tell()
+        
+        unprocessed += chunk
+        
+        # - process the block into lines
+        
+        endsWithNewline = unprocessed[-1] == '\n'
+        waitingLines.extend(unprocessed.splitlines())
+        
+        if endsWithNewline:
+            unprocessed = ''
+        else:
+            unprocessed = waitingLines.pop()
+        
+        # wrap around to pass the data

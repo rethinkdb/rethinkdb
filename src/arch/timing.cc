@@ -64,26 +64,34 @@ void signal_timer_t::on_timer() {
 
 // repeating_timer_t
 
-repeating_timer_t::repeating_timer_t(int64_t period_ms, repeating_timer_callback_t *_ringee) :
+repeating_timer_t::repeating_timer_t(
+        int64_t interval_ms, const std::function<void()> &_ringee) :
     ringee(_ringee) {
-    rassert(period_ms > 0);
-    timer = add_timer(period_ms, this);
+    rassert(interval_ms > 0);
+    timer = add_timer(interval_ms, this);
+}
+
+repeating_timer_t::repeating_timer_t(
+        int64_t interval_ms, repeating_timer_callback_t *_cb) :
+    ringee([_cb]() { _cb->on_ring(); }) {
+    rassert(interval_ms > 0);
+    timer = add_timer(interval_ms, this);
 }
 
 repeating_timer_t::~repeating_timer_t() {
     cancel_timer(timer);
 }
 
-void call_ringer(repeating_timer_callback_t *ringee) {
+void call_ringer(std::function<void()> ringee) {
     // It would be very easy for a user of repeating_timer_t to have
     // object lifetime errors, if their ring function blocks.  So we
     // have this assertion.
     ASSERT_FINITE_CORO_WAITING;
-    ringee->on_ring();
+    ringee();
 }
 
 void repeating_timer_t::on_timer() {
-    // Spawn _now_, otherwise the reating_timer_t lifetime might end
+    // Spawn _now_, otherwise the repeating_timer_t lifetime might end
     // before ring gets used.
     coro_t::spawn_now_dangerously(std::bind(call_ringer, ringee));
 }

@@ -8,22 +8,20 @@
 
 #include "errors.hpp"
 
-class perfmon_result_t;
+#include "containers/scoped_regex.hpp"
+#include "rdb_protocol/datum.hpp"
+
 template <class> class scoped_ptr_t;
-class scoped_regex_t;
 
 class perfmon_filter_t {
 public:
-    explicit perfmon_filter_t(const std::set<std::string> &paths);
-    ~perfmon_filter_t();
-    // This takes a const scoped_ptr_t because subfilter needs one to sanely work.
-    void filter(const scoped_ptr_t<perfmon_result_t> *target) const;
+    explicit perfmon_filter_t(const std::set<std::vector<std::string> > &paths);
+    ql::datum_t filter(const ql::datum_t &stats) const;
 private:
-    void subfilter(scoped_ptr_t<perfmon_result_t> *target,
-                   size_t depth, std::vector<bool> active) const;
-    std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
+    ql::datum_t subfilter(const ql::datum_t &stats,
+                          size_t depth, std::vector<bool> active) const;
+    std::vector<std::vector<scoped_ptr_t<scoped_regex_t> > > regexps; //regexps[PATH][DEPTH]
     DISABLE_COPYING(perfmon_filter_t);
 };
-
 
 #endif  // PERFMON_FILTER_HPP_

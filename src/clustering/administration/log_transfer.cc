@@ -21,8 +21,8 @@ log_server_business_card_t log_server_t::get_business_card() {
 void log_server_t::handle_request(
         signal_t *interruptor,
         int max_lines,
-        struct timespec min_timestamp,
-        struct timespec max_timestamp,
+        timespec min_timestamp,
+        timespec max_timestamp,
         log_server_business_card_t::result_mailbox_t::address_t cont) {
     std::string error;
     try {
@@ -44,7 +44,7 @@ void log_server_t::handle_request(
 std::vector<log_message_t> fetch_log_file(
         mailbox_manager_t *mm,
         const log_server_business_card_t &bcard,
-        int max_lines, struct timespec min_timestamp, struct timespec max_timestamp,
+        int max_lines, timespec min_timestamp, timespec max_timestamp,
         signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t) {
     promise_t<boost::variant<std::vector<log_message_t>, std::string> > promise;
     log_server_business_card_t::result_mailbox_t reply_mailbox(

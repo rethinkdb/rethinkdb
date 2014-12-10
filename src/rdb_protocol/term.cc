@@ -103,9 +103,15 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DB_CREATE:          return make_db_create_term(env, t);
     case Term::DB_DROP:            return make_db_drop_term(env, t);
     case Term::DB_LIST:            return make_db_list_term(env, t);
+    case Term::DB_CONFIG:          return make_db_config_term(env, t);
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
+    case Term::TABLE_CONFIG:       return make_table_config_term(env, t);
+    case Term::TABLE_STATUS:       return make_table_status_term(env, t);
+    case Term::TABLE_WAIT:         return make_table_wait_term(env, t);
+    case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
+    case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
@@ -206,6 +212,9 @@ void run(protob_t<Query> q,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
+
+    map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
+        ctx->get_query_jobs_for_this_thread(), generate_uuid(), current_microtime());
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;

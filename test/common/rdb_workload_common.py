@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import contextlib, time
 
-from vcoptparse import *
-import http_admin
-import utils
+import utils, vcoptparse
 
 r = utils.import_python_driver()
 
 def option_parser_for_connect():
-    op = OptParser()
-    op['address'] = StringFlag('--address', 'localhost:28015')
-    op['table'] = StringFlag('--table')
+    op = vcoptparse.OptParser()
+    op['address'] = vcoptparse.StringFlag('--address', 'localhost:28015')
+    op['table'] = vcoptparse.StringFlag('--table')
     return op
 
 @contextlib.contextmanager
 def make_table_and_connection(opts):
-    (host, port) = opts['address'].split(':')
+    host, port = opts['address'].split(':')
     with r.connect(host, int(port)) as conn:
-        (db, table) = opts['table'].split('.')
+        db, table = opts['table'].split('.')
         yield (r.db(db).table(table), conn)
 
 def insert_many(host="localhost", port=28015, database="test", table=None, count=10000, conn=None):
@@ -39,18 +39,4 @@ def insert_many(host="localhost", port=28015, database="test", table=None, count
             raise Exception("Insert failed: " + res.get('first_error'))
         assert res['inserted'] == end - start
 
-    print "inserted", count, "documents into", table
-
-def wait_for_table(table, host="localhost", port=28015, attempts=20, delay=1):
-    with r.connect(host, port) as conn:
-        poll = attempts
-        while poll:
-            try:
-                r.table(table).limit(1).run(conn)
-                return
-            except r.errors.RqlRuntimeError as e:
-                if 'Master for shard' in str(e):
-                    poll = poll - 1
-                    time.sleep(delay)
-                else:
-                    raise
+    print("inserted %d documents into %s" % (count, table))

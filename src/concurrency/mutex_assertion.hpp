@@ -177,6 +177,9 @@ struct mutex_assertion_t {
     struct acq_t {
         acq_t() { }
         explicit acq_t(mutex_assertion_t *) { }
+        /* This is necessary to avoid compiler complaints about unused variables in
+        release mode. */
+        ~acq_t() { (void)this; }
         void reset(mutex_assertion_t * = NULL) { }
         void assert_is_holding(mutex_assertion_t *) { }
     private:
@@ -198,6 +201,7 @@ struct rwi_lock_assertion_t {
     struct read_acq_t {
         read_acq_t() { }
         explicit read_acq_t(rwi_lock_assertion_t *) { }
+        ~read_acq_t() { (void)this; }
         void reset(rwi_lock_assertion_t * = NULL) { }
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
@@ -206,6 +210,7 @@ struct rwi_lock_assertion_t {
     struct write_acq_t {
         write_acq_t() { }
         explicit write_acq_t(rwi_lock_assertion_t *) { }
+        ~write_acq_t() { (void)this; }
         void reset(rwi_lock_assertion_t * = NULL) { }
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
@@ -225,7 +230,7 @@ struct semaphore_assertion_t {
         acq_t() { }
         explicit acq_t(semaphore_assertion_t *) { }
         void reset() { }
-        ~acq_t() { }
+        ~acq_t() { (void)this; }
     private:
         DISABLE_COPYING(acq_t);
     };

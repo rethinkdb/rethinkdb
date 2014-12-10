@@ -32,3 +32,70 @@ void cross_thread_watchable_variable_t<value_t>::deliver(value_t new_value) {
     value = new_value;
     publisher_controller.publish(&cross_thread_watchable_variable_t<value_t>::call);
 }
+
+template <class value_t>
+all_thread_watchable_variable_t<value_t>::all_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &input) {
+    for (int i = 0; i < get_num_threads(); ++i) {
+        vars.emplace_back(make_scoped<cross_thread_watchable_variable_t<value_t> >(
+            input, threadnum_t(i)));
+    }
+}
+
+template<class key_t, class value_t>
+cross_thread_watchable_map_var_t<key_t, value_t>::cross_thread_watchable_map_var_t(
+        watchable_map_t<key_t, value_t> *input,
+        threadnum_t _output_thread) :
+    output_var(input->get_all()),
+    input_thread(get_thread_id()), output_thread(_output_thread), coro_running(false),
+    rethreader(this),
+    subs(input,
+        [this](const key_t &key, const value_t *new_value) {
+            this->on_change(key, new_value);
+        }, false)
+    { }
+
+template<class key_t, class value_t>
+void cross_thread_watchable_map_var_t<key_t, value_t>::on_change(
+        const key_t &key, const value_t *value) {
+    if (value != nullptr) {
+        queued_changes[key] = boost::optional<value_t>(*value);
+    } else {
+        queued_changes[key] = boost::optional<value_t>();
+    }
+    if (!coro_running) {
+        coro_running = true;
+        auto_drainer_t::lock_t keepalive(&drainer);
+        coro_t::spawn_sometime([this, keepalive]() {
+            this->ferry_changes(keepalive);
+        });
+    }
+}
+
+template<class key_t, class value_t>
+void cross_thread_watchable_map_var_t<key_t, value_t>::ferry_changes(
+        auto_drainer_t::lock_t keepalive) {
+    guarantee(get_thread_id() == input_thread);
+    while (true) {
+        std::map<key_t, boost::optional<value_t> > changes;
+        {
+            mutex_assertion_t::acq_t acq(&lock);
+            guarantee(coro_running);
+            if (queued_changes.empty() || keepalive.get_drain_signal()->is_pulsed()) {
+                coro_running = false;
+                return;
+            } else {
+                std::swap(changes, queued_changes);
+            }
+        }
+        on_thread_t thread_switcher(output_thread);
+        for (const auto &pair : changes) {
+            if (static_cast<bool>(pair.second)) {
+                output_var.set_key_no_equals(pair.first, *pair.second);
+            } else {
+                output_var.delete_key(pair.first);
+            }
+        }       
+    }
+}
+

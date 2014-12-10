@@ -493,13 +493,14 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        @xhr.abort()
-        xhr = new XMLHttpRequest
-        xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
-        xhr.send()
-        @_url = null
-        @_connId = null
-        super()
+        if @_connId? # @connId is null is the connection was previously closed/cancel
+            @xhr.abort()
+            xhr = new XMLHttpRequest
+            xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+            xhr.send()
+            @_url = null
+            @_connId = null
+            super()
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
@@ -524,9 +525,9 @@ class HttpConnection extends Connection
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
         buf.write(data, 8)
-        @write buf
+        @write buf, token
 
-    write: (chunk) ->
+    write: (chunk, token) ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
         xhr.responseType = "arraybuffer"
@@ -538,15 +539,17 @@ class HttpConnection extends Connection
                 buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
                 @_data(buf)
 
-        # Convert the chunk from node buffer to ArrayBuffer
-        array = new ArrayBuffer(chunk.length)
-        view = new Uint8Array(array)
+        xhr.onerror = (e) =>
+            @outstandingCallbacks[token].cb(new Error("This HTTP connection is not open"))
+
+        # Convert the chunk from node buffer to an ArrayBufferView (Uint8Array)
+        # Passing an ArrayBuffer in xhr.send is deprecated
+        view = new Uint8Array(chunk.length)
         i = 0
         while i < chunk.length
             view[i] = chunk[i]
             i++
-
-        xhr.send array
+        xhr.send view
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
 module.exports.isConnection = (connection) ->

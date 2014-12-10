@@ -151,17 +151,6 @@ private:
     DISABLE_COPYING(watchable_t);
 };
 
-/* `run_until_satisfied_2()` repeatedly calls `fun(a->get(), b->get())` until
-`fun` returns `true` or `interruptor` is pulsed. It's efficient because it only
-retries `fun` when the value of `a` or `b` changes. */
-template<class a_type, class b_type, class callable_type>
-void run_until_satisfied_2(
-        const clone_ptr_t<watchable_t<a_type> > &a,
-        const clone_ptr_t<watchable_t<b_type> > &b,
-        const callable_type &fun,
-        signal_t *interruptor,
-        int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
-
 inline void call_function(const std::function<void()> &f) {
     f();
 }
@@ -178,6 +167,14 @@ public:
     }
 
     void set_value(const value_t &_value) {
+        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
+        if (value != _value) {
+            value = _value;
+            publisher_controller.publish(&call_function);
+        }
+    }
+
+    void set_value_no_equals(const value_t &_value) {
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         value = _value;
         publisher_controller.publish(&call_function);
@@ -203,6 +200,10 @@ public:
     void apply_read(const std::function<void(const value_t*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(&value);
+    }
+
+    value_t get() {
+        return value;
     }
 
 private:
