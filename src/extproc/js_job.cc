@@ -2,17 +2,9 @@
 #include "extproc/js_job.hpp"
 
 #include <stdint.h>
-
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-#include <v8.h>
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic pop
-#endif
-
+#include <libplatform/libplatform.h>
 #include <limits>
+#include <v8.h>
 
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -24,13 +16,6 @@
 
 #include "debug.hpp"
 
-#ifdef V8_PRE_3_19
-#define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope
-#else
-#define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope(v8::Isolate::GetCurrent())
-#endif
-
-
 const js_id_t MIN_ID = 1;
 const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
@@ -39,12 +24,62 @@ const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Returns an empty counted_t on error.
 ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
-                                         const ql::configured_limits_t &limits,
-                                         std::string *err_out);
+                        const ql::configured_limits_t &limits,
+                        std::string *err_out);
 
 // Should never error.
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
+
+// Each worker process should have a single instance of this class before using the v8 API
+class js_instance_t {
+public:
+    static void run_other_tasks();
+    static void maybe_initialize_v8();
+    static v8::Isolate *isolate();
+
+private:
+    js_instance_t();
+    ~js_instance_t();
+
+    static js_instance_t *instance;
+
+    v8::Isolate *isolate_;
+
+    scoped_ptr_t<v8::Platform> platform;
+};
+
+js_instance_t *js_instance_t::instance = NULL;
+
+js_instance_t::js_instance_t() {
+    v8::V8::InitializeICU();
+    platform.init(v8::platform::CreateDefaultPlatform());
+    v8::V8::InitializePlatform(platform.get());
+    v8::V8::Initialize();
+    isolate_ = v8::Isolate::New();
+    isolate_->Enter();
+}
+
+js_instance_t::~js_instance_t() {
+    isolate_->Exit();
+    isolate_->Dispose();
+    v8::V8::Dispose();
+    v8::V8::ShutdownPlatform();
+}
+
+void js_instance_t::run_other_tasks() {
+    v8::platform::PumpMessageLoop(instance->platform.get(), isolate());
+}
+
+v8::Isolate *js_instance_t::isolate() {
+    return instance->isolate_;
+}
+
+void js_instance_t::maybe_initialize_v8() {
+    if (instance == NULL) {
+        instance = new js_instance_t;
+    }
+}
 
 // Worker-side JS evaluation environment.
 class js_env_t {
@@ -56,6 +91,7 @@ public:
     js_result_t call(js_id_t id, const std::vector<ql::datum_t> &args,
                      const ql::configured_limits_t &limits);
     void release(js_id_t id);
+    void run_other_tasks(uint64_t task_counter);
 
 private:
     js_id_t remember_value(const v8::Handle<v8::Value> &value);
@@ -68,25 +104,14 @@ private:
 // Cleans the worker process's environment when instantiated
 class js_context_t {
 public:
-#ifdef V8_PRE_3_19
-    js_context_t() :
-        context(v8::Context::New()),
-        scope(context) { }
-
-    ~js_context_t() {
-        context.Dispose();
+    js_context_t(UNUSED js_env_t *js_env) :
+        local_scope(js_instance_t::isolate()),
+        context(v8::Context::New(js_instance_t::isolate())),
+        scope(context) {
     }
-
-    v8::Persistent<v8::Context> context;
-#else
-    js_context_t() :
-        local_scope(v8::Isolate::GetCurrent()),
-        context(v8::Context::New(v8::Isolate::GetCurrent())),
-        scope(context) { }
 
     v8::HandleScope local_scope;
     v8::Local<v8::Context> context;
-#endif
     v8::Context::Scope scope;
 };
 
@@ -202,9 +227,11 @@ void js_job_t::worker_error() {
     extproc_job.worker_error();
 }
 
-void maybe_garbage_collect(uint64_t task_counter) {
+void js_env_t::run_other_tasks(uint64_t task_counter) {
+    js_instance_t::run_other_tasks();
     if (task_counter % 128 == 0) {
-        v8::V8::IdleNotification();
+        // Force collection of all garbage
+        js_instance_t::isolate()->LowMemoryNotification();
     }
 }
 
@@ -247,7 +274,7 @@ bool run_eval(read_stream_t *stream_in,
         js_result = std::string("encountered an unknown exception");
     }
 
-    maybe_garbage_collect(task_counter);
+    js_env->run_other_tasks(task_counter);
     return send_js_result(stream_out, js_result);
 }
 
@@ -277,7 +304,7 @@ bool run_call(read_stream_t *stream_in,
         js_result = std::string("encountered an unknown exception");
     }
 
-    maybe_garbage_collect(task_counter);
+    js_env->run_other_tasks(task_counter);
     return send_js_result(stream_out, js_result);
 }
 
@@ -291,19 +318,18 @@ bool run_release(read_stream_t *stream_in,
     if (bad(res)) { return false; }
 
     js_env->release(id);
-    maybe_garbage_collect(task_counter);
+    js_env->run_other_tasks(task_counter);
     return send_dummy_result(stream_out);
 }
 
-bool run_exit(write_stream_t *stream_out,
-              uint64_t task_counter) {
-    maybe_garbage_collect(task_counter);
+bool run_exit(write_stream_t *stream_out) {
     return send_dummy_result(stream_out);
 }
 
 bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     static uint64_t task_counter = 0;
     bool running = true;
+    js_instance_t::maybe_initialize_v8();
     js_env_t js_env;
 
     while (running) {
@@ -332,7 +358,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
             }
             break;
         case TASK_EXIT:
-            return run_exit(stream_out, task_counter);
+            return run_exit(stream_out);
         default:
             return false;
         }
@@ -356,20 +382,25 @@ js_env_t::js_env_t() :
 js_env_t::~js_env_t() {
     // Clean up handles.
     for (auto it = values.begin(); it != values.end(); ++it) {
-        it->second->Dispose();
+        it->second->Reset();
     }
 }
 
 js_result_t js_env_t::eval(const std::string &source,
                            const ql::configured_limits_t &limits) {
-    js_context_t clean_context;
+    js_context_t clean_context(this);
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
-    DECLARE_HANDLE_SCOPE(handle_scope);
+    v8::Isolate *isolate = js_instance_t::isolate();
+
+    v8::HandleScope handle_scope(isolate);
 
     // TODO: use an "external resource" to avoid copy?
-    v8::Handle<v8::String> src = v8::String::New(source.data(), source.size());
+    v8::Handle<v8::String> src = v8::String::NewFromUtf8(isolate,
+                                                         source.data(),
+                                                         v8::String::NewStringType::kNormalString,
+                                                         source.size());
 
     // This constructor registers itself with v8 so that any errors generated
     // within v8 will be available within this object.
@@ -398,8 +429,7 @@ js_result_t js_env_t::eval(const std::string &source,
                 guarantee(!result_val.IsEmpty());
 
                 // JSONify result.
-                ql::datum_t datum = js_to_datum(result_val, limits,
-                                                                 err_out);
+                ql::datum_t datum = js_to_datum(result_val, limits, err_out);
                 if (datum.has()) {
                     result = datum;
                 }
@@ -418,11 +448,7 @@ js_id_t js_env_t::remember_value(const v8::Handle<v8::Value> &value) {
     // its scope is destructed.
 
     boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>());
-#ifdef V8_PRE_3_19
-    *persistent_handle = v8::Persistent<v8::Value>::New(value);
-#else
-    persistent_handle->Reset(v8::Isolate::GetCurrent(), value);
-#endif
+    persistent_handle->Reset(js_instance_t::isolate(), value);
 
     values.insert(std::make_pair(id, persistent_handle));
     return id;
@@ -434,14 +460,16 @@ const boost::shared_ptr<v8::Persistent<v8::Value> > js_env_t::find_value(js_id_t
     return it->second;
 }
 
-v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
-                                  const std::vector<ql::datum_t> &args,
-                                  std::string *err_out) {
+v8::Local<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
+                                 const std::vector<ql::datum_t> &args,
+                                 std::string *err_out) {
+    v8::Isolate *isolate = js_instance_t::isolate();
+
     v8::TryCatch try_catch;
-    DECLARE_HANDLE_SCOPE(scope);
+    v8::EscapableHandleScope scope(isolate);
 
     // Construct receiver object.
-    v8::Handle<v8::Object> obj = v8::Object::New();
+    v8::Handle<v8::Object> obj = v8::Object::New(isolate);
     guarantee(!obj.IsEmpty());
 
     // Construct arguments.
@@ -454,31 +482,29 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
     }
 
     // Call function with environment as its receiver.
-    v8::Handle<v8::Value> result = fn->Call(obj, args.size(), handles.data());
+    v8::Local<v8::Value> result = fn->Call(obj, args.size(), handles.data());
     if (result.IsEmpty()) {
         append_caught_error(err_out, try_catch);
     }
-    return scope.Close(result);
+    return scope.Escape(result);
 }
 
 js_result_t js_env_t::call(js_id_t id,
                            const std::vector<ql::datum_t> &args,
                            const ql::configured_limits_t &limits) {
-    js_context_t clean_context;
+    js_context_t clean_context(this);
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
     const boost::shared_ptr<v8::Persistent<v8::Value> > found_value = find_value(id);
     guarantee(!found_value->IsEmpty());
 
-    DECLARE_HANDLE_SCOPE(handle_scope);
+    v8::Isolate *isolate = js_instance_t::isolate();
+
+    v8::HandleScope handle_scope(isolate);
 
     // Construct local handle from persistent handle
-#ifdef V8_PRE_3_19
-    v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(*found_value);
-#else
-    v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(v8::Isolate::GetCurrent(), *found_value);
-#endif
+    v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(isolate, *found_value);
     v8::Local<v8::Function> fn = v8::Local<v8::Function>::Cast(local_handle);
     v8::Handle<v8::Value> value = run_js_func(fn, args, err_out);
 
@@ -505,9 +531,9 @@ void js_env_t::release(js_id_t id) {
 
 // TODO: Is there a better way of detecting circular references than a recursion limit?
 ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
-                                           int recursion_limit,
-                                           const ql::configured_limits_t &limits,
-                                           std::string *err_out) {
+                          int recursion_limit,
+                          const ql::configured_limits_t &limits,
+                          std::string *err_out) {
     ql::datum_t result;
 
     if (0 == recursion_limit) {
@@ -517,7 +543,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
     --recursion_limit;
 
     // TODO: should we handle BooleanObject, NumberObject, StringObject?
-    DECLARE_HANDLE_SCOPE(handle_scope);
+    v8::HandleScope handle_scope(js_instance_t::isolate());
 
     if (value->IsString()) {
         v8::Handle<v8::String> string = value->ToString();
@@ -545,8 +571,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
                 guarantee(!elth.IsEmpty());
 
-                ql::datum_t item = js_make_datum(elth, recursion_limit,
-                                                                  limits, err_out);
+                ql::datum_t item = js_make_datum(elth, recursion_limit, limits, err_out);
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
                     return result;
@@ -580,8 +605,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
                 guarantee(!valueh.IsEmpty());
 
-                ql::datum_t item
-                    = js_make_datum(valueh, recursion_limit, limits, err_out);
+                ql::datum_t item = js_make_datum(valueh, recursion_limit, limits, err_out);
 
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
@@ -618,12 +642,12 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
 }
 
 ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
-                                         const ql::configured_limits_t &limits,
-                                         std::string *err_out) {
+                        const ql::configured_limits_t &limits,
+                        std::string *err_out) {
     guarantee(!value.IsEmpty());
     guarantee(err_out != NULL);
 
-    DECLARE_HANDLE_SCOPE(handle_scope);
+    v8::HandleScope handle_scope(js_instance_t::isolate());
     err_out->assign("Unknown error when converting to ql::datum_t.");
 
     return js_make_datum(value, TO_JSON_RECURSION_LIMIT, limits, err_out);
@@ -632,6 +656,9 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out) {
     guarantee(datum.has());
+
+    v8::Isolate *isolate = js_instance_t::isolate();
+
     switch (datum.get_type()) {
     case ql::datum_t::type_t::R_BINARY:
         // TODO: In order to support this, we need to link against a static version of
@@ -640,21 +667,21 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
         return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BOOL:
         if (datum.as_bool()) {
-            return v8::True();
+            return v8::True(isolate);
         } else {
-            return v8::False();
+            return v8::False(isolate);
         }
     case ql::datum_t::type_t::R_NULL:
-        return v8::Null();
+        return v8::Null(isolate);
     case ql::datum_t::type_t::R_NUM:
-        return v8::Number::New(datum.as_num());
+        return v8::Number::New(isolate, datum.as_num());
     case ql::datum_t::type_t::R_STR:
-        return v8::String::New(datum.as_str().to_std().c_str());
+        return v8::String::NewFromUtf8(isolate, datum.as_str().to_std().c_str());
     case ql::datum_t::type_t::R_ARRAY: {
-        v8::Handle<v8::Array> array = v8::Array::New();
+        v8::Handle<v8::Array> array = v8::Array::New(isolate);
 
         for (size_t i = 0; i < datum.arr_size(); ++i) {
-            DECLARE_HANDLE_SCOPE(scope);
+            v8::HandleScope scope(isolate);
             v8::Handle<v8::Value> val = js_from_datum(datum.get(i), err_out);
             guarantee(!val.IsEmpty());
             array->Set(i, val);
@@ -665,15 +692,15 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
     case ql::datum_t::type_t::R_OBJECT: {
         if (datum.is_ptype(ql::pseudo::time_string)) {
             double epoch_time = ql::pseudo::time_to_epoch_time(datum);
-            v8::Handle<v8::Value> date = v8::Date::New(epoch_time * 1000);
+            v8::Handle<v8::Value> date = v8::Date::New(isolate, epoch_time * 1000);
             return date;
         } else {
-            v8::Handle<v8::Object> obj = v8::Object::New();
+            v8::Handle<v8::Object> obj = v8::Object::New(isolate);
 
             for (size_t i = 0; i < datum.obj_size(); ++i) {
                 auto pair = datum.get_pair(i);
-                DECLARE_HANDLE_SCOPE(scope);
-                v8::Handle<v8::Value> key = v8::String::New(pair.first.to_std().c_str());
+                v8::HandleScope scope(isolate);
+                v8::Handle<v8::Value> key = v8::String::NewFromUtf8(isolate, pair.first.to_std().c_str());
                 v8::Handle<v8::Value> val = js_from_datum(pair.second, err_out);
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);

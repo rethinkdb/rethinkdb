@@ -1,9 +1,15 @@
 
-version=3.22.24.17
-
+version=3.30.33.16
 # See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
 
 src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
+
+pkg_install-include () {
+    rm -rf "$install_dir/include"
+    mkdir -p "$install_dir/include"
+    cp -RL "$src_dir/include/." "$install_dir/include"
+    sed -i 's/include\///' "$install_dir/include/libplatform/libplatform.h"
+}
 
 pkg_install () {
     pkg_copy_src_to_build
@@ -39,7 +45,9 @@ pkg_install () {
 }
 
 pkg_link-flags () {
-    for lib in libv8_{base,snapshot} libicu{i18n,uc,data}; do
+    # These are the necessary libraries recommended by the docs:
+    # https://developers.google.com/v8/get_started#hello
+    for lib in libv8_{base,libbase,snapshot,libplatform} libicu{i18n,uc,data}; do
         echo "$install_dir/lib/$lib.a"
     done
 }
