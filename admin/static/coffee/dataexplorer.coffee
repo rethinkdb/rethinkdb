@@ -1,9 +1,13 @@
+# "Session is already running a query" 400 error when aborting a changefeed
+# views should not completely redraw every added row
+# close connection: element not found
 # call to query_result.size and other code assumes that result is an array
-# 400 bad request when aborting changefeed
 # table view shows no results when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
 # abort blinks constantly when running a changefeed
 # no element found when closing connection
+# "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when running a query after a changefeed query
+# 
 
 # refactor query_result
 
@@ -85,7 +89,7 @@ module 'DataExplorerView', ->
                     value = result.value
                 else
                     @profile = null
-                    value = result 
+                    value = result
                 if typeof value._next is 'function' # if it's a cursor
                     @type = 'cursor'
                     @results = []
@@ -135,7 +139,7 @@ module 'DataExplorerView', ->
             @error = error
             @trigger 'error', @, error
             @discard_results = true
-            @ended = true 
+            @ended = true
 
         size: =>
             switch @type
@@ -2596,7 +2600,7 @@ module 'DataExplorerView', ->
 
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
-                    final_query = @index is @queries.length 
+                    final_query = @index is @queries.length
                     @start_time = new Date()
 
                     if final_query
@@ -3413,7 +3417,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             @container = args.container
             @view = args.view
-            @view_object = null 
+            @view_object = null
 
         show_tree: (event) =>
             event.preventDefault()
@@ -3555,7 +3559,7 @@ module 'DataExplorerView', ->
             return @
 
         new_view: () =>
-            @view_object?.remove() 
+            @view_object?.remove()
             @view_object = new @views[@view]
                 parent: @
                 query_result: @query_result
