@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include <limits>
 #include <string>
@@ -10,6 +11,10 @@
 #include "arch/types.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+
+#if defined(__MACH__)
+#include "mach/mach.h"
+#endif
 
 #ifndef __MACH__
 
