@@ -5,8 +5,9 @@ module RethinkDB
   class RQL
     def run_safe
       ret = run
-      PP.pp ret
-      raise "Error: #{ret.inspect}" if (ret['errors'] != 0 rescue nil)
+      # PP.pp ret
+      raise "Error: #{ret.inspect}" if (ret['errors'] && ret['errors'] != 0 rescue nil)
+      ret
     end
   end
 end
@@ -83,7 +84,8 @@ class Emulator
     @t[field.to_s].size
   end
   def in_state?(rows)
-    @t['id'].map{|x| x[0]}.sort != rows.sort
+    PP.pp [@t['id'].map{|x| x[0]}.sort, rows.sort]
+    @t['id'].map{|x| x[0]}.sort == rows.sort
   end
   def assert_state(rows)
     raise "Incorrect state." if !in_state?(rows)
@@ -106,19 +108,19 @@ class Query
     @init_size = [pop_size, limit_size].min
 
     @query = query
-    @changes = query.changes.run_safe
+    @changes = query.changes.run_safe.each
+    PP.pp [1, @changes]
   end
   def current_val
-    @query.run_safe
+    @query.run_safe.to_a
   end
   def init
-    @changes.take(@init_size).map{|row| row['new_val']}
+    (0...@init_size).map{@changes.next['new_val']}
   end
   def wait_for_change(tm=5)
     Timeout::timeout(tm) {
-      change = @changes.take(1)
-      raise "Unexpected init change." if change['new_val'] == change['old_val']
-      return change
+      raise "Bad change." if @changes.peek['new_val'] == @changes.peek['old_val']
+      return @changes.next
     }
   end
 end
@@ -126,25 +128,32 @@ end
 $shards.each {|name, nshards|
   # TODO: shard here
   $limit_sizes.each {|limit_size|
-    $pop_sizes = [0, limit_size - 1, limit_size, $max_pop_size].uniq
+    # $pop_sizes = [0, limit_size - 1, limit_size, $max_pop_size].uniq
+    $pop_sizes = [limit_size, $max_pop_size].uniq
     $pop_sizes.each {|pop_size|
       begin
         sub_pop = (0...pop_size).map{|i| pop(i, pop_size)}
         $t.insert(sub_pop).run_safe
 
-        $queries = ['id', 'a', 'b', 'c', 'd', 'm'].flatmap{|field|
+        $queries = ['id', 'a', 'b', 'c', 'd', 'm'].flat_map{|field|
           [$t.orderby(index: field).limit(limit_size),
            $t.orderby(index: r.desc(field)).limit(limit_size)]
         }
-        ['id', 'a', 'b', 'c', 'd', 'm'].each{|field|
-          forward = $t.orderby(index: field)
-          backward = $t.orderby(index: r.desc(field))
-          [forward, backward].each{|dir|
-            orig_state = q.current_val
-            first = dir[0].default(nil).run_safe
-            dir.limit(1).delete.run_safe; em.sync(q)
-            if first; $t.insert(first).run_safe; em.sync(q); end
-            assert_state(orig_state)
+        $queries.each {|raw_query|
+          q = Query.new(pop_size, limit_size, raw_query)
+          em = Emulator.new(q.init)
+          ['id', 'a', 'b', 'c', 'd', 'm'].each{|field|
+            PP.pp [:field, field]
+            forward = $t.orderby(index: field)
+            backward = $t.orderby(index: r.desc(field))
+            [forward, backward].each{|dir|
+              orig_state = q.current_val
+              PP.pp [:orig_state, orig_state]
+              first = dir[0].default(nil).run_safe
+              dir.limit(1).delete.run_safe; em.sync(q)
+              if first; $t.insert(first).run_safe; em.sync(q); end
+              em.assert_state(orig_state)
+            }
           }
         }
       ensure
