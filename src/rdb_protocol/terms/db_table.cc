@@ -122,10 +122,10 @@ private:
 class table_create_term_t : public meta_op_term_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_write_op_t(env, term, argspec_t(1, 2),
+        meta_op_term_t(env, term, argspec_t(1, 2),
             optargspec_t({"primary_key", "shards", "replicas", "director_tag"})) { }
 private:
-    virtual scoped_ptr<val_t> eval_impl(
+    virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
         /* Parse arguments */
         table_generate_config_params_t config_params =
@@ -175,7 +175,7 @@ private:
 class db_drop_term_t : public meta_op_term_t {
 public:
     db_drop_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_write_op_t(env, term, argspec_t(1)) { }
+        meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -296,14 +296,14 @@ private:
         */
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
             success = env->env->reql_cluster_interface()->db_config(
-                    target->as_db(), backtrace(), env, &selection, &error);
+                    target->as_db(), backtrace(), env->env, &selection, &error);
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
             /* RSI(reql_admin): Make sure the user didn't call `.between()` or
             `.order_by()` on this table */
             success = env->env->reql_cluster_interface()->table_config(
-                    table->db, name, backtrace(), env, &selection, &error);
+                    table->db, name, backtrace(), env->env, &selection, &error);
         }
         if (!success) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
@@ -326,7 +326,7 @@ private:
         std::string error;
         scoped_ptr_t<val_t> selection;
         if (!env->env->reql_cluster_interface()->table_config(
-                table->db, name, backtrace(), env, &selection, &error))
+                table->db, name, backtrace(), env->env, &selection, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return selection;
@@ -376,10 +376,10 @@ private:
 class wait_term_t : public table_or_db_meta_term_t {
 public:
     wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
+        table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t
+            scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
         /* We've considered making `readiness` an optarg. See GitHub issue #2259. */
@@ -405,7 +405,7 @@ private:
 class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(0, 1),
+        table_or_db_meta_term_t(env, term,
             optargspec_t({"director_tag", "dry_run", "replicas", "shards"})) { }
 private:
     scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
@@ -466,7 +466,7 @@ private:
 class rebalance_term_t : public table_or_db_meta_term_t {
 public:
     rebalance_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
+        table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t
@@ -492,17 +492,20 @@ private:
     virtual const char *name() const { return "rebalance"; }
 };
 
-class sync_term_t : public meta_write_op_t {
+class sync_term_t : public meta_op_term_t {
 public:
     sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : meta_write_op_t(env, term, argspec_t(1)) { }
+        : meta_op_term_t(env, term, argspec_t(1)) { }
 
 private:
-    virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
         bool success = t->sync(env->env);
         r_sanity_check(success);
-        return "synced";
+        ql::datum_object_builder_t result;
+        result.overwrite("synced", ql::datum_t(1.0));
+        return new_val(std::move(result).to_datum());
     }
     virtual const char *name() const { return "sync"; }
 };

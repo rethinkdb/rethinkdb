@@ -50,9 +50,9 @@ class configured_limits_t;
 class env_t;
 class db_t : public single_threaded_countable_t<db_t> {
 public:
-    db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
+    db_t(uuid_u _id, const name_string_t &_name) : id(_id), name(_name) { }
     const uuid_u id;
-    const std::string name;
+    const name_string_t name;
 };
 } // namespace ql
 
@@ -203,7 +203,7 @@ public:
             const name_string_t &name,
             const ql::protob_t<const Backtrace> &bt,
             ql::env_t *env,
-            scoped_ptr<ql::val_t> *selection_out,
+            scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out) = 0;
     virtual bool table_status(
             counted_t<const ql::db_t> db,
@@ -221,7 +221,7 @@ public:
             ql::datum_t *result_out,
             std::string *error_out) = 0;
     virtual bool db_wait(
-            counted_t<const ql::db_t> &db,
+            counted_t<const ql::db_t> db,
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,

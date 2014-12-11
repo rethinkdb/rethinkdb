@@ -42,7 +42,7 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
         signal_t *interruptor,
         counted_t<const ql::db_t> *db_out, std::string *error_out) {
     if (name == database) {
-        *db_out = make_counted<const ql::db_t>(nil_uuid(), database.str());
+        *db_out = make_counted<const ql::db_t>(nil_uuid(), database);
         return true;
     }
     return next->db_find(name, interruptor, db_out, error_out);

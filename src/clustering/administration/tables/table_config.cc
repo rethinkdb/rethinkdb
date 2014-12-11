@@ -572,27 +572,27 @@ bool table_config_artificial_table_backend_t::write_row(
 
         if (!existed_before || new_table_name != old_table_name) {
             /* Prevent name collisions if possible */
-            metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
-                &md_change.get()->namespaces);
-            metadata_search_status_t status;
-            namespace_predicate_t pred(&new_table_name, &db_id);
-            ns_searcher.find_uniq(pred, &status);
-            if (status != METADATA_ERR_NONE) {
-                if (!existed_before) {
-                    /* This message looks weird in the context of the variable named
-                    `existed_before`, but it's correct. `existed_before` is true if a
-                    table with the specified UUID already exists; but we're showing the
-                    user an error if a table with the specified name already exists. */
-                    *error_out = strprintf("Table `%s.%s` already exists.",
-                        db_name.c_str(), new_table_name.c_str());
-                } else {
-                    *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
-                        "because table `%s.%s` already exists.",
-                        db_name.c_str(), old_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str());
+            for (const auto &pair : md_change.get()->namespaces) {
+                if (!pair.second.is_deleted() &&
+                        pair.second.get_ref().database.get_ref() == db_id &&
+                        pair.second.get_ref().name == new_table_name) {
+                    if (!existed_before) {
+                        /* This message looks weird in the context of the variable named
+                        `existed_before`, but it's correct. `existed_before` is true if a
+                        table with the specified UUID already exists; but we're showing
+                        the user an error if a table with the specified name already
+                        exists. */
+                        *error_out = strprintf("Table `%s.%s` already exists.",
+                            db_name.c_str(), new_table_name.c_str());
+                    } else {
+                        *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
+                            "because table `%s.%s` already exists.",
+                            db_name.c_str(), old_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str());
+                    }
+                    return false;
                 }
-                return false;
             }
         }
 

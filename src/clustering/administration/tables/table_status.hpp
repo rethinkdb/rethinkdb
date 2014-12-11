@@ -64,7 +64,7 @@ private:
 
     friend table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &, table_readiness_t,
-        table_status_artificial_table_backend_t *, signal_t *);
+        table_status_artificial_table_backend_t *, signal_t *, ql::datum_t *);
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;

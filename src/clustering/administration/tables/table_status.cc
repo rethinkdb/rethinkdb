@@ -444,7 +444,7 @@ table_wait_result_t wait_for_table_readiness(
                                    namespace_directory_metadata_t> *d) -> bool {
             ASSERT_NO_CORO_WAITING;
             ++num_checks;
-            ts_backend->assert_thread();
+            backend->assert_thread();
 
             cluster_semilattice_metadata_t md = backend->semilattice_view->get();
             ql::datum_t table_name, db_name;

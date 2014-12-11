@@ -343,7 +343,7 @@ private:
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", datum_t(datum_string_t(v->as_db()->name)));
+            b |= info.add("name", datum_t(datum_string_t(v->as_db()->name.str())));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();

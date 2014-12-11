@@ -182,7 +182,7 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
     if (!search_db_metadata_by_name(db_metadata, name, &db_id, error_out)) {
         return false;
     }
-    *db_out = make_counted<const ql::db_t>(db_id, name.str());
+    *db_out = make_counted<const ql::db_t>(db_id, name);
     return true;
 }
 
@@ -277,12 +277,12 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             table_id,
             table_readiness_t::finished,
             status_backend,
-            &interruptor2);
+            &interruptor2,
+            nullptr);
 
         new_config = convert_table_config_to_datum(table_id, name,
-            convert_name_to_datum(name_string_t::guarantee_valid(db->name)),
-            primary_key, repli_info.config, admin_identifier_format_t::name,
-            name_client);
+            convert_name_to_datum(db->name), primary_key, repli_info.config,
+            admin_identifier_format_t::name, name_client);
     }
 
     // This could hang because of a node going down or the user deleting the table.
@@ -324,16 +324,16 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
                 &metadata.rdb_namespaces);
         namespace_id_t table_id;
-        if (!search_table_metadata_by_name(*ns_change.get(), db->id, name, &table_id,
-                &error_out)) {
+        if (!search_table_metadata_by_name(*ns_change.get(), db->id, db->name, name,
+                &table_id, &error_out)) {
             return false;
         }
 
         const namespace_semilattice_metadata_t &table_md =
             ns_change.get()->namespaces.at(table_id).get_ref();
         old_config = convert_table_config_to_datum(table_id, name,
-            convert_name_to_datum(name_string_t::guarantee_valid(db->name)),
-            table_md.primary_key.get_ref(), table_md.replication_info.get_ref().config(),
+            convert_name_to_datum(db->name), table_md.primary_key.get_ref(),
+            table_md.replication_info.get_ref().config(),
             admin_identifier_format_t::name, name_client);
 
         /* Delete the table. */
@@ -379,7 +379,7 @@ bool real_reql_cluster_interface_t::table_find(
     cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
         = get_namespaces_metadata();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*namespaces_metadata, db->id, &table_id,
+    if (!search_table_metadata_by_name(*namespaces_metadata, db->id, db->name, &table_id,
             error_out)) {
         return false;
     }
@@ -414,8 +414,8 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
     /* Find the specified table in the semilattice metadata */
     cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*metadata.rdb_namespaces, db, name, &table_id,
-            error_out)) {
+    if (!search_table_metadata_by_name(*metadata.rdb_namespaces, db->id, db->name, name,
+            &table_id, error_out)) {
         return false;
     }
 
@@ -473,8 +473,8 @@ bool real_reql_cluster_interface_t::table_config(
         scoped_ptr<ql::val_t> *selection_out,
         std::string *error_out) {
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, name,
-            &table_id, error_out)) {
+    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
+            name, &table_id, error_out)) {
         return false;
     }
     return make_single_selection(
@@ -492,8 +492,8 @@ bool real_reql_cluster_interface_t::table_status(
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, name,
-            &table_id, error_out)) {
+    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
+            name, &table_id, error_out)) {
         return false;
     }
     return make_single_selection(
@@ -617,8 +617,8 @@ bool real_reql_cluster_interface_t::table_wait(
         ql::datum_t *result_out,
         std::string *error_out) {
     std::vector<namespace_id_t> table_ids(1);
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, name,
-            &table_ids[0], error_out)) {
+    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
+            name, &table_ids[0], error_out)) {
         return false;
     }
 
@@ -637,7 +637,7 @@ bool real_reql_cluster_interface_t::table_wait(
 }
 
 bool real_reql_cluster_interface_t::db_wait(
-        counted_t<const ql::db_t> &db,
+        counted_t<const ql::db_t> db,
         table_readiness_t readiness,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -779,7 +779,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(cluster_md.rdb_namespaces->namespaces, db->id,
-            name, &table_id, error_out)) {
+            db->name, name, &table_id, error_out)) {
         return false;
     }
     return reconfigure_internal(&cluster_md, db, table_id, name, params, dry_run,
@@ -888,7 +888,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(cluster_md.rdb_namespaces->namespaces, db->id,
-            name, &table_id, error_out)) {
+            db->name, name, &table_id, error_out)) {
         return false;
     }
     return rebalance_internal(&cluster_md, db, table_id, name, &ct_interruptor,

@@ -106,7 +106,7 @@ public:
             ql::datum_t *result_out,
             std::string *error_out);
     bool db_wait(
-            counted_t<const ql::db_t> &db,
+            counted_t<const ql::db_t> db,
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,
