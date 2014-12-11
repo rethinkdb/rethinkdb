@@ -385,7 +385,7 @@ port_t::port_t(sockaddr const *sa) {
         value_ = ntohs(reinterpret_cast<sockaddr_in6 const *>(sa)->sin6_port);
         break;
     default:
-        value_ = 0;
+        crash("port_t constructed with unexpected address family: %d", sa->sa_family);
     }
 }
 
@@ -430,9 +430,9 @@ port_t ip_and_port_t::port() const {
 
 std::string ip_and_port_t::to_string() const {
     if (ip_.is_ipv6()) {
-        return "[" + ip_.to_string() + "]:" + port_.to_string();
+        return strprintf("[%s]:%u", ip_.to_string().c_str(), port_.value());
     } else {
-        return ip_.to_string() + ":" + port_.to_string();
+        return strprintf("%s:%u", ip_.to_string().c_str(), port_.value());
     }
 }
 

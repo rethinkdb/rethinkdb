@@ -304,12 +304,13 @@ template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
-    for (;;) {
-        ql::protob_t<Query> query(ql::make_counted_query());
 
-        if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
-            ip_and_port_t peer;
-            if (conn->getpeername(&peer)) {
+    ip_and_port_t peer;
+    if (conn->getpeername(&peer)) {
+        for (;;) {
+            ql::protob_t<Query> query(ql::make_counted_query());
+
+            if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
                 Response response;
                 if (handler->run_query(query, &response, client_ctx, peer)) {
                     protocol_t::send_response(
