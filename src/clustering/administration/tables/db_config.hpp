@@ -13,6 +13,13 @@
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
+/* This is public because it's used by `real_reql_cluster_interface_t`. It's kind of a
+trivial function right now, but it will become non-trivial if we ever add more
+configuration to databases. */
+ql::datum_t convert_db_config_and_name_to_datum(
+        name_string_t db_name,
+        namespace_id_t id);
+
 class db_config_artificial_table_backend_t :
     public caching_cfeed_artificial_table_backend_t
 {

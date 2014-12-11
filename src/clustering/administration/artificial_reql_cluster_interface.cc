@@ -9,22 +9,22 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out) {
+            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out) {
     if (name == database) {
         *error_out = strprintf("Database `%s` already exists.", database.c_str());
         return false;
     }
-    return next->db_create(name, interruptor, error_out);
+    return next->db_create(name, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_drop(const name_string_t &name,
-        signal_t *interruptor, std::string *error_out) {
+        signal_t *interruptor, ql::datum_t *result_out, std::string *error_out) {
     if (name == database) {
         *error_out = strprintf("Database `%s` is special; you can't delete it.",
             database.c_str());
         return false;
     }
-    return next->db_drop(name, interruptor, error_out);
+    return next->db_drop(name, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_list(
@@ -49,41 +49,40 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
 }
 
 bool artificial_reql_cluster_interface_t::db_config(
-        const std::vector<name_string_t> &db_names,
-        const ql::protob_t<const Backtrace> &bt,
-        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        const counted_t<const ql::db_t> &db, const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
-    for (const name_string_t &db : db_names) {
-        if (db == database) {
-            *error_out = strprintf("Database `%s` is special; you can't configure it.",
-                database.c_str());
-            return false;
-        }
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't configure it.",
+            database.c_str());
+        return false;
     }
-    return next->db_config(db_names, bt, interruptor, resp_out, error_out);
+    return next->db_config(db, bt, interruptor, selection_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_create(
         const name_string_t &name, counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
-        const std::string &primary_key, signal_t *interruptor, std::string *error_out) {
+        const std::string &primary_key, signal_t *interruptor,
+        ql::datum_t *result_out, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't create new tables "
             "in it.", database.c_str());
         return false;
     }
     return next->table_create(name, db, config_params, primary_key,
-        interruptor, error_out);
+        interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor, std::string *error_out) {
+        counted_t<const ql::db_t> db, signal_t *interruptor,
+        ql::datum_t *result_out, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't drop tables in it.",
             database.c_str());
         return false;
     }
-    return next->table_drop(name, db, interruptor, error_out);
+    return next->table_drop(name, db, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
@@ -130,45 +129,93 @@ bool artificial_reql_cluster_interface_t::table_find(
         interruptor, table_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::table_config(
+bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
         counted_t<const ql::db_t> db,
-        const std::vector<name_string_t> &target_tables,
+        const name_string_t &name,
+        ql::env_t *env,
+        std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        auto it = tables.find(name);
+        if (it != tables.end()) {
+            counted_t<ql::datum_stream_t> docs;
+            /* We arbitrarily choose to read from the UUID version of the system table
+            rather than the name version. */
+            if (!it->second.second->read_all_rows_as_stream(
+                    ql::protob_t<const Backtrace>(),
+                    ql::datum_range_t::universe(),
+                    sorting_t::UNORDERED,
+                    env->interruptor,
+                    &docs,
+                    error_out)) {
+                *error_out = "When estimating doc count: " + *error_out;
+                return false;
+            }
+            try {
+                scoped_ptr_t<ql::val_t> count =
+                    docs->run_terminal(env, ql::count_wire_func_t());
+                *doc_counts_out = std::vector<int64_t>({ count->as_int<int64_t>() });
+            } catch (const ql::base_exc_t &msg) {
+                *error_out = "When estimating doc count: " + std::string(msg.what());
+                return false;
+            }
+            return true;
+        } else {
+            *error_out = strprintf("Table `%s.%s` does not exist.",
+                database.c_str(), name.c_str());
+            return false;
+        }
+    } else {
+        return next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
+    }
+}
+
+bool artificial_reql_cluster_interface_t::table_config(
+        counted_t<const ql::db_t> db, const name_string_t &name,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
-        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+        scoped_ptr_t<ql::val_t> *selection_out, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "
             "tables in it.", database.c_str());
         return false;
     }
-    return next->table_config(db, target_tables, bt, interruptor, resp_out, error_out);
+    return next->table_config(db, name, bt, interruptor, selection_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_status(
-        counted_t<const ql::db_t> db,
-        const std::vector<name_string_t> &target_tables,
+        counted_t<const ql::db_t> db, const name_string_t &name,
         const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
-        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+        scoped_ptr_t<ql::val_t> *selection_out, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; the system tables in it don't "
             "have meaningful status information.", database.c_str());
         return false;
     }
-    return next->table_status(db, target_tables, bt, interruptor, resp_out, error_out);
+    return next->table_status(db, name, bt, interruptor, selection_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_wait(
-        counted_t<const ql::db_t> db,
-        const std::vector<name_string_t> &target_tables,
-        table_readiness_t readiness,
-        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
-        scoped_ptr_t<ql::val_t> *resp_out, std::string *error_out) {
+        counted_t<const ql::db_t> db, const name_string_t &name,
+        table_readiness_t readiness, const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, ql::datum_t *result_out, std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; the system tables in it are "
             "always available and don't need to be waited on.", database.c_str());
         return false;
     }
-    return next->table_wait(db, target_tables, readiness,
-                            bt, interruptor, resp_out, error_out);
+    return next->table_wait(db, name, readiness, bt, interruptor, result_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::db_wait
+        counted_t<const ql::db_t> db, table_readiness_t readiness,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        ql::datum_t *result_out, std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; the system tables in it are "
+            "always available and don't need to be waited on.", database.c_str());
+        return false;
+    }
+    return next->db_wait(db, readiness, bt, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(
@@ -229,47 +276,6 @@ bool artificial_reql_cluster_interface_t::db_rebalance(
         return false;
     }
     return next->db_rebalance(db, interruptor, result_out, error_out);
-}
-
-bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
-        counted_t<const ql::db_t> db,
-        const name_string_t &name,
-        ql::env_t *env,
-        std::vector<int64_t> *doc_counts_out,
-        std::string *error_out) {
-    if (db->name == database.str()) {
-        auto it = tables.find(name);
-        if (it != tables.end()) {
-            counted_t<ql::datum_stream_t> docs;
-            /* We arbitrarily choose to read from the UUID version of the system table
-            rather than the name version. */
-            if (!it->second.second->read_all_rows_as_stream(
-                    ql::protob_t<const Backtrace>(),
-                    ql::datum_range_t::universe(),
-                    sorting_t::UNORDERED,
-                    env->interruptor,
-                    &docs,
-                    error_out)) {
-                *error_out = "When estimating doc count: " + *error_out;
-                return false;
-            }
-            try {
-                scoped_ptr_t<ql::val_t> count =
-                    docs->run_terminal(env, ql::count_wire_func_t());
-                *doc_counts_out = std::vector<int64_t>({ count->as_int<int64_t>() });
-            } catch (const ql::base_exc_t &msg) {
-                *error_out = "When estimating doc count: " + std::string(msg.what());
-                return false;
-            }
-            return true;
-        } else {
-            *error_out = strprintf("Table `%s.%s` does not exist.",
-                database.c_str(), name.c_str());
-            return false;
-        }
-    } else {
-        return next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
-    }
 }
 
 admin_artificial_tables_t::admin_artificial_tables_t(

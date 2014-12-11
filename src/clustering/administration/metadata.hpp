@@ -179,16 +179,6 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_
 cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 
-enum metadata_search_status_t {
-    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE
-};
-
-bool check_metadata_status(metadata_search_status_t status,
-                           const char *entity_type,
-                           const std::string &entity_name,
-                           bool expect_present,
-                           std::string *error_out);
-
 template<class T>
 bool search_metadata_by_uuid(
         std::map<uuid_u, deletable_t<T> > *map,
@@ -216,6 +206,19 @@ bool search_const_metadata_by_uuid(
         return false;
     }
 }
+
+bool search_db_metadata_by_name(
+        const databases_semilattice_metadata_t &metadata,
+        const name_string_t &name,
+        database_id_t *id_out,
+        std::string *error_out);
+
+bool search_table_metadata_by_name(
+        const namespaces_semilattice_metadata_t &metadata,
+        const database_id_t &db,
+        const name_string_t &name,
+        namespace_id_t *id_out,
+        std::string *error_out);
 
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,

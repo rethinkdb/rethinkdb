@@ -267,10 +267,18 @@ bool convert_table_config_shard_from_datum(
 /* This is separate from `format_row()` because it needs to be publicly exposed so it can
    be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
+        namespace_id_t table_id,
+        name_string_t table_name,
+        const ql::datum_t &db_name_or_uuid,
+        const std::string &primary_key,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
+    builder.overwrite("name", convert_name_to_datum(table_name));
+    builder.overwrite("db", db_name_or_uuid);
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("primary_key", convert_string_to_datum(primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             [&](const table_config_t::shard_t &shard) {
@@ -295,17 +303,9 @@ bool table_config_artificial_table_backend_t::format_row(
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     assert_thread();
-
-    ql::datum_t start = convert_table_config_to_datum(
-        metadata.replication_info.get_ref().config, identifier_format, name_client);
-    ql::datum_object_builder_t builder(start);
-    builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", db_name_or_uuid);
-    builder.overwrite("id", convert_uuid_to_datum(table_id));
-    builder.overwrite(
-        "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
-    *row_out = std::move(builder).to_datum();
-
+    *row_out = convert_table_config_to_datum(table_id, table_name, db_name_or_uuid,
+        primary_key, metadata.replication_info.get_ref().config, identifier_format,
+        name_client);
     return true;
 }
 

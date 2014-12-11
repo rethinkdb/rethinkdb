@@ -7,8 +7,6 @@ std::string error_message_index_not_found(
         sindex.c_str(), table.c_str());
 }
 
-namespace {
-
 MUST_USE ql::datum_t
 make_replacement_pair(ql::datum_t old_val, ql::datum_t new_val) {
     // in this context, we know the array will have one element.
@@ -21,8 +19,6 @@ make_replacement_pair(ql::datum_t old_val, ql::datum_t new_val) {
     values.add(std::move(value_pair).to_datum());
     return std::move(values).to_datum();
 }
-
-}   /* anonymous namespace */
 
 /* TODO: This looks an awful lot like `rcheck_valid_replace()`. Perhaps they should be
 combined. */
