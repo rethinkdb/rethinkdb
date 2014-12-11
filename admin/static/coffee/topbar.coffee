@@ -56,8 +56,7 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-client_connection_status-template']
 
         initialize: =>
-            # ATN TODO: broken
-            # @listenTo @model, 'change:me', @render
+            @listenTo @model, 'change:me', @render
 
         render: =>
             @$el.html @template
@@ -74,9 +73,8 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-servers_connected-template']
 
         initialize: =>
-            # ATN TODO: broken
-            # @listenTo @model, 'change:num_servers', @render
-            # @listenTo @model, 'change:num_available_servers', @render
+            @listenTo @model, 'change:num_servers', @render
+            @listenTo @model, 'change:num_available_servers', @render
 
         render: =>
             @$el.html @template
@@ -94,9 +92,8 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-tables_available-template']
 
         initialize: =>
-            # ATN TODO broken
-            # @listenTo @model, 'change:num_tables', @render
-            # @listenTo @model, 'change:num_available_tables', @render
+            @listenTo @model, 'change:num_tables', @render
+            @listenTo @model, 'change:num_available_tables', @render
 
 
         render: =>
@@ -117,8 +114,7 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-issues-template']
 
         initialize: =>
-            # ATN TODO Broken
-            # @listenTo @model, 'change:num_issues', @render
+            @listenTo @model, 'change:num_issues', @render
 
         render: =>
             @$el.html @template
@@ -145,8 +141,7 @@ module 'TopBar', ->
             @issues_view = []
             @show_resolve = true
 
-            # TODO ATN broken
-            # @listenTo @model, 'change:num_issues', @render
+            @listenTo @model, 'change:num_issues', @render
 
             @collection.on 'change:fixed', =>
                 # an issue was fixed, so re-fetch the issues list from the server

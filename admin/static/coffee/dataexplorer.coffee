@@ -7,7 +7,6 @@
 # abort blinks constantly when running a changefeed
 # no element found when closing connection
 # "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when running a query after a changefeed query
-# 
 
 # refactor query_result
 
