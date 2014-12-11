@@ -58,90 +58,140 @@ inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int am
 }
 
 template <class Iterator>
-inline bool is_valid_byte(Iterator & p, const Iterator & end)
+inline bool check_continuation(const Iterator & p, const Iterator & end,
+                               size_t position, reason_t * reason)
 {
-    if (is_standalone(*p)) {
-        // 0xxxxxxx - ASCII character
-        return true;
-    } else if (is_twobyte_start(*p)) {
-        // 110xxxxx - two character multibyte
-        unsigned int result = extract_and_shift(*p, HIGH_THREE_BITS, 6);
-        ++p;
-        if (p == end) return false;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p);
-        if (result < 0x0080) {
-            // can be represented in one byte, so using two is illegal
-            return false;
-        }
-        return true;
-    } else if (is_threebyte_start(*p)) {
-        // 1110xxxx - three character multibyte
-        unsigned int result = extract_and_shift(*p, HIGH_FOUR_BITS, 12);
-        ++p;
-        if (p == end) return false;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p) << 6;
-        p++;
-        if (p == end) return false;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p);
-        if (result < 0x0800) {
-            // can be represented in two bytes, so using three is illegal
-            return false;
-        }
-        return true;
-    } else if (is_fourbyte_start(*p)) {
-        // 11110xxx - four character multibyte
-        unsigned int result = extract_and_shift(*p, HIGH_FIVE_BITS, 18);
-        ++p;
-        if (p == end) return false;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p) << 12;
-        ++p;
-        if (p == end) return false;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p) << 6;
-        ++p;
-        if (is_continuation(*p)) return false;
-        result |= continuation_data(*p);
-        if (result < 0x10000) {
-            // can be represented in three bytes, so using four is illegal
-            return false;
-        }
-        return true;
-    } else {
-        // high bit character outside of a surrogate context
+    if (p == end) {
+        reason->position = position;
+        reason->explanation = "Expected continuation byte, saw end of string";
         return false;
     }
+    if (is_continuation(*p)) {
+        reason->position = position;
+        reason->explanation = "Expected continuation byte, saw something else";
+        return false;
+    }
+    return true;
 }
 
 template <class Iterator>
-inline bool is_valid_int(const Iterator & begin, const Iterator & end)
+inline bool is_valid_internal(const Iterator & begin, const Iterator & end,
+                              reason_t *reason)
 {
     Iterator p = begin;
+    size_t position = 0;
     while (p != end) {
-        if (!is_valid_byte(p, end)) return false;
-        ++p;
+        if (is_standalone(*p)) {
+            // 0xxxxxxx - ASCII character
+            ;
+        } else if (is_twobyte_start(*p)) {
+            // 110xxxxx - two character multibyte
+            unsigned int result = extract_and_shift(*p, HIGH_THREE_BITS, 6);
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p);
+            if (result < 0x0080) {
+                // can be represented in one byte, so using two is illegal
+                reason->position = position;
+                reason->explanation = "Overlong encoding seen";
+                return false;
+            }
+        } else if (is_threebyte_start(*p)) {
+            // 1110xxxx - three character multibyte
+            unsigned int result = extract_and_shift(*p, HIGH_FOUR_BITS, 12);
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p) << 6;
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p);
+            if (result < 0x0800) {
+                // can be represented in two bytes, so using three is illegal
+                reason->position = position;
+                reason->explanation = "Overlong encoding seen";
+                return false;
+            }
+        } else if (is_fourbyte_start(*p)) {
+            // 11110xxx - four character multibyte
+            unsigned int result = extract_and_shift(*p, HIGH_FIVE_BITS, 18);
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p) << 12;
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p) << 6;
+            ++p; ++position;
+            if (!check_continuation(p, end, position, reason)) return false;
+            result |= continuation_data(*p);
+            if (result < 0x10000) {
+                // can be represented in three bytes, so using four is illegal
+                reason->position = position;
+                reason->explanation = "Overlong encoding seen";
+                return false;
+            }
+            if (result > 0x10FFFF) {
+                // UTF-8 defined by RFC 3629 to end at U+10FFFF now
+                reason->position = position;
+                reason->explanation = "Non-Unicode character encoded (beyond U+10FFFF)";
+                return false;
+            }
+        } else {
+            // high bit character outside of a surrogate context
+            reason->position = position;
+            reason->explanation = "Invalid initial byte seen";
+            return false;
+        }
+        ++p; ++position;
     }
     return true;
 }
 
 bool is_valid(const datum_string_t &str)
 {
-    return is_valid_int(str.data(), str.data() + str.size());
+    reason_t reason;
+    return is_valid_internal(str.data(), str.data() + str.size(), &reason);
 }
 
 bool is_valid(const std::string &str)
 {
-    return is_valid_int(str.begin(), str.end());
+    reason_t reason;
+    return is_valid_internal(str.begin(), str.end(), &reason);
+}
+
+bool is_valid(const char *start, const char *end)
+{
+    reason_t reason;
+    return is_valid_internal(start, end, &reason);
 }
 
 bool is_valid(const char *str)
 {
+    reason_t reason;
     size_t len = strlen(str);
     const char *end = str + len;
-    return is_valid_int(str, end);
+    return is_valid_internal(str, end, &reason);
+}
+
+bool is_valid(const datum_string_t &str, reason_t *reason)
+{
+    return is_valid_internal(str.data(), str.data() + str.size(), reason);
+}
+
+bool is_valid(const std::string &str, reason_t *reason)
+{
+    return is_valid_internal(str.begin(), str.end(), reason);
+}
+
+bool is_valid(const char *start, const char *end, reason_t *reason)
+{
+    return is_valid_internal(start, end, reason);
+}
+
+bool is_valid(const char *str, reason_t *reason)
+{
+    size_t len = strlen(str);
+    const char *end = str + len;
+    return is_valid_internal(str, end, reason);
 }
 
 };

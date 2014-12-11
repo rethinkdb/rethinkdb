@@ -8,10 +8,22 @@ class datum_string_t;
 
 namespace utf8 {
 
-// Simple utf8 validation.
+// Simple UTF-8 validation.
 bool is_valid(const std::string &);
 bool is_valid(const char *);
+bool is_valid(const char *, const char *);
 bool is_valid(const datum_string_t &);
+
+struct reason_t {
+    const char * explanation;
+    size_t position;
+};
+
+// UTF-8 validation with an explanation
+bool is_valid(const std::string &, reason_t *);
+bool is_valid(const char *, reason_t *);
+bool is_valid(const char *, const char *, reason_t *);
+bool is_valid(const datum_string_t &, reason_t *);
 
 }
 
