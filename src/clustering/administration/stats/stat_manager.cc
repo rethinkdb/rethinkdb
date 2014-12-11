@@ -60,6 +60,7 @@ bool fetch_stats_from_server(
 
     if (timeout.is_pulsed()) {
         *error_out = "Stats request timed out.";
+        return false;
     }
 
     guarantee(done.is_pulsed());
