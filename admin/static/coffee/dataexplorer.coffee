@@ -1,6 +1,6 @@
 # "Session is already running a query" 400 error when aborting a changefeed
 # views should not completely redraw every added row
-# close connection: element not found
+# close connection: no element found: probably due to firefox trying to parse the xhr response as xml
 # call to query_result.size and other code assumes that result is an array
 # table view shows no results when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
@@ -26,12 +26,8 @@
 # container limit -> global constant
 
 # history load/remove buttons display is broken
-# view tabs display is different
 # compare look to old version, make sure nothing changed
 # test wrapper_scrollbar
-
-# ATN: remove jquery migration:
-#   $.browser
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -3434,8 +3430,8 @@ module 'DataExplorerView', ->
         set_view: (view) =>
             @view = view
             @container.state.view = view
-            @$(".link_to_#{@view}_view").addClass 'active'
             @$(".link_to_#{@view}_view").parent().addClass 'active'
+            @$(".link_to_#{@view}_view").parent().siblings().removeClass 'active'
             if @query_result?.ready
                 @new_view()
 
@@ -3555,6 +3551,7 @@ module 'DataExplorerView', ->
                     trigger: 'hover'
                     placement: 'bottom'
                 @$('.tab-content').html @view_object?.$el
+                @$(".link_to_#{@view}_view").parent().addClass 'active'
             return @
 
         new_view: () =>
