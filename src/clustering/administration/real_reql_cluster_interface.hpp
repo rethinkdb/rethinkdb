@@ -75,7 +75,7 @@ public:
             const name_string_t &name,
             const ql::protob_t<const Backtrace> &bt,
             ql::env_t *env,
-            scoped_ptr<ql::val_t> *selection_out,
+            scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out);
     bool table_status(
             counted_t<const ql::db_t> db,
@@ -162,6 +162,7 @@ private:
 
     bool make_single_selection(
             artificial_table_backend_t *table_backend,
+            const name_string_t &table_name,
             const uuid_u &primary_key,
             const ql::protob_t<const Backtrace> &bt,
             const std::string &msg_if_not_found,
@@ -169,12 +170,13 @@ private:
             scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out);
 
-    void wait_internal(
+    bool wait_internal(
             std::set<namespace_id_t> tables,
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            int *count_out);
+            int *count_out,
+            std::string *error_out);
 
     bool reconfigure_internal(
             cluster_semilattice_metadata_t *cluster_metadata,

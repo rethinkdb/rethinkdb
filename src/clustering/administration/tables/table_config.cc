@@ -304,8 +304,8 @@ bool table_config_artificial_table_backend_t::format_row(
         UNUSED std::string *error_out) {
     assert_thread();
     *row_out = convert_table_config_to_datum(table_id, table_name, db_name_or_uuid,
-        primary_key, metadata.replication_info.get_ref().config, identifier_format,
-        name_client);
+        metadata.primary_key.get_ref(), metadata.replication_info.get_ref().config, 
+        identifier_format, name_client);
     return true;
 }
 
@@ -575,7 +575,7 @@ bool table_config_artificial_table_backend_t::write_row(
             for (const auto &pair : md_change.get()->namespaces) {
                 if (!pair.second.is_deleted() &&
                         pair.second.get_ref().database.get_ref() == db_id &&
-                        pair.second.get_ref().name == new_table_name) {
+                        pair.second.get_ref().name.get_ref() == new_table_name) {
                     if (!existed_before) {
                         /* This message looks weird in the context of the variable named
                         `existed_before`, but it's correct. `existed_before` is true if a

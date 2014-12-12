@@ -379,7 +379,7 @@ public:
         table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t,
+            scope_env_t *env, UNUSED args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
         /* We've considered making `readiness` an optarg. See GitHub issue #2259. */
@@ -418,7 +418,7 @@ private:
     }
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t
+            scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
         // Use the default director_tag, unless the optarg overwrites it
@@ -469,11 +469,9 @@ public:
         table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t
+            scope_env_t *env, UNUSED args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        /* We've considered making `readiness` an optarg. See GitHub issue #2259. */
-        table_readiness_t readiness = table_readiness_t::finished;
         ql::datum_t result;
         bool success;
         std::string error;

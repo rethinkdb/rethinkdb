@@ -211,7 +211,7 @@ bool convert_database_id_from_datum(
             return false;
         }
         database_id_t id;
-        if (!search_db_metadata_by_name(&metadata.databases, name, &id, error_out)) {
+        if (!search_db_metadata_by_name(metadata.databases, name, &id, error_out)) {
             return false;
         }
         if (db_id_out != nullptr) *db_id_out = id;

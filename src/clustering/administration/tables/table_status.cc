@@ -447,11 +447,12 @@ table_wait_result_t wait_for_table_readiness(
             backend->assert_thread();
 
             cluster_semilattice_metadata_t md = backend->semilattice_view->get();
-            ql::datum_t table_name, db_name;
+            ql::datum_t db_name_or_uuid;
+            name_string_t table_name;
             std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
                 ::const_iterator it;
             bool ok1 = convert_table_id_to_datums(table_id, backend->identifier_format,
-                md, &table_name, nullptr, &db_name, nullptr);;
+                md, nullptr, &table_name, &db_name_or_uuid, nullptr);
             bool ok2 = search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
                 table_id, &it);
             guarantee(ok1 == ok2);
@@ -462,7 +463,7 @@ table_wait_result_t wait_for_table_readiness(
             }
 
             table_readiness_t readiness;
-            ql::datum_t row = convert_table_status_to_datum(table_name, db_name,
+            ql::datum_t row = convert_table_status_to_datum(table_name, db_name_or_uuid,
                 table_id, it->second.get_ref().replication_info.get_ref(),
                 backend->directory_view, backend->identifier_format,
                 backend->semilattice_view->get().servers, backend->name_client,

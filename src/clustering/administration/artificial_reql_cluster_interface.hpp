@@ -88,7 +88,7 @@ public:
             const name_string_t &name,
             const ql::protob_t<const Backtrace> &bt,
             ql::env_t *env,
-            scoped_ptr<ql::val_t> *selection_out,
+            scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out);
     bool table_status(
             counted_t<const ql::db_t> db,
