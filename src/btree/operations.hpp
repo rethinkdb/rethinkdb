@@ -264,7 +264,7 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
-        const value_deleter_t *detacher,
+        const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
@@ -290,7 +290,7 @@ void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp,
-        const value_deleter_t *detacher,
+        const value_deleter_t *balancing_detacher,
         key_modification_callback_t *km_callback,
         delete_or_erase_t delete_or_erase = delete_or_erase_t::DELETE);
 

@@ -11,6 +11,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/table_common.hpp"
@@ -1006,9 +1007,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_protocol::range_key_tester_t tester(&delete_range.range);
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        rdb_erase_small_range(&tester, delete_range.range.inner,
-                              superblock.get(), &deletion_context, interruptor,
-                              &mod_reports);
+        done_traversing_t res = rdb_erase_small_range(btree,
+                                                      &tester, delete_range.range.inner,
+                                                      superblock.get(), &deletion_context,
+                                                      interruptor, 0, &mod_reports);
+        guarantee(res == done_traversing_t::YES);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(mod_reports);

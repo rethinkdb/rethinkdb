@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include "btree/erase_range.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt.hpp"
@@ -11,6 +10,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/binary_blob.hpp"
 #include "rdb_protocol/profile.hpp"
+#include "rdb_protocol/store.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -784,7 +784,7 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
-        const value_deleter_t *detacher,
+        const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
@@ -818,14 +818,14 @@ void find_keyvalue_location_for_write(
         {
             profile::starter_t starter("Perhaps split node.", trace);
             check_and_handle_split(sizer, &buf, &last_buf, superblock, key,
-                                   NULL, detacher);
+                                   NULL, balancing_detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
             check_and_handle_underfull(sizer, &buf, &last_buf, superblock, key,
-                                       detacher);
+                                       balancing_detacher);
         }
 
         // Release the superblock, if we've gone past the root (and haven't
@@ -962,7 +962,7 @@ void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp,
-        const value_deleter_t *detacher,
+        const value_deleter_t *balancing_detacher,
         key_modification_callback_t *km_callback,
         delete_or_erase_t delete_or_erase) {
     key_modification_proof_t km_proof
@@ -981,7 +981,7 @@ void apply_keyvalue_change(
 
         check_and_handle_split(sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key, kv_loc->value.get(),
-                               detacher);
+                               balancing_detacher);
 
         {
 #ifndef NDEBUG
@@ -1045,7 +1045,7 @@ void apply_keyvalue_change(
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(sizer, &kv_loc->buf, &kv_loc->last_buf,
-                               kv_loc->superblock, key, detacher);
+                               kv_loc->superblock, key, balancing_detacher);
 
     // Modify the stats block.  The stats block is detached from the rest of the
     // btree, we don't keep a consistent view of it, so we pass the txn as its

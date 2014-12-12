@@ -12,7 +12,6 @@
 
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -593,99 +592,6 @@ void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) c
 void rdb_value_detacher_t::delete_value(buf_parent_t parent, const void *value) const {
     detach_rdb_value(parent, value);
 }
-
-/* Helper function for rdb_erase_small_range() */
-void rdb_erase_range_convert_keys(const key_range_t &key_range,
-                                  bool *left_key_supplied_out,
-                                  bool *right_key_supplied_out,
-                                  store_key_t *left_key_exclusive_out,
-                                  store_key_t *right_key_inclusive_out) {
-    /* This is guaranteed because the way the keys are calculated below would
-     * lead to a single key being deleted even if the range was empty. */
-    guarantee(!key_range.is_empty());
-
-    rassert(left_key_supplied_out != NULL);
-    rassert(right_key_supplied_out != NULL);
-    rassert(left_key_exclusive_out != NULL);
-    rassert(right_key_inclusive_out != NULL);
-
-    /* Twiddle some keys to get the in the form we want. Notice these are keys
-     * which will be made  exclusive and inclusive as their names suggest
-     * below. At the point of construction they aren't. */
-    *left_key_exclusive_out = store_key_t(key_range.left);
-    *right_key_inclusive_out = store_key_t(key_range.right.key);
-
-    *left_key_supplied_out = left_key_exclusive_out->decrement();
-    *right_key_supplied_out = !key_range.right.unbounded;
-    if (*right_key_supplied_out) {
-        right_key_inclusive_out->decrement();
-    }
-
-    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
-     * names. */
-}
-
-done_traversing_t rdb_erase_small_range(
-        key_tester_t *tester,
-        const key_range_t &key_range,
-        superblock_t *superblock,
-        const deletion_context_t *deletion_context,
-        signal_t *interruptor,
-        //uint64_t max_keys_to_delete, // TODO!
-        std::vector<rdb_modification_report_t> *mod_reports_out) {
-    rassert(mod_reports_out != NULL);
-    mod_reports_out->clear();
-
-    bool left_key_supplied, right_key_supplied;
-    store_key_t left_key_exclusive, right_key_inclusive;
-    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
-             &left_key_exclusive, &right_key_inclusive);
-
-    /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    // TODO! Check the max number of deletions
-    // TODO! Do two passes: First collect all keys with a parallel traversal,
-    //   then erase them all individually.
-
-    struct on_erase_cb_t {
-        static void on_erase(
-                const store_key_t &key,
-                const char *data,
-                const buf_parent_t &parent,
-                std::vector<rdb_modification_report_t> *_mod_reports_out) {
-            const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
-
-            // The mod_report we generate is a simple delete. While there is generally
-            // a difference between an erase and a delete (deletes get backfilled,
-            // while an erase is as if the value had never existed), that
-            // difference is irrelevant in the case of secondary indexes.
-            rdb_modification_report_t mod_report;
-            mod_report.primary_key = key;
-            // Get the full data
-            mod_report.info.deleted.first = get_data(value, parent);
-            // Get the inline value
-            max_block_size_t block_size = parent.cache()->max_block_size();
-            mod_report.info.deleted.second.assign(value->value_ref(),
-                value->value_ref() + value->inline_size(block_size));
-
-            _mod_reports_out->push_back(mod_report);
-        }
-    };
-
-    // TODO! Inline this. It's not used anywhere else anymore.
-    // TODO! Possibly in addition: Move this whole function to erase_range.cc.
-    btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
-        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
-        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor, release_superblock_t::RELEASE,
-        std::bind(&on_erase_cb_t::on_erase,
-                  ph::_1, ph::_2, ph::_3, mod_reports_out));
-
-    // TODO!
-    return done_traversing_t::YES;
-}
-
 
 typedef ql::transform_variant_t transform_variant_t;
 typedef ql::terminal_variant_t terminal_variant_t;
