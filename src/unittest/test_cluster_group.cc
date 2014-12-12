@@ -18,7 +18,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/uuid.hpp"
@@ -104,8 +104,8 @@ class test_reactor_t : private ack_checker_t {
 public:
     test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs);
     ~test_reactor_t();
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const;
-    write_durability_t get_write_durability(const peer_id_t &) const {
+    bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const;
+    write_durability_t get_write_durability() const {
         return write_durability_t::SOFT;
     }
 
@@ -139,9 +139,10 @@ peer_id_t reactor_test_cluster_t::get_me() {
 
 test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, io_backender, &r->mailbox_manager, &backfill_throttler, this,
-            r->directory_read_manager.get_root_map_view(),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
+    reactor(base_path, io_backender, &r->mailbox_manager, generate_uuid(),
+            &backfill_throttler, this, r->directory_read_manager.get_root_map_view(),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs,
+            &get_global_perfmon_collection(), NULL),
     directory_write_manager(
         new directory_write_manager_t<namespace_directory_metadata_t>(
             &r->connectivity_cluster, 'D', reactor.get_reactor_directory())) {
@@ -150,14 +151,14 @@ test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_
 
 test_reactor_t::~test_reactor_t() { }
 
-bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
+bool test_reactor_t::is_acceptable_ack_set(const std::set<server_id_t> &acks) const {
     return acks.size() >= 1;
 }
 
-test_cluster_group_t::test_cluster_group_t(int n_machines)
+test_cluster_group_t::test_cluster_group_t(int n_servers)
     : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)),
       balancer(new dummy_cache_balancer_t(GIGABYTE)) {
-    for (int i = 0; i < n_machines; i++) {
+    for (int i = 0; i < n_servers; i++) {
         files.push_back(make_scoped<temp_file_t>());
         filepath_file_opener_t file_opener(files[i]->name(), io_backender.get());
         standard_serializer_t::create(&file_opener,
@@ -242,7 +243,7 @@ void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
 
 scoped_ptr_t<cluster_namespace_interface_t>
 test_cluster_group_t::make_namespace_interface(int i) {
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > region_to_primary_maps;
     auto ret = make_scoped<cluster_namespace_interface_t>(
             &test_clusters[i]->mailbox_manager,
             &region_to_primary_maps,

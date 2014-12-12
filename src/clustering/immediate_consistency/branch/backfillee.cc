@@ -57,7 +57,7 @@ public:
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {
         // No re-ordering must happen up to the point where we obtain a
-        // token_pair from the store.
+        // token from the store.
         // This is also asserted by `chunk_queue->finish_write(chunk_token)`.
         try {
             svs->throttle_backfill_chunk(interruptor);
@@ -66,11 +66,11 @@ public:
             throw;
         }
 
-        write_token_pair_t token_pair;
-        svs->new_write_token_pair(&token_pair);
+        write_token_t token;
+        svs->new_write_token(&token);
         chunk_queue->finish_write(chunk_token);
 
-        svs->receive_backfill(chunk, &token_pair, interruptor);
+        svs->receive_backfill(chunk, &token, interruptor);
     }
 
     void coro_pool_callback(backfill_queue_entry_t chunk, signal_t *interruptor) {
@@ -161,7 +161,7 @@ void backfillee(
     resource_access_t<backfiller_business_card_t> backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs->new_read_token(&read_token);
 
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
@@ -325,8 +325,7 @@ void backfillee(
             }
         }
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-
+        write_token_t write_token;
         svs->new_write_token(&write_token);
 
         svs->set_metainfo(
@@ -358,7 +357,7 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_t write_token;
     svs->new_write_token(&write_token);
 
     svs->set_metainfo(

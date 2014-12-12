@@ -198,6 +198,7 @@ struct serialize_universal_size_t;
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
         u.v = static_cast<typ2>(x);                                     \
+        rassert(u.v >= typ2(lo) && u.v <= typ2(hi));                    \
         wm->append(u.buf, sizeof(typ2));                                \
     }                                                                   \
                                                                         \

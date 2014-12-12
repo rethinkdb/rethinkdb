@@ -82,20 +82,20 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) {
     if (sindex == get_pkey()) {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
-                *this,
+                counted_t<real_table_t>(this),
                 use_outdated,
                 ql::primary_readgen_t::make(env, table_name, range, sorting)),
             bt);
     } else {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
-                *this,
+                counted_t<real_table_t>(this),
                 use_outdated,
                 ql::sindex_readgen_t::make(
                     env, table_name, sindex, range, sorting)),
@@ -103,19 +103,14 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
     }
 }
 
-counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
-        ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name) {
-    return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::point_t(std::move(pval))));
-}
-
-counted_t<ql::datum_stream_t> real_table_t::read_all_changes(ql::env_t *env,
-        const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
-    return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::all_t()));
+counted_t<ql::datum_stream_t> real_table_t::read_changes(
+    ql::env_t *env,
+    const ql::datum_t &squash,
+    ql::changefeed::keyspec_t::spec_t &&spec,
+    const ql::protob_t<const Backtrace> &bt,
+    const std::string &table_name) {
+    return changefeed_client->new_stream(
+        env, squash, uuid, bt, table_name, std::move(spec));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
@@ -128,7 +123,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
 
     return make_counted<ql::lazy_datum_stream_t>(
         make_scoped<ql::intersecting_reader_t>(
-            *this,
+            counted_t<real_table_t>(this),
             use_outdated,
             ql::intersecting_readgen_t::make(
                 env, table_name, sindex, query_geometry)),
@@ -276,11 +271,11 @@ sindex_rename_result_t real_table_t::sindex_rename(ql::env_t *env,
     return response->result;
 }
 
-std::vector<std::string> real_table_t::sindex_list(ql::env_t *env) {
+std::vector<std::string> real_table_t::sindex_list(ql::env_t *env, bool use_outdated) {
     sindex_list_t sindex_list;
     read_t read(sindex_list, env->profile());
     read_response_t res;
-    read_with_profile(env, read, &res, false);
+    read_with_profile(env, read, &res, use_outdated);
     sindex_list_response_t *s_res =
         boost::get<sindex_list_response_t>(&res.response);
     r_sanity_check(s_res);

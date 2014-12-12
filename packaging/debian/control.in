@@ -7,14 +7,14 @@ Homepage: http://www.rethinkdb.com
 
 Package: VERSIONED_QUALIFIED_PACKAGE_NAME
 Architecture: i386 amd64
-Pre-Depends: adduser (>= 3.40)
+Pre-Depends: adduser (>= 3.40), procps (>= 3.2)
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
 Description:
   RethinkDB is built to store JSON documents, and scale to multiple
-  machines with very little effort. It has a pleasant query language
+  servers with very little effort. It has a pleasant query language
   that supports really useful queries like table joins and group by,
   and is easy to setup and learn.
 
@@ -26,7 +26,7 @@ Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME-dbg
 Description:
   RethinkDB is built to store JSON documents, and scale to multiple
-  machines with very little effort. It has a pleasant query language
+  servers with very little effort. It has a pleasant query language
   that supports really useful queries like table joins and group by,
   and is easy to setup and learn.
   .

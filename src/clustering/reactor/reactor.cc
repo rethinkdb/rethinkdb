@@ -24,6 +24,7 @@ reactor_t::reactor_t(
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
+        const server_id_t &sid,
         backfill_throttler_t *backfill_throttler_,
         ack_checker_t *ack_checker_,
         watchable_map_t<
@@ -40,6 +41,7 @@ reactor_t::reactor_t(
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     io_backender(_io_backender),
     mailbox_manager(mm),
+    server_id(sid),
     backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),
@@ -266,7 +268,7 @@ void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait
         /* This function waits for acks from all the peers mentioned in the
         blueprint. If the blueprint changes while we're waiting for acks, we
         restart from the top. This is important because otherwise we might
-        deadlock. For example, if we were waiting for a machine to come back up
+        deadlock. For example, if we were waiting for a server to come back up
         and then it was declared dead, our interruptor might not be pulsed but
         the `ack_waiter_t` would never be pulsed so we would get stuck. */
         cond_t blueprint_changed;

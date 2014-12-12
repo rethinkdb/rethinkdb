@@ -1,3 +1,7 @@
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+__all__ = ['expr', 'RqlQuery']
+
 import types
 import sys
 import datetime
@@ -10,7 +14,7 @@ import binascii
 import json as py_json
 from threading import Lock
 
-from .errors import *
+from .errors import RqlDriverError, QueryPrinter, T
 from . import repl # For the repl connection
 from . import ql2_pb2 as p
 
@@ -253,8 +257,8 @@ class RqlQuery(object):
     def keys(self, *args):
         return Keys(self, *args)
 
-    def changes(self, *args):
-        return Changes(self, *args)
+    def changes(self, *args, **kwargs):
+        return Changes(self, *args, **kwargs)
 
     # Polymorphic object/sequence operations
     def pluck(self, *args):
@@ -377,14 +381,18 @@ class RqlQuery(object):
     def avg(self, *args):
         return Avg(self, *[func_wrap(arg) for arg in args])
 
-    def min(self, *args):
-        return Min(self, *[func_wrap(arg) for arg in args])
+    def min(self, *args, **kwargs):
+        return Min(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def max(self, *args):
-        return Max(self, *[func_wrap(arg) for arg in args])
+    def max(self, *args, **kwargs):
+        return Max(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def map(self, *args):
-        return Map(self, *[func_wrap(arg) for arg in args])
+        if len(args) > 0:
+            # `func_wrap` only the last argument
+            return Map(self, *(args[:-1] + (func_wrap(args[-1]), )))
+        else:
+            return Map(self)
 
     def filter(self, *args, **kwargs):
         return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)
@@ -934,6 +942,12 @@ class DB(RqlTopLevelQuery):
     tt = pTerm.DB
     st = 'db'
 
+    def reconfigure(self, *args, **kwargs):
+        return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
+
     def table_list(self, *args):
         return TableList(self, *args)
 
@@ -942,6 +956,9 @@ class DB(RqlTopLevelQuery):
 
     def table_status(self, *args):
         return TableStatus(self, *args)
+
+    def table_wait(self, *args):
+        return TableWait(self, *args)
 
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
@@ -1009,6 +1026,9 @@ class Table(RqlQuery):
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
 
     def sync(self, *args):
         return Sync(self, *args)
@@ -1188,6 +1208,10 @@ class DbList(RqlTopLevelQuery):
     tt = pTerm.DB_LIST
     st = "db_list"
 
+class DbConfig(RqlTopLevelQuery):
+    tt = pTerm.DB_CONFIG
+    st = "db_config"
+
 class TableCreate(RqlMethodQuery):
     tt = pTerm.TABLE_CREATE
     st = "table_create"
@@ -1228,6 +1252,14 @@ class TableStatusTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_STATUS
     st = "table_status"
 
+class TableWait(RqlMethodQuery):
+    tt = pTerm.TABLE_WAIT
+    st = "table_wait"
+
+class TableWaitTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_WAIT
+    st = "table_wait"
+
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE
     st = 'index_create'
@@ -1255,6 +1287,18 @@ class IndexWait(RqlMethodQuery):
 class Reconfigure(RqlMethodQuery):
     tt = pTerm.RECONFIGURE
     st = 'reconfigure'
+
+class ReconfigureTL(RqlTopLevelQuery):
+    tt = pTerm.RECONFIGURE
+    st = 'reconfigure'
+
+class Rebalance(RqlMethodQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
+
+class RebalanceTL(RqlTopLevelQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
 
 class Sync(RqlMethodQuery):
     tt = pTerm.SYNC

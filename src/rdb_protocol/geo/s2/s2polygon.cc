@@ -1,6 +1,8 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <algorithm>
+// We need this for std::hash<T>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <set>

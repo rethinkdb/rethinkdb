@@ -10,7 +10,7 @@
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+        const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
             *region_to_primary_maps_,
         watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
         const namespace_id_t &namespace_id_,
@@ -31,6 +31,47 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
     if (start_count == 0) {
         start_cond.pulse();
     }
+}
+
+bool cluster_namespace_interface_t::check_readiness(table_readiness_t readiness,
+                                                    signal_t *interruptor) {
+    rassert(readiness != table_readiness_t::finished,
+            "Cannot check for the 'finished' state with namespace_interface_t.");
+    try {
+        switch (readiness) {
+        case table_readiness_t::outdated_reads:
+            {
+                read_response_t res;
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
+                read_outdated(r, &res, interruptor);
+            }
+            break;
+        case table_readiness_t::reads:
+            {
+                read_response_t res;
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
+                read(r, &res, order_token_t::ignore, interruptor);
+            }
+            break;
+        case table_readiness_t::finished: // Fallthrough in release mode, better than a crash
+        case table_readiness_t::writes:
+            {
+                write_response_t res;
+                write_t w(dummy_write_t(), profile_bool_t::DONT_PROFILE,
+                          ql::configured_limits_t::unlimited);
+                write(w, &res, order_token_t::ignore, interruptor);
+            }
+            break;
+        case table_readiness_t::unavailable:
+            // Do nothing - all tables are always >= unavailable
+            break;
+        default:
+            unreachable();
+        }
+    } catch (const cannot_perform_query_exc_t &) {
+        return false;
+    }
+    return true;
 }
 
 void cluster_namespace_interface_t::read(
@@ -128,7 +169,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                         // Throw a more specific error if possible
                         throw cannot_perform_query_exc_t("Master for shard " +
                                                          key_range_to_string(it->first.inner) +
-                                                         " not available (machine " +
+                                                         " not available (server " +
                                                          mid + " is not ready)");
                     }
                 }
@@ -360,7 +401,7 @@ void cluster_namespace_interface_t::update_registrant(
 }
 
 boost::optional<boost::optional<master_business_card_t> >
-cluster_namespace_interface_t:: extract_master_business_card(
+cluster_namespace_interface_t::extract_master_business_card(
         const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t> > ret;

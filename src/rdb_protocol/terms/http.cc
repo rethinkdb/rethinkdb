@@ -145,11 +145,15 @@ public:
         depaginate_limit(_depaginate_limit),
         more(depaginate_limit != 0) { }
 
-    bool is_array() { return false; }
+    bool is_array() const { return false; }
     bool is_exhausted() const { return !more && batch_cache_exhausted(); }
     bool is_cfeed() const { return false; }
+    bool is_infinite() const { return false; }
 
 private:
+    virtual changefeed::keyspec_t get_change_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
+    }
     std::vector<datum_t> next_page(env_t *env);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &batchspec);
 

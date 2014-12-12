@@ -5,6 +5,7 @@
 
 #include <functional>
 
+#include "debug.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
@@ -134,7 +135,14 @@ mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-    guarantee(mailboxes.empty(), "Please destroy all mailboxes before destroying the cluster");
+#ifndef NDEBUG
+    for (const auto &pair : mailboxes) {
+        debugf("ERROR: stray mailbox %p\n%s\n",
+               pair.second, pair.second->bt.lines().c_str());
+    }
+#endif
+    guarantee(mailboxes.empty(),
+              "Please destroy all mailboxes before destroying the cluster");
 }
 
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {

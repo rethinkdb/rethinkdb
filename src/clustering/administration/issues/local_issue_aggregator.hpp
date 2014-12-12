@@ -30,8 +30,12 @@ public:
 
     std::string message;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t log_write_issue_type;
     static const uuid_u base_issue_id;
@@ -51,8 +55,12 @@ public:
 
     index_map_t indexes;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t outdated_index_issue_type;
     static const uuid_u base_issue_id;
@@ -64,15 +72,19 @@ RDB_DECLARE_EQUALITY_COMPARABLE(outdated_index_issue_t);
 class server_down_issue_t : public local_issue_t {
 public:
     server_down_issue_t();
-    explicit server_down_issue_t(const machine_id_t &_down_server_id);
+    explicit server_down_issue_t(const server_id_t &_down_server_id);
 
     const datum_string_t &get_name() const { return server_down_issue_type; }
     bool is_critical() const { return true; }
 
-    machine_id_t down_server_id;
+    server_id_t down_server_id;
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t server_down_issue_type;
     static const issue_id_t base_issue_id;
@@ -84,15 +96,24 @@ RDB_DECLARE_EQUALITY_COMPARABLE(server_down_issue_t);
 class server_ghost_issue_t : public local_issue_t {
 public:
     server_ghost_issue_t();
-    explicit server_ghost_issue_t(const machine_id_t &_ghost_server_id);
+    server_ghost_issue_t(const server_id_t &_ghost_server_id,
+                         const std::string &_hostname,
+                         int64_t _pid);
 
     const datum_string_t &get_name() const { return server_ghost_issue_type; }
     bool is_critical() const { return false; }
 
-    machine_id_t ghost_server_id;
+    server_id_t ghost_server_id;
+    std::string hostname;
+    int64_t pid;
+
 private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
 
     static const datum_string_t server_ghost_issue_type;
     static const issue_id_t base_issue_id;

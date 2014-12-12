@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
-#include "buffer_cache/alt/cache_account.hpp"
+#include "buffer_cache/cache_account.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 

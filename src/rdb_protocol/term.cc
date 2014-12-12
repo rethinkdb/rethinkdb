@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
+#include "arch/address.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -103,12 +105,15 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DB_CREATE:          return make_db_create_term(env, t);
     case Term::DB_DROP:            return make_db_drop_term(env, t);
     case Term::DB_LIST:            return make_db_list_term(env, t);
+    case Term::DB_CONFIG:          return make_db_config_term(env, t);
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
     case Term::TABLE_CONFIG:       return make_table_config_term(env, t);
     case Term::TABLE_STATUS:       return make_table_status_term(env, t);
+    case Term::TABLE_WAIT:         return make_table_wait_term(env, t);
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
+    case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
@@ -199,6 +204,7 @@ void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
          stream_cache_t *stream_cache,
+         ip_and_port_t const &peer,
          Response *res) {
     try {
         validate_pb(*q);
@@ -209,6 +215,11 @@ void run(protob_t<Query> q,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
+
+    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
+        ctx->get_query_jobs_for_this_thread(),
+        generate_uuid(),
+        query_job_t(current_microtime(), peer));
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
@@ -350,8 +361,13 @@ void run(protob_t<Query> q,
     }
 }
 
+runtime_term_t::runtime_term_t(protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(std::move(bt)) { }
+
+runtime_term_t::~runtime_term_t() { }
+
 term_t::term_t(protob_t<const Term> _src)
-    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
+    : runtime_term_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -381,7 +397,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
@@ -392,7 +408,9 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
     env->env->maybe_yield();
     INC_DEPTH;
 
+#ifdef INSTRUMENT
     try {
+#endif // INSTRUMENT
         try {
             scoped_ptr_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
@@ -403,46 +421,13 @@ scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) cons
             DBG("%s THREW\n", name());
             rfail(e.get_type(), "%s", e.what());
         }
+#ifdef INSTRUMENT
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
         throw;
     }
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d) const {
-    return make_scoped<val_t>(d, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(datum_t d,
-                                    datum_t orig_key,
-                                    counted_t<table_t> t) const {
-    return make_scoped<val_t>(d, orig_key, t, backtrace());
-}
-
-scoped_ptr_t<val_t> term_t::new_val(env_t *env,
-                                    counted_t<datum_stream_t> s) const {
-    return make_scoped<val_t>(env, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                    counted_t<table_t> d) const {
-    return make_scoped<val_t>(d, s, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
-    return make_scoped<val_t>(db, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<table_t> t) const {
-    return make_scoped<val_t>(t, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
-    return make_scoped<val_t>(f, backtrace());
-}
-scoped_ptr_t<val_t> term_t::new_val_bool(bool b) const {
-    return new_val(datum_t::boolean(b));
+#endif // INSTRUMENT
 }
 
 } // namespace ql

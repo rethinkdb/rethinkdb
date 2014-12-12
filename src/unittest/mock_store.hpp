@@ -25,17 +25,17 @@ public:
 
     void note_reshard() { }
 
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    void new_read_token(read_token_t *token_out);
+    void new_write_token(write_token_t *token_out);
 
     void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         read_token_t *token,
                          signal_t *interruptor,
                          region_map_t<binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
-                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                      write_token_t *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
@@ -43,7 +43,7 @@ public:
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -53,9 +53,9 @@ public:
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -63,13 +63,13 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const backfill_chunk_t &chunk,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 

@@ -204,7 +204,7 @@ tests:
 
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type TABLE but found DATUM.', [0])
+      ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found DATUM.', [0])
 
     # test between on open intervals
     - cd: tbl.between(null, 2).count()

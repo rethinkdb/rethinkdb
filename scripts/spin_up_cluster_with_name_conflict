@@ -119,37 +119,37 @@ Partial_Photic_Boundary""".splitlines()
 
 def usage():
     print os.sys.argv[0], "p N"
-    print "Where p is the port you want the cluster to use and  N is the number of machines you want in the cluster"
+    print "Where p is the port you want the cluster to use and  N is the number of servers you want in the cluster"
 
 if len(os.sys.argv) < 3:
     usage()
     exit(1)
 
 port = int(os.sys.argv[1])
-n_machines = int(os.sys.argv[2])
-if n_machines < 1:
+n_servers = int(os.sys.argv[2])
+if n_servers < 1:
     usage()
     exit(1)
 else:
     kids = []
-    machine_names = random.sample(names, n_machines - 1)
-    machine_names.append(machine_names[0])
+    server_names = random.sample(names, n_servers - 1)
+    server_names.append(server_names[0])
     hostname = socket.gethostname()
-    for i, machine_name in enumerate(machine_names):
+    for i, server_name in enumerate(server_names):
         # cleanup the directory
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            cl = ["../build/debug/rethinkdb", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i + port), "--bind", "all"]
+            cl = ["../build/debug/rethinkdb", str(port), "--directory", directory, "--server-name", server_name, "--port-offset", str(i + port), "--bind", "all"]
         else:
-            cl = ["../build/debug/rethinkdb", str(port + i), "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i + port), "--bind", "all"]
+            cl = ["../build/debug/rethinkdb", str(port + i), "--directory", directory, "--server-name", server_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i + port), "--bind", "all"]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
     time.sleep(1)
     print "CTRL-C to kill me http requests can be sent to ports:",
-    for i in range(n_machines):
+    for i in range(n_servers):
         if i != 0:
             print ",",
 

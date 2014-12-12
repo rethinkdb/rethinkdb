@@ -55,7 +55,7 @@ try:
         opts2 = dict(opts)
         opts2["keysuffix"] = "_%d" % id   # Prevent collisions between tests
 
-        process = multiprocessing.Process(target = child, args = (opts2, log_path, load_path, save_path))
+        process = multiprocessing.Process(target=child, args=(opts2, log_path, load_path, save_path))
         process.start()
 
         processes.append((process, id))

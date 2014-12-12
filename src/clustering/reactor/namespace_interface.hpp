@@ -13,7 +13,7 @@
 #include "arch/timing.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -34,12 +34,11 @@ class cluster_namespace_interface_t : public namespace_interface_t {
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+            const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
                 *region_to_primary_maps_,
             watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
-
 
     /* Returns a signal that will be pulsed when we have either successfully
     connected or tried and failed to connect to every master that was present
@@ -49,6 +48,8 @@ public:
     signal_t *get_initial_ready_signal() {
         return &start_cond;
     }
+
+    bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
@@ -150,7 +151,7 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+    const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
         *region_to_primary_maps;
     watchable_map_t<peer_id_t, namespace_directory_metadata_t> *directory_view;
     namespace_id_t namespace_id;

@@ -2,9 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_
 
-#include <set>
-#include <string>
+#include "containers/name_string.hpp"
 
-std::string get_machine_name();
+name_string_t get_default_server_name();
 
 #endif // CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_

@@ -142,7 +142,8 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
         : scoped_ptr_t<profile::trace_t>();
 }
 
-env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
+env_t::env_t(rdb_context_t *ctx,
+             signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
     : global_optargs_(std::move(optargs)),

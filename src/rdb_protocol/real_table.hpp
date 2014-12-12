@@ -12,10 +12,12 @@
 
 const char *const sindex_blob_prefix = "$reql_index_function$";
 
+namespace ql {
 class datum_range_t;
-namespace ql { namespace changefeed {
+namespace changefeed {
 class client_t;
-} }
+}
+}
 
 /* `real_table_t` is a concrete subclass of `base_table_t` that routes its queries across
 the network via the clustering logic to a B-tree. The administration logic is responsible
@@ -50,7 +52,7 @@ private:
     threadnum_t thread;
 };
 
-class real_table_t FINAL : public base_table_t {
+class real_table_t final : public base_table_t {
 public:
     /* This doesn't automatically wait for readiness. */
     real_table_t(
@@ -70,16 +72,13 @@ public:
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated);
-    counted_t<ql::datum_stream_t> read_row_changes(
+    counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name);
-    counted_t<ql::datum_stream_t> read_all_changes(
-        ql::env_t *env,
+        const ql::datum_t &squash,
+        ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_intersecting(
@@ -124,7 +123,7 @@ public:
         const std::string &old_name,
         const std::string &new_name,
         bool overwrite);
-    std::vector<std::string> sindex_list(ql::env_t *env);
+    std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated);
     std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
         const std::set<std::string> &sindexes);
 

@@ -123,6 +123,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_block_writes(),
       pm_serializer_index_writes(secs_to_ticks(1)),
       pm_serializer_index_writes_size(secs_to_ticks(1), false),
+      pm_serializer_read_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_read_bytes_total(),
+      pm_serializer_written_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_written_bytes_total(),
       pm_extents_in_use(),
       pm_bytes_in_use(),
       pm_serializer_lba_extents(),
@@ -139,6 +143,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_block_writes, "serializer_block_writes",
           &pm_serializer_index_writes, "serializer_index_writes",
           &pm_serializer_index_writes_size, "serializer_index_writes_size",
+          &pm_serializer_read_bytes_per_sec, "serializer_read_bytes_per_sec",
+          &pm_serializer_read_bytes_total, "serializer_read_bytes_total",
+          &pm_serializer_written_bytes_per_sec, "serializer_written_bytes_per_sec",
+          &pm_serializer_written_bytes_total, "serializer_written_bytes_total",
           &pm_extents_in_use, "serializer_extents_in_use",
           &pm_bytes_in_use, "serializer_bytes_in_use",
           &pm_serializer_lba_extents, "serializer_lba_extents",
@@ -149,6 +157,16 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
           &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
+
+void log_serializer_stats_t::bytes_read(size_t count) {
+    pm_serializer_read_bytes_per_sec.record(count);
+    pm_serializer_read_bytes_total += count;
+}
+
+void log_serializer_stats_t::bytes_written(size_t count) {
+    pm_serializer_written_bytes_per_sec.record(count);
+    pm_serializer_written_bytes_total += count;
+}
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
@@ -196,6 +214,8 @@ struct ls_start_existing_fsm_t :
         scoped_ptr_t<file_t> dbfile;
         file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
+        ser->index_writes_io_account.init(
+            new file_account_t(ser->dbfile, INDEX_WRITE_IO_PRIORITY));
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
@@ -447,8 +467,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                   const std::vector<index_write_op_t> &write_ops,
-                                   file_account_t *io_account) {
+                                   const std::vector<index_write_op_t> &write_ops) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -498,11 +517,11 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             lba_index->set_block_info(op.block_id, recency,
                                       offset, ser_block_size,
-                                      io_account, &txn);
+                                      index_writes_io_account.get(), &txn);
         }
     }
 
-    index_write_finish(mutex_acq, &txn, io_account);
+    index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -720,6 +739,10 @@ bool log_serializer_t::coop_lock_and_check() {
     return dbfile->coop_lock_and_check();
 }
 
+bool log_serializer_t::is_gc_active() const {
+    return data_block_manager->is_gc_active() || lba_index->is_any_gc_active();
+}
+
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 block_id_t log_serializer_t::max_block_id() {
     assert_thread();
@@ -863,6 +886,7 @@ bool log_serializer_t::next_shutdown_step() {
 }
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {
+    index_writes_io_account.reset();
     rassert(dbfile != NULL);
     delete dbfile;
     dbfile = NULL;
@@ -902,17 +926,9 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
-    // KSI: read_ahead_callbacks should be an intrusive list.
-
-    for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
-        if (*cb_it == cb) {
-            read_ahead_callbacks.erase(cb_it);
-            break;
-        }
-    }
-
-    // KSI: This should not allow spurious unregister operations the way it currently
-    // does (it should crash here).
+    auto it = std::find(read_ahead_callbacks.begin(), read_ahead_callbacks.end(), cb);
+    guarantee(it != read_ahead_callbacks.end());
+    read_ahead_callbacks.erase(it);
 }
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(

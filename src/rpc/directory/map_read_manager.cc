@@ -3,7 +3,7 @@
 
 template class directory_map_read_manager_t<int, int>;
 
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 template class directory_map_read_manager_t<
     namespace_id_t, namespace_directory_metadata_t>;

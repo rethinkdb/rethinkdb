@@ -93,8 +93,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
                     .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
@@ -105,7 +105,6 @@ class TermBase
         new Promise( (resolve, reject) =>
             wrappedCb = (err, result) ->
                 if err?
-                    console.log 'reject'
                     reject(err)
                 else
                     resolve(result)
@@ -170,7 +169,7 @@ class RDBVal extends TermBase
     hasFields: (args...) -> new HasFields {}, @, args...
     withFields: (args...) -> new WithFields {}, @, args...
     keys: (args...) -> new Keys {}, @, args...
-    changes: (args...) -> new Changes {}, @, args...
+    changes: aropt (opts) -> new Changes opts, @
 
     # pluck and without on zero fields are allowed
     pluck: (args...) -> new Pluck {}, @, args...
@@ -179,7 +178,7 @@ class RDBVal extends TermBase
     merge: (args...) -> new Merge {}, @, args.map(funcWrap)...
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: (args...) -> new Reduce {}, @, args.map(funcWrap)...
-    map: (args...) -> new Map {}, @, args.map(funcWrap)...
+    map: varar 1, null, (args..., funcArg) -> new Map {}, @, args..., funcWrap(funcArg)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
     distinct: aropt (opts) -> new Distinct opts, @
@@ -218,8 +217,6 @@ class RDBVal extends TermBase
 
     sum: (args...) -> new Sum {}, @, args.map(funcWrap)...
     avg: (args...) -> new Avg {}, @, args.map(funcWrap)...
-    min: (args...) -> new Min {}, @, args.map(funcWrap)...
-    max: (args...) -> new Max {}, @, args.map(funcWrap)...
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
@@ -277,6 +274,7 @@ class RDBVal extends TermBase
     tableList: (args...) -> new TableList {}, @, args...
     tableConfig: (args...) -> new TableConfig {}, @, args...
     tableStatus: (args...) -> new TableStatus {}, @, args...
+    tableWait: (args...) -> new TableWait {}, @, args...
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
@@ -288,7 +286,6 @@ class RDBVal extends TermBase
         # Default if no opts dict provided
         opts = {}
         keys = keysAndOpts
-
         # Look for opts dict
         if keysAndOpts.length > 1
             perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
@@ -296,8 +293,33 @@ class RDBVal extends TermBase
                     ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
                 opts = perhapsOptDict
                 keys = keysAndOpts[0...(keysAndOpts.length - 1)]
-
         new GetAll opts, @, keys...
+
+    min: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Min opts, @, keys.map(funcWrap)...
+
+    max: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
@@ -319,8 +341,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
-    reconfigure: aropt (num_shards, num_replicas, opts) ->
-        new Reconfigure opts, @, num_shards, num_replicas
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -384,6 +406,7 @@ translateBackOptargs = (optargs) ->
             when 'page_limit' then 'pageLimit'
             when 'director_tag' then 'directorTag'
             when 'dry_run' then 'dryRun'
+            when 'identifier_format' then 'identifierFormat'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
             when 'max_results' then 'maxResults'
@@ -410,6 +433,7 @@ translateOptargs = (optargs) ->
             when 'pageLimit' then 'page_limit'
             when 'directorTag' then 'director_tag'
             when 'dryRun' then 'dry_run'
+            when 'identifierFormat' then 'identifier_format'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
             when 'maxResults' then 'max_results'
@@ -727,7 +751,6 @@ class Changes extends RDBOp
     tt: protoTermType.CHANGES
     mt: 'changes'
 
-
 class Object_ extends RDBOp
     tt: protoTermType.OBJECT
     mt: 'object'
@@ -900,6 +923,10 @@ class DbList extends RDBOp
     tt: protoTermType.DB_LIST
     st: 'dbList'
 
+class DbConfig extends RDBOp
+    tt: protoTermType.DB_CONFIG
+    st: 'dbConfig'
+
 class TableCreate extends RDBOp
     tt: protoTermType.TABLE_CREATE
     mt: 'tableCreate'
@@ -919,6 +946,10 @@ class TableConfig extends RDBOp
 class TableStatus extends RDBOp
     tt: protoTermType.TABLE_STATUS
     mt: 'tableStatus'
+
+class TableWait extends RDBOp
+    tt: protoTermType.TABLE_WAIT
+    mt: 'tableWait'
 
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
@@ -947,6 +978,10 @@ class IndexWait extends RDBOp
 class Reconfigure extends RDBOp
     tt: protoTermType.RECONFIGURE
     mt: 'reconfigure'
+
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC
@@ -1226,17 +1261,23 @@ rethinkdb.db = (args...) -> new Db {}, args...
 rethinkdb.dbCreate = (args...) -> new DbCreate {}, args...
 rethinkdb.dbDrop = (args...) -> new DbDrop {}, args...
 rethinkdb.dbList = (args...) -> new DbList {}, args...
+rethinkdb.dbConfig = (args...) -> new DbConfig {}, args...
 
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
 rethinkdb.tableConfig = (args...) -> new TableConfig {}, args...
 rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
+rethinkdb.tableWait = (args...) -> new TableWait {}, args...
+
+rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = (args...) -> new Branch {}, args...
+rethinkdb.map = varar 1, null, (args..., funcArg) -> new Map {}, args..., funcWrap(funcArg)
 
 rethinkdb.asc = (args...) -> new Asc {}, args.map(funcWrap)...
 rethinkdb.desc = (args...) -> new Desc {}, args.map(funcWrap)...

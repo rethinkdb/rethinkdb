@@ -58,6 +58,7 @@ static void run_read_write_test() {
         base_path_t("."),
         &io_backender,
         cluster.get_mailbox_manager(),
+        generate_uuid(),
         broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
         &branch_history_manager,
         &broadcaster,
@@ -144,6 +145,7 @@ static void run_broadcaster_problem_test() {
         base_path_t("."),
         &io_backender,
         cluster.get_mailbox_manager(),
+        generate_uuid(),
         broadcaster_metadata_controller.get_watchable(),
         &branch_history_manager,
         &broadcaster,
@@ -157,10 +159,10 @@ static void run_broadcaster_problem_test() {
     write will return an error. */
     class : public ack_checker_t {
     public:
-        bool is_acceptable_ack_set(const std::set<peer_id_t> &) const {
+        bool is_acceptable_ack_set(const std::set<server_id_t> &) const {
             return false;
         }
-        write_durability_t get_write_durability(const peer_id_t &) const {
+        write_durability_t get_write_durability() const {
             return write_durability_t::SOFT;
         }
     } ack_checker;

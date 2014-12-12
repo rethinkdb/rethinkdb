@@ -1,0 +1,18 @@
+
+    <tr class="jta_tr">
+        <td class="td_attr col-record col-record-attr" data-col="record">
+        </td>
+        {{#each attr}}
+        <td class="td_attr col-{{col}}" data-col={{col}}>
+            <div class="click_detector">
+                {{#if is_primitive}}
+                    <div class="jta_attr value-{{col}}">{{prefix_str}} <em>value</em></div>
+                {{else}}
+                    <div class="jta_attr value-{{col}}">{{prefix_str}}{{key}}</div>
+                {{/if}}
+            </div>
+        </td>
+        {{/each}}
+    </tr>
+
+

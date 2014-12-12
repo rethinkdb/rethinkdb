@@ -183,8 +183,8 @@ void backfiller_t::on_backfill(signal_t *interruptor,
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        read_token_pair_t send_backfill_token_pair;
-        svs->new_read_token_pair(&send_backfill_token_pair);
+        read_token_t send_backfill_token;
+        svs->new_read_token(&send_backfill_token);
 
         backfiller_send_backfill_callback_t
             send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
@@ -197,7 +197,7 @@ void backfiller_t::on_backfill(signal_t *interruptor,
                                                       ),
                      &send_backfill_cb,
                      local_backfill_progress[session_id],
-                     &send_backfill_token_pair,
+                     &send_backfill_token,
                      &interrupted);
 
         /* Send a confirmation */
