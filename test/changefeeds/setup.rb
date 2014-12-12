@@ -28,7 +28,7 @@ loop {
     r.db('test').info.run rescue r.db_create('test').run
     p "  Creating table..."
     loop {
-      r.table('test').info.run rescue r.table_create('test').run
+      r.db('test').table('test').info.run rescue r.table_create('test').run
       p "  Populating..."
       loop {
         r.table('test').insert((0...100).map{{}}).run

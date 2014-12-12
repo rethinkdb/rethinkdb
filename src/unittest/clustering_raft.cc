@@ -45,8 +45,8 @@ public:
     dummy_raft_cluster_t(
                 size_t num,
                 const dummy_raft_state_t &initial_state,
-                std::vector<machine_id_t> *member_ids_out) :
-            alive_members(std::set<machine_id_t>()),
+                std::vector<server_id_t> *member_ids_out) :
+            alive_members(std::set<server_id_t>()),
             check_invariants_timer(100, [this]() {
                 coro_t::spawn_sometime(std::bind(
                     &dummy_raft_cluster_t::check_invariants,
@@ -56,13 +56,13 @@ public:
     {
         raft_config_t initial_config;
         for (size_t i = 0; i < num; ++i) {
-            machine_id_t member_id = generate_uuid();
+            server_id_t member_id = generate_uuid();
             if (member_ids_out) {
                 member_ids_out->push_back(member_id);
             }
             initial_config.voting_members.insert(member_id);
         }
-        for (const machine_id_t &member_id : initial_config.voting_members) {
+        for (const server_id_t &member_id : initial_config.voting_members) {
             add_member(
                 member_id,
                 raft_persistent_state_t<dummy_raft_state_t>::make_initial(
@@ -80,8 +80,8 @@ public:
 
     /* `join()` adds a new non-voting member to the cluster. The caller is responsible
     for running a Raft transaction to modify the config to include the new member. */
-    machine_id_t join() {
-        machine_id_t member_id = generate_uuid();
+    server_id_t join() {
+        server_id_t member_id = generate_uuid();
         add_member(
             member_id,
             raft_persistent_state_t<dummy_raft_state_t>::make_join());
@@ -89,11 +89,11 @@ public:
     }
 
     /* `set_live()` puts the given member into the given state. */
-    void set_live(const machine_id_t &member_id, live_t live) {
+    void set_live(const server_id_t &member_id, live_t live) {
         member_info_t *i = members.at(member_id).get();
         if (i->drainer.has() && live != live_t::alive) {
             alive_members.apply_atomic_op(
-                [&](std::set<machine_id_t> *alive_set) -> bool {
+                [&](std::set<server_id_t> *alive_set) -> bool {
                     alive_set->erase(member_id);
                     return true;
                 });
@@ -114,7 +114,7 @@ public:
         if (!i->drainer.has() && live == live_t::alive) {
             i->drainer.init(new auto_drainer_t);
             alive_members.apply_atomic_op(
-                [&](std::set<machine_id_t> *alive_set) -> bool {
+                [&](std::set<server_id_t> *alive_set) -> bool {
                     alive_set->insert(member_id);
                     return true;
                 });
@@ -125,7 +125,7 @@ public:
     to find the leader of the Raft cluster and performing an operation on it. */
     void try_change(const uuid_u &change) {
         /* Search for a node that is alive */
-        machine_id_t leader = nil_uuid();
+        server_id_t leader = nil_uuid();
         for (const auto &pair : members) {
             if (pair.second->drainer.has()) {
                 leader = pair.first;
@@ -137,7 +137,7 @@ public:
             if (leader.is_nil()) {
                 return;
             }
-            machine_id_t new_leader;
+            server_id_t new_leader;
             run_on_member(leader, [&](dummy_raft_member_t *member) {
                     if (member == nullptr) {
                         new_leader = nil_uuid();
@@ -167,7 +167,7 @@ public:
     when a majority of the cluster is alive, and don't bring nodes up or down while this
     function is running. */
     void wait_for_commit(const uuid_u &change) {
-        machine_id_t chosen = nil_uuid();
+        server_id_t chosen = nil_uuid();
         for (const auto &pair : members) {
             if (pair.second->drainer.has()) {
                 chosen = pair.first;
@@ -192,8 +192,8 @@ public:
 
     /* `get_all_member_ids()` returns the member IDs of all the members of the cluster,
     alive or dead.  */
-    std::set<machine_id_t> get_all_member_ids() {
-        std::set<machine_id_t> member_ids;
+    std::set<server_id_t> get_all_member_ids() {
+        std::set<server_id_t> member_ids;
         for (const auto &pair : members) {
             member_ids.insert(pair.first);
         }
@@ -203,7 +203,7 @@ public:
     /* `run_on_member()` calls the given function for the `dummy_raft_member_t *` with
     the given ID. If the member is currently dead, it calls the function with a NULL
     pointer. */
-    void run_on_member(const machine_id_t &member_id,
+    void run_on_member(const server_id_t &member_id,
                        const std::function<void(dummy_raft_member_t *)> &fun) {
         member_info_t *i = members.at(member_id).get();
         rwlock_acq_t acq(&i->lock, access_t::read);
@@ -225,7 +225,7 @@ private:
 
         /* These are the methods for `raft_{network,storage}_interface_t`. */
         bool send_rpc(
-                const machine_id_t &dest,
+                const server_id_t &dest,
                 const raft_rpc_request_t<dummy_raft_state_t> &request,
                 signal_t *interruptor,
                 raft_rpc_reply_t *reply_out) {
@@ -268,7 +268,7 @@ private:
             }
             return reply_info->ok;
         }
-        clone_ptr_t<watchable_t<std::set<machine_id_t> > > get_connected_members() {
+        clone_ptr_t<watchable_t<std::set<server_id_t> > > get_connected_members() {
             return parent->alive_members.get_watchable();
         }
         void write_persistent_state(
@@ -291,7 +291,7 @@ private:
         }
 
         dummy_raft_cluster_t *parent;
-        machine_id_t member_id;
+        server_id_t member_id;
         raft_persistent_state_t<dummy_raft_state_t> stored_state;
         /* If the member is alive, `member` and `drainer` are set. If the member is
         isolated, `member` is set but `drainer` is empty. If the member is dead, both are
@@ -303,7 +303,7 @@ private:
     };
 
     void add_member(
-            const machine_id_t &member_id,
+            const server_id_t &member_id,
             raft_persistent_state_t<dummy_raft_state_t> initial_state) {
         scoped_ptr_t<member_info_t> i(new member_info_t);
         i->parent = this;
@@ -326,8 +326,8 @@ private:
         dummy_raft_member_t::check_invariants(member_ptrs);
     }
 
-    std::map<machine_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_variable_t<std::set<machine_id_t> > alive_members;
+    std::map<server_id_t, scoped_ptr_t<member_info_t> > members;
+    watchable_variable_t<std::set<server_id_t> > alive_members;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
 };
@@ -365,7 +365,7 @@ user-facing API. So I don't want to implement real unit tests until after the us
 API is overhauled. */
 
 TPTEST(ClusteringRaft, Basic) {
-    std::vector<machine_id_t> member_ids;
+    std::vector<server_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
     /* Election timeouts are 1000-2000ms, so we want to wait comfortably longer than
@@ -379,7 +379,7 @@ TPTEST(ClusteringRaft, Basic) {
 }
 
 TPTEST(ClusteringRaft, Failover) {
-    std::vector<machine_id_t> member_ids;
+    std::vector<server_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
     nap(5000);

@@ -13,8 +13,8 @@
 
 class ack_checker_t;
 
-/* Each shard has a `master_t` on its primary machine. The `master_t` is
-responsible for receiving queries from the machines that the clients connect to
+/* Each shard has a `master_t` on its primary server. The `master_t` is
+responsible for receiving queries from the servers that the clients connect to
 and forwarding those queries to the `broadcaster_t`. Specifically, the class
 `master_access_t`, which is instantiated by `cluster_namespace_interface_t`,
 sends the queries to the `master_t`.

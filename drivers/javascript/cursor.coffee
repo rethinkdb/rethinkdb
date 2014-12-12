@@ -148,7 +148,7 @@ class IterableResult
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
-        if !@_contFlag && !@_endFlag
+        if (not @_contFlag) and (not @_endFlag) and @_conn.isOpen()
             @_contFlag = true
             @_outstandingRequests += 1
             @_conn._continueQuery(@_token)

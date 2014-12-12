@@ -485,6 +485,30 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                       0);
     } break;
     case file_direct_io_mode_t::buffered_desired: {
+        // We can typically improve read performance by disabling read-ahead.
+        // Our access patterns are usually pretty random, and on startup we already
+        // do read-ahead internally in our cache.
+        int disable_readahead_res = -1;
+#ifdef __linux__
+        // From the man-page:
+        //  Under Linux, POSIX_FADV_NORMAL sets the readahead window to the
+        //  default size for the backing device; POSIX_FADV_SEQUENTIAL doubles
+        //  this size, and POSIX_FADV_RANDOM disables file readahead entirely.
+        //  These changes affect the entire file, not just the specified region
+        //  (but other open file handles to the same file are unaffected)
+        disable_readahead_res = posix_fadvise(fd.get(), 0, 0, POSIX_FADV_RANDOM);
+#elif defined(__APPLE__)
+        const int fcntl_res = fcntl(fd.get(), F_RDAHEAD, 0);
+        disable_readahead_res = fcntl_res == -1
+                                ? get_errno()
+                                : 0;
+#endif
+        if (disable_readahead_res != 0) {
+            // Non-critical error. Just print a warning and keep going.
+            logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
+                   "decreased read performance.", path, disable_readahead_res);
+        }
+
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
     } break;
     default:

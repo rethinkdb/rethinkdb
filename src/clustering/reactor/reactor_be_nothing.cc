@@ -71,6 +71,7 @@ void reactor_t::be_nothing(region_t region,
         signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
+        bool have_data;
 
         {
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
@@ -79,68 +80,96 @@ void reactor_t::be_nothing(region_t region,
 
             order_source_t order_source;  // TODO: order_token_t::ignore
 
-            /* We offer backfills while waiting for it to be safe to shutdown
-             * in case another peer needs a copy of the data */
-            backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
-
-            /* Tell the other peers that we are looking to shutdown and
-             * offering backfilling until we do. */
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            read_token_t read_token;
             svs->new_read_token(&read_token);
             region_map_t<binary_blob_t> metainfo_blob;
-            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
+            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(),
+                &read_token, &ct_interruptor, &metainfo_blob);
+            region_map_t<version_range_t> metainfo = to_version_range_map(metainfo_blob);
 
-            on_thread_t th2(this->home_thread());
-            branch_history_t branch_history;
-            branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
+            /* If we don't have any data at all for this region, we can skip to the last
+            step. This is important because if we broadcast a `nothing_when_safe_t` or a
+            `nothing_when_done_erasing_t`, the user will see it in the
+            `rethinkdb.table_status` pseudo-table. */
+            have_data = false;
+            for (const auto &pair : metainfo) {
+                if (pair.second != version_range_t(version_t::zero())) {
+                    have_data = true;
+                    break;
+                }
+            }
 
-            reactor_business_card_t::nothing_when_safe_t
-                activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), branch_history);
+            /* It's safe to skip the `nothing_when_safe_t` state because when
+            `reactor_t::is_safe_for_us_to_be_primary()` is looking for a backfiller, it
+            will proceed as long as it can see *some* state for every other node, even if
+            that state is a `nothing_t`. It won't consider us as a backfill source, but
+            that's OK because we don't have any data so we would never be a better
+            backfill source than the primary node itself. */
+            if (have_data) {
+                /* We offer backfills while waiting for it to be safe to shutdown in case
+                another peer needs a copy of the data. */
+                backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
-            directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
+                on_thread_t th2(this->home_thread());
+                branch_history_t branch_history;
+                branch_history_manager->export_branch_history(metainfo, &branch_history);
 
-            /* Make sure everyone sees that we're trying to erase our data,
-             * it's important to do this to avoid the following race condition:
-             *
-             * Peer 1 and Peer 2 both are secondaries.
-             * Peer 1 gets a blueprint saying its role is nothing and peer 2's is secondary,
-             * Peer 2 gets a blueprint saying its role is nothing and peer 1's is secondary,
-             *
-             * since each one sees the other is secondary they both think it's
-             * safe to shutdown and thus destroy their data leading to data
-             * loss.
-             *
-             * The below line makes sure that they will sync their new roles
-             * with one another before they begin destroying data.
-             *
-             * This makes it possible for either to proceed with deleting the
-             * data, but never both, it's also possible that neither proceeds
-             * which is okay as well.
-             */
-            wait_for_directory_acks(version_to_wait_on, interruptor);
+                /* Tell the other peers that we are looking to shutdown and
+                 * offering backfilling until we do. */
+                reactor_business_card_t::nothing_when_safe_t
+                    activity(metainfo, backfiller.get_business_card(), branch_history);
+                directory_echo_version_t version_to_wait_on =
+                    directory_entry.set(activity);
 
-            /* Make sure we don't go down and delete the data on our machine
-             * before every who needs a copy has it. */
-            run_until_satisfied_2(
-                directory_echo_mirror.get_internal(),
-                blueprint,
-                boost::bind(&reactor_t::is_safe_for_us_to_be_nothing, this, _1, _2, region),
-                interruptor,
-                REACTOR_RUN_UNTIL_SATISFIED_NAP);
+                /* Make sure everyone sees that we're trying to erase our data,
+                 * it's important to do this to avoid the following race condition:
+                 *
+                 * Peer 1 and Peer 2 both are secondaries.
+                 * Peer 1 gets a blueprint saying its role is nothing and peer 2's role
+                 * is secondary,
+                 * Peer 2 gets a blueprint saying its role is nothing and peer 1's role
+                 * is secondary,
+                 *
+                 * since each one sees the other is secondary they both think it's
+                 * safe to shutdown and thus destroy their data leading to data
+                 * loss.
+                 *
+                 * The below line makes sure that they will sync their new roles
+                 * with one another before they begin destroying data.
+                 *
+                 * This makes it possible for either to proceed with deleting the
+                 * data, but never both, it's also possible that neither proceeds
+                 * which is okay as well.
+                 */
+                wait_for_directory_acks(version_to_wait_on, interruptor);
+
+                /* Make sure we don't go down and delete the data on our server before
+                before every who needs a copy has it. */
+                run_until_satisfied_2(
+                    directory_echo_mirror.get_internal(),
+                    blueprint,
+                    boost::bind(&reactor_t::is_safe_for_us_to_be_nothing,
+                        this, _1, _2, region),
+                    interruptor,
+                    REACTOR_RUN_UNTIL_SATISFIED_NAP);
+            }
         }
 
-        /* We now know that it's safe to shutdown so we tell the other peers
-         * that we are beginning the process of erasing data. */
-        directory_entry.set(reactor_business_card_t::nothing_when_done_erasing_t());
+        /* It's OK to skip the deletion phase if we don't have any valid data for this
+        range. The `nothing_when_done_erasing_t` state is only for showing the user; the
+        other reactor code treats it the same as `nothing_t`. */
+        if (have_data) {
+            /* We now know that it's safe to shutdown so we tell the other peers
+             * that we are beginning the process of erasing data. */
+            directory_entry.set(reactor_business_card_t::nothing_when_done_erasing_t());
 
-        {
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
             on_thread_t th(svs->home_thread());
 
             /* Persist that we don't have any valid data anymore for this range */
             {
                 order_source_t order_source; // TODO: order_token_t::ignore
-                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+                write_token_t write_token;
                 svs->new_write_token(&write_token);
 
                 svs->set_metainfo(

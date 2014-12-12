@@ -1,0 +1,16 @@
+
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <p class="issue-type">Ghost server</p>
+            <p class="message">{{info.server}} has returned from the dead!</p>
+            {{!-- <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p> --}}
+        </div>
+        <hr />
+        <div class="issue-details">
+          <p>{{description}}</p>
+          <p class="description">Server's id: <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_id}}</a></p>
+          <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
+        </div>
+    </div>
+
+

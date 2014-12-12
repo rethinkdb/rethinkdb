@@ -235,30 +235,15 @@ private:
         datum_t stats = new_stats_object();
         std::set<std::string> conditions;
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<counted_t<table_t>, datum_t> tblrow
-                = v0->as_single_selection();
-            datum_t orig_val = tblrow.second;
-            datum_t orig_key = v0->get_orig_key();
-            if (!orig_key.has()) {
-                orig_key =
-                    orig_val.get_field(datum_string_t(tblrow.first->get_pkey()), NOTHROW);
-                r_sanity_check(orig_key.has());
-            }
-
-            std::vector<datum_t> vals;
-            std::vector<datum_t> keys;
-            vals.push_back(orig_val);
-            keys.push_back(orig_key);
-            datum_t replace_stats = tblrow.first->batched_replace(
-                env->env, vals, keys, f,
-                nondet_ok, durability_requirement, return_changes);
+            counted_t<single_selection_t> sel = v0->as_single_selection();
+            datum_t replace_stats = sel->replace(
+                f, nondet_ok, durability_requirement, return_changes);
             stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
-                                 &conditions);
+                                &conditions);
         } else {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
-                = v0->as_selection(env->env);
-            counted_t<table_t> tbl = tblrows.first;
-            counted_t<datum_stream_t> ds = tblrows.second;
+            counted_t<selection_t> tblrows = v0->as_selection(env->env);
+            counted_t<table_t> tbl = tblrows->table;
+            counted_t<datum_stream_t> ds = tblrows->seq;
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
@@ -275,7 +260,8 @@ private:
                 datum_t replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
                     f, nondet_ok, durability_requirement, return_changes);
-                stats = stats.merge(replace_stats, stats_merge, env->env->limits(), &conditions);
+                stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
+                                    &conditions);
             }
         }
 

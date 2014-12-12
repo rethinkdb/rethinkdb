@@ -17,6 +17,16 @@ tests:
       ot: "'ARRAY'"
 
     # Arity
+    - js: r.range(3).map(function(){return 0})
+      py: r.range(3).map(lambda:0)
+      rb: r.map(r.range(3)){0}
+      ot: [0, 0, 0]
+
+    - js: r.range(3).map(r.range(4), function(){return 0})
+      py: r.range(3).map(r.range(4), lambda:0)
+      rb: r.range(3).map(r.range(4)){0}
+      ot: [0, 0, 0]
+
     - js: r.expr([1]).map(function(x){return [x]})
       py: r.expr([1]).map(lambda x:(x,))
       rb: r.map(r.expr([1])){|x| [x]}
@@ -78,4 +88,19 @@ tests:
     - js: r.range().map(r.range(), function(x, y){return [x, y]}).count()
       py: r.range().map(r.range(), lambda x, y:(x, y)).count()
       rb: r.map(r.range(), r.range()){|x, y| [x, y]}.count()
-      ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
+      ot: err("RqlRuntimeError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
+
+    # Prefix notation
+    - js: r.map(r.range(3), function(x){return [x]})
+      py: r.map(r.range(3), lambda x:(x,))
+      rb: r.map(r.range(3), lambda {|x| [x]})
+      ot: [[0], [1], [2]]
+
+    - js: r.map(r.range(3), r.row.add(1))
+      py: r.map(r.range(3), r.row + 1)
+      ot: [1, 2, 3]
+
+    - js: r.map(r.range(3), r.range(5), function(x, y){return [x, y]})
+      py: r.map(r.range(3), r.range(5), lambda x, y:(x, y))
+      rb: r.map(r.range(3), r.range(5)){|x, y| [x, y]}
+      ot: [[0, 0], [1, 1], [2, 2]]

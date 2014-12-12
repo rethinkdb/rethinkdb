@@ -39,8 +39,8 @@ std::string mock_lookup(store_view_t *store, std::string key) {
     trivial_metainfo_checker_callback_t checker_cb;
     metainfo_checker_t checker(&checker_cb, store->get_region());
 #endif
-    read_token_pair_t token;
-    store->new_read_token_pair(&token);
+    read_token_t token;
+    store->new_read_token(&token);
 
     read_t r = mock_read(key);
     read_response_t rr;
@@ -60,26 +60,26 @@ mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
       metainfo_(get_region(), universe_metainfo) { }
 mock_store_t::~mock_store_t() { }
 
-void mock_store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+void mock_store_t::new_read_token(read_token_t *token_out) {
     assert_thread();
     fifo_enforcer_read_token_t token = token_source_.enter_read();
-    token_out->create(&token_sink_, token);
+    token_out->main_read_token.create(&token_sink_, token);
 }
 
-void mock_store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+void mock_store_t::new_write_token(write_token_t *token_out) {
     assert_thread();
     fifo_enforcer_write_token_t token = token_source_.enter_write();
-    token_out->create(&token_sink_, token);
+    token_out->main_write_token.create(&token_sink_, token);
 }
 
 void mock_store_t::do_get_metainfo(order_token_t order_token,
-                                   object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   read_token_t *token,
                                    signal_t *interruptor,
                                    region_map_t<binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token->main_read_token.get(), interruptor);
 
     order_sink_.check_out(order_token);
 
@@ -92,13 +92,13 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
 
 void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
-                                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                write_token_t *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token->main_write_token.get(), interruptor);
 
     order_sink_.check_out(order_token);
 
@@ -116,7 +116,7 @@ void mock_store_t::read(
         const read_t &read,
         read_response_t *response,
         order_token_t order_token,
-        read_token_pair_t *token,
+        read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
@@ -161,9 +161,9 @@ void mock_store_t::write(
         const write_t &write,
         write_response_t *response,
         UNUSED write_durability_t durability,
-        transition_timestamp_t timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
-        write_token_pair_t *token,
+        write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
@@ -200,7 +200,7 @@ void mock_store_t::write(
         const bool had_value = table_.find(point_write->key) != table_.end();
         if (point_write->overwrite || !had_value) {
             table_[point_write->key]
-                = std::make_pair(timestamp.timestamp_after().to_repli_timestamp(),
+                = std::make_pair(timestamp.to_repli_timestamp(),
                                  point_write->data);
         }
         res->result = had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED;
@@ -216,7 +216,7 @@ bool mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         send_backfill_callback_t *send_backfill_cb,
         traversal_progress_combiner_t *progress,
-        read_token_pair_t *token,
+        read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
@@ -278,7 +278,7 @@ bool mock_store_t::send_backfill(
 
 void mock_store_t::receive_backfill(
         const backfill_chunk_t &chunk,
-        write_token_pair_t *token,
+        write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
@@ -312,13 +312,13 @@ void mock_store_t::reset_data(
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
 
-    write_token_pair_t token_pair;
-    new_write_token_pair(&token_pair);
+    write_token_t token;
+    new_write_token(&token);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-        destroyer(&token_pair.main_write_token);
+        destroyer(&token.main_write_token);
 
-    wait_interruptible(token_pair.main_write_token.get(), interruptor);
+    wait_interruptible(token.main_write_token.get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
 

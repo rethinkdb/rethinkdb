@@ -24,6 +24,7 @@ public:
             const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
+            const server_id_t &server_id,
             backfill_throttler_t *backfill_throttler,
             ack_checker_t *ack_checker,
             watchable_map_t<
@@ -190,6 +191,8 @@ private:
     io_backender_t *io_backender;
 
     mailbox_manager_t *mailbox_manager;
+
+    server_id_t server_id;
 
     backfill_throttler_t *backfill_throttler;
 

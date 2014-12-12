@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
@@ -29,9 +30,8 @@ std::string rand_string(int len) {
 }
 
 struct make_sindex_read_t {
-    static read_t make_sindex_read(
-            ql::datum_t key, const std::string &id) {
-        datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
+    static read_t make_sindex_read(ql::datum_t key, const std::string &id) {
+        ql::datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
         return read_t(
             rget_read_t(
                 region_t::universe(),

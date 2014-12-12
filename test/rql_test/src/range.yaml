@@ -41,7 +41,10 @@ tests:
       ot: err_regex("RqlRuntimeError", "Number not an integer. 0\\.5", [])
 
     - cd: r.range().count()
-      ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
+      ot: err("RqlRuntimeError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
+
+    - cd: r.range().coerce_to("ARRAY")
+      ot: err("RqlRuntimeError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
 
     - cd: r.range(4).count()
       ot: 4

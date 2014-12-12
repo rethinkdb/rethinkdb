@@ -11,7 +11,6 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -108,9 +107,9 @@ batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
-    const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
+    ql::configured_limits_t limits,
     profile::trace_t *trace);
 
 void rdb_set(const store_key_t &key, ql::datum_t data,
@@ -181,11 +180,12 @@ void rdb_rget_slice(
     const std::vector<ql::transform_variant_t> &transforms,
     const boost::optional<ql::terminal_variant_t> &terminal,
     sorting_t sorting,
-    rget_read_response_t *response);
+    rget_read_response_t *response,
+    release_superblock_t release_superblock);
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const datum_range_t &datum_range,
+    const ql::datum_range_t &datum_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
@@ -195,7 +195,8 @@ void rdb_rget_secondary_slice(
     const key_range_t &pk_range,
     sorting_t sorting,
     const sindex_disk_info_t &sindex_info,
-    rget_read_response_t *response);
+    rget_read_response_t *response,
+    release_superblock_t release_superblock);
 
 void rdb_get_intersecting_slice(
     btree_slice_t *slice,
@@ -306,6 +307,7 @@ void deserialize_sindex_info(const std::vector<char> &data,
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
+class superblock_queue_t;
 class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
@@ -313,12 +315,23 @@ public:
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
-    void on_mod_report(const rdb_modification_report_t &mod_report);
+    scoped_ptr_t<new_mutex_in_line_t> get_in_line();
+    void on_mod_report(const rdb_modification_report_t &mod_report,
+                       bool update_pkey_cfeeds,
+                       new_mutex_in_line_t *spot);
+    bool has_pkey_cfeeds();
+    void finish(btree_slice_t *btree, superblock_t *superblock);
 
     ~rdb_modification_report_cb_t();
 
 private:
-    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
+    void on_mod_report_sub(
+        const rdb_modification_report_t &mod_report,
+        new_mutex_in_line_t *spot,
+        cond_t *keys_available_cond,
+        cond_t *done_cond,
+        std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+        std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
 
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
@@ -330,10 +343,14 @@ private:
 };
 
 void rdb_update_sindexes(
-        const store_t::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification,
-        txn_t *txn,
-        const deletion_context_t *deletion_context);
+    store_t *store,
+    const store_t::sindex_access_vector_t &sindexes,
+    const rdb_modification_report_t *modification,
+    txn_t *txn,
+    const deletion_context_t *deletion_context,
+    cond_t *keys_available_cond,
+    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
+    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
 
 void post_construct_secondary_indexes(
         store_t *store,
@@ -366,6 +383,13 @@ public:
 private:
     rdb_value_detacher_t detacher;
     rdb_value_deleter_t deleter;
+};
+
+/* A deleter that does absolutely nothing. */
+class noop_value_deleter_t : public value_deleter_t {
+public:
+    noop_value_deleter_t() { }
+    void delete_value(buf_parent_t, const void *) const;
 };
 
 /* Used for operations on secondary indexes that aren't yet post-constructed.

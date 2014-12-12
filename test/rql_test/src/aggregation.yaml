@@ -416,8 +416,61 @@ tests:
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
+    - rb: tbl.index_create('m', multi:true){|row| [row['a'], row['a']]}
+      ot: ({'created':1})
+
+    - rb: tbl.index_create('m2', multi:true){|row| [1, 2]}
+      ot: ({'created':1})
+
     - cd: tbl.index_wait('a').pluck('index', 'ready')
       ot: ([{'index':'a','ready':true}])
+
+    - rb: tbl.index_wait('m').pluck('index', 'ready')
+      ot: ([{'index':'m','ready':true}])
+
+    - rb: tbl.index_wait('m2').pluck('index', 'ready')
+      ot: ([{'index':'m2','ready':true}])
+
+    - cd: tbl.between(0, 1, {index:'a'}).distinct().count()
+      py: tbl.between(0, 1, index='a').distinct().count()
+      ot: 25
+
+    - cd: tbl.between(0, 1, {index:'a'}).distinct({index:'id'}).count()
+      py: tbl.between(0, 1, index='a').distinct(index='id').count()
+      ot: 25
+
+    - rb: tbl.between(0, 1, {index:'m'}).count()
+      ot: 50
+
+    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+      ot: 25
+
+    - rb: tbl.orderby({index:'m'}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:'m'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.orderby({index:r.desc('m')}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:r.desc('m')}).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(1, 3, {index:'m2'}).count()
+      ot: 200
+
+    - rb: tbl.between(1, 3, {index:'m2'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(1, 3, {index:'m2'}).orderby(index:r.desc('m2')).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(0, 1, {index:'m'}).count()
+      ot: 50
+
+    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+      ot: 25
 
     - cd: tbl.distinct({index:'a'}).type_of()
       py: tbl.distinct(index='a').type_of()
@@ -509,6 +562,28 @@ tests:
 
     - rb: tbl.order_by('id').group('a').max('b')
       ot: ({0=>{"a"=>0, "b"=>0, "id"=>12}, 2=>{"a"=>2, "b"=>20, "id"=>14}, 3=>{"a"=>3, "b"=>30, "id"=>11}})
+
+    - cd: tbl.min()
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='id')
+      rb: tbl.min(index:'id')
+      js: tbl.min({index:'id'})
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='a')
+      rb: tbl.min(index:'a')
+      js: tbl.min({index:'a'})
+      ot: ({'a':0,'id':0})
+
+    - cd: tbl.max().without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='id').without('b')
+      rb: tbl.max(index:'id').without('b')
+      js: tbl.max({index:'id'}).without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='a').without('b')
+      rb: tbl.max(index:'a').without('b')
+      js: tbl.max({index:'a'}).without('b')
+      ot: ({'a':3,'id':99})
 
     # Clean up
     - cd: r.db('test').table_drop('test1')

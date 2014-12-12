@@ -4,6 +4,8 @@
 #define UTIL_GEOMETRY_S2_H_
 
 #include <algorithm>
+// We need this for std::hash<T>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -21,7 +23,6 @@ using std::max;
 using std::swap;
 using std::reverse;
 using std::unordered_map;
-  // To have template struct hash<T> defined
 
 // An S2Point represents a point on the unit sphere as a 3D vector.  Usually
 // points are normalized to be unit length, but some methods do not require

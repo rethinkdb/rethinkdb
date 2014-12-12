@@ -8,11 +8,19 @@ struct log_serializer_stats_t {
     perfmon_collection_t serializer_collection;
     explicit log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
 
+    void bytes_read(size_t count);
+    void bytes_written(size_t count);
+
     perfmon_duration_sampler_t pm_serializer_block_reads;
     perfmon_counter_t pm_serializer_index_reads;
     perfmon_counter_t pm_serializer_block_writes;
     perfmon_duration_sampler_t pm_serializer_index_writes;
     perfmon_sampler_t pm_serializer_index_writes_size;
+
+    perfmon_rate_monitor_t pm_serializer_read_bytes_per_sec;
+    perfmon_counter_t pm_serializer_read_bytes_total;
+    perfmon_rate_monitor_t pm_serializer_written_bytes_per_sec;
+    perfmon_counter_t pm_serializer_written_bytes_total;
 
     /* used in serializer/log/extent_manager.cc */
     perfmon_counter_t pm_extents_in_use;

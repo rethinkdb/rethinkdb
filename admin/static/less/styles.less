@@ -27,7 +27,7 @@
 @accent: #0597d8;
 @sans: 'Open Sans', sans-serif;
 @serif: 'Copse', serif;
-@monospace: 'Inconsolata', monospace;
+@monospace: monospace;
 
 // Visualizations (graphs, etc.)
 @import "vis.less";
@@ -58,6 +58,9 @@ html, body {
         font-family: @monospace;
     }
 }
+#main_view{
+    height: 100%;
+}
 /* Opera fix */
 body:before {
     content:"";
@@ -66,7 +69,7 @@ body:before {
     width: 0;
     margin-top: -32767px;
 }
-.options_background{
+#options_container{
     display: none;
     position: absolute;
     width: 100%;
@@ -77,11 +80,10 @@ body:before {
     border-bottom: 2px solid #ddd;
 }
 .options_container_arrow_overlay{
-    display: none;
     position: absolute;
     z-index: 201;
     left: 50%;
-    top: 51px;
+    top: -10px;
     width: 0; 
     height: 0; 
     margin: 1px 0px 0px 185px;
@@ -89,13 +91,15 @@ body:before {
     border-right: 10px solid transparent; 
     border-bottom:10px solid #F6F0E3; 
 }
-.options_full_container{
-    position: relative;
+.options_background{
+    width: 100%;
+    position: absolute;
     margin: 0px auto;
     text-shadow: none;
     padding: 0px;
     .title{
         width: 100%;
+        margin: 0px;
         background: #F6F0E3;
         border-top: 1px solid #F0E6D1;
         border-bottom: 1px solid #F0E6D1;
@@ -330,6 +334,22 @@ button.btn {
         cursor: pointer;
     }
     &.displayed_alert { display: block; } // a displayed alert is one that should be shown by default (helps with re-renders)
+
+    .server_error{
+        border-top: 1px solid #f99b9b;
+        margin-top: 6px;
+        padding-top: 6px;
+        white-space: pre-wrap;
+        font-size: 12px;
+    }
+    &.global_loading{
+        width: 940px;
+        margin: 40px auto;
+        display: block;
+    }
+}
+.main_query_error{
+    word-break: break-word;
 }
 
 /*
@@ -488,7 +508,7 @@ TODO: retire this
             #nav-dashboard{
                 width: 118px;
             }
-            #nav-namespaces{
+            #nav-tables{
                 width: 86px;
             }
             #nav-servers{
@@ -564,7 +584,7 @@ TODO: retire this
     Status bar at the top
     ----------------------------
 */
-#sidebar {
+#topbar {
     // texture, so we need a background image
     background: url('images/status-panel_bg_tile.png');
     // csshat
@@ -609,7 +629,7 @@ TODO: retire this
         background: url('images/status_panel-icon_3.png') no-repeat left center;
         &.error { background: url('images/status_panel-icon_3-error.png') no-repeat left center; }
     }
-    .datacenters-connected .panel {
+    .tables-available .panel {
         background: url('images/status_panel-icon_4.png') no-repeat left center;
         &.error { background: url('images/status_panel-icon_4-error.png') no-repeat left center; }
     }
@@ -648,7 +668,8 @@ TODO: retire this
                 float: right;
                 margin-left: 20px;
                 margin-top: (@bar_height - 31px)/2;
-                &.hide-issues { display: none;}
+                &.hide-issues {
+                }
             }
 
             // Hack required for the css arrow-- we need to hide the bottom half of the arrow, so fill it in with a gradient overlay
@@ -721,7 +742,7 @@ TODO: retire this
     .opacity(0.8);
 }
 
-.add-namespace{
+.add-table{
     .hide_advanced_settings-link_container, .advanced_settings{
         display: none;
     }
@@ -790,21 +811,31 @@ TODO: retire this
     ----------------------------
 */
 #dashboard_container {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
     #cluster_status_container {
         padding: 0;
         width: 940px;
+        margin-left: auto;
+        margin-right: auto;
         overflow: auto;
         border-collapse: collapse;
-        td{
-            border: thin solid #dfdfdf;
-        }
+        display: flex;
         .panel {
+            border: thin solid #dfdfdf;
+            flex-grow: 1;
             @bad: #e85250;
             @good: #3ba51a;
-            width: 25%;
             vertical-align: top;
             & > div:first-child{
-                margin: 20px;
+                padding: 20px;
+                display: flex;
+                justify-content: center;
             }
             h3 {
                 margin-top: 0;
@@ -942,14 +973,276 @@ TODO: retire this
         ul.log-entries { margin-bottom: 5px; }
     }
 }
+/*
+    ----------------------------
+    Server list
+    ----------------------------
+*/
+#servers_container {
+    padding: 0;
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
 
+    .servers_list {
+        padding: 12px 13px 12px 13px;
+        background: #fafafa;
+        .border-radius(0px 0px 4px 4px);
+    }
+
+    .server_container {
+        @bar_height: 44px;
+        height: @bar_height;
+        background: #FFF;
+        border: thin solid #cfcfcf;
+        .border-radius(3px);
+        margin-top: 12px;
+    
+        .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
+
+        .checkbox-container {
+            float: left;
+
+            label {
+                display: inline;
+                margin: 14px;
+            }
+            input[type="checkbox"] { display: none; }
+
+            input[type="checkbox"] + label {
+                border: thin solid #cfcfcf;
+                .border-radius(3px);
+                padding: 7px;
+                display: inline-block;
+                position: relative;
+                &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
+            }
+            input[type="checkbox"]:checked + label:after {
+                content: '\2714';
+                font-size: 15px;
+                position: absolute;
+                top: -2px;
+                left: 1px;
+                color: #7c7c7c;
+            }
+        }
+
+        .server-details { 
+            position: relative;
+            margin-left: 45px;
+
+            @border_padding: 20px;
+            @offset: 8px;
+            @line_height: @bar_height - @offset*2;
+
+            p {
+                margin: 0;
+                font-family: @sans;
+            }
+            .name, .quick_info, .status {
+                @offset: 8px;
+                position: absolute;
+                line-height: @line_height;
+                margin-top: @offset;
+                border-left: thin solid #e4e4e4;
+            }
+            .name {
+                background: @border_padding center no-repeat url('images/server-icon.png');
+                padding-left: 38px + @border_padding;
+                a { color: #0597d8; }
+                font-size: 16px;
+                font-weight: bold;
+                width: 400px;
+                height: @line_height;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .quick_info {
+                background: @border_padding center no-repeat url('images/graph-icon.png');
+                color: #626264;
+                padding-left: 30px + @border_padding;
+                left: 475px;
+            }
+            .status {
+                left: 725px;
+                padding-right: 20px;
+                color: #818181;
+                .label-success {
+                    background: @border_padding center no-repeat url('images/green-light_glow.png');
+                    padding-left: 23px + @border_padding;
+                }
+                .label-failure {
+                    background: @border_padding center no-repeat url('images/red-light_glow.png');
+                    padding-left: 23px + @border_padding;
+                }
+            }
+
+        }
+    }
+}
+
+
+#databases_container {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
+    .actions-bar { float: right; }
+
+    .database_container {
+        padding: 0;
+        .header_container {
+            border-bottom: thin solid #CCC;
+            padding: 13px 15px;
+            background: #fff;
+            .border-radius(4px 4px 0px 0px);
+
+            .element-type, h3.name { 
+                display: inline-block;
+                vertical-align: middle;
+            }
+            .element-type {
+                background: #f7ae41;
+                .border-radius(2px);
+                padding: 4px 15px;
+                text-transform: uppercase;
+                margin-right: 20px;
+                color: #fff;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            h3.name {
+                font-family: @serif;
+                font-size: 17px;
+                color: #61666e;
+                margin: 0;
+                a { color: #61666e; }
+            }
+            .buttons {
+                float: right;
+                margin-top: -2px;
+            }
+        }
+
+        .element-list-container {
+            padding: 0px 13px 12px 13px;
+            background: #fafafa;
+            .border-radius(0px 0px 4px 4px);
+        }
+
+        .table_container {
+            @bar_height: 44px;
+            height: @bar_height;
+            background: #FFF;
+            border: thin solid #cfcfcf;
+            .border-radius(3px);
+            margin-top: 12px;
+        
+            .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
+
+            .checkbox-container {
+                float: left;
+
+                label {
+                    display: inline;
+                    margin: 14px;
+                }
+                input[type="checkbox"] { display: none; }
+
+                input[type="checkbox"] + label {
+                    border: thin solid #cfcfcf;
+                    .border-radius(3px);
+                    padding: 7px;
+                    display: inline-block;
+                    position: relative;
+                    &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
+                }
+                input[type="checkbox"]:checked + label:after {
+                    content: '\2714';
+                    font-size: 15px;
+                    position: absolute;
+                    top: -2px;
+                    left: 1px;
+                    color: #7c7c7c;
+                }
+            }
+
+            .element-details {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: stretch;
+                height: 100%;
+
+                @border_padding: 20px;
+                @offset: 8px;
+                @line_height: @bar_height - @offset*2;
+
+                p {
+                    margin: 0;
+                    font-family: @sans;
+                }
+                .name, .quick_info, .status {
+                    @offset: 8px;
+                    padding: 0 @offset * 2;
+                    border-left: thin solid #e4e4e4;
+                    display: flex;
+                    align-items: center;
+                    height: 100%;
+                }
+                // mixin for icons
+                .with-icon(@url) {
+                    &::before {
+                        content: url(@url);
+                        padding-right: @offset;
+                        margin-top: @offset/2;
+                    }
+                }
+                .name {
+                    .with-icon('images/server-icon.png');
+                    a { color: #0597d8; }
+                    font-size: 16px;
+                    font-weight: bold;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    flex-grow: 2;
+                }
+                .quick_info {
+                    .with-icon('images/graph-icon.png');
+                    color: #626264;
+                    min-width: 165px;
+                }
+                .status {
+                    color: #818181;
+                    min-width: 120px;
+                    &.label-success {
+                        .with-icon('images/green-light_glow.png');
+                    }
+                    &.label-failure {
+                        .with-icon('images/red-light_glow.png');
+                    }
+                    &.label-partial-success {
+                        .with-icon('images/yellow-light_glow.png');
+                    }
+                }
+            }
+        }
+    }
+
+}
 
 /*
     ----------------------------
     Server list and table list
     ----------------------------
 */
-#server-list, #table-list {
+#table-list {
     h1.title {
         font-family: @serif;
         color: #4d535c;
@@ -1086,7 +1379,6 @@ TODO: retire this
                         padding-left: 23px + @border_padding;
                     }
                 }
-
             }
         }
     }
@@ -1150,7 +1442,7 @@ TODO: retire this
             }
             .message { font-size: 14px; }
             li.pretty_logs_li { font-size: 13px; }
-            .from-machine {
+            .from-server {
                 font-style: italic;
                 margin-top: 5px;
                 font-size: 13px;
@@ -1264,6 +1556,7 @@ TODO: retire this
             left: 0px;
             z-index: 100;
             font-family: @monospace;
+            font-size: 11px;
             .suggestion_name_list{
                 background: #fff;
                 display: none;
@@ -1295,6 +1588,7 @@ TODO: retire this
                 border: 1px solid #d7d7d7;
                 color: #9ea2a8;
                 font-family: @monospace;
+                font-size: 11px;
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
@@ -1306,10 +1600,10 @@ TODO: retire this
                 }
                 p, code{
                     font-family: @monospace;
-                    font-size: 13px;
+                    font-size: 11px;
                     margin: 3px 0px;
                     .description_name{
-                        color: #000;
+                        color: #222;
                         font-weight: bold;
                     }
                     .description_arguments{
@@ -1321,8 +1615,9 @@ TODO: retire this
                 }
                 .grouped_data_warning{
                     font-family: @monospace;
+                    font-size: 11px;
                     background: #f8f8f8;
-                    color: #555;
+                    color: #666;
                     padding: 5px 6px;
                     border: 1px solid #e4e4e4;
                     margin: 5px 0px;
@@ -1331,7 +1626,8 @@ TODO: retire this
             }
         }
         .input_query_container{
-            font: @monospace;
+            font-family: @monospace;
+            font-size: 13px;
 
             padding: 0px;
             margin: 10px 0px;
@@ -1385,21 +1681,28 @@ TODO: retire this
                 .history_container{
                     display: none;
                     font-family: @monospace;
-                    font-size: 15px; // Exact match with codemirror
+                    font-size: 13px; // Exact match with codemirror
                     width: 100%;
                     .history_list{
                         margin: 0px 15px 0px 0px;
-                        display: block;
-                        clear: both;
                         list-style: none;
                         padding: 0px;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
                         .query_history{
                             margin: 0px;
                             padding: 0px;
                             overflow: auto;
                             border-bottom: 1px solid #e4e4e4;
+                            width: 100%;
+                            color: #999;
+                            &:hover{
+                                color: #444;
+                            }
                             &.displayed{
-                                display: block;
+                                display: auto;
                             }
                             &.hidden{
                                 display: none;
@@ -1408,30 +1711,32 @@ TODO: retire this
                                 margin: 0px;
                                 border-bottom: 0px;
                             }
-                            color: #999;
-                            &:hover{
-                                color: #444;
-                            }
                             .query_history_content{
                                 overflow: auto;
-                                word-break: break-word;
-                                white-space: pre;
-                                margin: -40px 0px 0px 30px;
-                                padding: 11px 4px;
+                                //word-break: break-word;
+                                margin: 10px;
+                                display: flex;
+                                flex-direction: row;
+                                justify-content: space-between;
                                 .right_container{
-                                    float: right;
+                                    width: 100%;
+                                    display: flex;
+                                    justify-content: flex-end;
+                                    align-items: flex-end;
+                                    .btn{
+                                        padding: 2px 10px;
+                                        margin: 10px;
+                                        .box-shadow(~"0px 0px 0px 0px #fff");
+                                    }
                                 }
-                                .btn{
-                                    padding: 2px 10px;
-                                    float: right;
-                                    margin: -8px 12px 0px 0px;
-                                    top: 5px;
-                                    .box-shadow(~"0px 0px 0px 0px #fff");
+                                .query {
+                                    font-size: 13px;
+                                    margin: 0px;
+                                    font-family: @monospace;
+                                    width: 100%;
                                 }
                                 .broken_query{
-                                    float: right;
-                                    margin: 0px 12px 0px 0px;
-                                    top: 5px;
+                                    margin: 10px;
                                     visibility: hidden;
                                     height: 19px;
                                     width: 22px;
@@ -1439,8 +1744,8 @@ TODO: retire this
                                 }
                             }
                             .query_id{
-                                padding: 11px 0px;
-                                width: 28px;
+                                margin-right: 1em;
+                                width: 4em;
                                 text-align: center;
                             }
                             .btn{
@@ -1517,7 +1822,7 @@ TODO: retire this
                     margin: 0px;
                     padding: 9px 4px;
                     font-family: @monospace;
-                    font-size: 15px;
+                    font-size: 13px;
                 }
                 &:hover{
                     color: #444;
@@ -1573,6 +1878,7 @@ TODO: retire this
         .error_title{ font-weight: bold; }
         .error_details{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #CCC;
             border-radius: 3px;
@@ -1587,6 +1893,7 @@ TODO: retire this
         }
         .query{
             font-family: @monospace;
+            font-size: 11px;
             padding: 7px 10px;
             border: 1px solid #ccc;
             border-radius: 3px;
@@ -1981,7 +2288,6 @@ TODO: retire this
             }
 
             p {
-                position: absolute;
                 text-overflow: ellipsis;
                 overflow: hidden;
                 margin: 0;
@@ -1992,14 +2298,16 @@ TODO: retire this
                 &.issue-type {
                     background: 7px center no-repeat url('images/resolve_issue-danger_icon.png');
                     padding-left: 35px;
+                    width: 30%;
+                    display: inline-block;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
                     text-shadow: 0 1px 0 #fff; // drop shadow
                 }
 
                 &.message {
-                    right: 375px;
-                    width: 310px;
+                    width: 40%;
+                    display: inline-block;
                     @icon_width: 30px;
                     @icon_padding: 20px;
                     background: @icon_padding center no-repeat url('images/resolve_issue-message_icon.png');
@@ -2009,7 +2317,8 @@ TODO: retire this
 
                 &.datetime {
                     right: 155px;
-                    width: 175px;
+                    display: none;
+                    width: 0;
                     @icon_width: 30px;
                     @icon_padding: 20px;
                     background: @icon_padding center no-repeat url('images/resolve_issue-clock_icon.png');
@@ -2138,11 +2447,26 @@ TODO: retire this
         }
     }
 
+    .assignments_list, .responsibilities_list{
+        position: relative;
+    }
+    @element_height: 40px;
+    @square_bullet_width: 7px;
+    @node_margin: 15px + @square_bullet_width;
+
+    /* We flatten the views in table/table/assignments */
+    .tree-line {
+        position: absolute;
+        top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
+        bottom: (@element_height / 2) - 1;
+        width: @square_bullet_width;
+        background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
+        background-position: left top, ((@square_bullet_width / 2) - 1) center;
+        background-repeat: no-repeat, repeat-y;  
+    }
+
     .tree-view {
         overflow:hidden;
-        @element_height: 40px;
-        @square_bullet_width: 7px;
-        @node_margin: 15px + @square_bullet_width;
 
         ul, li {
             list-style-type: none;
@@ -2259,112 +2583,24 @@ TODO: retire this
                 width: 300px;
                 height: @element_height;
             }
-            .num-primaries {
-                right: 350px;
+            .primary {
+                right: 150px;
                 width: 145px;
                 padding-left: 30px;
                 background: left center no-repeat url('images/layers-icon.png');
             }
-            .num-secondaries {
-                right: 175px;
+            .secondary {
+                right: 150px;
                 width: 145px;
                 padding-left: 30px;
                 background: left center no-repeat url('images/grid-icon.png');
             }
-            .num-keys {
-                right: 0;
-                padding-left: 35px;
-                background: left center no-repeat url('images/bars-icon_server-assignments.png');
-            }
         }
-        .popup_container{
-            display: none;
-            width: 430px;
-            position: absolute;
-            top: 0px;
-            left: 0px;
-            z-index: 200;
-            padding: 10px 20px;
-            border: thin solid #cfcfcf;
-            background: #fff;
-            .inner_content{
-                max-height: 600px;
-                overflow: auto;
-            }
-            .close{
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                color: #444;
-                font-size: 18px;
-                text-decoration: none;
-            }
-            .arrow_left{
-                position: absolute;
-                z-index: 201;
-                top: 60px;
-                left: -11px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-right:10px solid #bbb; 
-            }
-            .arrow_left_overlay{
-                position: absolute;
-                z-index: 202;
-                top: 60px;
-                left: -10px; //TODO
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-right:10px solid #fff; 
-            }
-            .arrow_right{
-                position: absolute;
-                z-index: 201;
-                top: 60px;
-                left: 471px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-left:10px solid #bbb; 
-            }
-            .arrow_right_overlay{
-                position: absolute;
-                z-index: 202;
-                top: 60px;
-                left: 470px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-left:10px solid #fff; 
-            }
-
-            h4{
-                font-family: @sans;
-                font-size: 16px;
-                margin: 15px 0px 10px 0px;
-                padding: 0px 20px 10px 20px;
-                border-bottom: 1px solid #999;
-                background: none;
-            }
-            .shards_list{
-                li{
-                    margin: 3px 0px 7px 20px;
-                    list-style: square;
-                    width: 400px;
-                    border-bottom: 1px solid #eee;
-                    .name {
-                        width: 180px;
-                        display: inline-block;
-                        padding: 0px 0px 4px 0px;
-                    }
-                }
-            }
+        .num-keys {
+            float: right;
+            margin-right: 183px;
+            padding-left: 35px;
+            background: left center no-repeat url('images/bars-icon_server-assignments.png');
         }
     }
     .section.replication {
@@ -2657,13 +2893,16 @@ TODO: retire this
             line { stroke: #dcdcdc; }
             .rect { fill: #9ad7f2; }
             text { fill: #a3a3a3; }
+            .shard-diagram{
+                display: none;
+            }
         }
     }
     .section.secondary_indexes{
         h2.title{
             margin-bottom: 10px;
         }
-        .list_secondary_indexes{
+        .list_secondary_indexes, .list_meta{
             list-style: none;
             margin: 10px 0px 0px 0px;
             padding: 0px;
@@ -2707,7 +2946,7 @@ TODO: retire this
             margin-top: 7px;
             .error_detail{
                 font-family: @monospace;
-                font-size: 13px;
+                font-size: 11px;
             }
         }
         .cancel_delete_btn, .delete_index_btn{
@@ -2747,7 +2986,7 @@ TODO: retire this
 }
 
 #server-view {
-    .section.tree-view.server-data {
+    .section.tree-view.responsibilities {
         @element_height: 40px;
         li.shard .shard-info {
             background: left center no-repeat url('images/server-icon.png');
@@ -2899,6 +3138,10 @@ TODO: retire this
     }
 }
 
+.edit-shards{
+    border-bottom: 1px solid #efefef;
+    margin-bottom: 20px;
+}
 .replica-status, .shard-status, .secondary_indexes {
     font-family: @sans;
     font-size: 15px;
@@ -3083,27 +3326,12 @@ TODO: retire this
 
 /*
     ----------------------------
-    Development tools
-    ----------------------------
-*/
-#dev-tools {
-    display: none;
-    #translucent > .background(#000, 0.1);
-    border: thin solid #BBB;
-    padding: 10px 15px 20px 30px;
-    position: fixed;
-    right: 0;
-    width: 190px;
-    z-index: 1000;
-}
-
-
-/*
-    ----------------------------
     Updates
     ----------------------------
 */
-.updates_container{
+#updates_container{
+    width: 940px;
+    margin: 15px auto 0px auto;
     .settings{
         display: none;
         width: 895px;
@@ -3139,3 +3367,4 @@ TODO: retire this
         }
     }
 }
+

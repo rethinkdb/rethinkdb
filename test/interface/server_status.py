@@ -1,109 +1,108 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, datetime, socket
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-r = utils.import_python_driver()
-from vcoptparse import *
+# Copyright 2014 RethinkDB, all rights reserved.
 
-op = OptParser()
+from __future__ import print_function
+
+import copy, datetime, os, pprint, socket, sys, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, utils, vcoptparse
+
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = \
-        scenario_common.parse_mode_flags(opts)
-    print "Spinning up two processes..."
-    files1 = driver.Files(
-        metacluster, db_path = "db-1", log_path = "create-output-1",
-        machine_name = "a", server_tags = ["foo"],
-        executable_path = executable_path, command_prefix = command_prefix)
-    files2 = driver.Files(
-        metacluster, db_path = "db-2", log_path = "create_output-2",
-        machine_name = "b", server_tags = ["foo", "bar"],
-        executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path="serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix,
-        extra_options = serve_options)
-    time.sleep(3)
-    process2 = driver.Process(cluster, files2, log_path="serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix,
-        extra_options = serve_options)
-    process1.wait_until_started_up()
-    process2.wait_until_started_up()
-    cluster.check()
-    reql_conn1 = r.connect("localhost", process1.driver_port)
-    reql_conn2 = r.connect("localhost", process2.driver_port)
+r = utils.import_python_driver()
 
-    def wait_for(predicate):
-        for i in xrange(10):
-            if predicate():
-                break
-            time.sleep(1)
-        else:
-            raise ValueError("Condition not satisfied after 10 seconds")
-
-    assert r.db("rethinkdb").table("server_status").count().run(reql_conn1) == 2
-    assert set(r.db("rethinkdb").table("server_status")["name"].run(reql_conn1)) == \
-        set(["a", "b"])
-    def get_status(name):
-        return r.db("rethinkdb").table("server_status").filter({"name":name}).nth(0) \
-                .run(reql_conn1)
-
-    st = get_status("a")
-    print "Status for a connected table:", st
-
+print("Spinning up two servers (%.2fs)" % (time.time() - startTime))
+with driver.Cluster(output_folder='.') as cluster:
+    
+    process1 = driver.Process(cluster, files='a', server_tags=["foo"], command_prefix=command_prefix, extra_options=serve_options)
+    process2 = driver.Process(cluster, files='b', server_tags=["foo", "bar"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
+    
+    cluster.wait_until_ready()
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    conn = r.connect(process1.host, process1.driver_port)
+    
+    # -- general assertions
+    
+    print("General status (%.2fs)" % (time.time() - startTime))
+    
+    assert r.db("rethinkdb").table("server_status").count().run(conn) == 2
+    assert set(r.db("rethinkdb").table("server_status")["name"].run(conn)) == set(["a", "b"])
+    
+    # -- server a
+    
+    print("First server info (%.2fs)" % (time.time() - startTime))
+    
+    st = r.db("rethinkdb").table("server_status").filter({"name":process1.name}).nth(0).run(conn)
+    
+    #print("Status for a connected server:")
+    #pprint.pprint(st)
+    
     assert st["status"] == "available"
 
-    assert isinstance(st["version"], basestring)
-    assert st["version"].startswith("rethinkdb")
+    assert isinstance(st["process"]["version"], basestring)
+    assert st["process"]["version"].startswith("rethinkdb")
 
-    assert st["pid"] == process1.process.pid
+    assert st["id"] == process1.uuid
+    assert st["process"]["pid"] == process1.process.pid
 
-    assert isinstance(st["cache_size_mb"], int)
-    assert st["cache_size_mb"] < 1024*100
+    assert st["network"]["hostname"] == socket.gethostname()
+    assert st["network"]["reql_port"] == process1.driver_port
+    assert st["network"]["cluster_port"] == process1.cluster_port
+    assert st["network"]["http_admin_port"] == process1.http_port
+    assert st["network"]["canonical_addresses"][0]["port"] == process1.cluster_port
 
-    assert st["hostname"] == socket.gethostname()
-    assert st["reql_port"] == process1.driver_port
-    assert st["cluster_port"] == process1.cluster_port
-    assert st["http_admin_port"] == process1.http_port
-
-    now = datetime.datetime.now(st["time_started"].tzinfo)
-    assert st["time_started"] <= now
-    assert st["time_started"] > now - datetime.timedelta(minutes=1)
-    assert st["time_connected"] <= now
-    assert st["time_connected"] >= st["time_started"]
-    assert st["time_disconnected"] is None
-
-    assert st["tables"] == []
-    res = r.db_create("foo").run(reql_conn1)
-    assert res == {"created":1}
-    res = r.db("foo").table_create("bar").run(reql_conn1)
-    assert res == {"created":1}
-    r.db("foo").table_config("bar") \
-     .update({"shards": [{"replicas": ["a"], "directors": ["a"]}]}) \
-     .run(reql_conn1)
-    def tables_are_as_expected():
-        a_st, b_st = get_status("a"), get_status("b")
-        if a_st["tables"] != [{"db": "foo", "table": "bar"}]:
-            return False
-        if b_st["tables"] != []:
-            return False
-        return True
-    wait_for(tables_are_as_expected)
-
-    assert get_status("b")["status"] == "available"
+    now = datetime.datetime.now(st["process"]["time_started"].tzinfo)
+    assert st["process"]["time_started"] <= now
+    assert st["process"]["time_started"] > now - datetime.timedelta(minutes=1)
+    assert st["connection"]["time_connected"] <= now
+    assert st["connection"]["time_connected"] >= st["process"]["time_started"]
+    assert st["connection"]["time_disconnected"] is None
+    
+    # -- server b
+    
+    print("Second server info (%.2fs)" % (time.time() - startTime))
+    
+    st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
+    assert st2["process"]["cache_size_mb"] == 123
+    assert st2["status"] == "available"
+    
+    assert st2["id"] == process2.uuid
+    assert st2["process"]["pid"] == process2.process.pid
+    
+    assert st2["network"]["reql_port"] == process2.driver_port
+    assert st2["network"]["cluster_port"] == process2.cluster_port
+    assert st2["network"]["http_admin_port"] == process2.http_port
+    assert st2["network"]["canonical_addresses"][0]["port"] == process2.cluster_port
+    
+    # -- shut down server b
+    
+    print("Shutting down second server (%.2fs)" % (time.time() - startTime))
+    
     process2.check_and_stop()
-    wait_for(lambda: get_status("b")["status"] == "unavailable")
-    st2 = get_status("b")
-    print "Status for a disconnected table:", st2
+    
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
+        if st2["status"] == "unavailable":
+            break
+    else:
+        assert False, 'Server b did not become unavalible after 10 seconds'
+    
+    #print("Status for a disconnected server:")
+    #pprint.pprint(st2)
 
-    now = datetime.datetime.now(st2["time_disconnected"].tzinfo)
-    assert st2["time_connected"] is None
-    assert st2["time_disconnected"] <= now
-    assert st2["time_disconnected"] >= now - datetime.timedelta(minutes=1)
-
-    cluster.check_and_stop()
-
+    now = datetime.datetime.now(st2["connection"]["time_disconnected"].tzinfo)
+    assert st2["connection"]["time_connected"] is None
+    assert st2["connection"]["time_disconnected"] <= now
+    assert st2["connection"]["time_disconnected"] >= now - datetime.timedelta(minutes=1)
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

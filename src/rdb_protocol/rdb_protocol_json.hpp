@@ -42,4 +42,12 @@ private:
     reql_version_t reql_version_;
 };
 
+/* Sorts datums according to an undefined deterministic ordering. */
+class latest_version_optional_datum_less_t :
+    public optional_datum_less_t {
+public:
+    latest_version_optional_datum_less_t() :
+        optional_datum_less_t(reql_version_t::LATEST) { }
+};
+
 #endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

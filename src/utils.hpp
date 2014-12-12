@@ -9,6 +9,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include "debug.hpp"
 #include "config/args.hpp"
 
 class printf_buffer_t;
@@ -41,7 +42,6 @@ void *rrealloc(void *ptr, size_t size);
 
 /* Forwards to the isfinite macro, or std::isfinite. */
 bool risfinite(double);
-
 
 class rng_t {
 public:

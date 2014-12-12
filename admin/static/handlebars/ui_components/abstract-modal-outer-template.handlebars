@@ -1,0 +1,21 @@
+
+    {{! Outer template for the abstract modal dialog }}
+    <div class="modal {{modal_class}}">
+        <div class="modal-header">
+            <a href="#" class="close_modal">&times;</a>
+            <h3>{{modal_title}}</h3>
+        </div>
+        <div class="alert_modal"></div>
+        <div class="modal-body"></div>
+        <div class="modal-footer">
+            <div class="custom_btn_placeholder"></div>
+            <button class="btn cancel" data-loading-text="{{#if btn_secondary_text}}{{btn_secondary_text}}{{else}}Cancel{{/if}}">
+            {{#if btn_secondary_text}}{{btn_secondary_text}}{{else}}Cancel{{/if}}
+            </button>
+            <button class="btn btn-primary" data-loading-text="Loading...">
+            {{#if btn_primary_text}}{{btn_primary_text}}{{else}}Commit{{/if}}
+            </button>
+        </div>
+    </div>
+
+

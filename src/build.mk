@@ -6,13 +6,9 @@
 LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS)
-RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS)
+RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS) $(MALLOC_LIBS)
 RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE) $(CRYPTO_INCLUDE)
 ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(V8_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP)
-
-ifneq ($(NO_TCMALLOC),1)
-  RT_LDFLAGS += $(TCMALLOC_MINIMAL_LIBS)
-endif
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -230,8 +226,8 @@ ifeq ($(THREADED_COROUTINES),1)
 endif
 
 ifeq ($(VALGRIND),1)
-  ifneq (1,$(NO_TCMALLOC))
-    $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
+  ifneq (system,$(ALLOCATOR))
+    $(error cannot build with VALGRIND=1 when using a custom allocator)
   endif
   RT_CXXFLAGS += -DVALGRIND
 endif
@@ -330,13 +326,17 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
 
-MAYBE_CHECK_TCMALLOC =
-ifeq (0,$(NO_TCMALLOC)) # if we link to tcmalloc
-  ifeq ($(filter -l%, $(value TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
-    MAYBE_CHECK_TCMALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
-    MAYBE_CHECK_TCMALLOC += (echo "Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." >&2 && false)
+MAYBE_CHECK_STATIC_MALLOC =
+ifeq ($(filter -l%, $(value MALLOC_LIBS)),) # if the allocator is not dynamically linked
+  ifeq (tcmalloc,$(ALLOCATOR))
+    MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
+    MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in TCMalloc." >&2 && false)
+  else ifeq (jemalloc,$(ALLOCATOR))
+    RT_LDFLAGS += -ldl
+    MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | grep -w -q 'mallctlnametomib' ||
+    MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in jemalloc." >&2 && false)
   endif
 endif
 
@@ -349,7 +349,7 @@ endif
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
 	$(RT_CXX) $(SERVER_EXEC_OBJS) $(RT_LDFLAGS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
-	$(MAYBE_CHECK_TCMALLOC)
+	$(MAYBE_CHECK_STATIC_MALLOC)
 
 ifeq (1,$(SPLIT_SYMBOLS))
   ifeq (Darwin,$(OS))

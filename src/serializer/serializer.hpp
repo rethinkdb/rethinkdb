@@ -103,8 +103,7 @@ public:
     // mutex belonging to the _caller_, used by the caller for pipelining, for
     // ensuring that different index write operations do not cross each other.
     virtual void index_write(new_mutex_in_line_t *mutex_acq,
-                             const std::vector<index_write_op_t> &write_ops,
-                             file_account_t *io_account) = 0;
+                             const std::vector<index_write_op_t> &write_ops) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >
@@ -117,6 +116,9 @@ public:
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;
+
+    /* Return true if the garbage collector is active */
+    virtual bool is_gc_active() const = 0;
 
 private:
     DISABLE_COPYING(serializer_t);

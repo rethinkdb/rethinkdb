@@ -4,7 +4,7 @@
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
-#include "clustering/administration/http/stat_app.hpp"
+#include "clustering/administration/http/me_app.hpp"
 #include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
@@ -22,10 +22,10 @@ std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const change_tra
     return out;
 }
 
-std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
-    std::map<peer_id_t, machine_id_t> out;
+std::map<peer_id_t, server_id_t> get_server_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, server_id_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.get_inner().begin(); it != md.get_inner().end(); it++) {
-        out.insert(std::make_pair(it->first, it->second.machine_id));
+        out.insert(std::make_pair(it->first, it->second.server_id));
     }
     return out;
 }
@@ -33,28 +33,28 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<pee
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
         int port,
+        const server_id_t &my_server_id,
         mailbox_manager_t *mbox_manager,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _cluster_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         http_app_t *reql_app,
         std::string path)
 {
+
     file_app.init(new file_http_app_t(path));
 
+    me_app.init(new me_http_app_t(my_server_id));
     directory_app.init(new directory_http_app_t(_directory_metadata));
-    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
-        _directory_metadata->subview(&get_machine_id)));
+        _directory_metadata->subview(&get_server_id)));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
 #endif
 
     std::map<std::string, http_app_t *> ajax_routes;
+    ajax_routes["me"] = me_app.get();
     ajax_routes["directory"] = directory_app.get();
-    ajax_routes["stat"] = stat_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());

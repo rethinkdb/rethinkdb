@@ -18,7 +18,7 @@ main () {
     RPM_PACKAGE=build/packages/rethinkdb-$VERSION.$ARCH.rpm
     SYMBOLS_FILE_IN=build/release/rethinkdb.debug
     SYMBOLS_FILE_OUT=$RPM_PACKAGE.debug.bz2
-    DESCRIPTION='RethinkDB is built to store JSON documents, and scale to multiple machines with very little effort. It has a pleasant query language that supports really useful queries like table joins and group by.'
+    DESCRIPTION='RethinkDB is built to store JSON documents, and scale to multiple servers with very little effort. It has a pleasant query language that supports really useful queries like table joins and group by.'
     tmpfile BEFORE_INSTALL <<EOF
 getent group rethinkdb >/dev/null || groupadd -r rethinkdb
 getent passwd rethinkdb >/dev/null || \

@@ -522,7 +522,7 @@ inline void aligned_free(void *aligned_memory) {
 #endif  // !HAVE_ATTRIBUTE_SECTION
 
 #ifdef STL_MSVC  // not always the same as COMPILER_MSVC
-#include "rdb_protocol/geo/s2/base/port_hash.h"
+#include "rdb_protocol/geo/s2/base/port_hash.h"  // NOPROCESS
 #else
 struct PortableHashBase { };
 #endif
