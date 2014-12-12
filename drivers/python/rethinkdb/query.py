@@ -3,8 +3,9 @@
 __all__ = [
     'js', 'http', 'json', 'args', 'error', 'random', 'do', 'row', 'branch', 'map',
     'object', 'binary', 'uuid', 'type_of', 'info', 'range', 'literal', 'asc', 'desc',
-    'table', 'db', 'db_config', 'db_create', 'db_drop', 'db_list', 'reconfigure',
-    'table_config', 'table_create', 'table_drop', 'table_list', 'table_status', 'table_wait',
+    'db', 'db_create', 'db_drop', 'db_list',
+    'table', 'table_create', 'table_drop', 'table_list',
+    'wait', 'reconfigure', 'rebalance',
     'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'any', 'all', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
@@ -73,17 +74,14 @@ def table_drop(*args):
 def table_list(*args):
     return ast.TableListTL(*args)
 
-def table_config(*args):
-    return ast.TableConfigTL(*args)
-
-def table_status(*args):
-    return ast.TableStatusTL(*args)
-
-def table_wait(*args):
-    return ast.TableWaitTL(*args)
+def wait(*args):
+    return ast.WaitTL(*args)
 
 def reconfigure(*args, **kwargs):
     return ast.ReconfigureTL(*args, **kwargs)
+
+def rebalance(*args, **kwargs):
+    return ast.RebalanceTL(*args, **kwargs)
 
 def branch(*args):
     return ast.Branch(*args)
