@@ -8,6 +8,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "btree/types.hpp"
+#include "concurrency/promise.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/store.hpp"
@@ -213,11 +214,14 @@ done_traversing_t rdb_erase_small_range(
     rdb_value_sizer_t sizer(max_block_size);
     for (const auto &key : key_collector.get_collected_keys()) {
         keyvalue_location_t kv_location;
+        promise_t<superblock_t *> pass_back_superblock_promise;
         find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
                                          &btree_slice->stats,
-                                         NULL /* profile::trace_t */);
+                                         NULL /* profile::trace_t */,
+                                         &pass_back_superblock_promise);
+        guarantee(pass_back_superblock_promise.wait() == superblock);
 
         // We're still holding a write lock on the superblock, so if the value
         // disappeared since we've populated key_collector, something fishy
