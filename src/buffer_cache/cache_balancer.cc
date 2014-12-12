@@ -32,6 +32,7 @@ alt_cache_balancer_t::alt_cache_balancer_t(
     cache_size_change_subscription(
         [this]() {
             last_rebalance_time = 0;
+            wake_up_activity_happened();
             pool_queue.give_value(alt_cache_balancer_dummy_value_t());
         })
 {
@@ -90,6 +91,10 @@ void alt_cache_balancer_t::on_ring() {
 void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
     assert_thread();
 
+    if (rebalance_timer_state != rebalance_timer_state_t::normal) {
+        return;
+    }
+
     uint64_t total_cache_size = total_cache_size_watchable->get();
     // We do some signed arithmetic with cache sizes, so the total cache size
     // must fit into a signed value based on the native pointer type or bad
@@ -135,6 +140,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
 
     if (now < last_rebalance_time + (rebalance_timeout_ms * 1000) &&
         total_access_count < rebalance_access_count_threshold) {
+        rebalance_timer_state = rebalance_timer_state_t::normal;
         return;
     }
 

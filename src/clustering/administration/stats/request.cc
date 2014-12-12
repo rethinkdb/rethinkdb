@@ -113,7 +113,7 @@ void parsed_stats_t::store_shard_values(const ql::datum_t &shard_perf,
                                       &stats_out->written_docs_per_sec);
                     add_perfmon_value(sub_pair.second, "total_keys_read",
                                       &stats_out->read_docs_total);
-                    add_perfmon_value(sub_pair.second, "total_keys_read",
+                    add_perfmon_value(sub_pair.second, "total_keys_written",
                                       &stats_out->written_docs_total);
                 } else if (key == "cache") {
                     add_perfmon_value(sub_pair.second, "in_use_bytes",
@@ -146,7 +146,7 @@ void parsed_stats_t::store_serializer_values(const ql::datum_t &ser_perf,
                         &stats_out->garbage_bytes);
     store_perfmon_value(ser_perf, "serializer_bytes_in_use",
                         &stats_out->preallocated_bytes);
-    stats_out->data_bytes *= DEFAULT_EXTENT_SIZE;
+    stats_out->data_bytes = stats_out->data_bytes * DEFAULT_EXTENT_SIZE - stats_out->garbage_bytes;
     stats_out->metadata_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->preallocated_bytes -= stats_out->data_bytes +
         stats_out->garbage_bytes + stats_out->metadata_bytes;
