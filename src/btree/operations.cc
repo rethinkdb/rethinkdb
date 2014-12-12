@@ -963,7 +963,8 @@ void apply_keyvalue_change(
         keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp,
         const value_deleter_t *detacher,
-        key_modification_callback_t *km_callback) {
+        key_modification_callback_t *km_callback,
+        delete_or_erase_t delete_or_erase) {
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
 
@@ -1015,11 +1016,23 @@ void apply_keyvalue_change(
             {
                 buf_write_t write(&kv_loc->buf);
                 auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                leaf::remove(sizer,
+                switch (delete_or_erase) {
+                    case delete_or_erase_t::DELETE: {
+                        leaf::remove(sizer,
                              leaf_node,
                              key,
                              tstamp,
                              km_proof);
+                    } break;
+                    case delete_or_erase_t::ERASE: {
+                        leaf::erase_presence(sizer,
+                            leaf_node,
+                            key,
+                            km_proof);
+                    } break;
+                    default: unreachable();
+                }
+
             }
             population_change = -1;
             kv_loc->stats->pm_keys_set.record();

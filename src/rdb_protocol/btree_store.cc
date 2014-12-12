@@ -394,6 +394,7 @@ void store_t::reset_data(
         // First we use an ordered depth-first-traversal to figure out the key range
         // that corresponds to `max_erased_per_pass` keys. Then we use
         // `rdb_erase_small_range()` to actually erase the keys in parallel.
+        // TODO! Instead pass the max_erased_per_pass into rdb_erase_small_range
         struct counter_cb_t : public depth_first_traversal_callback_t {
             explicit counter_cb_t(unsigned int m) :
                 max_erased_per_pass_(m), key_count_(0) { }

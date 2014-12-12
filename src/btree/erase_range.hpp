@@ -9,6 +9,8 @@
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 
+// TODO! Get rid of this whole file
+
 class buf_parent_t;
 struct store_key_t;
 struct btree_key_t;

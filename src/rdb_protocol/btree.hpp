@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
+#include "btree/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -164,12 +165,14 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
  * to secondary indexes separately. Blobs are detached, and should be deleted later
  * if required (passing the modification reports to store_t::update_sindexes()
  * takes care of that). */
-void rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &keys,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           std::vector<rdb_modification_report_t> *mod_reports_out);
+done_traversing_t rdb_erase_small_range(
+    key_tester_t *tester,
+    const key_range_t &keys,
+    superblock_t *superblock,
+    const deletion_context_t *deletion_context,
+    signal_t *interruptor,
+    //uint64_t max_keys_to_delete /* 0 = unlimited */,  // TODO!
+    std::vector<rdb_modification_report_t> *mod_reports_out);
 
 void rdb_rget_slice(
     btree_slice_t *slice,

@@ -594,60 +594,7 @@ void rdb_value_detacher_t::delete_value(buf_parent_t parent, const void *value) 
     detach_rdb_value(parent, value);
 }
 
-class sindex_key_range_tester_t : public key_tester_t {
-public:
-    explicit sindex_key_range_tester_t(const key_range_t &key_range)
-        : key_range_(key_range) { }
-
-    bool key_should_be_erased(const btree_key_t *key) {
-        std::string pk = ql::datum_t::extract_primary(
-            key_to_unescaped_str(store_key_t(key)));
-
-        return key_range_.contains_key(store_key_t(pk));
-    }
-private:
-    key_range_t key_range_;
-    DISABLE_COPYING(sindex_key_range_tester_t);
-};
-
-void sindex_erase_range(
-        const key_range_t &key_range, superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, release_superblock_t release_superblock,
-        const value_deleter_t *deleter) THROWS_NOTHING {
-
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    sindex_key_range_tester_t tester(key_range);
-
-    try {
-        btree_erase_range_generic(&sizer, &tester,
-                                  deleter, NULL, NULL,
-                                  superblock, interruptor,
-                                  release_superblock);
-    } catch (const interrupted_exc_t &) {
-        // We were interrupted. That's fine nothing to be done about it.
-    }
-}
-
-/* Spawns a coro to carry out the erase range for each sindex. */
-void spawn_sindex_erase_ranges(
-        const store_t::sindex_access_vector_t *sindex_access,
-        const key_range_t &key_range,
-        auto_drainer_t *drainer,
-        auto_drainer_t::lock_t,
-        release_superblock_t release_superblock,
-        signal_t *interruptor,
-        const value_deleter_t *deleter) {
-    for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
-        coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range,
-                    key_range, (*it)->superblock.get(),
-                    auto_drainer_t::lock_t(drainer), interruptor,
-                    release_superblock, deleter));
-    }
-}
-
-/* Helper function for rdb_erase_*_range() */
+/* Helper function for rdb_erase_small_range() */
 void rdb_erase_range_convert_keys(const key_range_t &key_range,
                                   bool *left_key_supplied_out,
                                   bool *right_key_supplied_out,
@@ -678,12 +625,14 @@ void rdb_erase_range_convert_keys(const key_range_t &key_range,
      * names. */
 }
 
-void rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &key_range,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           std::vector<rdb_modification_report_t> *mod_reports_out) {
+done_traversing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &key_range,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        //uint64_t max_keys_to_delete, // TODO!
+        std::vector<rdb_modification_report_t> *mod_reports_out) {
     rassert(mod_reports_out != NULL);
     mod_reports_out->clear();
 
@@ -694,6 +643,10 @@ void rdb_erase_small_range(key_tester_t *tester,
 
     /* We need these structures to perform the erase range. */
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+
+    // TODO! Check the max number of deletions
+    // TODO! Do two passes: First collect all keys with a parallel traversal,
+    //   then erase them all individually.
 
     struct on_erase_cb_t {
         static void on_erase(
@@ -720,12 +673,17 @@ void rdb_erase_small_range(key_tester_t *tester,
         }
     };
 
+    // TODO! Inline this. It's not used anywhere else anymore.
+    // TODO! Possibly in addition: Move this whole function to erase_range.cc.
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor, release_superblock_t::RELEASE,
         std::bind(&on_erase_cb_t::on_erase,
                   ph::_1, ph::_2, ph::_3, mod_reports_out));
+
+    // TODO!
+    return done_traversing_t::YES;
 }
 
 
