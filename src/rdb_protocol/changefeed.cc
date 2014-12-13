@@ -1468,7 +1468,7 @@ public:
 
             std::vector<std::pair<datum_t, datum_t> > pairs;
             // This has to be a multimap because of multi-indexes.
-            std::multimap<datum_t, decltype(pairs)::iterator,
+            std::multimap<datum_t, decltype(pairs.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
                 new_val_index(
                     [](const datum_t &a, const datum_t &b) {
@@ -1486,7 +1486,7 @@ public:
                     = note_change_impl(change_pair.first, change_pair.second);
                 if (pair.first.has() || pair.second.has()) {
                     auto it = new_val_index.find(pair.first);
-                    decltype(pairs)::iterator pairs_it;
+                    decltype(pairs.begin()) pairs_it;
                     if (it == new_val_index.end()) {
                         pairs.push_back(pair);
                         pairs_it = pairs.end()-1;
