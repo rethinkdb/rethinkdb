@@ -376,6 +376,28 @@ datum_t datum_t::binary(datum_string_t &&_data) {
     return datum_t(construct_binary_t(), std::move(_data));
 }
 
+inline void fail_if_invalid(const std::string &string)
+{
+    utf8::reason_t reason;
+    if (!utf8::is_valid(string, &reason)) {
+        rfail_datum(base_exc_t::GENERIC,
+                    "Illegal UTF-8 string: %s seen at position %zu in '%s'",
+                    reason.explanation, reason.position, string.c_str());
+
+    }
+}
+
+inline void fail_if_invalid(const char *string)
+{
+    utf8::reason_t reason;
+    if (!utf8::is_valid(string, &reason)) {
+        rfail_datum(base_exc_t::GENERIC,
+                    "Illegal UTF-8 string: %s seen at position %zu in '%s'",
+                    reason.explanation, reason.position, string);
+
+    }
+}
+
 datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
     switch (json->type) {
     case cJSON_False: {
@@ -391,12 +413,7 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(json->valuedouble);
     } break;
     case cJSON_String: {
-        utf8::reason_t reason;
-        if (!utf8::is_valid(json->valuestring, &reason)) {
-            rfail_datum(base_exc_t::GENERIC,
-                        "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                        reason.explanation, reason.position, json->valuestring);
-        }
+        fail_if_invalid(json->valuestring);
         return datum_t(json->valuestring);
     } break;
     case cJSON_Array: {
@@ -408,15 +425,10 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(std::move(array), limits);
     } break;
     case cJSON_Object: {
-        utf8::reason_t reason;
         datum_object_builder_t builder;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            if (!utf8::is_valid(item->string, &reason)) {
-                rfail_datum(base_exc_t::GENERIC,
-                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                            reason.explanation, reason.position, item->string);
-            }
+            fail_if_invalid(item->string);
             bool dup = builder.add(item->string, to_datum(item, limits));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
@@ -1498,21 +1510,11 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return datum_t(d->r_num());
     } break;
     case Datum::R_STR: {
-        utf8::reason_t reason;
-        if (!utf8::is_valid(d->r_str(), &reason)) {
-            rfail_datum(base_exc_t::GENERIC,
-                        "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                        reason.explanation, reason.position, d->r_str().c_str());
-        }
+        fail_if_invalid(d->r_str());
         return datum_t(datum_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
-        utf8::reason_t reason;
-        if (!utf8::is_valid(d->r_str(), &reason)) {
-            rfail_datum(base_exc_t::GENERIC,
-                        "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                        reason.explanation, reason.position, d->r_str().c_str());
-        }
+        fail_if_invalid(d->r_str());
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
         return to_datum(cjson.get(), limits);
     } break;
@@ -1525,18 +1527,13 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return std::move(out).to_datum();
     } break;
     case Datum::R_OBJECT: {
-        utf8::reason_t reason;
         std::map<datum_string_t, datum_t> map;
         const int count = d->r_object_size();
         for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
             datum_t::check_str_validity(key);
-            if (!utf8::is_valid(key, &reason)) {
-                rfail_datum(base_exc_t::GENERIC,
-                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                            reason.explanation, reason.position, ap->key().c_str());
-            }
+            fail_if_invalid(ap->key());
             auto res = map.insert(std::make_pair(key,
                                                  to_datum(&ap->val(), limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
