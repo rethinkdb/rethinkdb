@@ -1,33 +1,16 @@
 # "Session is already running a query" 400 error when aborting a changefeed
 # views should not completely redraw every added row
-# close connection: no element found: probably due to firefox trying to parse the xhr response as xml
 # call to query_result.size and other code assumes that result is an array
 # table view shows no results when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
 # abort blinks constantly when running a changefeed
-# no element found when closing connection
 # "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when running a query after a changefeed query
-
-# refactor query_result
 
 # ticker shows throughout
 # move more results button into individual views
 # returned/displayed/skipped has extra comma and is generally ugly
 
 # round-trip time for cursors is inconsistent
-
-# ATN: change query nomenclature:
-# raw: text from the data explorer
-# clean: cleaned somehow. how?
-# query: a single query
-# query_group: multiple queries
-# TODO: standardize on result or results
-
-# container limit -> global constant
-
-# history load/remove buttons display is broken
-# compare look to old version, make sure nothing changed
-# test wrapper_scrollbar
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -139,7 +122,10 @@ module 'DataExplorerView', ->
         size: =>
             switch @type
                 when 'value'
-                    return @value.length
+                    if @value instanceof Array
+                        return @value.length
+                    else
+                        return 1
                 when 'cursor'
                     return @results.length
 
@@ -3182,7 +3168,7 @@ module 'DataExplorerView', ->
             else if value_type is 'string'
                 if /^(http|https):\/\/[^\s]+$/i.test(value)
                     data['classname'] = 'jta_url'
-                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't haendle .museum extension and special characters
                     data['classname'] = 'jta_email'
                 else
                     data['classname'] = 'jta_string'
@@ -3336,6 +3322,7 @@ module 'DataExplorerView', ->
         template:
             Handlebars.templates['dataexplorer_result_profile-template']
 
+
         initialize: (args) =>
             ZeroClipboard.setDefaults
                 moviePath: 'js/ZeroClipboard.swf'
@@ -3378,7 +3365,7 @@ module 'DataExplorerView', ->
                     profile:
                         clipboard_text: JSON.stringify profile, null, 2
                         tree: @json_to_tree profile
-                        total_duration: 12345 # ATN: @metadata.execution_time_pretty
+                        total_duration: Utils.prettify_duration @parent.container.driver_handler.total_duration
                         server_duration: Utils.prettify_duration @compute_total_duration profile
                         num_shard_accesses: @compute_num_shard_accesses profile
 
@@ -3536,16 +3523,13 @@ module 'DataExplorerView', ->
                 @$el.html @template
                     limit_value: @container.limit
                     skip_value: @query_result.position
-                    execution_time: 12345 # ATN
-                    query: "query" # ATN
                     query_has_changed: args?.query_has_changed
                     show_more_data: has_more_data and not @container.state.cursor_timed_out
                     cursor_timed_out_template: (
                         @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
-                    execution_time_pretty: 12345 # ATN Utils.prettify_duration args.metadata.execution_time
-                    no_results: @query_result.ended and (
-                        @query_result.value is [] or @query_result.results is []) # ATN: move to QueryResult class
-                    num_results: 12345 # ATN
+                    execution_time_pretty: Utils.prettify_duration @container.driver_handler.total_duration
+                    no_results: @query_result.ended and @query_result.size() == 0
+                    num_results: @query_result.size()
                 @$('.execution_time').tooltip
                     for_dataexplorer: true
                     trigger: 'hover'
