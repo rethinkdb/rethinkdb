@@ -17,18 +17,7 @@ DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
 
-# Ubuntu quantal and later require nodejs-legacy.
-ifeq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
-  NODEJS_NEW := 0
-else
-  NODEJS_NEW := 1
-endif
-
-ifneq (,$(UBUNTU_RELEASE))
-  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)ubuntu1~$(UBUNTU_RELEASE)
-else
-  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)
-endif
+RETHINKDB_VERSION_DEB := $(subst -,+,$(RETHINKDB_VERSION))~$(PACKAGE_BUILD_NUMBER)$(UBUNTU_RELEASE)$(DEB_RELEASE)
 
 .PHONY: prepare_deb_package_dirs
 prepare_deb_package_dirs:
@@ -39,7 +28,7 @@ prepare_deb_package_dirs:
 DIST_SUPPORT_PACKAGES := re2 gtest handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind boost
+  DIST_SUPPORT_PACKAGES += protobuf jemalloc boost
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -55,11 +44,9 @@ DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
-ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
-  DEB_BUILD_DEPENDS += , nodejs-legacy
-endif
+
 ifneq (1,$(BUILD_PORTABLE))
-  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, npm, libgoogle-perftools-dev
+  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, libjemalloc-dev
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -113,7 +100,7 @@ build-deb: deb-src-dir
 	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
-install-osx: install-binaries install-web
+install-osx: install-binaries
 
 ifneq (Darwin,$(OS))
   OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)

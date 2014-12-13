@@ -58,7 +58,7 @@ protected:
 class repeating_timer_t : private timer_callback_t {
 public:
     repeating_timer_t(int64_t interval_ms, const std::function<void()> &ringee);
-    repeating_timer_t(int64_t interval_ms, repeating_timer_callback_t *cb);
+    repeating_timer_t(int64_t interval_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:

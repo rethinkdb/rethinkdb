@@ -62,6 +62,7 @@ private:
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        backfill_throttler_t *backfill_throttler,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
@@ -74,6 +75,7 @@ listener_t::listener_t(const base_path_t &base_path,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -85,11 +87,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     writeread_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
     boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
         broadcaster_metadata->get();
@@ -118,7 +120,7 @@ listener_t::listener_t(const base_path_t &base_path,
 
     rassert(region_is_superset(our_branch_region_, svs_->get_region()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> start_point_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
@@ -156,7 +158,7 @@ listener_t::listener_t(const base_path_t &base_path,
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
             mailbox_manager_,
-            std::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+            [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
 
         resource_access_t<replier_business_card_t> replier_access(replier);
         send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -183,7 +185,7 @@ listener_t::listener_t(const base_path_t &base_path,
         throw backfiller_lost_exc_t();
     }
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
+    read_token_t read_token2;
     svs_->new_read_token(&read_token2);
 
     region_map_t<binary_blob_t> backfill_end_point_blob;
@@ -212,7 +214,7 @@ listener_t::listener_t(const base_path_t &base_path,
     there. That's why it's OK to just take the maximum of all the timestamps
     that we see.
     TODO: If we change the way we shard such that each listener_t maps to a
-    single B-tree on the same machine, then replace this loop with a strict
+    single B-tree on the same server, then replace this loop with a strict
     assertion that requires everything to be at the same timestamp. */
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
     for (region_map_t<version_range_t>::const_iterator it = backfill_end_point.begin();
@@ -243,6 +245,7 @@ listener_t::listener_t(const base_path_t &base_path,
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        broadcaster_t *broadcaster,
@@ -250,6 +253,7 @@ listener_t::listener_t(const base_path_t &base_path,
                        signal_t *interruptor,
                        DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
@@ -260,11 +264,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     writeread_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
     branch_birth_certificate_t this_branch_history;
     {
@@ -288,7 +292,7 @@ listener_t::listener_t(const base_path_t &base_path,
     rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> initial_metainfo_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
@@ -323,7 +327,13 @@ listener_t::listener_t(const base_path_t &base_path,
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
 }
 
-listener_t::~listener_t() { }
+listener_t::~listener_t() {
+    /* Shut down all three in parallel so we don't have to wait for each one's coroutines
+    to stop before we start stopping the next one's coroutines */
+    write_mailbox_.begin_shutdown();
+    writeread_mailbox_.begin_shutdown();
+    read_mailbox_.begin_shutdown();
+}
 
 signal_t *listener_t::get_broadcaster_lost_signal() {
     return registrant_->get_failed_signal();
@@ -355,59 +365,54 @@ listener_t::get_registrar_from_broadcaster_bcard(const boost::optional<boost::op
     }
 }
 
-
-/* `listener_intro_t` represents the introduction we expect to get from the
-   broadcaster if all goes well. */
-class intro_receiver_t : public signal_t {
-public:
-    listener_intro_t intro;
-    void fill(listener_intro_t _intro) {
-        guarantee(!is_pulsed());
-        intro = _intro;
-        pulse();
-    }
-};
-
 void listener_t::try_start_receiving_writes(
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
 {
-    intro_receiver_t intro_receiver;
+    /* `listener_intro_t` represents the introduction we expect to get from the
+   broadcaster if all goes well. */
+    listener_intro_t intro;
+    cond_t got_intro;
     listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      std::bind(&intro_receiver_t::fill, &intro_receiver, ph::_1));
+            [&](signal_t *, const listener_intro_t &i) {
+                intro = i;
+                got_intro.pulse();
+            });
 
     try {
+        listener_business_card_t our_bcard(
+            intro_mailbox.get_address(), write_mailbox_.get_address(), server_id_);
         registrant_.init(new registrant_t<listener_business_card_t>(
             mailbox_manager_,
             broadcaster->subview(&listener_t::get_registrar_from_broadcaster_bcard),
-            listener_business_card_t(intro_mailbox.get_address(), write_mailbox_.get_address())));
+            our_bcard));
     } catch (const resource_lost_exc_t &) {
         throw broadcaster_lost_exc_t();
     }
 
-    wait_any_t waiter(&intro_receiver, registrant_->get_failed_signal());
+    wait_any_t waiter(&got_intro, registrant_->get_failed_signal());
     wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
 
     if (registrant_->get_failed_signal()->is_pulsed()) {
         throw broadcaster_lost_exc_t();
     } else {
-        guarantee(intro_receiver.is_pulsed());
-        registration_done_cond_.pulse(intro_receiver.intro);
+        guarantee(got_intro.is_pulsed());
+        registration_done_cond_.pulse(intro);
     }
 }
 
-void listener_t::on_write(const write_t &write,
-        transition_timestamp_t transition_timestamp,
+void listener_t::on_write(
+        signal_t *interruptor,
+        const write_t &write,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
-        local_write(write, transition_timestamp, order_token, fifo_token,
-                    &dummy_interruptor);
+        local_write(write, timestamp, order_token, fifo_token, interruptor);
         send(mailbox_manager_, ack_addr);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -415,7 +420,7 @@ void listener_t::on_write(const write_t &write,
 }
 
 void listener_t::local_write(const write_t &write,
-        transition_timestamp_t transition_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         signal_t *interruptor)
@@ -429,7 +434,7 @@ void listener_t::local_write(const write_t &write,
     fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
     wait_interruptible(&fifo_exit, &combined_interruptor);
     write_queue_semaphore_.co_lock_interruptible(&combined_interruptor);
-    write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
+    write_queue_.push(write_queue_entry_t(write, timestamp, order_token, fifo_token));
 }
 
 void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
@@ -441,19 +446,19 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    write_token_pair_t write_token_pair;
+    write_token_t write_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
-        if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
+        if (qe.timestamp <= backfill_end_timestamp) {
             return;
         }
         wait_interruptible(&fifo_exit, interruptor);
-        advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs_->new_write_token_pair(&write_token_pair);
+        advance_current_timestamp_and_pulse_waiters(qe.timestamp);
+        svs_->new_write_token(&write_token);
     }
 
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t metainfo_checker_callback(qe.transition_timestamp.timestamp_before());
+        version_leq_metainfo_checker_callback_t metainfo_checker_callback(qe.timestamp.pred());
         metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
@@ -465,28 +470,29 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<binary_blob_t>(svs_->get_region(),
-            binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
+            binary_blob_t(version_range_t(version_t(branch_id_, qe.timestamp)))),
         qe.write,
         &response,
         write_durability_t::SOFT,
-        qe.transition_timestamp,
+        qe.timestamp,
         qe.order_token,
-        &write_token_pair,
+        &write_token,
         interruptor);
 }
 
-void listener_t::on_writeread(const write_t &write,
-        transition_timestamp_t transition_timestamp,
+void listener_t::on_writeread(
+        signal_t *interruptor,
+        const write_t &write,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(write_response_t)> ack_addr,
         write_durability_t durability)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
-        write_response_t response = local_writeread(write, transition_timestamp,
+        write_response_t response = local_writeread(write, timestamp,
                                                     order_token, fifo_token,
-                                                    durability, &dummy_interruptor);
+                                                    durability, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -494,7 +500,7 @@ void listener_t::on_writeread(const write_t &write,
 }
 
 write_response_t listener_t::local_writeread(const write_t &write,
-        transition_timestamp_t transition_timestamp,
+        state_timestamp_t timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         write_durability_t durability,
@@ -507,7 +513,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
     auto_drainer_t::lock_t keepalive(&drainer_);
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    write_token_pair_t write_token_pair;
+    write_token_t write_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -518,9 +524,9 @@ write_response_t listener_t::local_writeread(const write_t &write,
         fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
         wait_interruptible(&fifo_exit_2, &combined_interruptor);
 
-        advance_current_timestamp_and_pulse_waiters(transition_timestamp);
+        advance_current_timestamp_and_pulse_waiters(timestamp);
 
-        svs_->new_write_token_pair(&write_token_pair);
+        svs_->new_write_token(&write_token);
     }
 
     // Make sure we can serve the entire operation without masking it.
@@ -528,7 +534,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
 
 #ifndef NDEBUG
-    version_leq_metainfo_checker_callback_t metainfo_checker_callback(transition_timestamp.timestamp_before());
+    version_leq_metainfo_checker_callback_t metainfo_checker_callback(timestamp.pred());
     metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
@@ -536,27 +542,28 @@ write_response_t listener_t::local_writeread(const write_t &write,
     write_response_t response;
     svs_->write(DEBUG_ONLY(metainfo_checker, )
                 region_map_t<binary_blob_t>(svs_->get_region(),
-                                            binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
+                                            binary_blob_t(version_range_t(version_t(branch_id_, timestamp)))),
                 write,
                 &response,
                 durability,
-                transition_timestamp,
+                timestamp,
                 order_token,
-                &write_token_pair,
+                &write_token,
                 &combined_interruptor);
     return response;
 }
 
-void listener_t::on_read(const read_t &read,
+void listener_t::on_read(
+        signal_t *interruptor,
+        const read_t &read,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
         read_response_t response = local_read(read, expected_timestamp, order_token,
-                                              fifo_token, &dummy_interruptor);
+                                              fifo_token, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -576,7 +583,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
     auto_drainer_t::lock_t keepalive = drainer_.lock();
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
-    read_token_pair_t read_token_pair;
+    read_token_t read_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -591,7 +598,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
         guarantee(current_timestamp_ == expected_timestamp);
 
-        svs_->new_read_token_pair(&read_token_pair);
+        svs_->new_read_token(&read_token);
     }
 
 #ifndef NDEBUG
@@ -608,7 +615,7 @@ read_response_t listener_t::local_read(const read_t &read,
         read,
         &response,
         order_token,
-        &read_token_pair,
+        &read_token,
         &combined_interruptor);
     return response;
 }
@@ -621,9 +628,9 @@ void listener_t::wait_for_version(state_timestamp_t timestamp, signal_t *interru
     }
 }
 
-void listener_t::advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp) {
-    guarantee(timestamp.timestamp_before() == current_timestamp_);
-    current_timestamp_ = timestamp.timestamp_after();
+void listener_t::advance_current_timestamp_and_pulse_waiters(state_timestamp_t timestamp) {
+    guarantee(timestamp == current_timestamp_.next());
+    current_timestamp_ = timestamp;
 
     for (std::multimap<state_timestamp_t, cond_t *>::const_iterator it = synchronize_waiters_.begin();
          it != synchronize_waiters_.upper_bound(current_timestamp_);
@@ -638,7 +645,6 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(transition_timestam
     }
 }
 
-RDB_IMPL_SERIALIZABLE_4(
-        listener_t::write_queue_entry_t, write, order_token, transition_timestamp,
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
+        listener_t::write_queue_entry_t, write, order_token, timestamp,
         fifo_token);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(listener_t::write_queue_entry_t);

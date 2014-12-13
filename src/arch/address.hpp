@@ -97,12 +97,19 @@ RDB_SERIALIZE_OUTSIDE(ip_address_t);
 std::string str_gethostname();
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
-std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all);
+std::set<ip_address_t> get_local_ips(std::set<ip_address_t> filter, bool get_all);
 
 class port_t {
 public:
+    static constexpr int max_port = 65535;
+
     explicit port_t(int _port);
+    explicit port_t(sockaddr const *);
+
     int value() const;
+
+    std::string to_string() const;
+
     RDB_MAKE_ME_SERIALIZABLE_1(value_);
 
 private:
@@ -115,12 +122,15 @@ class ip_and_port_t {
 public:
     ip_and_port_t();
     ip_and_port_t(const ip_address_t &_ip, port_t _port);
+    ip_and_port_t(sockaddr const *);
 
     bool operator < (const ip_and_port_t &other) const;
     bool operator == (const ip_and_port_t &other) const;
 
     const ip_address_t &ip() const;
     port_t port() const;
+
+    std::string to_string() const;
 
     RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 

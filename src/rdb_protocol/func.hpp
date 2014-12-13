@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
@@ -28,10 +29,12 @@ class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
     virtual ~func_t();
 
-    virtual counted_t<val_t> call(
+    virtual scoped_ptr_t<val_t> call(
         env_t *env,
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags = NO_FLAGS) const = 0;
+
+    virtual boost::optional<size_t> arity() const = 0;
 
     virtual bool is_deterministic() const = 0;
 
@@ -47,14 +50,14 @@ public:
                      counted_t<const func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
-    counted_t<val_t> call(env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
-    counted_t<val_t> call(env_t *env,
-                          datum_t arg,
-                          eval_flags_t eval_flags = NO_FLAGS) const;
-    counted_t<val_t> call(env_t *env,
-                          datum_t arg1,
-                          datum_t arg2,
-                          eval_flags_t eval_flags = NO_FLAGS) const;
+    scoped_ptr_t<val_t> call(env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
+    scoped_ptr_t<val_t> call(env_t *env,
+                             datum_t arg,
+                             eval_flags_t eval_flags = NO_FLAGS) const;
+    scoped_ptr_t<val_t> call(env_t *env,
+                             datum_t arg1,
+                             datum_t arg2,
+                             eval_flags_t eval_flags = NO_FLAGS) const;
 
 protected:
     explicit func_t(const protob_t<const Backtrace> &bt_source);
@@ -73,10 +76,13 @@ public:
                 counted_t<const term_t> body);
     ~reql_func_t();
 
-    counted_t<val_t> call(
+    scoped_ptr_t<val_t> call(
         env_t *env,
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags) const;
+
+    boost::optional<size_t> arity() const;
+
     bool is_deterministic() const;
 
     std::string print_source() const;
@@ -108,9 +114,11 @@ public:
 
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    counted_t<val_t> call(env_t *env,
-                          const std::vector<datum_t> &args,
-                          eval_flags_t eval_flags) const;
+    scoped_ptr_t<val_t> call(env_t *env,
+                             const std::vector<datum_t> &args,
+                             eval_flags_t eval_flags) const;
+
+    boost::optional<size_t> arity() const;
 
     bool is_deterministic() const;
 
@@ -156,7 +164,7 @@ counted_t<const func_t> new_eq_comparison_func(datum_t obj,
 counted_t<const func_t> new_page_func(datum_t method,
                                       const protob_t<const Backtrace> &bt_src);
 
-class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
+class js_result_visitor_t : public boost::static_visitor<val_t *> {
 public:
     js_result_visitor_t(const std::string &_code,
                         uint64_t _timeout_ms,
@@ -164,12 +172,16 @@ public:
         : code(_code),
           timeout_ms(_timeout_ms),
           parent(_parent) { }
+
+    // The caller needs to take ownership of the return value.  Boost static_visitor
+    // can't handle movable types.
+
     // This JS evaluation resulted in an error
-    counted_t<val_t> operator()(const std::string &err_val) const;
+    val_t *operator()(const std::string &err_val) const;
     // This JS call resulted in a JSON value
-    counted_t<val_t> operator()(const datum_t &json_val) const;
+    val_t *operator()(const datum_t &json_val) const;
     // This JS evaluation resulted in an id for a js function
-    counted_t<val_t> operator()(const id_t id_val) const;
+    val_t *operator()(const id_t id_val) const;
 
 private:
     std::string code;
@@ -189,7 +201,7 @@ public:
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
     virtual bool is_deterministic() const;
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
     virtual const char *name() const { return "func"; }
 
     std::vector<sym_t> arg_names;

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
-import collections, itertools, os, random, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
+raise NotImplementedError('This needs to be re-worked with access to shard boundries found through ReQL admin')
+
+import collections, itertools, os, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
 
 lock = threading.Lock()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
-import driver, http_admin, utils
+import driver, utils
 
 r = utils.import_python_driver()
 
@@ -21,7 +23,7 @@ def synchronized(lock):
 def checkedCall(command):
 	'''wrapper on subprocess.check_call to handle collecting stdout/stderr for errors'''
 	
-	output = tempfile.TemporaryFile()
+	output = tempfile.TemporaryFile('w+')
 	try:
 		subprocess.check_call(command, stdout=output, stderr=output)
 	except subprocess.CalledProcessError as e:
@@ -161,8 +163,8 @@ class ChangefeedsTest_Base(unittest.TestCase):
 		cls.servers = []
 		cluster = None
 		for i in range (cls.serversToStart):
-			logfile = tempfile.NamedTemporaryFile()
-			server = driver.Process(cluster=cluster, log_path=logfile.name)
+			logfile = tempfile.NamedTemporaryFile('w+')
+			server = driver.Process(cluster=cluster, console_output=logfile.name)
 			server.wait_until_started_up()
 			cluster = server.cluster
 			connection =  r.connect(host=server.host, port=server.driver_port)

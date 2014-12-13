@@ -45,14 +45,16 @@ void *sys_stats_collector_t::instantaneous_stats_collector_t::begin_stats() {
 
 void sys_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *) { }
 
-scoped_ptr_t<perfmon_result_t>
-sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
-    scoped_ptr_t<perfmon_result_t> result = perfmon_result_t::alloc_map_result();
+ql::datum_t sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
+    ql::datum_object_builder_t builder;
 
     disk_stat_t disk_stat(base_path.path());
-    result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_free)));
-    result->insert("global_disk_space_used", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_used)));
-    result->insert("global_disk_space_total", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_total)));
+    builder.overwrite("global_disk_space_free",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_free)));
+    builder.overwrite("global_disk_space_used",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_used)));
+    builder.overwrite("global_disk_space_total",
+                      ql::datum_t(static_cast<double>(disk_stat.disk_space_total)));
 
-    return result;
+    return std::move(builder).to_datum();
 }

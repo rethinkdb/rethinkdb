@@ -24,13 +24,54 @@ make_replacement_pair(ql::datum_t old_val, ql::datum_t new_val) {
 
 }   /* anonymous namespace */
 
-ql::datum_t make_row_replacement_stats(
+/* TODO: This looks an awful lot like `rcheck_valid_replace()`. Perhaps they should be
+combined. */
+void rcheck_row_replacement(
         const datum_string_t &primary_key_name,
         const store_key_t &primary_key_value,
+        ql::datum_t old_row,
+        ql::datum_t new_row) {
+    if (new_row.get_type() == ql::datum_t::R_OBJECT) {
+        new_row.rcheck_valid_replace(
+            old_row, ql::datum_t(), primary_key_name);
+        ql::datum_t new_primary_key_value =
+            new_row.get_field(primary_key_name, ql::NOTHROW);
+        rcheck_target(&new_row,
+            primary_key_value.compare(
+                store_key_t(new_primary_key_value.print_primary())) == 0,
+            ql::base_exc_t::GENERIC,
+            (old_row.get_type() == ql::datum_t::R_NULL
+             ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
+                         primary_key_name.to_std().c_str(), new_row.print().c_str())
+             : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
+                         primary_key_name.to_std().c_str(),
+                         old_row.print().c_str(), new_row.print().c_str())));
+    } else {
+        rcheck_typed_target(&new_row,
+            new_row.get_type() == ql::datum_t::R_NULL,
+            strprintf("Inserted value must be an OBJECT (got %s):\n%s",
+                new_row.get_type_name().c_str(), new_row.print().c_str()));
+    }
+}
+
+ql::datum_t make_row_replacement_stats(
+        const datum_string_t &primary_key_name,
+        DEBUG_VAR const store_key_t &primary_key_value,
         ql::datum_t old_row,
         ql::datum_t new_row,
         return_changes_t return_changes,
         bool *was_changed_out) {
+
+#ifndef NDEBUG
+    try {
+        rcheck_row_replacement(primary_key_name, primary_key_value, old_row, new_row);
+    } catch (const ql::base_exc_t &) {
+        crash("Called make_row_replacement_stats() with invalid parameters. Use "
+            "rcheck_row_replacement() to validate parameters before calling "
+            "make_row_replacement_stats().");
+    }
+#endif
+
     guarantee(old_row.has());
     bool started_empty;
     if (old_row.get_type() == ql::datum_t::R_NULL) {
@@ -47,29 +88,7 @@ ql::datum_t make_row_replacement_stats(
     }
     
     guarantee(new_row.has());
-    bool ended_empty;
-    if (new_row.get_type() == ql::datum_t::R_NULL) {
-        ended_empty = true;
-    } else if (new_row.get_type() == ql::datum_t::R_OBJECT) {
-        ended_empty = false;
-        new_row.rcheck_valid_replace(
-            old_row, ql::datum_t(), primary_key_name);
-        ql::datum_t new_primary_key_value =
-            new_row.get_field(primary_key_name, ql::NOTHROW);
-        rcheck_target(&new_row, ql::base_exc_t::GENERIC,
-            primary_key_value.compare(
-                store_key_t(new_primary_key_value.print_primary())) == 0,
-            (started_empty
-             ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                         primary_key_name.to_std().c_str(), new_row.print().c_str())
-             : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
-                         primary_key_name.to_std().c_str(),
-                         old_row.print().c_str(), new_row.print().c_str())));
-    } else {
-        rfail_typed_target(
-            &new_row, "Inserted value must be an OBJECT (got %s):\n%s",
-            new_row.get_type_name().c_str(), new_row.print().c_str());
-    }
+    bool ended_empty = (new_row.get_type() == ql::datum_t::R_NULL);
 
     *was_changed_out = (old_row != new_row);
 

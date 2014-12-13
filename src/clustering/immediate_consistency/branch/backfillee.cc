@@ -42,18 +42,6 @@ struct backfill_queue_entry_t {
     fifo_enforcer_write_token_t write_token;
 };
 
-void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue,
-                         backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
-    // Here we reconstruct the ordering of the backfill chunks.
-    // (note how `queue` is a `fifo_enforcer_queue_t`)
-    queue->push(token, backfill_queue_entry_t(true, chunk, token));
-}
-
-void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue, fifo_enforcer_write_token_t token) {
-    queue->push(token, backfill_queue_entry_t(false, backfill_chunk_t(), token));
-}
-
-
 /* Now that the metadata indicates that the backfill is happening, it's
    time to start actually performing backfill chunks */
 class chunk_callback_t : public coro_pool_callback_t<backfill_queue_entry_t>,
@@ -69,7 +57,7 @@ public:
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {
         // No re-ordering must happen up to the point where we obtain a
-        // token_pair from the store.
+        // token from the store.
         // This is also asserted by `chunk_queue->finish_write(chunk_token)`.
         try {
             svs->throttle_backfill_chunk(interruptor);
@@ -78,11 +66,11 @@ public:
             throw;
         }
 
-        write_token_pair_t token_pair;
-        svs->new_write_token_pair(&token_pair);
+        write_token_t token;
+        svs->new_write_token(&token);
         chunk_queue->finish_write(chunk_token);
 
-        svs->receive_backfill(chunk, &token_pair, interruptor);
+        svs->receive_backfill(chunk, &token, interruptor);
     }
 
     void coro_pool_callback(backfill_queue_entry_t chunk, signal_t *interruptor) {
@@ -159,12 +147,6 @@ private:
     DISABLE_COPYING(chunk_callback_t);
 };
 
-void receive_end_point_message(promise_t<std::pair<region_map_t<version_range_t>, branch_history_t> > *promise,
-        const region_map_t<version_range_t> &end_point,
-        const branch_history_t &associated_branch_history) {
-    promise->pulse(std::make_pair(end_point, associated_branch_history));
-}
-
 void backfillee(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t *branch_history_manager,
@@ -179,7 +161,7 @@ void backfillee(
     resource_access_t<backfiller_business_card_t> backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs->new_read_token(&read_token);
 
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
@@ -203,7 +185,11 @@ void backfillee(
     promise_t<std::pair<region_map_t<version_range_t>, branch_history_t> > end_point_cond;
     mailbox_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_mailbox(
         mailbox_manager,
-        std::bind(&receive_end_point_message, &end_point_cond, ph::_1, ph::_2));
+        [&](signal_t *,
+                const region_map_t<version_range_t> &end_point,
+                const branch_history_t &associated_branch_history) {
+            end_point_cond.pulse(std::make_pair(end_point, associated_branch_history));
+        });
 
     {
         typedef backfill_chunk_t backfill_chunk_t;
@@ -218,18 +204,31 @@ void backfillee(
         and the version described in `end_point_mailbox` has been achieved. */
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
-            std::bind(&push_finish_on_queue, &chunk_queue, ph::_1));
+            [&](signal_t *, const fifo_enforcer_write_token_t &token) {
+                chunk_queue.push(token,
+                    backfill_queue_entry_t(false, backfill_chunk_t(), token));
+            });
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, std::bind(&push_chunk_on_queue, &chunk_queue, ph::_1, ph::_2));
+            mailbox_manager,
+            [&](signal_t *,
+                    const backfill_chunk_t &chunk,
+                    fifo_enforcer_write_token_t token) {
+                // Here we reconstruct the ordering of the backfill chunks.
+                // (note how `chunk_queue` is a `fifo_enforcer_queue_t`)
+                chunk_queue.push(token, backfill_queue_entry_t(true, chunk, token));
+            });
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
         promise_t<mailbox_addr_t<void(int)> > alloc_mailbox_promise;
         mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
-                mailbox_manager, std::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, ph::_1));
+                mailbox_manager,
+                [&](signal_t *, const mailbox_addr_t<void(int)> &addr) {
+                    alloc_mailbox_promise.pulse(addr);
+                });
 
         /* Send off the backfill request */
         send(mailbox_manager,
@@ -326,8 +325,7 @@ void backfillee(
             }
         }
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-
+        write_token_t write_token;
         svs->new_write_token(&write_token);
 
         svs->set_metainfo(
@@ -359,7 +357,7 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_t write_token;
     svs->new_write_token(&write_token);
 
     svs->set_metainfo(

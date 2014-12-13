@@ -22,12 +22,12 @@ struct store_args_t {
                  cache_balancer_t *_balancer,
                  perfmon_collection_t *_serializers_perfmon_collection,
                  rdb_context_t *_ctx,
-                 outdated_index_issue_client_t *_outdated_index_client,
+                 outdated_index_issue_tracker_t *_outdated_index_tracker,
                  namespace_id_t _ns_id)
         : io_backender(_io_backender), base_path(_base_path),
           namespace_id(_namespace_id), balancer(_balancer),
           serializers_perfmon_collection(_serializers_perfmon_collection),
-          ctx(_ctx), outdated_index_client(_outdated_index_client), ns_id(_ns_id)
+          ctx(_ctx), outdated_index_tracker(_outdated_index_tracker), ns_id(_ns_id)
     { }
 
     io_backender_t *io_backender;
@@ -36,7 +36,7 @@ struct store_args_t {
     cache_balancer_t *balancer;
     perfmon_collection_t *serializers_perfmon_collection;
     rdb_context_t *ctx;
-    outdated_index_issue_client_t *outdated_index_client;
+    outdated_index_issue_tracker_t *outdated_index_tracker;
     namespace_id_t ns_id;
 };
 
@@ -59,7 +59,7 @@ void do_construct_existing_store(
     // Only pass this down to the first store
     outdated_index_report_t *index_report = NULL;
     if (thread_offset == 0) {
-        index_report = store_args.outdated_index_client->create_report(store_args.ns_id);
+        index_report = store_args.outdated_index_tracker->create_report(store_args.ns_id);
     }
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
@@ -68,7 +68,7 @@ void do_construct_existing_store(
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report);
+        index_report, store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -86,7 +86,7 @@ void do_create_new_store(
     // Only pass this down to the first store
     outdated_index_report_t *index_report = NULL;
     if (thread_offset == 0) {
-        index_report = store_args.outdated_index_client->create_report(store_args.ns_id);
+        index_report = store_args.outdated_index_tracker->create_report(store_args.ns_id);
     }
 
     store_t *store = new store_t(
@@ -94,7 +94,7 @@ void do_create_new_store(
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report);
+        index_report, store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -141,7 +141,7 @@ file_based_svs_by_namespace_t::get_svs(
         store_args_t store_args(io_backender_, base_path_,
                                 namespace_id, balancer_,
                                 serializers_perfmon_collection, ctx,
-                                outdated_index_client, namespace_id);
+                                &outdated_index_tracker, namespace_id);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right

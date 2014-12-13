@@ -48,7 +48,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     store_view_t *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        write_token_t token;
         stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
             region_map_t<binary_blob_t>(region,
@@ -65,16 +65,15 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         write_t w = mock_overwrite(key, strprintf("%d", i));
 
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
-            transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
-            timestamp = ts.timestamp_after();
+            timestamp = timestamp.next();
 
             cond_t non_interruptor;
-            write_token_pair_t token_pair;
-            backfiller_store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
             equality_metainfo_checker_callback_t
-                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
+                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp.pred()))));
             metainfo_checker_t metainfo_checker(&metainfo_checker_callback, region);
 #endif
 
@@ -86,9 +85,9 @@ TPTEST(ClusteringBackfill, BackfillTest) {
                 ),
                 w,
                 &response, write_durability_t::SOFT,
-                ts,
+                timestamp,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
-                &token_pair,
+                &token,
                 &non_interruptor);
         }
     }
@@ -127,7 +126,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         EXPECT_TRUE(backfiller_store.timestamps(key) == backfillee_store.timestamps(key));
     }
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token1;
+    read_token_t token1;
     backfillee_store.new_read_token(&token1);
 
     region_map_t<binary_blob_t> untransformed_backfillee_metadata;
@@ -139,7 +138,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             untransformed_backfillee_metadata,
             &binary_blob_t::get<version_range_t>);
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token2;
+    read_token_t token2;
     backfiller_store.new_read_token(&token2);
 
     region_map_t<binary_blob_t> untransformed_backfiller_metadata;

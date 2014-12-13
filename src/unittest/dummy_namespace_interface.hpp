@@ -31,7 +31,7 @@ public:
 
     void write(const write_t &write,
                write_response_t *response,
-               transition_timestamp_t transition_timestamp,
+               state_timestamp_t timestamp,
                order_token_t order_token) THROWS_NOTHING;
 
     order_source_t bs_outdated_read_source;
@@ -99,6 +99,10 @@ public:
     }
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
+
+    bool check_readiness(table_readiness_t, signal_t *) {
+        throw cannot_perform_query_exc_t("unimplemented");
+    }
 
 private:
     std::vector<scoped_ptr_t<dummy_performer_t> > performers;

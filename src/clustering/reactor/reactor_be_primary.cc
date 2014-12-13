@@ -118,14 +118,15 @@ boost::optional<boost::optional<backfiller_business_card_t> > extract_backfiller
  * can use to get the latest version of the data.
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
-bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
-                                                         const blueprint_t &blueprint,
-                                                         const region_t &region, best_backfiller_map_t *best_backfiller_out,
-                                                         branch_history_t *branch_history_to_merge_out,
-                                                         bool *merge_branch_history_out)
-{
-    typedef reactor_business_card_t rb_t;
 
+bool reactor_t::is_safe_for_us_to_be_primary(
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        const blueprint_t &blueprint,
+        const region_t &region,
+        best_backfiller_map_t *best_backfiller_out,
+        branch_history_t *branch_history_to_merge_out,
+        bool *merge_branch_history_out)
+{
     best_backfiller_map_t res = *best_backfiller_out;
 
     /* Iterator through the peers the blueprint claims we should be able to
@@ -140,88 +141,23 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
             continue;
         }
 
-        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
-        if (bcard_it == _reactor_directory.get_inner().end()) {
-            return false;
-        }
-
-        std::vector<region_t> regions;
-        for (rb_t::activity_map_t::const_iterator it = bcard_it->second->activities.begin();
-             it != bcard_it->second->activities.end();
-             ++it) {
-            region_t intersection = region_intersection(it->second.region, region);
-            if (!region_is_empty(intersection)) {
-                regions.push_back(intersection);
-                try {
-                    if (const rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
-                        branch_history_t bh = secondary_without_primary->branch_history;
-                        std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
-
-                        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
-                                bt != bh.branches.end(); ++bt) {
-                            if (!std_contains(known_branchs, bt->first)) {
-                                *branch_history_to_merge_out = bh;
-                                *merge_branch_history_out = true;
-                                return true;
-                            }
-                        }
-
-                        update_best_backfiller(secondary_without_primary->current_state,
-                                               backfill_candidate_t::backfill_location_t(
-                                                   get_directory_entry_view<rb_t::secondary_without_primary_t>(peer, it->first)->subview(
-                                                        &extract_backfiller_from_reactor_business_card_secondary),
-                                                   peer,
-                                                   it->first),
-                                               &res);
-                    } else if (const rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
-                        branch_history_t bh = nothing_when_safe->branch_history;
-                        std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
-
-                        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
-                                bt != bh.branches.end(); ++bt) {
-                            if (!std_contains(known_branchs, bt->first)) {
-                                *branch_history_to_merge_out = bh;
-                                *merge_branch_history_out = true;
-                                return true;
-                            }
-                        }
-
-                        update_best_backfiller(nothing_when_safe->current_state,
-                                               backfill_candidate_t::backfill_location_t(
-                                                   get_directory_entry_view<rb_t::nothing_when_safe_t>(peer, it->first)->subview(
-                                                        &extract_backfiller_from_reactor_business_card_nothing),
-                                                   peer,
-                                                   it->first),
-                                               &res);
-                    } else if (boost::get<rb_t::nothing_t>(&it->second.activity)) {
-                        //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
-                        //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else {
-                        return false;
-                    }
-                } catch (const divergent_data_exc_t &) {
-                    return false;
-                }
+        bool its_not_safe, merge_branch_history;
+        directory->read_key(peer, [&](const cow_ptr_t<reactor_business_card_t> *value) {
+            if (value == nullptr) {
+                /* Peer is not connected */
+                its_not_safe = true;
+                merge_branch_history = false;
+                return;
             }
+            is_safe_for_us_to_be_primary_helper(peer, **value, region, &res,
+                branch_history_to_merge_out, &merge_branch_history, &its_not_safe);
+        });
+        if (merge_branch_history) {
+            *merge_branch_history_out = true;
+            return true;
         }
-        /* This returns false if the peers reactor is missing an activity for
-         * some sub region. It crashes if they overlap. */
-        region_t join;
-        region_join_result_t join_result = region_join(regions, &join);
-
-        switch (join_result) {
-        case REGION_JOIN_OK:
-            if (join != region) {
-                return false;
-            }
-            break;
-        case REGION_JOIN_BAD_REGION:
+        if (its_not_safe) {
             return false;
-        case REGION_JOIN_BAD_JOIN:
-            crash("Overlapping activities in directory, this can only happen due to programmer error.\n");
-        default:
-            unreachable();
         }
     }
 
@@ -239,6 +175,100 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
 
     *merge_branch_history_out = false;
     return true;
+}
+
+void reactor_t::is_safe_for_us_to_be_primary_helper(
+        const peer_id_t &peer,
+        const reactor_business_card_t &bcard,
+        const region_t &region,
+        best_backfiller_map_t *res,
+        branch_history_t *branch_history_to_merge_out,
+        bool *merge_branch_history_out,
+        bool *its_not_safe_out) {
+    typedef reactor_business_card_t rb_t;
+    std::vector<region_t> regions;
+    for (auto it = bcard.activities.begin(); it != bcard.activities.end(); ++it) {
+        region_t intersection = region_intersection(it->second.region, region);
+        if (!region_is_empty(intersection)) {
+            regions.push_back(intersection);
+            try {
+                if (const rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
+                    branch_history_t bh = secondary_without_primary->branch_history;
+                    std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
+
+                    for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
+                            bt != bh.branches.end(); ++bt) {
+                        if (!std_contains(known_branchs, bt->first)) {
+                            *branch_history_to_merge_out = bh;
+                            *merge_branch_history_out = true;
+                            *its_not_safe_out = false;
+                            return;
+                        }
+                    }
+
+                    update_best_backfiller(secondary_without_primary->current_state,
+                                           backfill_candidate_t::backfill_location_t(
+                                               get_directory_entry_view<rb_t::secondary_without_primary_t>(peer, it->first)->subview(
+                                                    &extract_backfiller_from_reactor_business_card_secondary),
+                                               peer,
+                                               it->first),
+                                           res);
+                } else if (const rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
+                    branch_history_t bh = nothing_when_safe->branch_history;
+                    std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
+
+                    for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
+                            bt != bh.branches.end(); ++bt) {
+                        if (!std_contains(known_branchs, bt->first)) {
+                            *branch_history_to_merge_out = bh;
+                            *merge_branch_history_out = true;
+                            *its_not_safe_out = false;
+                            return;
+                        }
+                    }
+
+                    update_best_backfiller(nothing_when_safe->current_state,
+                                           backfill_candidate_t::backfill_location_t(
+                                               get_directory_entry_view<rb_t::nothing_when_safe_t>(peer, it->first)->subview(
+                                                    &extract_backfiller_from_reactor_business_card_nothing),
+                                               peer,
+                                               it->first),
+                                           res);
+                } else if (boost::get<rb_t::nothing_t>(&it->second.activity)) {
+                    //Everything's fine this peer cannot obstruct us so we shall proceed
+                } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
+                    //Everything's fine this peer cannot obstruct us so we shall proceed
+                } else {
+                    *merge_branch_history_out = false;
+                    *its_not_safe_out = true;
+                    return;
+                }
+            } catch (const divergent_data_exc_t &) {
+                *merge_branch_history_out = false;
+                *its_not_safe_out = true;
+                return;
+            }
+        }
+    }
+    /* This returns false if the peers reactor is missing an activity for
+     * some sub region. It crashes if they overlap. */
+    region_t join;
+    region_join_result_t join_result = region_join(regions, &join);
+
+    switch (join_result) {
+    case REGION_JOIN_OK:
+        *merge_branch_history_out = false;
+        *its_not_safe_out = (join != region);
+        return;
+    case REGION_JOIN_BAD_REGION:
+        *merge_branch_history_out = false;
+        *its_not_safe_out = true;
+        return;
+    case REGION_JOIN_BAD_JOIN:
+        crash("Overlapping activities in directory, this can only happen due to programmer error.\n");
+    default:
+        unreachable();
+    }
 }
 
 /* This function helps initialize best backfiller maps, by constructing
@@ -288,9 +318,9 @@ void do_backfill(
     success->pulse(result);
 }
 
-bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t> > &maybe_a_business_card) {
-    guarantee(maybe_a_business_card, "Not connected to ourselves\n");
-    return maybe_a_business_card.get();
+bool check_that_we_see_our_broadcaster(
+        const boost::optional<boost::optional<broadcaster_business_card_t> > &b) {
+    return static_cast<bool>(b) && static_cast<bool>(*b);
 }
 
 bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
@@ -304,7 +334,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
 
     /* Figure out what version of the data is already present in our
      * store so we don't backfill anything prior to it. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     svs->new_read_token(&read_token);
     region_map_t<binary_blob_t> metainfo_blob;
     svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
@@ -412,7 +442,6 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         /* block until all peers have acked `directory_entry` */
         wait_for_directory_acks(version_to_wait_on, interruptor);
 
-
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
@@ -449,7 +478,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
         on_thread_t th3(svs->home_thread());
-        listener_t listener(base_path, io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
+        listener_t listener(base_path, io_backender, mailbox_manager, server_id,
+            ct_broadcaster_business_card.get_watchable(), branch_history_manager,
+            &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
         replier_t replier(&listener, mailbox_manager, branch_history_manager);
         master_t master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t direct_reader(mailbox_manager, svs);

@@ -16,7 +16,7 @@ public:
     sample_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         int64_t num_int = args->arg(env, 1)->as_int();
         rcheck(num_int >= 0,
                base_exc_t::GENERIC,
@@ -25,13 +25,12 @@ public:
         const size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
-                = v->as_selection(env->env);
-            t = t_seq.first;
-            seq = t_seq.second;
+            counted_t<selection_t> t_seq = v->as_selection(env->env);
+            t = t_seq->table;
+            seq = t_seq->seq;
         } else {
             seq = v->as_seq(env->env);
         }
@@ -65,7 +64,9 @@ public:
             new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),
                                      backtrace()));
 
-        return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+        return t.has()
+            ? new_val(make_counted<selection_t>(t, new_ds))
+            : new_val(env->env, new_ds);
     }
 
     bool is_deterministic() const {
@@ -99,8 +100,8 @@ private:
         return res;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> use_float_arg = args->optarg(env, "float");
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> use_float_arg = args->optarg(env, "float");
         bool use_float = use_float_arg ? use_float_arg->as_bool() : args->num_args() == 0;
 
         if (use_float) {

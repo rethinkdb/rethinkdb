@@ -15,10 +15,10 @@ public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
                                   cache_balancer_t *balancer,
                                   const base_path_t& base_path,
-                                  outdated_index_issue_client_t *_outdated_index_client)
+                                  local_issue_aggregator_t *local_issue_aggregator)
         : io_backender_(io_backender), balancer_(balancer),
           base_path_(base_path), thread_counter_(0),
-          outdated_index_client(_outdated_index_client) { }
+          outdated_index_tracker(local_issue_aggregator) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
@@ -38,7 +38,7 @@ private:
     threadnum_t next_thread(int num_db_threads);
     int thread_counter_; // should only be used by `next_thread`
 
-    outdated_index_issue_client_t *outdated_index_client;
+    outdated_index_issue_tracker_t outdated_index_tracker;
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);
 };

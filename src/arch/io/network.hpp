@@ -132,8 +132,7 @@ public:
 
     void rethread(threadnum_t thread);
 
-    int getsockname(ip_address_t *addr);
-    int getpeername(ip_address_t *addr);
+    bool getpeername(ip_and_port_t *ip_and_port);
 
     linux_event_watcher_t *get_event_watcher() {
         return event_watcher.get();

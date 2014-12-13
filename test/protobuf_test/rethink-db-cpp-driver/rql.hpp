@@ -137,7 +137,7 @@ namespace com {
 
 				shared_ptr<RQL_Sequence> order_by(const vector<shared_ptr<RQL_Ordering>>& orderings) {
 					shared_ptr<RQL_Sequence> sequence(new RQL_Sequence());
-					sequence->term.set_type(Term::TermType::Term_TermType_ORDERBY);
+					sequence->term.set_type(Term::TermType::Term_TermType_ORDER_BY);
 					*(sequence->term.add_args()) = this->term;
 					for_each(orderings.begin(), orderings.end(), [sequence](shared_ptr<RQL_Ordering> ordering) {
 						*(sequence->term.add_args()) = ordering->term;
@@ -148,7 +148,7 @@ namespace com {
 
 				shared_ptr<RQL_Sequence> order_by(const RQL_Ordering& ordering) {
 					shared_ptr<RQL_Sequence> sequence(new RQL_Sequence());
-					sequence->term.set_type(Term::TermType::Term_TermType_ORDERBY);
+					sequence->term.set_type(Term::TermType::Term_TermType_ORDER_BY);
 					*(sequence->term.add_args()) = this->term;
 					*(sequence->term.add_args()) = ordering.term;
 					sequence->conn = this->conn;

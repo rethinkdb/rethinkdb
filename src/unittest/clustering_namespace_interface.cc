@@ -19,11 +19,10 @@ namespace unittest {
 TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > region_to_primary_maps;
 
     /* Set up a reactor directory with no reactors in it */
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > empty_reactor_directory;
-    watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > reactor_directory(empty_reactor_directory);
+    watchable_map_var_t<peer_id_t, namespace_directory_metadata_t> directory;
 
     rdb_context_t invalid_context;
 
@@ -31,7 +30,7 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     cluster_namespace_interface_t namespace_interface(
         cluster.get_mailbox_manager(),
         &region_to_primary_maps,
-        reactor_directory.get_watchable(),
+        &directory,
         generate_uuid(),
         &invalid_context);
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();

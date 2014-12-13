@@ -107,8 +107,11 @@ class MathUtil {
     // Discriminants below kTolerance in absolute value are considered zero
     // because changing the final bit of one of the inputs can change the
     // sign of the discriminant.
-    const double kTolerance = epsilon * max(fabs(2 * b * b), fabs(4 * a * c));
-    return (fabs(discriminant) <= kTolerance);
+    // We have some manual static casts to silence warnings.  fabsl
+    // would be used with long doubles.
+    const double kTolerance = epsilon * max(fabs(static_cast<double>(2 * b * b)),
+                                            fabs(static_cast<double>(4 * a * c)));
+    return (fabs(static_cast<double>(discriminant)) <= kTolerance);
   }
 
   // Returns in *r1 and *r2 the roots of a "normal" quadratic equation

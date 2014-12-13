@@ -12,7 +12,7 @@
 directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory_metadata)
     : directory_metadata(_directory_metadata) { }
 
-static const char *any_machine_id_wildcard = "_";
+static const char *any_server_id_wildcard = "_";
 
 cJSON *directory_http_app_t::get_metadata_json(
     cluster_directory_metadata_t *metadata,
@@ -53,11 +53,11 @@ void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
         cluster_directory_metadata_t metadata = i->second;
-        std::string machine_id = uuid_to_str(metadata.machine_id);
+        std::string server_id = uuid_to_str(metadata.server_id);
 
         json_read_only_adapter_t<cluster_directory_metadata_t> json_adapter(&metadata);
 
-        json_out->AddItemToObject(machine_id.c_str(), json_adapter.render());
+        json_out->AddItemToObject(server_id.c_str(), json_adapter.render());
     }
 }
 
@@ -71,40 +71,40 @@ void directory_http_app_t::handle(const http_req_t &req, http_res_t *result, sig
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
-        boost::optional<std::string> requested_machine_id;
+        boost::optional<std::string> requested_server_id;
         if (it != req.resource.end()) {
-            std::string machine_id_token = *it;
-            if (any_machine_id_wildcard != machine_id_token) {
-                requested_machine_id = machine_id_token;
+            std::string server_id_token = *it;
+            if (any_server_id_wildcard != server_id_token) {
+                requested_server_id = server_id_token;
             }
             ++it;
         }
 
-        if (!requested_machine_id) {
+        if (!requested_server_id) {
             scoped_cJSON_t body(cJSON_CreateObject());
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
-                std::string machine_id = uuid_to_str(metadata.machine_id);
-                body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
+                std::string server_id = uuid_to_str(metadata.server_id);
+                body.AddItemToObject(server_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
             }
             http_json_res(body.get(), result);
         } else {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
-                std::string machine_id = uuid_to_str(metadata.machine_id);
-                if (*requested_machine_id == machine_id) {
-                    scoped_cJSON_t machine_json(get_metadata_json(&metadata, it, req.resource.end()));
-                    http_json_res(machine_json.get(), result);
+                std::string server_id = uuid_to_str(metadata.server_id);
+                if (*requested_server_id == server_id) {
+                    scoped_cJSON_t server_json(get_metadata_json(&metadata, it, req.resource.end()));
+                    http_json_res(server_json.get(), result);
                     return;
                 }
             }
-            *result = http_error_res("Machine not found", HTTP_NOT_FOUND);
+            *result = http_error_res("Server not found", HTTP_NOT_FOUND);
         }
     } catch (const schema_mismatch_exc_t &e) {
-        logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
+        logWRN("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
         *result = http_error_res(e.what(), HTTP_NOT_FOUND);
     } catch (const permission_denied_exc_t &e) {
-        logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
+        logWRN("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         // TODO: should that be 405 Method Not Allowed?
         *result = http_error_res(e.what(), HTTP_FORBIDDEN);
     }

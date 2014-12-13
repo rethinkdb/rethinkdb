@@ -6,8 +6,6 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/admin_tracker.hpp"
-#include "clustering/administration/issue_subscription.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/http.hpp"
@@ -16,11 +14,10 @@
 class http_server_t;
 class routing_http_app_t;
 class file_http_app_t;
+class me_http_app_t;
 class directory_http_app_t;
 class issues_http_app_t;
-class stat_http_app_t;
 class log_http_app_t;
-class progress_app_t;
 class stat_manager_t;
 class cyanide_http_app_t;
 class combining_http_app_t;
@@ -33,11 +30,9 @@ public:
     administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
         int port,
+        const server_id_t &my_server_id,
         mailbox_manager_t *mbox_manager,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _cluster_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         std::string _path);
     ~administrative_http_server_manager_t();
@@ -46,11 +41,9 @@ public:
 private:
 
     scoped_ptr_t<file_http_app_t> file_app;
+    scoped_ptr_t<me_http_app_t> me_app;
     scoped_ptr_t<directory_http_app_t> directory_app;
-    scoped_ptr_t<issues_http_app_t> issues_app;
-    scoped_ptr_t<stat_http_app_t> stat_app;
     scoped_ptr_t<log_http_app_t> log_app;
-    scoped_ptr_t<progress_app_t> progress_app;
     scoped_ptr_t<combining_http_app_t> combining_app;
 #ifndef NDEBUG
     scoped_ptr_t<cyanide_http_app_t> cyanide_app;

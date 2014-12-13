@@ -23,7 +23,6 @@ module 'DataExplorerView', ->
         #saved_data: {}
 
 
-
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
@@ -33,7 +32,7 @@ module 'DataExplorerView', ->
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
         alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
-        namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
+        tables_suggestions_template: Handlebars.templates['dataexplorer-tables_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
@@ -338,11 +337,17 @@ module 'DataExplorerView', ->
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
             if command['body']?
-                dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
-                if dont_need_parenthesis
-                    full_tag = tag # Here full_tag is just the name of the tag
+                # The body of `getField` uses `()` and not `getField()`
+                # so we manually set the variables dont_need_parenthesis and full_tag
+                if tag is 'getField'
+                    dont_need_parenthesis = false
+                    full_tag = tag+'('
                 else
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
+                    if dont_need_parenthesis
+                        full_tag = tag # Here full_tag is just the name of the tag
+                    else
+                        full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
                 @descriptions[full_tag] = (grouped_data) =>
                     name: tag
@@ -375,7 +380,6 @@ module 'DataExplorerView', ->
 
 
         # All the commands we are going to ignore
-        # TODO update the set of ignored commands for 1.4
         ignored_commands:
             'connect': true
             'close': true
@@ -396,7 +400,12 @@ module 'DataExplorerView', ->
                 if tag of @ignored_commands
                     continue
                 if tag is '()' # The parentheses will be added later
+                    # Add `(attr)`
                     tag = ''
+                    @set_doc_description command, tag, @suggestions
+
+                    # Add `getField(sttr)`
+                    tag = 'getField'
                 @set_doc_description command, tag, @suggestions
 
             relations = data['types']
@@ -515,6 +524,24 @@ module 'DataExplorerView', ->
             @keep_suggestions_on_blur = false
 
             @render()
+
+            @databases_available = {}
+            @fetch_data()
+
+        fetch_data: =>
+            query = r.db(system_db).table('table_config')
+                .pluck('db', 'name')
+                .group('db')
+                .ungroup()
+                .map((group) -> [group("group"), group("reduction")("name").orderBy( (x) -> x )])
+                .coerceTo "OBJECT"
+            @timer = driver.run query, 5000, (error, result) =>
+                if error?
+                    # Nothing bad, we'll try again, let's just log the error
+                    console.log "Error: Could not fetch databases and tables"
+                    console.log error
+                else
+                    @databases_available = result
 
         handle_mousemove: (event) =>
             @results_view.handle_mousemove event
@@ -879,10 +906,10 @@ module 'DataExplorerView', ->
             # Look for special commands
             if event?.which?
                 if event.type isnt 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32)
-                    # Because on event.type == 'keydown' we are going to change the state (hidden or displayed) of @$('.suggestion_description') and @.$('.suggestion_name_list'), we don't want to fire this event a second time
+                    # Because on event.type == 'keydown' we are going to change the state (hidden or displayed) of @$('.suggestion_description') and @$('.suggestion_name_list'), we don't want to fire this event a second time
                     return true
 
-                if event.which is 27 or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') isnt 'none' or @.$('.suggestion_name_list').css('display') isnt 'none'))
+                if event.which is 27 or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') isnt 'none' or @$('.suggestion_name_list').css('display') isnt 'none'))
                     # We caugh ESC or (Ctrl/Cmd+space with suggestion/description being displayed)
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
@@ -903,7 +930,7 @@ module 'DataExplorerView', ->
 
                     @current_highlighted_suggestion = -1
                     @current_highlighted_extra_suggestion = -1
-                    @.$('.suggestion_name_list').empty()
+                    @$('.suggestion_name_list').empty()
 
                     # Valid step, let's save the data
                     @query_last_part = query_after_cursor
@@ -935,7 +962,7 @@ module 'DataExplorerView', ->
                             if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
                                 result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
                                 @current_suggestions.push suggestion
-                                @.$('.suggestion_name_list').append @template_suggestion_name
+                                @$('.suggestion_name_list').append @template_suggestion_name
                                     id: i
                                     suggestion: suggestion
                     else if result.description?
@@ -958,7 +985,7 @@ module 'DataExplorerView', ->
                                 @codemirror.indentLine cursor.line+1, 'smart'
                                 @codemirror.setCursor cursor
                                 return false
-                else if event.which is 9  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
+                else if (event.which is 9 and event.ctrlKey is false)  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
                     # If the user just hit tab, we are going to show the suggestions if they are hidden
                     # or if they suggestions are already shown, we are going to cycle through them.
                     #
@@ -994,9 +1021,9 @@ module 'DataExplorerView', ->
                                     @current_suggestions = new_suggestions
                                     @current_highlighted_suggestion = new_highlighted_suggestion
                                     if @current_suggestions.length > 0
-                                        @.$('.suggestion_name_list').empty()
+                                        @$('.suggestion_name_list').empty()
                                         for suggestion, i in @current_suggestions
-                                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                            @$('.suggestion_name_list').append @template_suggestion_name
                                                 id: i
                                                 suggestion: suggestion
                                         @ignored_next_keyup = true
@@ -1227,7 +1254,7 @@ module 'DataExplorerView', ->
 
             @current_highlighted_suggestion = -1
             @current_highlighted_extra_suggestion = -1
-            @.$('.suggestion_name_list').empty()
+            @$('.suggestion_name_list').empty()
 
             # Valid step, let's save the data
             @query_last_part = query_after_cursor
@@ -1287,7 +1314,7 @@ module 'DataExplorerView', ->
                     if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
                         show_suggestion = true
                         @current_suggestions.push suggestion
-                        @.$('.suggestion_name_list').append @template_suggestion_name
+                        @$('.suggestion_name_list').append @template_suggestion_name
                             id: i
                             suggestion: suggestion
                 if @state.options.suggestions is true and show_suggestion is true
@@ -2171,39 +2198,39 @@ module 'DataExplorerView', ->
         # Show suggestion and determine where to put the box
         show_suggestion: =>
             @move_suggestion()
-            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
-            @.$('.suggestion_full_container').css 'margin-top', margin
-            @.$('.arrow').css 'margin-top', margin
+            margin = (parseInt(@$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+            @$('.suggestion_full_container').css 'margin-top', margin
+            @$('.arrow').css 'margin-top', margin
 
-            @.$('.suggestion_name_list').show()
-            @.$('.arrow').show()
+            @$('.suggestion_name_list').show()
+            @$('.arrow').show()
         
         # If want to show suggestion without moving the arrow
         show_suggestion_without_moving: =>
-            @.$('.arrow').show()
-            @.$('.suggestion_name_list').show()
+            @$('.arrow').show()
+            @$('.suggestion_name_list').show()
 
         # Show description and determine where to put it
         show_description: =>
             if @descriptions[@description]? # Just for safety
-                margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+                margin = (parseInt(@$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
 
-                @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.arrow').css 'margin-top', margin
+                @$('.suggestion_full_container').css 'margin-top', margin
+                @$('.arrow').css 'margin-top', margin
 
-                @.$('.suggestion_description').html @description_template @extend_description @description
+                @$('.suggestion_description').html @description_template @extend_description @description
 
-                @.$('.suggestion_description').show()
+                @$('.suggestion_description').show()
                 @move_suggestion()
                 @show_or_hide_arrow()
             else
                 @hide_description()
 
         hide_suggestion: =>
-            @.$('.suggestion_name_list').hide()
+            @$('.suggestion_name_list').hide()
             @show_or_hide_arrow()
         hide_description: =>
-            @.$('.suggestion_description').hide()
+            @$('.suggestion_description').hide()
             @show_or_hide_arrow()
         hide_suggestion_and_description: =>
             @hide_suggestion()
@@ -2211,38 +2238,38 @@ module 'DataExplorerView', ->
 
         # Show the arrow if suggestion or/and description is being displayed
         show_or_hide_arrow: =>
-            if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
-                @.$('.arrow').hide()
+            if @$('.suggestion_name_list').css('display') is 'none' and @$('.suggestion_description').css('display') is 'none'
+                @$('.arrow').hide()
             else
-                @.$('.arrow').show()
+                @$('.arrow').show()
 
         # Move the suggestion. We have steps of 200 pixels and try not to overlaps button if we can. If we cannot, we just hide them all since their total width is less than 200 pixels
         move_suggestion: =>
-            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+23
-            @.$('.arrow').css 'margin-left', margin_left
+            margin_left = parseInt(@$('.CodeMirror-cursor').css('left').replace('px', ''))+23
+            @$('.arrow').css 'margin-left', margin_left
             if margin_left < 200
-                @.$('.suggestion_full_container').css 'left', '0px'
+                @$('.suggestion_full_container').css 'left', '0px'
             else
-                max_margin = @.$('.CodeMirror-scroll').width()-418
+                max_margin = @$('.CodeMirror-scroll').width()-418
 
                 margin_left_bloc = Math.min max_margin, Math.floor(margin_left/200)*200
                 if margin_left > max_margin+418-150-23 # We are really at the end
-                    @.$('.suggestion_full_container').css 'left', (max_margin-34)+'px'
+                    @$('.suggestion_full_container').css 'left', (max_margin-34)+'px'
                 else if margin_left_bloc > max_margin-150-23
-                    @.$('.suggestion_full_container').css 'left', (max_margin-34-150)+'px'
+                    @$('.suggestion_full_container').css 'left', (max_margin-34-150)+'px'
                 else
-                    @.$('.suggestion_full_container').css 'left', (margin_left_bloc-100)+'px'
+                    @$('.suggestion_full_container').css 'left', (margin_left_bloc-100)+'px'
 
         #Highlight suggestion. Method called when the user hit tab or mouseover
         highlight_suggestion: (id) =>
             @remove_highlight_suggestion()
-            @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
-            @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
+            @$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
+            @$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
             
-            @.$('.suggestion_description').show()
+            @$('.suggestion_description').show()
 
         remove_highlight_suggestion: =>
-            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
+            @$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
 
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
@@ -2277,7 +2304,7 @@ module 'DataExplorerView', ->
 
         # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
-            suggestion_to_write = @.$(event.target).html()
+            suggestion_to_write = @$(event.target).html()
             @write_suggestion
                 suggestion_to_write: suggestion_to_write
 
@@ -2302,11 +2329,11 @@ module 'DataExplorerView', ->
         extend_description: (fn) =>
             if fn is 'db(' or fn is 'dbDrop('
                 description = _.extend {}, @descriptions[fn]()
-                if databases.length is 0
+                if _.keys(@databases_available).length is 0
                     data =
                         no_database: true
                 else
-                    databases_available = databases.models.map (database) -> return database.get('name')
+                    databases_available = _.keys @databases_available
                     data =
                         no_database: false
                         databases_available: databases_available
@@ -2317,13 +2344,9 @@ module 'DataExplorerView', ->
                 database_used = @extract_database_used()
                 description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
-                    namespaces_available = []
-                    for namespace in namespaces.models
-                        if database_used.db_found is false or namespace.get('database') is database_used.id
-                            namespaces_available.push namespace.get('name')
                     data =
-                        namespaces_available: namespaces_available
-                        no_namespace: namespaces_available.length is 0
+                        tables_available: @databases_available[database_used.name]
+                        no_table: @databases_available[database_used.name].length is 0
 
                     if database_used.name?
                         data.database_name = database_used.name
@@ -2331,9 +2354,9 @@ module 'DataExplorerView', ->
                     data =
                         error: database_used.error
 
-                description.description = @namespaces_suggestions_template(data) + description.description
+                description.description = @tables_suggestions_template(data) + description.description
 
-                @extra_suggestions= namespaces_available
+                @extra_suggestions = @databases_available[database_used.name]
             else
                 description = @descriptions[fn] @grouped_data
                 @extra_suggestions= null
@@ -2346,15 +2369,11 @@ module 'DataExplorerView', ->
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
-                for database in databases.models
-                    if database.get('name') is 'test'
-                        database_test_id = database.get('id')
-                        break
-                if database_test_id?
+                found = false
+                if @databases_available['test']?
                     return {
                         db_found: true
                         error: false
-                        id: database_test_id
                         name: 'test'
                     }
                 else
@@ -2372,18 +2391,17 @@ module 'DataExplorerView', ->
                         error: true
                     }
                 db_name = arg.slice 0, end_arg_position
-                for database in databases.models
-                    if database.get('name') is db_name
-                        return {
-                            db_found: true
-                            error: false
-                            id: database.get('id')
-                            name: db_name
-                        }
-                return {
-                    db_found: false
-                    error: true
-                }
+                if @databases_available[db_name]?
+                    return {
+                        db_found: true
+                        error: false
+                        name: db_name
+                    }
+                else
+                    return {
+                        db_found: false
+                        error: true
+                    }
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
@@ -2401,13 +2419,15 @@ module 'DataExplorerView', ->
                 @id_execution++
                 get_result_callback = @generate_get_result_callback @id_execution
                 @state.cursor.next get_result_callback
-                $(window).scrollTop(@.$('.results_container').offset().top)
+                $(window).scrollTop(@$('.results_container').offset().top)
             catch err
                 @toggle_executing false
                 # We print the query here (the user just hit `more data`)
                 @results_view.render_error(@query, err)
 
         abort_query: =>
+            if @state.cursor?
+                @state.cursor.close()
             @driver_handler.close_connection()
             @id_execution++
             @toggle_executing false
@@ -2433,7 +2453,7 @@ module 'DataExplorerView', ->
             # Execute the query
             try
                 if @state.cursor?
-                    @state.cursor.close?
+                    @state.cursor.close()
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
@@ -2462,14 +2482,14 @@ module 'DataExplorerView', ->
                 @executing = true
                 @timeout_show_abort = setTimeout =>
                     #TODO Delay a few ms
-                    @.$('.loading_query_img').show()
+                    @$('.loading_query_img').show()
                     @$('.execute_query').hide()
                     @$('.abort_query').show()
                 , @delay_show_abort
             else if executing is false
                 clearTimeout @timeout_show_abort
                 @executing = false
-                @.$('.loading_query_img').hide()
+                @$('.loading_query_img').hide()
                 @$('.execute_query').show()
                 @$('.abort_query').hide()
 
@@ -2508,7 +2528,9 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run connection, {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                            rdb_query.private_run connection,
+                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler},
+                                rdb_global_callback # @rdb_global_callback can be fired more than once
                     , @id_execution, @error_on_connect
 
                     return true
@@ -2606,8 +2628,8 @@ module 'DataExplorerView', ->
                     if data isnt undefined
                         if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
                             @current_results.push data
-                            @state.cursor.next get_result_callback
                             @extra_row = undefined # We don't know if there's an extra row yet, reset its value to undefined
+                            @state.cursor.next get_result_callback
                         else if @current_results.length is @limit # If we've reached the limit of results we can show, we still want to know if there are more results available
                             @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
                             get_result_callback() # Display results
@@ -2815,21 +2837,21 @@ module 'DataExplorerView', ->
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            @.$('.wrapper_scrollbar').css 'width', '888px'
+            @$('.wrapper_scrollbar').css 'width', '888px'
             @$('.option_icon').removeClass 'fullscreen_exit'
             @$('.option_icon').addClass 'fullscreen'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
+            @$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
             @$('.option_icon').removeClass 'fullscreen'
             @$('.option_icon').addClass 'fullscreen_exit'
 
-        destroy: =>
-            @results_view.destroy()
-            @history_view.destroy()
-            @driver_handler.destroy()
+        remove: =>
+            @results_view.remove()
+            @history_view.remove()
+            @driver_handler.remove()
 
             @display_normal()
             $(window).off 'resize', @display_full
@@ -2837,7 +2859,9 @@ module 'DataExplorerView', ->
             $(document).unbind 'mouseup', @handle_mouseup
 
             clearTimeout @timeout_driver_connect
+            driver.stop_timer @timer
             # We do not destroy the cursor, because the user might come back and use it.
+            super()
     
     class @SharedResultView extends Backbone.View
         template_json_tree:
@@ -2880,10 +2904,10 @@ module 'DataExplorerView', ->
 
 
         toggle_collapse: (event) =>
-            @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
-            @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
-            @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
-            @.$(event.target).toggleClass('jt_arrow_hidden')
+            @$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
+            @$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
+            @$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
+            @$(event.target).toggleClass('jt_arrow_hidden')
             @set_scrollbar()
 
         handle_mousedown: (event) =>
@@ -2921,8 +2945,8 @@ module 'DataExplorerView', ->
 
         # Expand a JSON object in a table. We just call the @json_to_tree
         expand_tree_in_table: (event) =>
-            dom_element = @.$(event.target).parent()
-            @.$(event.target).remove()
+            dom_element = @$(event.target).parent()
+            @$(event.target).remove()
             data = dom_element.data('json_data')
             result = @json_to_tree data
             dom_element.html result
@@ -3512,7 +3536,7 @@ module 'DataExplorerView', ->
 
 
         render_error: (query, err, js_error) =>
-            @.$el.html @error_template
+            @$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
                 js_error: js_error is true
@@ -3561,7 +3585,7 @@ module 'DataExplorerView', ->
                 else # @results can be a single value or null
                     num_results += 1
 
-            @.$el.html @template _.extend @metadata,
+            @$el.html @template _.extend @metadata,
                 show_query_warning: args?.show_query_warning
                 show_more_data: @metadata.has_more_data is true and @container.state.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.state.cursor_timed_out is true)
@@ -3587,7 +3611,7 @@ module 'DataExplorerView', ->
                         @$('.profile_container').html @no_profile_template()
                         @$('.copy_profile').hide()
                     else
-                        @.$('.profile_container').html @json_to_tree @profile
+                        @$('.profile_container').html @json_to_tree @profile
                         @$('.copy_profile').show()
                         @$('.profile_summary_container').html @profile_header_template
                             total_duration: @metadata.execution_time_pretty
@@ -3598,30 +3622,30 @@ module 'DataExplorerView', ->
 
                     @$('.results').hide()
                     @$('.profile_view_container').show()
-                    @.$('.link_to_profile_view').addClass 'active'
-                    @.$('.link_to_profile_view').parent().addClass 'active'
+                    @$('.link_to_profile_view').addClass 'active'
+                    @$('.link_to_profile_view').parent().addClass 'active'
                 when 'tree'
-                    @.$('.json_tree_container').html @json_to_tree @results
+                    @$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
                     @$('.tree_view_container').show()
-                    @.$('.link_to_tree_view').addClass 'active'
-                    @.$('.link_to_tree_view').parent().addClass 'active'
+                    @$('.link_to_tree_view').addClass 'active'
+                    @$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
                     previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     if Object::toString.call(@results) is '[object Array]'
                         if @results.length is 0
-                            @.$('.table_view').html @template_no_result()
+                            @$('.table_view').html @template_no_result()
                         else
-                            @.$('.table_view').html @json_to_table @results
+                            @$('.table_view').html @json_to_table @results
                     else
                         if not @results_array?
                             @results_array = []
                             @results_array.push @results
-                        @.$('.table_view').html @json_to_table @results_array
+                        @$('.table_view').html @json_to_table @results_array
                     @$('.results').hide()
                     @$('.table_view_container').show()
-                    @.$('.link_to_table_view').addClass 'active'
-                    @.$('.link_to_table_view').parent().addClass 'active'
+                    @$('.link_to_table_view').addClass 'active'
+                    @$('.link_to_table_view').parent().addClass 'active'
 
                     # Check if the keys are the same
                     if @container.state.last_keys.length isnt previous_keys.length
@@ -3673,12 +3697,12 @@ module 'DataExplorerView', ->
                                     @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
                                 expandable_columns = []
                 when 'raw'
-                    @.$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
+                    @$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
                     @$('.results').hide()
                     @$('.raw_view_container').show()
                     @expand_raw_textarea()
-                    @.$('.link_to_raw_view').addClass 'active'
-                    @.$('.link_to_raw_view').parent().addClass 'active'
+                    @$('.link_to_raw_view').addClass 'active'
+                    @$('.link_to_raw_view').parent().addClass 'active'
 
             @set_scrollbar()
             @delegateEvents()
@@ -3742,9 +3766,10 @@ module 'DataExplorerView', ->
 
 
 
-        destroy: =>
+        remove: =>
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
+            super()
 
     class @OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
@@ -3896,60 +3921,30 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
-        ping_time: 5*60*1000
-
+        # This class does a little more than window.Driver
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
-
-        # I don't want that thing in window
-        constructor: (args) ->
-            if window.location.port is ''
-                if window.location.protocol is 'https:'
-                    port = 443
-                else
-                    port = 80
-            else
-                port = parseInt window.location.port
-            @server =
-                host: window.location.hostname
-                port: port
-                protocol: if window.location.protocol is 'https:' then 'https' else 'http'
-                pathname: window.location.pathname
-
-            @hack_driver()
-        
-        # Hack the driver, remove .run() and private_run()
-        hack_driver: =>
-            TermBase = r.expr(1).constructor.__super__.constructor.__super__
-            if not TermBase.private_run?
-                that = @
-                TermBase.private_run = TermBase.run
-                TermBase.run = ->
-                    throw that.query_error_template
-                        found_run: true
 
         close_connection: =>
             if @connection?.open is true
-                @connection.close {noreplyWait: false}
+                driver.close @connection
                 @connection = null
 
         create_connection: (cb, id_execution, connection_cb) =>
+            @close_connection()
+
             that = @
             @id_execution = id_execution
 
-            try
-                ((_id_execution) =>
-                    r.connect @server, (error, connection) =>
-                        if _id_execution is @id_execution
-                            connection.removeAllListeners 'error' # See issue 1347
-                            connection.on 'error', connection_cb
-                            @connection = connection
-                            cb(error, connection)
-                        else
-                            connection.cancel()
-                )(id_execution)
-   
-            catch err
-                @on_fail(err)
+            ((_id_execution) =>
+                driver.connect (error, connection) =>
+                    if _id_execution is @id_execution
+                        connection.removeAllListeners 'error' # See issue 1347
+                        connection.on 'error', connection_cb
+                        @connection = connection
+                        cb(error, connection)
+                    else
+                        driver.close connection
+            )(id_execution)
 
-        destroy: =>
+        remove: =>
             @close_connection()

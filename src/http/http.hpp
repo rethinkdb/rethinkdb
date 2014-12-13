@@ -13,8 +13,8 @@
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
-#include "arch/types.hpp"
 #include "arch/address.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
@@ -59,6 +59,8 @@ struct http_req_t {
         iterator b;
         iterator e;
     } resource;
+
+    ip_and_port_t peer;
 
     http_method_t method;
     std::map<std::string, std::string> query_params;

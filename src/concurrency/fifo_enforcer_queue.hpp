@@ -34,7 +34,7 @@ private:
     typedef std::multimap<state_timestamp_t, T> read_queue_t;
     read_queue_t read_queue;
 
-    typedef std::map<transition_timestamp_t, std::pair<int64_t, T> > write_queue_t;
+    typedef std::map<state_timestamp_t, std::pair<int64_t, T> > write_queue_t;
     write_queue_t write_queue;
 
     mutex_assertion_t lock;

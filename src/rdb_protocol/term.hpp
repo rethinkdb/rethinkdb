@@ -3,8 +3,10 @@
 #define RDB_PROTOCOL_TERM_HPP_
 
 #include "containers/counted.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -15,7 +17,7 @@ class env_t;
 class func_t;
 class scope_env_t;
 class table_t;
-class val_t;
+class table_slice_t;
 class var_captures_t;
 class compile_env_t;
 
@@ -24,26 +26,36 @@ enum eval_flags_t {
     LITERAL_OK = 1,
 };
 
-class term_t : public slow_atomic_countable_t<term_t>, public pb_rcheckable_t {
+class runtime_term_t : public slow_atomic_countable_t<runtime_term_t>,
+                       public pb_rcheckable_t {
+public:
+    virtual ~runtime_term_t();
+
+    scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
+
+    virtual const char *name() const = 0;
+
+    // Allocates a new value in the current environment.
+    template<class... Args>
+    scoped_ptr_t<val_t> new_val(Args... args) const {
+        return make_scoped<val_t>(std::forward<Args>(args)..., backtrace());
+    }
+    scoped_ptr_t<val_t> new_val_bool(bool b) const {
+        return new_val(datum_t::boolean(b));
+    }
+
+protected:
+    explicit runtime_term_t(protob_t<const Backtrace> bt);
+
+private:
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
+};
+
+class term_t : public runtime_term_t {
 public:
     explicit term_t(protob_t<const Term> _src);
     virtual ~term_t();
 
-    virtual const char *name() const = 0;
-    counted_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
-
-    // Allocates a new value in the current environment.
-    counted_t<val_t> new_val(datum_t d) const;
-    counted_t<val_t> new_val(datum_t d, counted_t<table_t> t) const;
-    counted_t<val_t> new_val(datum_t d,
-                             datum_t orig_key,
-                             counted_t<table_t> t) const;
-    counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s) const;
-    counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t) const;
-    counted_t<val_t> new_val(counted_t<const db_t> db) const;
-    counted_t<val_t> new_val(counted_t<table_t> t) const;
-    counted_t<val_t> new_val(counted_t<const func_t> f) const;
-    counted_t<val_t> new_val_bool(bool b) const;
 
     virtual bool is_deterministic() const = 0;
 
@@ -53,7 +65,6 @@ public:
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);

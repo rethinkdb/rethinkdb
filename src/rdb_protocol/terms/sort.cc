@@ -30,7 +30,7 @@ public:
     asc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
@@ -41,7 +41,7 @@ public:
     desc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
@@ -94,12 +94,11 @@ private:
                 if (!rval.has()) {
                     return false != (it->first == DESC);
                 }
-                // TODO(2014-08): use datum_t::cmp instead to be faster
-                if (lval == rval) {
+                int cmp_res = lval.cmp(env->reql_version(), rval);
+                if (cmp_res == 0) {
                     continue;
                 }
-                return lval.compare_lt(env->reql_version(), rval) !=
-                    (it->first == DESC);
+                return (cmp_res < 0) != (it->first == DESC);
             }
 
             return false;
@@ -110,34 +109,36 @@ private:
             comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t>
+    eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
+                    std::make_pair(
+                        DESC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
+                    std::make_pair(
+                        ASC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(comparisons);
 
-        counted_t<table_t> tbl;
+        counted_t<table_slice_t> tbl_slice;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v0 = args->arg(env, 0);
-        if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
-            tbl = v0->as_table();
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
+        if (v0->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
+            tbl_slice = v0->as_table_slice();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
-                = v0->as_selection(env->env);
-            tbl = ts.first;
-            seq = ts.second;
+            auto selection = v0->as_selection(env->env);
+            tbl_slice = make_counted<table_slice_t>(selection->table);
+            seq = selection->seq;
         } else {
             seq = v0->as_seq(env->env);
         }
 
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         if (seq.has() && seq->is_exhausted()){
             /* Do nothing for empty sequence */
             if (!index.has()) {
@@ -146,10 +147,10 @@ private:
             }
         /* Add a sorting to the table if we're doing indexed sorting. */
         } else if (index.has()) {
-            rcheck(tbl.has(), base_exc_t::GENERIC,
-                   "Indexed order_by can only be performed on a TABLE.");
+            rcheck(tbl_slice.has(), base_exc_t::GENERIC,
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
-                   "Indexed order_by can only be performed on a TABLE.");
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
             sorting_t sorting = sorting_t::UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
@@ -162,17 +163,16 @@ private:
             }
             r_sanity_check(sorting != sorting_t::UNORDERED);
             std::string index_str = index->as_str().to_std();
-            tbl->add_sorting(index_str, sorting, this);
-            if (index_str != tbl->get_pkey()
-                && !comparisons.empty()) {
+            tbl_slice = tbl_slice->with_sorting(index_str, sorting);
+            if (!comparisons.empty()) {
                 seq = make_counted<indexed_sort_datum_stream_t>(
-                    tbl->as_datum_stream(env->env, backtrace()), lt_cmp);
+                    tbl_slice->as_seq(env->env, backtrace()), lt_cmp);
             } else {
-                seq = tbl->as_datum_stream(env->env, backtrace());
+                return new_val(tbl_slice);
             }
         } else {
             if (!seq.has()) {
-                seq = tbl->as_datum_stream(env->env, backtrace());
+                seq = tbl_slice->as_seq(env->env, backtrace());
             }
             rcheck(!comparisons.empty(), base_exc_t::GENERIC,
                    "Must specify something to order by.");
@@ -194,7 +194,9 @@ private:
                 datum_t(std::move(to_sort), env->env->limits()),
                 backtrace());
         }
-        return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
+        return tbl_slice.has()
+            ? new_val(make_counted<selection_t>(tbl_slice->get_tbl(), seq))
+            : new_val(env->env, seq);
     }
 
     virtual const char *name() const { return "orderby"; }
@@ -208,14 +210,15 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
                                        eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
-        counted_t<val_t> idx = args->optarg(env, "index");
-        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
-            counted_t<table_t> tbl = v->as_table();
-            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
-            if (idx.has() && idx_str == tbl->get_pkey()) {
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> idx = args->optarg(env, "index");
+        if (v->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
+            counted_t<table_slice_t> tbl_slice = v->as_table_slice();
+            std::string tbl_pkey = tbl_slice->get_tbl()->get_pkey();
+            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl_pkey;
+            if (idx.has() && idx_str == tbl_pkey) {
                 auto row = pb::dummy_var_t::DISTINCT_ROW;
                 std::vector<sym_t> distinct_args{dummy_var_to_sym(row)}; // NOLINT(readability/braces) yes we bloody well do need the ;
                 protob_t<Term> body(make_counted_term());
@@ -224,42 +227,42 @@ private:
                     body->Swap(&f.get());
                 }
                 propagate(body.get());
-                counted_t<datum_stream_t> s =
-                    tbl->as_datum_stream(env->env, backtrace());
+                counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 map_wire_func_t mwf(body, std::move(distinct_args), backtrace());
                 s->add_transformation(std::move(mwf), backtrace());
                 return new_val(env->env, s);
-            } else {
-                tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
-                counted_t<datum_stream_t> s =
-                    tbl->as_datum_stream(env->env, backtrace());
+            } else if (!tbl_slice->get_idx() || *tbl_slice->get_idx() == idx_str) {
+                if (tbl_slice->sorting == sorting_t::UNORDERED) {
+                    tbl_slice = tbl_slice->with_sorting(idx_str, sorting_t::ASCENDING);
+                }
+                counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
                 return new_val(env->env, s->ordered_distinct());
             }
-        } else {
-            rcheck(!idx, base_exc_t::GENERIC,
-                   "Can only perform an indexed distinct on a TABLE.");
-            counted_t<datum_stream_t> s = v->as_seq(env->env);
-            // The reql_version matters here, because we copy `results` into `toret`
-            // in ascending order.
-            std::set<datum_t, optional_datum_less_t>
-                results(optional_datum_less_t(env->env->reql_version()));
-            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-            {
-                profile::sampler_t sampler("Evaluating elements in distinct.",
-                                           env->env->trace);
-                datum_t d;
-                while (d = s->next(env->env, batchspec), d.has()) {
-                    results.insert(std::move(d));
-                    rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
-                    sampler.new_sample();
-                }
-            }
-            std::vector<datum_t> toret;
-            std::move(results.begin(), results.end(), std::back_inserter(toret));
-            return new_val(datum_t(std::move(toret), env->env->limits()));
         }
+        rcheck(!idx, base_exc_t::GENERIC,
+               "Can only perform an indexed distinct on a TABLE.");
+        counted_t<datum_stream_t> s = v->as_seq(env->env);
+        // The reql_version matters here, because we copy `results` into `toret`
+        // in ascending order.
+        std::set<datum_t, optional_datum_less_t>
+            results(optional_datum_less_t(env->env->reql_version()));
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        {
+            profile::sampler_t sampler("Evaluating elements in distinct.",
+                                       env->env->trace);
+            datum_t d;
+            while (d = s->next(env->env, batchspec), d.has()) {
+                results.insert(std::move(d));
+                rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
+                sampler.new_sample();
+            }
+        }
+        std::vector<datum_t> toret;
+        std::move(results.begin(), results.end(), std::back_inserter(toret));
+        return new_val(datum_t(std::move(toret), env->env->limits()));
     }
+
     virtual const char *name() const { return "distinct"; }
 };
 

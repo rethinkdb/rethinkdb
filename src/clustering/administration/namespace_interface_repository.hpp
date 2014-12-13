@@ -27,10 +27,13 @@ template <class> class watchable_t;
 
 class namespace_repo_t : public home_thread_mixin_t {
 public:
-    namespace_repo_t(mailbox_manager_t *,
-                     const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-                     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > >,
-                     rdb_context_t *);
+    namespace_repo_t(
+        mailbox_manager_t *,
+        const boost::shared_ptr<semilattice_read_view_t<
+            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *directory,
+        rdb_context_t *);
     ~namespace_repo_t();
 
     namespace_interface_access_t get_namespace_interface(const namespace_id_t &ns_id,
@@ -48,11 +51,13 @@ private:
     void on_namespaces_change(auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > namespaces_directory_metadata;
+    boost::shared_ptr<semilattice_read_view_t<
+        cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                    namespace_directory_metadata_t> *directory;
     rdb_context_t *ctx;
 
-    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > >
+    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > >
         region_to_primary_maps;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;

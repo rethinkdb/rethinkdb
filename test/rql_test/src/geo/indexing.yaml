@@ -18,6 +18,11 @@ tests:
     ot: ({'created':1})
   - cd: tbl.index_create('other')
     ot: ({'created':1})
+  # r.point is deterministic and can be used in an index function
+  - rb: "tbl.index_create('point_det'){ |x| r.point(x, x) }"
+    py: "tbl.index_create('point_det', lambda x: r.point(x, x) )"
+    js: "tbl.indexCreate('point_det', function(x) {return r.point(x, x);} )"
+    ot: ({'created':1})
 
   - cd: tbl.index_wait()
 
@@ -45,13 +50,13 @@ tests:
     ot: err('RqlRuntimeError', 'Index `g` is a geospatial index.  Only get_nearest and get_intersecting can use a geospatial index.', [0])
   - js: tbl.between(0, 1).get_intersecting(r.point(0,0), {'index':'g'}).count()
     rb: tbl.between(0, 1).get_intersecting(r.point(0,0), :index=>'g').count()
-    ot: err('RqlRuntimeError', 'Cannot chain get_intersecting with other indexed operations.', [0])
+    ot: err('RqlRuntimeError', 'Expected type TABLE but found TABLE_SLICE.', [0])
   - js: tbl.get_all(0).get_intersecting(r.point(0,0), {'index':'g'}).count()
     rb: tbl.get_all(0).get_intersecting(r.point(0,0), :index=>'g').count()
     ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
   - js: tbl.order_by({'index':'id'}).get_intersecting(r.point(0,0), {'index':'g'}).count()
     rb: tbl.order_by(:index=>'id').get_intersecting(r.point(0,0), :index=>'g').count()
-    ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
+    ot: err('RqlRuntimeError', 'Expected type TABLE but found TABLE_SLICE.', [0])
   - js: tbl.get_intersecting(r.point(0,0), {'index':'id'}).count()
     py: tbl.get_intersecting(r.point(0,0), index='id').count()
     rb: tbl.get_intersecting(r.point(0,0), :index=>'id').count()
@@ -129,13 +134,13 @@ tests:
     ot: err('RqlRuntimeError', 'get_nearest requires an index argument.', [0])
   - js: tbl.between(0, 1).get_nearest(r.point(0,0), {'index':'g'}).count()
     rb: tbl.between(0, 1).get_nearest(r.point(0,0), :index=>'g').count()
-    ot: err('RqlRuntimeError', 'Cannot chain get_nearest with other indexed operations.', [0])
+    ot: err('RqlRuntimeError', 'Expected type TABLE but found TABLE_SLICE.', [0])
   - js: tbl.get_all(0).get_nearest(r.point(0,0), {'index':'g'}).count()
     rb: tbl.get_all(0).get_nearest(r.point(0,0), :index=>'g').count()
     ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
   - js: tbl.order_by({'index':'id'}).get_nearest(r.point(0,0), {'index':'g'}).count()
     rb: tbl.order_by(:index=>'id').get_nearest(r.point(0,0), :index=>'g').count()
-    ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
+    ot: err('RqlRuntimeError', 'Expected type TABLE but found TABLE_SLICE.', [0])
   - js: tbl.get_nearest(r.point(0,0), {'index':'id'}).count()
     py: tbl.get_nearest(r.point(0,0), index='id').count()
     rb: tbl.get_nearest(r.point(0,0), :index=>'id').count()
@@ -160,7 +165,7 @@ tests:
   - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':10000000}).pluck('dist', {'doc':'id'})
     py: tbl.get_nearest(r.point(0,0), index='g', max_dist=10000000).pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>10000000).pluck('dist', {'doc':'id'})
-    ot: err('RqlRuntimeError', 'The distance has become too large for continuing the indexed nearest traversal.  Consider specifying a smaller `max_dist` parameter.  (Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 10968937.995244588703, but must be smaller than 9985163.1855612862855.)', [0])
+    ot: err('RqlRuntimeError', 'The distance has become too large for continuing the indexed nearest traversal.  Consider specifying a smaller `max_dist` parameter.  (Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 10968937.995244588703m, but must be smaller than 9985163.1855612862855m.)', [0])
   - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1566, 'unit':'km'}).pluck('dist', {'doc':'id'})
     py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1566, unit='km').pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1566, :unit=>'km').pluck('dist', {'doc':'id'})

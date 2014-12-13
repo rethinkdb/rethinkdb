@@ -73,11 +73,11 @@ public:
     cluster_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
                               perfmon_collection_t *perfmon_parent);
     cluster_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
-                              perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id,
+                              perfmon_collection_t *perfmon_parent, const server_id_t &server_id,
                               const cluster_semilattice_metadata_t &initial_metadata);
     ~cluster_persistent_file_t();
 
-    machine_id_t read_machine_id();
+    server_id_t read_server_id();
 
     cluster_semilattice_metadata_t read_metadata();
     void update_metadata(const cluster_semilattice_metadata_t &metadata);
@@ -113,7 +113,7 @@ private:
     void on_change();
 
     persistent_file_t<metadata_t> *persistent_file;
-    machine_id_t machine_id;
+    server_id_t server_id;
     boost::shared_ptr<semilattice_read_view_t<metadata_t> > view;
 
     scoped_ptr_t<cond_t> flush_again;

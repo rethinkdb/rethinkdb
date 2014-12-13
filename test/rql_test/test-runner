@@ -4,17 +4,15 @@
 
 from __future__ import print_function
 
-import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
+import atexit, collections, copy, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
 
 try:
     import yaml
 except ImportError:
-    sys.exit('%s requires that PyYAML be installed' % os.path.basename(__file__))
+    sys.exit('%s requires that PyYAML be installed: https://pypi.python.org/pypi/PyYAML' % os.path.basename(__file__))
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
-import test_exceptions, utils
-sys.path.insert(0, os.path.dirname(__file__))
-import test_util
+import driver, test_exceptions, utils
 
 try:
     unicode
@@ -155,9 +153,9 @@ class PyLang(SrcLang):
     minVersion = None
     maxVersion = None
     
-    driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
+    driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'python')
     driver_build_env_name = 'PYTHON_DRIVER_DIR'
-    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'build', 'drivers', 'python')
+    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'drivers', 'python')
     
     polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
     
@@ -225,9 +223,9 @@ class JsLang(SrcLang):
     minVersion = None # no version requirements yet
     maxVersion = None
     
-    driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'javascript')
+    driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'javascript')
     driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
-    driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'build', 'packages', 'js')
+    driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'packages', 'js')
     
     polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
@@ -270,9 +268,9 @@ class RbLang(SrcLang):
     minVersion = None
     maxVersion = None
     
-    driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby')
+    driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby')
     driver_build_env_name = 'RUBY_DRIVER_DIR'
-    driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby', 'lib')
+    driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
     polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
     
@@ -611,17 +609,28 @@ class TestGroup(object):
         return returnDict
 
 class RethinkDBRunningServer(object):
+    
+    __driver_port = None
+    __cluster_port = None
+    
     def __init__(self, driver_port, cluster_port):
-        self.driver_port_ = driver_port
-        self.cluster_port_ = cluster_port
-
+        self.__driver_port = driver_port
+        self.__cluster_port = cluster_port
+    
+    @property
+    def host(self):
+        return 'localhost'
+    
+    @property
     def driver_port(self):
-        return self.driver_port_
-
+        return self.__driver_port
+    
+    @property
     def cluster_port(self):
-        return self.cluster_port_
-
-    def executable(self):
+        return self.__cluster_port
+    
+    @property
+    def executable_path(self):
         return 'NOT_AVALIBLE_FOR_RUNNING_SERVERS'
 
 # ==== Main
@@ -753,9 +762,10 @@ def cleanup(*args):
     
     for processGroupId in runningProcessGroupsIds:
         try:
-            os.killpg(processGroupId, signal.SIGKILL) # TODO: police this
-        except Exception:
-            pass
+            utils.kill_process_group(processGroupId)
+        except Exception as e:
+            raise Warning('Unable to shut down server: %s' % str(e))
+    
     if len(args) == 2 and args[0] == signal.SIGINT:
         sys.exit(130) # standard signal.SIGINT exit code
 atexit.register(cleanup)
@@ -765,9 +775,10 @@ def main():
     
     testFilters = []
     testList = []
-    build_directory = None
+    rethinkdb_exe_path = None
     
-    servers = None
+    server = None
+    serverOutput = None
     
     # -- parse command line options
     
@@ -775,7 +786,7 @@ def main():
     
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
     
-    parser.add_option('-b', '--build-dir', dest='build_directory', default=None, help='path to a specific build, usually starting with release_ or debug_')
+    parser.add_option('-b', '--server-binary', dest='rethinkdb_exe_path', default=None, help='path to RethinkDB server binary to test')
     parser.add_option(      '--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
     
     parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=list(interpreters.keys()), type='choice', default=None, help='the language to test')
@@ -783,7 +794,7 @@ def main():
     
     parser.add_option('-c', '--cluster-port', dest='cluster_port', default=None, type='int', help='cluster port of an already-running rethinkdb instance')
     parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
-    parser.add_option('-t', '--table', dest='table', default="no_table_specified", type='string', help='name of pre-existing table to run queries against.')
+    parser.add_option('-t', '--table', dest='table', default=None, type='string', help='name of pre-existing table to run queries against.')
     
     parser.add_option('-v', '--verbose', dest='verbose', default=False, action='store_true', help='show in-progress messages from tests')
     
@@ -796,18 +807,16 @@ def main():
     if (options.cluster_port is not None or options.driver_port is not None) and None in (options.cluster_port, options.driver_port):
         parser.error('If either of the following options are used, both must be specifed: -c/--cluster-port, -d/--driver-port')
     if options.driver_port is not None:
-        servers = RethinkDBRunningServer(options.driver_port, options.cluster_port)
+        server = RethinkDBRunningServer(options.driver_port, options.cluster_port)
         # TODO: validate that this is actually a running server
         
         if options.shards != 1:
             parser.error('The -c/--cluster-port and -d/--driver-port options can not be used with -s/--shards')
-    else:
-        if options.table != "no_table_specified":
-            parser.error('If you specify -t/--table, you must also specify -c/--cluster-port and -d/--driver-port')
+    elif options.table:
+        parser.error('If you specify -t/--table, you must also specify -c/--cluster-port and -d/--driver-port')
     
-    if options.table != "no_table_specified":
-        if options.table.count(".") != 1:
-            parser.error('Parameter to -t/--table should be of the form db.table')
+    if options.table and options.table.count(".") != 1:
+        parser.error('Parameter to -t/--table should be of the form db.table')
     
     # - add filters
     
@@ -893,42 +902,34 @@ def main():
             options.languages.remove(language)
             sys.stderr.write('Warning: did not find any tests for %s\n' % language.display_name)
     
-    # -- check the build_directory
+    # -- check the rethinkdb_exe_path
     
-    if options.build_directory is None:
+    if options.rethinkdb_exe_path is None:
         try:
-            build_directory = utils.latest_build_dir()
+            rethinkdb_exe_path = utils.find_rethinkdb_executable()
         except test_exceptions.TestingFrameworkException as e:
             sys.exit(str(e))
     else:
-        build_directory = options.build_directory
+        rethinkdb_exe_path = options.rethinkdb_exe_path
     
-    if not os.path.isfile(os.path.join(build_directory, 'rethinkdb')):
-        sys.exit('Error: the slected build directory does not look valid: %s' % build_directory)
+    if not os.access(rethinkdb_exe_path, os.X_OK):
+        sys.exit('Error: selected RethiinkDB server binary does not look valid: %s' % rethinkdb_exe_path)
     
     # -- set ENV settings for child processes
     
-    if 'RUBYLIB' in os.environ:
-        os.environ['RUBYLIB'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby'), os.environ['RUBYLIB']])
-    else:
-        os.environ['RUBYLIB'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby')
+    os.environ['JAVASCRIPT_DRIVER_DIR'] = utils.driverPaths['javascript']['driverPath']
+    os.environ['PYTHON_DRIVER_DIR'] = utils.driverPaths['python']['driverPath']
+    os.environ['RUBY_DRIVER_DIR'] = utils.driverPaths['ruby']['driverPath']
     
-    if 'PYTHONPATH' in os.environ:
-        os.environ['PYTHONPATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'drivers', 'python'), os.environ['PYTHONPATH']])
-    else:
-        os.environ['PYTHONPATH'] = os.path.join(utils.project_root_dir(), 'drivers', 'python')
+    os.environ['RDB_EXE_PATH'] = rethinkdb_exe_path
     
-    if 'NODE_PATH' in os.environ:
-        os.environ['NODE_PATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript'), os.environ['NODE_PATH']])
-    else:
-        os.environ['NODE_PATH'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript')
-    
-    os.environ['BUILD_DIR'] = build_directory
+    if options.table:
+        os.environ['TEST_DB_AND_TABLE_NAME'] = options.table
     
     # -- make sure the drivers are built
     
     for language in options.languages:
-        outputFile = tempfile.NamedTemporaryFile()
+        outputFile = tempfile.NamedTemporaryFile(mode='w+')
         notificationDeadline = time.time() + 3
         makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdout=outputFile, stderr=subprocess.STDOUT)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
@@ -948,7 +949,7 @@ def main():
     if len(testList) == 0:
         sys.exit()
     
-    print('Using rethinkdb binary from %s' % build_directory)
+    print('Using rethinkdb binary %s' % rethinkdb_exe_path)
     for thisLanguage in options.languages:
         print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.get_interpreter_path(), thisLanguage.driver_source_path))
     startTime = time.time()
@@ -961,9 +962,8 @@ def main():
     for test in testList:
         
         executablePath = test.path
-        additionalArguments = []
         
-        # - make type-specific setups
+        # - type-specific setup
         
         if test.type == 'yaml':
             
@@ -981,26 +981,24 @@ def main():
                 traceback.print_exc()
                 continue
             
-            # - start the server
-            
-            if servers is None:
-                if options.cluster_port is not None:
-                    sys.exit('Internal failure: we somehow lost track of the already running server!')
-                servers = test_util.RethinkDBTestServers(num_servers=1, server_build_dir=build_directory)
-                servers.start() # TODO: handle server failures
-            
-            # --
-            
-            additionalArguments = ['UNUSED', str(servers.driver_port()), options.table, str(servers.cluster_port()), servers.executable()]
+        # - start the server
         
-        if test.type == 'test':
-            additionalArguments = [utils.latest_build_dir()]
-        
+        if server is None:
+            if options.cluster_port is not None:
+                sys.exit('Internal failure: we somehow lost track of the already running server!')
+            serverOutput = tempfile.NamedTemporaryFile(mode='w+')
+            try:
+                server = driver.Process(executable_path=rethinkdb_exe_path, console_output=serverOutput, wait_until_ready=True)
+            except Exception as e:
+                serverOutput.seek(0)
+                sys.stderr.write('Unable to start a managed server. The servers output was:\n%s\n' % serverOutput.read())
+                sys.exit(str(e))
+            
         # - run the test
         
         outputChannel = None
         if options.verbose is False:
-            outputChannel = tempfile.NamedTemporaryFile()
+            outputChannel = tempfile.NamedTemporaryFile(mode='w+')
         
         testProcessGroupId = None
         print("\n== Running %s (%s)" % (test.name, test.language.display_name))
@@ -1014,7 +1012,17 @@ def main():
             testExecutable = [executablePath]
             if test.interpreter is not None:
                 testExecutable = [test.interpreter] + testExecutable
-            testProcess = subprocess.Popen(testExecutable + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp, env=dict(os.environ.items() +  {'INTERPRETER_PATH':test.language.interpreter_path}.items()))
+            
+            envVariables = copy.copy(os.environ)
+            envVariables.update({
+                'RDB_DRIVER_PORT':str(server.driver_port),
+                'RDB_CLUSTER_PORT':str(server.cluster_port),
+                'RDB_SERVER_HOST':server.host
+            })
+            if test.language:
+                envVariables['INTERPRETER_PATH'] = test.language.interpreter_path
+            
+            testProcess = subprocess.Popen(testExecutable, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp, env=envVariables)
             
             # - kill off the process group
             
@@ -1025,12 +1033,17 @@ def main():
                 pass
             
             if testProcess.wait() != 0:
-                if servers is not None:
+                if server is not None and hasattr(server, 'check_and_stop'):
                     try:
-                        servers.stop()
+                        server.check_and_stop()
                     except Exception as e:
-                        sys.stderr.write('RethinkDB server failed: %s' % str(e))
-                    servers = None
+                        serverLog = ''
+                        if serverOutput:
+                            serverOutput.seek(0)
+                            serverLog = '\nServer log:\n%s' % serverOutput.read()
+                        sys.stderr.write('RethinkDB server failed: %s%s' % (str(e), serverLog))
+                    server = None
+                    serverOutput = None
                 
                 failedTests.append("%s (%s)" % (test.name, test.language.display_name))
                 sys.stderr.write("== Failed %s test with result code %s (%s)" % (test.name, str(testProcess.returncode), test.path))

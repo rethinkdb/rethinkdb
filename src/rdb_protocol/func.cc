@@ -14,18 +14,18 @@ func_t::func_t(const protob_t<const Backtrace> &bt_source)
   : pb_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
 
-counted_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
     std::vector<datum_t> args;
     return call(env, args, eval_flags);
 }
 
-counted_t<val_t> func_t::call(env_t *env,
-                              datum_t arg,
-                              eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> func_t::call(env_t *env,
+                                 datum_t arg,
+                                 eval_flags_t eval_flags) const {
     return call(env, make_vector(arg), eval_flags);
 }
 
-counted_t<val_t> func_t::call(env_t *env,
+scoped_ptr_t<val_t> func_t::call(env_t *env,
                               datum_t arg1,
                               datum_t arg2,
                               eval_flags_t eval_flags) const {
@@ -47,10 +47,9 @@ reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
 
 reql_func_t::~reql_func_t() { }
 
-counted_t<val_t> reql_func_t::call(
-    env_t *env,
-    const std::vector<datum_t> &args,
-    eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
+                                      const std::vector<datum_t> &args,
+                                      eval_flags_t eval_flags) const {
     try {
         // We allow arg_names.size() == 0 to specifically permit users (Ruby users
         // especially) to use zero-arity functions without the drivers to know anything
@@ -75,6 +74,10 @@ counted_t<val_t> reql_func_t::call(
     }
 }
 
+boost::optional<size_t> reql_func_t::arity() const {
+    return arg_names.size();
+}
+
 bool reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
@@ -88,7 +91,7 @@ js_func_t::js_func_t(const std::string &_js_source,
 
 js_func_t::~js_func_t() { }
 
-counted_t<val_t> js_func_t::call(
+scoped_ptr_t<val_t> js_func_t::call(
     env_t *env,
     const std::vector<datum_t> &args,
     UNUSED eval_flags_t eval_flags) const {
@@ -112,12 +115,17 @@ counted_t<val_t> js_func_t::call(
                   js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
         }
 
-        return boost::apply_visitor(
-            js_result_visitor_t(js_source, js_timeout_ms, this), result);
+        return scoped_ptr_t<val_t>(
+                boost::apply_visitor(
+                        js_result_visitor_t(js_source, js_timeout_ms, this), result));
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
+}
+
+boost::optional<size_t> js_func_t::arity() const {
+    return boost::none;
 }
 
 bool js_func_t::is_deterministic() const {
@@ -204,8 +212,8 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::term_eval(scope_env_t *env,
-                                        UNUSED eval_flags_t flags) const {
+scoped_ptr_t<val_t> func_term_t::term_eval(scope_env_t *env,
+                                           UNUSED eval_flags_t flags) const {
     return new_val(eval_to_func(env->scope));
 }
 
@@ -392,27 +400,27 @@ counted_t<const func_t> new_page_func(datum_t method,
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
+            rcheck_src(bt_src.get(), false, base_exc_t::GENERIC, msg);
         }
     }
     return counted_t<const func_t>();
 }
 
 
-counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {
+val_t *js_result_visitor_t::operator()(const std::string &err_val) const {
     rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();
 }
-counted_t<val_t> js_result_visitor_t::operator()(
+val_t *js_result_visitor_t::operator()(
     const ql::datum_t &datum) const {
-    return make_counted<val_t>(datum, parent->backtrace());
+    return new val_t(datum, parent->backtrace());
 }
 // This JS evaluation resulted in an id for a js function
-counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
+val_t *js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
     counted_t<const func_t> func = make_counted<js_func_t>(code,
                                                            timeout_ms,
                                                            parent->backtrace());
-    return make_counted<val_t>(func, parent->backtrace());
+    return new val_t(func, parent->backtrace());
 }
 
 } // namespace ql

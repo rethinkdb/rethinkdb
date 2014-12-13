@@ -110,13 +110,13 @@ public:
     metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
         md(_md), mdv(_mdv) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_metadata;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, md);
-        serialize_for_version(cluster_version, &wm, mdv);
+        serialize<cluster_version_t::CLUSTER>(&wm, md);
+        serialize<cluster_version_t::CLUSTER>(&wm, mdv);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -133,12 +133,12 @@ public:
     explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_query;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -154,13 +154,13 @@ public:
     sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_reply;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
-        serialize_for_version(cluster_version, &wm, version);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, version);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -177,13 +177,13 @@ public:
     sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_query;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
-        serialize_for_version(cluster_version, &wm, version);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, version);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -200,12 +200,12 @@ public:
     explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_reply;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -311,8 +311,8 @@ void semilattice_manager_t<metadata_t>::on_message(
     }
 
     peer_id_t sender = connection->get_peer_id();
-
     auto_drainer_t::lock_t this_keepalive(drainers.get());
+    threadnum_t original_thread = get_thread_id();
 
     switch (code) {
         /* Another peer sent us a newer version of the metadata */
@@ -363,18 +363,17 @@ void semilattice_manager_t<metadata_t>::on_message(
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,
-                    query_id]() {
-                metadata_version_t local_version;
+                    query_id, original_thread]() {
                 {
                     on_thread_t thread_switcher(home_thread());
-                    local_version = metadata_version;
-                }
-                sync_from_reply_writer_t writer(query_id, local_version);
-                {
+                    sync_from_reply_writer_t writer(query_id, metadata_version);
                     new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
-                    get_connectivity_cluster()->send_message(connection,
-                        connection_keepalive, get_message_tag(), &writer);
+                    {
+                        on_thread_t thread_switcher_2(original_thread);
+                        get_connectivity_cluster()->send_message(connection,
+                            connection_keepalive, get_message_tag(), &writer);
+                    }
                 }
             });
             break;
@@ -420,7 +419,7 @@ void semilattice_manager_t<metadata_t>::on_message(
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,
-                    query_id, version]() {
+                    query_id, version, original_thread]() {
                 wait_any_t interruptor(this_keepalive.get_drain_signal(),
                                        connection_keepalive.get_drain_signal());
                 cross_thread_signal_t interruptor2(&interruptor, home_thread());
@@ -434,13 +433,14 @@ void semilattice_manager_t<metadata_t>::on_message(
                     } catch (const sync_failed_exc_t &) {
                         return;
                     }
-                }
-                sync_to_reply_writer_t writer(query_id);
-                {
+                    sync_to_reply_writer_t writer(query_id);
                     new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
-                    get_connectivity_cluster()->send_message(connection,
-                        connection_keepalive, get_message_tag(), &writer);
+                    {
+                        on_thread_t thread_switcher_2(original_thread);
+                        get_connectivity_cluster()->send_message(connection,
+                            connection_keepalive, get_message_tag(), &writer);
+                    }
                 }
             });
             break;

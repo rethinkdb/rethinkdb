@@ -31,7 +31,7 @@ void init(block_size_t block_size, internal_node_t *node);
 void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
-bool insert(block_size_t block_size, internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
+bool insert(internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
 bool remove(block_size_t block_size, internal_node_t *node, const btree_key_t *key);
 void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key_t *median);
 void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, const internal_node_t *parent);
@@ -45,7 +45,7 @@ bool is_full(const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);
 bool change_unsafe(const internal_node_t *node);
 bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);
-bool is_singleton(const internal_node_t *node);
+bool is_doubleton(const internal_node_t *node);
 
 void validate(block_size_t block_size, const internal_node_t *node);
 

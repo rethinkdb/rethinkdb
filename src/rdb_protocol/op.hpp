@@ -56,18 +56,18 @@ class op_term_t;
 
 class argvec_t {
 public:
-    explicit argvec_t(std::vector<counted_t<const term_t> > &&v);
+    explicit argvec_t(std::vector<counted_t<const runtime_term_t> > &&v);
 
     // Retrieves the arg.  The arg is removed (leaving an empty pointer in its
     // slot), forcing you to call this function exactly once per argument.
-    MUST_USE counted_t<const term_t> remove(size_t i);
+    MUST_USE counted_t<const runtime_term_t> remove(size_t i);
 
     size_t size() const { return vec.size(); }
 
     bool empty() const { return vec.empty(); }
 
 private:
-    std::vector<counted_t<const term_t> > vec;
+    std::vector<counted_t<const runtime_term_t> > vec;
 };
 
 class args_t {
@@ -75,13 +75,13 @@ public:
     // number of arguments
     size_t num_args() const;
     // Returns argument `i`.
-    counted_t<val_t> arg(scope_env_t *env, size_t i,
-                         eval_flags_t flags = NO_FLAGS);
-    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
-    counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+    scoped_ptr_t<val_t> arg(scope_env_t *env, size_t i,
+                            eval_flags_t flags = NO_FLAGS);
+    // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
+    scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
     args_t(const op_term_t *op_term, argvec_t argv);
-    args_t(const op_term_t *op_term, argvec_t argv, counted_t<val_t> arg0);
+    args_t(const op_term_t *op_term, argvec_t argv, scoped_ptr_t<val_t> arg0);
 
 private:
     const op_term_t *const op_term;
@@ -89,7 +89,7 @@ private:
     argvec_t argv;
     // Sometimes the 0'th argument has already been evaluated, to see if we are doing
     // a grouped operation.
-    counted_t<val_t> arg0;
+    scoped_ptr_t<val_t> arg0;
 
     DISABLE_COPYING(args_t);
 };
@@ -127,8 +127,8 @@ protected:
 
 private:
     friend class args_t;
-    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
-    counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+    // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
+    scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
     // Evaluates args[0] and sets *grouped_data_out to non-nil if it's grouped.
     // (Sets *arg0_out to non-nil if it's not grouped.  Both outputs are set to nil
@@ -137,13 +137,13 @@ private:
                             argvec_t *argv,
                             eval_flags_t flags,
                             counted_t<grouped_data_t> *grouped_data_out,
-                            counted_t<val_t> *arg0_out) const;
+                            scoped_ptr_t<val_t> *arg0_out) const;
 
-    virtual counted_t<val_t> term_eval(scope_env_t *env,
-                                       eval_flags_t eval_flags) const;
-    virtual counted_t<val_t> eval_impl(scope_env_t *env,
-                                       args_t *args,
-                                       eval_flags_t eval_flags) const = 0;
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env,
+                                          eval_flags_t eval_flags) const;
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
     virtual bool is_grouped_seq_op() const;
 

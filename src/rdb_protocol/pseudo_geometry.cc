@@ -28,9 +28,13 @@ void sanitize_geometry(datum_t *geo) {
                          pair.first.to_std().c_str());
         }
     }
-    rcheck_target(geo, base_exc_t::NON_EXISTENCE, has_type,
+    rcheck_target(geo,
+                  has_type,
+                  base_exc_t::NON_EXISTENCE,
                   "Field `type` not found in geometry object.");
-    rcheck_target(geo, base_exc_t::NON_EXISTENCE, has_coordinates,
+    rcheck_target(geo,
+                  has_coordinates,
+                  base_exc_t::NON_EXISTENCE,
                   "Field `coordinates` not found in geometry object.");
 }
 

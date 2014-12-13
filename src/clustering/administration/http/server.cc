@@ -3,10 +3,8 @@
 
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
-#include "clustering/administration/http/issues_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
-#include "clustering/administration/http/progress_app.hpp"
-#include "clustering/administration/http/stat_app.hpp"
+#include "clustering/administration/http/me_app.hpp"
 #include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
@@ -24,10 +22,10 @@ std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const change_tra
     return out;
 }
 
-std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
-    std::map<peer_id_t, machine_id_t> out;
+std::map<peer_id_t, server_id_t> get_server_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, server_id_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.get_inner().begin(); it != md.get_inner().end(); it++) {
-        out.insert(std::make_pair(it->first, it->second.machine_id));
+        out.insert(std::make_pair(it->first, it->second.server_id));
     }
     return out;
 }
@@ -35,217 +33,34 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<pee
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
         int port,
+        const server_id_t &my_server_id,
         mailbox_manager_t *mbox_manager,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _cluster_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         std::string path)
 {
-    std::set<std::string> white_list;
-    white_list.insert("/cluster.css");
-    white_list.insert("/index.html");
-    white_list.insert("/js/backbone-min.js");
-    white_list.insert("/js/bootstrap");
-    white_list.insert("/js/bootstrap/bootstrap-typeahead.js.fork.backup");
-    white_list.insert("/js/bootstrap/bootstrap-alert.js");
-    white_list.insert("/js/bootstrap/bootstrap-button.js");
-    white_list.insert("/js/bootstrap/bootstrap-carousel.js");
-    white_list.insert("/js/bootstrap/bootstrap-collapse.js");
-    white_list.insert("/js/bootstrap/bootstrap-dropdown.js");
-    white_list.insert("/js/bootstrap/bootstrap-modal.js");
-    white_list.insert("/js/bootstrap/bootstrap-popover.js");
-    white_list.insert("/js/bootstrap/bootstrap-scrollspy.js");
-    white_list.insert("/js/bootstrap/bootstrap-tab.js");
-    white_list.insert("/js/bootstrap/bootstrap-tooltip.js");
-    white_list.insert("/js/bootstrap/bootstrap-transition.js");
-    white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
-    white_list.insert("/js/chosen");
-    white_list.insert("/js/chosen/chosen-sprite.png");
-    white_list.insert("/js/chosen/chosen.css");
-    white_list.insert("/js/chosen/chosen.jquery.min.js");
-    white_list.insert("/js/ZeroClipboard.min.js");
-    white_list.insert("/js/ZeroClipboard.swf");
-    white_list.insert("/js/codemirror");
-    white_list.insert("/js/codemirror/ambiance.css");
-    white_list.insert("/js/codemirror/codemirror.css");
-    white_list.insert("/js/codemirror/codemirror.js");
-    white_list.insert("/js/codemirror/javascript.js");
-    white_list.insert("/js/codemirror/matchbrackets.js");
-    white_list.insert("/js/nanoscroller/jquery.nanoscroller.min.js");
-    white_list.insert("/js/nanoscroller/nanoscroller.css");
-    white_list.insert("/js/jquery.color.js");
-    white_list.insert("/js/backbone.js");
-    white_list.insert("/js/cubism.v1.js");
-    white_list.insert("/js/d3.v2.min.js");
-    white_list.insert("/js/date-en-US.js");
-    white_list.insert("/js/jquery-1.7.2.min.js");
-    white_list.insert("/js/jquery.cookie.js");
-    white_list.insert("/js/jquery.dataTables.min.js");
-    white_list.insert("/js/jquery.form.js");
-    white_list.insert("/js/jquery.hotkeys.js");
-    white_list.insert("/js/jquery.lightbox_me.js");
-    white_list.insert("/js/jquery.timeago.js");
-    white_list.insert("/js/jquery.validate.min.js");
-    white_list.insert("/js/less-1.1.4.min.js");
-    white_list.insert("/js/rdb_cubism.v1.js");
-    white_list.insert("/js/reql_docs.json");
-    white_list.insert("/js/underscore-min.js");
-    white_list.insert("/js/xdate.js");
-    white_list.insert("/js/handlebars.runtime-1.0.0.js");
-    white_list.insert("/js/template.js");
-    white_list.insert("/js/rethinkdb.js");
-    white_list.insert("/fonts/copse-regular-webfont.eot");
-    white_list.insert("/fonts/copse-regular-webfont.svg");
-    white_list.insert("/fonts/copse-regular-webfont.ttf");
-    white_list.insert("/fonts/copse-regular-webfont.woff");
-    white_list.insert("/fonts/copse_OFL.txt");
-    white_list.insert("/fonts/generator_config.txt");
-    white_list.insert("/fonts/inconsolata-bold-webfont.eot");
-    white_list.insert("/fonts/inconsolata-bold-webfont.svg");
-    white_list.insert("/fonts/inconsolata-bold-webfont.ttf");
-    white_list.insert("/fonts/inconsolata-bold-webfont.woff");
-    white_list.insert("/fonts/inconsolata-regular-webfont.eot");
-    white_list.insert("/fonts/inconsolata-regular-webfont.svg");
-    white_list.insert("/fonts/inconsolata-regular-webfont.ttf");
-    white_list.insert("/fonts/inconsolata-regular-webfont.woff");
-    white_list.insert("/fonts/inconsolata_OFL.txt");
-    white_list.insert("/fonts/open-sans_LICENSE.txt");
-    white_list.insert("/fonts/opensans-bold-webfont.eot");
-    white_list.insert("/fonts/opensans-bold-webfont.svg");
-    white_list.insert("/fonts/opensans-bold-webfont.ttf");
-    white_list.insert("/fonts/opensans-bold-webfont.woff");
-    white_list.insert("/fonts/opensans-bolditalic-webfont.eot");
-    white_list.insert("/fonts/opensans-bolditalic-webfont.svg");
-    white_list.insert("/fonts/opensans-bolditalic-webfont.ttf");
-    white_list.insert("/fonts/opensans-bolditalic-webfont.woff");
-    white_list.insert("/fonts/opensans-extrabold-webfont.eot");
-    white_list.insert("/fonts/opensans-extrabold-webfont.svg");
-    white_list.insert("/fonts/opensans-extrabold-webfont.ttf");
-    white_list.insert("/fonts/opensans-extrabold-webfont.woff");
-    white_list.insert("/fonts/opensans-extrabolditalic-webfont.eot");
-    white_list.insert("/fonts/opensans-extrabolditalic-webfont.svg");
-    white_list.insert("/fonts/opensans-extrabolditalic-webfont.ttf");
-    white_list.insert("/fonts/opensans-extrabolditalic-webfont.woff");
-    white_list.insert("/fonts/opensans-italic-webfont.eot");
-    white_list.insert("/fonts/opensans-italic-webfont.svg");
-    white_list.insert("/fonts/opensans-italic-webfont.ttf");
-    white_list.insert("/fonts/opensans-italic-webfont.woff");
-    white_list.insert("/fonts/opensans-light-webfont.eot");
-    white_list.insert("/fonts/opensans-light-webfont.svg");
-    white_list.insert("/fonts/opensans-light-webfont.ttf");
-    white_list.insert("/fonts/opensans-light-webfont.woff");
-    white_list.insert("/fonts/opensans-lightitalic-webfont.eot");
-    white_list.insert("/fonts/opensans-lightitalic-webfont.svg");
-    white_list.insert("/fonts/opensans-lightitalic-webfont.ttf");
-    white_list.insert("/fonts/opensans-lightitalic-webfont.woff");
-    white_list.insert("/fonts/opensans-regular-webfont.eot");
-    white_list.insert("/fonts/opensans-regular-webfont.svg");
-    white_list.insert("/fonts/opensans-regular-webfont.ttf");
-    white_list.insert("/fonts/opensans-regular-webfont.woff");
-    white_list.insert("/fonts/opensans-semibold-webfont.eot");
-    white_list.insert("/fonts/opensans-semibold-webfont.svg");
-    white_list.insert("/fonts/opensans-semibold-webfont.ttf");
-    white_list.insert("/fonts/opensans-semibold-webfont.woff");
-    white_list.insert("/fonts/opensans-semibolditalic-webfont.eot");
-    white_list.insert("/fonts/opensans-semibolditalic-webfont.svg");
-    white_list.insert("/fonts/opensans-semibolditalic-webfont.ttf");
-    white_list.insert("/fonts/opensans-semibolditalic-webfont.woff");
-    white_list.insert("/fonts/stylesheet.css");
-    white_list.insert("/images/warning-icon.png");
-    white_list.insert("/images/fullscreen_16x16.png");
-    white_list.insert("/images/cog_16x16.png");
-    white_list.insert("/images/db.png");
-    white_list.insert("/images/cog_white_16x16.png");
-    white_list.insert("/images/trash_stroke_16x16.png");
-    white_list.insert("/images/book_alt_16x16.png");
-    white_list.insert("/images/book_alt2_16x14.png");
-    white_list.insert("/images/fullscreen_exit_16x16.png");
-    white_list.insert("/images/ajax-loader.gif");
-    white_list.insert("/images/arrow_down.png");
-    white_list.insert("/images/arrow_right.png");
-    white_list.insert("/images/bar-line-graph-icon.png");
-    white_list.insert("/images/bars-icon.png");
-    white_list.insert("/images/bars-icon_server-assignments.png");
-    white_list.insert("/images/bars-icon_white.png");
-    white_list.insert("/images/body_bg_tile.png");
-    white_list.insert("/images/clock-icon.png");
-    white_list.insert("/images/clock-icon_alt.png");
-    white_list.insert("/images/cog-icon.png");
-    white_list.insert("/images/copy_to_clipboard_16x16.png");
-    white_list.insert("/images/disk-icon.png");
-    white_list.insert("/images/disk-slot-icon.png");
-    white_list.insert("/images/document-icon.png");
-    white_list.insert("/images/eye-icon_white.png");
-    white_list.insert("/images/globe-icon_white.png");
-    white_list.insert("/images/graph-icon.png");
-    white_list.insert("/images/green-light.png");
-    white_list.insert("/images/green-light_glow.png");
-    white_list.insert("/images/green-light_glow_small.png");
-    white_list.insert("/images/grid-icon.png");
-    white_list.insert("/images/icon-magnifying_glass.png");
-    white_list.insert("/images/layers-icon.png");
-    white_list.insert("/images/list-horiz-dash.png");
-    white_list.insert("/images/list-square-bullet.png");
-    white_list.insert("/images/list-vert-dash.png");
-    white_list.insert("/images/live-icon.png");
-    white_list.insert("/images/navbar-active.png");
-    white_list.insert("/images/pencil-icon.png");
-    white_list.insert("/images/pencil-icon_big.png");
-    white_list.insert("/images/push-arrow-left-icon.png");
-    white_list.insert("/images/query_round_trip-icon.png");
-    white_list.insert("/images/query_server_time-icon.png");
-    white_list.insert("/images/query_shard_access-icon.png");
-    white_list.insert("/images/red-light.png");
-    white_list.insert("/images/red-light_glow.png");
-    white_list.insert("/images/red-light_glow_small.png");
-    white_list.insert("/images/resolve_issue-clock_icon.png");
-    white_list.insert("/images/resolve_issue-danger_icon.png");
-    white_list.insert("/images/resolve_issue-details_icon.png");
-    white_list.insert("/images/resolve_issue-message_icon.png");
-    white_list.insert("/images/resolve_issue-resolved_icon.png");
-    white_list.insert("/images/server-icon.png");
-    white_list.insert("/images/server-icon_server-assignments.png");
-    white_list.insert("/images/status-panel_bg_tile.png");
-    white_list.insert("/images/status_panel-icon_1-error.png");
-    white_list.insert("/images/status_panel-icon_1.png");
-    white_list.insert("/images/status_panel-icon_2-error.png");
-    white_list.insert("/images/status_panel-icon_2.png");
-    white_list.insert("/images/status_panel-icon_3-error.png");
-    white_list.insert("/images/status_panel-icon_3.png");
-    white_list.insert("/images/status_panel-icon_4-error.png");
-    white_list.insert("/images/status_panel-icon_4.png");
-    white_list.insert("/images/yellow-light_glow.png");
-    white_list.insert("/favicon.ico");
-    white_list.insert("/cluster-min.js");
 
-    file_app.init(new file_http_app_t(white_list, path));
+    file_app.init(new file_http_app_t(path));
 
+    me_app.init(new me_http_app_t(my_server_id));
     directory_app.init(new directory_http_app_t(_directory_metadata));
-    issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
-    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
-        _directory_metadata->subview(&get_machine_id)));
-    progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
+        _directory_metadata->subview(&get_server_id)));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
 #endif
 
     std::map<std::string, http_app_t *> ajax_routes;
+    ajax_routes["me"] = me_app.get();
     ajax_routes["directory"] = directory_app.get();
-    ajax_routes["issues"] = issues_app.get();
-    ajax_routes["stat"] = stat_app.get();
     ajax_routes["log"] = log_app.get();
-    ajax_routes["progress"] = progress_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
     std::map<std::string, http_json_app_t *> default_views;
     default_views["directory"] = directory_app.get();
-    default_views["issues"] = issues_app.get();
 
     combining_app.init(new combining_http_app_t(default_views));
 

@@ -12,7 +12,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -25,10 +25,10 @@ namespace unittest {
 class fake_ack_checker_t : public ack_checker_t {
 public:
     explicit fake_ack_checker_t(int e) : expected(e) { }
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &ack_set) const {
+    bool is_acceptable_ack_set(const std::set<server_id_t> &ack_set) const {
         return static_cast<int>(ack_set.size()) >= expected;
     }
-    write_durability_t get_write_durability(const peer_id_t &) const {
+    write_durability_t get_write_durability() const {
         return write_durability_t::SOFT;
     }
     int expected;
@@ -54,10 +54,11 @@ public:
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
             balancer(new dummy_cache_balancer_t(GIGABYTE)),
             store(serializer.get(), balancer.get(), temp_file.name().permanent_path(), true,
-                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."), NULL) {
+                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."), NULL,
+                  generate_uuid()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        write_token_t token;
         store.new_write_token(&token);
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
@@ -190,7 +191,8 @@ public:
                                it++) {
             cond_t interruptor;
             std::string response = rfun(it->first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
-            rassert(it->second == response);
+            guarantee(it->second == response, "For key `%s`: expected `%s`, got `%s`\n",
+                it->first.c_str(), it->second.c_str(), response.c_str());
         }
     }
 

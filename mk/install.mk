@@ -47,7 +47,6 @@ init_dir := $(etc_dir)/init.d
 conf_dir := $(etc_dir)/rethinkdb
 conf_instance_dir := $(conf_dir)/instances.d
 lib_dir := $(prefix)/lib/rethinkdb
-web_res_dir := $(share_dir)/web
 pidfile_dir := $(var_dir)/run/rethinkdb
 data_dir := $(var_dir)/lib/rethinkdb
 language_drivers_dir := $(share_dir)/drivers
@@ -121,13 +120,6 @@ install-data:
 	$P INSTALL $(DESTDIR)$(data_dir)/instances.d
 	umask 022 && install -m755 -d $(DESTDIR)$(data_dir)/instances.d
 
-.PHONY: install-web
-install-web: web-assets
-	$P INSTALL $(DESTDIR)$(web_res_dir)
-	umask 022 && install -m755 -d $(DESTDIR)$(web_res_dir)
-	cd $(WEB_ASSETS_BUILD_DIR); find . -type d -exec install -m755 -d $(abspath $(DESTDIR))$(web_res_dir)/{} \;
-	cd $(WEB_ASSETS_BUILD_DIR); find . -type f -exec install -m644 {} $(abspath $(DESTDIR))$(web_res_dir)/{} \;
-
 .PHONY: install-docs
 install-docs:
 	$P INSTALL $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
@@ -135,4 +127,4 @@ install-docs:
 	install -m644 $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 .PHONY: install
-install: install-binaries install-manpages install-docs install-tools install-web install-data install-config
+install: install-binaries install-manpages install-docs install-tools install-data install-config

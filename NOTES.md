@@ -1,3 +1,144 @@
+# Release 1.15.2 (Lawrence of Arabia)
+
+Released on 2014-11-07
+
+Bug fix update.
+
+* Added packages for Ubuntu 14.10 "Utopic Unicorn" (#3237)
+* Fixed a bug with memory handling in S2 (#3201)
+* Fixed a bug handling paged results in the Data Explorer (#3111)
+* Fixed a bug that caused a crash on exit if a joined server with an open
+  changefeed crashed (#3038)
+* Fixed a bug that caused a crash when unsharding discarded more rows than
+  expected when batching results (#3264)
+* Fixed a bug that could lead to crashes when changefeeds were frequently
+  registered and unregistered (#3205)
+* Changed the `r.point` constructor to be deterministic, allowing it to be used
+  in secondary index functions (#3287)
+* Fixed an incompatibility problem between Python 3.4 and the `import` command
+  (#3259)
+* Fixed a buffer alignment issue with `object_buffer_t` data (#3300)
+
+---
+
+# Release 1.15.1 (Lawrence of Arabia)
+
+Released on 2014-10-07
+
+Bug fix update.
+
+* Fixed a bug where tables were always created with hard durability, regardless
+  of the `durability` option (#3128)
+* Fixed a bug that caused HTTPS access with `r.http` to fail under OS X (#3112)
+* Fixed a bug in the Python driver that caused pickling/unpickling of time
+  objects to fail (#3024)
+* Changed the Data Explorer autocomplete to not override Ctrl+Tab on Firefox
+  (#2959)
+* Fixed a bug that caused a crash when a non-directory file was specified as
+  RethinkDB's startup directory (#3036)
+* Added native packages for Debian (#3125, #3107)
+* Fixed a compilation error on ARM CPUs (#3116)
+* Support building with Protobuf 2.6.0 (#3137)
+
+---
+
+# Release 1.15.0 (Lawrence of Arabia)
+
+Released on 2014-09-23
+
+The highlights of this release are support for geospatial objects and queries,
+and significant performance upgrades relating to datum serialization (twice as
+fast for many analytical workloads). Read the [release blog post][1.15-blog]
+for more details.
+
+[1.15-blog]: http://rethinkdb.com/blog/1.15-release/
+
+Only documents modified after upgrading to 1.15 will receive these performance
+gains. You may "upgrade" older documents by performing any write that modifies
+their contents. For example, you could add a dummy field to all the documents in
+a table and then remove it:
+
+    r.table('tablename').update({dummy_field: true})
+    r.table('tablename').replace(r.row.without('dummy_field'))
+
+There are no API-breaking changes in this release.
+
+## New features ##
+
+* ReQL
+  * Added geospatial query and index support (#2571, #2847, #2851, #2854, #2859,
+    #3003, #3011)
+  * Added `r.uuid` for generating unique IDs (#2063)
+  * Added a `BRACKET` term to the query language, to improve the bracket
+    operator in client drivers (#1179)
+
+## Improvements ##
+
+* Server
+  * Significantly improved performance of read operations by lazily
+    deserializing data: ~1.15x faster for simple queries, ~2x faster for many
+    analytical queries, and ~50x for count queries (#1915, #2244, #2652)
+  * Removed the option for `datum_t` to be uninitialized (#2985)
+  * Improved the performance of `zip` by replacing the `zip_datum_stream_t` type
+    with a transformer function (#2654)
+  * Clarified error messages when the data in the selection could not be printed
+    (#972)
+  * Improved performance of `r.match` by adding regex caching and a framework
+    for generic query-based caches (#2196)
+* Testing
+  * Removed unnecessary files from `test/common` (#2829)
+  * Changed all tests to run with `--cache-size` parameter (#2816)
+* Python driver
+  * Modified `r.row` to provide an error message on an attempt to call it like a
+    function (#2960)
+* JavaScript driver
+  * Errors thrown by the driver now have a stack trace (#3087)
+
+## Fixed bugs ##
+
+* ReQL
+  * Fixed a bug for `r.literal` corner cases (#2710)
+  * Improved error message when `r.literal` is used in an invalid context
+    (#1600)
+* Web UI
+  * Fixed a bug that caused selection in the query text area to become
+    unresponsive with large queries (#3043)
+  * Fixed a bug that caused "more data is available" to be displayed incorrectly
+    in certain cases (#3037)
+* Server
+  * Fixed a display bug with log entries in the web UI (#2627)
+  * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was
+    changed (#2965)
+  * Fixed a bug where the connection authorization key was improperly encoded
+    (#2952)
+  * Fixed an uninitialized variable warning during builds (#2977)
+* Testing
+  * Fixed various bugs in tests (#2940, #2887, #2844, #2837, #2603, #2793)
+* JavaScript driver
+  * Fixed a bug in the JavaScript driver that caused backtraces to not print
+    properly (#2793)
+* Python driver
+  * Replaced `or isinstance` with a tuple of types (#2968)
+  * Removed unused `kwarg` assignments (#2969)
+* Ruby driver
+  * Fixed a bug where `default_db`, `host` and `port` were not exposed in the
+    Connection object (#2849)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.15. In no particular order:
+
+* Sathyanarayanan Gunasekaran (@gsathya)
+* Adam Grandquist (@grandquista)
+* Duane Johnson (@canadaduane)
+* Colin Mattson(@cmattson)
+* Justas Brazauskas (@jutaz)
+* Matt Stith (@stith)
+* Dmitry Minkovsky (@dminkovsky)
+
+---
+
 # Release 1.14.1 (Brazil)
 
 Released on 2014-09-09

@@ -14,8 +14,9 @@
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/error.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;
@@ -41,7 +42,7 @@ public:
 
     bool has_optarg(const std::string &key) const;
     // returns NULL if no entry
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key);
+    scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key);
     const std::map<std::string, wire_func_t> &get_all_optargs() const;
 private:
     std::map<std::string, wire_func_t> optargs;
@@ -100,13 +101,13 @@ public:
         return global_optargs_.get_all_optargs();
     }
 
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key) {
+    scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key) {
         return global_optargs_.get_optarg(env, key);
     }
 
     configured_limits_t limits() const { return limits_; }
-    
-    query_cache_t & query_cache() { return cache_; }
+
+    query_cache_t &query_cache() { return cache_; }
 
     reql_version_t reql_version() const { return reql_version_; }
 
@@ -122,7 +123,7 @@ private:
     // LATEST_DISK, but when evaluating secondary index functions, it could be an
     // earlier value.
     const reql_version_t reql_version_;
-    
+
     // query specific cache parameters; for example match regexes.
     query_cache_t cache_;
 
@@ -135,6 +136,7 @@ public:
 
     profile_bool_t profile() const;
 
+    rdb_context_t *get_rdb_ctx() { return rdb_ctx_; }
 private:
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     uint32_t evals_since_yield_;
