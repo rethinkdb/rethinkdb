@@ -485,6 +485,7 @@ class HttpConnection extends Connection
             xhr.responseType = "arraybuffer"
 
             xhr.send()
+
             @_url = null
             @_connId = null
             super()
