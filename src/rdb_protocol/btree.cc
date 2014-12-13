@@ -1362,10 +1362,6 @@ void compute_keys(const store_key_t &primary_key,
     }
 }
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        reql_version_t, int8_t,
-        reql_version_t::v1_13, reql_version_t::v1_16_is_latest);
-
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info) {
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
@@ -1886,4 +1882,3 @@ void post_construct_secondary_indexes(
 }
 
 void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
-

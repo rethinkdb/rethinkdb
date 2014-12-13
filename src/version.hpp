@@ -82,7 +82,7 @@ enum class reql_version_t {
     LATEST = v1_16,
 };
 
-// Serialization of reql_version_t is defined in protocol.hpp.
+// Serialization of reql_version_t is defined in protocol_api.hpp.
 
 
 #endif  // VERSION_HPP_
