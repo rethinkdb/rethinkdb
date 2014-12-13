@@ -259,7 +259,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     ql::configured_limits_t limits;
     ql::datum_t d
-        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
+        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
+                       reql_version_t::LATEST);
     store_key_t pk = store_key_t(d.print_primary());
     ql::datum_t sindex_key_literal = ql::datum_t(1.0);
 
@@ -268,7 +269,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
         write_t write(
-            point_write_t(pk, ql::to_datum(data->get(), limits)),
+            point_write_t(pk, ql::to_datum(data->get(), limits,
+                                           reql_version_t::LATEST)),
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
             ql::configured_limits_t());
@@ -306,7 +308,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(ql::to_datum(data->get(), limits), stream->at(0).data);
+            ASSERT_EQ(ql::to_datum(data->get(), limits, reql_version_t::LATEST),
+                      stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -362,12 +365,14 @@ void populate_sindex(namespace_interface_t *nsi,
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
         ql::configured_limits_t limits;
         ql::datum_t d
-            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
+            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
+                           reql_version_t::LATEST);
         store_key_t pk = store_key_t(d.print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                     reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
         write_response_t response;
 
@@ -644,7 +649,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             try {
                 pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits).print_primary());
+                                     limits, reql_version_t::LATEST).print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
@@ -654,7 +659,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                             reql_version_t::LATEST)),
                               DURABILITY_REQUIREMENT_DEFAULT,
                               profile_bool_t::PROFILE,
                               limits);
@@ -722,12 +728,13 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits).print_primary());
+                                     limits, reql_version_t::LATEST).print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                     reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_DEFAULT,
                       profile_bool_t::PROFILE,
                       ql::configured_limits_t());

@@ -9,8 +9,9 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits)
-        : term_t(t), datum(to_datum(&t->datum(), limits)) { }
+    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits,
+                 reql_version_t reql_version)
+        : term_t(t), datum(to_datum(&t->datum(), limits, reql_version)) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
@@ -127,8 +128,9 @@ private:
 };
 
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
-                                  const configured_limits_t &limits) {
-    return make_counted<datum_term_t>(term, limits);
+                                  const configured_limits_t &limits,
+                                  reql_version_t reql_version) {
+    return make_counted<datum_term_t>(term, limits, reql_version);
 }
 counted_t<term_t> make_constant_term(compile_env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name) {

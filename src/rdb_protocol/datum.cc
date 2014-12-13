@@ -376,29 +376,48 @@ datum_t datum_t::binary(datum_string_t &&_data) {
     return datum_t(construct_binary_t(), std::move(_data));
 }
 
-inline void fail_if_invalid(const std::string &string)
+// two versions of these, because std::string is not necessarily null
+// terminated.
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
 {
-    utf8::reason_t reason;
-    if (!utf8::is_valid(string, &reason)) {
-        rfail_datum(base_exc_t::GENERIC,
-                    "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                    reason.explanation, reason.position, string.c_str());
-
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                rfail_datum(base_exc_t::GENERIC,
+                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
+                            reason.explanation, reason.position, string.c_str());
+            }
+            break;
+        default:
+            unreachable();
     }
 }
 
-inline void fail_if_invalid(const char *string)
+inline void fail_if_invalid(reql_version_t reql_version, const char *string)
 {
-    utf8::reason_t reason;
-    if (!utf8::is_valid(string, &reason)) {
-        rfail_datum(base_exc_t::GENERIC,
-                    "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                    reason.explanation, reason.position, string);
-
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                rfail_datum(base_exc_t::GENERIC,
+                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
+                            reason.explanation, reason.position, string);
+            }
+            break;
+        default:
+            unreachable();
     }
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
+datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (json->type) {
     case cJSON_False: {
         return datum_t::boolean(false);
@@ -413,14 +432,14 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(json->valuedouble);
     } break;
     case cJSON_String: {
-        fail_if_invalid(json->valuestring);
+        fail_if_invalid(reql_version, json->valuestring);
         return datum_t(json->valuestring);
     } break;
     case cJSON_Array: {
         std::vector<datum_t> array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits));
+            array.push_back(to_datum(item, limits, reql_version));
         }
         return datum_t(std::move(array), limits);
     } break;
@@ -428,8 +447,8 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         datum_object_builder_t builder;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            fail_if_invalid(item->string);
-            bool dup = builder.add(item->string, to_datum(item, limits));
+            fail_if_invalid(reql_version, item->string);
+            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -1498,7 +1517,8 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
+datum_t to_datum(const Datum *d, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (d->type()) {
     case Datum::R_NULL: {
         return datum_t::null();
@@ -1510,19 +1530,19 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return datum_t(d->r_num());
     } break;
     case Datum::R_STR: {
-        fail_if_invalid(d->r_str());
+        fail_if_invalid(reql_version, d->r_str());
         return datum_t(datum_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
-        fail_if_invalid(d->r_str());
+        fail_if_invalid(reql_version, d->r_str());
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits);
+        return to_datum(cjson.get(), limits, reql_version);
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
         out.reserve(d->r_array_size());
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
-            out.add(to_datum(&d->r_array(i), limits));
+            out.add(to_datum(&d->r_array(i), limits, reql_version));
         }
         return std::move(out).to_datum();
     } break;
@@ -1533,9 +1553,10 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
             datum_t::check_str_validity(key);
-            fail_if_invalid(ap->key());
+            fail_if_invalid(reql_version, ap->key());
             auto res = map.insert(std::make_pair(key,
-                                                 to_datum(&ap->val(), limits)));
+                                                 to_datum(&ap->val(), limits,
+                                                          reql_version)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key %s in object.", key.to_std().c_str()));
         }

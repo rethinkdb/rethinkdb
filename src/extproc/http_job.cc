@@ -22,11 +22,13 @@ void parse_header(const std::string &header,
 enum class attach_json_to_error_t { YES, NO };
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
+                   reql_version_t reql_version,
                    attach_json_to_error_t attach_json,
                    http_result_t *res_out);
 
 void jsonp_to_datum(const std::string &jsonp,
                     const ql::configured_limits_t &limits,
+                    reql_version_t reql_version,
                     attach_json_to_error_t attach_json,
                     http_result_t *res_out);
 
@@ -618,18 +620,18 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    json_to_datum(body_data, opts->limits,
+                    json_to_datum(body_data, opts->limits, opts->version,
                                   attach_json_to_error_t::YES, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    json_to_datum(body_data, opts->limits,
+                    json_to_datum(body_data, opts->limits, opts->version,
                                   attach_json_to_error_t::NO, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        jsonp_to_datum(body_data, opts->limits,
+                        jsonp_to_datum(body_data, opts->limits, opts->version,
                                        attach_json_to_error_t::NO, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
@@ -650,10 +652,12 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             }
             break;
         case http_result_format_t::JSON:
-            json_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
+            json_to_datum(body_data, opts->limits, opts->version,
+                          attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::JSONP:
-            jsonp_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
+            jsonp_to_datum(body_data, opts->limits, opts->version,
+                           attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
             res_out->body = ql::datum_t(datum_string_t(body_data));
@@ -823,11 +827,12 @@ void parse_header(const std::string &header,
 
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
+                   reql_version_t reql_version,
                    attach_json_to_error_t attach_json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = ql::to_datum(cjson.get(), limits);
+        res_out->body = ql::to_datum(cjson.get(), limits, reql_version);
     } else {
         res_out->error.assign("failed to parse JSON response");
         if (attach_json == attach_json_to_error_t::YES) {
@@ -890,11 +895,12 @@ const char *jsonp_parser_singleton_t::js_ident =
     "\\s*";
 
 void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &limits,
+                    reql_version_t reql_version,
                     attach_json_to_error_t attach_json,
                     http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(json_string, limits, attach_json, res_out);
+        json_to_datum(json_string, limits, reql_version, attach_json, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
         if (attach_json == attach_json_to_error_t::YES) {
