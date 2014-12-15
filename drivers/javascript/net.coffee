@@ -493,10 +493,15 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        if @_connId? # @connId is null is the connection was previously closed/cancel
+        if @_connId? # @connId is null if the connection was previously closed/cancel
             @xhr.abort()
             xhr = new XMLHttpRequest
             xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+
+            # We ignore the result, but Firefox doesn't. Without this line it complains
+            # about "No element found" when trying to parse the response as xml.
+            xhr.responseType = "arraybuffer"
+
             xhr.send()
             @_url = null
             @_connId = null

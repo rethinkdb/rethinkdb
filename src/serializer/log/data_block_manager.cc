@@ -36,7 +36,7 @@ const size_t MAX_CONCURRENT_GCS = 32;
 // doesn't grow indefinitely.
 const int GC_IO_PRIORITY_NICE = 8;
 // 4 times the priority of all caches combined
-const int GC_IO_PRIORITY_HIGH = (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR);
+const int GC_IO_PRIORITY_HIGH = 4 * MERGER_BLOCK_WRITE_IO_PRIORITY;
 
 // The ratio at which we start GCing.
 const double GC_START_RATIO = 0.15;
@@ -186,14 +186,12 @@ public:
     }
 
     unsigned int num_live_blocks() const {
-        rassert(compute_num_live_blocks() == num_live_blocks_stat);
         return num_live_blocks_stat;
     }
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
     uint32_t garbage_bytes() const {
-        rassert(compute_garbage_bytes() == garbage_bytes_stat);
         return garbage_bytes_stat;
     }
 
@@ -306,27 +304,6 @@ private:
     std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
         return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
     }
-
-#ifndef NDEBUG
-    uint32_t compute_garbage_bytes() const {
-        uint32_t b = parent->static_config->extent_size();
-        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                b -= aligned_value(it->block_size);
-            }
-        }
-        return b;
-    }
-    unsigned int compute_num_live_blocks() const {
-        unsigned int count = 0;
-        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                ++count;
-            }
-        }
-        return count;
-    }
-#endif
 
     // old_block can be NULL if a block_info was freshly added
     void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
@@ -1297,8 +1274,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
     // Step 4B: Commit the transaction to the serializer, emptying
     // out all the i_array bits.
     new_mutex_in_line_t dummy_acq;
-    serializer->index_write(&dummy_acq, index_write_ops,
-                            choose_gc_io_account());
+    serializer->index_write(&dummy_acq, index_write_ops);
 }
 
 void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {

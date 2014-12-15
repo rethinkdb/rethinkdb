@@ -9,13 +9,13 @@
 #include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
-class server_name_client_t;
+class server_config_client_t;
 
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
 bool table_generate_config(
         /* This is used to look up server names for error messages. */
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
         /* This is used to determine where the table's data is currently stored and

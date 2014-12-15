@@ -98,8 +98,12 @@ http_req_t::http_req_t(const std::string &resource_path) : resource(resource_pat
 
 http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
     : resource(from.resource, resource_start),
-      method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
-}
+      peer(from.peer),
+      method(from.method),
+      query_params(from.query_params),
+      version(from.version),
+      header_lines(from.header_lines),
+      body(from.body) { }
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
     std::map<std::string, std::string>::const_iterator it = query_params.find(key);
@@ -465,7 +469,8 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     // Parse the request
     try {
         http_res_t res;
-        if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
+        if (conn->getpeername(&(req.peer)) &&
+            http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
             application->handle(req, &res, keepalive.get_drain_signal());
             res.version = req.version;
             maybe_gzip_response(req, &res);

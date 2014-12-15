@@ -391,7 +391,7 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
 bool test_rdb_env_t::instance_t::db_config(
         UNUSED const counted_t<const ql::db_t> &db,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED ql::env_t *env,
+        UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_db_env_t::instance_t doesn't support db_config()";
@@ -472,7 +472,7 @@ bool test_rdb_env_t::instance_t::table_config(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED ql::env_t *env,
+        UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_config()";
@@ -483,7 +483,7 @@ bool test_rdb_env_t::instance_t::table_status(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED ql::env_t *env,
+        UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";

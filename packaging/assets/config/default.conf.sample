@@ -92,8 +92,8 @@
 ## How many simultaneous I/O operations can happen at the same time
 # io-threads=64
 
-## Disable direct I/O
-# no-direct-io
+## Enable direct I/O
+# direct-io
 
 ### Meta
 

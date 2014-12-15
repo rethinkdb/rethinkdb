@@ -1,56 +1,57 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback, pprint
+# Copyright 2014 RethinkDB, all rights reserved.
+
+"""The `interface.table_acks_durability` test checks that write-acks and durability settings on tables behave as expected."""
+
+from __future__ import print_function
+
+import os, pprint, sys, time
+
+try:
+    xrange
+except NameError:
+    xrange = range
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
-r = utils.import_python_driver()
+import driver, scenario_common, utils, vcoptparse
 
-"""The `interface.table_acks_durability` test checks that write-acks and durability
-settings on tables behave as expected."""
-
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = \
-        scenario_common.parse_mode_flags(opts)
+r = utils.import_python_driver()
+dbName, _ = utils.get_test_db_table()
+
+num_live = num_dead = 3
+
+print("Starting cluster of %d servers (%.2fs)" % (num_live + num_dead, time.time() - startTime))
+with driver.Cluster(output_folder='.') as cluster:
 
     # The "live" processes will remain alive for the entire test. The "dead" processes
     # will be killed after we create some tables.
-    num_live = num_dead = 3
-    print("Spinning up %d processes..." % (num_live + num_dead))
-    def make_procs(names):
-        files, procs = [], []
-        for name in names:
-            files.append(driver.Files(
-                metacluster,
-                console_output = "create-output-%s" % name,
-                server_name = name,
-                executable_path = executable_path,
-                command_prefix = command_prefix))
-            procs.append(driver.Process(
-                cluster,
-                files[-1],
-                console_output = "serve-output-%s" % name,
-                executable_path = executable_path,
-                command_prefix = command_prefix,
-                extra_options = serve_options))
-        return files, procs
+    
     live_names = ["l%d" % (i+1) for i in xrange(num_live)]
     dead_names = ["d%d" % (i+1) for i in xrange(num_dead)]
-    live_files, live_procs = make_procs(live_names)
-    dead_files, dead_procs = make_procs(dead_names)
-
-    for p in live_procs + dead_procs:
-        p.wait_until_started_up()
+    
+    for name in live_names:
+        driver.Process(cluster=cluster, files=name, command_prefix=command_prefix, extra_options=serve_options)
+    
+    server = cluster[0]
+    
+    dead_procs = []
+    for name in dead_names:
+        dead_procs.append(driver.Process(cluster=cluster, files=name, command_prefix=command_prefix, extra_options=serve_options))
+    
+    cluster.wait_until_ready()
     cluster.check()
+    
+    print("Establishing ReQl connections (%.2fs)" % (time.time() - startTime))
+    
+    conn = r.connect(host=server.host, port=server.driver_port)
 
-    conn = r.connect("localhost", live_procs[0].driver_port)
-
-    def mks(nl, nd, primary = "l"):
+    def mks(nl, nd, primary="l"):
         """Helper function for constructing entries for `table_config.shards`. Returns a
         shard with "nl" live replicas and "nd" dead ones. The value of "primary"
         determines if the primary replica will be a live one or dead one."""
@@ -94,32 +95,32 @@ with driver.Metacluster() as metacluster:
             "o", "o"),
         ]
 
-    print("Creating tables for tests...")
+    print("Creating tables for tests (%.2fs)" % (time.time() - startTime))
     r.db_create("test").run(conn)
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         conf = {"shards": shards, "write_acks": write_acks}
         t = "table%d" % (i+1)
-        print t, conf
-        res = r.table_create(t).run(conn)
+        print(t, conf)
+        res = r.db(dbName).table_create(t).run(conn)
         assert res["created"] == 1, res
-        res = r.table_config(t).update(conf).run(conn)
+        res = r.db(dbName).table_config(t).update(conf).run(conn)
         assert res["errors"] == 0, res
-        r.table_wait(t).run(conn)
-        res = r.table(t).insert([{}]*1000).run(conn)
+        r.db(dbName).table_wait(t).run(conn)
+        res = r.db(dbName).table(t).insert([{}]*1000).run(conn)
         assert res["errors"] == 0 and res["inserted"] == 1000, res
 
     issues = list(r.db("rethinkdb").table("issues").run(conn))
     assert not issues, repr(issues)
 
-    print("Killing the designated 'dead' servers...")
+    print("Killing the designated 'dead' servers (%.2fs)" % (time.time() - startTime))
     for proc in dead_procs:
         proc.check_and_stop()
 
-    print("Checking table statuses...")
+    print("Checking table statuses (%.2fs)" % (time.time() - startTime))
     def check_table_status(name, expected_readiness):
         tested_readiness = ""
         try:
-            res = r.table(name).update({"x": r.row["x"].default(0).add(1)}).run(conn)
+            res = r.db(dbName).table(name).update({"x": r.row["x"].default(0).add(1)}).run(conn)
         except r.RqlRuntimeError, e:
             # This can happen if we aren't available for reading either
             pass
@@ -127,20 +128,20 @@ with driver.Metacluster() as metacluster:
             assert res["errors"] == 0 and res["replaced"] == 1000
             tested_readiness += "w"
         try:
-            res = r.table(name).count().run(conn)
+            res = r.db(dbName).table(name).count().run(conn)
         except r.RqlRuntimeError, e:
             pass
         else:
             assert res == 1000
             tested_readiness += "r"
         try:
-            res = r.table(name).count().run(conn, use_outdated = True)
+            res = r.db(dbName).table(name).count().run(conn, use_outdated = True)
         except r.RqlRuntimeError, e:
             pass
         else:
             assert res == 1000
             tested_readiness += "o"
-        res = r.table_status(name).nth(0).run(conn)
+        res = r.db(dbName).table_status(name).nth(0).run(conn)
         reported_readiness = ""
         if res["status"]["all_replicas_ready"]:
             reported_readiness += "a"
@@ -150,24 +151,22 @@ with driver.Metacluster() as metacluster:
             reported_readiness += "r"
         if res["status"]["ready_for_outdated_reads"]:
             reported_readiness += "o"
-        print "%s expect=%r test=%r report=%r" % \
-            (name, expected_readiness, tested_readiness, reported_readiness)
+        print("%s expect=%r test=%r report=%r" % (name, expected_readiness, tested_readiness, reported_readiness))
         assert expected_readiness.replace("a", "") == tested_readiness
         assert expected_readiness == reported_readiness
 
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_1)
 
-    print("Permanently removing the designated 'dead' servers...")
-    res = r.db("rethinkdb").table("server_config") \
-           .filter(lambda s: r.expr(dead_names).contains(s["name"])).delete().run(conn)
+    print("Permanently removing the designated 'dead' servers (%.2fs)" % (time.time() - startTime))
+    res = r.db("rethinkdb").table("server_config").filter(lambda s: r.expr(dead_names).contains(s["name"])).delete().run(conn)
     assert res["deleted"] == num_dead, res
 
-    print("Checking table statuses...")
+    print("Checking table statuses (%.2fs)" % (time.time() - startTime))
     for i, (shards, write_acks, readiness_1, readiness_2) in enumerate(tests):
         check_table_status("table%d" % (i+1), readiness_2)
 
-    print "Checking for issues..."
+    print("Checking for issues (%.2fs)" % (time.time() - startTime))
     issues = list(r.db("rethinkdb").table("issues").run(conn))
     pprint.pprint(issues)
     issues_by_table = {}
@@ -187,21 +186,20 @@ with driver.Metacluster() as metacluster:
         elif readiness_2 == "awro":
             assert t not in issues_by_table
 
-    print("Running auxiliary tests...")
-    res = r.table_create("aux").run(conn)
+    print("Running auxiliary tests (%.2fs)" % (time.time() - startTime))
+    res = r.db(dbName).table_create("aux").run(conn)
     assert res["created"] == 1, res
-    res = r.table_config("aux") \
-           .update({"shards": [{"director": "l1", "replicas": ["l1"]}]}).run(conn)
+    res = r.db(dbName).table_config("aux").update({"shards": [{"director": "l1", "replicas": ["l1"]}]}).run(conn)
     assert res["errors"] == 0, res
-    r.table_wait("aux").run(conn)
+    r.db(dbName).table_wait("aux").run(conn)
     def test_ok(change):
-        print repr(change)
-        res = r.table_config("aux").update(change).run(conn)
+        print(repr(change))
+        res = r.db(dbName).table_config("aux").update(change).run(conn)
         assert res["errors"] == 0 and res["replaced"] == 1, res
         print("OK")
     def test_fail(change):
-        print repr(change)
-        res = r.table_config("aux").update(change).run(conn)
+        print(repr(change))
+        res = r.db(dbName).table_config("aux").update(change).run(conn)
         assert res["errors"] == 1 and res["replaced"] == 0, res
         print("Failed (as expected):", repr(res["first_error"]))
     test_ok({"durability": "soft"})
@@ -216,7 +214,7 @@ with driver.Metacluster() as metacluster:
     test_fail({"write_acks": [{"acks": "single"}]})
     test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single", "foo": "bar"}]})
 
-    print("Checking that unsatisfiable write acks are rejected...")
+    print("Checking that unsatisfiable write acks are rejected (%.2fs)" % (time.time() - startTime))
     test_ok({
         "shards": [
             {"director": "l1", "replicas": ["l1", "l2", "l3"]},
@@ -226,6 +224,6 @@ with driver.Metacluster() as metacluster:
         })
     test_fail({"write_acks": "majority"})
 
-    cluster.check_and_stop()
-print("Done.")
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))
 

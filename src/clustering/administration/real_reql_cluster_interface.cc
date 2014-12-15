@@ -5,7 +5,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -26,7 +26,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *_directory_root_view,
         rdb_context_t *_rdb_context,
-        server_name_client_t *_server_name_client
+        server_config_client_t *_server_config_client
         ) :
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
@@ -44,7 +44,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         [this](const namespace_id_t &id, signal_t *interruptor) {
             return this->namespace_repo.get_namespace_interface(id, interruptor);
         }),
-    server_name_client(_server_name_client)
+    server_config_client(_server_config_client)
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(
@@ -238,7 +238,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         if (!table_generate_config(
-                server_name_client, nil_uuid(), nullptr, server_usage,
+                server_config_client, nil_uuid(), nullptr, server_usage,
                 config_params, table_shard_scheme_t(), &interruptor2,
                 &repli_info.config, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
@@ -274,7 +274,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         new_config = convert_table_config_to_datum(table_id, name,
             convert_name_to_datum(db->name), primary_key, repli_info.config,
-            admin_identifier_format_t::name, server_name_client);
+            admin_identifier_format_t::name, server_config_client);
     }
 
     // This could hang because of a node going down or the user deleting the table.
@@ -327,7 +327,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         old_config = convert_table_config_to_datum(table_id, name,
             convert_name_to_datum(db->name), table_md.primary_key.get_ref(),
             table_md.replication_info.get_ref().config,
-            admin_identifier_format_t::name, server_name_client);
+            admin_identifier_format_t::name, server_config_client);
 
         /* Delete the table. */
         ns_change.get()->namespaces.at(table_id).mark_deleted();
@@ -673,7 +673,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    rassert(get_thread_id() == server_name_client->home_thread());
+    rassert(get_thread_id() == server_config_client->home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &cluster_md->rdb_namespaces);
     namespace_semilattice_metadata_t *table_md =
@@ -683,7 +683,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     ql::datum_t old_config = convert_table_config_to_datum(table_id, table_name,
         convert_name_to_datum(db->name), table_md->primary_key.get_ref(),
         table_md->replication_info.get_ref().config, admin_identifier_format_t::name,
-        server_name_client);
+        server_config_client);
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -723,7 +723,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     /* This just generates a new configuration; it doesn't put it in the
     semilattices. */
     if (!table_generate_config(
-            server_name_client,
+            server_config_client,
             table_id,
             directory_root_view,
             server_usage,
@@ -747,7 +747,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     // Compute the new value of the config and status
     ql::datum_t new_config = convert_table_config_to_datum(table_id, table_name,
         convert_name_to_datum(db->name), table_md->primary_key.get_ref(),
-        new_repli_info.config, admin_identifier_format_t::name, server_name_client);
+        new_repli_info.config, admin_identifier_format_t::name, server_config_client);
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
@@ -780,8 +780,9 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*cluster_md.rdb_namespaces, db->id, db->name,
@@ -801,8 +802,9 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     ql::datum_t combined_stats;
     for (const auto &pair : cluster_md.rdb_namespaces->namespaces) {
@@ -890,8 +892,9 @@ bool real_reql_cluster_interface_t::table_rebalance(
         std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*cluster_md.rdb_namespaces, db->id, db->name,
@@ -909,8 +912,9 @@ bool real_reql_cluster_interface_t::db_rebalance(
         std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t ct_interruptor(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     ql::datum_t combined_stats;
     for (const auto &pair : cluster_md.rdb_namespaces->namespaces) {

@@ -80,6 +80,10 @@ Web assets
   rebuilt unless the `--disable-precompiled-web` flag is passed to
   `./configure`
 
+* The web assets are compiled into the executable. To speed up
+  development time and avoid rebuilding the executable, the
+  `--web-static-directory` option can be used. For example:
+  `build/release/rethinkdb --web-static-directory build/web_assets`
 
 Drivers
 -------
@@ -100,7 +104,7 @@ Test
 
 * `make test`: Run the unit tests, reql tests and integration
   tests. The `TEST` variables determines which tests to run. See
-  `scripts/run-tests.sh -h` for more documentation.
+  `test/run -h` for more documentation.
 
 
 Dependencies
@@ -129,27 +133,24 @@ Installation
   variable is passed, install the files there. If `STRIP_ON_INSTALL=1`
   is passed, also strip the executable.
 
-* `make install-binaries install-web`: Only install the server
-  executable and the web assets.
+* `make install-binaries`: Only install the server executable.
 
 
 Packaging
 ---
 
-Packaging is usually automated by the Jenkins instance running on
-`dr-doom:8888` in out intranet.
+Packaging is usually automated by the BuildBot instance running on
+`dr-doom:8010` in our intranet.
 
 * `make build-deb-src UBUNTU_RELEASE=<name> PACKAGE_BUILD_NUMBER=<n>`:
-  Build a package for the given Ubuntu version. Jenkins sends these
-   packages to launchpad:
-   https://launchpad.net/~rethinkdb/+archive/ppa/+packages
+  Build a package for the given Ubuntu version.
 
- * `make build-osx`: Build a `dmg` installer for OS X. Jenkins always
-   builds the `dmg` on OS X 10.7.5.
+* `make build-osx`: Build a `dmg` installer for OS X. Jenkins always
+  builds the `dmg` on OS X 10.7.5.
 
- * `make dist`: Build a source distribution.
+* `make dist`: Build a source distribution.
 
- * The CentOS RPM are built with `scripts/build-rpm.sh`.
+* The CentOS RPM are built with `scripts/build-rpm.sh`.
 
 
 The build system

@@ -422,18 +422,11 @@ private:
 
     const max_block_size_t max_block_size_;
 
-    // We use separate I/O accounts for reads and writes, so reads can pass ahead of
-    // flushes.  The rationale behind this is that reads are almost always blocking
-    // operations.  Writes, on the other hand, can be non-blocking (from the user's
-    // perspective) if they are soft-durability or noreply writes.
-    //
-    // TODO: Check whether it would be better to change this to separate I/O accounts
-    // for blocking and non-blocking access rather than reads and writes.  On the
-    // other hand, write transactions often (always, actually, thanks metainfo block)
-    // have to wait for previous ones to flush before they can proceed, so this
-    // separation might be tricky in practice.
+    // We use a separate I/O account for reads in each page cache.
+    // Note that block writes use a shared I/O account that sits in the
+    // merger_serializer_t (as long as you use one, otherwise they use the
+    // default account).
     cache_account_t default_reads_account_;
-    scoped_ptr_t<file_account_t> writes_io_account_;
 
     // This fifo enforcement pair ensures ordering of index_write operations after we
     // move to the serializer thread and get a bunch of blocks written.

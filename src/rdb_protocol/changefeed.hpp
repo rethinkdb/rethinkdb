@@ -138,7 +138,10 @@ struct keyspec_t {
         store_key_t key;
     };
 
-    keyspec_t(keyspec_t &&keyspec) = default;
+    keyspec_t(keyspec_t &&other)
+        : spec(std::move(other.spec)),
+          table(std::move(other.table)),
+          table_name(std::move(other.table_name)) { }
     ~keyspec_t();
 
     // Accursed reference collapsing!
@@ -152,7 +155,7 @@ struct keyspec_t {
 
     // This needs to be copyable and assignable because it goes inside a
     // `changefeed_stamp_t`, which goes inside a variant.
-    keyspec_t(const keyspec_t &keyspec) = default;
+    keyspec_t(const keyspec_t &) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
     typedef boost::variant<range_t, limit_t, point_t> spec_t;
@@ -168,7 +171,7 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 
 // The `client_t` exists on the server handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
-// should call `new_feed`.  The `client_t` will give it back a stream of rows.
+// should call `new_stream`.  The `client_t` will give it back a stream of rows.
 // The `client_t` does this by maintaining an internal map from table UUIDs to
 // `real_feed_t`s.  (It does this so that there is at most one `real_feed_t` per
 // <table, client> pair, to prevent redundant cluster messages.)  The actual
@@ -187,8 +190,9 @@ public:
         );
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(
+    counted_t<datum_stream_t> new_stream(
         env_t *env,
+        const datum_t &squash,
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
@@ -205,15 +209,15 @@ private:
         > const namespace_source;
     std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
-    // read whenever `new_feed` is called, and needs to be written to whenever
-    // `new_feed` is called with a table not already in the `feeds` map, or
+    // read whenever `new_stream` is called, and needs to be written to whenever
+    // `new_stream` is called with a table not already in the `feeds` map, or
     // whenever `maybe_remove_feed` or `detach_feed` is called.
     //
-    // This lock is held for a long time when `new_feed` is called with a table
+    // This lock is held for a long time when `new_stream` is called with a table
     // not already in the `feeds` map (in fact, it's held long enough to do a
     // cluster read).  This should only be a problem if the number of tables
     // (*not* the number of feeds) is large relative to read throughput, because
-    // otherwise most of the calls to `new_feed` that block will see the table
+    // otherwise most of the calls to `new_stream` that block will see the table
     // as soon as they're woken up and won't have to do a second read.
     rwlock_t feeds_lock;
     auto_drainer_t drainer;

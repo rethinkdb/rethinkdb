@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+raise NotImplementedError('This needs to be re-worked with access to shard boundries found through ReQL admin')
+
 import collections, itertools, os, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
 
 lock = threading.Lock()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
-import driver, http_admin, utils
+import driver, utils
 
 r = utils.import_python_driver()
 

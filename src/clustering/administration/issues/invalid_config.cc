@@ -23,7 +23,7 @@ invalid_config_issue_t::invalid_config_issue_t(
 
 bool invalid_config_issue_t::build_info_and_description(
         const metadata_t &metadata,
-        UNUSED server_name_client_t *name_client,
+        UNUSED server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {

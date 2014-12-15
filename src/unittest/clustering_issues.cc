@@ -38,7 +38,6 @@ cluster_directory_metadata_t default_directory_entry(const server_id_t &server_i
     entry.server_id = server_id;
     entry.peer_id = peer_id_t(generate_uuid());
     entry.version = RETHINKDB_VERSION_STR;
-    entry.cache_size = 0;
     entry.time_started = current_microtime();
     entry.pid = getpid();
     entry.hostname = str_gethostname();
@@ -131,7 +130,7 @@ issues_environment_t::issues_environment_t() :
     issues_backend_name(
         cluster_metadata.get_view(),
         directory_metadata.get_view(),
-        /* We don't test any types of issues that need the `server_name_client_t` */
+        /* We don't test any types of issues that need the `server_config_client_t` */
         nullptr,
         admin_identifier_format_t::name),
     issues_backend_uuid(

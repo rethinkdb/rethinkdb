@@ -202,6 +202,10 @@ public:
         read(&value);
     }
 
+    value_t get() {
+        return value;
+    }
+
 private:
     class w_t : public watchable_t<value_t> {
     public:

@@ -11,7 +11,7 @@
 #include "clustering/administration/tables/table_common.hpp"
 #include "concurrency/watchable.hpp"
 
-class server_name_client_t;
+class server_config_client_t;
 
 class debug_table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -22,7 +22,7 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *_directory_view,
-            server_name_client_t *_name_client);
+            server_config_client_t *_server_config_client);
     ~debug_table_status_artificial_table_backend_t();
 
     bool write_row(
@@ -44,7 +44,7 @@ private:
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t>::all_subs_t directory_subs;
 };

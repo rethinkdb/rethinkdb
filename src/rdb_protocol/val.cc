@@ -25,10 +25,18 @@ public:
           key(std::move(_key)),
           row(std::move(_row)) { }
     virtual datum_t get() {
-        return row.has() ? row : tbl->get_row(env, key);
+        if (!row.has()) {
+            row = tbl->get_row(env, key);
+        }
+        return row;
     }
-    virtual counted_t<datum_stream_t> read_changes() {
-        return tbl->tbl->read_row_changes(env, key, bt, tbl->display_name());
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+        return tbl->tbl->read_changes(
+            env,
+            squash,
+            changefeed::keyspec_t::point_t{store_key_t(key.print_primary())},
+            bt,
+            tbl->display_name());
     }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
@@ -76,19 +84,20 @@ public:
           slice(std::move(_slice)),
           err(std::move(_err)) { }
     virtual datum_t get() {
-        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
-        datum_t d = slice->as_seq(env, bt)->next(env, batchspec);
-        if (d.has()) {
-            return d;
-        } else {
-            rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+        if (!row.has()) {
+            batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+            row = slice->as_seq(env, bt)->next(env, batchspec);
+            if (!row.has()) {
+                rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+            }
         }
+        return row;
     }
-    virtual counted_t<datum_stream_t> read_changes() {
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
-            env, std::move(spec), bt, slice->get_tbl()->display_name());
+            env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
         s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);
         return s;
     }
@@ -109,6 +118,7 @@ private:
     env_t *env;
     protob_t<const Backtrace> bt;
     counted_t<table_slice_t> slice;
+    datum_t row;
     std::string err;
 };
 

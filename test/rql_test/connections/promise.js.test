@@ -43,7 +43,7 @@ if 'test' in r.db('test').table_list().run(c):
     r.db('test').table_drop('test').run(c)
 r.db('test').table_create('test').run(c)
 
-tbl = r.table('test')
+tbl = r.db('test').table('test')
 
 # -- generate the data
 

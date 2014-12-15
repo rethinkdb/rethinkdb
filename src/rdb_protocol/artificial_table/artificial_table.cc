@@ -74,22 +74,9 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     return stream;
 }
 
-counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
-        ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name) {
-    return read_changes(
-        env,
-        ql::changefeed::keyspec_t::spec_t(
-            ql::changefeed::keyspec_t::point_t{
-                store_key_t(pval.print_primary())}),
-        bt,
-        table_name);
-}
-
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         ql::env_t *env,
+        const ql::datum_t &,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {

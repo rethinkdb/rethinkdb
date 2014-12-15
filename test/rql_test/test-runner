@@ -9,7 +9,7 @@ import atexit, collections, copy, distutils.version, distutils.spawn, optparse, 
 try:
     import yaml
 except ImportError:
-    sys.exit('%s requires that PyYAML be installed' % os.path.basename(__file__))
+    sys.exit('%s requires that PyYAML be installed: https://pypi.python.org/pypi/PyYAML' % os.path.basename(__file__))
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
 import driver, test_exceptions, utils
@@ -1033,7 +1033,7 @@ def main():
                 pass
             
             if testProcess.wait() != 0:
-                if server is not None:
+                if server is not None and hasattr(server, 'check_and_stop'):
                     try:
                         server.check_and_stop()
                     except Exception as e:
@@ -1041,7 +1041,7 @@ def main():
                         if serverOutput:
                             serverOutput.seek(0)
                             serverLog = '\nServer log:\n%s' % serverOutput.read()
-                        sys.stderr.write('RethinkDB server failed: %s' % (str(e), serverLog))
+                        sys.stderr.write('RethinkDB server failed: %s%s' % (str(e), serverLog))
                     server = None
                     serverOutput = None
                 

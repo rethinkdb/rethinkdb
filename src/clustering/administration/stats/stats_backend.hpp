@@ -10,7 +10,7 @@
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/watchable.hpp"
 
 class stats_artificial_table_backend_t :
@@ -23,7 +23,7 @@ public:
                 &_directory_view,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager,
         admin_identifier_format_t _admin_format);
     ~stats_artificial_table_backend_t();
@@ -60,7 +60,7 @@ private:
         cluster_directory_metadata_t> > > directory_view;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
     mailbox_manager_t *mailbox_manager;
     admin_identifier_format_t admin_format;
 };

@@ -8,7 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
@@ -25,7 +25,7 @@ ql::datum_t convert_table_config_to_datum(
         const std::string &primary_key,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client);
+        server_config_client_t *server_config_client);
 
 class table_config_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -36,10 +36,10 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             real_reql_cluster_interface_t *_reql_cluster_interface,
             admin_identifier_format_t _identifier_format,
-            server_name_client_t *_name_client) :
+            server_config_client_t *_server_config_client) :
         common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
         reql_cluster_interface(_reql_cluster_interface),
-        name_client(_name_client)
+        server_config_client(_server_config_client)
         { }
     ~table_config_artificial_table_backend_t();
 
@@ -61,7 +61,7 @@ private:
             std::string *error_out);
 
     real_reql_cluster_interface_t *reql_cluster_interface;
-    server_name_client_t *name_client;
+    server_config_client_t *server_config_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_ */

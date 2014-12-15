@@ -91,13 +91,9 @@ public:
         const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) = 0;
-    virtual counted_t<ql::datum_stream_t> read_row_changes(
-        ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
+        const ql::datum_t &squash,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;
@@ -260,6 +256,7 @@ protected:
 };
 
 class mailbox_manager_t;
+class query_job_t;
 
 class rdb_context_t {
 public:
@@ -290,7 +287,7 @@ public:
     mailbox_manager_t *manager;
 
     const std::string reql_http_proxy;
-    
+
     class stats_t {
     public:
         explicit stats_t(perfmon_collection_t *global_stats);
@@ -309,7 +306,7 @@ public:
         DISABLE_COPYING(stats_t);
     } stats;
 
-    typedef std::map<uuid_u, microtime_t> query_jobs_t;
+    typedef std::map<uuid_u, query_job_t> query_jobs_t;
     query_jobs_t * get_query_jobs_for_this_thread();
 
 private:

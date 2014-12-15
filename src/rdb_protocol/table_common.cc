@@ -52,7 +52,7 @@ void rcheck_row_replacement(
 
 ql::datum_t make_row_replacement_stats(
         const datum_string_t &primary_key_name,
-        const store_key_t &primary_key_value,
+        DEBUG_VAR const store_key_t &primary_key_value,
         ql::datum_t old_row,
         ql::datum_t new_row,
         return_changes_t return_changes,

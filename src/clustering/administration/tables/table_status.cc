@@ -2,7 +2,7 @@
 #include "clustering/administration/tables/table_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
@@ -10,10 +10,10 @@ table_status_artificial_table_backend_t::table_status_artificial_table_backend_t
             watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                 namespace_directory_metadata_t> *_directory_view,
             admin_identifier_format_t _identifier_format,
-            server_name_client_t *_name_client) :
+            server_config_client_t *_server_config_client) :
         common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
         directory_view(_directory_view),
-        name_client(_name_client),
+        server_config_client(_server_config_client),
         directory_subs(directory_view,
             [this](const std::pair<peer_id_t, namespace_id_t> &key,
                    const namespace_directory_metadata_t *) {
@@ -199,7 +199,7 @@ ql::datum_t convert_table_status_shard_to_datum(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
         admin_identifier_format_t identifier_format,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         const write_ack_config_checker_t &ack_checker,
         table_readiness_t *readiness_out) {
     /* `server_states` will contain one entry per connected server. That entry will be a
@@ -214,7 +214,7 @@ ql::datum_t convert_table_status_shard_to_datum(
             }
             /* Translate peer ID to server ID */
             boost::optional<server_id_t> server_id =
-                name_client->get_server_id_for_peer_id(key.first);
+                server_config_client->get_server_id_for_peer_id(key.first);
             if (!static_cast<bool>(server_id)) {
                 /* This can occur as a race condition if the peer has just connected or just
                 disconnected */
@@ -240,8 +240,8 @@ ql::datum_t convert_table_status_shard_to_datum(
     std::set<server_id_t> servers_for_acks;
     bool has_director = false;
     ql::datum_t director_name_or_uuid;
-    if (convert_server_id_to_datum(shard.director, identifier_format, name_client,
-            &director_name_or_uuid, nullptr)) {
+    if (convert_server_id_to_datum(shard.director, identifier_format,
+            server_config_client, &director_name_or_uuid, nullptr)) {
         array_builder.add(convert_director_status_to_datum(
             director_name_or_uuid,
             server_states.count(shard.director) == 1 ?
@@ -268,7 +268,7 @@ ql::datum_t convert_table_status_shard_to_datum(
             continue;
         }
         ql::datum_t replica_name_or_uuid;
-        if (!convert_server_id_to_datum(replica, identifier_format, name_client,
+        if (!convert_server_id_to_datum(replica, identifier_format, server_config_client,
                 &replica_name_or_uuid, nullptr)) {
             /* Replica was permanently removed. It won't show up in `table_config`. So
             we act as if it wasn't in `shard.replicas`. */
@@ -293,15 +293,15 @@ ql::datum_t convert_table_status_shard_to_datum(
     }
 
     std::multimap<name_string_t, server_id_t> other_names =
-        name_client->get_name_to_server_id_map()->get();
+        server_config_client->get_name_to_server_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (already_handled.count(it->second) == 1) {
             /* Don't overwrite a director or replica entry */
             continue;
         }
         ql::datum_t server_name_or_uuid;
-        if (!convert_server_id_to_datum(it->second, identifier_format, name_client,
-                &server_name_or_uuid, nullptr)) {
+        if (!convert_server_id_to_datum(it->second, identifier_format,
+                server_config_client, &server_name_or_uuid, nullptr)) {
             /* In general this won't happen; if a server was permanently deleted, it
             won't show up in `get_name_to_server_id_map()`. But this might be possible
             due to a race condition. */
@@ -353,7 +353,7 @@ ql::datum_t convert_table_status_to_datum(
                         namespace_directory_metadata_t> *dir,
         admin_identifier_format_t identifier_format,
         const servers_semilattice_metadata_t &server_md,
-        server_name_client_t *name_client,
+        server_config_client_t *server_config_client,
         table_readiness_t *readiness_out) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
@@ -373,7 +373,7 @@ ql::datum_t convert_table_status_to_datum(
                 repli_info.config.shards[i],
                 dir,
                 identifier_format,
-                name_client,
+                server_config_client,
                 ack_checker,
                 &this_shard_readiness));
         readiness = std::min(readiness, this_shard_readiness);
@@ -415,7 +415,7 @@ bool table_status_artificial_table_backend_t::format_row(
         directory_view,
         identifier_format,
         semilattice_view->get().servers,
-        name_client,
+        server_config_client,
         nullptr);
     return true;
 }
@@ -466,7 +466,7 @@ table_wait_result_t wait_for_table_readiness(
             ql::datum_t row = convert_table_status_to_datum(table_name, db_name_or_uuid,
                 table_id, it->second.get_ref().replication_info.get_ref(),
                 backend->directory_view, backend->identifier_format,
-                backend->semilattice_view->get().servers, backend->name_client,
+                backend->semilattice_view->get().servers, backend->server_config_client,
                 &readiness);
 
             if (readiness >= wait_readiness) {

@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-import datetime, os, random, re, socket, sys, tempfile, threading, time, unittest
+import datetime, os, random, re, socket, sys, tempfile, threading, time, traceback, unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
@@ -95,7 +95,7 @@ class TestCaseCompatible(unittest.TestCase):
         try:
             callable_func(*args, **kwds)
         except Exception as e:
-            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e)))
+            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s\n%s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e), traceback.format_exc()))
             self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
         else:
             self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))            
@@ -212,7 +212,7 @@ class TestPrivateServer(TestCaseCompatible):
             if cls.authKey is not None:
                 conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
                 result = r.db('rethinkdb').table('cluster_config').update({'auth_key':cls.authKey}).run(conn)
-                if result != {u'skipped': 0, u'deleted': 0, u'unchanged': 0, u'errors': 0, u'replaced': 1, u'inserted': 0}:
+                if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
                     raise Exception('Unable to set authkey, got: %s' % str(result))
     
     @classmethod
@@ -280,6 +280,7 @@ class TestAuthConnection(TestPrivateServer):
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="")
         self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter3")
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter22")
     
     def test_connect_long_auth(self):
         long_key = str("k") * 2049

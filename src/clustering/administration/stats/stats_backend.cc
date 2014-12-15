@@ -10,12 +10,12 @@ stats_artificial_table_backend_t::stats_artificial_table_backend_t(
                 &_directory_view,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
-        server_name_client_t *_name_client,
+        server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager,
         admin_identifier_format_t _admin_format) :
     directory_view(_directory_view),
     cluster_sl_view(_cluster_sl_view),
-    name_client(_name_client),
+    server_config_client(_server_config_client),
     mailbox_manager(_mailbox_manager),
     admin_format(_admin_format) { }
 
@@ -27,8 +27,8 @@ std::string stats_artificial_table_backend_t::get_primary_key_name() {
     return std::string("id");
 }
 
-// Since this is called through pmap, it will not throw an `interrupted_exc_t`,
-// instead, result_out will be uninitialized.
+// Since this is called through pmap, it will not throw an `interrupted_exc_t`. Instead,
+// the behavior is undefined if `interruptor` is pulsed.
 void stats_artificial_table_backend_t::get_peer_stats(
         const peer_id_t &peer,
         const std::set<std::vector<std::string> > &filter,
@@ -45,24 +45,15 @@ void stats_artificial_table_backend_t::get_peer_stats(
         });
 
     if (!request_addr.is_nil()) {
-        // Create response mailbox
-        cond_t done;
-        mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
-            [&](signal_t *, ql::datum_t stats) {
-                *result_out = stats;
-                done.pulse_if_not_already_pulsed();
-            });
-
-        // Send request
-        send(mailbox_manager, request_addr, return_mailbox.get_address(), filter);
-
-        signal_timer_t timer_interruptor;
-        timer_interruptor.start(5000);
-        wait_any_t combined_interruptor(interruptor, &timer_interruptor);
         try {
-            wait_interruptible(&done, &combined_interruptor);
+            std::string dummy_error;
+            if (!fetch_stats_from_server(mailbox_manager, request_addr, filter, interruptor,
+                    result_out, &dummy_error)) {
+                /* Signal an error with an empty `datum_t` */
+                *result_out = ql::datum_t();
+            }
         } catch (const interrupted_exc_t &) {
-            // No response after timeout - we return an uninitialized result
+            /* It doesn't matter what we return */
         }
     }
 }
@@ -88,11 +79,12 @@ void stats_artificial_table_backend_t::perform_stats_request(
 void maybe_append_result(const stats_request_t &request,
                          const parsed_stats_t &parsed_stats,
                          const cluster_semilattice_metadata_t &metadata,
-                         server_name_client_t *name_client,
+                         server_config_client_t *server_config_client,
                          admin_identifier_format_t admin_format,
                          std::vector<ql::datum_t> *rows_out) {
     ql::datum_t row;
-    if (request.to_datum(parsed_stats, metadata, name_client, admin_format, &row)) {
+    if (request.to_datum(parsed_stats, metadata, server_config_client, admin_format,
+            &row)) {
         rows_out->push_back(row);
     }
 }
@@ -107,7 +99,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
 
     std::set<std::vector<std::string> > filter = stats_request_t::global_stats_filter();
     std::vector<std::pair<server_id_t, peer_id_t> > peers =
-        stats_request_t::all_peers(name_client);
+        stats_request_t::all_peers(server_config_client);
 
     // Save the metadata from when we sent the requests to avoid race conditions
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
@@ -118,23 +110,23 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
 
     // Start building results
     rows_out->clear();
-    maybe_append_result(cluster_stats_request_t(),
-                        parsed_stats, metadata, name_client, admin_format, rows_out);
+    maybe_append_result(cluster_stats_request_t(), parsed_stats, metadata,
+        server_config_client, admin_format, rows_out);
 
     for (auto const &server_pair : metadata.servers.servers) {
         if (server_pair.second.is_deleted()) {
             continue;
         }
-        maybe_append_result(server_stats_request_t(server_pair.first),
-                            parsed_stats, metadata, name_client, admin_format, rows_out);
+        maybe_append_result(server_stats_request_t(server_pair.first), parsed_stats,
+            metadata, server_config_client, admin_format, rows_out);
     }
 
     for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
         if (table_pair.second.is_deleted()) {
             continue;
         }
-        maybe_append_result(table_stats_request_t(table_pair.first),
-                            parsed_stats, metadata, name_client, admin_format, rows_out);
+        maybe_append_result(table_stats_request_t(table_pair.first), parsed_stats,
+            metadata, server_config_client, admin_format, rows_out);
     }
 
     for (auto const &server_pair : metadata.servers.servers) {
@@ -147,7 +139,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
             }
             maybe_append_result(
                 table_server_stats_request_t(table_pair.first, server_pair.first),
-                parsed_stats, metadata, name_client, admin_format, rows_out);
+                parsed_stats, metadata, server_config_client, admin_format, rows_out);
         }
     }
 
@@ -200,13 +192,13 @@ bool stats_artificial_table_backend_t::read_row(
         return true;
     }
 
-    perform_stats_request(request->get_peers(name_client),
+    perform_stats_request(request->get_peers(server_config_client),
                           request->get_filter(),
                           &results_map,
                           &ct_interruptor);
 
     parsed_stats_t parsed_stats(results_map);
-    bool to_datum_res = request->to_datum(parsed_stats, metadata, name_client,
+    bool to_datum_res = request->to_datum(parsed_stats, metadata, server_config_client,
                                           admin_format, row_out);
 
      // The stats request target should have been located earlier in `check_existence`

@@ -60,7 +60,10 @@ void jobs_manager_t::on_get_job_reports(
                 for (auto const &query
                         : *rdb_context->get_query_jobs_for_this_thread()) {
                     job_reports_inner.emplace_back(
-                        query.first, "query", time - std::min(query.second, time));
+                        query.first,
+                        "query",
+                        time - std::min(query.second.start_time, time),
+                        query.second.client_addr_port);
                 }
             }
         }
