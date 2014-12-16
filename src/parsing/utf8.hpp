@@ -98,8 +98,10 @@ public:
     bool is_done() const { return seen_end; }
 
     bool saw_error() {
-        return *(reason.explanation) == 0;
+        return *(reason.explanation) != 0;
     }
+
+    const reason_t & error_explanation() const { return reason; }
 };
 
 typedef iterator_t<std::string::const_iterator> string_iterator_t;
