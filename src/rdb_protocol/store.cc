@@ -1011,6 +1011,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                       &tester, delete_range.range.inner,
                                                       superblock.get(), &deletion_context,
                                                       interruptor, 0, &mod_reports);
+        /* Since we passed 0 as `max_keys_to_erase`, which means unlimited, we
+           should always get done_traversing_t::YES here.*/
         guarantee(res == done_traversing_t::YES);
         superblock.reset();
         if (!mod_reports.empty()) {
