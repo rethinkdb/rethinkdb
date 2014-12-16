@@ -251,10 +251,7 @@ std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
 std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
         server_config_client_t *server_config_client) {
     std::vector<std::pair<server_id_t, peer_id_t> > res;
-    for (auto const &pair :
-            server_config_client->get_server_id_to_peer_id_map()->get()) {
-        res.push_back(pair);
-    }
+    // TODO: get a list of peers by server id
     return res;
 }
 
