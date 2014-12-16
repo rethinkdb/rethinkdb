@@ -15,20 +15,20 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "rdb_protocol/configured_limits.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
-#include "rdb_protocol/geo/ellipsoid.hpp"
-#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/erase_range.hpp"
+#include "rdb_protocol/geo/ellipsoid.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rdb_protocol/shards.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class store_t;
@@ -313,7 +313,7 @@ public:
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
 
 // `dummy_read_t` can be used to poll for table readiness - it will go through all
-// the clustering and reactor layers, but is a no-op in the protocol layer.  
+// the clustering and reactor layers, but is a no-op in the protocol layer.
 class dummy_read_t {
 public:
     dummy_read_t() : region(region_t::universe()) { }
@@ -774,7 +774,7 @@ public:
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
 // `dummy_write_t` can be used to poll for table readiness - it will go through all
-// the clustering and reactor layers, but is a no-op in the protocol layer.  
+// the clustering and reactor layers, but is a no-op in the protocol layer.
 class dummy_write_t {
 public:
     dummy_write_t() : region(region_t::universe()) { }

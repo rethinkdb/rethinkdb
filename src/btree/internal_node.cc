@@ -364,7 +364,7 @@ int nodecmp(const internal_node_t *node1, const internal_node_t *node2) {
     const btree_key_t *key1 = &get_pair_by_index(node1, 0)->key;
     const btree_key_t *key2 = &get_pair_by_index(node2, 0)->key;
 
-    return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+    return btree_key_cmp(key1, key2);
 }
 
 namespace impl {
@@ -457,7 +457,7 @@ void make_last_pair_special(internal_node_t *node) {
 
 
 bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
-    return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
+    return btree_key_cmp(key1, key2) == 0;
 }
 
 }  // namespace impl
