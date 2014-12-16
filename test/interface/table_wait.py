@@ -23,7 +23,7 @@ tables = ["table1", "table2", "table3"]
 delete_table = "delete"
 
 def check_table_states(conn, ready):
-    statuses = r.db(db).table_status(r.args(tables)).run(conn)
+    statuses = r.expr(tables).map(r.db(db).table(r.row).status()).run(conn)
     return all(map(lambda s: (s["status"]['ready_for_writes'] == ready), statuses))
 
 def wait_for_table_states(conn, ready):
@@ -35,15 +35,18 @@ def create_tables(conn):
     r.db(db).table_create(delete_table).run(conn) # An extra table to be deleted during a wait
     r.db(db).table_list().for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).reconfigure(shards=2, replicas=2).run(conn)
-    statuses = r.db(db).table_wait().run(conn)
+    r.db(db).wait().run(conn)
     assert check_table_states(conn, ready=True), \
         "Wait after reconfigure returned before tables were ready, statuses: %s" % str(statuses)
 
-def spawn_table_wait(port, tbls):
-    def do_table_wait(port, tbls, done_event):
+def spawn_table_wait(port, tbl):
+    def do_table_wait(port, tbl, done_event):
         conn = r.connect("localhost", port)
         try:
-            r.db(db).table_wait(r.args(tbls)).run(conn)
+            if tbl is None:
+                r.db(db).wait().run(conn)
+            else:
+                r.db(db).table(tbl).wait().run(conn)
         finally:
             done_event.set()
 
@@ -78,13 +81,13 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     print("Testing simple table (several times) (%.2fs)" % (time.time() - startTime))
     for i in xrange(5):
         res = r.db(db).table_create("simple").run(conn)
-        assert res == {"created": 1}
+        assert res["tables_created"] == 1
         r.db(db).table("simple").reconfigure(shards=12, replicas=1).run(conn)
-        r.db(db).table_wait("simple").run(conn)
+        r.db(db).table("simple").wait().run(conn)
         count = r.db(db).table("simple").count().run(conn)
         assert count == 0
         res = r.db(db).table_drop("simple").run(conn)
-        assert res == {"dropped": 1}
+        assert res["tables_dropped"] == 1
 
     print("Creating %d tables (%.2fs)" % (len(tables) + 1, time.time() - startTime))
     create_tables(conn)
@@ -93,14 +96,16 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     proc2.close()
 
     wait_for_table_states(conn, ready=False)
-    waiter_procs = [ spawn_table_wait(proc1.driver_port, [tables[0]]),            # Wait for one table
-                     spawn_table_wait(proc1.driver_port, [tables[1], tables[2]]), # Wait for two tables
-                     spawn_table_wait(proc1.driver_port, []) ]                    # Wait for all tables
+    waiter_procs = [
+        spawn_table_wait(proc1.driver_port, tables[0]),
+        spawn_table_wait(proc1.driver_port, tables[1]),
+        spawn_table_wait(proc1.driver_port, None)   # Wait on all tables
+        ]
 
     def wait_for_deleted_table(port, db, table):
         c = r.connect("localhost", port)
         try:
-            r.db(db).table_wait(table).run(c)
+            r.db(db).table(table).wait().run(c)
             raise RuntimeError("`table_wait` did not error when waiting on a deleted table.")
         except r.RqlRuntimeError as ex:
             assert ex.message == "Table `%s.%s` does not exist." % (db, table), \
@@ -121,7 +126,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Waiting for table readiness (%.2fs)" % (time.time() - startTime))
     map(lambda w: w.join(), waiter_procs)
-    assert check_table_states(conn, ready=True), "`table_wait` returned, but not all tables are ready"
+    assert check_table_states(conn, ready=True), "`wait` returned, but not all tables are ready"
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

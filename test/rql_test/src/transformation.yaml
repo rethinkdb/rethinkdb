@@ -4,11 +4,11 @@ tests:
 
     # Set up some data
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl2 = r.db('test').table('test2')
 
     - cd: r.db('test').table_create('test3')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl3 = r.db('test').table('test3')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
@@ -542,6 +542,6 @@ tests:
 
     # Clean up
     - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - cd: r.db('test').table_drop('test3')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

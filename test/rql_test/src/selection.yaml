@@ -4,11 +4,11 @@ tests:
 
     # Set up some more tables
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl2 = r.db('test').table('test2')
 
     - cd: r.db('test').table_create('test3')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl3 = r.db('test').table('test3')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
@@ -146,7 +146,7 @@ tests:
     - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({'foo':10,'a':10})
@@ -314,5 +314,5 @@ tests:
     # Clean up
     - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
       rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':3})
+      ot: partial({'tables_dropped':3})
 

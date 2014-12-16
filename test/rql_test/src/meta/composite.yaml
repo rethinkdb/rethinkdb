@@ -3,7 +3,7 @@ tests:
 
     # Remove the stupid test database
     - cd: r.db_drop('test')
-      ot: ({'dbs_dropped':1,'tables_dropped':0,'config_changes':arrlen(1)})
+      ot: partial({'dbs_dropped':1})
 
     - py: r.expr([1,2,3]).for_each(r.db_create('db_' + r.row.coerce_to('string')))
       ot: ({'dbs_created':3,'config_changes':arrlen(3)})
@@ -12,11 +12,11 @@ tests:
         r.db_list().set_difference(["rethinkdb"]).for_each(lambda db_name:
             r.expr([1,2,3]).for_each(lambda i:
                 r.db(db_name).table_create('tbl_' + i.coerce_to('string'))))
-      ot: ({'tables_created':9,'config_changes':arrlen(9)})
+      ot: partial({'tables_created':9})
 
     - py: r.db_list().set_difference(["rethinkdb"]).for_each(r.db_drop(r.row))
-      ot: ({'dbs_dropped':3,'tables_dropped':9,'config_changes':arrlen(3)})
+      ot: partial({'dbs_dropped':3,'tables_dropped':9})
 
     # Re-add stupid 'test' database
     - cd: r.db_create('test')
-      ot: ({'dbs_created':1,'config_changes':arrlen(1)})
+      ot: partial(({'dbs_created':1})

@@ -8,26 +8,26 @@ tests:
 
     # Table create
     - cd: db.table_create('a')
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_list()
       ot: ['a']
 
     - cd: db.table_create('b')
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_list()
       ot: bag(['a', 'b'])
 
     # Table drop
     - cd: db.table_drop('a')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_list()
       ot: ['b']
 
     - cd: db.table_drop('b')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_list()
       ot: []
@@ -36,50 +36,50 @@ tests:
     - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
       js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
       rb: db.table_create('ab', {:primary_key => 'bar', :shards => 1, :replicas => 1})
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_drop('ab')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     - py: db.table_create('ab', primary_key='bar', director_tag='default')
       js: db.tableCreate('ab', {primary_key:'bar', directorTag:'default'})
       rb: db.table_create('ab', {:primary_key => 'bar', :director_tag => 'default'})
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_drop('ab')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     # Table reconfigure
     - cd: db.table_create('a')
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - py: db.table('a').reconfigure(shards=1, replicas=1)
       js: db.table('a').reconfigure({shards:1, replicas:1})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 1)
-      ot: ({'reconfigured':1,'config_changes':arrlen(1),'status_changes':arrlen(1)})
+      ot: partial({'reconfigured':1})
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, director_tag='default')
       js: db.table('a').reconfigure({shards:1, replicas:{default:1}, director_tag:'default'})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :director_tag => 'default')
-      ot: ({'reconfigured':1,'config_changes':arrlen(1),'status_changes':arrlen(1)})
+      ot: partial({'reconfigured':1})
 
     - py: db.table('a').reconfigure(shards=1, replicas=1, dry_run=True)
       js: db.table('a').reconfigure({shards:1, replicas:1, dry_run:true})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :dry_run => true)
-      ot: ({'reconfigured':0,'config_changes':arrlen(1)})
+      ot: partial({'reconfigured':0})
 
     - cd: db.table_drop('a')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     # Table errors
     - cd: db.table_create('foo')
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_create('foo')
       ot: err('RqlRuntimeError', 'Table `test.foo` already exists.', [0])
 
     - cd: db.table_drop('foo')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `test.foo` does not exist.', [0])
@@ -99,7 +99,7 @@ tests:
 
     # Table reconfigure errors
     - cd: db.table_create('a')
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - py: db.table('a').reconfigure(shards=0, replicas=1)
       js: db.table('a').reconfigure({shards:0, replicas:1})
@@ -139,7 +139,7 @@ tests:
     - py: db.table('a').reconfigure(shards=2, replicas=1)
       js: db.table('a').reconfigure({shards:2, replicas:1})
       rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
-      ot: ({'reconfigured':1,'config_changes':arrlen(1),'status_changes':arrlen(1)})
+      ot: partial({'reconfigured':1})
 
     - cd: db.table('a').wait()
 
@@ -152,7 +152,7 @@ tests:
     - py: db.table('a').reconfigure(shards=2, replicas=1)
       js: db.table('a').reconfigure({shards:2, replicas:1})
       rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
-      ot: ({'reconfigured':1,'config_changes':arrlen(1),'status_changes':arrlen(1)})
+      ot: partial({'reconfigured':1})
 
     - py: db.table('a').reconfigure(shards=1, replicas=2)
       js: db.table('a').reconfigure({shards:1, replicas:2})
@@ -164,22 +164,22 @@ tests:
 
     # Test wait and rebalance
     - cd: db.table('a').wait()
-      ot: ({'waited':1,'status_changes':arrlen(1)})
+      ot: partial({'waited':1})
     - cd: db.table('a').rebalance()
-      ot: ({'rebalanced':1,'status_changes':arrlen(1)})
+      ot: partial({'rebalanced':1})
 
     - cd: db.wait()
-      ot: ({'waited':1,'status_changes':arrlen(1)})
+      ot: partial({'waited':1})
     - cd: db.rebalance()
-      ot: ({'rebalanced':1,'status_changes':arrlen(1)})
+      ot: partial({'rebalanced':1})
 
     - cd: r.wait()
-      ot: ({'waited':1,'status_changes':arrlen(1)})
+      ot: partial({'waited':1})
     - cd: r.rebalance()
-      ot: ({'rebalanced':1,'status_changes':arrlen(1)})
+      ot: partial({'rebalanced':1})
 
     - cd: db.table_drop('a')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     # Reconfiguring all tables in a database
     - cd: db.table_create('a')
@@ -209,27 +209,27 @@ tests:
     - py: db.reconfigure(shards=2, replicas=1)
       js: db.reconfigure({shards:2, replicas:1})
       rb: db.reconfigure(:shards => 2, :replicas => 1)
-      ot: {'reconfigured':3,'config_changes':arrlen(3),'status_changes':arrlen(3)}
+      ot: partial({'reconfigured':3})
 
     - cd: db.table_drop('a')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
     - cd: db.table_drop('b')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
     - cd: db.table_drop('c')
-      ot: ({'tables_dropped':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_dropped':1})
 
     # table_config and table_status porcelains
     - cd: r.db_create("test2")
-      ot: ({'dbs_created':1,'config_changes':arrlen(1)})
+      ot: partial({'dbs_created':1})
 
     - def: db2 = r.db("test2")
 
     - cd: db.table_create("testA")
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
     - cd: db.table_create("testB")
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
     - cd: db2.table_create("test2B")
-      ot: ({'tables_created':1,'config_changes':arrlen(1)})
+      ot: partial({'tables_created':1})
 
     - cd: r.table('testA').config().pluck('db','name')
       ot: {'db':'test','name':'testA'}
@@ -265,4 +265,4 @@ tests:
       ot: 0
 
     - cd: r.db_drop('test2')
-      ot: ({'dbs_dropped':1,'tables_dropped':3,'config_changes':arrlen(1)})
+      ot: partial({'dbs_dropped':1,'tables_dropped':3})

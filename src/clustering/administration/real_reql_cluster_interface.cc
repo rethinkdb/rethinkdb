@@ -806,7 +806,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
-    ql::datum_t combined_stats;
+    ql::datum_t combined_stats = ql::datum_t::empty_object();
     for (const auto &pair : cluster_md.rdb_namespaces->namespaces) {
         if (!pair.second.is_deleted() &&
                 pair.second.get_ref().database.get_ref() == db->id) {
@@ -916,7 +916,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
     cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
-    ql::datum_t combined_stats;
+    ql::datum_t combined_stats = ql::datum_t::empty_object();
     for (const auto &pair : cluster_md.rdb_namespaces->namespaces) {
         if (!pair.second.is_deleted() &&
                 pair.second.get_ref().database.get_ref() == db->id) {

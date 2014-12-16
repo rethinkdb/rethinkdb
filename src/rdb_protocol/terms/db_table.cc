@@ -325,7 +325,7 @@ private:
         `.order_by()` on this table */
         std::string error;
         scoped_ptr_t<val_t> selection;
-        if (!env->env->reql_cluster_interface()->table_config(
+        if (!env->env->reql_cluster_interface()->table_status(
                 table->db, name, backtrace(), env->env, &selection, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }

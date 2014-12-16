@@ -2,9 +2,9 @@ desc: Issue #469: add pkey term
 tests:
 
   - cd: r.db_create('d469')
-    ot: ({'created':1})
+    ot: partial({'dbs_created':1})
   - cd: r.db('d469').table_create('t469')
-    ot: ({'created':1})
+    ot: partial({'tables_created':1})
   - cd: r.db('d469').table('t469').index_create('x')
     ot: ({'created':1})
   - cd: r.db('d469').table('t469').index_wait('x').pluck('index', 'ready')
@@ -55,4 +55,4 @@ tests:
     ot: ({'type':'STREAM'})
 
   - cd: r.db_drop('d469')
-    ot: ({'dropped':1})
+    ot: partial({'dbs_dropped':1})

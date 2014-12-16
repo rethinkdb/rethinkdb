@@ -81,16 +81,16 @@ with driver.Metacluster() as metacluster:
 
     print("Creating database...")
     res = r.db_create("test").run(conn)
-    assert res == {"created": 1}, res
+    assert res["dbs_created"] == 1, res
     check(["db_config"], 1.0)
 
     print("Creating table...")
     res = r.table_create("test").run(conn)
-    assert res == {"created": 1}, res
-    res = r.table_config("test") \
+    assert res["tables_created"] == 1, res
+    res = r.table("test").config() \
            .update({"shards": [{"director": "a", "replicas": ["a", "b"]}]}).run(conn)
     assert res["errors"] == 0, res
-    r.table_wait("test").run(conn)
+    r.table("test").wait().run(conn)
     check(["table_config", "table_status"], 1.0)
 
     print("Renaming server...")

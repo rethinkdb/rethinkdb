@@ -257,8 +257,8 @@ with driver.Metacluster() as metacluster:
     for name in table_names:
         info = { 'name': name }
         r.db(db).table_create(name, shards=2, replicas=1).run(conn)
-        info['db_id'] = r.db_config(db)[0]['id'].run(conn)
-        info['id'] = r.db(db).table_config(info['name'])[0]['id'].run(conn)
+        info['db_id'] = r.db(db).config()['id'].run(conn)
+        info['id'] = r.db(db).table(info['name']).config()['id'].run(conn)
         info['workload'] = multiprocessing.Process(target=read_write_workload, args=(servers[0]['process'].driver_port, name, stop_event))
         info['workload'].start()
         tables.append(info)

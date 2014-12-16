@@ -942,12 +942,6 @@ class DB(RqlTopLevelQuery):
     tt = pTerm.DB
     st = 'db'
 
-    def reconfigure(self, *args, **kwargs):
-        return Reconfigure(self, *args, **kwargs)
-
-    def rebalance(self, *args, **kwargs):
-        return Rebalance(self, *args, **kwargs)
-
     def table_list(self, *args):
         return TableList(self, *args)
 
@@ -956,6 +950,12 @@ class DB(RqlTopLevelQuery):
 
     def wait(self, *args):
         return Wait(self, *args)
+
+    def reconfigure(self, *args, **kwargs):
+        return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
 
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
@@ -1020,6 +1020,15 @@ class Table(RqlQuery):
 
     def index_wait(self, *args):
         return IndexWait(self, *args)
+
+    def status(self, *args):
+        return Status(self, *args)
+
+    def config(self, *args):
+        return Config(self, *args)
+
+    def wait(self, *args):
+        return Wait(self, *args)
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
