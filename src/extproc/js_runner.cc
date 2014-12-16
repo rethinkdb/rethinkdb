@@ -1,10 +1,13 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/js_runner.hpp"
 
+#include <inttypes.h>   // For PRIu64
+
 #include <map>
 
 #include "extproc/js_job.hpp"
 #include "time.hpp"
+#include "utils.hpp"
 
 const size_t js_runner_t::CACHE_SIZE = 100;
 
@@ -126,6 +129,23 @@ js_result_t js_runner_t::eval(const std::string &source,
 
     try {
         result = job_data->js_job.eval(source);
+    } catch (interrupted_exc_t const &e) {
+        bool is_timeout = job_data->js_timeout.get_signal()->is_pulsed();
+
+        // Sentry must be destroyed before the js_timeout
+        sentry.reset();
+        // This will mark the worker as errored so we don't try to re-sync with it
+        //  on the next line (since we're in a catch statement, we aren't allowed)
+        job_data->js_job.worker_error();
+        job_data.reset();
+
+        if (is_timeout) {
+            return strprintf(
+                "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                source.c_str(), config.timeout_ms / 1000, config.timeout_ms % 1000);
+        } else {
+            throw;
+        }
     } catch (...) {
         // Sentry must be destroyed before the js_timeout
         sentry.reset();
@@ -161,6 +181,23 @@ js_result_t js_runner_t::call(const std::string &source,
 
     try {
         result = job_data->js_job.call(*fn_id, args);
+    } catch (interrupted_exc_t const &e) {
+        bool is_timeout = job_data->js_timeout.get_signal()->is_pulsed();
+
+        // Sentry must be destroyed before the js_timeout
+        sentry.reset();
+        // This will mark the worker as errored so we don't try to re-sync with it
+        //  on the next line (since we're in a catch statement, we aren't allowed)
+        job_data->js_job.worker_error();
+        job_data.reset();
+
+        if (is_timeout) {
+            return strprintf(
+                "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                source.c_str(), config.timeout_ms / 1000, config.timeout_ms % 1000);
+        } else {
+            throw;
+        }
     } catch (...) {
         // Sentry must be destroyed before the js_timeout
         sentry.reset();

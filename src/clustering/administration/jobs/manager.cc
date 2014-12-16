@@ -8,8 +8,9 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/context.hpp"
 
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(jobs_manager_business_card_t,
-                                    get_job_reports_mailbox_address);
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
+                                    get_job_reports_mailbox_address,
+                                    job_interrupt_mailbox_address);
 
 const uuid_u jobs_manager_t::base_sindex_id =
     str_to_uuid("74d855a5-0c40-4930-a451-d1ce508ef2d2");
@@ -23,12 +24,16 @@ jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
                                       this, ph::_1, ph::_2)),
+    job_interrupt_mailbox(_mailbox_manager,
+                          std::bind(&jobs_manager_t::on_job_interrupt,
+                                    this, ph::_1, ph::_2)),
     server_id(_server_id) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
     business_card.get_job_reports_mailbox_address =
         get_job_reports_mailbox.get_address();
+    business_card.job_interrupt_mailbox_address = job_interrupt_mailbox.get_address();
     return business_card;
 }
 
@@ -96,4 +101,20 @@ void jobs_manager_t::on_get_job_reports(
     }
 
     send(mailbox_manager, reply_address, job_reports);
+}
+
+void jobs_manager_t::on_job_interrupt(
+        UNUSED signal_t *interruptor, uuid_u const &id) {
+    pmap(get_num_threads(), [&](int32_t threadnum) {
+        on_thread_t thread((threadnum_t(threadnum)));
+
+        if (rdb_context != nullptr) {
+            rdb_context_t::query_jobs_t *query_jobs =
+                rdb_context->get_query_jobs_for_this_thread();
+            rdb_context_t::query_jobs_t::const_iterator iterator = query_jobs->find(id);
+            if (iterator != query_jobs->end()) {
+                iterator->second.interruptor->pulse();
+            }
+        }
+    });
 }

@@ -7,6 +7,7 @@
 #include "arch/address.hpp"
 #include "btree/secondary_operations.hpp"
 #include "clustering/administration/datum_adapter.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -51,10 +52,14 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_report_t);
 
 class query_job_t {
 public:
-    query_job_t(microtime_t _start_time, ip_and_port_t const &_client_addr_port);
+    query_job_t(
+            microtime_t _start_time,
+            ip_and_port_t const &_client_addr_port,
+            cond_t *interruptor);
 
     microtime_t start_time;
     ip_and_port_t client_addr_port;
+    cond_t *interruptor;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */
