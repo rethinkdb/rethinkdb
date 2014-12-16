@@ -278,7 +278,7 @@ def setup_table table_variable_name, table_name
   end
   if DB_AND_TABLE_NAME == "no_table_specified"
     res = r.db("test").table_create(table_name).run($cpp_conn)
-    if res["created"] != 1
+    if res["tables_created"] != 1
       abort "Could not create table: #{res}"
     end
       $defines.eval("#{table_variable_name} = r.db('test').table('#{table_name}')")

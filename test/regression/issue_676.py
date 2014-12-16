@@ -39,12 +39,12 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     
     print("Splitting into two shards (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=2, replicas=2).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Merging shards together again (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=1).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

@@ -48,7 +48,7 @@ with driver.Cluster(initial_servers=opts["num-nodes"], output_folder='.', wait_u
     print("Splitting into %d shards (%.2fs)" % (opts["num-shards"], time.time() - startTime))
     
     r.db(dbName).table(tableName).reconfigure(shards=opts["num-shards"], replicas=1).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     
     print("Starting workload: %s (%.2fs)" % (opts["workload"], time.time() - startTime))
     

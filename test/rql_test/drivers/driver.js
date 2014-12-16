@@ -477,7 +477,7 @@ function setup_table(table_variable_name, table_name) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
-                    if (res.created != 1) {
+                    if (res.tables_created != 1) {
                         unexpectedException("setup_table", "table not created", res);
                     }
                     defines[table_variable_name] = r.db("test").table(table_name);

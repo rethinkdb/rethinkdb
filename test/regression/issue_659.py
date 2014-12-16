@@ -35,7 +35,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
 
     print("Increasing replication factor (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Inserting some data (%.2fs)" % (time.time() - startTime))
@@ -44,7 +44,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
 
     print("Decreasing replication factor (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=1).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Increasing replication factor again (%.2fs)" % (time.time() - startTime))

@@ -38,14 +38,14 @@ c = r.connect(host=serverHost, port=serverPort)
 
 if dbName not in r.db_list().run(c):
     res = r.db_create(dbName).run(c)
-    assert res["created"] == 1
+    assert res["tables_created"] == 1
 
 # ensure a clean table
 
 if tableName in r.db(dbName).table_list().run(c):
     r.db(dbName).table_drop(tableName).run(c)
 res = r.db(dbName).table_create(tableName).run(c)
-assert res["created"] == 1
+assert res["tables_created"] == 1
 
 tbl = r.db(dbName).table(tableName)
 

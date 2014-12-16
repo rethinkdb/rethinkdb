@@ -387,7 +387,7 @@ def setup_table(table_variable_name, table_name):
     atexit.register(_teardown_table)
     if DB_AND_TABLE_NAME == "no_table_specified":
         res = r.db("test").table_create(table_name).run(driver.cpp_conn)
-        assert res == {"created": 1}
+        assert res["tabless_created"] == 1
         globals()[table_variable_name] = r.db("test").table(table_name)
     else:
         db, table = DB_AND_TABLE_NAME.split(".")
