@@ -140,13 +140,13 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         peer_id_t peer;
         if (!static_cast<bool>(server_config_client->get_name_for_server_id(
-                info.config.shards[i].director))) {
+                info.config.shards[i].primary_replica))) {
             /* The server was permanently removed. `table_config` will show `null` in
-            the `director` field. Pick a random peer ID to make sure that the table acts
-            as though the director is missing. */
+            the `primary_replica` field. Pick a random peer ID to make sure that the
+            table acts as though the primary replica is missing. */
             peer = peer_id_t(generate_uuid());
         } else {
-            peer = trans.server_id_to_peer_id(info.config.shards[i].director);
+            peer = trans.server_id_to_peer_id(info.config.shards[i].primary_replica);
         }
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
@@ -172,7 +172,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
-            if (server != shard.director) {
+            if (server != shard.primary_replica) {
                 blueprint.add_role(
                     peer,
                     hash_region_t<key_range_t>(info.shard_scheme.get_shard_range(i)),

@@ -72,14 +72,14 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
     return count;
 }
 
-ql::datum_t convert_director_status_to_datum(
+ql::datum_t convert_primary_replica_status_to_datum(
         const ql::datum_t &name_or_uuid,
         const std::vector<reactor_activity_entry_t> *status,
-        bool *has_director_out) {
+        bool *has_primary_replica_out) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("server", name_or_uuid);
     const char *state;
-    *has_director_out = false;
+    *has_primary_replica_out = false;
     if (status == nullptr) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
@@ -91,7 +91,7 @@ ql::datum_t convert_director_status_to_datum(
             });
         if (masters == status->size()) {
             state = "ready";
-            *has_director_out = true;
+            *has_primary_replica_out = true;
         } else {
             size_t all_primaries = count_in_state<primary_t>(*status) +
                 count_in_state<primary_when_safe_t>(*status);
@@ -127,7 +127,7 @@ ql::datum_t convert_replica_status_to_datum(
         } else {
             tally += count_in_state<secondary_without_primary_t>(*status);
             if (tally == status->size()) {
-                state = "looking_for_director";
+                state = "looking_for_primary_replica";
                 *has_outdated_reader_out = true;
             } else {
                 tally += count_in_state<secondary_backfilling_t>(*status);
@@ -238,33 +238,34 @@ ql::datum_t convert_table_status_shard_to_datum(
     std::set<server_id_t> already_handled;
 
     std::set<server_id_t> servers_for_acks;
-    bool has_director = false;
-    ql::datum_t director_name_or_uuid;
-    if (convert_server_id_to_datum(shard.director, identifier_format,
-            server_config_client, &director_name_or_uuid, nullptr)) {
-        array_builder.add(convert_director_status_to_datum(
-            director_name_or_uuid,
-            server_states.count(shard.director) == 1 ?
-                &server_states[shard.director] : NULL,
-            &has_director));
-        already_handled.insert(shard.director);
-        if (has_director) {
-            servers_for_acks.insert(shard.director);
-            builder.overwrite("director", director_name_or_uuid);
+    bool has_primary_replica = false;
+    ql::datum_t primary_replica_name_or_uuid;
+    if (convert_server_id_to_datum(shard.primary_replica, identifier_format,
+            server_config_client, &primary_replica_name_or_uuid, nullptr)) {
+        array_builder.add(convert_primary_replica_status_to_datum(
+            primary_replica_name_or_uuid,
+            server_states.count(shard.primary_replica) == 1 ?
+                &server_states[shard.primary_replica] : NULL,
+            &has_primary_replica));
+        already_handled.insert(shard.primary_replica);
+        if (has_primary_replica) {
+            servers_for_acks.insert(shard.primary_replica);
+            builder.overwrite("primary_replica", primary_replica_name_or_uuid);
         }
     } else {
-        /* Director was permanently removed; in `table_config` the `director` field will
-        have a value of `null`. So we don't show a director entry in `table_status`. */
+        /* Primary replica was permanently removed; in `table_config` the
+        `primary_replica` field will have a value of `null`. So we don't show a primary
+        replica entry in `table_status`. */
     }
-    if (!has_director) {
-        builder.overwrite("director", ql::datum_t::null());
+    if (!has_primary_replica) {
+        builder.overwrite("primary_replica", ql::datum_t::null());
     }
 
     bool has_outdated_reader = false;
     bool is_unfinished = false;
     for (const server_id_t &replica : shard.replicas) {
         if (already_handled.count(replica) == 1) {
-            /* Don't overwrite the director's entry */
+            /* Don't overwrite the primary replica's entry */
             continue;
         }
         ql::datum_t replica_name_or_uuid;
@@ -296,7 +297,7 @@ ql::datum_t convert_table_status_shard_to_datum(
         server_config_client->get_name_to_server_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (already_handled.count(it->second) == 1) {
-            /* Don't overwrite a director or replica entry */
+            /* Don't overwrite a primary replica or replica entry */
             continue;
         }
         ql::datum_t server_name_or_uuid;
@@ -323,7 +324,7 @@ ql::datum_t convert_table_status_shard_to_datum(
 
     builder.overwrite("replicas", std::move(array_builder).to_datum());
 
-    if (has_director) {
+    if (has_primary_replica) {
         if (ack_checker.check_acks(servers_for_acks)) {
             if (!is_unfinished) {
                 *readiness_out = table_readiness_t::finished;

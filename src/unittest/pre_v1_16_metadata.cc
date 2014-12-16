@@ -70,7 +70,7 @@ void check_blueprint(
     for (size_t i = 0; i < shards.size(); ++i) {
         const table_config_t::shard_t &actual_shard = repli_info.config.shards[i];
         const std::vector<server_id_t> &expect_shard = shards[i];
-        guarantee(actual_shard.director == expect_shard[0]);
+        guarantee(actual_shard.primary_replica == expect_shard[0]);
         guarantee(actual_shard.replicas.size() == expect_shard.size());
         for (const server_id_t &server : expect_shard) {
             guarantee(actual_shard.replicas.count(server) == 1);

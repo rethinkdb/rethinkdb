@@ -56,7 +56,7 @@ public:
     class shard_t {
     public:
         std::set<server_id_t> replicas;
-        server_id_t director;
+        server_id_t primary_replica;
     };
     std::vector<shard_t> shards;
     write_ack_config_t write_ack_config;

@@ -36,7 +36,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         for (e_shard, f_shard) in zip(expected, found):
             if set(e_shard["replicas"]) != set(f_shard["replicas"]):
                 return False
-            if e_shard["director"] != f_shard["director"]:
+            if e_shard["primary_replica"] != f_shard["primary_replica"]:
                 return False
         return True
 
@@ -67,7 +67,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
                 if set(doc["server"] for doc in s_shard["replicas"]) != \
                         set(c_shard["replicas"]):
                     return False
-                if s_shard["director"] != c_shard["director"]:
+                if s_shard["primary_replica"] != c_shard["primary_replica"]:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard["replicas"]):
                     return False
@@ -141,18 +141,18 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         wait_until(check_status_matches_config)
         assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(xrange(10))
         print("OK (%.2fs)" % (time.time() - startTime))
-    test_shards([{"replicas": ["a"], "director": "a"}])
-    test_shards([{"replicas": ["b"], "director": "b"}])
-    test_shards([{"replicas": ["a", "b"], "director": "a"}])
+    test_shards([{"replicas": ["a"], "primary_replica": "a"}])
+    test_shards([{"replicas": ["b"], "primary_replica": "b"}])
+    test_shards([{"replicas": ["a", "b"], "primary_replica": "a"}])
     test_shards([
-        {"replicas": ["a"], "director": "a"},
-        {"replicas": ["b"], "director": "b"}
+        {"replicas": ["a"], "primary_replica": "a"},
+        {"replicas": ["b"], "primary_replica": "b"}
     ])
     test_shards([
-        {"replicas": ["a", "b"], "director": "a"},
-        {"replicas": ["a", "b"], "director": "b"}
+        {"replicas": ["a", "b"], "primary_replica": "a"},
+        {"replicas": ["a", "b"], "primary_replica": "b"}
     ])
-    test_shards([{"replicas": ["a"], "director": "a"}])
+    test_shards([{"replicas": ["a"], "primary_replica": "a"}])
 
     print("Testing that table_config rejects invalid input (%.2fs)" % (time.time() - startTime))
     def test_invalid(conf):
@@ -163,12 +163,12 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     test_invalid(r.row.merge({"shards": []}))
     test_invalid(r.row.merge({"shards": "this is a string"}))
     test_invalid(r.row.merge({"shards":
-        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}]}))
-    test_invalid(r.row.merge({"shards": [{"replicas": [], "director": None}]}))
-    test_invalid(r.row.merge({"shards": [{"replicas": ["a"], "director": "b"}]}))
+        [{"replicas": ["a"], "primary_replica": "a", "extra_key": "extra_value"}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": [], "primary_replica": None}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": ["a"], "primary_replica": "b"}]}))
     test_invalid(r.row.merge(
-        {"shards": [{"replicas": ["a"], "director": "b"},
-                    {"replicas": ["b"], "director": "a"}]}))
+        {"shards": [{"replicas": ["a"], "primary_replica": "b"},
+                    {"replicas": ["b"], "primary_replica": "a"}]}))
     test_invalid(r.row.merge({"primary_key": "new_primary_key"}))
     test_invalid(r.row.merge({"db": "new_db"}))
     test_invalid(r.row.merge({"extra_key": "extra_value"}))
@@ -211,12 +211,12 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         "name": "baz",
         "db": "test",
         "primary_key": "frob",
-        "shards": [{"replicas": ["a"], "director": "a"}]
+        "shards": [{"replicas": ["a"], "primary_replica": "a"}]
         }, "frob")
     test_create({
         "name": "baz2",
         "db": "test",
-        "shards": [{"replicas": ["a"], "director": "a"}]
+        "shards": [{"replicas": ["a"], "primary_replica": "a"}]
         }, "id")
     test_create({
         "name": "baz3",
@@ -238,28 +238,28 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
            .insert({
                "name": "idf_test",
                "db": db_uuid,
-               "shards": [{"replicas": [a_uuid], "director": a_uuid}]
+               "shards": [{"replicas": [a_uuid], "primary_replica": a_uuid}]
                }) \
            .run(conn)
     assert res["inserted"] == 1, repr(res)
     res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
-    assert res["shards"] == [{"replicas": [a_uuid], "director": a_uuid}], repr(res)
+    assert res["shards"] == [{"replicas": [a_uuid], "primary_replica": a_uuid}], repr(res)
     res = r.db("rethinkdb").table("table_config", identifier_format="name") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
-    assert res["shards"] == [{"replicas": ["a"], "director": "a"}], repr(res)
+    assert res["shards"] == [{"replicas": ["a"], "primary_replica": "a"}], repr(res)
     r.db(dbName).table_wait("idf_test").run(conn)
     res = r.db("rethinkdb").table("table_status", identifier_format="uuid") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": a_uuid, "state": "ready"}],
-        "director": a_uuid
+        "primary_replica": a_uuid
         }], repr(res)
     res = r.db("rethinkdb").table("table_status", identifier_format="name") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": "a", "state": "ready"}],
-        "director": "a"
+        "primary_replica": "a"
         }], repr(res)
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

@@ -53,7 +53,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     print("Explicitly adding server to the table (%.2fs)" % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server2.name, server1.name]}]})['errors'].run(conn1) == 0
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':server2.name, 'replicas':[server2.name, server1.name]}]})['errors'].run(conn1) == 0
     
     print("Waiting for backfill (%.2fs)" % (time.time() - startTime))
     
@@ -61,7 +61,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     print("Removing the first server from the table (%.2fs)" % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server2.name]}]})['errors'].run(conn1) == 0
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':server2.name, 'replicas':[server2.name]}]})['errors'].run(conn1) == 0
     r.db(dbName).table_wait().run(conn1)
     
     print("Shutting down first server (%.2fs)" % (time.time() - startTime))

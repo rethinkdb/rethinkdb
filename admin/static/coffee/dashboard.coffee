@@ -24,11 +24,11 @@ module 'DashboardView', ->
                 r.db(system_db).table('table_status').coerceTo("ARRAY"),
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
-                    num_primaries: table_config('shards').concatMap(identity)("director").count()
+                    num_primaries: table_config('shards').concatMap(identity)("primary_replica").count()
                     num_available_primaries: table_status.map((table) ->
                         table('shards').map((shard) ->
                             shard('replicas').filter((replica) ->
-                                replica('server').eq(shard('director').and(replica('state').eq('ready')))
+                                replica('server').eq(shard('primary_replica').and(replica('state').eq('ready')))
                             )
                         )
                     ).concatMap(identity).count()
@@ -52,7 +52,7 @@ module 'DashboardView', ->
                                 num_shards: table("shards").count()
                         ).map( (shard) ->
                             shard('replicas').filter (replica) ->
-                                replica("server").eq(shard('director')).and(replica("state").ne("ready"))
+                                replica("server").eq(shard('primary_replica')).and(replica("state").ne("ready"))
                         ).concatMap(identity).coerceTo('array')
                     ).filter (table) ->
                         table("shards").isEmpty().not()

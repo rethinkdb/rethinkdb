@@ -40,7 +40,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     
     print("Pinning database to only the first server (%.2fs)" % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':database_server.name, 'replicas':[database_server.name]}]}).run(conn)['errors'] == 0
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':database_server.name, 'replicas':[database_server.name]}]}).run(conn)['errors'] == 0
     r.db(dbName).table_wait().run(conn)
     cluster.check()
     assert [] == list(r.db('rethinkdb').table('issues').run(conn))

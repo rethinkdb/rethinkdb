@@ -124,7 +124,7 @@ module 'TableView', ->
                                     num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                                     num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                     num_shards: table("shards").count()
-                                    num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
+                                    num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "primary_replica", state: "ready"}).count()
                                 )
                             )
                         )

@@ -30,9 +30,8 @@ module 'TableView', ->
                             null,
                             table.merge(
                                 num_shards: table("shards").count()
-                                # TODO: replace with primary once "director" is out
                                 num_available_shards: table("shards").filter((shard) ->
-                                    shard('replicas')(shard('replicas')('server').indexesOf(shard('director'))(0))('state').eq('ready')
+                                    shard('replicas')(shard('replicas')('server').indexesOf(shard('primary_replica'))(0))('state').eq('ready')
                                     ).count()
                                 num_replicas: table("shards").concatMap( (shard) -> shard('replicas')).count()
                                 num_available_replicas: table("shards").concatMap((shard) ->
@@ -56,10 +55,10 @@ module 'TableView', ->
                                     id: position.add(1)
                                     num_keys: r.branch(master_down, 'N/A', r.db(table('db')).table(table('name')).info()('doc_count_estimates')(position))
                                     primary:
-                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("id")
-                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
+                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")}).nth(0)("id")
+                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica")
                                     replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
-                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director"))
+                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("primary_replica"))
                                     ).map (name) ->
                                         id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("id")
                                         name: name

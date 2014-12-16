@@ -58,7 +58,7 @@ with driver.Cluster(output_folder='.') as cluster:
         assert nl <= num_live and nd <= num_dead
         assert (primary == "l" and nl > 0) or (primary == "d" and nd > 0)
         replicas = live_names[:nl] + dead_names[:nd]
-        return {"replicas": replicas, "director": "%s1" % primary}
+        return {"replicas": replicas, "primary_replica": "%s1" % primary}
     def mkr(nl, nd, mode):
         """Helper function for constructing lists for `table_config.write_acks`. Returns
         an ack requirement with "nl" live replicas and "nd" dead ones, and the given mode
@@ -189,7 +189,7 @@ with driver.Cluster(output_folder='.') as cluster:
     print("Running auxiliary tests (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table_create("aux").run(conn)
     assert res["created"] == 1, res
-    res = r.db(dbName).table_config("aux").update({"shards": [{"director": "l1", "replicas": ["l1"]}]}).run(conn)
+    res = r.db(dbName).table_config("aux").update({"shards": [{"primary_replica": "l1", "replicas": ["l1"]}]}).run(conn)
     assert res["errors"] == 0, res
     r.db(dbName).table_wait("aux").run(conn)
     def test_ok(change):
@@ -217,8 +217,8 @@ with driver.Cluster(output_folder='.') as cluster:
     print("Checking that unsatisfiable write acks are rejected (%.2fs)" % (time.time() - startTime))
     test_ok({
         "shards": [
-            {"director": "l1", "replicas": ["l1", "l2", "l3"]},
-            {"director": "l1", "replicas": ["l1"]},
+            {"primary_replica": "l1", "replicas": ["l1", "l2", "l3"]},
+            {"primary_replica": "l1", "replicas": ["l1"]},
             ],
         "write_acks": "single"
         })

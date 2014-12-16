@@ -106,7 +106,7 @@ std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues()
         write_ack_config_checker_t ack_checker(config, md.servers);
         bool need_primary = false, data_loss = false, write_acks = false;
         for (const table_config_t::shard_t &shard : config.shards) {
-            if (md.servers.servers.at(shard.director).is_deleted()) {
+            if (md.servers.servers.at(shard.primary_replica).is_deleted()) {
                 need_primary = true;
             }
             std::set<server_id_t> replicas;
