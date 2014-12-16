@@ -523,7 +523,7 @@ void check_and_handle_split(value_sizer_t *sizer,
     }
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
-    if (0 >= sized_strcmp(key->contents, key->size, median->contents, median->size)) {
+    if (0 >= btree_key_cmp(key, median)) {
         // The key goes in the old buf (the left one).
 
         // Do nothing.

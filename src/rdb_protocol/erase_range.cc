@@ -141,14 +141,10 @@ private:
     static bool key_in_range(const btree_key_t *k,
                              const btree_key_t *left_excl,
                              const btree_key_t *right_incl) {
-        if (left_excl != NULL
-            && sized_strcmp(k->contents, k->size,
-                            left_excl->contents, left_excl->size) <= 0) {
+        if (left_excl != NULL && btree_key_cmp(k, left_excl) <= 0) {
             return false;
         }
-        if (right_incl != NULL
-            && sized_strcmp(right_incl->contents, right_incl->size,
-                            k->contents, k->size) < 0) {
+        if (right_incl != NULL && btree_key_cmp(right_incl, k) < 0) {
             return false;
         }
         return true;
@@ -164,11 +160,9 @@ private:
     static bool overlaps(const btree_key_t *x_l_excl, const btree_key_t *x_r_incl,
                          const btree_key_t *y_l_excl, const btree_key_t *y_r_incl) {
         return (x_l_excl == NULL || y_r_incl == NULL
-                || sized_strcmp(x_l_excl->contents, x_l_excl->size,
-                                y_r_incl->contents, y_r_incl->size) < 0)
+                || btree_key_cmp(x_l_excl, y_r_incl) < 0)
             && (x_r_incl == NULL || y_l_excl == NULL
-                || sized_strcmp(y_l_excl->contents, y_l_excl->size,
-                                x_r_incl->contents, x_r_incl->size) < 0);
+                || btree_key_cmp(y_l_excl, x_r_incl) < 0);
     }
 
     std::vector<store_key_t> collected_keys_;
