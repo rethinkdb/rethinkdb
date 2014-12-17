@@ -519,7 +519,7 @@ void broadcaster_t::pick_a_readable_dispatchee(
 
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary mirror should be always readable.");
+            "the primary replica mirror should be always readable.");
     }
 
     /* Prefer a local dispatchee (at the moment there always should be exactly one) */
@@ -549,7 +549,7 @@ void broadcaster_t::get_all_readable_dispatchees(
     proof->assert_is_holding(&mutex);
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary mirror should be always readable.");
+            "the primary replica mirror should be always readable.");
     }
 
     dispatchee_t *dispatchee = readable_dispatchees.head();

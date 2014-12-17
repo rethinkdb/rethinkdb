@@ -70,7 +70,7 @@ def check_data(conn):
     rows = list(sindex_cursor)
 
     if len(rows) != pkey_count or pkey_count != sindex_count:
-        print("ERROR: inconsistent row counts between the primary key and secondary index.")
+        print("ERROR: inconsistent row counts between the primary and secondary indexes.")
         print("  primary - %d" % pkey_count)
         print("  secondary - %d (%d)" % (sindex_count, len(rows)))
 

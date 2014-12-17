@@ -315,7 +315,7 @@ namespace_semilattice_metadata_t migrate_table(
                 if (!s->primary_replica.is_unset()) {
                     logERR("Metadata corruption detected when migrating to RethinkDB "
                         "1.16 format: table `%s.%s` has two different servers listed as "
-                        "primary for a single shard.",
+                        "primary replica for a single shard.",
                         db_name.c_str(), table_name.c_str());
                     /* Choose one primary arbitrarily. It's not the end of the world. */
                 }

@@ -29,8 +29,8 @@ private:
     ticks_t t;
 };
 
-// Because being primary for a shard usually comes with a higher cost than
-// being secondary, we want to consider that difference in the replica assignment.
+// Because being the primary replica for a shard usually comes with a higher cost than
+// being a secondary, we want to consider that difference in the replica assignment.
 // The concrete value of these doesn't matter, only their ratio
 // (float)PRIMARY_USAGE_COST/(float)SECONDARY_USAGE_COST is important.
 // As long as PRIMARY_USAGE_COST > SECONDARY_USAGE_COST, this is a solution to

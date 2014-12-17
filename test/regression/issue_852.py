@@ -49,7 +49,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     r.db(dbName).table_wait().run(conn)
     cluster.check()
 
-    print("Changing the primary (%.2fs)" % (time.time() - startTime))
+    print("Changing the primary replica (%.2fs)" % (time.time() - startTime))
     shards = [
         {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]},
         {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}

@@ -344,7 +344,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
     region_map_t<backfill_candidate_t> best_backfillers = region_map_transform<version_range_t, backfill_candidate_t>(metainfo, &reactor_t::make_backfill_candidate_from_version_range);
 
     /* This waits until every other peer is ready to accept us as the
-     * primary and there is a unique coherent latest verstion of the
+     * primary replica and there is a unique coherent latest verstion of the
      * data available. Note best_backfillers is passed as an
      * input/output parameter, after this call returns best_backfillers
      * will describe how to fill the store with the most up-to-date
@@ -430,7 +430,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
 
 void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
-        //Tell everyone that we're looking to become the primary
+        // Tell everyone that we're looking to become the primary replica for this region
         directory_entry_t directory_entry(this, region);
 
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore

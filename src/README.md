@@ -73,7 +73,7 @@ Data and shard consistency mechanisms using clustered mailboxes known as busines
 
 ##### clustering/immediate_consistency/branch
 Read/Write queries are sent to the primary server of a shard (master_t).
-The master_t forwards them to the brodcaster_t (primary) of that shard.
+The master_t forwards them to the brodcaster_t (primary replica) of that shard.
 The broadcaster_t sorts and distributes them to one or more listener_t,
 
 A listener_t is the cluster-facing interface of a replica for a single shard.

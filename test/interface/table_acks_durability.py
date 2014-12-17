@@ -51,14 +51,14 @@ with driver.Cluster(output_folder='.') as cluster:
     
     conn = r.connect(host=server.host, port=server.driver_port)
 
-    def mks(nl, nd, primary="l"):
+    def mks(nl, nd, primary_replica="l"):
         """Helper function for constructing entries for `table_config.shards`. Returns a
-        shard with "nl" live replicas and "nd" dead ones. The value of "primary"
+        shard with "nl" live replicas and "nd" dead ones. The value of "primary_replica"
         determines if the primary replica will be a live one or dead one."""
         assert nl <= num_live and nd <= num_dead
-        assert (primary == "l" and nl > 0) or (primary == "d" and nd > 0)
+        assert (primary_replica == "l" and nl > 0) or (primary_replica == "d" and nd > 0)
         replicas = live_names[:nl] + dead_names[:nd]
-        return {"replicas": replicas, "primary_replica": "%s1" % primary}
+        return {"replicas": replicas, "primary_replica": "%s1" % primary_replica}
     def mkr(nl, nd, mode):
         """Helper function for constructing lists for `table_config.write_acks`. Returns
         an ack requirement with "nl" live replicas and "nd" dead ones, and the given mode
@@ -74,7 +74,7 @@ with driver.Cluster(output_folder='.') as cluster:
     #     shut down, expressed as a string with the chars `a`, `w`, `r`, and/or `o`,
     #     which correspond to the four fields in the `status` group of `table_status`.
     #  4. The level of availability we expect after the "dead" servers have been
-    #     permanently removed and the primary (if dead) reassigned to a live server.
+    #     permanently removed and the primary replica (if dead) reassigned to a live server.
     tests = [
         ([mks(3, 0)], "single", "awro", "awro"),
         ([mks(0, 3, "d")], "single", "", ""),

@@ -11,7 +11,7 @@
 #include "store_view.hpp"
 
 
-/* Returns true if every peer listed as a primary for this shard in the
+/* Returns true if every peer listed as a primary replica for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
 bool reactor_t::is_safe_for_us_to_be_nothing(
@@ -104,7 +104,7 @@ void reactor_t::be_nothing(region_t region,
             will proceed as long as it can see *some* state for every other node, even if
             that state is a `nothing_t`. It won't consider us as a backfill source, but
             that's OK because we don't have any data so we would never be a better
-            backfill source than the primary node itself. */
+            backfill source than the primary replica itself. */
             if (have_data) {
                 /* We offer backfills while waiting for it to be safe to shutdown in case
                 another peer needs a copy of the data. */

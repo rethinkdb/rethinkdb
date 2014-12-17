@@ -115,7 +115,7 @@ public:
 RDB_MAKE_SERIALIZABLE_3(secondary_up_to_date_t, branch_id, replier, direct_reader);
 
 /* This peer would like to be a secondary but cannot because it failed to
- * find a primary. It may or may not have ever seen a primary. */
+ * find a primary replica. It may or may not have ever seen a primary. */
 class secondary_without_primary_t {
 public:
     secondary_without_primary_t(region_map_t<version_range_t> _current_state, backfiller_business_card_t _backfiller,
@@ -189,7 +189,7 @@ public:
 RDB_MAKE_SERIALIZABLE_0(nothing_when_done_erasing_t);
 
 /* This peer has no data for the shard, is not backfilling and is not a
- * primary or a secondary. */
+ * primary or secondary replica. */
 class nothing_t {
 public:
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_t);
