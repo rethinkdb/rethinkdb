@@ -1657,7 +1657,7 @@ leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &
     }
 }
 
-leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+leaf::reverse_iterator exclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
     if (index < leaf_node.num_pairs) {
@@ -1665,7 +1665,9 @@ leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_
         const btree_key_t *ekey = leaf::entry_key(entry);
         if (entry_is_live(entry) &&
             sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
-            return leaf_node_t::reverse_iterator(&leaf_node, index);
+            // We have to skip this entry to make the iterator exclusive,
+            // hence the ++.
+            return ++leaf_node_t::reverse_iterator(&leaf_node, index);
         }
     }
 
