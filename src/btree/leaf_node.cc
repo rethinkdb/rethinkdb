@@ -1631,10 +1631,10 @@ reverse_iterator &reverse_iterator::operator--() {
 
 bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
 bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
-bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
-bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
-bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
-bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ > other.inner_; }
+bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ >= other.inner_; }
+bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ <= other.inner_; }
 
 
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
