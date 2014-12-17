@@ -80,7 +80,12 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     # RSI(reql_admin): Once #2896 is implemented, make sure the server has an issue now
 
     print("Fixing the unbalanced table (%.2fs)" % (time.time() - startTime))
-    r.db(dbName).table("unbalanced").rebalance().run(conn)
+    status_before = r.db(dbName).table("unbalanced").status().run(conn)
+    res = r.db(dbName).table("unbalanced").rebalance().run(conn)
+    assert res["rebalanced"] == 1
+    assert len(res["status_changes"]) == 1
+    assert res["status_changes"][0]["old_val"] == status_before
+    assert res["status_changes"][0]["new_val"]["status"]["all_replicas_ready"] == False
     r.db(dbName).table("unbalanced").wait().run(conn)
     res = r.db(dbName).table("unbalanced").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)

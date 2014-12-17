@@ -30,6 +30,9 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
     assert list(r.db("rethinkdb").table("db_config").run(conn)) == []
     res = r.db_create("foo").run(conn)
     assert res["dbs_created"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] is None
+    assert res["config_changes"][0]["new_val"] == r.db("foo").config().run(conn)
 
     rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 1 and rows[0]["name"] == "foo"
@@ -50,8 +53,8 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
     assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
     bar_uuid = [row["id"] for row in rows if row["name"] == "bar"][0]
 
-    row = r.db("foo2").config().run(conn)
-    assert row["name"] == "foo2"
+    foo2_config = r.db("foo2").config().run(conn)
+    assert foo2_config["name"] == "foo2"
 
     try:
         rows = r.db("not_a_database").config().run(conn)
@@ -64,6 +67,13 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
            .run(conn)
     # This would cause a name conflict, so it should fail
     assert res["errors"] == 1
+
+    res = r.db_drop("foo2").run(conn)
+    assert res["dbs_dropped"] == 1
+    assert res["tables_dropped"] == 0
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] == foo2_config
+    assert res["config_changes"][0]["new_val"] is None
 
     res = r.db("rethinkdb").table("db_config").insert({"name": "baz"}).run(conn)
     assert res["errors"] == 0

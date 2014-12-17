@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-import multiprocessing, os, sys, time, traceback
+import multiprocessing, os, sys, time, traceback, pprint
 
 startTime = time.time()
 
@@ -46,18 +46,26 @@ def spawn_table_wait(port, tbl):
             if tbl is None:
                 r.db(db).wait().run(conn)
             else:
-                r.db(db).table(tbl).wait().run(conn)
+                old_status = r.db(db).table(tbl).status().run(conn)
+                res = r.db(db).table(tbl).wait().run(conn)
+                new_status = r.db(db).table(tbl).status().run(conn)
+                assert res["ready"] == 1
+                assert res["status_changes"] == \
+                    [{'old_val': old_status, 'new_val': new_status}]
         finally:
             done_event.set()
 
-    def do_post_write(port, tbls, start_event):
+    def do_post_write(port, tbl, start_event):
         conn = r.connect("localhost", port)
         start_event.wait()
-        r.expr(tbls).for_each(r.db(db).table(r.row).insert({})).run(conn)
+        if tbl is None:
+            r.db(db).table_list().for_each(r.db(db).table(r.row).insert({})).run(conn)
+        else:
+            r.db(db).table(tbl).insert({}).run(conn)
 
     sync_event = multiprocessing.Event()
-    wait_proc = multiprocessing.Process(target=do_table_wait, args=(port, tbls, sync_event))
-    write_proc = multiprocessing.Process(target=do_post_write, args=(port, tbls, sync_event))
+    wait_proc = multiprocessing.Process(target=do_table_wait, args=(port, tbl, sync_event))
+    write_proc = multiprocessing.Process(target=do_post_write, args=(port, tbl, sync_event))
     wait_proc.start()
     write_proc.start()
     return write_proc
@@ -94,14 +102,16 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Killing second server (%.2fs)" % (time.time() - startTime))
     proc2.close()
-
     wait_for_table_states(conn, ready=False)
+
+    print("Spawning waiters (%.2fs)" % (time.time() - startTime))
     waiter_procs = [
         spawn_table_wait(proc1.driver_port, tables[0]),
         spawn_table_wait(proc1.driver_port, tables[1]),
         spawn_table_wait(proc1.driver_port, None)   # Wait on all tables
         ]
 
+    print("Waiting on a deleted table (%.2fs)" % (time.time() - startTime))
     def wait_for_deleted_table(port, db, table):
         c = r.connect("localhost", port)
         try:
@@ -116,6 +126,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     r.db(db).table_drop(delete_table).run(conn)
     error_wait_proc.join()
 
+    print("Waiting 15 seconds (%.2fs)" % (time.time() - startTime))
     # Wait some time to make sure the wait doesn't return early
     waiter_procs[0].join(15)
     assert all(map(lambda w: w.is_alive(), waiter_procs)), "Wait returned while a server was still down."

@@ -71,6 +71,9 @@ with driver.Cluster(output_folder='.') as cluster:
         res = r.db(dbName).table(tableName).reconfigure(shards=num_shards,
             replicas=num_replicas, director_tag=director_tag, dry_run=True).run(conn)
         assert res["reconfigured"] == 0
+        assert len(res["config_changes"]) == 1
+        assert res["config_changes"][0]["old_val"] == \
+            r.db(dbName).table(tableName).config().run(conn)
         new_config = res["config_changes"][0]['new_val']
         print(new_config)
 
@@ -110,22 +113,27 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
-    res = r.db(dbName).table(tableName).reconfigure(
+    status_before = r.db(dbName).table(tableName).status().run(conn)
+    config_before = r.db(dbName).table(tableName).config().run(conn)
+    dry_run_res = r.db(dbName).table(tableName).reconfigure(
         shards=1, replicas={"tag_2": 1}, director_tag="tag_2", dry_run=True).run(conn)
-    assert res["reconfigured"] == 0, res
-    prev_config = res["config_changes"][0]["old_val"]
-    new_config = res["config_changes"][0]["new_val"]
-    assert prev_config != new_config, (prev_config, new_config)
-    assert r.db(dbName).table(tableName).config().run(conn) == prev_config
-    res = r.db(dbName).table(tableName).reconfigure(
+    status_between = r.db(dbName).table(tableName).status().run(conn)
+    config_between = r.db(dbName).table(tableName).config().run(conn)
+    wet_run_res = r.db(dbName).table(tableName).reconfigure(
         shards=1, replicas={"tag_2": 1}, director_tag="tag_2", dry_run=False).run(conn)
-    assert res["reconfigured"] == 1, res
-    new_config_2 = res["config_changes"][0]["new_val"]
-    assert prev_config != new_config_2
-    print("current config", r.db(dbName).table(tableName).config().run(conn))
-    print("new_config_2", new_config_2)
-    print("prev_config", prev_config)
-    assert r.db(dbName).table(tableName).config().run(conn) == new_config_2
+    config_after = r.db(dbName).table(tableName).config().run(conn)
+    assert dry_run_res["reconfigured"] == 0, dry_run_res
+    assert wet_run_res["reconfigured"] == 1, wet_run_res
+    assert dry_run_res["config_changes"][0]["old_val"] == config_before
+    assert dry_run_res["config_changes"][0]["new_val"] != config_before
+    assert config_before == config_between
+    assert wet_run_res["config_changes"][0]["old_val"] == config_between
+    assert wet_run_res["config_changes"][0]["new_val"] == config_after
+    assert config_after != config_between
+    assert "status_changes" not in dry_run_res
+    assert status_before == status_between
+    assert wet_run_res["status_changes"][0]["old_val"] == status_between
+    assert wet_run_res["status_changes"][0]["new_val"] != status_between
     
     print("Test table_create parameters (%.2fs)" % (time.time() - startTime))
     

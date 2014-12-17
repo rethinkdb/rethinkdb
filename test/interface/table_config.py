@@ -115,7 +115,14 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     
     if dbName not in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
-    r.db(dbName).table_create("foo").run(conn)
+
+    res = r.db(dbName).table_create("foo").run(conn)
+    assert res["tables_created"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] is None
+    assert res["config_changes"][0]["new_val"] == \
+        r.db(dbName).table("foo").config().run(conn)
+
     r.db(dbName).table_create("bar").run(conn)
     
     if "test2" not in r.db_list().run(conn):
@@ -186,6 +193,14 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     print("Testing that we can't rename a table so as to cause a name collision (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table("bar2").config().update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
+
+    print("Testing table_drop() (%.2fs)" % (time.time() - startTime))
+    foo_config = r.db(dbName).table("foo").config().run(conn)
+    res = r.db(dbName).table_drop("foo").run(conn)
+    assert res["tables_dropped"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] == foo_config
+    assert res["config_changes"][0]["new_val"] is None
 
     print("Testing that we can create a table through table_config (%.2fs)" % (time.time() - startTime))
     def test_create(doc, pkey):
