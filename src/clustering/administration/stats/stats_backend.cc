@@ -59,15 +59,14 @@ void stats_artificial_table_backend_t::get_peer_stats(
 }
 
 void stats_artificial_table_backend_t::perform_stats_request(
-        const std::vector<std::pair<server_id_t, peer_id_t> > &peers,
+        const std::vector<peer_id_t> &peers,
         const std::set<std::vector<std::string> > &filter,
-        std::map<server_id_t, ql::datum_t> *results_out,
+        std::vector<ql::datum_t> *results_out,
         signal_t *interruptor) {
-    pmap(peers.begin(), peers.end(),
-        [&](const std::pair<server_id_t, peer_id_t> &pair) {
-            get_peer_stats(pair.second, filter,
-                           &(*results_out)[pair.first],
-                           interruptor);
+    results_out->resize(peers.size());
+    pmap(peers.size(),
+        [&](int64_t index) {
+            get_peer_stats(peers[index], filter, &results_out->at(index), interruptor);
         });
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
@@ -98,15 +97,15 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     rows_out->clear();
 
     std::set<std::vector<std::string> > filter = stats_request_t::global_stats_filter();
-    std::vector<std::pair<server_id_t, peer_id_t> > peers =
-        stats_request_t::all_peers(server_config_client);
+    std::vector<peer_id_t> peers =
+        stats_request_t::all_peers(directory_view->get().get_inner());
 
     // Save the metadata from when we sent the requests to avoid race conditions
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
-    std::map<server_id_t, ql::datum_t> result_map;
-    perform_stats_request(peers, filter, &result_map, &ct_interruptor);
-    parsed_stats_t parsed_stats(result_map);
+    std::vector<ql::datum_t> results;
+    perform_stats_request(peers, filter, &results, &ct_interruptor);
+    parsed_stats_t parsed_stats(results);
 
     // Start building results
     rows_out->clear();
@@ -184,7 +183,7 @@ bool stats_artificial_table_backend_t::read_row(
 
     // Save the metadata from when we sent the request to avoid race conditions
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
-    std::map<server_id_t, ql::datum_t> results_map;
+    std::vector<ql::datum_t> results_map;
 
     if (!request.has() ||
         !request->check_existence(metadata)) {
@@ -192,10 +191,9 @@ bool stats_artificial_table_backend_t::read_row(
         return true;
     }
 
-    perform_stats_request(request->get_peers(server_config_client),
-                          request->get_filter(),
-                          &results_map,
-                          &ct_interruptor);
+    std::vector<peer_id_t> peers = request->get_peers(directory_view->get().get_inner(),
+                                                      server_config_client);
+    perform_stats_request(peers, request->get_filter(), &results_map, &ct_interruptor);
 
     parsed_stats_t parsed_stats(results_map);
     bool to_datum_res = request->to_datum(parsed_stats, metadata, server_config_client,

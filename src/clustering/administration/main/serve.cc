@@ -146,7 +146,7 @@ bool do_serve(io_backender_t *io_backender,
         // could initialize the cluster directory metadata with the proper
         // jobs_manager and stat_manager mailbox address
         jobs_manager_t jobs_manager(&mailbox_manager, server_id);
-        stat_manager_t stat_manager(&mailbox_manager);
+        stat_manager_t stat_manager(&mailbox_manager, server_id);
 
         cluster_directory_metadata_t initial_directory(
             server_id,
