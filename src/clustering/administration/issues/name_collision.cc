@@ -48,9 +48,9 @@ void generic_build_info_and_description(
     *info_out = std::move(builder).to_datum();
     *description_out = datum_string_t(strprintf(
         "There are multiple %s named `%s`. RethinkDB requires that every %s have a "
-        "unique name. Please rename the conflicting %ss by updating to the `name` field "
-        "of the corresponding documents in the `rethinkdb.%s` pseudo-table. (The "
-        "UUIDs of the conflicting %ss are as follows: %s)",
+        "unique name. Please update the `name` field of the conflicting %ss' documents "
+        "in the `rethinkdb.%s` system table.\n\nThe UUIDs of the conflicting %ss are as "
+        "follows: %s",
         long_type_plural.c_str(), name.c_str(), short_type_singular, short_type_singular,
         system_table_name, short_type_singular, ids_str.c_str()));
 }
