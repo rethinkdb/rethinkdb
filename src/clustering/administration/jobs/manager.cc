@@ -113,7 +113,7 @@ void jobs_manager_t::on_job_interrupt(
                 rdb_context->get_query_jobs_for_this_thread();
             rdb_context_t::query_jobs_t::const_iterator iterator = query_jobs->find(id);
             if (iterator != query_jobs->end()) {
-                iterator->second.interruptor->pulse();
+                iterator->second.interruptor->pulse_if_not_already_pulsed();
             }
         }
     });

@@ -1,6 +1,23 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/jobs/report.hpp"
 
+bool convert_job_type_and_id_from_datum(ql::datum_t primary_key,
+                                        std::string *type_out,
+                                        uuid_u *id_out) {
+    std::string error;
+    return primary_key.get_type() == ql::datum_t::R_ARRAY &&
+           primary_key.arr_size() == 2 &&
+           convert_string_from_datum(primary_key.get(0), type_out, &error) &&
+           convert_uuid_from_datum(primary_key.get(1), id_out, &error);
+}
+
+ql::datum_t convert_job_type_and_id_to_datum(std::string const &type, uuid_u const &id) {
+    ql::datum_array_builder_t primary_key_builder(ql::configured_limits_t::unlimited);
+    primary_key_builder.add(convert_string_to_datum(type));
+    primary_key_builder.add(convert_uuid_to_datum(id));
+    return std::move(primary_key_builder).to_datum();
+}
+
 job_report_t::job_report_t() {
 }
 
@@ -32,13 +49,6 @@ bool job_report_t::to_datum(
         server_config_client_t *server_config_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
-    ql::datum_t datum_type(convert_string_to_datum(type));
-    ql::datum_t datum_id(convert_uuid_to_datum(id));
-
-    ql::datum_array_builder_t primary_key_builder(ql::configured_limits_t::unlimited);
-    primary_key_builder.add(datum_type);
-    primary_key_builder.add(datum_id);
-
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
     for (uuid_u const &server : servers) {
         ql::datum_t server_name_or_uuid;
@@ -82,9 +92,9 @@ bool job_report_t::to_datum(
     }
 
     ql::datum_object_builder_t builder;
-    builder.overwrite("id", std::move(primary_key_builder).to_datum());
+    builder.overwrite("id", convert_job_type_and_id_to_datum(type, id));
     builder.overwrite("servers", std::move(servers_builder).to_datum());
-    builder.overwrite("type", datum_type);
+    builder.overwrite("type", convert_string_to_datum(type));
     builder.overwrite("duration_sec",
         duration >= 0 ? ql::datum_t(duration / 1e6) : ql::datum_t::null());
     builder.overwrite("info", std::move(info_builder).to_datum());
@@ -102,4 +112,3 @@ query_job_t::query_job_t(
     : start_time(_start_time),
       client_addr_port(_client_addr_port),
       interruptor(_interruptor) { }
-

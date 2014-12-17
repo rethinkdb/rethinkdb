@@ -14,6 +14,12 @@
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
+bool convert_job_type_and_id_from_datum(ql::datum_t primary_key,
+                                        std::string *type_out,
+                                        uuid_u *id_out);
+
+ql::datum_t convert_job_type_and_id_to_datum(std::string const &type, uuid_u const &id);
+
 class job_report_t {
 public:
     job_report_t();
