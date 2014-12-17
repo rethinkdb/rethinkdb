@@ -1,7 +1,7 @@
 # "Session is already running a query" 400 error when aborting a changefeed
 # views should not completely redraw every added row
-# call to query_result.size and other code assumes that result is an array
-# table view shows no results when it means "no more results" or "no results yet"
+# some code assumes that result is an array
+# table view shows "no results" when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
 # abort blinks constantly when running a changefeed
 # "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when running a query after a changefeed query
