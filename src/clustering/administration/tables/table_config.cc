@@ -256,8 +256,9 @@ bool convert_table_config_shard_from_datum(
             return false;
         }
         if (shard_out->replicas.count(shard_out->primary_replica) != 1) {
-            *error_out = strprintf("The primary replica (server `%s`) must also be one of the "
-                "replicas.", primary_replica_name.c_str());
+            *error_out = strprintf("The server listed in the `primary_replica` field "
+                                   "(`%s`) must also appear in `replicas`.",
+                                   primary_replica_name.c_str());
             return false;
         }
     }

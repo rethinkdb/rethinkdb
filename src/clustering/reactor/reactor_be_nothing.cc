@@ -132,7 +132,7 @@ void reactor_t::be_nothing(region_t region,
                  *
                  * since each one sees that the other is a secondary replica, they both
                  * think it's safe to shutdown and thus destroy their data leading to
-                 * data * loss.
+                 * data loss.
                  *
                  * The below line makes sure that they will sync their new roles
                  * with one another before they begin destroying data.

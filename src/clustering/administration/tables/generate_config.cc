@@ -369,22 +369,23 @@ bool table_generate_config(
 
         /* This algorithm has a flaw; it will sometimes distribute replicas unevenly. For
         example, suppose that we have three servers, A, B, and C; three shards; and we
-        want to place a primary replica and another replica for each shard. We assign
+        want to place a primary replica and a secondary replica for each shard. We assign
         primary replicas as follows:
                     server: A B C
            primary replica: 1 2 3
-        Now, it's time to assign replicas. We start assigning replicas as follows:
-                    server: A B C
-           primary replica: 1 2 3
-                   replica: 2 1
+        Now, it's time to assign secondary replicas. We start assigning secondaries as
+        follows:
+                      server: A B C
+             primary replica: 1 2 3
+           secondary replica: 2 1
         When it comes time to place the replica for shard 3, we cannot place it on server
         C because server C is already the primary replica for shard 3. So we have to
         place it on server A or B. So we end up with a server with 3 replicas and a
         server with only 1 replica, instead of having two replicas on each server. */
 
         /* First, select the primary replicas if appropriate. We select primary
-        replicas separately before selecting replicas because it's important for all the
-        primary replicas to end up on different servers if possible. */
+        replicas separately before selecting secondary replicas because it's important
+        for all the primary replicas to end up on different servers if possible. */
         if (server_tag == params.primary_replica_tag) {
             std::multiset<counted_t<countable_wrapper_t<server_pairings_t> > > s;
             for (const auto &x : pairings) {
@@ -419,7 +420,7 @@ bool table_generate_config(
                 });
         }
 
-        /* Now select the remaining replicas. */
+        /* Now select the remaining secondary replicas. */
         std::multiset<counted_t<countable_wrapper_t<server_pairings_t> > > s;
         for (const auto &x : pairings) {
             if (!x.second.pairings.empty()) {
