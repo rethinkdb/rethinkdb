@@ -14,7 +14,6 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk.hpp"
-// #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
@@ -354,13 +353,7 @@ log_message_t fallback_log_writer_t::assemble_log_message(
         last_msg_timestamp = timestamp;
     }
 
-    struct timespec uptime = clock_monotonic();
-    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
-        uptime.tv_nsec += BILLION;
-        uptime.tv_sec -= 1;
-    }
-    uptime.tv_nsec -= uptime_reference.tv_nsec;
-    uptime.tv_sec -= uptime_reference.tv_sec;
+    struct timespec uptime = subtract_timespecs(clock_monotonic(), uptime_reference);
 
     return log_message_t(timestamp, uptime, level, m);
 }

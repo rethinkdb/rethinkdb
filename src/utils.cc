@@ -190,6 +190,10 @@ bool parse_time(const std::string &str, local_or_utc_time_t zone,
     if (zone == local_or_utc_time_t::utc) {
         boost::posix_time::ptime as_ptime = boost::posix_time::ptime_from_tm(t);
         boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+        /* Apparently `(x-y).total_seconds()` is returning the numeric difference in the
+        POSIX timestamps, which approximates the difference in solar time. This is weird
+        (I'd expect it to return the difference in atomic time) but it turns out to give
+        the correct behavior in this case. */
         time.tv_sec = (as_ptime - epoch).total_seconds();
     } else {
         time.tv_sec = mktime(&t);

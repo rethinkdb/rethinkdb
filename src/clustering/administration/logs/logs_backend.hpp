@@ -12,10 +12,12 @@ class server_name_client_t;
 
 /* This backend assumes that the entries in the log file have timestamps that are unique
 and monotonically increasing. These assumptions can be broken if the system clock runs
-backwards or if the user manually edits the log file. If these assumptions are broken,
-the system shouldn't crash, but the contents of `rethinkdb.logs` are undefined. In
-particular, the following things will go wrong:
+backwards while the server is turned off, or if the user manually edits the log file. If
+these assumptions are broken, the system shouldn't crash, but the contents of
+`rethinkdb.logs` are undefined. In particular, the following things will go wrong:
   * The `rethinkdb.logs` table might have multiple entries with the same primary key.
+  * Log entries might appear in `r.db("rethinkdb").table("logs")` but not if the user
+    runs `r.db("rethinkdb").table("logs").get(primary_key)`
   * Changefeeds on `rethinkdb.logs` might skip some changes.
 */
 
@@ -83,9 +85,12 @@ private:
         connected to the `cfeed_machinery_t` when it was first created. When the
         `cfeed_machinery_t` is first created, `starting` is true, and any instance of
         `run()` that are spawned in the first group have `is_a_starter` set to `true`.
-        `num_starters_left` is initially the number of such coroutines. As each instance
-        finishes fetching the initial timestamp, it decrements `num_starters_left`. The
-        last one pulses `all_starters_done`.*/
+        `num_starters_left` is initially the number of such coroutines. As soon as the
+        initial batch are spawned, `starting` is set to `false`, so any further instances
+        that are spawned for newly-connected servers will have `is_a_starter` set to
+        `false`. As each instance with `is_a_starter` set to `true` finishes fetching the
+        initial timestamp, it decrements `num_starters_left`. The last one pulses
+        `all_starters_done`.*/
         bool starting;
         int num_starters_left;
         cond_t all_starters_done;

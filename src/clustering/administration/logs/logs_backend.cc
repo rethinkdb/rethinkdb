@@ -271,6 +271,8 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
         const log_server_business_card_t &bcard,
         bool is_a_starter,
         auto_drainer_t::lock_t keepalive) {
+    guarantee(!starting, "starting should be set to false before run() actually starts");
+
     /* `poll_interval_ms` is how long to wait between polling for new messages. */
     static const int poll_interval_ms = 1000;
 

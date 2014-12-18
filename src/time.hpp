@@ -12,6 +12,7 @@ timespec clock_monotonic();
 timespec clock_realtime();
 
 void add_to_timespec(timespec *ts, int32_t nanoseconds);
+timespec subtract_timespecs(const timespec &t1, const timespec &t2);
 bool operator<(const struct timespec &t1, const struct timespec &t2);
 bool operator>(const struct timespec &t1, const struct timespec &t2);
 bool operator<=(const struct timespec &t1, const struct timespec &t2);
