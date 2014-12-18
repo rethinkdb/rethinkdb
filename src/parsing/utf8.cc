@@ -35,7 +35,7 @@ inline bool is_fourbyte_start(char c) {
 
 inline bool is_continuation(char c) {
     // 10xxxxxx - continuation character
-    return ((c & HIGH_TWO_BITS) != HIGH_BIT);
+    return ((c & HIGH_TWO_BITS) == HIGH_BIT);
 }
 
 inline unsigned int extract_bits(char c, unsigned int bits) {
@@ -58,7 +58,7 @@ inline bool check_continuation(const Iterator &p, const Iterator &end,
         reason->explanation = "Expected continuation byte, saw end of string";
         return false;
     }
-    if (is_continuation(*p)) {
+    if (!is_continuation(*p)) {
         reason->position = position;
         reason->explanation = "Expected continuation byte, saw something else";
         return false;
