@@ -51,8 +51,8 @@ inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int am
 }
 
 template <class Iterator>
-inline bool check_continuation(const Iterator & p, const Iterator & end,
-                               size_t position, reason_t * reason) {
+inline bool check_continuation(const Iterator &p, const Iterator &end,
+                               size_t position, reason_t *reason) {
     if (p == end) {
         reason->position = position;
         reason->explanation = "Expected continuation byte, saw end of string";
@@ -67,7 +67,7 @@ inline bool check_continuation(const Iterator & p, const Iterator & end,
 }
 
 template <class Iterator>
-inline bool is_valid_internal(const Iterator & begin, const Iterator & end,
+inline bool is_valid_internal(const Iterator &begin, const Iterator &end,
                               reason_t *reason) {
     Iterator p = begin;
     size_t position = 0;
