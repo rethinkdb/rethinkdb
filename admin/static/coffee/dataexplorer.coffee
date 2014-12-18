@@ -1,5 +1,6 @@
-# Aborting a changefeed should be graceful. currently: "RqlRuntimeError: Connection is closed"
 # views should not completely redraw every added row
+# when feed: replace query time in statusbar with special changefeed ticker
+# stop ticking when changefeed gets aborted
 # some code assumes that result is an array
 # table view shows "no results" when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
@@ -128,6 +129,10 @@ module 'DataExplorerView', ->
                         return 1
                 when 'cursor'
                     return @results.length
+
+        force_end_gracefully: =>
+            if @is_feed
+                @cursor?.close()
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -2497,6 +2502,7 @@ module 'DataExplorerView', ->
                     }
 
         abort_query: =>
+            @state.query_result?.force_end_gracefully()
             @driver_handler.close_connection()
 
         # Function that execute the queries in a synchronous way.
