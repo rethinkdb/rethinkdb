@@ -7,7 +7,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
