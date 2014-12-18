@@ -34,6 +34,7 @@ inline bool is_fourbyte_start(char c) {
 }
 
 inline bool is_continuation(char c) {
+    // 10xxxxxx - continuation character
     return ((c & HIGH_TWO_BITS) != HIGH_BIT);
 }
 
