@@ -74,7 +74,7 @@ inline bool is_valid_internal(const Iterator &begin, const Iterator &end,
     while (p != end) {
         if (is_standalone(*p)) {
             // 0xxxxxxx - ASCII character
-            ;
+            // don't need to do anything
         } else if (is_twobyte_start(*p)) {
             // 110xxxxx - two character multibyte
             unsigned int result = extract_and_shift(*p, HIGH_THREE_BITS, 6);
