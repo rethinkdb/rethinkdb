@@ -476,8 +476,6 @@ private:
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
-            on this table */
             success = env->env->reql_cluster_interface()->table_reconfigure(
                     table->db, name, config_params, dry_run,
                     env->env->interruptor, &result, &error);
@@ -518,8 +516,6 @@ private:
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
-            on this table */
             success = env->env->reql_cluster_interface()->table_rebalance(
                     table->db, name, env->env->interruptor, &result, &error);
         }

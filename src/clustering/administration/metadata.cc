@@ -10,12 +10,6 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
-/* RSI(reql_admin): The ReQL admin API changes involve big changes to the semilattice
-metadata. Because many of the underlying concepts have changed, it's not clear if/how to
-migrate serialized metadata from pre-ReQL-admin versions into the new format. GitHub
-issue #2869 is tracking this discussion. As a temporary measure so that development can
-proceed, deserialization of old versions has been disabled. */
-
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(server_semilattice_metadata_t,
                                     name, tags, cache_size_bytes);
 RDB_IMPL_SEMILATTICE_JOINABLE_3(server_semilattice_metadata_t,

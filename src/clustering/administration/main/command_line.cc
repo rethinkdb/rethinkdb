@@ -964,8 +964,6 @@ std::set<name_string_t> parse_server_tag_options(
         /* We silently accept tags that appear multiple times. */
         server_tag_names.insert(tag);
     }
-    /* RSI(reql_admin): Maybe we should give the user a way to disable the default
-    tag. */
     server_tag_names.insert(name_string_t::guarantee_valid("default"));
     return server_tag_names;
 }

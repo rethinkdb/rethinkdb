@@ -86,8 +86,8 @@ public:
         return out;
     }
 
-    /* Returns all servers with the given tag, not counting permanently removed ones.
-    RSI(reql_admin): Decide if this should count disconnected servers or not. */
+    /* Returns all servers with the given tag, counting disconnected servers but not
+    counting permanently removed ones. */
     std::set<server_id_t> get_servers_with_tag(const name_string_t &tag);
 
     /* `change_server_name` changes the name of the peer named `old_name` to `new_name`.
