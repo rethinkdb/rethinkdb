@@ -13,54 +13,45 @@ static unsigned int HIGH_THREE_BITS = 0xE0;
 static unsigned int HIGH_FOUR_BITS = 0xF0;
 static unsigned int HIGH_FIVE_BITS = 0xF8;
 
-inline bool is_standalone(char c)
-{
+inline bool is_standalone(char c) {
     // 0xxxxxxx - ASCII character
     return (c & HIGH_BIT) == 0;
 }
 
-inline bool is_twobyte_start(char c)
-{
+inline bool is_twobyte_start(char c) {
     // 110xxxxx - two character multibyte
     return (c & HIGH_THREE_BITS) == HIGH_TWO_BITS;
 }
 
-inline bool is_threebyte_start(char c)
-{
+inline bool is_threebyte_start(char c) {
     // 1110xxxx - three character multibyte
     return (c & HIGH_FOUR_BITS) == HIGH_THREE_BITS;
 }
 
-inline bool is_fourbyte_start(char c)
-{
+inline bool is_fourbyte_start(char c) {
     // 11110xxx - four character multibyte
     return (c & HIGH_FIVE_BITS) == HIGH_FOUR_BITS;
 }
 
-inline bool is_continuation(char c)
-{
+inline bool is_continuation(char c) {
     return ((c & HIGH_TWO_BITS) != HIGH_BIT);
 }
 
-inline unsigned int continuation_data(char c)
-{
+inline unsigned int continuation_data(char c) {
     return ((c & ~HIGH_TWO_BITS) & 0xFF);
 }
 
-inline unsigned int extract_bits(char c, unsigned int bits)
-{
+inline unsigned int extract_bits(char c, unsigned int bits) {
     return ((c & ~bits) & 0xFF);
 }
 
-inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int amount)
-{
+inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int amount) {
     return extract_bits(c, bits) << amount;
 }
 
 template <class Iterator>
 inline bool check_continuation(const Iterator & p, const Iterator & end,
-                               size_t position, reason_t * reason)
-{
+                               size_t position, reason_t * reason) {
     if (p == end) {
         reason->position = position;
         reason->explanation = "Expected continuation byte, saw end of string";
@@ -76,8 +67,7 @@ inline bool check_continuation(const Iterator & p, const Iterator & end,
 
 template <class Iterator>
 inline bool is_valid_internal(const Iterator & begin, const Iterator & end,
-                              reason_t *reason)
-{
+                              reason_t *reason) {
     Iterator p = begin;
     size_t position = 0;
     while (p != end) {
@@ -146,49 +136,41 @@ inline bool is_valid_internal(const Iterator & begin, const Iterator & end,
     return true;
 }
 
-bool is_valid(const datum_string_t &str)
-{
+bool is_valid(const datum_string_t &str) {
     reason_t reason;
     return is_valid_internal(str.data(), str.data() + str.size(), &reason);
 }
 
-bool is_valid(const std::string &str)
-{
+bool is_valid(const std::string &str) {
     reason_t reason;
     return is_valid_internal(str.begin(), str.end(), &reason);
 }
 
-bool is_valid(const char *start, const char *end)
-{
+bool is_valid(const char *start, const char *end) {
     reason_t reason;
     return is_valid_internal(start, end, &reason);
 }
 
-bool is_valid(const char *str)
-{
+bool is_valid(const char *str) {
     reason_t reason;
     size_t len = strlen(str);
     const char *end = str + len;
     return is_valid_internal(str, end, &reason);
 }
 
-bool is_valid(const datum_string_t &str, reason_t *reason)
-{
+bool is_valid(const datum_string_t &str, reason_t *reason) {
     return is_valid_internal(str.data(), str.data() + str.size(), reason);
 }
 
-bool is_valid(const std::string &str, reason_t *reason)
-{
+bool is_valid(const std::string &str, reason_t *reason) {
     return is_valid_internal(str.begin(), str.end(), reason);
 }
 
-bool is_valid(const char *start, const char *end, reason_t *reason)
-{
+bool is_valid(const char *start, const char *end, reason_t *reason) {
     return is_valid_internal(start, end, reason);
 }
 
-bool is_valid(const char *str, reason_t *reason)
-{
+bool is_valid(const char *str, reason_t *reason) {
     size_t len = strlen(str);
     const char *end = str + len;
     return is_valid_internal(str, end, reason);
