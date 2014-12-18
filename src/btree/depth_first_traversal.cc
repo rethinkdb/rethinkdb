@@ -176,6 +176,7 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
             for (auto it = leaf::inclusive_lower_bound(range.left.btree_key(), *lnode);
                  it != leaf::end(*lnode); ++it) {
                 key = (*it).first;
+                // range.right is exclusive
                 if (!range.right.unbounded &&
                     btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
                     break;
@@ -192,12 +193,13 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
             if (range.right.unbounded) {
                 it = leaf::rbegin(*lnode);
             } else {
-                it = leaf::inclusive_upper_bound(range.right.key.btree_key(), *lnode);
+                it = leaf::exclusive_upper_bound(range.right.key.btree_key(), *lnode);
             }
             for (/* assignment above */; it != leaf::rend(*lnode); ++it) {
                 key = (*it).first;
 
-                if (btree_key_cmp(key, range.left.btree_key()) <= 0) {
+                // range.left is inclusive
+                if (btree_key_cmp(key, range.left.btree_key()) < 0) {
                     break;
                 }
 
