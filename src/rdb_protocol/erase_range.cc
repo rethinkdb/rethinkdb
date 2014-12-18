@@ -238,8 +238,8 @@ done_traversing_t rdb_erase_small_range(
             mod_reports_out->push_back(mod_report);
 
             // Detach the value
-            deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location.buf),
-                                                              kv_location.value.get());
+            deletion_context->in_tree_deleter()->delete_value(
+                buf_parent_t(&kv_location.buf), kv_location.value.get());
             // Erase the entry from the leaf node
             kv_location.value.reset();
             null_key_modification_callback_t null_cb;
