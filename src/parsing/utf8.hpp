@@ -25,6 +25,31 @@ bool is_valid(const char *, const char *, reason_t *);
 bool is_valid(const datum_string_t &, reason_t *);
 
 template <class Iterator>
+Iterator && next_codepoint(const Iterator &start, const Iterator &end) {
+    reason_t reason;
+    char32_t codepoint;
+    return next_codepoint(start, end, &codepoint, &reason);
+}
+
+template <class Iterator>
+Iterator && next_codepoint(const Iterator &start, const Iterator &end,
+                          reason_t *reason) {
+    char32_t codepoint;
+    return next_codepoint(start, end, &codepoint, reason);
+}
+
+template <class Iterator>
+Iterator && next_codepoint(const Iterator &start, const Iterator &end,
+                          char32_t *codepoint) {
+    reason_t reason;
+    return next_codepoint(start, end, codepoint, &reason);
+}
+
+template <class Iterator>
+Iterator && next_codepoint(const Iterator &start, const Iterator &end,
+                          char32_t *codepoint, reason_t *reason);
+
+template <class Iterator>
 class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
     Iterator position, end;
     char32_t last_seen;

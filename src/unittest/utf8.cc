@@ -191,9 +191,92 @@ TEST(UTF8ValidationStressTest, OverlongSequences) {
     ASSERT_FALSE(utf8::is_valid("\xf8\x80\x80\x80\x80"));
 }
 
+TEST(UTF8CodepointIterationTest, SimpleString) {
+    std::string demo = "this is a demonstration string";
+    utf8::reason_t reason;
+    char32_t codepoint;
+
+    auto start = demo.cbegin();
+    auto end = demo.cend();
+    auto cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+    ASSERT_NE(cend, end);
+    ASSERT_STREQ("", reason.explanation);
+    ASSERT_EQ(U't', codepoint);
+    ASSERT_EQ("t", std::string(start, cend));
+    ASSERT_EQ(start + 1, cend);
+    start = cend;
+    cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+    ASSERT_NE(cend, end);
+    ASSERT_STREQ("", reason.explanation);
+    ASSERT_EQ(U'h', codepoint);
+    ASSERT_EQ("h", std::string(start, cend));
+    ASSERT_EQ(start + 1, cend);
+    for (int i = 0; i < 10; i++) {
+        start = cend;
+        cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+        ASSERT_EQ(start + 1, cend);
+    }
+    ASSERT_NE(cend, end);
+    ASSERT_STREQ("", reason.explanation);
+    ASSERT_EQ(U'e', codepoint);
+    ASSERT_EQ("e", std::string(start, cend));
+    for (int i = 0; i < 10; i++) {
+        start = cend;
+        cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+        ASSERT_EQ(start + 1, cend);
+    }
+    ASSERT_NE(cend, end);
+    ASSERT_STREQ("", reason.explanation);
+    ASSERT_EQ(U'o', codepoint);
+    ASSERT_EQ("o", std::string(start, cend));
+    for (int i = 0; i < 10; i++) {
+        start = cend;
+        cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+    }
+    ASSERT_EQ(cend, end);
+    ASSERT_STREQ("", reason.explanation);
+}
+
+TEST(UTF8CodepointIterationTest, Zalgo) {
+    const char zalgo[] = "H\xcd\x95"
+        "a\xcc\x95\xcd\x8d\xcc\x99\xcd\x8d\xcc\xab\xcd\x87\xcc\xa5\xcc\xa3"
+        "v\xcc\xb4"
+        "e\xcd\x98\xcc\x96\xcc\xb1\xcd\x96"
+        " \xcd\xa1\xcc\xac"
+        "s\xcd\x8e\xcc\xa5\xcc\xba\xcd\x88\xcc\xab"
+        "o\xcc\xa3\xcc\xb3\xcc\xae\xcd\x85\xcc\xa9"
+        "m\xcd\xa2\xcd\x94\xcc\x9e\xcc\x99\xcd\x99\xcc\x9c"
+        "e"
+        " \xcc\xa5"
+        "Z\xcc\xb6"
+        "a\xcc\xab\xcc\xa9\xcd\x8e\xcc\xb2\xcc\xac\xcc\xba"
+        "l\xcc\x98\xcd\x87\xcd\x94"
+        "g\xcc\xb6\xcc\x9e\xcd\x99\xcc\xbc"
+        "o"
+        ".\xcc\x9b\xcc\xab\xcc\xa9";
+    const char32_t zalgo_codepoints[] = U"\u0048\u0355\u0061\u0315\u034d\u0319\u034d"
+        "\u032b\u0347\u0325\u0323\u0076\u0334\u0065\u0358\u0316\u0331\u0356\u0020\u0361"
+        "\u032c\u0073\u034e\u0325\u033a\u0348\u032b\u006f\u0323\u0333\u032e\u0345\u0329"
+        "\u006d\u0362\u0354\u031e\u0319\u0359\u031c\u0065\u0020\u0325\u005a\u0336\u0061"
+        "\u032b\u0329\u034e\u0332\u032c\u033a\u006c\u0318\u0347\u0354\u0067\u0336\u031e"
+        "\u0359\u033c\u006f\u002e\u031b\u032b\u0329";
+    auto start = zalgo;
+    auto end = zalgo + strlen(zalgo);
+    const char32_t *current = zalgo_codepoints;
+    char32_t codepoint;
+    utf8::reason_t reason;
+    size_t seen = 0;
+    while (start != end) {
+        auto cend = utf8::next_codepoint(start, end, &codepoint, &reason);
+        ASSERT_EQ(*current, codepoint);
+        start = cend;
+        ++current;
+        ++seen;
+    }
+    ASSERT_EQ(66, seen);
+}
 TEST(UTF8IterationTest, SimpleString) {
     std::string demo = "this is a demonstration string";
-
     utf8::string_iterator_t it(demo);
     ASSERT_FALSE(it.is_done());
     ASSERT_EQ(U't', *it);
