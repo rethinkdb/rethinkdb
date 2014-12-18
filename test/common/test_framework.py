@@ -30,7 +30,7 @@ except ImportError:
 
 import test_report, utils
 
-default_test_results_dir = join(dirname(__file__), pardir, 'results')
+default_test_results_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir, 'results'))
 
 argparser = ArgumentParser(description='Run RethinkDB tests', add_help=False)
 argparser.add_argument('-j', '--jobs', type=int, default=1,
