@@ -177,4 +177,4 @@ bool is_valid(const char *str, reason_t *reason) {
     return is_valid_internal(str, end, reason);
 }
 
-};
+} // namespace utf8
