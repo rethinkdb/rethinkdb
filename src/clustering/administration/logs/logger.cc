@@ -58,7 +58,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
     std::string prepend;
     if (!for_console) {
         prepend = strprintf("%s %ld.%06llds %s: ",
-                            format_time(m.timestamp, false).c_str(),
+                            format_time(m.timestamp, local_or_utc_time_t::local).c_str(),
                             m.uptime.tv_sec,
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
@@ -145,7 +145,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     {
         std::string errmsg;
         if (!parse_time(std::string(start_timestamp, end_timestamp - start_timestamp),
-                        false, &timestamp, &errmsg)) {
+                        local_or_utc_time_t::local, &timestamp, &errmsg)) {
             throw std::runtime_error(errmsg);
         }
     }
@@ -338,8 +338,7 @@ log_message_t fallback_log_writer_t::assemble_log_message(
     struct timespec timestamp = clock_realtime();
 
     {
-        /* Make sure timestamps on log messages are separated by at least
-        `log_timestamp_interval_ns`. */
+        /* Make sure timestamps on log messages are unique. */
 
         /* We grab the spinlock to avoid races if multiple threads get here at once.
         There's usually no possibility of lock contention because log messages

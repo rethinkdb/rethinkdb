@@ -18,7 +18,8 @@ ql::datum_t convert_timespec_duration_to_datum(const timespec &t) {
 
 ql::datum_t convert_log_key_to_datum(const timespec &ts, const server_id_t &si) {
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
-    id_builder.add(ql::datum_t(datum_string_t(format_time(ts, true))));
+    id_builder.add(ql::datum_t(datum_string_t(
+        format_time(ts, local_or_utc_time_t::utc))));
     id_builder.add(convert_uuid_to_datum(si));
     return std::move(id_builder).to_datum();
 }
@@ -33,7 +34,8 @@ bool convert_log_key_from_datum(const ql::datum_t &d,
         *error_out = "Expected string, got:" + d.print();
         return false;
     }
-    if (!parse_time(d.get(0).as_str().to_std(), true, ts_out, error_out)) {
+    if (!parse_time(d.get(0).as_str().to_std(), local_or_utc_time_t::local,
+            ts_out, error_out)) {
         *error_out = "In timestamp: " + *error_out;
         return false;
     }

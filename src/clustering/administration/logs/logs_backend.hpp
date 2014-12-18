@@ -10,6 +10,15 @@
 
 class server_name_client_t;
 
+/* This backend assumes that the entries in the log file have timestamps that are unique
+and monotonically increasing. These assumptions can be broken if the system clock runs
+backwards or if the user manually edits the log file. If these assumptions are broken,
+the system shouldn't crash, but the contents of `rethinkdb.logs` are undefined. In
+particular, the following things will go wrong:
+  * The `rethinkdb.logs` table might have multiple entries with the same primary key.
+  * Changefeeds on `rethinkdb.logs` might skip some changes.
+*/
+
 class logs_artificial_table_backend_t :
     public cfeed_artificial_table_backend_t
 {

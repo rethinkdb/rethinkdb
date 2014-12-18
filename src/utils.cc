@@ -140,9 +140,9 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, printf_buffer_t *buf, bool use_utc) {
+void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {
     struct tm t;
-    if (use_utc) {
+    if (zone == local_or_utc_time_t::utc) {
         boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
         t = boost::posix_time::to_tm(as_ptime);
     } else {
@@ -161,13 +161,14 @@ void format_time(struct timespec time, printf_buffer_t *buf, bool use_utc) {
         time.tv_nsec);
 }
 
-std::string format_time(struct timespec time, bool use_utc) {
+std::string format_time(struct timespec time, local_or_utc_time_t zone) {
     printf_buffer_t buf;
-    format_time(time, &buf, use_utc);
+    format_time(time, &buf, zone);
     return std::string(buf.c_str());
 }
 
-bool parse_time(const std::string &str, bool use_utc, struct timespec *out, std::string *errmsg_out) {
+bool parse_time(const std::string &str, local_or_utc_time_t zone,
+        struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -186,7 +187,7 @@ bool parse_time(const std::string &str, bool use_utc, struct timespec *out, std:
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
-    if (use_utc) {
+    if (zone == local_or_utc_time_t::utc) {
         boost::posix_time::ptime as_ptime = boost::posix_time::ptime_from_tm(t);
         boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
         time.tv_sec = (as_ptime - epoch).total_seconds();
