@@ -141,4 +141,54 @@ TEST(UTF8ValidationTest, IllegalCharacters) {
     ASSERT_STREQ("Overlong encoding seen", reason.explanation);
 }
 
-};
+// Stress test per http://www.w3.org/2001/06/utf-8-wrong/UTF-8-test.html
+TEST(UTF8ValidationStressTest, CorrectString) {
+    ASSERT_TRUE(utf8::is_valid(u8"κόσμε"));
+}
+
+TEST(UTF8ValidationStressTest, FirstPossibleSequence) {
+    ASSERT_TRUE(utf8::is_valid(u8"\U00000000"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U00000080"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U00000800"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U00010000"));
+}
+
+TEST(UTF8ValidationStressTest, LastPossibleSequence) {
+    ASSERT_TRUE(utf8::is_valid(u8"\U0000007F"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U000007FF"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U0000FFFF"));
+    ASSERT_TRUE(utf8::is_valid(u8"\U0010FFFF"));
+}
+
+TEST(UTF8ValidationStressTest, MiscBoundaryConditions) {
+    ASSERT_TRUE(utf8::is_valid("\xed\x9f\xbf")); // U+0000D7FF
+    ASSERT_TRUE(utf8::is_valid("\xee\x80\x80")); // U+0000E000
+    ASSERT_TRUE(utf8::is_valid("\xef\xbf\xbd")); // U+0000FFFD
+    ASSERT_TRUE(utf8::is_valid("\xf4\x8f\xbf\xbf"));  // U+0010FFFF
+    ASSERT_FALSE(utf8::is_valid("\xf4\x90\x80\x80")); // U+00110000
+}
+
+TEST(UTF8ValidationStressTest, ImpossibleBytes) {
+    ASSERT_FALSE(utf8::is_valid("\xfe"));
+    ASSERT_FALSE(utf8::is_valid("\xff"));
+    ASSERT_FALSE(utf8::is_valid("\xfe\xfe\xff\xff"));
+}
+
+TEST(UTF8ValidationStressTest, OverlongSequences) {
+    ASSERT_FALSE(utf8::is_valid("\xc0\xaf"));
+    ASSERT_FALSE(utf8::is_valid("\xe0\x80\xaf"));
+    ASSERT_FALSE(utf8::is_valid("\xf0\x80\x80\xaf"));
+    ASSERT_FALSE(utf8::is_valid("\xf8\x80\x80\x80\xaf"));
+
+    ASSERT_FALSE(utf8::is_valid("\xc1\xbf"));
+    ASSERT_FALSE(utf8::is_valid("\xe0\x9f\xbf"));
+    ASSERT_FALSE(utf8::is_valid("\xf0\x8f\xbf\xbf"));
+    ASSERT_FALSE(utf8::is_valid("\xf8\x87\xbf\xbf\xbf"));
+
+    ASSERT_FALSE(utf8::is_valid("\xc0\x80"));
+    ASSERT_FALSE(utf8::is_valid("\xe0\x80\x80"));
+    ASSERT_FALSE(utf8::is_valid("\xf0\x80\x80\x80"));
+    ASSERT_FALSE(utf8::is_valid("\xf8\x80\x80\x80\x80"));
+}
+
+} // namespace unittest
