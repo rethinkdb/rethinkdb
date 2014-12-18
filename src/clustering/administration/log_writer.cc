@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 
 #include <math.h>
 #include <fcntl.h>
@@ -539,7 +539,7 @@ void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::st
     writer->write(log_msg);
 }
 
-/* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
+/* Declared in `logger.hpp`, not `clustering/administration/log_writer.hpp` like the
 other things in this file. */
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
     va_list args;

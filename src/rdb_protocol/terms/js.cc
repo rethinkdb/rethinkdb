@@ -47,10 +47,6 @@ private:
             rfail(base_exc_t::GENERIC,
                   "Javascript query `%s` caused a crash in a worker process.",
                   source.c_str());
-        } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
-                  "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
-                  source.c_str(), timeout_ms / 1000, timeout_ms % 1000);
         }
     }
     virtual const char *name() const { return "javascript"; }

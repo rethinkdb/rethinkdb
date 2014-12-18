@@ -1,4 +1,5 @@
 require 'pp'
+require 'set'
 
 $test_count = 0
 $failure_count = 0
@@ -24,14 +25,27 @@ end
 NoError = "nope"
 AnyUUID = "<any uuid>"
 Err = Struct.new(:type, :message, :backtrace, :regex)
-Bag = Struct.new(:items)
+Bag = Struct.new(:items, :partial)
+PartitalHash = Struct.new(:hash)
 
-def bag list
-  Bag.new(list)
+def bag(list, partial=false)
+  Bag.new(list, partial)
 end
 
-def arrlen len, x
-  Array.new len, x
+def partial(expected)
+    if expected.kind_of?(Array)
+        bag(expected, true)
+    elsif expected.kind_of?(Bag)
+        bag(expected.items, true)
+    elsif expected.kind_of?(Hash)
+        PartitalHash.new(expected)
+    else
+        raise("partial can only handle Hashs, Arrays, or Bags. Got: #{expected.class}")
+    end
+end
+
+def arrlen(len, x)
+  Array.new(len, x)
 end
 
 def uuid
@@ -85,7 +99,7 @@ def float_cmp(value)
   return Number.new(value)
 end
 
-def cmp_test(expected, result, testopts={})
+def cmp_test(expected, result, testopts={}, partial=false)
   if expected.object_id == NoError.object_id
     return -1 if result.class == Err
     return 0
@@ -133,21 +147,46 @@ def cmp_test(expected, result, testopts={})
     end
     cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    cmp = result.length <=> expected.length
-    return cmp if cmp != 0
-    expected.zip(result) { |pair|
-      cmp = cmp_test(pair[0], pair[1], testopts)
+    if partial
+      resultKeys = result.sort.each
+      expected.sort.each { |expectedKey|
+        cmp = -1
+        for resultKey in resultKeys
+          cmp = cmp_test(expectedKey, resultKey, testopts)
+          if cmp == 0
+            break
+          end
+        end
+        if cmp != 0
+          return cmp
+        end
+      }
+    else
+      cmp = result.length <=> expected.length
       return cmp if cmp != 0
-    }
+      expected.zip(result) { |pair|
+        cmp = cmp_test(pair[0], pair[1], testopts)
+        return cmp if cmp != 0
+      }
+    end
     return 0
-
+  
+  when "PartitalHash"
+    return cmp_test(expected.hash, result, testopts, true)
+  
   when "Hash"
     cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
     result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
     expected = Hash[ expected.map{ |k,v| [k.to_s, v] } ]
-    cmp = result.keys.sort <=> expected.keys.sort
-    return cmp if cmp != 0
+    if partial
+        if not Set.new(expected.keys).subset?(Set.new(result.keys))
+          return -1
+        end
+    else
+        cmp = result.keys.sort <=> expected.keys.sort
+        return cmp if cmp != 0
+    end
     expected.each_key { |key|
       cmp = cmp_test(expected[key], result[key], testopts)
       return cmp if cmp != 0
@@ -158,7 +197,8 @@ def cmp_test(expected, result, testopts={})
     return cmp_test(
       expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
       result.sort{ |a, b| cmp_test(a, b, testopts) },
-      testopts
+      testopts,
+      expected.partial
     )
   
   when "Float", "Fixnum", "Number"
@@ -206,7 +246,7 @@ begin
 rescue
 end
 
-def test src, expected, name, opthash=nil, testopts=nil
+def test(src, expected, name, opthash=nil, testopts=nil)
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
     if !$opthash[:max_batch_rows]
@@ -256,10 +296,10 @@ def test src, expected, name, opthash=nil, testopts=nil
 end
 
 # Generated code must call either `setup_table` or `check_no_table_specified`
-def setup_table table_variable_name, table_name
+def setup_table(table_variable_name, table_name, db_name="test")
   at_exit do
-    if DB_AND_TABLE_NAME == "no_table_specified"
-      res = r.db("test").table_drop(table_name).run($cpp_conn)
+    if DB_AND_TABLE_NAME == "no_table_specified" && r.db(db_name).table_list().run($cpp_conn).include?(table_name)
+      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
       if res["dropped"] != 1
         abort "Could not drop table: #{res}"
       end
@@ -277,14 +317,14 @@ def setup_table table_variable_name, table_name
     end
   end
   if DB_AND_TABLE_NAME == "no_table_specified"
-    res = r.db("test").table_create(table_name).run($cpp_conn)
+    res = r.db(db_name).table_create(table_name).run($cpp_conn)
     if res["created"] != 1
       abort "Could not create table: #{res}"
     end
-      $defines.eval("#{table_variable_name} = r.db('test').table('#{table_name}')")
-    else
-      parts = DB_AND_TABLE_NAME.split('.')
-      $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+      $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
+  else
+    parts = DB_AND_TABLE_NAME.split('.')
+    $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
   end
 end
 
@@ -334,7 +374,7 @@ def check_result(name, src, result, expected, testopts={})
   end
 end
 
-def fail_test name, src, res, expected
+def fail_test(name, src, res, expected)
   $stderr.puts "TEST FAILURE: #{name}"
   $stderr.puts "\tBODY: #{src}"
   $stderr.puts "\tVALUE: #{show res}"
