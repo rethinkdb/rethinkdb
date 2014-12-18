@@ -223,7 +223,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                                                                                      peer_id,
                                                                                      activity_id);
 
-                /* We have found a broadcaster (a master to track) so now we
+                /* We have found a broadcaster (a primary replica to track) so now we
                  * need to backfill to get up to date. */
                 directory_entry.set(reactor_business_card_t::secondary_backfilling_t(backfill_location));
 

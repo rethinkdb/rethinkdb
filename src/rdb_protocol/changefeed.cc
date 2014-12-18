@@ -1836,7 +1836,7 @@ private:
 void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
     // messages because we haven't managed to get a message to the
-    // stop mailboxes for some of the masters yet).  This also stops
+    // stop mailboxes for some of the primary replicas yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer. Because we acquire the auto drainer, we don't pay any
     // attention to the mailbox's signal.

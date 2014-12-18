@@ -24,7 +24,7 @@
 when draining the write queue after completing a backfill. */
 #define WRITE_QUEUE_CORO_POOL_SIZE 64
 
-/* When we have caught up to the master to within
+/* When we have caught up to the primary replica to within
 `WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves
 to be up-to-date. */
 #define WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY 5
