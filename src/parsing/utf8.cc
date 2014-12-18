@@ -38,12 +38,12 @@ inline bool is_continuation(char c) {
     return ((c & HIGH_TWO_BITS) != HIGH_BIT);
 }
 
-inline unsigned int continuation_data(char c) {
-    return ((c & ~HIGH_TWO_BITS) & 0xFF);
-}
-
 inline unsigned int extract_bits(char c, unsigned int bits) {
     return ((c & ~bits) & 0xFF);
+}
+
+inline unsigned int continuation_data(char c) {
+    return extract_bits(c, HIGH_TWO_BITS);
 }
 
 inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int amount) {
