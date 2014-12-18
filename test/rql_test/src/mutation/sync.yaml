@@ -11,7 +11,7 @@ tests:
     - def: tbl = r.db('test').table('test1')
     - def: tbl_soft = r.db('test').table('test1soft')
     - cd: tbl.index_create('x')
-      ot: partial({'tables_created':1})
+      ot: partial({'created':1})
     - cd: tbl.index_wait('x').pluck('index', 'ready')
       ot: ([{'ready':True, 'index':'x'}])
 

@@ -447,7 +447,7 @@ function setup_table(table_variable_name, table_name) {
                             if (err) {
                                 unexpectedException("teardown_table", err);
                             }
-                            if (res.dropped != 1) {
+                            if (res.tables_dropped != 1) {
                                 unexpectedException("teardown_table", "table not dropped", res);
                             }
                             process.exit(exit_code);

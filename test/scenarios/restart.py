@@ -48,7 +48,7 @@ with driver.Cluster(initial_servers=1, output_folder='.', command_prefix=command
     serverRestarted = driver.Process(cluster, files, command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True)
     
     conn = r.connect(host=serverRestarted.host, port=serverRestarted.driver_port)
-    r.db(dbName).wait(tableName).run(conn)
+    r.db(dbName).table(tableName).wait().run(conn)
     cluster.check()
     
     print("Running second workload (%.2fs)" % (time.time() - startTime))

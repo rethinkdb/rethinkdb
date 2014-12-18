@@ -300,7 +300,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
   at_exit do
     if DB_AND_TABLE_NAME == "no_table_specified" && r.db(db_name).table_list().run($cpp_conn).include?(table_name)
       res = r.db(db_name).table_drop(table_name).run($cpp_conn)
-      if res["dropped"] != 1
+      if res["tables_dropped"] != 1
         abort "Could not drop table: #{res}"
       end
     else

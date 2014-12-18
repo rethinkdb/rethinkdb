@@ -164,17 +164,17 @@ tests:
 
     # Test wait and rebalance
     - cd: db.table('a').wait()
-      ot: partial({'waited':1})
+      ot: partial({'ready':1})
     - cd: db.table('a').rebalance()
       ot: partial({'rebalanced':1})
 
     - cd: db.wait()
-      ot: partial({'waited':1})
+      ot: partial({'ready':1})
     - cd: db.rebalance()
       ot: partial({'rebalanced':1})
 
     - cd: r.wait()
-      ot: partial({'waited':1})
+      ot: partial({'ready':1})
     - cd: r.rebalance()
       ot: partial({'rebalanced':1})
 
@@ -265,4 +265,4 @@ tests:
       ot: 0
 
     - cd: r.db_drop('test2')
-      ot: partial({'dbs_dropped':1,'tables_dropped':3})
+      ot: partial({'dbs_dropped':1,'tables_dropped':1})

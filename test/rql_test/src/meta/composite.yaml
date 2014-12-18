@@ -19,4 +19,4 @@ tests:
 
     # Re-add stupid 'test' database
     - cd: r.db_create('test')
-      ot: partial(({'dbs_created':1})
+      ot: partial({'dbs_created':1})
