@@ -1,4 +1,4 @@
-# "Session is already running a query" 400 error when aborting a changefeed
+# Aborting a changefeed should be graceful. currently: "RqlRuntimeError: Connection is closed"
 # views should not completely redraw every added row
 # some code assumes that result is an array
 # table view shows "no results" when it means "no more results" or "no results yet"
