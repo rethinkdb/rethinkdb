@@ -1,18 +1,8 @@
+# TODO ATN
 # views should not completely redraw every added row
-# when feed: replace query time in statusbar with special changefeed ticker
-# stop ticking when changefeed gets aborted
 # many of the fields of the parent view don't get updated when they change
-# some code assumes that result is an array
 # table view shows "no results" when it means "no more results" or "no results yet"
-# abort button blinks when runnign a normal query
-# abort blinks constantly when running a changefeed
 # "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when aborting a query after a changefeed query
-
-# ticker shows throughout
-# move more results button into individual views
-# returned/displayed/skipped has extra comma and is generally ugly
-
-# round-trip time for cursors is inconsistent
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -2506,6 +2496,8 @@ module 'DataExplorerView', ->
                     }
 
         abort_query: =>
+            @disable_toggle_executing = false
+            @toggle_executing false
             @state.query_result?.force_end_gracefully()
             @driver_handler.close_connection()
 
@@ -2554,11 +2546,13 @@ module 'DataExplorerView', ->
         toggle_executing: (executing) =>
             if executing == @executing
                 return
-            else if executing is true
+            if @disable_toggle_executing
+                return
+            if executing is true
                 @executing = true
                 @timeout_show_abort = setTimeout =>
-                    #TODO Delay a few ms
-                    @$('.loading_query_img').show()
+                    if not @state.query_result?.is_feed
+                        @$('.loading_query_img').show()
                     @$('.execute_query').hide()
                     @$('.abort_query').show()
                 , @delay_show_abort
@@ -2603,12 +2597,21 @@ module 'DataExplorerView', ->
                             events:
                                 error: (query_result, err) =>
                                     @results_view_wrapper.render_error(@query, err)
+                                ready: (query_result) =>
+                                    if query_result.is_feed
+                                        @toggle_executing true
+                                        @disable_toggle_executing = true
+                                        for event in ['end', 'discard', 'error']
+                                            query_result.on event, () =>
+                                                @disable_toggle_executing = false
+                                                @toggle_executing false
 
                         @state.query_result = query_result
 
                         @results_view_wrapper.set_query_result
                             query_result: @state.query_result
 
+                    @disable_toggle_executing = false
                     @driver_handler.run_with_new_connection rdb_query,
                         optargs:
                             binaryFormat: "raw"
@@ -2929,7 +2932,6 @@ module 'DataExplorerView', ->
                     if @query_result.is_feed
                         latest = @query_result.results[-@parent.container.limit .. ]
                         latest.reverse()
-                        console.log latest
                         return latest
                     else
                         return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
@@ -2937,7 +2939,7 @@ module 'DataExplorerView', ->
         fetch_batch_rows:  =>
             if @query_result.type is not 'cursor'
                 return
-            if @query_result.size() < @query_result.position + @parent.container.limit
+            if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
                 @query_result.once 'add', (query_result, row) =>
                     @add_row row
                     @fetch_batch_rows()
@@ -3746,7 +3748,7 @@ module 'DataExplorerView', ->
         constructor: (options) ->
             @container = options.container
             @concurrent = 0
-            @total_duration = 0
+            @total_duration = 0 
 
         _begin: =>
             if @concurrent == 0
