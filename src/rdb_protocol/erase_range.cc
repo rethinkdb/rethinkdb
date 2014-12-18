@@ -207,47 +207,51 @@ done_traversing_t rdb_erase_small_range(
     const max_block_size_t max_block_size = superblock->cache()->max_block_size();
     rdb_value_sizer_t sizer(max_block_size);
     for (const auto &key : key_collector.get_collected_keys()) {
-        keyvalue_location_t kv_location;
         promise_t<superblock_t *> pass_back_superblock_promise;
-        find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
-                                         deletion_context->balancing_detacher(),
-                                         &kv_location,
-                                         &btree_slice->stats,
-                                         NULL /* profile::trace_t */,
-                                         &pass_back_superblock_promise);
+        {
+            keyvalue_location_t kv_location;
+            find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
+                                             deletion_context->balancing_detacher(),
+                                             &kv_location,
+                                             &btree_slice->stats,
+                                             NULL /* profile::trace_t */,
+                                             &pass_back_superblock_promise);
+
+            // We're still holding a write lock on the superblock, so if the value
+            // disappeared since we've populated key_collector, something fishy
+            // is going on.
+            guarantee(kv_location.value.has());
+
+            // The mod_report we generate is a simple delete. While there is generally
+            // a difference between an erase and a delete (deletes get backfilled,
+            // while an erase is as if the value had never existed), that
+            // difference is irrelevant in the case of secondary indexes.
+            rdb_modification_report_t mod_report;
+            mod_report.primary_key = key;
+            // Get the full data
+            const rdb_value_t *rdb_value = kv_location.value_as<rdb_value_t>();
+            mod_report.info.deleted.first = get_data(rdb_value,
+                                                     buf_parent_t(&kv_location.buf));
+            // Get the inline value
+            mod_report.info.deleted.second.assign(rdb_value->value_ref(),
+                rdb_value->value_ref() + rdb_value->inline_size(max_block_size));
+            mod_reports_out->push_back(mod_report);
+
+            // Detach the value
+            deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location.buf),
+                                                              kv_location.value.get());
+            // Erase the entry from the leaf node
+            kv_location.value.reset();
+            null_key_modification_callback_t null_cb;
+            apply_keyvalue_change(&sizer, &kv_location, key.btree_key(),
+                                  repli_timestamp_t::invalid /* ignored for erase */,
+                                  deletion_context->in_tree_deleter(),
+                                  &null_cb,
+                                  delete_or_erase_t::ERASE);
+        } // kv_location is destroyed here. That's important because sometimes
+          // pass_back_superblock_promise isn't pulsed before the kv_location
+          // gets deleted.
         guarantee(pass_back_superblock_promise.wait() == superblock);
-
-        // We're still holding a write lock on the superblock, so if the value
-        // disappeared since we've populated key_collector, something fishy
-        // is going on.
-        guarantee(kv_location.value.has());
-
-        // The mod_report we generate is a simple delete. While there is generally
-        // a difference between an erase and a delete (deletes get backfilled,
-        // while an erase is as if the value had never existed), that
-        // difference is irrelevant in the case of secondary indexes.
-        rdb_modification_report_t mod_report;
-        mod_report.primary_key = key;
-        // Get the full data
-        const rdb_value_t *rdb_value = kv_location.value_as<rdb_value_t>();
-        mod_report.info.deleted.first = get_data(rdb_value,
-                                                 buf_parent_t(&kv_location.buf));
-        // Get the inline value
-        mod_report.info.deleted.second.assign(rdb_value->value_ref(),
-            rdb_value->value_ref() + rdb_value->inline_size(max_block_size));
-        mod_reports_out->push_back(mod_report);
-
-        // Detach the value
-        deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location.buf),
-                                                          kv_location.value.get());
-        // Erase the entry from the leaf node
-        kv_location.value.reset();
-        null_key_modification_callback_t null_cb;
-        apply_keyvalue_change(&sizer, &kv_location, key.btree_key(),
-                              repli_timestamp_t::invalid /* ignored for erase */,
-                              deletion_context->in_tree_deleter(),
-                              &null_cb,
-                              delete_or_erase_t::ERASE);
     }
 
     return key_collector.get_done_traversing();
