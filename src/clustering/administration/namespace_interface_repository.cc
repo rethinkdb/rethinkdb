@@ -86,7 +86,7 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
         table_replication_info_t info = it->second.get_ref().replication_info.get_ref();
         for (size_t i = 0; i < info.config.shards.size(); ++i) {
             new_reg_to_pri_maps[it->first][info.shard_scheme.get_shard_range(i)] =
-                info.config.shards[i].director;
+                info.config.shards[i].primary_replica;
         }
     }
 
