@@ -159,8 +159,8 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                  * primary is coming up it may need data from us before it can
                  * become the primary.
                  * Also this is potentially a performance boost because it
-                 * allows other secondaries to preemptively backfill before the
-                 * primary is up. */
+                 * allows other secondary replicas to preemptively backfill before the
+                 * primary replica is up. */
                 backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
@@ -256,7 +256,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                 on_thread_t th2(this->home_thread());
 
                 /* Make the directory reflect the new role that we are filling.
-                 * (Being a secondary). */
+                 * (Being a secondary replica). */
                 directory_entry.set(reactor_business_card_t::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */

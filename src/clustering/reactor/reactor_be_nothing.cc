@@ -124,15 +124,15 @@ void reactor_t::be_nothing(region_t region,
                 /* Make sure everyone sees that we're trying to erase our data,
                  * it's important to do this to avoid the following race condition:
                  *
-                 * Peer 1 and Peer 2 both are secondaries.
+                 * Peer 1 and Peer 2 both are secondary replicas.
                  * Peer 1 gets a blueprint saying its role is nothing and peer 2's role
                  * is secondary,
                  * Peer 2 gets a blueprint saying its role is nothing and peer 1's role
                  * is secondary,
                  *
-                 * since each one sees the other is secondary they both think it's
-                 * safe to shutdown and thus destroy their data leading to data
-                 * loss.
+                 * since each one sees that the other is a secondary replica, they both
+                 * think it's safe to shutdown and thus destroy their data leading to
+                 * data * loss.
                  *
                  * The below line makes sure that they will sync their new roles
                  * with one another before they begin destroying data.

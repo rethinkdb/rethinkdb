@@ -304,9 +304,9 @@ namespace_semilattice_metadata_t migrate_table(
                     "servers.",
                     db_name.c_str(), table_name.c_str());
                 /* This is a hack; if the server doesn't have any role for this exact
-                shard, we'll just set it as a secondary. This will result in the user's
-                data being replicated too many times but at least they won't lose any
-                data. */
+                shard, we'll just set it as a secondary replica. This will result in the
+                user's data being replicated too many times but at least they won't lose
+                any data. */
                 role = blueprint_role_secondary;
             } else {
                 role = it->second;

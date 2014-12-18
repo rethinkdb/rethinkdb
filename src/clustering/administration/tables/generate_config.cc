@@ -30,8 +30,8 @@ private:
 };
 
 // Because being the primary replica for a shard usually comes with a higher cost than
-// being a secondary, we want to consider that difference in the replica assignment.
-// The concrete value of these doesn't matter, only their ratio
+// being a secondary replica, we want to consider that difference in the replica
+// assignment. The concrete value of these doesn't matter, only their ratio
 // (float)PRIMARY_USAGE_COST/(float)SECONDARY_USAGE_COST is important.
 // As long as PRIMARY_USAGE_COST > SECONDARY_USAGE_COST, this is a solution to
 // https://github.com/rethinkdb/rethinkdb/issues/344 (if the server roles are

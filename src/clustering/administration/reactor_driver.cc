@@ -157,7 +157,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
             blueprint_role_primary);
     }
 
-    /* Put the secondaries in the blueprint */
+    /* Put the secondary replicas in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         const table_config_t::shard_t &shard = info.config.shards[i];
         for (const server_id_t &server : shard.replicas) {

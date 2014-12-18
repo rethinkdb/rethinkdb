@@ -93,7 +93,7 @@ public:
 RDB_MAKE_SERIALIZABLE_4(primary_t,
                         broadcaster, replier, master, direct_reader);
 
-/* This peer is currently a secondary in working order. */
+/* This peer is currently a secondary replica in working order. */
 class secondary_up_to_date_t {
 public:
     secondary_up_to_date_t(branch_id_t _branch_id,
@@ -114,7 +114,7 @@ public:
 
 RDB_MAKE_SERIALIZABLE_3(secondary_up_to_date_t, branch_id, replier, direct_reader);
 
-/* This peer would like to be a secondary but cannot because it failed to
+/* This peer would like to be a secondary replica but cannot because it failed to
  * find a primary replica. It may or may not have ever seen a primary. */
 class secondary_without_primary_t {
 public:
@@ -137,8 +137,8 @@ public:
 RDB_MAKE_SERIALIZABLE_4(secondary_without_primary_t,
                         current_state, backfiller, direct_reader, branch_history);
 
-/* This peer is in the process of becoming a secondary, barring failures it
- * will become a secondary when it completes backfilling. */
+/* This peer is in the process of becoming a secondary replica, barring failures it
+ * will become a secondary replica when it completes backfilling. */
 class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }

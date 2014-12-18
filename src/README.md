@@ -78,7 +78,7 @@ The broadcaster_t sorts and distributes them to one or more listener_t,
 
 A listener_t is the cluster-facing interface of a replica for a single shard.
 A listener_t performs read/writes to the B-tree.
-A secondary server is essentially just a listener_t.
+A secondary replica is essentially just a listener_t.
 
 History of table data regions (shards) is identified by a branch ID + timestamp.
 A branch is the DB state when a broadcaster_t was created + sequence of writes.
