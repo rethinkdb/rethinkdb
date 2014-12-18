@@ -1,11 +1,12 @@
 # views should not completely redraw every added row
 # when feed: replace query time in statusbar with special changefeed ticker
 # stop ticking when changefeed gets aborted
+# many of the fields of the parent view don't get updated when they change
 # some code assumes that result is an array
 # table view shows "no results" when it means "no more results" or "no results yet"
 # abort button blinks when runnign a normal query
 # abort blinks constantly when running a changefeed
-# "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when running a query after a changefeed query
+# "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when aborting a query after a changefeed query
 
 # ticker shows throughout
 # move more results button into individual views
@@ -104,7 +105,8 @@ module 'DataExplorerView', ->
                             @ended = true
                             @trigger 'end', @
                         error: (error) =>
-                            @set_error error
+                            if not @ended
+                                @set_error error
                         row: (row) =>
                             if @discard_results
                                 return
@@ -132,7 +134,9 @@ module 'DataExplorerView', ->
 
         force_end_gracefully: =>
             if @is_feed
+                @ended = true
                 @cursor?.close()
+                @trigger 'end', @
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -155,7 +159,7 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
-        delay_show_abort: 500 # If a query didn't return during this period (ms) we let people abort the query
+        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -2922,7 +2926,13 @@ module 'DataExplorerView', ->
                 when 'value'
                     return @query_result.value
                 when 'cursor'
-                    return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
+                    if @query_result.is_feed
+                        latest = @query_result.results[-@parent.container.limit .. ]
+                        latest.reverse()
+                        console.log latest
+                        return latest
+                    else
+                        return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
 
         fetch_batch_rows:  =>
             if @query_result.type is not 'cursor'
@@ -3520,6 +3530,8 @@ module 'DataExplorerView', ->
                 @query_result.on 'ready', () =>
                     @render()
                     @new_view()
+            @query_result.on 'end', =>
+                @render()
 
         render: (args) =>
             # ATN many of these fields don't get updated when their value changes
@@ -3536,6 +3548,9 @@ module 'DataExplorerView', ->
                     execution_time_pretty: Utils.prettify_duration @container.driver_handler.total_duration
                     no_results: @query_result.ended and @query_result.size() == 0
                     num_results: @query_result.size()
+                    feed:
+                        if @query_result.is_feed
+                            ended: @query_result.ended
                 @$('.execution_time').tooltip
                     for_dataexplorer: true
                     trigger: 'hover'
