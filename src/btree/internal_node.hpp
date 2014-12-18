@@ -74,7 +74,7 @@ public:
         return compare(key1, key2) < 0;
     }
     static int compare(const btree_key_t *key1, const btree_key_t *key2) {
-        return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+        return btree_key_cmp(key1, key2);
     }
 };
 

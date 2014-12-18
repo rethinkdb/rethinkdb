@@ -2,7 +2,6 @@
 #include "unittest/gtest.hpp"
 
 #include "http/json.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "stl_utils.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -14,6 +13,24 @@ int sign(int x) {
 }
 
 #define ASSERT_SAME_SIGN(x, y) ASSERT_EQ(sign(x), sign(y))
+
+cJSON *render_as_json(std::vector<std::string> *a) {
+    cJSON *array = cJSON_CreateArray();
+    for (const std::string &s : *a) {
+        cJSON_AddItemToArray(array, cJSON_CreateString(s.c_str()));
+    }
+    return array;
+}
+
+cJSON *render_as_json(std::map<std::string, std::string> *m) {
+    cJSON *obj = cJSON_CreateObject();
+    for (const auto &pair : *m) {
+        cJSON_AddItemToObject(obj,
+                              pair.first.c_str(),
+                              cJSON_CreateString(pair.second.c_str()));
+    }
+    return obj;
+}
 
 int compare_and_delete(cJSON *l, cJSON *r) {
     int res = json_cmp(l, r);

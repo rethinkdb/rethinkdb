@@ -49,7 +49,7 @@ public:
         std::map<namespace_id_t, table_stats_t> tables;
     };
 
-    explicit parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats);
+    explicit parsed_stats_t(const std::vector<ql::datum_t> &stats);
 
     // Accumulate a field in all servers
     double accumulate(double server_stats_t::*field) const;
@@ -109,8 +109,8 @@ public:
     typedef cluster_semilattice_metadata_t metadata_t;
 
     static std::set<std::vector<std::string> > global_stats_filter();
-    static std::vector<std::pair<server_id_t, peer_id_t> > all_peers(
-            server_config_client_t *server_config_client);
+    static std::vector<peer_id_t> all_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory);
 
     virtual ~stats_request_t() { }
 
@@ -118,7 +118,8 @@ public:
     virtual std::set<std::vector<std::string> > get_filter() const = 0;
 
     // Gets the list of servers/peers the request should be sent to
-    virtual std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+    virtual std::vector<peer_id_t> get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const = 0;
 
     // Checks that the requested entity exists in the metadata, so we can avoid
@@ -144,7 +145,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+    std::vector<peer_id_t> get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
@@ -169,7 +171,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+    std::vector<peer_id_t> get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
@@ -193,7 +196,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+    std::vector<peer_id_t> get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;
@@ -219,7 +223,8 @@ public:
 
     std::set<std::vector<std::string> > get_filter() const;
 
-    std::vector<std::pair<server_id_t, peer_id_t> > get_peers(
+    std::vector<peer_id_t> get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
     bool check_existence(const metadata_t &metadata) const;

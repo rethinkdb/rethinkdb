@@ -8,7 +8,6 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "region/region_map_json_adapter.hpp"
 #include "stl_utils.hpp"
 
 /* RSI(reql_admin): The ReQL admin API changes involve big changes to the semilattice
@@ -63,42 +62,6 @@ RDB_IMPL_SERIALIZABLE_18_FOR_CLUSTER(cluster_directory_metadata_t,
      server_config_business_card,
      local_issues,
      peer_type);
-
-// ctx-less json adapter concept for cluster_directory_metadata_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["server_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<server_id_t>(&target->server_id)); // TODO: should be 'me'?
-    res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
-    res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t>(&target->peer_type));
-    return res;
-}
-
-cJSON *render_as_json(cluster_directory_metadata_t *target) {
-    return render_as_directory(target);
-}
-
-void apply_json_to(cJSON *change, cluster_directory_metadata_t *target) {
-    apply_as_directory(change, target);
-}
-
-// ctx-less json adapter for cluster_directory_peer_type_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *) {
-    return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
-}
-
-cJSON *render_as_json(cluster_directory_peer_type_t *peer_type) {
-    switch (*peer_type) {
-    case SERVER_PEER:
-        return cJSON_CreateString("server");
-    case PROXY_PEER:
-        return cJSON_CreateString("proxy");
-    default:
-        break;
-    }
-    return cJSON_CreateString("unknown");
-}
-
-void apply_json_to(cJSON *, cluster_directory_peer_type_t *) { }
 
 bool search_db_metadata_by_name(
         const databases_semilattice_metadata_t &metadata,

@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import sys, os, time
+import os, sys, time
 
 startTime = time.time()
 
@@ -49,7 +49,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
 
     print("Increasing replication factor again (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
-
+    
     print("Confirming that the progress meter indicates a backfill happening (%.2fs)" % (time.time() - startTime))
     # ToDo: replace this with ReQL command once issue is done: https://github.com/rethinkdb/rethinkdb/issues/3115
     raise NotImplementedError('Waiting for process table: https://github.com/rethinkdb/rethinkdb/issues/3115')
@@ -59,7 +59,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
     
     # The large backfill might take time, and for this test we don't care about it succeeding
-    for server in cluster:
+    for server in cluster[:]:
         server.kill()
 
 print("Done. (%.2fs)" % (time.time() - startTime))

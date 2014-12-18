@@ -46,13 +46,6 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def cleanupMetaclusterFolder(path):
-    if os.path.isdir(str(path)):
-        try:
-            shutil.rmtree(path)
-        except Exception as e:
-            warnings.warn('Warning: unable to cleanup Metacluster folder: %s - got error: %s' % (str(path), str(e)))
-
 runningServers = []
 def endRunningServers():
     for server in copy.copy(runningServers):
@@ -79,7 +72,7 @@ class Metacluster(object):
         
         if output_folder is None:
             self.dbs_path = tempfile.mkdtemp()
-            atexit.register(cleanupMetaclusterFolder, self.dbs_path)
+            utils.cleanupPathAtExit(self.dbs_path)
         else:
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)

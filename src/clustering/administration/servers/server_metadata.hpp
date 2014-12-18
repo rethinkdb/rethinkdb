@@ -7,7 +7,6 @@
 #include <string>
 
 #include "containers/name_string.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"

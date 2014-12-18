@@ -12,7 +12,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -146,7 +146,7 @@ bool do_serve(io_backender_t *io_backender,
         // could initialize the cluster directory metadata with the proper
         // jobs_manager and stat_manager mailbox address
         jobs_manager_t jobs_manager(&mailbox_manager, server_id);
-        stat_manager_t stat_manager(&mailbox_manager);
+        stat_manager_t stat_manager(&mailbox_manager, server_id);
 
         cluster_directory_metadata_t initial_directory(
             server_id,
@@ -406,8 +406,6 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
                                 server_id,
-                                &mailbox_manager,
-                                directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
                         logNTC("Listening for administrative HTTP connections on port %d\n",

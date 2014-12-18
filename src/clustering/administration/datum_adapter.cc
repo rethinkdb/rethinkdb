@@ -160,7 +160,7 @@ bool convert_table_id_to_datums(
     name_string_t table_name = it->second.get_ref().name.get_ref();
     if (table_name_or_uuid_out != nullptr) {
         *table_name_or_uuid_out = convert_name_or_uuid_to_datum(
-            table_name, table_id, identifier_format); 
+            table_name, table_id, identifier_format);
     }
     if (table_name_out != nullptr) *table_name_out = table_name;
     database_id_t db_id = it->second.get_ref().database.get_ref();

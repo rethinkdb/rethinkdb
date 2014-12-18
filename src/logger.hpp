@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef LOGGER_HPP_
 #define LOGGER_HPP_
 
@@ -7,9 +7,9 @@
 
 enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_notice, log_level_warn, log_level_error };
 
-/* These functions are implemented in `clustering/administration/logger.cc`.
+/* These functions are implemented in `clustering/administration/log_writer.cc`.
 This header file exists so that anything can call them without having to include
-the same things that `clustering/administration/logger.hpp` does. */
+the same things that `clustering/administration/log_writer.hpp` does. */
 
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...)
     __attribute__ ((format (printf, 4, 5)));

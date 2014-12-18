@@ -10,7 +10,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "btree/erase_range.hpp"
+#include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"

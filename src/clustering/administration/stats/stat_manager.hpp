@@ -16,7 +16,8 @@ public:
     typedef mailbox_t<void(return_address_t, std::set<std::vector<stat_id_t> >)> get_stats_mailbox_t;
     typedef get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
 
-    explicit stat_manager_t(mailbox_manager_t* mailbox_manager);
+    explicit stat_manager_t(mailbox_manager_t* mailbox_manager,
+                            server_id_t _own_server_id);
 
     get_stats_mailbox_address_t get_address();
 
@@ -26,6 +27,7 @@ private:
         const return_address_t& reply_address,
         const std::set<std::vector<stat_id_t> >& requested_stats);
 
+    server_id_t own_server_id;
     mailbox_manager_t *mailbox_manager;
     get_stats_mailbox_t get_stats_mailbox;
 

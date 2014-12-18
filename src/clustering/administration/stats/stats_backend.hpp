@@ -51,9 +51,9 @@ private:
                         ql::datum_t *result_out,
                         signal_t *interruptor);
 
-    void perform_stats_request(const std::vector<std::pair<server_id_t, peer_id_t> > &peers,
+    void perform_stats_request(const std::vector<peer_id_t> &peers,
                                const std::set<std::vector<std::string> > &filter,
-                               std::map<server_id_t, ql::datum_t> *results_out,
+                               std::vector<ql::datum_t> *results_out,
                                signal_t *interruptor);
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
