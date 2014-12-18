@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/generic/nonoverlapping_regions.hpp"
 
-#include "region/region_json_adapter.hpp"
-
 bool valid_regions_helper(const std::vector<region_t> &regionvec,
                           const std::set<region_t> &regionset) {
     // Disallow empty regions.
@@ -52,37 +50,3 @@ bool nonoverlapping_regions_t::add_region(const region_t &region) {
     return true;
 }
 
-
-// TODO: See if any json adapter for std::set is being used.
-
-// ctx-less json adapter concept for nonoverlapping_regions_t.
-json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED nonoverlapping_regions_t *target) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(nonoverlapping_regions_t *target) {
-    cJSON *res = cJSON_CreateArray();
-    for (nonoverlapping_regions_t::iterator it = target->begin(); it != target->end(); ++it) {
-        // TODO: An extra copy.
-        region_t tmp = *it;
-        cJSON_AddItemToArray(res, render_as_json(&tmp));
-    }
-    return res;
-}
-
-void apply_json_to(cJSON *change, nonoverlapping_regions_t *target) THROWS_ONLY(schema_mismatch_exc_t) {
-    nonoverlapping_regions_t res;
-    json_array_iterator_t it = get_array_it(change);
-    std::vector<region_t> regions;
-    for (cJSON *val; (val = it.next()); ) {
-        region_t region;
-        apply_json_to(val, &region);
-        regions.push_back(region);
-    }
-
-    if (!res.set_regions(regions)) {
-        throw schema_mismatch_exc_t("Sharding spec is invalid (regions overlap, empty regions exist, or they do not cover all keys).");
-    }
-
-    *target = res;
-}

@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "containers/archive/stl_types.hpp"
-#include "http/json/json_adapter.hpp"
 #include "region/region.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -53,12 +52,5 @@ private:
 };
 
 RDB_SERIALIZE_OUTSIDE(nonoverlapping_regions_t);
-
-// ctx-less json adapter concept for nonoverlapping_regions_t.
-json_adapter_if_t::json_adapter_map_t get_json_subfields(nonoverlapping_regions_t *target);
-cJSON *render_as_json(nonoverlapping_regions_t *target);
-void apply_json_to(cJSON *change, nonoverlapping_regions_t *target) THROWS_ONLY(schema_mismatch_exc_t);
-
-
 
 #endif  // CLUSTERING_GENERIC_NONOVERLAPPING_REGIONS_HPP_

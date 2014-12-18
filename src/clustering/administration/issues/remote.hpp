@@ -10,7 +10,6 @@
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "http/json/json_adapter.hpp"
 
 class remote_issue_tracker_t : public issue_tracker_t {
 public:

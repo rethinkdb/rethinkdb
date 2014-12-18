@@ -13,7 +13,6 @@
 #include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 

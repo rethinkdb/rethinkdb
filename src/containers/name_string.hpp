@@ -5,7 +5,6 @@
 #include <string>
 
 #include "rdb_protocol/datum_string.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/serialize_macros.hpp"
 
 // The kind of string that can only contain either the empty string or acceptable names for
@@ -51,13 +50,6 @@ inline bool operator<(const name_string_t& x, const name_string_t& y) {
     return x.str() < y.str();
 }
 
-// ctx-less json adapter concept for name_string_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(name_string_t *target);
-cJSON *render_as_json(name_string_t *target);
-void apply_json_to(cJSON *change, name_string_t *target);
-
 void debug_print(printf_buffer_t *buf, const name_string_t& s);
-
-
 
 #endif  // CONTAINERS_NAME_STRING_HPP_
