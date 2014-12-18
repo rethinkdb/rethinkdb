@@ -1,8 +1,12 @@
 # TODO ATN
+# at what scroll point should the updating stop
+# what if the whole batch fits in the window, how to pause?
 # when user scrolls down, update should stop
 # when they scroll back up, the update should pick up again, or display a button to do so
 # the indexes in the table view should be reversed.
 # views should not completely redraw every added row
+# rate limit events to avoid freezing the browser when there are too many
+# new events should flash
 # many of the fields of the parent view don't get updated when they change
 # table view shows "no results" when it means "no more results" or "no results yet"
 # bottom of display for changefeeds should show "older events were discarded" if that is the case
@@ -2602,7 +2606,7 @@ module 'DataExplorerView', ->
                                     @results_view_wrapper.render_error(@query, err)
                                 ready: (query_result) =>
                                     if query_result.is_feed
-                                        @toggle_executing true
+                                        # ATN @toggle_executing true
                                         @disable_toggle_executing = true
                                         for event in ['end', 'discard', 'error']
                                             query_result.on event, () =>
@@ -2966,7 +2970,12 @@ module 'DataExplorerView', ->
         render: =>
             @$el.html @template
                 tree: @json_to_tree @current_batch()
-            @
+            # ATN TODO
+            if @query_result.is_feed
+                first_event = @$('.jt_array:first li:first')
+                first_event.css 'background-color': '#eeeeff'
+                first_event.animate 'background-color': '#fbfbfb'
+            return @
 
     class TableView extends ResultView
         className: 'results table_view_container'
@@ -3267,6 +3276,12 @@ module 'DataExplorerView', ->
                     @$el.html @templates.wrapper content: @json_to_table results
             else
                 @$el.html @templates.wrapper content: @json_to_table [results]
+
+            # ATN TODO
+            if @query_result.is_feed
+                first_row = @$('.jta_tr').eq(1).find('td:not(:first)')
+                first_row.css 'background-color': '#eeeeff'
+                first_row.animate 'background-color': '#fbfbfb'
 
             # Check if the keys are the same
             if @parent.container.state.last_keys.length isnt previous_keys.length
