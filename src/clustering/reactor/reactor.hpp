@@ -11,6 +11,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/cow_ptr.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 

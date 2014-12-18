@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_LOGGER_HPP_
-#define CLUSTERING_ADMINISTRATION_LOGGER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_LOG_WRITER_HPP_
+#define CLUSTERING_ADMINISTRATION_LOG_WRITER_HPP_
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -10,11 +10,11 @@
 #include <vector>
 
 #include "arch/io/io_utils.hpp"
+#include "clustering/administration/issues/log_write.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
-#include "clustering/administration/issues/log_write.hpp"
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(log_level_t, int, log_level_debug, log_level_error);
 RDB_DECLARE_SERIALIZABLE(struct timespec);
@@ -80,4 +80,4 @@ public:
     ~thread_log_writer_disabler_t();
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_LOG_WRITER_HPP_ */

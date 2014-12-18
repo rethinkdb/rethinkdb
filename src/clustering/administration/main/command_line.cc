@@ -35,7 +35,7 @@
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
