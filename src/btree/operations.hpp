@@ -261,6 +261,9 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out);
 
+/* Note that there's no guarantee that `pass_back_superblock` will have been
+ * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,
+ * the superblock is returned only when `*kevaluey_location_out` gets destructed. */
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
