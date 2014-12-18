@@ -227,10 +227,13 @@ public:
     void add_table_sub(subscription_t *sub) THROWS_NOTHING;
     void del_table_sub(subscription_t *sub) THROWS_NOTHING;
 
-    void each_table_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_table_sub(const auto_drainer_t::lock_t &lock,
+                        const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_sub(const auto_drainer_t::lock_t &lock,
+                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(datum_t key,
+                      const auto_drainer_t::lock_t &lock,
                       const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
 
 
@@ -242,6 +245,7 @@ private:
     void each_sub_in_vec(
         const std::vector<std::set<subscription_t *> > &vec,
         rwlock_in_line_t *spot,
+        const auto_drainer_t::lock_t &lock,
         const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
                             const std::vector<std::set<subscription_t *> > &vec,
@@ -405,8 +409,13 @@ private:
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
-    msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
-        : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
+    msg_visitor_t(feed_t *_feed, const auto_drainer_t::lock_t *_lock,
+                  uuid_u _server_uuid, uint64_t _stamp)
+        : feed(_feed), lock(_lock), server_uuid(_server_uuid), stamp(_stamp) {
+        guarantee(feed != nullptr);
+        guarantee(lock != nullptr);
+        guarantee(lock->has_lock());
+    }
     void operator()(const msg_t::change_t &change) const {
         datum_t null = datum_t::null();
         configured_limits_t default_limits;
@@ -416,6 +425,7 @@ public:
         };
         auto d = datum_t(std::move(obj));
         feed->each_table_sub(
+            *lock,
             std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
@@ -427,6 +437,7 @@ public:
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(
             pkey_val,
+            *lock,
             std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
@@ -436,10 +447,12 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::NO));
+        feed->each_sub(*lock,
+                       std::bind(&subscription_t::stop, ph::_1, msg, detach_t::NO));
     }
 private:
     feed_t *feed;
+    const auto_drainer_t::lock_t *lock;
     uuid_u server_uuid;
     uint64_t stamp;
 };
@@ -643,9 +656,10 @@ void feed_t::del_table_sub(subscription_t *sub) THROWS_NOTHING {
 void feed_t::each_sub_in_vec(
     const std::vector<std::set<subscription_t *> > &vec,
     rwlock_in_line_t *spot,
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    auto_drainer_t::lock_t lock(&drainer);
+    guarantee(lock.has_lock());
     spot->read_signal()->wait_lazily_unordered();
 
     std::vector<int> subscription_threads;
@@ -675,10 +689,11 @@ void feed_t::each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
 }
 
 void feed_t::each_table_sub(
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&table_subs_lock, access_t::read);
-    each_sub_in_vec(table_subs, &spot, f);
+    each_sub_in_vec(table_subs, &spot, lock, f);
 }
 
 void feed_t::each_point_sub(
@@ -701,22 +716,24 @@ void feed_t::each_point_sub_cb(const std::function<void(subscription_t *)> &f, i
     }
 }
 
-void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
-    each_table_sub(f);
+void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
+                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    each_table_sub(lock, f);
     each_point_sub(f);
 }
 
 void feed_t::on_point_sub(
     datum_t key,
+    const auto_drainer_t::lock_t &lock,
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    auto_drainer_t::lock_t lock(&drainer);
+    guarantee(lock.has_lock());
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
     auto point_sub = point_subs.find(key);
     if (point_sub != point_subs.end()) {
-        each_sub_in_vec(point_sub->second, &spot, f);
+        each_sub_in_vec(point_sub->second, &spot, lock, f);
     }
 }
 
@@ -758,7 +775,7 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             // Read as much as we can from the queue (this enforces ordering.)
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
                 const stamped_msg_t &curmsg = queue->map.top();
-                msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
+                msg_visitor_t visitor(this, &lock, curmsg.server_uuid, curmsg.stamp);
                 boost::apply_visitor(visitor, curmsg.submsg.op);
                 queue->map.pop();
                 queue->next += 1;
@@ -852,16 +869,20 @@ void feed_t::constructor_cb() {
     disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
-        lock.reset(); // Otherwise the `feed_t`'s auto_drainer can never be destroyed.
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
-            each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::YES));
+            guarantee(lock.has());
+            each_sub(*lock,
+                     std::bind(&subscription_t::stop, ph::_1, msg, detach_t::YES));
             num_subs = 0;
         } else {
             // We only get here if we were removed before we were detached.
             guarantee(num_subs == 0);
         }
+        // We have to release the drainer lock before `self` is destroyed,
+        // otherwise we'll block forever.
+        lock.reset();
     }
 }
 
