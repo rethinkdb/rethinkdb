@@ -1,8 +1,11 @@
 # TODO ATN
+# when user scrolls down, update should stop
+# when they scroll back up, the update should pick up again, or display a button to do so
+# the indexes in the table view should be reversed.
 # views should not completely redraw every added row
 # many of the fields of the parent view don't get updated when they change
 # table view shows "no results" when it means "no more results" or "no results yet"
-# "Possibly unhandled RqlRuntimeError. This HTTP connection is not open" when aborting a query after a changefeed query
+# bottom of display for changefeeds should show "older events were discarded" if that is the case
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -83,7 +86,7 @@ module 'DataExplorerView', ->
             delete @profile
             delete @value
             delete @results
-            @cursor?.close()
+            @cursor?.close().catch(() -> null)
             delete @cursor
 
         # Gets the next result from the cursor
@@ -125,7 +128,7 @@ module 'DataExplorerView', ->
         force_end_gracefully: =>
             if @is_feed
                 @ended = true
-                @cursor?.close()
+                @cursor?.close().catch(() -> null)
                 @trigger 'end', @
 
     class @Container extends Backbone.View
