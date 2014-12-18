@@ -296,10 +296,10 @@ def test(src, expected, name, opthash=nil, testopts=nil)
 end
 
 # Generated code must call either `setup_table` or `check_no_table_specified`
-def setup_table(table_variable_name, table_name)
+def setup_table(table_variable_name, table_name, db_name="test")
   at_exit do
-    if DB_AND_TABLE_NAME == "no_table_specified"
-      res = r.db("test").table_drop(table_name).run($cpp_conn)
+    if DB_AND_TABLE_NAME == "no_table_specified" && r.db(db_name).table_list().run($cpp_conn).include?(table_name)
+      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
       if res["dropped"] != 1
         abort "Could not drop table: #{res}"
       end
@@ -317,14 +317,14 @@ def setup_table(table_variable_name, table_name)
     end
   end
   if DB_AND_TABLE_NAME == "no_table_specified"
-    res = r.db("test").table_create(table_name).run($cpp_conn)
+    res = r.db(db_name).table_create(table_name).run($cpp_conn)
     if res["created"] != 1
       abort "Could not create table: #{res}"
     end
-      $defines.eval("#{table_variable_name} = r.db('test').table('#{table_name}')")
-    else
-      parts = DB_AND_TABLE_NAME.split('.')
-      $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+      $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
+  else
+    parts = DB_AND_TABLE_NAME.split('.')
+    $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
   end
 end
 
