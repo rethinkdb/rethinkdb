@@ -190,6 +190,17 @@ Iterator && fail(const char *explanation,
 }
 
 template <class Iterator>
+const char *is_valid_continuation_byte(const Iterator &position, const Iterator &end) {
+    if (position == end) {
+        return "Expected continuation byte, saw end of string";
+    } else if (!is_continuation(*position)) {
+        return "Expected continuation byte, saw something else";
+    } else {
+        return 0;
+    }
+}
+
+template <class Iterator>
 Iterator && next_codepoint(const Iterator &start, const Iterator &end,
                           char32_t *codepoint, reason_t *reason) {
     Iterator position = start;
@@ -201,6 +212,7 @@ Iterator && next_codepoint(const Iterator &start, const Iterator &end,
     }
 
     char current = *position++;
+    const char *explanation;
 
     if (is_standalone(current)) {
         // 0xxxxxxx - ASCII character
@@ -209,9 +221,9 @@ Iterator && next_codepoint(const Iterator &start, const Iterator &end,
     } else if (is_twobyte_start(current)) {
         // 110xxxxx - two character multibyte
         *codepoint = extract_and_shift(current, HIGH_THREE_BITS, 6);
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
         if (*codepoint < 0x0080) {
@@ -224,14 +236,14 @@ Iterator && next_codepoint(const Iterator &start, const Iterator &end,
     } else if (is_threebyte_start(current)) {
         // 1110xxxx - three character multibyte
         *codepoint = extract_and_shift(current, HIGH_FOUR_BITS, 12);
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
         if (*codepoint < 0x0800) {
@@ -244,19 +256,19 @@ Iterator && next_codepoint(const Iterator &start, const Iterator &end,
     } else if (is_fourbyte_start(current)) {
         // 11110xxx - four character multibyte
         *codepoint = extract_and_shift(current, HIGH_FIVE_BITS, 18);
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 12;
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
-        if (position == end) {
-            return fail("Expected continuation byte, saw end of string",
-                        start, std::move(position), codepoint, reason);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, std::move(position), codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
         if (*codepoint < 0x10000) {

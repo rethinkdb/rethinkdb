@@ -191,6 +191,134 @@ TEST(UTF8ValidationStressTest, OverlongSequences) {
     ASSERT_FALSE(utf8::is_valid("\xf8\x80\x80\x80\x80"));
 }
 
+void AllInvalidString(const char *start, const char *end) {
+    utf8::reason_t reason;
+    char32_t codepoint;
+    const char *cbegin = start;
+    const char *cend = start;
+    size_t count = 0;
+    while (cend != end) {
+        cend = utf8::next_codepoint(cbegin, end, &codepoint, &reason);
+        ASSERT_EQ(U'\uFFFD', codepoint);
+        count++;
+        cbegin = cend;
+    }
+    ASSERT_EQ(strlen(start), count);
+}
+
+void AllInvalidString(const char *start) {
+    AllInvalidString(start, start + strlen(start));
+}
+
+TEST(UTF8ValidationStressTest, UnexpectedContinuationBytes) {
+    {
+        SCOPED_TRACE("First continuation byte");
+        AllInvalidString("\x80");
+    }
+    {
+        SCOPED_TRACE("Last continuation byte");
+        AllInvalidString("\xbf");
+    }
+    {
+        SCOPED_TRACE("2 continuation bytes");
+        AllInvalidString("\x80\x80");
+    }
+    {
+        SCOPED_TRACE("3 continuation bytes");
+        AllInvalidString("\x80\x80\x80");
+    }
+    {
+        SCOPED_TRACE("4 continuation bytes");
+        AllInvalidString("\x80\x80\x80\x80");
+    }
+    {
+        SCOPED_TRACE("5 continuation bytes");
+        AllInvalidString("\x80\x80\x80\x80\x80");
+    }
+    {
+        SCOPED_TRACE("6 continuation bytes");
+        AllInvalidString("\x80\x80\x80\x80\x80\x80");
+    }
+    {
+        SCOPED_TRACE("7 continuation bytes");
+        AllInvalidString("\x80\x80\x80\x80\x80\x80\x80");
+    }
+    {
+        SCOPED_TRACE("All possible continuation bytes");
+        char string[65];
+        for (int i = 0; i < 65; i++) {
+            string[i] = '\x80' + i;
+        }
+        string[64] = '\0';
+        AllInvalidString(string);
+    }
+}
+
+void LonelyString(const char *start, const char *end) {
+    utf8::reason_t reason;
+    char32_t codepoint = 0;
+    const char *cbegin = start;
+    const char *cend = start;
+    size_t count = 0;
+    while (cend != end) {
+        cend = utf8::next_codepoint(cbegin, end, &codepoint, &reason);
+        if ((count % 2) == 0) {
+            ASSERT_EQ(U'\uFFFD', codepoint);
+        } else {
+            ASSERT_EQ(U' ', codepoint);
+        }
+        count++;
+        cbegin = cend;
+    }
+    ASSERT_EQ(strlen(start), count);
+}
+
+void LonelyString(const char *start) {
+    LonelyString(start, start + strlen(start));
+}
+
+TEST(UTF8ValidationStressTest, LonelyStartCharacters) {
+    {
+        SCOPED_TRACE("Two-byte sequences");
+        char string[65];
+        for (int i = 0; i < 64; i++) {
+            if ((i % 2) == 0) {
+                string[i] = '\xc0' + (i / 2);
+            } else {
+                string[i] = ' ';
+            }
+        }
+        string[64] = '\0';
+        LonelyString(string);
+    }
+    {
+        SCOPED_TRACE("Three-byte sequences");
+        char string[33];
+        for (int i = 0; i < 32; i++) {
+            if ((i % 2) == 0) {
+                string[i] = '\xe0' + (i / 2);
+            } else {
+                string[i] = ' ';
+            }
+        }
+        string[32] = '\0';
+        LonelyString(string);
+    }
+    {
+        SCOPED_TRACE("Four-byte sequences");
+        char string[17];
+        for (int i = 0; i < 16; i++) {
+            if ((i % 2) == 0) {
+                string[i] = '\xf0' + (i / 2);
+            } else {
+                string[i] = ' ';
+            }
+        }
+        string[16] = '\0';
+        LonelyString(string);
+    }
+}
+
 TEST(UTF8CodepointIterationTest, SimpleString) {
     std::string demo = "this is a demonstration string";
     utf8::reason_t reason;
