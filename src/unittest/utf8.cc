@@ -203,7 +203,7 @@ void AllInvalidString(const char *start, const char *end) {
         count++;
         cbegin = cend;
     }
-    ASSERT_EQ(strlen(start), count);
+    ASSERT_EQ(end - start, count);
 }
 
 void AllInvalidString(const char *start) {
@@ -316,6 +316,58 @@ TEST(UTF8ValidationStressTest, LonelyStartCharacters) {
         }
         string[16] = '\0';
         LonelyString(string);
+    }
+}
+
+void NBadCodepoints(const char *start, size_t n) {
+    const char *end = start + strlen(start);
+    const char *cbegin = start;
+    const char *cend = start;
+    utf8::reason_t reason;
+    char32_t codepoint;
+    ASSERT_NE(start, end);
+    size_t count = 0;
+    while (cend != end) {
+        cend = utf8::next_codepoint(cbegin, end, &codepoint, &reason);
+        ASSERT_EQ(U'\uFFFD', codepoint);
+        count++;
+        cbegin = cend;
+    }
+    ASSERT_EQ(n, count);
+}
+
+void SingleBadCodepoint(const char *start) {
+    NBadCodepoints(start, 1);
+}
+
+TEST(UTF8ValidationStressTest, MissingLastContinuationByte) {
+    {
+        SCOPED_TRACE("Two-byte sequences (U+0000)");
+        SingleBadCodepoint("\xc0");
+    }
+    {
+        SCOPED_TRACE("Three-byte sequences (U+0000)");
+        SingleBadCodepoint("\xe0\x80");
+    }
+    {
+        SCOPED_TRACE("Four-byte sequences (U+0000)");
+        SingleBadCodepoint("\xf0\x80\x80");
+    }
+    {
+        SCOPED_TRACE("Two-byte sequences (U+07FF)");
+        SingleBadCodepoint("\xdf");
+    }
+    {
+        SCOPED_TRACE("Three-byte sequences (U+FFFF)");
+        SingleBadCodepoint("\xef\xbf");
+    }
+    {
+        SCOPED_TRACE("Four-byte sequences (U-0010FFFF)");
+        SingleBadCodepoint("\xf4\x8f\xbf");
+    }
+    {
+        SCOPED_TRACE("Six concatenated sequences");
+        NBadCodepoints("\xc0\xe0\x80\xf0\x80\x80\xdf\xef\xbf\xf4\x8f\xbf", 6);
     }
 }
 
