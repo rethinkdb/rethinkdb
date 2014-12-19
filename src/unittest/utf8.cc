@@ -81,14 +81,14 @@ TEST(UTF8ValidationTest, InvalidCharacters) {
     ASSERT_FALSE(utf8::is_valid("\xc2"));
 
     ASSERT_FALSE(utf8::is_valid("\xc2", &reason));
-    ASSERT_EQ(1, reason.position);
+    ASSERT_EQ(0, reason.position);
     ASSERT_STREQ("Expected continuation byte, saw end of string", reason.explanation);
 
     // three byte leader, then two byte surrogate
     ASSERT_FALSE(utf8::is_valid("\xe0\xc2\xa2"));
 
     ASSERT_FALSE(utf8::is_valid("\xe0\xc2\xa2", &reason));
-    ASSERT_EQ(1, reason.position);
+    ASSERT_EQ(0, reason.position);
     ASSERT_STREQ("Expected continuation byte, saw something else", reason.explanation);
 }
 

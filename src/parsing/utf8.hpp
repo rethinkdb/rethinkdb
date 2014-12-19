@@ -51,32 +51,29 @@ Iterator && next_codepoint(const Iterator &start, const Iterator &end,
 
 template <class Iterator>
 class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
-    Iterator position, end;
+    Iterator start, position, end;
     char32_t last_seen;
     reason_t reason;
-    std::size_t index;
     bool seen_end;
 
     void advance();
-    bool check();
-    void fail(const char *);
-    char next_octet();
 public:
-    iterator_t() : position(), end(position), index(0), seen_end(true) {}
+    iterator_t() : start(), position(start), end(position), seen_end(true) {}
     iterator_t(iterator_t<Iterator> &&it)
-        : position(it.position), end(it.end), last_seen(it.last_seen),
-          reason(it.reason), index(it.index), seen_end(it.seen_end) {}
+        : start(it.start), position(it.position), end(it.end), last_seen(it.last_seen),
+          reason(it.reason), seen_end(it.seen_end) {}
     iterator_t(const iterator_t<Iterator> &it)
-        : position(it.position), end(it.end), last_seen(it.last_seen),
-          reason(it.reason), index(it.index), seen_end(it.seen_end) {}
+        : start(it.start), position(it.position), end(it.end), last_seen(it.last_seen),
+          reason(it.reason), seen_end(it.seen_end) {}
     template <class T>
     iterator_t(const T &t)
-        : position(t.begin()), end(t.end()), index(0), seen_end(false) {
+        : start(t.begin()), position(t.begin()), end(t.end()),
+          seen_end(t.begin() == t.end()) {
         advance();
     }
     iterator_t(const Iterator &begin,
                const Iterator &_end)
-        : position(begin), end(_end), index(0), seen_end(false) {
+        : start(begin), position(begin), end(_end), seen_end(begin == end) {
         advance();
     }
     iterator_t<Iterator> & operator ++() {
@@ -91,32 +88,31 @@ public:
 
     char32_t operator *() const { return last_seen; }
 
-    size_t offset() const { return index; }
-
     iterator_t<Iterator> & operator =(iterator_t<Iterator> &&it) {
+        start = it.start;
         position = it.position;
         end = it.end;
         last_seen = it.last_seen;
         reason = it.reason;
-        index = it.index;
         seen_end = it.seen_end;
         return *this;
     }
     iterator_t<Iterator> & operator =(const iterator_t<Iterator> &it) {
+        start = it.start;
         position = it.position;
         end = it.end;
         last_seen = it.last_seen;
         reason = it.reason;
-        index = it.index;
         seen_end = it.seen_end;
         return *this;
     }
 
     bool operator ==(const iterator_t<Iterator> &it) const {
-        return position == it.position && end == it.end && seen_end == it.seen_end;
+        if (seen_end && it.seen_end) return true;
+        return start == it.start && position == it.position && end == it.end;
     }
     bool operator !=(const iterator_t<Iterator> &it) const {
-        return position == it.position && end == it.end && seen_end == it.seen_end;
+        return !(*this == it);
     }
 
     explicit operator bool() const { return !seen_end; }
