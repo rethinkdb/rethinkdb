@@ -13,6 +13,7 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
         const raft_persistent_state_t<state_t> &persistent_state) :
     mailbox_manager(_mailbox_manager),
     peers(_peers),
+    peers_map_transformer(peers),
     member(this_member_id, storage, this, persistent_state),
     rpc_mailbox(mailbox_manager,
         std::bind(&raft_networked_member_t::on_rpc, this,
@@ -22,9 +23,8 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
 template<class state_t>
 raft_business_card_t<state_t> raft_networked_member_t<state_t>::get_business_card() {
     raft_business_card_t<state_t> bc;
-    bc.request_vote = request_vote_mailbox.get_address();
-    bc.install_snapshot = install_snapshot_mailbox.get_address();
-    bc.append_entries = append_entries_mailbox.get_address();
+    bc.rpc = rpc_mailbox.get_address();
+    return bc;
 }
 
 template<class state_t>
@@ -54,9 +54,9 @@ bool raft_networked_member_t<state_t>::send_rpc(
     return got_reply.is_pulsed();
 }
 
-clone_ptr_t<watchable_t<std::set<raft_member_id_t> > >
-        get_connected_members() {
-    ...
+watchable_map_t<raft_member_id_t, std::nullptr_t> *
+        raft_networked_member_t<state_t>::get_connected_members() {
+    return &peers_map_transformer;
 }
 
 template<class state_t>
