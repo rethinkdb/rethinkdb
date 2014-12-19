@@ -46,15 +46,13 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
     return ret;
 }
 
-class faux_term_t : public term_t {
+class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(protob_t<const Term> src, datum_t _d)
-        : term_t(std::move(src)), d(std::move(_d)) { }
-    virtual const char *name() const { return "<EXPANDED FROM r.args>"; }
-    virtual bool is_deterministic() const { return true; }
-    virtual void accumulate_captures(var_captures_t *) const { }
+    faux_term_t(protob_t<const Backtrace> bt, datum_t _d)
+        : runtime_term_t(std::move(bt)), d(std::move(_d)) { }
+    const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
-    virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
+    scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const final {
         return new_val(d);
     }
     datum_t d;
@@ -103,16 +101,16 @@ arg_terms_t::arg_terms_t(protob_t<const Term> _src,
 argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     eval_flags_t new_flags = static_cast<eval_flags_t>(
         flags | argspec.get_eval_flags());
-    std::vector<counted_t<const term_t> > args;
+    std::vector<counted_t<const runtime_term_t> > args;
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
-            counted_t<val_t> v = (*it)->eval(env, new_flags);
+            scoped_ptr_t<val_t> v = (*it)->eval(env, new_flags);
             datum_t d = v->as_datum();
             for (size_t i = 0; i < d.arr_size(); ++i) {
-                args.push_back(make_counted<faux_term_t>(src, d.get(i)));
+                args.push_back(make_counted<faux_term_t>(get_backtrace(src), d.get(i)));
             }
         } else {
-            args.push_back(*it);
+            args.push_back(counted_t<const runtime_term_t>(*it));
         }
     }
     rcheck(argspec.contains(args.size()),
@@ -122,13 +120,13 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     return argvec_t(std::move(args));
 }
 
-argvec_t::argvec_t(std::vector<counted_t<const term_t> > &&v)
+argvec_t::argvec_t(std::vector<counted_t<const runtime_term_t> > &&v)
     : vec(std::move(v)) { }
 
-counted_t<const term_t> argvec_t::remove(size_t i) {
+counted_t<const runtime_term_t> argvec_t::remove(size_t i) {
     r_sanity_check(i < vec.size());
     r_sanity_check(vec[i].has());
-    counted_t<const term_t> ret;
+    counted_t<const runtime_term_t> ret;
     ret.swap(vec[i]);
     return ret;
 }
@@ -138,18 +136,18 @@ size_t args_t::num_args() const {
     return argv.size();
 }
 
-counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
+scoped_ptr_t<val_t> args_t::arg(scope_env_t *env, size_t i,
                              eval_flags_t flags) {
     if (i == 0 && arg0.has()) {
-        counted_t<val_t> v;
-        v.swap(arg0);
+        scoped_ptr_t<val_t> v = std::move(arg0);
+        arg0.reset();
         return v;
     } else {
         return argv.remove(i)->eval(env, flags);
     }
 }
 
-counted_t<val_t> args_t::optarg(scope_env_t *env, const std::string &key) const {
+scoped_ptr_t<val_t> args_t::optarg(scope_env_t *env, const std::string &key) const {
     return op_term->optarg(env, key);
 }
 
@@ -157,7 +155,7 @@ args_t::args_t(const op_term_t *_op_term, argvec_t _argv)
     : op_term(_op_term), argv(std::move(_argv)) { }
 args_t::args_t(const op_term_t *_op_term,
                argvec_t _argv,
-               counted_t<val_t> _arg0)
+               scoped_ptr_t<val_t> _arg0)
     : op_term(_op_term), argv(std::move(_argv)), arg0(std::move(_arg0)) { }
 
 
@@ -188,12 +186,12 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 }
 op_term_t::~op_term_t() { }
 
-counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
-                                      eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> op_term_t::term_eval(scope_env_t *env,
+                                         eval_flags_t eval_flags) const {
     argvec_t argv = arg_terms->start_eval(env, eval_flags);
     if (can_be_grouped()) {
         counted_t<grouped_data_t> gd;
-        counted_t<val_t> arg0;
+        scoped_ptr_t<val_t> arg0;
         maybe_grouped_data(env, &argv, eval_flags, &gd, &arg0);
         if (gd.has()) {
             // (arg0 is empty, because maybe_grouped_data sets at most one of gd and
@@ -205,10 +203,10 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
                  kv != gd->end(grouped::order_doesnt_matter_t());
                  ++kv) {
                 arg_terms->start_eval(env, eval_flags);
-                args_t args(this, argv, make_counted<val_t>(kv->second, backtrace()));
+                args_t args(this, argv, make_scoped<val_t>(kv->second, backtrace()));
                 (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();
             }
-            return make_counted<val_t>(out, backtrace());
+            return make_scoped<val_t>(out, backtrace());
         } else {
             args_t args(this, std::move(argv), std::move(arg0));
             return eval_impl(env, &args, eval_flags);
@@ -222,13 +220,13 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
 bool op_term_t::can_be_grouped() const { return true; }
 bool op_term_t::is_grouped_seq_op() const { return false; }
 
-counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) const {
+scoped_ptr_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) const {
     std::map<std::string, counted_t<const term_t> >::const_iterator it
         = optargs.find(key);
     if (it != optargs.end()) {
         return it->second->eval(env);
     }
-    // returns counted_t<val_t>() if the key isn't found
+    // returns scoped_ptr_t<val_t>() if the key isn't found
     return env->env->get_optarg(env->env, key);
 }
 
@@ -284,12 +282,12 @@ void op_term_t::maybe_grouped_data(scope_env_t *env,
                                    argvec_t *argv,
                                    eval_flags_t flags,
                                    counted_t<grouped_data_t> *grouped_data_out,
-                                   counted_t<val_t> *arg0_out) const {
+                                   scoped_ptr_t<val_t> *arg0_out) const {
     if (argv->empty()) {
         grouped_data_out->reset();
         arg0_out->reset();
     } else {
-        counted_t<val_t> arg0 = argv->remove(0)->eval(env, flags);
+        scoped_ptr_t<val_t> arg0 = argv->remove(0)->eval(env, flags);
 
         counted_t<grouped_data_t> gd = is_grouped_seq_op()
             ? arg0->maybe_as_grouped_data()
@@ -320,8 +318,10 @@ bool bounded_op_term_t::is_right_open(scope_env_t *env, args_t *args) const {
 
 bool bounded_op_term_t::open_bool(
         scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const {
-    counted_t<val_t> v = args->optarg(env, key);
-    if (!v.has()) return def;
+    scoped_ptr_t<val_t> v = args->optarg(env, key);
+    if (!v.has()) {
+        return def;
+    }
     const datum_string_t &s = v->as_str();
     if (s == "open") {
         return true;

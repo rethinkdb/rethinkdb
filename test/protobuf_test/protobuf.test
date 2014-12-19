@@ -13,10 +13,10 @@ debugBuild = str(os.path.basename(utils.latest_build_dir())).startswith('debug')
 
 # -- ensure the test is compliled
 
-outputFile = tempfile.NamedTemporaryFile()
+outputFile = tempfile.NamedTemporaryFile('w+')
 command = ['make', 'protobuf-test-output-location']
 if debugBuild is True:
-    command = ['make', 'DEBUG=1', 'protobuf-test-output-location']
+    command += ['DEBUG=1']
 compileProcess = subprocess.Popen(command, stdout=outputFile, stderr=subprocess.STDOUT, cwd=thisDir)
 reportDeadline = time.time() + 2
 while compileProcess.poll() == None and reportDeadline > time.time():

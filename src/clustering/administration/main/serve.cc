@@ -6,11 +6,12 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "arch/os_signal.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
-#include "clustering/administration/admin_tracker.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/server.hpp"
+#include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -19,18 +20,20 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
-#include "clustering/administration/servers/name_server.hpp"
-#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/config_server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/directory/map_read_manager.hpp"
+#include "rpc/directory/map_write_manager.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -79,29 +82,29 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
-              uint64_t total_cache_size,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
-        local_issue_tracker_t local_issue_tracker;
+        local_issue_aggregator_t local_issue_aggregator;
 
-        thread_pool_log_writer_t log_writer(&local_issue_tracker);
+        thread_pool_log_writer_t log_writer(&local_issue_aggregator);
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
-        machine_id_t machine_id = generate_uuid();
+        server_id_t server_id = generate_uuid();
 
         if (cluster_metadata_file != NULL) {
-            machine_id = cluster_metadata_file->read_machine_id();
+            server_id = cluster_metadata_file->read_server_id();
             cluster_metadata = cluster_metadata_file->read_metadata();
         }
         if (auth_metadata_file != NULL) {
             auth_metadata = auth_metadata_file->read_metadata();
         }
+
 #ifndef NDEBUG
-        logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+        logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
 #endif
 
         connectivity_cluster_t connectivity_cluster;
@@ -114,58 +117,77 @@ bool do_serve(io_backender_t *io_backender,
         semilattice_manager_t<auth_semilattice_metadata_t>
             semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
-            &connectivity_cluster, 'D');
+        directory_read_manager_t<cluster_directory_metadata_t>
+            directory_read_manager(&connectivity_cluster, 'D');
+
+        directory_map_read_manager_t<namespace_id_t, namespace_directory_metadata_t>
+            reactor_directory_read_manager(&connectivity_cluster, 'R');
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
-        scoped_ptr_t<server_name_server_t> server_name_server;
+        scoped_ptr_t<server_config_server_t> server_config_server;
         if (i_am_a_server) {
-            server_name_server.init(new server_name_server_t(
+            server_config_server.init(new server_config_server_t(
                 &mailbox_manager,
-                machine_id,
+                server_id,
                 directory_read_manager.get_root_view(),
                 metadata_field(
-                    &cluster_semilattice_metadata_t::machines,
+                    &cluster_semilattice_metadata_t::servers,
                     semilattice_manager_cluster.get_root_view())));
         }
 
-        server_name_client_t server_name_client(&mailbox_manager,
+        server_config_client_t server_config_client(&mailbox_manager,
             directory_read_manager.get_root_view(),
             metadata_field(
-                &cluster_semilattice_metadata_t::machines,
+                &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
 
-        outdated_index_issue_server_t outdated_index_server(&mailbox_manager);
-
-        // Initialize the stat manager before the directory manager so that we
+        // Initialize the stat and jobs manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
-        // stat_manager mailbox address
+        // jobs_manager and stat_manager mailbox address
+        jobs_manager_t jobs_manager(&mailbox_manager, server_id);
         stat_manager_t stat_manager(&mailbox_manager);
 
         cluster_directory_metadata_t initial_directory(
-            machine_id,
+            server_id,
             connectivity_cluster.get_me(),
             RETHINKDB_VERSION_STR,
-            total_cache_size,
             current_microtime(),
             getpid(),
             str_gethostname(),
+            /* Note we'll update `cluster_port`, `reql_port`, `http_port`, and
+            `canonical_addresses` later, once final values are available */
             serve_info.ports.port,
             serve_info.ports.reql_port,
             serve_info.ports.http_admin_is_disabled
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
+            serve_info.ports.canonical_addresses.hosts(),
+            serve_info.argv,
+            0,   /* we'll fill `actual_cache_size_bytes` in later */
+            jobs_manager.get_business_card(),
             stat_manager.get_address(),
-            outdated_index_server.get_request_mailbox_address(),
             log_server.get_business_card(),
             i_am_a_server
-                ? boost::make_optional(server_name_server->get_business_card())
-                : boost::optional<server_name_business_card_t>(),
+                ? boost::make_optional(server_config_server->get_business_card())
+                : boost::optional<server_config_business_card_t>(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
         watchable_variable_t<cluster_directory_metadata_t>
             our_root_directory_variable(initial_directory);
+
+        /* This will take care of updating the directory every time our cache size
+        changes. It also fills in the initial value. */
+        scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
+            actual_cache_size_directory_copier;
+        if (i_am_a_server) {
+            actual_cache_size_directory_copier.init(
+                new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::actual_cache_size_bytes,
+                    server_config_server->get_actual_cache_size_bytes(),
+                    &our_root_directory_variable));
+        }
+
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -173,14 +195,18 @@ bool do_serve(io_backender_t *io_backender,
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
-            metadata_field(&cluster_semilattice_metadata_t::machines,
+            metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
-        admin_tracker_t admin_tracker(&mailbox_manager,
-                                      semilattice_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view());
-
-        outdated_index_server.attach_local_client(&admin_tracker.outdated_index_client);
+        scoped_ptr_t<server_issue_tracker_t> server_issue_tracker;
+        if (i_am_a_server) {
+            server_issue_tracker.init(new server_issue_tracker_t(
+                &local_issue_aggregator,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_map_view(),
+                &server_config_client,
+                server_config_server.get()));
+        }
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -199,26 +225,28 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n",
+        logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
         /* If `serve_info.ports.port` was 0 then the actual port is not 0, so we need to
         update the directory. */
         our_root_directory_variable.apply_atomic_op(
             [&](cluster_directory_metadata_t *md) -> bool {
                 md->cluster_port = connectivity_cluster_run->get_port();
-                return (md->cluster_port != serve_info.ports.port);
+                md->canonical_addresses =
+                    connectivity_cluster_run->get_canonical_addresses();
+                return true;
             });
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
             directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::server_id)),
+            metadata_field(&cluster_semilattice_metadata_t::servers, semilattice_manager_cluster.get_root_view()));
 
-        field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
+        field_copier_t<local_issues_t, cluster_directory_metadata_t> copy_local_issues_to_cluster(
             &cluster_directory_metadata_t::local_issues,
-            local_issue_tracker.get_issues_watchable(),
+            local_issue_aggregator.get_issues_watchable(),
             &our_root_directory_variable);
 
         perfmon_collection_t proc_stats_collection;
@@ -260,21 +288,24 @@ bool do_serve(io_backender_t *io_backender,
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
+        jobs_manager.set_rdb_context(&rdb_ctx);
 
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
-                directory_read_manager.get_root_view(),
+                reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
-                &server_name_client);
+                &server_config_client);
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
-                &server_name_client,
-                &admin_tracker.last_seen_tracker);
+                directory_read_manager.get_root_map_view(),
+                reactor_directory_read_manager.get_root_view(),
+                &server_config_client,
+                &mailbox_manager);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -296,7 +327,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 // Proxies do not have caches to balance
-                cache_balancer.init(new alt_cache_balancer_t(total_cache_size));
+                cache_balancer.init(new alt_cache_balancer_t(
+                    server_config_server->get_actual_cache_size_bytes()));
             }
 
             // Reactor drivers
@@ -304,32 +336,33 @@ bool do_serve(io_backender_t *io_backender,
             // RDB
             scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
             scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t> >
-                rdb_reactor_directory_copier;
+            scoped_ptr_t<directory_map_write_manager_t<
+                namespace_id_t, namespace_directory_metadata_t> >
+                reactor_directory_write_manager;
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
                     io_backender, cache_balancer.get(), base_path,
-                    &admin_tracker.outdated_index_client));
+                    &local_issue_aggregator));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,
                         &mailbox_manager,
-                        directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<namespaces_directory_metadata_t,
-                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                        server_id,
+                        reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
-                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                                       semilattice_manager_cluster.get_root_view()),
-                        &server_name_client,
-                        server_name_server->get_permanently_removed_signal(),
+                        semilattice_manager_cluster.get_root_view(),
+                        &server_config_client,
+                        server_config_server->get_permanently_removed_signal(),
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
-                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::rdb_namespaces,
-                    rdb_reactor_driver->get_watchable(),
-                    &our_root_directory_variable));
+                jobs_manager.set_reactor_driver(rdb_reactor_driver.get());
+                reactor_directory_write_manager.init(
+                    new directory_map_write_manager_t<
+                            namespace_id_t, namespace_directory_metadata_t>(
+                        &connectivity_cluster, 'R', rdb_reactor_driver->get_watchable()
+                    ));
             }
 
             {
@@ -337,7 +370,7 @@ bool do_serve(io_backender_t *io_backender,
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
                     &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n",
+                logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
                 port, so we need to update the directory. */
@@ -364,7 +397,7 @@ bool do_serve(io_backender_t *io_backender,
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
                     if (serve_info.ports.http_admin_is_disabled) {
-                        logINF("Administrative HTTP connections are disabled.\n");
+                        logNTC("Administrative HTTP connections are disabled.\n");
                     } else {
                         // TODO: Pardon me what, but is this how we fail here?
                         guarantee(serve_info.ports.http_port < 65536);
@@ -372,13 +405,12 @@ bool do_serve(io_backender_t *io_backender,
                             new administrative_http_server_manager_t(
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
+                                server_id,
                                 &mailbox_manager,
-                                semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n",
+                        logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
                         /* If `serve_info.ports.http_port` was zero then the OS assigned
                         us a port, so we need to update the directory. */
@@ -391,32 +423,51 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
+                    logNTC("Listening on address%s: %s\n",
+                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logINF("To fully expose RethinkDB on the network, bind to all addresses");
+                        logNTC("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logINF("by adding `bind=all' to the config file (%s).",
+                            logNTC("by adding `bind=all' to the config file (%s).",
                                    (*serve_info.config_file).c_str());
                         } else {
-                            logINF("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("by running rethinkdb with the `--bind all` command line option.");
                         }
                     }
 
-                    logINF("Server ready\n");
+                    if (i_am_a_server) {
+                        // TODO: This duplicates part of network_logger_t::pretty_print_server, refactor
+                        servers_semilattice_metadata_t::server_map_t::const_iterator
+                            server_it = cluster_metadata.servers.servers.find(server_id);
+                        guarantee(server_it != cluster_metadata.servers.servers.end());
+                        std::string server_name;
+                        if (server_it->second.is_deleted()) {
+                            server_name = "__deleted_server__";
+                        } else {
+                            server_name =
+                                server_it->second.get_ref().name.get_ref().str();
+                        }
+                        logNTC("Server ready, \"%s\" %s\n",
+                               server_name.c_str(),
+                               uuid_to_str(server_id).c_str());
+                    } else {
+                        logNTC("Proxy ready");
+                    }
 
                     stop_cond->wait_lazily_unordered();
 
 
                     if (stop_cond->get_source_signo() == SIGINT) {
-                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     } else if (stop_cond->get_source_signo() == SIGTERM) {
-                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
 
                     } else {
-                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got signal %d from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
@@ -429,13 +480,13 @@ bool do_serve(io_backender_t *io_backender,
                     auth_metadata_persister->stop_and_flush(&non_interruptor);
                 }
 
-                logINF("Shutting down client connections...\n");
+                logNTC("Shutting down client connections...\n");
             }
-            logINF("All client connections closed.\n");
+            logNTC("All client connections closed.\n");
 
-            logINF("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
+            logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
-        logINF("Storage engine shut down.\n");
+        logNTC("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());
@@ -452,7 +503,6 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
@@ -460,7 +510,6 @@ bool serve(io_backender_t *io_backender,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
-                    total_cache_size,
                     serve_info,
                     stop_cond);
 }
@@ -474,7 +523,6 @@ bool serve_proxy(const serve_info_t &serve_info,
                     base_path_t(""),
                     NULL,
                     NULL,
-                    0,
                     serve_info,
                     stop_cond);
 }

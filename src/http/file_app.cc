@@ -2,7 +2,6 @@
 
 #include <time.h>
 
-#include <set>
 #include <string>
 
 #include "errors.hpp"
@@ -15,10 +14,15 @@
 #include "logger.hpp"
 #include "stl_utils.hpp"
 #include "time.hpp"
+#include "http/web_assets.hpp"
 
-file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _asset_dir)
-    : whitelist(_whitelist), asset_dir(_asset_dir)
+file_http_app_t::file_http_app_t(std::string _asset_dir)
+    : asset_dir(_asset_dir)
 { }
+
+bool ends_with(const std::string& str, const std::string& end) {
+    return str.rfind(end) == str.length() - end.length();
+}
 
 void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     if (req.method != GET) {
@@ -27,16 +31,6 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     }
 
     std::string resource(req.resource.as_string());
-    if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
-        printf_buffer_t resource_buffer;
-        debug_print_quoted_string(&resource_buffer,
-                                  reinterpret_cast<const uint8_t *>(resource.data()),
-                                  resource.length());
-        logINF("Someone asked for the nonwhitelisted file %s.  If this should be "
-               "accessible, add it to the whitelist.", resource_buffer.c_str());
-        *result = http_res_t(HTTP_FORBIDDEN);
-        return;
-    }
 
     std::string filename;
 
@@ -45,6 +39,20 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     } else {
         filename = resource;
     }
+
+    auto it = static_web_assets.find(filename);
+    if (it == static_web_assets.end()) {
+        printf_buffer_t resource_buffer;
+        debug_print_quoted_string(&resource_buffer,
+                                  reinterpret_cast<const uint8_t *>(resource.data()),
+                                  resource.length());
+        logNTC("Someone asked for the nonwhitelisted file %s.  If this should be "
+               "accessible, add it to the static web assets.", resource_buffer.c_str());
+        *result = http_res_t(HTTP_FORBIDDEN);
+        return;
+    }
+
+    const std::string &resource_data = it->second;
 
     time_t expires;
 #ifndef NDEBUG
@@ -59,19 +67,6 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     }
 #endif
     result->add_header_line("Expires", http_format_date(expires));
-
-    thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
-
-    if (result->code == 404) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
-    }
-}
-
-bool ends_with(const std::string& str, const std::string& end) {
-    return str.rfind(end) == str.length() - end.length();
-}
-
-void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out) {
 
     // TODO more robust mimetype detection?
     std::string mimetype = "text/plain";
@@ -96,12 +91,25 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     } else if (ends_with(filename, ".gif")) {
         mimetype = "image/gif";
     }
+    result->add_header_line("Content-Type", mimetype);
+
+    if (asset_dir.empty()) {
+        result->body.assign(resource_data.begin(), resource_data.end());
+        result->code = 200;
+    } else {
+        thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
+
+        if (result->code == 404) {
+            logNTC("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
+        }
+    }
+}
+
+void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out) {
 
     // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
     blocking_read_file_stream_t stream;
     bool initialized = stream.init((asset_dir + filename).c_str());
-
-    res_out->add_header_line("Content-Type", mimetype);
 
     if (!initialized) {
         res_out->code = 404;

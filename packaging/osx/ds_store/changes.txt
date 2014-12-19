@@ -1,7 +1,3 @@
 ds_store: http://alastairs-place.net/projects/ds_store
 
-This is version 1.0.1 and modified in the following ways:
-- removed the need for the `six` module, while improving Python3 compatibility
-- made it more PEP8 conformant by removing extra spaces after function/Class names
-
-Pull request with changes sent with https://bitbucket.org/al45tair/ds_store/pull-request/1
+We use an unchanged version of checkin c80c237

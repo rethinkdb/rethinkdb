@@ -11,10 +11,10 @@
 #include "concurrency/cross_thread_mutex.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "threading.hpp"
 
 class perfmon_collection_t;
-class perfmon_result_t;
 class scoped_regex_t;
 
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering
@@ -43,7 +43,7 @@ public:
      */
     virtual void *begin_stats() = 0;
     virtual void visit_stats(void *ctx) = 0;
-    virtual scoped_ptr_t<perfmon_result_t> end_stats(void *ctx) = 0;
+    virtual ql::datum_t end_stats(void *ctx) = 0;
 };
 
 class perfmon_membership_t;
@@ -57,7 +57,7 @@ public:
     /* Perfmon interface */
     void *begin_stats();
     void visit_stats(void *_contexts);
-    scoped_ptr_t<perfmon_result_t> end_stats(void *_contexts);
+    ql::datum_t end_stats(void *_contexts);
 
 private:
     friend class perfmon_membership_t;
@@ -143,66 +143,6 @@ private:
     std::vector<perfmon_membership_t *> memberships;
 
     DISABLE_COPYING(perfmon_multi_membership_t);
-};
-
-class perfmon_result_t {
-public:
-    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
-    typedef internal_map_t::iterator iterator;
-    typedef internal_map_t::const_iterator const_iterator;
-
-    enum perfmon_result_type_t {
-        type_value,
-        type_map,
-    };
-
-    perfmon_result_t();
-    perfmon_result_t(const perfmon_result_t &);
-    explicit perfmon_result_t(const std::string &);
-    virtual ~perfmon_result_t();
-
-    static scoped_ptr_t<perfmon_result_t> alloc_map_result();
-
-    std::string *get_string();
-    const std::string *get_string() const;
-
-    const internal_map_t *get_map() const;
-    size_t get_map_size() const;
-
-    bool is_string() const;
-    bool is_map() const;
-
-    perfmon_result_type_t get_type() const;
-    void reset_type(perfmon_result_type_t new_type);
-
-    std::pair<iterator, bool> insert(const std::string &name, perfmon_result_t *val);
-
-    const_iterator cbegin() const;
-    const_iterator cend() const;
-    const_iterator begin() const;
-    const_iterator end() const;
-
-    void erase(iterator);
-
-    // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
-    void splice_into(perfmon_result_t *map);
-private:
-    friend class perfmon_filter_t;
-
-    iterator begin();
-    iterator end();
-
-    internal_map_t *get_map();
-
-    void clear_map();
-    explicit perfmon_result_t(const internal_map_t &);
-
-    perfmon_result_type_t type;
-
-    std::string value_;
-    internal_map_t map_;
-
-    void operator=(const perfmon_result_t &);
 };
 
 perfmon_collection_t &get_global_perfmon_collection();

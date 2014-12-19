@@ -26,10 +26,10 @@ records = 5000
 
 # == start up two joined servers
 
-serverALog = tempfile.NamedTemporaryFile()
-serverA = driver.Process(log_path=serverALog.name)
-serverBLog = tempfile.NamedTemporaryFile()
-serverB = driver.Process(cluster=serverA.cluster, log_path=serverBLog.name)
+serverALog = tempfile.NamedTemporaryFile('w+')
+serverA = driver.Process(console_output=serverALog.name)
+serverBLog = tempfile.NamedTemporaryFile('w+')
+serverB = driver.Process(cluster=serverA.cluster, console_output=serverBLog.name)
 
 # == create a table, populate, and shard it
 
@@ -48,19 +48,19 @@ adminConn.add_table_shard(tableName, splitPoint) # ToDo: replace this with prope
 
 # == pin the shards
 
-machines = adminConn.machines.values()
+servers = adminConn.servers.values()
 
 command = [
 	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
-	'pin', 'shard', '%s.%s' % (databaseName, tableName), '-%s' % splitPoint.replace('#', r'\23'), '--master', machines[0].name
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '-%s' % splitPoint.replace('#', r'\23'), '--master', servers[0].name
 ]
-subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
+subprocess.check_call(command, stdout=tempfile.TemporaryFile('w+'), stderr=subprocess.STDOUT)
 
 command = [
 	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
-	'pin', 'shard', '%s.%s' % (databaseName, tableName), '%s-' % splitPoint.replace('#', r'\23'), '--master', machines[1].name
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '%s-' % splitPoint.replace('#', r'\23'), '--master', servers[1].name
 ]
-subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
+subprocess.check_call(command, stdout=tempfile.TemporaryFile('w+'), stderr=subprocess.STDOUT)
 
 # == wait for the table to be available
 

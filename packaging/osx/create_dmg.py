@@ -21,8 +21,8 @@ defaultOptions = {
 	'files': [
 		os.path.join(thisFolder, os.path.pardir, os.path.pardir, 'COPYRIGHT')
 	],
-	'icon_size': 64,
-	'text_size': 14,
+	'icon_size': 64.0,
+	'text_size': 14.0,
 	'icon_locations': {
 		'Uninstall RethinkDB.app': (630, 170),
 		'Release Notes.url': (470, 303),

@@ -42,14 +42,14 @@ tests:
     ot: ({'type':'DB','name':'d469'})
   - cd: r.db('d469').table('t469').info()
     ot: ({'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
-          'primary_key':'id', 'indexes':['x']})
+          'primary_key':'id', 'indexes':['x'], 'doc_count_estimates':[0]})
   - rb: r.db('d469').table('t469').filter{true}.info
     py: r.db('d469').table('t469').filter(lambda x:True).info()
     js: r.db('d469').table('t469').filter(function(x) { return true; }).info()
     ot: ({'type':'SELECTION<STREAM>',
           'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
-                   'primary_key':'id', 'indexes':['x']}})
-  - rb: r.db('d469').table('t469').map{1}.info
+                   'primary_key':'id', 'indexes':['x'], 'doc_count_estimates':[0]}})
+  - rb: r.db('d469').table('t469').map{|x| 1}.info
     py: r.db('d469').table('t469').map(lambda x:1).info()
     js: r.db('d469').table('t469').map(function(x) { return 1; }).info()
     ot: ({'type':'STREAM'})

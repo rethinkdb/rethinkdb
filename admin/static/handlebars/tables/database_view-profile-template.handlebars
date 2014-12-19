@@ -1,0 +1,17 @@
+
+    <div class="summary">
+        <div class="stat-row first">
+            <p class="tables"><span class="big">{{num_available_tables}}/{{num_tables}} </span> tables live</p>
+        </div>
+        <div class="stat-row">
+            <p class="masters"><span class="big">{{num_shards}} </span> {{pluralize_noun "shard" num_shards}}</p>
+        </div>
+        <div class="stat-row">
+            <p class="replicas"><span class="big">{{num_replicas}} </span> {{pluralize_noun "replica" num_replicas}}</p>
+        </div>
+        <div class="stat-row">
+            <p class="datacenters"><span class="big">{{num_servers}} </span> {{pluralize_noun "server" num_servers}}</p>
+        </div>
+    </div>
+
+

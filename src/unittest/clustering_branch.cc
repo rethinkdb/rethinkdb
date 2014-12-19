@@ -63,16 +63,18 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<broadcaster_business_card_t> > broadcaster_directory_controller(
         boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card()));
 
-    scoped_ptr_t<listener_t> initial_listener(
-        new listener_t(base_path_t("."),
-                                         &io_backender,
-                                         cluster.get_mailbox_manager(),
-                                         broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
-                                         &branch_history_manager,
-                                         broadcaster.get(),
-                                         &get_global_perfmon_collection(),
-                                         &interruptor,
-                                         &order_source));
+    scoped_ptr_t<listener_t> initial_listener(new listener_t(
+        base_path_t("."),
+        &io_backender,
+        cluster.get_mailbox_manager(),
+        generate_uuid(),
+        broadcaster_directory_controller.get_watchable()->subview(
+            &wrap_broadcaster_in_optional),
+        &branch_history_manager,
+        broadcaster.get(),
+        &get_global_perfmon_collection(),
+        &interruptor,
+        &order_source));
 
     fun(&io_backender,
         &cluster,
@@ -219,6 +221,7 @@ void run_backfill_test(io_backender_t *io_backender,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        generate_uuid(),
         &backfill_throttler,
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
@@ -290,6 +293,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        generate_uuid(),
         &backfill_throttler,
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,

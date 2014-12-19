@@ -1,166 +1,84 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Extend Backbone View
-Backbone.View.prototype.destroy = ->
-    return
 
-# Router for Backbone.js
 class BackboneCluster extends Backbone.Router
+    # Routes can end with a slash too - This is useful is the user
+    # tries to manually edit the route
     routes:
         '': 'dashboard'
-        'databases': 'index_namespaces'
+        'databases': 'index_tables'
+        'databases/': 'index_tables'
         'databases/:id': 'database'
-        'databases/:id/:tab': 'database'
-        'tables': 'index_namespaces'
-        'tables/:id': 'namespace'
-        'tables/:id/:tab': 'namespace'
+        'databases/:id/': 'database'
+        'tables': 'index_tables'
+        'tables/': 'index_tables'
+        'tables/:id': 'table'
+        'tables/:id/': 'table'
         'servers': 'index_servers'
-        'datacenters/:id': 'datacenter'
-        'datacenters/:id/:tab': 'datacenter'
+        'servers/': 'index_servers'
         'servers/:id': 'server'
-        'servers/:id/:tab': 'server'
+        'servers/:id/': 'server'
         'dashboard': 'dashboard'
-        'resolve_issues': 'resolve_issues'
+        'dashboard/': 'dashboard'
         'logs': 'logs'
+        'logs/': 'logs'
         'dataexplorer': 'dataexplorer'
+        'dataexplorer/': 'dataexplorer'
 
-    initialize: ->
-        log_initial '(initializing) router'
+    initialize: (data) ->
         super
+        @navbar = data.navbar
+        # We bind the router to window.app to be able to have access to the root view
+        # ie. window.app.current_view
         window.app = @
 
-        @$container = $('#cluster')
+        @container = $('#cluster')
         @current_view = new Backbone.View
 
-        # Add and render the sidebar (visible across all views)
-        @$sidebar = $('#sidebar')
-        @sidebar = new Sidebar.Container
-        @render_sidebar()
+        @bind 'route', @update_active_tab
 
-        # Render navbar for the first time
-        @navbar = new NavBarView
-        @render_navbar()
+    # Highlight the link of the current view
+    update_active_tab: (route) =>
+        @navbar.set_active_tab route
 
-        @.bind 'all', (route, router) ->
-            @navbar.set_active_tab route
-
-    render_sidebar: -> @$sidebar.html @sidebar.render().el
-    render_navbar: -> $('#navbar-container').html @navbar.render().el
-
-    set_stats_call: (url) =>
-        clearTimeout stats_param.timeout
-        if url isnt ''
-            stats_param.url = url
-            collect_stat_data()
-
-    index_namespaces: (data) ->
-        @set_stats_call ''
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new NamespaceView.DatabaseList
-        if data?.alert_message?
-            @$container.html @current_view.render(data.alert_message).el
-        else
-            @$container.html @current_view.render().el
+    index_tables: ->
+        @current_view.remove()
+        @current_view = new TablesView.DatabasesContainer
+        @container.html @current_view.render().$el
 
     index_servers: (data) ->
-        @set_stats_call ''
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new ServerView.DatacenterList
-        if data?.alert_message?
-            @$container.html @current_view.render(data.alert_message).el
-        else
-            @$container.html @current_view.render().el
+        @current_view.remove()
+        @current_view = new ServersView.ServersContainer
+        @container.html @current_view.render().$el
 
     dashboard: ->
-        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new DashboardView.Container
-        @$container.html @current_view.render().el
-
-    resolve_issues: ->
-        @set_stats_call ''
-        log_router '/resolve_issues'
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new ResolveIssuesView.Container
-        @$container.html @current_view.render().el
+        @current_view.remove()
+        @current_view = new DashboardView.DashboardContainer
+        @container.html @current_view.render().$el
 
     logs: ->
-        @set_stats_call ''
-        log_router '/logs'
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new LogView.Container
-        @$container.html @current_view.render().el
+        @current_view.remove()
+        @current_view = new LogView.LogsContainer
+        @container.html @current_view.render().$el
 
     dataexplorer: ->
-        @set_stats_call ''
-        log_router '/dataexplorer'
-        clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new DataExplorerView.Container
             state: DataExplorerView.state
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().$el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
 
-    #TODO Clean the next 3 methods. We don't need tab anymore
-    database: (id, tab) ->
-        #TODO We can make it better
-        @set_stats_call 'ajax/stat?filter=.*/serializers'
-        log_router '/databases/' + id
-        clear_modals()
-        database = databases.get(id)
+    database: (id) ->
+        @current_view.remove()
+        @current_view = new DatabaseView.DatabaseContainer id
+        @container.html @current_view.render().$el
 
-        @current_view.destroy()
-        if database? then @current_view = new DatabaseView.Container model: database
-        else @current_view = new DatabaseView.NotFound id
+    table: (id) ->
+        @current_view.remove()
+        @current_view = new TableView.TableContainer id
+        @container.html @current_view.render().$el
 
-        @$container.html @current_view.render().el
-
-    namespace: (id, tab) ->
-        @set_stats_call 'ajax/stat?filter='+id+'/serializers'
-        log_router '/namespaces/' + id
-        clear_modals()
-        namespace = namespaces.get(id)
-
-        @current_view.destroy()
-        if namespace?
-            @current_view = new NamespaceView.Container model:namespace
-        else
-            @current_view = new NamespaceView.NotFound id
-
-        @$container.html @current_view.render().el
-
-        if namespace?
-            @current_view.shards.render_data_repartition()
-
-    datacenter: (id, tab) ->
-        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
-        log_router '/datacenters/' + id
-        clear_modals()
-        datacenter = datacenters.get(id)
-
-        @current_view.destroy()
-        if datacenter?
-            @current_view = new DatacenterView.Container model: datacenter
-        else
-            @current_view = new DatacenterView.NotFound id
-
-        @$container.html @current_view.render().el
-
-    server: (id, tab) ->
-        @set_stats_call 'ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
-        log_router '/servers/' + id
-        clear_modals()
-        machine = machines.get(id)
-
-        @current_view.destroy()
-        if machine?
-            @current_view = new MachineView.Container model: machine
-        else
-            @current_view = new MachineView.NotFound id
-
-        @$container.html @current_view.render().el
+    server: (id) ->
+        @current_view.remove()
+        @current_view = new ServerView.ServerContainer id
+        @container.html @current_view.render().$el

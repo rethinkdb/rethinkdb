@@ -51,11 +51,11 @@ public:
 private:
     static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > > extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard);
 
-    void on_give_tickets(int count);
+    void on_give_tickets(signal_t *interruptor, int count);
 
     void pump_free_tickets();
 
-    void on_reclaim_tickets(int count);
+    void on_reclaim_tickets(signal_t *interruptor, int count);
 
     /* Relinquishes as many tickets as possible considering `free_tickets`, up to a
        maximum of `to_relinquish`. */

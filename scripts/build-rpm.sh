@@ -16,7 +16,9 @@ main () {
     RPM_ROOT=build/packages/rpm
     VERSION=`./scripts/gen-version.sh | sed -e s/-/_/g`
     RPM_PACKAGE=build/packages/rethinkdb-$VERSION.$ARCH.rpm
-    DESCRIPTION='RethinkDB is built to store JSON documents, and scale to multiple machines with very little effort. It has a pleasant query language that supports really useful queries like table joins and group by.'
+    SYMBOLS_FILE_IN=build/release/rethinkdb.debug
+    SYMBOLS_FILE_OUT=$RPM_PACKAGE.debug.bz2
+    DESCRIPTION='RethinkDB is built to store JSON documents, and scale to multiple servers with very little effort. It has a pleasant query language that supports really useful queries like table joins and group by.'
     tmpfile BEFORE_INSTALL <<EOF
 getent group rethinkdb >/dev/null || groupadd -r rethinkdb
 getent passwd rethinkdb >/dev/null || \
@@ -49,6 +51,8 @@ EOF
     ... -s dir -C $RPM_ROOT     # Directory containing the installed files
     ... usr etc var             # Directories to package in the package
     eval $command
+
+    bzip2 -c "$SYMBOLS_FILE_IN" > "$SYMBOLS_FILE_OUT"
 }
 
 tmpfile () {

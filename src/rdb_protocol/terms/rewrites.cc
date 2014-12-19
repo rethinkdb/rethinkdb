@@ -37,7 +37,7 @@ private:
         return real->is_deterministic();
     }
 
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
         return real->eval(env);
     }
 

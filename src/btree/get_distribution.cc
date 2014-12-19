@@ -5,7 +5,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 #include "utils.hpp"
 
 class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {

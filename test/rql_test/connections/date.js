@@ -2,16 +2,26 @@
 // Tests the driver API for converting dates to native Date objects
 /////
 
+var path = require('path');
 var fs = require('fs');
 var spawn = require('child_process').spawn
 
 var assert = require('assert');
 
-var r = require('../../../build/packages/js/rethinkdb');
-var build_dir = process.env.BUILD_DIR || '../../../build/debug'
+// -- load rethinkdb from the proper location
+
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+
+// --
+
+var rethinkdbExe = process.env.RDB_EXE_PATH
+if (!process.env.RDB_EXE_PATH) {
+    throw new Error('RDB_EXE_PATH ENV variable was not set!')
+}
+
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
-var port = null;
+var driver_port = null;
 
 var assertNoError = function(err) {
     if (err) {
@@ -21,7 +31,7 @@ var assertNoError = function(err) {
 
 var withConnection = function(f){
     return function(done){
-        r.connect({port:port}, function(err, c){
+        r.connect({port:driver_port}, function(err, c){
             assert.equal(err, null);
             f(done, c);
         });
@@ -43,15 +53,16 @@ describe('Javascript date pseudotype conversion', function(){
     var cluster_port;
 
     beforeEach(function(done){
-        port = Math.floor(Math.random()*(65535 - 1025)+1025);
-        cluster_port = port + 1;
+        driver_port = Math.floor(Math.random()*(65535 - 1025)+1025);
+        cluster_port = driver_port + 1;
         server_out_log = fs.openSync('run/server-log.txt', 'a');
         server_err_log = fs.openSync('run/server-error-log.txt', 'a');
         cpp_server = spawn(
-            build_dir + '/rethinkdb',
-            ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
+            rethinkdbExe,
+            ['--driver-port', driver_port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
             {stdio: ['ignore', server_out_log, server_err_log]});
-        setTimeout(done, 1000);
+        this.timeout(5000);
+        setTimeout(done, 2000);
     });
 
     afterEach(function(done){

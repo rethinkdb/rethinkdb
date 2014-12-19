@@ -4,8 +4,8 @@
 
 #include <map>
 
+#include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 
 class perfmon_collection_repo_t {
 public:

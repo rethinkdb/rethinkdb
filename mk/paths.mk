@@ -58,8 +58,8 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += coro-prof
   endif
 
-  ifeq (1,$(NO_TCMALLOC))
-    BUILD_DIR += notcmalloc
+  ifneq ($(DEFAULT_ALLOCATOR),$(ALLOCATOR))
+    BUILD_DIR += $(ALLOCATOR)
   endif
 
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))
@@ -82,8 +82,8 @@ PROTO_DIR := $(BUILD_DIR)/proto
 DEP_DIR := $(BUILD_DIR)/dep
 OBJ_DIR := $(BUILD_DIR)/obj
 
-WEB_ASSETS_DIR_NAME := rethinkdb_web_assets
-WEB_ASSETS_BUILD_DIR := $(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)
+WEB_ASSETS_DIR_NAME := web_assets
+WEB_ASSETS_BUILD_DIR := $(BUILD_ROOT_DIR)/$(WEB_ASSETS_DIR_NAME)
 
 PRECOMPILED_DIR := $(TOP)/precompiled
 

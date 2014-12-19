@@ -1,64 +1,65 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time, tempfile, subprocess
-rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
-sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
-import http_admin, driver
-from vcoptparse import *
-import rdb_workload_common
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    print "Starting cluster..."
-    num_nodes = 2
-    files = [driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i)
-        for i in xrange(num_nodes)]
-    processes = [driver.Process(
-            cluster,
-            files[i],
-            log_path = "serve-output-%d" % i,
-            executable_path = driver.find_rethinkdb_executable())
-        for i in xrange(num_nodes)]
-    time.sleep(3)
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
-    db = http.add_database("test")
-    dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_table(primary = dc, name = "stress", database = db)
-    time.sleep(3)
-    host, port = driver.get_table_host(processes)
+from __future__ import print_function
+
+import sys, os, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, rdb_workload_common, utils
+
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+numNodes = 2
+numReplicas = 2
+
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True) as cluster:
+    
+    print("Establishing ReQL Connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+
+    print("Increasing replication factor (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
+    r.db(dbName).table_wait().run(conn)
     cluster.check()
 
-    print "Increasing replication factor..."
-    http.set_table_affinities(ns, {dc: 1})
-    time.sleep(3)
+    print("Inserting some data (%.2fs)" % (time.time() - startTime))
+    rdb_workload_common.insert_many(host=server.host, port=server.driver_port, database=dbName, table=tableName, count=20000)
     cluster.check()
 
-    print "Inserting some data..."
-    rdb_workload_common.insert_many(host=host, port=port, database="test", table="stress", count=20000)
+    print("Decreasing replication factor (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=1, replicas=1).run(conn)
+    r.db(dbName).table_wait().run(conn)
     cluster.check()
 
-    print "Decreasing replication factor..."
-    http.set_table_affinities(ns, {dc: 0})
-    time.sleep(3)
+    print("Increasing replication factor again (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
+
+    print("Confirming that the progress meter indicates a backfill happening (%.2fs)" % (time.time() - startTime))
+    # ToDo: replace this with ReQL command once issue is done: https://github.com/rethinkdb/rethinkdb/issues/3115
+    raise NotImplementedError('Waiting for process table: https://github.com/rethinkdb/rethinkdb/issues/3115')
+    
     cluster.check()
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+    
+    # The large backfill might take time, and for this test we don't care about it succeeding
+    for server in cluster:
+        server.kill()
 
-    print "Increasing replication factor again..."
-    http.set_table_affinities(ns, {dc: 1})
-
-    print "Confirming that the progress meter indicates a backfill happening..."
-    for i in xrange(100):
-        progress = http.get_progress()
-        if len(progress) > 0:
-            print "OK"
-            break
-        time.sleep(0.1)
-    else:
-        raise RuntimeError("Never detected a backfill happening")
-
-    cluster.check()
-    # Don't call `check_and_stop()` because it expects the server to shut down
-    # in some reasonable period of time, but since the server has a lot of data
-    # to flush to disk, it might not.
+print("Done. (%.2fs)" % (time.time() - startTime))

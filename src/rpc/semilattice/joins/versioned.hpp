@@ -11,7 +11,7 @@
 
 /* A `versioned_t` is used in the semilattices to track a setting that the user is
 allowed to update. If the setting is updated in two places simultaneously, the
-semilattice join will pick the one that came later as measured by the machines' clocks.
+semilattice join will pick the one that came later as measured by the servers' clocks.
 */
 
 template<class T>
@@ -45,6 +45,16 @@ public:
         this constructor together, the join will produce a deterministic result instead
         of depending on the order in which they are joined. */
         tiebreaker(generate_uuid()) { }
+
+    /* This constructor is only used when migrating from pre-v1.16 metadata files that
+    used vector clocks */
+    static versioned_t make_with_manual_timestamp(time_t time, const T &value) {
+        versioned_t v;
+        v.timestamp = time;
+        v.tiebreaker = generate_uuid();
+        v.value = value;
+        return v;
+    }
 
     const T &get_ref() const {
         return value;

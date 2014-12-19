@@ -64,7 +64,8 @@ private:
     shared_buf_ref_t<char> data_;
 };
 
-
 datum_string_t concat(const datum_string_t &a, const datum_string_t &b);
+
+void debug_print(printf_buffer_t *buf, const datum_string_t &s);
 
 #endif  // RDB_PROTOCOL_DATUM_STRING_HPP_

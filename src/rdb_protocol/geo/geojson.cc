@@ -398,7 +398,13 @@ void validate_geojson(const ql::datum_t &geojson) {
 
     class validator_t : public s2_geo_visitor_t<void> {
     public:
-        void on_point(UNUSED const S2Point &) { }
+        void on_point(UNUSED const S2Point &) {
+            // Warning: If you change this function to perform any additional
+            // checks on the S2Point, you need to be careful about maintaining
+            // determinism of `point_term_t`.
+            // See the note in the definition of `point_term_t` in
+            // rdb_protocol/terms/geo.cc for details.
+        }
         void on_line(UNUSED const S2Polyline &) { }
         void on_polygon(UNUSED const S2Polygon &) { }
     };

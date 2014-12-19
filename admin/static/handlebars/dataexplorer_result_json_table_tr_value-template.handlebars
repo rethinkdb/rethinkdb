@@ -1,0 +1,11 @@
+
+    {{#each document}}
+    <tr class="jta_tr">
+        <td class="col-record-td" data-col="record"><div class="jta_value col-record">{{record}}</div></td>
+        {{#each cells}}
+            {{print_safe this}}
+        {{/each}}
+    </tr>
+    {{/each}}
+
+

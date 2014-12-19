@@ -42,6 +42,7 @@ class Connection extends events.EventEmitter
         @outstandingCallbacks = {}
         @nextToken = 1
         @open = false
+        @closing = false
 
         @buffer = new Buffer(0)
 
@@ -82,9 +83,6 @@ class Connection extends events.EventEmitter
     _delQuery: (token) ->
         # This query is done, delete this cursor
         delete @outstandingCallbacks[token]
-
-        if Object.keys(@outstandingCallbacks).length < 1 and not @open
-            @cancel()
 
     _processResponse: (response, token) ->
         profile = response.p
@@ -170,37 +168,31 @@ class Connection extends events.EventEmitter
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
 
+        @closing = true
         noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
 
-        if typeof cb is 'function'
-            wrappedCb = (args...) =>
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) =>
                 @open = false
-                if cb?
-                    cb(args...)
+                @closing = false
+                @cancel()
+                if err?
+                    reject err
+                else
+                    resolve result
 
             if noreplyWait
                 @noreplyWait(wrappedCb)
             else
                 wrappedCb()
-        else
-            new Promise (resolve, reject) =>
-                wrappedCb = (err, result) =>
-                    @open = false
-                    if err?
-                        reject err
-                    else
-                        resolve result
-
-                @noreplyWait(wrappedCb)
+        ).nodeify cb
     )
 
     noreplyWait: varar 0, 1, (callback) ->
         unless @open
-            if typeof callback is 'function'
-                return callback(new err.RqlDriverError "Connection is closed.")
-            else
-                return new Promise (resolve, reject) ->
-                    reject(new err.RqlDriverError "Connection is closed.")
+            return new Promise( (resolve, reject) ->
+                reject(new err.RqlDriverError "Connection is closed.")
+            ).nodeify callback
 
         # Assign token
         token = @nextToken++
@@ -211,20 +203,26 @@ class Connection extends events.EventEmitter
         query.token = token
 
         # Save callback
-        if typeof callback is 'function'
-            @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            @outstandingCallbacks[token] = {cb:wrappedCb, root:null, opts:null}
             @_sendQuery(query)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
-                @_sendQuery(query)
+        ).nodeify callback
 
     cancel: ar () ->
+        response = {t:protoResponseType.RUNTIME_ERROR,r:["Connection is closed."],b:[]}
+        for own key, value of @outstandingCallbacks
+            if value.cursor?
+                value.cursor._addResponse(response)
+            else if value.feed?
+                value.feed._addResponse(response)
+            else if value.cb?
+                value.cb mkErr(err.RqlRuntimeError, response, value.root)
+
         @outstandingCallbacks = {}
 
     reconnect: (varar 0, 2, (optsOrCallback, callback) ->
@@ -241,32 +239,29 @@ class Connection extends events.EventEmitter
                 opts = {}
             cb = callback
 
-        if typeof cb is 'function'
+        new Promise( (resolve, reject) =>
             closeCb = (err) =>
-                if err?
-                    cb(err)
-                else
-                    constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
-                    setTimeout(constructCb, 0)
-            @close(opts, closeCb)
-        else
-            new Promise (resolve, reject) =>
-                closeCb = (err) =>
+                @rawSocket.removeAllListeners()
+                @rawSocket = null # The rawSocket has been closed
+                @constructor.call @,
+                    host:@host,
+                    port:@port
+                    timeout:@timeout,
+                    authKey:@authKey
+                , (err, conn) ->
                     if err?
                         reject err
                     else
-                        constructCb = =>
-                            @constructor.call @, {host:@host, port:@port}, (err, conn) ->
-                                if err?
-                                    reject err
-                                else
-                                    resolve conn
-                        setTimeout(constructCb, 0)
-                @close(opts, closeCb)
+                        resolve conn
+            @close(opts, closeCb)
+        ).nodeify cb
     )
 
     use: ar (db) ->
         @db = db
+
+    isOpen: () ->
+        @open and not @closing
 
     _start: (term, cb, opts) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."
@@ -324,6 +319,8 @@ class Connection extends events.EventEmitter
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.CONTINUE
             token: token
@@ -331,6 +328,8 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _endQuery: (token) ->
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+
         query =
             type: protoQueryType.STOP
             token: token
@@ -356,9 +355,6 @@ class TcpConnection extends Connection
             throw new err.RqlDriverError "TCP sockets are not available in this environment"
 
         super(host, callback)
-
-        if @rawSocket?
-            @close({noreplyWait: false})
 
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
@@ -411,9 +407,15 @@ class TcpConnection extends Connection
 
             @rawSocket.on 'data', handshake_callback
 
-        @rawSocket.on 'error', (args...) => @emit 'error', args...
+        @rawSocket.on 'error', (args...) =>
+            if @isOpen()
+                @close({noreplyWait:false})
+            @emit 'close'
 
-        @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
+        @rawSocket.on 'close', =>
+            if @isOpen()
+                @close({noreplyWait: false})
+            @emit 'close'
 
         # In case the raw socket timesout, we close it and re-emit the event for the user
         @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
@@ -431,26 +433,18 @@ class TcpConnection extends Connection
         else
             opts = {}
 
-
-        if typeof cb is 'function'
-            wrappedCb = (args...) =>
-                @rawSocket.end()
-                if cb?
-                    cb(args...)
-
-            # This would simply be super(opts, wrappedCb), if we were not in the varar
-            # anonymous function
-            TcpConnection.__super__.close.call(@, opts, wrappedCb)
-        else
-            new Promise (resolve, reject) =>
-                wrappedCb = (err, result) =>
-                    @rawSocket.end()
-                    if err?
-                        reject err
+        new Promise( (resolve, reject) =>
+            wrappedCb = (error, result) =>
+                @rawSocket.once "close", =>
+                    if error?
+                        reject error
                     else
                         resolve result
-                TcpConnection.__super__.close.call(@, opts, wrappedCb)
 
+                @rawSocket.end()
+
+            TcpConnection.__super__.close.call(@, opts, wrappedCb)
+        ).nodeify cb
     )
 
     cancel: () ->
@@ -499,13 +493,14 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        @xhr.abort()
-        xhr = new XMLHttpRequest
-        xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
-        xhr.send()
-        @_url = null
-        @_connId = null
-        super()
+        if @_connId? # @connId is null is the connection was previously closed/cancel
+            @xhr.abort()
+            xhr = new XMLHttpRequest
+            xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+            xhr.send()
+            @_url = null
+            @_connId = null
+            super()
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
@@ -520,14 +515,9 @@ class HttpConnection extends Connection
         unless not cb? or typeof cb is 'function'
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
-        wrappedCb = (args...) =>
-            @cancel()
-            if cb?
-                cb(args...)
-
         # This would simply be super(opts, wrappedCb), if we were not in the varar
         # anonymous function
-        HttpConnection.__super__.close.call(this, opts, wrappedCb)
+        HttpConnection.__super__.close.call(this, opts, cb)
     )
 
     _writeQuery: (token, data) ->
@@ -535,9 +525,9 @@ class HttpConnection extends Connection
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
         buf.write(data, 8)
-        @write buf
+        @write buf, token
 
-    write: (chunk) ->
+    write: (chunk, token) ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
         xhr.responseType = "arraybuffer"
@@ -549,15 +539,17 @@ class HttpConnection extends Connection
                 buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
                 @_data(buf)
 
-        # Convert the chunk from node buffer to ArrayBuffer
-        array = new ArrayBuffer(chunk.length)
-        view = new Uint8Array(array)
+        xhr.onerror = (e) =>
+            @outstandingCallbacks[token].cb(new Error("This HTTP connection is not open"))
+
+        # Convert the chunk from node buffer to an ArrayBufferView (Uint8Array)
+        # Passing an ArrayBuffer in xhr.send is deprecated
+        view = new Uint8Array(chunk.length)
         i = 0
         while i < chunk.length
             view[i] = chunk[i]
             i++
-
-        xhr.send array
+        xhr.send view
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
 module.exports.isConnection = (connection) ->
@@ -571,22 +563,19 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     else
         host = hostOrCallback
 
-    create_connection = (host, callback) =>
-        if TcpConnection.isAvailable()
-            new TcpConnection host, callback
-        else if HttpConnection.isAvailable()
-            new HttpConnection host, callback
-        else
-            throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
+    new Promise( (resolve, reject) ->
+        create_connection = (host, callback) =>
+            if TcpConnection.isAvailable()
+                new TcpConnection host, callback
+            else if HttpConnection.isAvailable()
+                new HttpConnection host, callback
+            else
+                throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
 
-
-    if typeof callback is 'function'
-        create_connection(host, callback)
-    else
-        p = new Promise (resolve, reject) ->
-            callback = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            create_connection(host, callback)
+        wrappedCb = (err, result) ->
+            if (err)
+                reject(err)
+            else
+                resolve(result)
+        create_connection(host, wrappedCb)
+    ).nodeify callback

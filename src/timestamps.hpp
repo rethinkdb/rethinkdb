@@ -15,10 +15,9 @@ class printf_buffer_t;
 `repli_timestamp_t`, which is used internally within the btree code, is defined
 elsewhere. */
 
-/* `state_timestamp_t` is a unique identifier of a particular point in a
-timeline. `transition_timestamp_t` is the unique identifier of a transition from
-one `state_timestamp_t` to the next. Databases have `state_timestamp_t`s, and
-transactions have `transition_timestamp_t`s. */
+/* `state_timestamp_t` is a unique identifier of a particular point in a series of
+writes.  Writes carry the identifier of the new point in time that will exist when
+said write is applied. */
 
 class state_timestamp_t {
 public:
@@ -35,7 +34,31 @@ public:
         return t;
     }
 
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    state_timestamp_t next() const {
+        state_timestamp_t t;
+        t.num = num + 1;
+        return t;
+    }
+
+    // (It wouldn't be the end of the world if you had to remove this NDEBUG wrapper
+    // for some reason.  Right now we only use pred() in certain assertions that the
+    // preceding state has the appropriate timestamp, when doing a write operation.
+    // But beware: I suspect that certain assertions (of the metainfo or something)
+    // might be invalid in the face of canceled write operations?  There is some
+    // peculiar code in the broadcaster.)
+#ifndef NDEBUG
+    state_timestamp_t pred() const {
+        state_timestamp_t t;
+        t.num = num - 1;
+        return t;
+    }
+#endif  // NDEBUG
+
+    // Converts a "state_timestamp_t" to a repli_timestamp_t.  Really the only
+    // difference is that repli_timestamp_t::invalid exists (you shouldn't use it).
+    // Also, repli_timestamp_t's are generally used in the cache and serializer,
+    // where they don't necessarily come in a linear sequence -- state timestamps
+    // sort of live in their shards.
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;
         ts.longtime = num;
@@ -47,52 +70,12 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 
 private:
-    friend class transition_timestamp_t;
     uint64_t num;
 };
 
 RDB_SERIALIZE_OUTSIDE(state_timestamp_t);
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
-
-class transition_timestamp_t {
-public:
-    bool operator==(transition_timestamp_t t) const { return before == t.before; }
-    bool operator!=(transition_timestamp_t t) const { return before != t.before; }
-    bool operator<(transition_timestamp_t t) const { return before < t.before; }
-    bool operator>(transition_timestamp_t t) const { return before > t.before; }
-    bool operator<=(transition_timestamp_t t) const { return before <= t.before; }
-    bool operator>=(transition_timestamp_t t) const { return before >= t.before; }
-
-    static transition_timestamp_t starting_from(state_timestamp_t before) {
-        transition_timestamp_t t;
-        t.before = before;
-        return t;
-    }
-
-    state_timestamp_t timestamp_before() const {
-        return before;
-    }
-
-    state_timestamp_t timestamp_after() const {
-        state_timestamp_t after;
-        after.num = before.num + 1;
-        guarantee(after > before, "timestamp counter overflowed");
-        return after;
-    }
-
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    repli_timestamp_t to_repli_timestamp() const {
-        return before.to_repli_timestamp();
-    }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(before);
-
-private:
-    state_timestamp_t before;
-};
-
-RDB_SERIALIZE_OUTSIDE(transition_timestamp_t);
 
 
 #endif /* TIMESTAMPS_HPP_ */

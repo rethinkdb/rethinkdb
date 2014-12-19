@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/blob_wrapper.hpp"
 
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(max_block_size_t block_size, char *ref,
                                        int maxreflen)

@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import random, time, sys, os
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+import os, random, sys, time
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import memcached_workload_common
+
 from vcoptparse import *
 
 def random_key(opts):
@@ -14,8 +17,7 @@ def random_key(opts):
         for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):
-    # Most of the time we want to use small values, but we also want to test large values
-    # sometimes.
+    # Most of the time we want to use small values, but we also want to test large values sometimes.
     if random.randint(0, 10) == 0:
         return random.randint(0, opts["valuesize"]) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     else:

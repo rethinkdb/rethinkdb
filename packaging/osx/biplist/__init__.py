@@ -46,7 +46,6 @@ Plist parsing example:
 
 import sys
 from collections import namedtuple
-import calendar
 import datetime
 import io
 import math
@@ -77,7 +76,8 @@ __all__ = [
     'writePlistToString', 'InvalidPlistException', 'NotBinaryPlistException'
 ]
 
-apple_reference_date_offset = 978307200
+# Apple uses Jan 1, 2001 as a base for all plist date/times.
+apple_reference_date = datetime.datetime.utcfromtimestamp(978307200)
 
 class Uid(int):
     """Wrapper around integers for representing UID values. This
@@ -86,16 +86,13 @@ class Uid(int):
         return "Uid(%d)" % self
 
 class Data(bytes):
-    """Wrapper around str types for representing Data values."""
-    pass
+    """Wrapper around bytes to distinguish Data values."""
 
 class InvalidPlistException(Exception):
     """Raised when the plist is incorrectly formatted."""
-    pass
 
 class NotBinaryPlistException(Exception):
     """Raised when a binary plist was expected but not encountered."""
-    pass
 
 def readPlist(pathOrFile):
     """Raises NotBinaryPlistException, InvalidPlistException"""
@@ -389,9 +386,9 @@ class PlistReader(object):
         return data.decode('utf_16_be')
     
     def readDate(self):
-        global apple_reference_date_offset
         result = unpack(">d", self.contents[self.currentOffset:self.currentOffset+8])[0]
-        result = datetime.datetime.utcfromtimestamp(result + apple_reference_date_offset)
+        # Use timedelta to workaround time_t size limitation on 32-bit python.
+        result = datetime.timedelta(seconds=result) + apple_reference_date
         self.currentOffset += 8
         return result
     
@@ -456,6 +453,48 @@ class FloatWrapper(object):
     def __repr__(self):
         return "<FloatWrapper: %s>" % self.value
 
+class StringWrapper(object):
+    __instances = {}
+    
+    encodedValue = None
+    encoding = None
+    
+    def __new__(cls, value):
+        '''Ensure we only have a only one instance for any string,
+         and that we encode ascii as 1-byte-per character when possible'''
+        
+        encodedValue = None
+        
+        for encoding in ('ascii', 'utf_16_be'):
+            try:
+               encodedValue = value.encode(encoding)
+            except: pass
+            if encodedValue is not None:
+                if encodedValue not in cls.__instances:
+                    cls.__instances[encodedValue] = super(StringWrapper, cls).__new__(cls)
+                    cls.__instances[encodedValue].encodedValue = encodedValue
+                    cls.__instances[encodedValue].encoding = encoding
+                return cls.__instances[encodedValue]
+        
+        raise ValueError('Unable to get ascii or utf_16_be encoding for %s' % repr(value))
+    
+    def __len__(self):
+        '''Return roughly the number of characters in this string (half the byte length)'''
+        if self.encoding == 'ascii':
+            return len(self.encodedValue)
+        else:
+            return len(self.encodedValue)//2
+    
+    @property
+    def encodingMarker(self):
+        if self.encoding == 'ascii':
+            return 0b0101
+        else:
+            return 0b0110
+    
+    def __repr__(self):
+        return '<StringWrapper (%s): %s>' % (self.encoding, self.encodedValue)
+
 class PlistWriter(object):
     header = b'bplist00bybiplist1.0'
     file = None
@@ -510,7 +549,7 @@ class PlistWriter(object):
         should_reference_root = True#not isinstance(wrapped_root, HashableWrapper)
         self.computeOffsets(wrapped_root, asReference=should_reference_root, isRoot=True)
         self.trailer = self.trailer._replace(**{'objectRefSize':self.intSize(len(self.computedUniques))})
-        (_, output) = self.writeObjectReference(wrapped_root, output)
+        self.writeObjectReference(wrapped_root, output)
         output = self.writeObject(wrapped_root, output, setReferencePosition=True)
         
         # output size at this point is an upper bound on how big the
@@ -552,6 +591,8 @@ class PlistWriter(object):
         elif isinstance(root, tuple):
             n = tuple([self.wrapRoot(value) for value in root])
             return HashableWrapper(n)
+        elif isinstance(root, (str, unicode)) and not isinstance(root, Data):
+            return StringWrapper(root)
         else:
             return root
 
@@ -564,7 +605,7 @@ class PlistWriter(object):
                 raise InvalidPlistException('Dictionary keys cannot be null in plists.')
             elif isinstance(key, Data):
                 raise InvalidPlistException('Data cannot be dictionary keys in plists.')
-            elif not isinstance(key, (bytes, unicode)):
+            elif not isinstance(key, StringWrapper):
                 raise InvalidPlistException('Keys must be strings.')
         
         def proc_size(size):
@@ -597,7 +638,7 @@ class PlistWriter(object):
         elif isinstance(obj, Data):
             size = proc_size(len(obj))
             self.incrementByteCount('dataBytes', incr=1+size)
-        elif isinstance(obj, (unicode, bytes)):
+        elif isinstance(obj, StringWrapper):
             size = proc_size(len(obj))
             self.incrementByteCount('stringBytes', incr=1+size)
         elif isinstance(obj, HashableWrapper):
@@ -681,17 +722,15 @@ class PlistWriter(object):
             output += pack('!B', (0b0010 << 4) | 3)
             output += self.binaryReal(obj)
         elif isinstance(obj, datetime.datetime):
-            timestamp = calendar.timegm(obj.utctimetuple())
-            timestamp -= apple_reference_date_offset
+            timestamp = (obj - apple_reference_date).total_seconds()
             output += pack('!B', 0b00110011)
             output += pack('!d', float(timestamp))
         elif isinstance(obj, Data):
             output += proc_variable_length(0b0100, len(obj))
             output += obj
-        elif isinstance(obj, unicode):
-            byteData = obj.encode('utf_16_be')
-            output += proc_variable_length(0b0110, len(byteData)//2)
-            output += byteData
+        elif isinstance(obj, StringWrapper):
+            output += proc_variable_length(obj.encodingMarker, len(obj))
+            output += obj.encodedValue
         elif isinstance(obj, bytes):
             output += proc_variable_length(0b0101, len(obj))
             output += obj

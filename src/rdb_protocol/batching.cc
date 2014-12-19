@@ -6,6 +6,8 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 static const int64_t DEFAULT_MIN_ELS = 8;
@@ -16,17 +18,22 @@ static const int64_t DEFAULT_MAX_DURATION = 500 * 1000;
 // These numbers are sort of arbitrary, but they seem to work. See `scale_down()`
 // for an explanation.
 static const int64_t DIVISOR_SCALING_FACTOR = 8;
-static const int64_t SCALE_CONSTANT = 8;
+#ifndef NDEBUG
+// Make sure that `with_at_most` followed by `scale_down` sometimes undersizes
+// batches in debug mode so that we can test `batchspec_t::all()` logic.
+static const int64_t SCALE_CONSTANT = 0;
+#else
+static const int64_t SCALE_CONSTANT = 32;
+#endif // NDEBUG
 
-RDB_IMPL_SERIALIZABLE_7(batchspec_t,
-                        batch_type,
-                        min_els,
-                        max_els,
-                        max_size,
-                        first_scaledown_factor,
-                        max_dur,
-                        start_time);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batchspec_t);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(batchspec_t,
+                                    batch_type,
+                                    min_els,
+                                    max_els,
+                                    max_size,
+                                    first_scaledown_factor,
+                                    max_dur,
+                                    start_time);
 
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,
@@ -67,12 +74,12 @@ batchspec_t batchspec_t::all() {
                        std::numeric_limits<decltype(batchspec_t().max_els)>::max(),
                        std::numeric_limits<decltype(batchspec_t().max_size)>::max(),
                        1,
-                       0,
+                       0,  // Ignored when batch_type is TERMINAL.
                        current_microtime());
 }
 
 static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
-    counted_t<val_t> v = env->get_optarg(env, argname);
+    scoped_ptr_t<val_t> v = env->get_optarg(env, argname);
     if (v.has()) {
         *dest = v->as_datum();
         return true;
@@ -85,7 +92,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     const int64_t SECS_TO_USECS = 1000 * 1000;
     datum_t max_els_d, min_els_d, max_size_d, max_dur_d;
     datum_t first_scaledown_d;
-    
+
     set_if_present("min_batch_rows", env, &min_els_d);
     set_if_present("max_batch_rows", env, &max_els_d);
     set_if_present("max_batch_bytes", env, &max_size_d);
@@ -93,7 +100,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     // in microseconds, so a scaling operation will be necessary.
     set_if_present("max_batch_seconds", env, &max_dur_d);
     set_if_present("first_batch_scaledown_factor", env, &first_scaledown_d);
-    
+
     int64_t max_els = max_els_d.has()
                       ? max_els_d.as_int()
                       : std::numeric_limits<decltype(batchspec_t().max_els)>::max();
@@ -122,6 +129,11 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {
     return batchspec_t(new_batch_type, min_els, max_els, max_size,
                        first_scaledown_factor, max_dur, start_time);
+}
+
+batchspec_t batchspec_t::with_max_dur(int64_t new_max_dur) const {
+    return batchspec_t(batch_type, min_els, max_els, max_size,
+                       first_scaledown_factor, new_max_dur, start_time);
 }
 
 batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
@@ -163,7 +175,8 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
             : std::min(max_size, (max_size * DIVISOR_SCALING_FACTOR
                                   / ((DIVISOR_SCALING_FACTOR - 1) * divisor))
                                  + SCALE_CONSTANT);
-    // to avoid problems when the batches get really tiny, we clamp new_max_els to be at least min_els.
+    // to avoid problems when the batches get really tiny, we clamp new_max_els
+    // to be at least min_els.
     new_max_els = std::max(min_els, new_max_els);
 
     return batchspec_t(batch_type, min_els, new_max_els, new_max_size,
@@ -187,20 +200,26 @@ batcher_t batchspec_t::to_batcher() const {
             : std::max<int64_t>(1, max_size / first_scaledown_factor);
     microtime_t cur_time = current_microtime();
     microtime_t end_time;
-    if (batch_type == batch_type_t::NORMAL) {
+    switch (batch_type) {
+    case batch_type_t::NORMAL:
         end_time = std::max(cur_time + (cur_time - start_time), start_time + max_dur);
-    } else if (batch_type == batch_type_t::NORMAL_FIRST) {
+        break;
+    case batch_type_t::NORMAL_FIRST:
         end_time = std::max(start_time + (max_dur / first_scaledown_factor),
                             cur_time + (max_dur / (first_scaledown_factor * 2)));
-    } else {
+        break;
+    case batch_type_t::SINDEX_CONSTANT: // fallthru
+    case batch_type_t::TERMINAL:
         end_time = std::numeric_limits<decltype(end_time)>::max();
+        break;
+    default: unreachable();
     }
     return batcher_t(batch_type, real_min_els, real_max_els, real_max_size, end_time);
 }
 
 bool batcher_t::should_send_batch() const {
-    // We ignore size_left as long as we have not got at least `min_wanted_els`
-    // documents.
+    // We ignore `size_left` as long as we have not got at least
+    // `min_wanted_els` documents.
     return els_left <= 0
         || (size_left <= 0 && min_els_left <= 0)
         || (current_microtime() >= end_time && seen_one_el);

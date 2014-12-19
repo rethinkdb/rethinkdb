@@ -3597,8 +3597,11 @@ def IsRValueType(clean_lines, nesting_state, linenum, column):
       if (implicit_constructor and
           implicit_constructor.group(1) == implicit_constructor.group(2)):
         return True
-      return IsRValueType(clean_lines, nesting_state, linenum,
-                          len(match_func.group(1)))
+      # RethinkDB edit:  Just give up on recursing -- there's an infinite recursion
+      # bug.
+      # return IsRValueType(clean_lines, nesting_state, linenum,
+      #                     len(match_func.group(1)))
+      return False
 
     # Nothing before the function name.  If this is inside a block scope,
     # this is probably a function call.

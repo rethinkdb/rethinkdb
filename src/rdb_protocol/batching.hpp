@@ -78,6 +78,7 @@ public:
     static batchspec_t default_for(batch_type_t batch_type);
     batch_type_t get_batch_type() const { return batch_type; }
     batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
+    batchspec_t with_max_dur(int64_t new_max_dur) const;
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;

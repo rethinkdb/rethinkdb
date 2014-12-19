@@ -91,7 +91,7 @@ void call_ringer(std::function<void()> ringee) {
 }
 
 void repeating_timer_t::on_timer() {
-    // Spawn _now_, otherwise the reating_timer_t lifetime might end
+    // Spawn _now_, otherwise the repeating_timer_t lifetime might end
     // before ring gets used.
     coro_t::spawn_now_dangerously(std::bind(call_ringer, ringee));
 }

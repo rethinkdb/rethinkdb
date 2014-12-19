@@ -38,7 +38,7 @@ private:
         return false;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
 
     // Functions to get optargs into the http_opts_t
     void get_optargs(scope_env_t *env, args_t *args, http_opts_t *opts_out) const;
@@ -145,11 +145,15 @@ public:
         depaginate_limit(_depaginate_limit),
         more(depaginate_limit != 0) { }
 
-    bool is_array() { return false; }
+    bool is_array() const { return false; }
     bool is_exhausted() const { return !more && batch_cache_exhausted(); }
     bool is_cfeed() const { return false; }
+    bool is_infinite() const { return false; }
 
 private:
+    virtual changefeed::keyspec_t get_change_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
+    }
     std::vector<datum_t> next_page(env_t *env);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
@@ -212,8 +216,8 @@ void dispatch_http(env_t *env,
     check_error_result(*res_out, opts, parent);
 }
 
-counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
-                                        eval_flags_t) const {
+scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
+                                           eval_flags_t) const {
     http_opts_t opts;
     opts.limits = env->env->limits();
     opts.url.assign(args->arg(env, 0)->as_str().to_std());
@@ -301,13 +305,16 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
         return false;
     }
 
-    // Provide an empty OBJECT datum instead of any non-existent arguments
+    rassert(opts.url_params.has());
+    rassert(res.header.has());
+    rassert(res.body.has());
+
     datum_t empty
         = datum_t(std::map<datum_string_t, datum_t>());
     std::map<datum_string_t, datum_t> arg_obj
-        = { { datum_string_t("params"), opts.url_params.has() ? opts.url_params : empty },
-            { datum_string_t("header"), res.header.has() ? res.header : empty },
-            { datum_string_t("body"), res.body.has() ? res.body : empty } };
+        = { { datum_string_t("params"), opts.url_params },
+            { datum_string_t("header"), res.header },
+            { datum_string_t("body"), res.body } };
     std::vector<datum_t> args
         = { datum_t(std::move(arg_obj)) };
 
@@ -344,7 +351,7 @@ bool http_datum_stream_t::apply_depage_url(datum_t new_url) {
 void http_datum_stream_t::apply_depage_params(datum_t new_params) {
     // Verify new params and merge with the old ones, new taking precedence
     check_url_params(new_params, this);
-    opts.url_params.merge(new_params);
+    opts.url_params = opts.url_params.merge(new_params);
 }
 
 bool http_datum_stream_t::handle_depage_result(datum_t depage) {
@@ -388,8 +395,8 @@ void http_term_t::get_page_and_limit(scope_env_t *env,
                                      args_t *args,
                                      counted_t<const func_t> *depaginate_fn_out,
                                      int64_t *depaginate_limit_out) {
-    counted_t<val_t> page = args->optarg(env, "page");
-    counted_t<val_t> page_limit = args->optarg(env, "page_limit");
+    scoped_ptr_t<val_t> page = args->optarg(env, "page");
+    scoped_ptr_t<val_t> page_limit = args->optarg(env, "page_limit");
 
     if (!page.has()) {
         return;
@@ -433,7 +440,7 @@ void http_term_t::get_optargs(scope_env_t *env,
 void http_term_t::get_timeout_ms(scope_env_t *env,
                                  args_t *args,
                                  uint64_t *timeout_ms_out) {
-    counted_t<val_t> timeout = args->optarg(env, "timeout");
+    scoped_ptr_t<val_t> timeout = args->optarg(env, "timeout");
     if (timeout.has()) {
         double tmp = timeout->as_num();
         tmp *= 1000;
@@ -467,7 +474,7 @@ void http_term_t::verify_header_string(const std::string &str,
 void http_term_t::get_header(scope_env_t *env,
                              args_t *args,
                              std::vector<std::string> *header_out) {
-    counted_t<val_t> header = args->optarg(env, "header");
+    scoped_ptr_t<val_t> header = args->optarg(env, "header");
     if (header.has()) {
         datum_t datum_header = header->as_datum();
         if (datum_header.get_type() == datum_t::R_OBJECT) {
@@ -510,7 +517,7 @@ void http_term_t::get_header(scope_env_t *env,
 void http_term_t::get_method(scope_env_t *env,
                              args_t *args,
                              http_method_t *method_out) {
-    counted_t<val_t> method = args->optarg(env, "method");
+    scoped_ptr_t<val_t> method = args->optarg(env, "method");
     if (method.has()) {
         std::string method_str = method->as_str().to_std();
         if (method_str == "GET") {
@@ -556,7 +563,7 @@ std::string http_term_t::get_auth_item(const datum_t &datum,
 void http_term_t::get_auth(scope_env_t *env,
                            args_t *args,
                            http_opts_t::http_auth_t *auth_out) {
-    counted_t<val_t> auth = args->optarg(env, "auth");
+    scoped_ptr_t<val_t> auth = args->optarg(env, "auth");
     if (auth.has()) {
         datum_t datum_auth = auth->as_datum();
         if (datum_auth.get_type() != datum_t::R_OBJECT) {
@@ -632,7 +639,7 @@ void http_term_t::get_data(
         std::map<std::string, std::string> *form_data_out,
         std::vector<std::string> *header_out,
         http_method_t method) const {
-    counted_t<val_t> data = args->optarg(env, "data");
+    scoped_ptr_t<val_t> data = args->optarg(env, "data");
     if (data.has()) {
         datum_t datum_data = data->as_datum();
         if (method == http_method_t::PUT ||
@@ -681,7 +688,7 @@ void http_term_t::get_data(
 void http_term_t::get_params(scope_env_t *env,
                              args_t *args,
                              datum_t *params_out) {
-    counted_t<val_t> params = args->optarg(env, "params");
+    scoped_ptr_t<val_t> params = args->optarg(env, "params");
     if (params.has()) {
         *params_out = params->as_datum();
         check_url_params(*params_out, params.get());
@@ -700,7 +707,7 @@ void http_term_t::get_params(scope_env_t *env,
 void http_term_t::get_result_format(scope_env_t *env,
                                     args_t *args,
                                     http_result_format_t *result_format_out) {
-    counted_t<val_t> result_format = args->optarg(env, "result_format");
+    scoped_ptr_t<val_t> result_format = args->optarg(env, "result_format");
     if (result_format.has()) {
         std::string result_format_str = result_format->as_str().to_std();
         if (result_format_str == "auto") {
@@ -728,7 +735,7 @@ void http_term_t::get_result_format(scope_env_t *env,
 void http_term_t::get_attempts(scope_env_t *env,
                                args_t *args,
                                uint64_t *attempts_out) {
-    counted_t<val_t> attempts = args->optarg(env, "attempts");
+    scoped_ptr_t<val_t> attempts = args->optarg(env, "attempts");
     if (attempts.has()) {
         *attempts_out = attempts->as_int<uint64_t>();
     }
@@ -739,7 +746,7 @@ void http_term_t::get_attempts(scope_env_t *env,
 void http_term_t::get_redirects(scope_env_t *env,
                                 args_t *args,
                                 uint32_t *redirects_out) {
-    counted_t<val_t> redirects = args->optarg(env, "redirects");
+    scoped_ptr_t<val_t> redirects = args->optarg(env, "redirects");
     if (redirects.has()) {
         *redirects_out = redirects->as_int<uint32_t>();
     }
@@ -751,7 +758,7 @@ void http_term_t::get_bool_optarg(const std::string &optarg_name,
                                   scope_env_t *env,
                                   args_t *args,
                                   bool *bool_out) {
-    counted_t<val_t> option = args->optarg(env, optarg_name);
+    scoped_ptr_t<val_t> option = args->optarg(env, optarg_name);
     if (option.has()) {
         *bool_out = option->as_bool();
     }

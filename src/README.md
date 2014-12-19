@@ -51,7 +51,7 @@ Rethink cluster logic, node roles, blueprint implementation, command-line / web 
 
 #### clustering/administration
 Implementation of reactor driver/manager, loggers and metadata definitions for namespace,
-database, machine, etc..
+database, server, etc..
 
 ##### clustering/administration/cli
 Helper functions to parse commands from command-line interface.
@@ -72,13 +72,13 @@ Throttling mechanism for query processing in a cluster node, uses clustered mail
 Data and shard consistency mechanisms using clustered mailboxes known as business cards.
 
 ##### clustering/immediate_consistency/branch
-Read/Write queries are sent to the primary machine of a shard (master_t).
+Read/Write queries are sent to the primary server of a shard (master_t).
 The master_t forwards them to the brodcaster_t (primary) of that shard.
 The broadcaster_t sorts and distributes them to one or more listener_t,
 
 A listener_t is the cluster-facing interface of a replica for a single shard.
 A listener_t performs read/writes to the B-tree.
-A secondary machine is essentially just a listener_t.
+A secondary server is essentially just a listener_t.
 
 History of table data regions (shards) is identified by a branch ID + timestamp.
 A branch is the DB state when a broadcaster_t was created + sequence of writes.
@@ -89,7 +89,7 @@ receive (up-to-date) read requests.
 
 ##### clustering/immediate_consistency/query
 Query processing for each shard.
-A primary machine of a shard has a master_t receiving queries from other nodes.
+A primary server of a shard has a master_t receiving queries from other nodes.
 
 #### clustering/reactor
 Cluster node functions to match the blueprint. A node role can be primary, secondary or nothing/sleep.

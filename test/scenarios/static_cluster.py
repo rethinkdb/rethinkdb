@@ -1,48 +1,60 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
 import sys, os, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse, workload_runner
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["use-proxy"] = BoolFlag("--use-proxy")
-op["num-nodes"] = IntFlag("--num-nodes", 3)
-op["num-shards"] = IntFlag("--num-shards", 2)
-op["workload"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 1200)
+op["use-proxy"] = vcoptparse.BoolFlag("--use-proxy")
+op["num-nodes"] = vcoptparse.IntFlag("--num-nodes", 3)
+op["num-shards"] = vcoptparse.IntFlag("--num-shards", 2)
+op["workload"] = vcoptparse.PositionalArg()
+op["timeout"] = vcoptparse.IntFlag("--timeout", 1200)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Starting cluster..."
-    processes = [driver.Process(cluster,
-                                driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                             executable_path = executable_path, command_prefix = command_prefix),
-                                log_path = "serve-output-%d" % i,
-                                executable_path = executable_path, command_prefix = command_prefix,
-                                extra_options = serve_options)
-                 for i in xrange(opts["num-nodes"])]
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+print("Starting cluster of %d servers (%.2fs)" % (opts["num-nodes"], time.time() - startTime))
+with driver.Cluster(initial_servers=opts["num-nodes"], output_folder='.', wait_until_ready=False, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+
     if opts["use-proxy"]:
-        proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
-            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-        processes.append(proxy_process)
-    for process in processes:
-        process.wait_until_started_up()
-
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
-    dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = dc)
-    for i in xrange(opts["num-shards"] - 1):
-        http.add_table_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
-    http.wait_until_blueprint_satisfied(ns)
-
-    workload_ports = scenario_common.get_workload_ports(ns, processes if not opts["use-proxy"] else [proxy_process])
+        driver.ProxyProcess(cluster, 'proxy-logfile', console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
+    
+    cluster.wait_until_ready()
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Splitting into %d shards (%.2fs)" % (opts["num-shards"], time.time() - startTime))
+    
+    r.db(dbName).table(tableName).reconfigure(shards=opts["num-shards"], replicas=1).run(conn)
+    r.db(dbName).table_wait().run(conn)
+    
+    print("Starting workload: %s (%.2fs)" % (opts["workload"], time.time() - startTime))
+    
+    workloadServer = server if not opts["use-proxy"] else cluster[-1]
+    workload_ports = workload_runner.RDBPorts(host=workloadServer.host, http_port=workloadServer.http_port, rdb_port=workloadServer.driver_port, db_name=dbName, table_name=tableName)
     workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
-    cluster.check_and_stop()
+    print("Ended workload: %s (%.2fs)" % (opts["workload"], time.time() - startTime))
+print("Done (%.2fs)" % (time.time() - startTime))

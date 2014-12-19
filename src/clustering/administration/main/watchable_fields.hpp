@@ -21,9 +21,10 @@ public:
 
 private:
     void on_change() {
-        outer_t value = outer->get_watchable()->get();
-        value.*field = inner->get();
-        outer->set_value(value);
+        outer->apply_atomic_op([this](outer_t *value) {
+            value->*field = inner->get();
+            return true;
+        });
     }
 
     inner_t outer_t::*field;

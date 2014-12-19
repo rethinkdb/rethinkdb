@@ -1,0 +1,10 @@
+<div class="panel {{#if num_issues}}error{{/if}}">
+    <h5>Issues</h5>
+    {{#if num_issues}}
+        <div class="error"></div>
+        <h4>{{num_issues}} {{pluralize_noun "issue" num_issues}}</h4>
+    {{else}}
+        <h4>No issues</h4>
+    {{/if}}
+</div>
+

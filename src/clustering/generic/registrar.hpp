@@ -24,11 +24,9 @@ public:
         registration_destruction_pool(1, &registration_destruction_queue,
                               &registration_destruction_callback),
         create_mailbox(mailbox_manager, std::bind(&registrar_t::on_create,
-                                                  this, ph::_1, ph::_2, ph::_3,
-                                                  auto_drainer_t::lock_t(&drainer))),
+                                                  this, ph::_1, ph::_2, ph::_3, ph::_4)),
         delete_mailbox(mailbox_manager, std::bind(&registrar_t::on_delete,
-                                                  this, ph::_1,
-                                                  auto_drainer_t::lock_t(&drainer)))
+                                                  this, ph::_1, ph::_2))
     { }
 
     registrar_business_card_t<business_card_t> get_business_card() {
@@ -117,7 +115,11 @@ private:
         DISABLE_COPYING(active_registration_t);
     };
 
-    void on_create(registration_id_t rid, peer_id_t peer, business_card_t business_card, auto_drainer_t::lock_t keepalive) {
+    void on_create(
+            UNUSED signal_t *interruptor,
+            registration_id_t rid,
+            peer_id_t peer,
+            business_card_t business_card) {
         /* Grab the mutex to avoid race conditions if a message arrives at the
         update mailbox or the delete mailbox while we're working. We must not
         block between when `on_create()` begins and when `mutex_acq` is
@@ -139,11 +141,12 @@ private:
         running for doing the remaining work. active_registration_t takes care
         of its own destruction once the keepalive drain signal is pulsed (or one
         of the other signals it waits on). */
+        auto_drainer_t::lock_t keepalive(&drainer);
         new active_registration_t(this, std::move(mutex_acq), rid, peer,
                                   business_card, std::move(keepalive));
     }
 
-    void on_delete(registration_id_t rid, UNUSED auto_drainer_t::lock_t keepalive) {
+    void on_delete(UNUSED signal_t *interruptor, registration_id_t rid) {
 
         /* Acquire the mutex so we don't race with `on_create()`. */
         mutex_t::acq_t mutex_acq(&mutex);

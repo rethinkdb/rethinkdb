@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt.hpp"
 #include "serializer/config.hpp"
 
 namespace unittest {

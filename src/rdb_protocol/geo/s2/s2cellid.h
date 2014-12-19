@@ -3,6 +3,8 @@
 #ifndef UTIL_GEOMETRY_S2CELLID_H_
 #define UTIL_GEOMETRY_S2CELLID_H_
 
+// We need this for std::hash<T>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>

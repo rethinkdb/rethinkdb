@@ -9,9 +9,9 @@
 .PHONY: default-goal
 default-goal: real-default-goal
 
-# Build the webui, drivers and executable
+# Build the drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
+all: $(TOP)/src/all $(TOP)/drivers/all
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)

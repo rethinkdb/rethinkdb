@@ -24,7 +24,6 @@ n_phase_workloads = [
 
 two_phase_scenarios = {
     'rebalance': "$RETHINKDB/test/scenarios/rebalance.py --workload-before '%(before)s' --workload-after '%(after)s'",
-    'relocate-namespace': "$RETHINKDB/test/scenarios/relocate_namespace.py --workload-before '%(before)s' --workload-after '%(after)s'",
     'change-primary': "$RETHINKDB/test/scenarios/change_primary.py --workload-before '%(before)s' --workload-after '%(after)s'",
     'failover': "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-before '%(before)s' --workload-after '%(after)s'",
     'add-secondary': "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-before '%(before)s' --workload-after '%(after)s'",
@@ -36,8 +35,8 @@ two_phase_scenarios = {
 
 n_phase_scenarios = {
     'more-or-less': "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 2+1-1+1-1+1-1+1-1+1-1 --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
-    'rebalance-1': "$RETHINKDB/test/scenarios/rebalance.py --sequence 2,++,--,+-,+-,+++,--+,---- --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
-    'rebalance-2': "$RETHINKDB/test/scenarios/rebalance.py --sequence 32,++++++++++++++++++++++++++++++++,--------------------------------,++++++++++++++++----------------,++++++++++++++++----------------,++++++++++++++++++++++++++++++++++++++++++++++++,--------------------------------++++++++++++++++,---------------------------------------------------------------- --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'"
+    'rebalance-1': "$RETHINKDB/test/scenarios/rebalance.py --sequence 2,++,--,+,-,+++,++,---- --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
+    'rebalance-2': "$RETHINKDB/test/scenarios/rebalance.py --sequence 32,1,32,16,32,5,16,32 --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'"
 }
 
 for sname, scenario in two_phase_scenarios.items():

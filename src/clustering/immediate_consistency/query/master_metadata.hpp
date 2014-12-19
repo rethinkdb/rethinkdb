@@ -68,9 +68,9 @@ public:
     multi_throttling_business_card_t<request_t, inner_client_business_card_t> multi_throttling;
 };
 
-RDB_DECLARE_SERIALIZABLE(master_business_card_t::read_request_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::read_request_t);
 
-RDB_DECLARE_SERIALIZABLE(master_business_card_t::write_request_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::write_request_t);
 
 RDB_DECLARE_SERIALIZABLE(master_business_card_t::inner_client_business_card_t);
 

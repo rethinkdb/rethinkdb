@@ -43,7 +43,7 @@ broadcaster_t::broadcaster_t(
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     initial_svs->new_read_token(&read_token);
 
     region_map_t<binary_blob_t> origins_blob;
@@ -84,7 +84,7 @@ broadcaster_t::broadcaster_t(
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_t write_token;
     initial_svs->new_write_token(&write_token);
     initial_svs->set_metainfo(region_map_t<binary_blob_t>(initial_svs->get_region(),
                                                           binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
@@ -122,11 +122,15 @@ store_view_t *broadcaster_t::release_bootstrap_svs_for_listener() {
    but not completed yet. */
 class broadcaster_t::incomplete_write_t : public home_thread_mixin_debug_only_t {
 public:
-    incomplete_write_t(broadcaster_t *p, const write_t &w, transition_timestamp_t ts, const ack_checker_t *ac, write_callback_t *cb) :
+    incomplete_write_t(broadcaster_t *p,
+                       const write_t &w,
+                       state_timestamp_t ts,
+                       const ack_checker_t *ac,
+                       write_callback_t *cb) :
         write(w), timestamp(ts), ack_checker(ac), callback(cb), parent(p), incomplete_count(0) { }
 
     const write_t write;
-    const transition_timestamp_t timestamp;
+    const state_timestamp_t timestamp;
     const ack_checker_t *ack_checker;
 
     /* This is a callback to notify when the write has either succeeded or
@@ -134,9 +138,9 @@ public:
     don't call it again. */
     write_callback_t *callback;
 
-    /* This is the set of peers that have acknowledged the write so far. When it satisfies
-    the ack checker, then `callback->on_success()` will be called. */
-    std::set<peer_id_t> ack_set;
+    /* This is the set of listeners that have acknowledged the write so far. When it
+    satisfies the ack checker, then `callback->on_success()` will be called. */
+    std::set<server_id_t> ack_set;
 
 private:
     friend class incomplete_write_ref_t;
@@ -199,7 +203,7 @@ private:
 class broadcaster_t::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t d) THROWS_NOTHING :
-        write_mailbox(d.write_mailbox), is_readable(false),
+        write_mailbox(d.write_mailbox), is_readable(false), server_id(d.server_id),
         local_listener(NULL), listener_id(generate_uuid()),
         queue_count(),
         queue_count_membership(&c->broadcaster_collection, &queue_count,
@@ -210,9 +214,9 @@ public:
                                  &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+            boost::bind(&dispatchee_t::upgrade, this, _1, _2, _3)),
         downgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
+            boost::bind(&dispatchee_t::downgrade, this, _1, _2))
     {
         controller->assert_thread();
         controller->sanity_check();
@@ -252,8 +256,8 @@ public:
         controller->assert_thread();
     }
 
-    peer_id_t get_peer() {
-        return write_mailbox.get_peer();
+    bool is_local() {
+        return local_listener != nullptr;
     }
 
 private:
@@ -272,9 +276,9 @@ private:
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
-    void upgrade(listener_business_card_t::writeread_mailbox_t::address_t wrm,
-                 listener_business_card_t::read_mailbox_t::address_t rm,
-                 auto_drainer_t::lock_t)
+    void upgrade(UNUSED signal_t *interruptor,
+                 listener_business_card_t::writeread_mailbox_t::address_t wrm,
+                 listener_business_card_t::read_mailbox_t::address_t rm)
             THROWS_NOTHING {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
@@ -286,7 +290,8 @@ private:
         controller->refresh_readable_dispatchees_as_set();
     }
 
-    void downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
+    void downgrade(UNUSED signal_t *interruptor,
+                   mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
             ASSERT_FINITE_CORO_WAITING;
@@ -305,6 +310,7 @@ public:
     bool is_readable;
     listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
     listener_business_card_t::read_mailbox_t::address_t read_mailbox;
+    server_id_t server_id;
 
     /* `local_listener` can be non-NULL if the dispatchee is local on this node
     (and on the same thread). */
@@ -312,7 +318,7 @@ public:
     auto_drainer_t::lock_t local_listener_keepalive;
 
     /* This is used to enforce that operations are performed on the
-       destination machine in the same order that we send them, even if the
+       destination server in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
 
@@ -333,8 +339,8 @@ public:
 private:
     coro_pool_t<std::function<void()> > background_write_workers;
     broadcaster_t *controller;
-    auto_drainer_t drainer;
 
+    auto_drainer_t drainer;
     listener_business_card_t::upgrade_mailbox_t upgrade_mailbox;
     listener_business_card_t::downgrade_mailbox_t downgrade_mailbox;
 
@@ -362,7 +368,7 @@ Important: These functions must send the message before responding to
 
 void broadcaster_t::listener_write(
         broadcaster_t::dispatchee_t *mirror,
-        const write_t &w, transition_timestamp_t ts,
+        const write_t &w, state_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -373,19 +379,13 @@ void broadcaster_t::listener_write(
         cond_t ack_cond;
         mailbox_t<void()> ack_mailbox(
             mailbox_manager,
-            std::bind(&cond_t::pulse, &ack_cond));
+            [&](signal_t *) { ack_cond.pulse(); });
 
         send(mailbox_manager, mirror->write_mailbox,
              w, ts, order_token, token, ack_mailbox.get_address());
 
         wait_interruptible(&ack_cond, interruptor);
     }
-}
-
-template <class response_t>
-void store_listener_response(response_t *result_out, const response_t &result_in, cond_t *done) {
-    *result_out = result_in;
-    done->pulse();
 }
 
 void broadcaster_t::listener_read(
@@ -402,7 +402,10 @@ void broadcaster_t::listener_read(
         cond_t resp_cond;
         mailbox_t<void(read_response_t)> resp_mailbox(
             mailbox_manager,
-            std::bind(&store_listener_response<read_response_t>, response, ph::_1, &resp_cond));
+            [&](signal_t *, const read_response_t &resp) {
+                *response = resp;
+                resp_cond.pulse();
+            });
 
         send(mailbox_manager, mirror->read_mailbox,
              r, ts, order_token, token, resp_mailbox.get_address());
@@ -456,12 +459,27 @@ void broadcaster_t::spawn_write(const write_t &write,
         return;
     }
 
-    transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
-    current_timestamp = timestamp.timestamp_after();
+    write_durability_t durability;
+    switch (write.durability()) {
+        case DURABILITY_REQUIREMENT_DEFAULT:
+            durability = ack_checker->get_write_durability();
+            break;
+        case DURABILITY_REQUIREMENT_SOFT:
+            durability = write_durability_t::SOFT;
+            break;
+        case DURABILITY_REQUIREMENT_HARD:
+            durability = write_durability_t::HARD;
+            break;
+        default:
+            unreachable();
+    }
+
+    state_timestamp_t timestamp = current_timestamp.next();
+    current_timestamp = timestamp;
     order_token = order_checkpoint.check_through(order_token);
 
     boost::shared_ptr<incomplete_write_t> write_wrapper = boost::make_shared<incomplete_write_t>(
-        this, write, timestamp, ack_checker, cb);
+            this, write, timestamp, ack_checker, cb);
     incomplete_writes.push_back(write_wrapper);
 
     // You can't reuse the same callback for two writes.
@@ -483,22 +501,6 @@ void broadcaster_t::spawn_write(const write_t &write,
         to every dispatchee. */
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
-            durability_requirement_t durability_requirement = write.durability();
-            write_durability_t durability;
-            switch (durability_requirement) {
-            case DURABILITY_REQUIREMENT_DEFAULT:
-                durability = ack_checker->get_write_durability(it->first->get_peer());
-                break;
-            case DURABILITY_REQUIREMENT_SOFT:
-                durability = write_durability_t::SOFT;
-                break;
-            case DURABILITY_REQUIREMENT_HARD:
-                durability = write_durability_t::HARD;
-                break;
-            default:
-                unreachable();
-            }
-
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
@@ -525,9 +527,7 @@ void broadcaster_t::pick_a_readable_dispatchee(
     for (dispatchee_t *d = readable_dispatchees.head();
          d != NULL;
          d = readable_dispatchees.next(d)) {
-        const bool is_local =
-            d->get_peer() == mailbox_manager->get_connectivity_cluster()->get_me();
-        if (is_local) {
+        if (d->is_local()) {
             selected_dispatchee = d;
             break;
         }
@@ -589,8 +589,10 @@ void broadcaster_t::background_writeread(
             cond_t response_cond;
             mailbox_t<void(write_response_t)> response_mailbox(
                 mailbox_manager,
-                boost::bind(&store_listener_response<write_response_t>, &response, _1,
-                            &response_cond));
+                [&](signal_t *, const write_response_t &resp) {
+                    response = resp;
+                    response_cond.pulse();
+                });
 
             send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write,
                  write_ref.get()->timestamp, order_token, token,
@@ -599,7 +601,7 @@ void broadcaster_t::background_writeread(
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
 
-        write_ref.get()->ack_set.insert(mirror->get_peer());
+        write_ref.get()->ack_set.insert(mirror->server_id);
         if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
             /* We might get here multiple times, if `is_acceptable_ack_set()`
             returns `true` before all of the acks have come back. To avoid
@@ -636,11 +638,11 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
     from the queue. This loop makes one iteration on average for every call to
     `end_write()`, but it could make multiple iterations or zero iterations on
     any given call. */
-    while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
+    while (newest_complete_timestamp < write->timestamp) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
         incomplete_writes.pop_front();
-        guarantee(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
-        newest_complete_timestamp = removed_write->timestamp.timestamp_after();
+        guarantee(newest_complete_timestamp.next() == removed_write->timestamp);
+        newest_complete_timestamp = removed_write->timestamp;
     }
     /* `write->callback` could be `NULL` if we already called `on_success()` on
     it */
@@ -761,7 +763,7 @@ void broadcaster_t::refresh_readable_dispatchees_as_set() {
     readable_dispatchees_as_set.clear();
     dispatchee_t *dispatchee = readable_dispatchees.head();
     while (dispatchee != NULL) {
-        readable_dispatchees_as_set.insert(dispatchee->get_peer());
+        readable_dispatchees_as_set.insert(dispatchee->server_id);
         dispatchee = readable_dispatchees.next(dispatchee);
     }
 }
@@ -775,8 +777,8 @@ void broadcaster_t::sanity_check() {
     state_timestamp_t ts = newest_complete_timestamp;
     for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
          it != incomplete_writes.end(); it++) {
-        rassert(ts == (*it)->timestamp.timestamp_before());
-        ts = (*it)->timestamp.timestamp_after();
+        rassert(ts.next() == (*it)->timestamp);
+        ts = (*it)->timestamp;
     }
     rassert(ts == current_timestamp);
 #endif

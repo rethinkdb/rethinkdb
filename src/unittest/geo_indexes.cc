@@ -315,8 +315,10 @@ std::vector<datum_t> perform_get_intersecting(
                                         table_name, ql::batchspec_t::all(),
                                         std::vector<ql::transform_variant_t>(),
                                         boost::optional<ql::terminal_variant_t>(),
-                                        sindex_rangespec_t(idx_name, region_t::universe(),
-                                                           datum_range_t::universe()),
+                                        sindex_rangespec_t(
+                                            idx_name,
+                                            region_t::universe(),
+                                            ql::datum_range_t::universe()),
                                         query_geometry),
                 profile_bool_t::PROFILE);
     read_response_t response;

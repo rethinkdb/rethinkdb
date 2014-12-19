@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from __future__ import division
 
 import struct
 import datetime
@@ -262,7 +263,7 @@ class Alias (object):
             if tag == TAG_CARBON_FOLDER_NAME:
                 alias.target.folder_name = value.replace('/',':')
             elif tag == TAG_CNID_PATH:
-                alias.target.cnid_path = struct.unpack(b'>%uI' % (length / 4),
+                alias.target.cnid_path = struct.unpack(b'>%uI' % (length // 4),
                                                            value)
             elif tag == TAG_CARBON_PATH:
                 alias.target.carbon_path = value
@@ -482,7 +483,7 @@ class Alias (object):
                 if len(ai.server) & 1:
                     b.write(b'\0')
             if ai.username:
-                b.write(struct.pack(b'>hh', TAG_APPLESHARE_SERVER_NAME,
+                b.write(struct.pack(b'>hh', TAG_APPLESHARE_USERNAME,
                                      len(ai.username)))
                 b.write(ai.username)
                 if len(ai.username) & 1:
@@ -513,13 +514,13 @@ class Alias (object):
         utf16 = self.target.filename.replace(':','/').encode('utf-16-be')
         b.write(struct.pack(b'>hhh', TAG_UNICODE_FILENAME,
                             len(utf16) + 2,
-                            len(utf16) / 2))
+                            len(utf16) // 2))
         b.write(utf16)
 
         utf16 = self.volume.name.replace(':','/').encode('utf-16-be')
         b.write(struct.pack(b'>hhh', TAG_UNICODE_VOLUME_NAME,
                             len(utf16) + 2,
-                            len(utf16) / 2))
+                            len(utf16) // 2))
         b.write(utf16)
 
         if self.target.posix_path:

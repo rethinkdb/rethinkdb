@@ -1,6 +1,107 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Log view
 module 'LogView', ->
+    class @LogsContainer extends Backbone.View
+        template:
+            main: Handlebars.templates['logs_container-template']
+            error: Handlebars.templates['error-query-template']
+            alert_message: Handlebars.templates['alert_message-template']
+
+        initialize: =>
+            @logs = new Logs()
+            @logs_list = new LogView.LogsListView
+                collection: @logs
+
+            @fetch_data()
+
+        fetch_data: =>
+            query = r.expr([]) # TODO Replace with the logs table
+
+            @timer = driver.run query, 5000, (error, result) =>
+                if error?
+                    if @error?.msg isnt error.msg
+                        @error = error
+                        @$el.html @template.error
+                            url: '#tables'
+                            error: error.message
+                else
+                    @loading = false # TODO Move that outside the `if` statement?
+                    @render()
+
+                    for log, index in result
+                        @logs.add new Log(log), {merge: true}
+
+        render: =>
+            @$el.html @template.main
+                loading: @loading
+                adding_index: @adding_index
+
+            @$('.logs_list').html @logs_list.render().$el
+            @
+
+        remove: =>
+            driver.stop_timer @timer
+            super()
+
+    class @LogsListView extends Backbone.View
+        initialize: =>
+            @logs_view = []
+
+            @collection.each (log) =>
+                view = new LogView.LogView
+                    model: log
+
+                # The first time, the collection is sorted
+                @logs_view.push view
+                @$('.logs_list').append view.render().$el
+
+            if @collection.length is 0
+                @$('.no_logs').show()
+            else
+                @$('.no_logs').hide()
+
+            @listenTo @collection, 'add', (log) =>
+                view = new LogView.LogView
+                    model: log
+                @logs_view.push view
+
+                position = @collection.indexOf log
+                if @collection.length is 1
+                    @$('.logs_list').html view.render().$el
+                else if position is 0
+                    @$('.logs_list').prepend view.render().$el
+                else
+                    @$('.log_container').eq(position-1).after view.render().$el
+
+                @$('.no_logs').hide()
+
+            @listenTo @collection, 'remove', (log) =>
+                for view in @logs_view
+                    if view.model is log
+                        log.destroy()
+                        ((view) ->
+                            view.$el.slideUp 'fast', =>
+                                view.remove()
+                        )(view)
+                        break
+                if @collection.length is 0
+                    @$('.no_log').show()
+
+    class @LogView extends Backbone.View
+        initialize: =>
+            @model.on 'change', @render
+
+        render: =>
+            @$el.html @template @model.toJSON()
+            @
+
+        remove: =>
+            @stopListening()
+            super()
+
+    ###
+    #    Old things below
+    ###
     # LogView.Container
     class @Container extends Backbone.View
         className: 'log-view'
@@ -23,8 +124,6 @@ module 'LogView', ->
             'click .update-log-entries': 'update_log_entries'
 
         initialize: ->
-            log_initial '(initializing) events view: container'
-
             if @options.route?
                 @route = @options.route
             if @options.type?
@@ -39,9 +138,9 @@ module 'LogView', ->
             @set_interval = setInterval @check_for_new_updates, @interval_update_log
 
         render: =>
-            @.$el.html @template()
+            @$el.html @template()
             # Initially, hide the message indicating no more entries are available. This will change depending on the results of the @fetch_log_entries call
-            @.$('.no-more-entries').hide()
+            @$('.no-more-entries').hide()
 
             @fetch_log_entries
                 max_length: @max_log_entries
@@ -58,8 +157,8 @@ module 'LogView', ->
             
         parse_log: (log_data_from_server) =>
             @max_timestamp = 0
-            for machine_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[machine_uuid]?
+            for server_id, log_entries of log_data_from_server
+                if @filter? and not @filter[server_id]?
                     continue
 
                 if log_entries.length > 0
@@ -82,7 +181,7 @@ module 'LogView', ->
                         for log, i in @current_logs
                             if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                                 entry = new LogEntry json
-                                entry.set('machine_uuid',machine_uuid)
+                                entry.set('server_id',server_id)
                                 @current_logs.splice i, 0, entry
                                 log_saved = true
                                 break
@@ -90,22 +189,22 @@ module 'LogView', ->
                     # If it's not, just add it ad the end
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('machine_uuid',machine_uuid)
+                        entry.set('server_id', server_id)
                         @current_logs.push entry
 
             if @current_logs.length <= @displayed_logs
-                @.$('.no-more-entries').show()
-                @.$('.next-log-entries').hide()
+                @$('.no-more-entries').show()
+                @$('.next-log-entries').hide()
             else
                 for i in [0..@max_log_entries-1]
                     if @current_logs[@displayed_logs]?
                         view = new LogView.LogEntry
                             model: @current_logs[@displayed_logs]
-                        @.$('.log-entries').append view.render(@compact).el
+                        @$('.log-entries').append view.render(@compact).el
                         @displayed_logs++
                     else
-                        @.$('.no-more-entries').show()
-                        @.$('.next-log-entries-container').hide()
+                        @$('.no-more-entries').show()
+                        @$('.next-log-entries-container').hide()
  
             @render_header()
 
@@ -124,14 +223,14 @@ module 'LogView', ->
 
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
-                    for machine_uuid, log_entries of log_data_from_server
-                        if @filter? and not @filter[machine_uuid]?
+                    for server_id, log_entries of log_data_from_server
+                        if @filter? and not @filter[server_id]?
                             continue
                         @num_new_entries += log_entries.length
                     @render_header()
 
         render_header: =>
-            @.$('.header').html @header_template
+            @$('.header').html @header_template
                 new_entries: @num_new_entries > 0
                 num_new_entries: @num_new_entries
                 too_many_new_entries: @num_new_entries > @max_log_entries
@@ -141,7 +240,7 @@ module 'LogView', ->
                 to_date: new XDate(@current_logs[@displayed_logs-1]?.get('timestamp')*1000).toString("MMMM d, yyyy 'at' HH:mm:ss")
                 logs_for:
                     general:    @type is 'general'
-                    machine:    @type is 'machine'
+                    server:    @type is 'server'
                     datacenter: @type is 'datacenter'
 
         update_log_entries: (event) =>
@@ -154,8 +253,8 @@ module 'LogView', ->
                 $.getJSON route, @parse_new_log
 
         parse_new_log: (log_data_from_server) =>
-            for machine_uuid, log_entries of log_data_from_server
-                if @filter? and not @filter[machine_uuid]?
+            for server_id, log_entries of log_data_from_server
+                if @filter? and not @filter[server_id]?
                     continue
 
 
@@ -164,14 +263,14 @@ module 'LogView', ->
                     for log, i in @current_logs
                         if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
                             entry = new LogEntry json
-                            entry.set('machine_uuid',machine_uuid)
+                            entry.set('server_id', server_id)
                             @current_logs.splice i, 0, entry
                             log_saved = true
                             break
 
                     if log_saved is false
                         entry = new LogEntry json
-                        entry.set('machine_uuid',machine_uuid)
+                        entry.set('server_id', server_id)
                         @current_logs.push entry
 
             for i in [@num_new_entries-1..0]
@@ -179,17 +278,18 @@ module 'LogView', ->
                     model: @current_logs[i]
                 rendered_view = $(view.render().el)
                 rendered_view.css('background-color','#F8EEB1')
-                @.$('.log-entries').prepend view.render().el
+                @$('.log-entries').prepend view.render().el
                 rendered_view.animate
                     backgroundColor: '#FFF'
                 , 2000
                 @displayed_logs++
 
             @render_header()
-            @.$('.header .alert').remove()
+            @$('.header .alert').remove()
 
-        destroy: =>
+        remove: =>
             clearInterval @set_interval
+            super()
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'
@@ -199,7 +299,7 @@ module 'LogView', ->
         template_small: Handlebars.templates['log-entry-small_template']
 
         log_single_value_template: Handlebars.templates['log-single_value-template']
-        log_machines_values_template: Handlebars.templates['log-machines_values-template']
+        log_servers_values_template: Handlebars.templates['log-servers_values-template']
         log_datacenters_values_template: Handlebars.templates['log-datacenters_values-template']
         log_shards_values_template: Handlebars.templates['log-shards_values-template']
         log_shards_list_values_template: Handlebars.templates['log-shards_list_values-template']
@@ -218,7 +318,7 @@ module 'LogView', ->
         log_new_datacenter_small_template: Handlebars.templates['log-new_datacenter-small_template']
         log_new_database_small_template: Handlebars.templates['log-new_database-small_template']
         log_namespace_value_small_template: Handlebars.templates['log-namespace_value-small_template']
-        log_machine_value_small_template: Handlebars.templates['log-machine_value-small_template']
+        log_server_value_small_template: Handlebars.templates['log-server_value-small_template']
         log_datacenter_value_small_template: Handlebars.templates['log-datacenter_value-small_template']
         log_database_value_small_template: Handlebars.templates['log-database_value-small_template']
 
@@ -229,9 +329,9 @@ module 'LogView', ->
 
         display_details: (event) =>
             event.preventDefault()
-            if @.$(event.target).html() is 'More details'
-                @.$(event.target).html 'Hide details'
-                @.$(event.target).parent().parent().next().next().slideDown 'fast'
+            if @$(event.target).html() is 'More details'
+                @$(event.target).html 'Hide details'
+                @$(event.target).parent().parent().next().next().slideDown 'fast'
                 
                 # Check if we can show other details
                 found_more_details_link = false
@@ -242,8 +342,8 @@ module 'LogView', ->
                 if found_more_details_link is false
                     $('.expand_all_link').html 'Hide all details'
             else
-                @.$(event.target).html 'More details'
-                @.$(event.target).parent().parent().next().next().slideUp 'fast'
+                @$(event.target).html 'More details'
+                @$(event.target).parent().parent().next().next().slideUp 'fast'
 
                 # Check if we can show other details
                 found_hide_details_link = false
@@ -269,14 +369,14 @@ module 'LogView', ->
                 json = _.extend @model.toJSON(), @format_msg(@model)
 
             json = _.extend json,
-                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
+                server_name: if servers.get(@model.get('server_id'))? then servers.get(@model.get('server_id')).get('name') else 'Unknown server'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
 
             if compact
-                @.$el.html @template_small json
-                @.$el.attr('class', @classNameSmall)
+                @$el.html @template_small json
+                @$el.attr('class', @classNameSmall)
             else
-                @.$el.html @template json
+                @$el.html @template json
             
             @delegateEvents()
             return @
@@ -298,17 +398,17 @@ module 'LogView', ->
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
                                 #TODO datacenter name
-                                if datacenters.get(json_data[group]['new']['primary_uuid'])?
-                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_uuid']).get 'name'
-                                else if json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
+                                if datacenters.get(json_data[group]['new']['primary_id'])?
+                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_id']).get 'name'
+                                else if json_data[group]['new']['primary_id'] is universe_datacenter.get('id')
                                     datacenter_name = universe_datacenter.get('name')
                                 else
                                     datacenter_name = 'a removed datacenter'
                                 msg += @log_new_namespace_template
                                     namespace_name: json_data[group]['new']['name']
-                                    datacenter_id: json_data[group]['new']['primary_uuid']
+                                    datacenter_id: json_data[group]['new']['primary_id']
                                     datacenter_name: datacenter_name
-                                    is_universe: json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
+                                    is_universe: json_data[group]['new']['primary_id'] is universe_datacenter.get('id')
                             else
                                 if json_data[group][namespace_id] is null
                                     msg += @log_delete_something_template
@@ -351,7 +451,7 @@ module 'LogView', ->
                                                 namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]
-                                        else if attribute is 'primary_uuid'
+                                        else if attribute is 'primary_id'
                                             datacenter_id = json_data[group][namespace_id][attribute]
                                             if datacenter_id is universe_datacenter.get('id')
                                                 datacenter_name = universe_datacenter.get 'name'
@@ -373,9 +473,9 @@ module 'LogView', ->
                                                 if json_data[group][namespace_id][attribute][shard]?
                                                     shards.push
                                                         shard: shard
-                                                        machine_id:  json_data[group][namespace_id][attribute][shard]
-                                                        machine_name: if machines.get(json_data[group][namespace_id][attribute][shard])? then  machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else '[machine no longer exists]'
-                                                        machine_exists: machines.get(json_data[group][namespace_id][attribute][shard])?
+                                                        server_id:  json_data[group][namespace_id][attribute][shard]
+                                                        server_name: if servers.get(json_data[group][namespace_id][attribute][shard])? then  servers.get(json_data[group][namespace_id][attribute][shard]).get('name') else '[server no longer exists]'
+                                                        server_exists: servers.get(json_data[group][namespace_id][attribute][shard])?
                                                 else
                                                     shards.push
                                                         shard: shard
@@ -390,16 +490,16 @@ module 'LogView', ->
                                         else if attribute is 'secondary_pinnings'
                                             shards = []
                                             for shard of json_data[group][namespace_id][attribute]
-                                                _machines = []
-                                                for machine_id in json_data[group][namespace_id][attribute][shard]
-                                                    if machine_id?
-                                                        _machines.push
-                                                            id: machine_id
-                                                            name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
-                                                            exists: machines.get(machine_id)?
+                                                _servers = []
+                                                for server_id in json_data[group][namespace_id][attribute][shard]
+                                                    if server_id?
+                                                        _servers.push
+                                                            id: server_id
+                                                            name: if servers.get(server_id)? then servers.get(server_id).get 'name' else '[server no longer exists]'
+                                                            exists: servers.get(server_id)?
                                                 shards.push
                                                     shard: shard
-                                                    machines: _machines
+                                                    servers: _servers
                                             msg += @log_shards_list_values_template
                                                 namespace_id: namespace_id
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
@@ -417,21 +517,21 @@ module 'LogView', ->
                                                 attribute: attribute
                                                 shards: _.map(value, (shard) -> JSON.stringify(shard).replace(/\\"/g,'"'))
                                                 value: JSON.stringify(value).replace(/\\"/g,'"')
-                    else if group is 'machines'
-                        for machine_id of json_data[group]
-                            if json_data[group][machine_id] is null
+                    else if group is 'servers'
+                        for server_id of json_data[group]
+                            if json_data[group][server_id] is null
                                 msg += @log_delete_something_template
-                                    type: 'machine'
-                                    id: machine_id
+                                    type: 'server'
+                                    id: server_id
                             else
-                                for attribute of json_data[group][machine_id]
+                                for attribute of json_data[group][server_id]
                                     if attribute is 'name'
                                         msg += @log_server_new_name_template
-                                            name: json_data[group][machine_id][attribute]
-                                            machine_id: machine_id
-                                            machine_id_trunked: machine_id.slice 24
-                                    else if attribute is 'datacenter_uuid'
-                                        datacenter_id = json_data[group][machine_id][attribute]
+                                            name: json_data[group][server_id][attribute]
+                                            server_id: server_id
+                                            server_id_trunked: server_id.slice 24
+                                    else if attribute is 'datacenter_id'
+                                        datacenter_id = json_data[group][server_id][attribute]
                                         if datacenter_id is universe_datacenter.get('id')
                                             datacenter_name = universe_datacenter.get 'name'
                                         else if datacenters.get(datacenter_id)?
@@ -439,9 +539,9 @@ module 'LogView', ->
                                         else
                                             datacenter_name = 'a removed datacenter'
                                         msg += @log_server_set_datacenter_template
-                                            machine_id: machine_id
-                                            machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else '[machine no longer exists]'
-                                            machine_exists: machines.get(machine_id)?
+                                            server_id: server_id
+                                            server_name: if servers.get(server_id)? then servers.get(server_id).get('name') else '[server no longer exists]'
+                                            server_exists: servers.get(server_id)?
                                             datacenter_id: datacenter_id
                                             datacenter_name: datacenter_name
                     else if group is 'datacenters'
@@ -527,11 +627,11 @@ module 'LogView', ->
                                     namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
                                     namespace_exists: namespaces.get(namespace_id)?
                                     attribute: value
-                    else if group is 'machines'
-                        for machine_id of json_data[group]
-                            for attribute of json_data[group][machine_id]
+                    else if group is 'servers'
+                        for server_id of json_data[group]
+                            for attribute of json_data[group][server_id]
                                 attributes = []
-                                for attribute of json_data[group][machine_id]
+                                for attribute of json_data[group][server_id]
                                     attributes.push attribute
 
                                 value = ''
@@ -540,10 +640,10 @@ module 'LogView', ->
                                     if i isnt attributes.length-1
                                         value += ', '
 
-                                msg += @log_machine_value_small_template
-                                    machine_id: machine_id
-                                    machine_name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
-                                    machine_exists: machines.get(machine_id)?
+                                msg += @log_server_value_small_template
+                                    server_id: server_id
+                                    server_name: if servers.get(server_id)? then servers.get(server_id).get 'name' else '[server no longer exists]'
+                                    server_exists: servers.get(server_id)?
                                     attribute: value
 
                     else if group is 'datacenters'

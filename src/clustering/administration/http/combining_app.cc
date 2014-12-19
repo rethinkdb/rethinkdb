@@ -24,7 +24,7 @@ void combining_http_app_t::handle(const http_req_t &req, http_res_t *result, sig
     if (req.method == POST) {
         scoped_cJSON_t req_json(cJSON_Parse(req.body.c_str()));
         if (!req_json.get() || req_json.get()->type != cJSON_Object) {
-            logINF("JSON body failed to parse as object: %s",
+            logNTC("JSON body failed to parse as object: %s",
                    req.get_sanitized_body().c_str());
             *result = http_res_t(HTTP_BAD_REQUEST);
             return;

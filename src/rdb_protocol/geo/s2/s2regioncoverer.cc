@@ -96,7 +96,6 @@ S2RegionCoverer::Candidate* S2RegionCoverer::NewCandidate(S2Cell const& cell) {
   if (!region_->MayIntersect(cell)) return NULL;
 
   bool is_terminal = false;
-  size_t size = sizeof(Candidate);
   if (cell.level() >= min_level_) {
     if (interior_covering_) {
       if (region_->Contains(cell)) {
@@ -110,13 +109,12 @@ S2RegionCoverer::Candidate* S2RegionCoverer::NewCandidate(S2Cell const& cell) {
       }
     }
   }
-  if (!is_terminal) {
-    size += sizeof(Candidate*) << max_children_shift();
-  }
-  Candidate* candidate = static_cast<Candidate*>(malloc(size));
-  memset(candidate, 0, size);
+  Candidate* candidate = new Candidate();
   candidate->cell = cell;
   candidate->is_terminal = is_terminal;
+  if (!is_terminal) {
+    candidate->children.reserve(1 << max_children_shift());
+  }
   ++candidates_created_counter_;
   return candidate;
 }
@@ -124,10 +122,10 @@ S2RegionCoverer::Candidate* S2RegionCoverer::NewCandidate(S2Cell const& cell) {
 void S2RegionCoverer::DeleteCandidate(Candidate* candidate,
                                       bool delete_children) {
   if (delete_children) {
-    for (int i = 0; i < candidate->num_children; ++i)
+    for (size_t i = 0; i < candidate->children.size(); ++i)
       DeleteCandidate(candidate->children[i], true);
   }
-  free(candidate);
+  delete candidate;
 }
 
 int S2RegionCoverer::ExpandChildren(Candidate* candidate,
@@ -145,7 +143,7 @@ int S2RegionCoverer::ExpandChildren(Candidate* candidate,
     }
     Candidate* child = NewCandidate(child_cells[i]);
     if (child) {
-      candidate->children[candidate->num_children++] = child;
+      candidate->children.push_back(child);
       if (child->is_terminal) ++num_terminals;
     }
   }
@@ -160,14 +158,14 @@ void S2RegionCoverer::AddCandidate(Candidate* candidate) {
     DeleteCandidate(candidate, true);
     return;
   }
-  DCHECK_EQ(0, candidate->num_children);
+  DCHECK(candidate->children.empty());
 
   // Expand one level at a time until we hit min_level_ to ensure that
   // we don't skip over it.
   int num_levels = (candidate->cell.level() < min_level_) ? 1 : level_mod_;
   int num_terminals = ExpandChildren(candidate, candidate->cell, num_levels);
 
-  if (candidate->num_children == 0) {
+  if (candidate->children.empty()) {
     DeleteCandidate(candidate, false);
 
   } else if (!interior_covering_ &&
@@ -188,7 +186,7 @@ void S2RegionCoverer::AddCandidate(Candidate* candidate) {
     // intersecting children.  Finally, we prefer cells that have the smallest
     // number of children that cannot be refined any further.
     int priority = -((((candidate->cell.level() << max_children_shift())
-                       + candidate->num_children) << max_children_shift())
+                       + candidate->children.size()) << max_children_shift())
                      + num_terminals);
     pq_->push(make_pair(priority, candidate));
     VLOG(2) << "Push: " << candidate->cell.id() << " (" << priority << ") ";
@@ -257,11 +255,11 @@ void S2RegionCoverer::GetCoveringInternal(S2Region const& region) {
     pq_->pop();
     VLOG(2) << "Pop: " << candidate->cell.id();
     if (candidate->cell.level() < min_level_ ||
-        candidate->num_children == 1 ||
+        candidate->children.size() == 1 ||
         result_->size() + (interior_covering_ ? 0 : pq_->size()) +
-            candidate->num_children <= static_cast<size_t>(max_cells_)) {
+            candidate->children.size() <= static_cast<size_t>(max_cells_)) {
       // Expand this candidate into its children.
-      for (int i = 0; i < candidate->num_children; ++i) {
+      for (size_t i = 0; i < candidate->children.size(); ++i) {
         AddCandidate(candidate->children[i]);
       }
       DeleteCandidate(candidate, false);

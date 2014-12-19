@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/timing.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/directory/map_read_manager.hpp"
+#include "rpc/directory/map_write_manager.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "unittest/gtest.hpp"
@@ -90,6 +92,43 @@ TPTEST(RPCDirectoryTest, Update) {
     EXPECT_EQ(151, rm2.get_root_view()->get().get_inner().find(c1.get_me())->second);
     ASSERT_EQ(1u, rm3.get_root_view()->get().get_inner().count(c1.get_me()));
     EXPECT_EQ(151, rm3.get_root_view()->get().get_inner().find(c1.get_me())->second);
+}
+
+/* `MapUpdate` tests that directory nodes see updates from their peers when using
+`directory_map_*_manager_t`. */
+TPTEST(RPCDirectoryTest, MapUpdate) {
+    connectivity_cluster_t c1, c2, c3;
+    directory_map_read_manager_t<int, int> rm1(&c1, 'D'), rm2(&c2, 'D'), rm3(&c3, 'D');
+    watchable_map_var_t<int, int> w1, w2, w3;
+    w1.set_key(101, 1);
+    directory_map_write_manager_t<int, int>
+        wm1(&c1, 'D', &w1), wm2(&c2, 'D', &w2), wm3(&c3, 'D', &w3);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    cr2.join(get_cluster_local_address(&c1));
+    cr3.join(get_cluster_local_address(&c1));
+    let_stuff_happen();
+    ASSERT_TRUE(boost::optional<int>(1) ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
+    ASSERT_TRUE(boost::optional<int>() ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
+    w1.set_key(101, 2);
+    w1.set_key(102, 1);
+    let_stuff_happen();
+    ASSERT_TRUE(boost::optional<int>(2) ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
+    ASSERT_TRUE(boost::optional<int>(1) ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
+    w1.delete_key(101);
+    let_stuff_happen();
+    ASSERT_TRUE(boost::optional<int>() ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
+    ASSERT_TRUE(boost::optional<int>(1) ==
+        rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
 }
 
 /* `DestructorRace` tests a nasty race condition that we had at some point. */

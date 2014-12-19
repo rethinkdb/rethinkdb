@@ -3,6 +3,7 @@
 #define CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -11,6 +12,8 @@
 one thread to another. Create the `cross_thread_watchable_variable_t` on the
 source thread; then call `get_watchable()`, and you will get a watchable that is
 usable on the `_dest_thread` that you passed to the constructor.
+
+`cross_thread_watchable_map_var_t` is similar but for `watchable_map_t`.
 
 See also: `cross_thread_signal_t`, which is the same thing for `signal_t`. */
 
@@ -110,6 +113,63 @@ private:
     coro_pool_t<value_t> messanger_pool;
 
     DISABLE_COPYING(cross_thread_watchable_variable_t);
+};
+
+/* `all_thread_watchable_variable_t` is like a `cross_thread_watchable_variable_t` except
+that `get_watchable()` works on every thread, not just a specified thread. Internally it
+constructs one `cross_thread_watchable_variable_t` for each thread, so it's a pretty
+heavy-weight object. */
+
+template<class value_t>
+class all_thread_watchable_variable_t {
+public:
+    all_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &input);
+    clone_ptr_t<watchable_t<value_t> > get_watchable() const {
+        return vars[get_thread_id().threadnum]->get_watchable();
+    }
+private:
+    std::vector<scoped_ptr_t<cross_thread_watchable_variable_t<value_t> > > vars;
+};
+
+template<class key_t, class value_t>
+class cross_thread_watchable_map_var_t {
+public:
+    cross_thread_watchable_map_var_t(
+        watchable_map_t<key_t, value_t> *input,
+        threadnum_t output_thread);
+
+    watchable_map_t<key_t, value_t> *get_watchable() {
+        return &output_var;
+    }
+
+private:
+    void on_change(const key_t &key, const value_t *value);
+    void ferry_changes(auto_drainer_t::lock_t);
+    watchable_map_var_t<key_t, value_t> output_var;
+    threadnum_t input_thread, output_thread;
+    bool coro_running;
+    std::map<key_t, boost::optional<value_t> > queued_changes;
+    mutex_assertion_t lock;
+
+    /* This object's constructor rethreads our internal components to our other
+    thread, and then reverses it in the destructor. It must be a separate object
+    instead of logic in the constructor/destructor because its destructor must
+    be run after `drainer`'s destructor. */
+    class rethreader_t {
+    public:
+        explicit rethreader_t(cross_thread_watchable_map_var_t *p) : parent(p) {
+            parent->output_var.rethread(parent->output_thread);
+        }
+        ~rethreader_t() {
+            parent->output_var.rethread(parent->input_thread);
+        }
+    private:
+        cross_thread_watchable_map_var_t *parent;
+    } rethreader;
+
+    auto_drainer_t drainer;
+    typename watchable_map_t<key_t, value_t>::all_subs_t subs;
 };
 
 #include "concurrency/cross_thread_watchable.tcc"

@@ -42,14 +42,33 @@ private:
     std::string message;
 };
 
+enum class table_readiness_t {
+    unavailable,
+    outdated_reads,
+    reads,
+    writes,
+    finished
+};
+
 /* `namespace_interface_t` is the interface that the protocol-agnostic database
 logic for query routing exposes to the protocol-specific query parser. */
 
 class namespace_interface_t {
 public:
-    virtual void read(const read_t &, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void read_outdated(const read_t &, read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const write_t &, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read(const read_t &,
+                      read_response_t *response,
+                      order_token_t tok,
+                      signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read_outdated(const read_t &,
+                               read_response_t *response,
+                               signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void write(const write_t &,
+                       write_response_t *response,
+                       order_token_t tok,
+                       signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
@@ -57,6 +76,9 @@ public:
         THROWS_ONLY(cannot_perform_query_exc_t) = 0;
 
     virtual signal_t *get_initial_ready_signal() { return NULL; }
+
+    virtual bool check_readiness(table_readiness_t readiness,
+                                 signal_t *interruptor) = 0;
 
 protected:
     virtual ~namespace_interface_t() { }
@@ -141,14 +163,13 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
-/* {read,write}_token_pair_t hold the lock held when getting in line for the
+/* {read,write}_token_t hold the lock held when getting in line for the
    superblock. */
-// KSI: Rename these to {read,write}_token_t or get rid of them altogether.
-struct read_token_pair_t {
+struct read_token_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
 };
 
-struct write_token_pair_t {
+struct write_token_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
 };
 

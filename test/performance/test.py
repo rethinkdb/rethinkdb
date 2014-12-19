@@ -1,10 +1,9 @@
 #!/usr/bin/python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
 import sys
-from sys import stdout, exit, path
 import time
 import json
 import os
@@ -14,16 +13,13 @@ import subprocess
 from util import gen_doc, gen_num_docs, compare
 from queries import constant_queries, table_queries, write_queries, delete_queries
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test')))
-from test_util import RethinkDBTestServers
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import utils
+import driver, utils
 
 r = utils.import_python_driver()
 
 # We define 4 tables (small/normal cache with small/big documents
-servers_data = [
+servers_settings = [
     {
         "cache_size": 1024,
         "name": "inmemory"
@@ -56,52 +52,48 @@ results = {} # Save the time per query (average, min, max etc.)
 connection = None
 
 def run_tests(build=None, data_dir='./'):
-    global connection, servers_data
+    global connection, servers_settings
     
-    if build is None:
-        build = utils.latest_build_dir()
-    if not os.path.basename(build).startswith('release'):
-        sys.stderr.write('Testing a non-release build: %s' % build)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    if not os.path.isdir(data_dir):
+        raise ValueError('data_dir is not a directory: %s' % str(data_dir))
+    
+    executable_path = utils.find_rethinkdb_executable() if build is None else os.path.realpath(os.path.join(build, 'rethinkdb'))
+    
+    if not os.path.basename(os.path.dirname(executable_path)).startswith('release'):
+        sys.stderr.write('Warning: Testing a non-release build: %s\n' % executable_path)
     else:
-        print('Testing: %s' % build)
+        print('Testing: %s' % executable_path)
     
-    for i in range(0, len(servers_data)):
-        server_data = servers_data[i]
+    for settings in servers_settings:
 
-        print("Starting server with cache_size " + str(server_data["cache_size"]) + " MB...", end=' ')
+        print("Starting server with cache_size " + str(settings["cache_size"]) + " MB...", end=' ')
         sys.stdout.flush()
+        serverFiles = driver.Files(machine_name=settings["name"], db_path=os.path.join(data_dir, settings["name"]))
+        
+        with driver.Process(files=serverFiles, executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
+            
+            print(" Done.\nConnecting...", end=' ')
+            sys.stdout.flush()
 
-        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"], group_data_dir=data_dir) as servers:
+            connection = r.connect(host="localhost", port=server.driver_port)
             print(" Done.")
             sys.stdout.flush()
 
-            print("Connecting...", end=' ')
-            sys.stdout.flush()
-
-            connection = connect(servers)
-            print(" Done.")
-            sys.stdout.flush()
-
-            init_tables()
+            init_tables(connection)
 
             # Tests
-            execute_read_write_queries(server_data["name"])
+            execute_read_write_queries(settings["name"])
 
             if i == 0:
                 execute_constant_queries()
 
     save_compare_results()
 
-
-def connect(servers):
-    return r.connect(host="localhost", port=servers.driver_port())
-
-
-def init_tables():
-    """
-    Create the tables we are going to use
-    """
-    global connection, tables
+def init_tables(connection):
+    """Create the tables we are going to use"""
+    global tables
 
     print("Creating databases/tables...", end=' ')
     sys.stdout.flush()
@@ -374,7 +366,7 @@ def stop_cluster(cluster):
 def check_driver():
     '''If this driver is protobuf based, make sure we are using the C++ backend.'''
     if hasattr(r, 'protobuf_implementation') and r.protobuf_implementation == 'py':
-        exit("Please install the C++ backend for the tests.")
+        sys.exit("Please install the C++ backend for the tests.")
 
 def save_compare_results():
     """Save the current results, and if previous results are available, generate an HTML page with the differences"""
@@ -422,7 +414,7 @@ def main(data_dir):
     run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":
-    data_dir = ''
+    data_dir = './'
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
     main(data_dir)

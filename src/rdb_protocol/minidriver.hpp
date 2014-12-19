@@ -122,7 +122,7 @@ public:
     REQL_METHOD(operator &&, ALL)
     REQL_METHOD(count, COUNT)
     REQL_METHOD(map, MAP)
-    REQL_METHOD(concat_map, CONCATMAP)
+    REQL_METHOD(concat_map, CONCAT_MAP)
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
     REQL_METHOD(bracket, BRACKET)

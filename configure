@@ -27,15 +27,18 @@ init () {
 
     optional_libs="gtest termcap boost_system ssl"
     required_libs="protobuf v8 re2 z crypto curl"
-    other_libs="unwind tcmalloc_minimal"
+    other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
-    default_static="tcmalloc_minimal"
+    default_static="tcmalloc jemalloc"
 
     web_assets_deps="npm lessc coffee handlebars browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs boost"
+
+    default_allocator_linux=jemalloc
+    default_allocator_osx=system
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
 }
@@ -66,11 +69,12 @@ configure () {
     case "${MACHINE#*-}" in
         *apple-darwin*)
             var OS "Darwin"
-            with_tcmalloc=false ;
+            default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
             var RT_LIBS "" ;;
         *linux*)
             var OS "Linux"
+            default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
         *) error "unsupported operating system: $MACHINE" ;;
@@ -81,8 +85,6 @@ configure () {
         *) error "unsopported architecture: $MACHINE"
     esac
     var M_LIBS -lm
-    require "Without tcmalloc"
-    boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
@@ -128,12 +130,19 @@ configure () {
         check_lib $lib require
     done
     check_v8_pre_3_19
-    if [[ $NO_TCMALLOC = 0 ]] ; then
-        check_lib tcmalloc_minimal require
+
+    require malloc
+    var ALLOCATOR "${custom_allocator:-$default_allocator}"
+    var DEFAULT_ALLOCATOR "$default_allocator"
+    if [[ "$ALLOCATOR" = system ]]; then
+        var MALLOC_LIBS ""
+        var MALLOC_LIBS_DEP ""
     else
-        var TCMALLOC_MINIMAL_LIBS ""
-        empty_deps_lib tcmalloc_minimal false
+        check_lib "$ALLOCATOR" require
+        macro MALLOC_LIBS     "\$($(uc $ALLOCATOR)_LIBS)"
+        macro MALLOC_LIBS_DEP "\$($(uc $ALLOCATOR)_LIBS_DEP)"
     fi
+
     test_protobuf
     check_boost
     boolvar STATIC_V8 contains "$static_libs" v8
@@ -213,7 +222,7 @@ read_args () {
     arg_prefix=
     arg_sysconfdir=
     arg_localstatedir=
-    with_tcmalloc=true
+    custom_allocator=
     enable_precompiled_web=
     use_ccache=false
 
@@ -262,12 +271,14 @@ read_args () {
                     static_libs=
                 elif contains "$all_libs" "$arg"; then
                     static_libs=$(remove "$static_libs" "$arg")
+                    please_fetch_list=$(remove "$please_fetch_list" $(guess_pkg_name "$arg"))
                 else
                     die "Unknown library: $arg"
                 fi ;;
             --lib-path) $has_arg; lib_paths="$lib_paths $arg" ;;
-            --with-tcmalloc) $no_arg; with_tcmalloc=true ;;
-            --without-tcmalloc) $no_arg; with_tcmalloc=false ;;
+            --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
+            --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
+            --with-system-malloc) $no_arg; set_custom_allocator system ;;
             --enable-precompiled-web) $no_arg; enable_precompiled_web=true ;;
             --disable-precompiled-web) $no_arg; enable_precompiled_web=false ;;
             --ccache) $no_arg; use_ccache=true ;;
@@ -287,6 +298,13 @@ read_args () {
                fi ;;
         esac
     done
+}
+
+set_custom_allocator () {
+    if [[ -n "$custom_allocator" ]]; then
+        die "incompatible options: --with-$custom_allocator and --with-$1"
+    fi
+    custom_allocator=$1
 }
 
 # Description of some of the dependencies
@@ -338,12 +356,11 @@ EOF
   --prefix <dir>          Installation prefix. Defaults to /usr/local
   --sysconfdir <dir>      Configuration prefix. Defaults to /usr/local/etc
   --localstatedir <dir>   Runtime data prefix. Defaults to /usr/local/var
-  --with-<module>
-  --without-<module>      Enable or disable <module>. <module> can be one of
-                            tcmalloc     Build with tcmalloc. (Default: enabled)
-  --enable-<option>
-  --disable-<option>      Enable or disable a build option
-                            precompiled-web  Use precompiled web assets located in precompiled/web (default: autodetect)
+  --with-tcmalloc         Use TCMalloc
+  --with-jemalloc         Use jemalloc (default on Linux)
+  --with-system-malloc    Use the system malloc (default on OS X)
+  --enable-precompiled-web
+  --disable-precompiled-web Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
 EOF
 }
@@ -650,8 +667,17 @@ contains () {
 # remove an item from a space-separated list
 remove () {
     if contains "$1" "$2"; then
-        local d=" $1 "
-        echo -n "${d%% $2 *} ${d#* $2 }"
+        local outputlist=""
+        for item in $1; do
+            if [ "$item" != "$2" ]; then
+                if [ -z "$outputlist" ]; then
+                    outputlist="$item"
+                else
+                    outputlist="$outputlist $item"
+                fi
+            fi
+        done
+        echo -n "$outputlist"
     else
         echo -n "$1"
     fi
@@ -823,7 +849,9 @@ int main() {
 ~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~termcap:tinfo ncurses'
+lib_alias=':
+termcap:termcap tinfo ncurses
+tcmalloc:tcmalloc_minimal'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
@@ -872,8 +900,8 @@ check_lib () {
     $info "$1$static_info"
     delay_errors=true
     local aliases
-    lookup "$lib_alias" $1 aliases || aliases=
-    for lib in $1 $aliases; do
+    lookup "$lib_alias" $1 aliases || aliases=$1
+    for lib in $aliases; do
         $check $lib $1
         if ! $can_show; then
             empty_deps_lib $1 true
@@ -1079,7 +1107,6 @@ bin_pkg_name () {
 # The support package name that contains the library
 lib_pkg_name () {
     case "$1" in
-        tcmalloc_minimal) echo gperftools ;;
         tcmalloc) echo gperftools ;;
         z) echo zlib ;;
         boost_system) echo boost ;;

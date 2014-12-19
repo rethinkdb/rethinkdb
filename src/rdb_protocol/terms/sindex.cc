@@ -20,7 +20,7 @@ public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t name_datum = args->arg(env, 1)->as_datum();
         std::string name = name_datum.as_str().to_std();
@@ -34,7 +34,7 @@ public:
         sindex_geo_bool_t geo = sindex_geo_bool_t::REGULAR;
         counted_t<const func_t> index_func;
         if (args->num_args() == 3) {
-            counted_t<val_t> v = args->arg(env, 2);
+            scoped_ptr_t<val_t> v = args->arg(env, 2);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v->as_datum();
                 if (d.get_type() == datum_t::R_BINARY) {
@@ -87,13 +87,13 @@ public:
         r_sanity_check(index_func.has());
 
         /* Check if we're doing a multi index or a normal index. */
-        if (counted_t<val_t> multi_val = args->optarg(env, "multi")) {
+        if (scoped_ptr_t<val_t> multi_val = args->optarg(env, "multi")) {
             multi = multi_val->as_bool()
                 ? sindex_multi_bool_t::MULTI
                 : sindex_multi_bool_t::SINGLE;
         }
         /* Do we want to create a geo index? */
-        if (counted_t<val_t> geo_val = args->optarg(env, "geo")) {
+        if (scoped_ptr_t<val_t> geo_val = args->optarg(env, "geo")) {
             geo = geo_val->as_bool()
                 ? sindex_geo_bool_t::GEO
                 : sindex_geo_bool_t::REGULAR;
@@ -119,7 +119,7 @@ public:
     sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::string name = args->arg(env, 1)->as_datum().as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
@@ -141,7 +141,7 @@ public:
     sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
 
         return new_val(table->sindex_list(env->env));
@@ -155,7 +155,7 @@ public:
     sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
@@ -185,7 +185,7 @@ public:
     sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
@@ -214,10 +214,10 @@ public:
     sindex_rename_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<val_t> old_name_val = args->arg(env, 1);
-        counted_t<val_t> new_name_val = args->arg(env, 2);
+        scoped_ptr_t<val_t> old_name_val = args->arg(env, 1);
+        scoped_ptr_t<val_t> new_name_val = args->arg(env, 2);
         std::string old_name = old_name_val->as_str().to_std();
         std::string new_name = new_name_val->as_str().to_std();
         rcheck(old_name != table->get_pkey(),
@@ -229,7 +229,7 @@ public:
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          new_name.c_str()));
 
-        counted_t<val_t> overwrite_val = args->optarg(env, "overwrite");
+        scoped_ptr_t<val_t> overwrite_val = args->optarg(env, "overwrite");
         bool overwrite = overwrite_val ? overwrite_val->as_bool() : false;
 
         sindex_rename_result_t result = table->sindex_rename(env->env, old_name,

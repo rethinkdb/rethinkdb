@@ -183,7 +183,9 @@ var_scope_t::rdb_deserialize<cluster_version_t::v1_13_2>(read_stream_t *s);
 template archive_result_t
 var_scope_t::rdb_deserialize<cluster_version_t::v1_14>(read_stream_t *s);
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_15_is_latest>(read_stream_t *s);
+var_scope_t::rdb_deserialize<cluster_version_t::v1_15>(read_stream_t *s);
+template archive_result_t
+var_scope_t::rdb_deserialize<cluster_version_t::v1_16_is_latest>(read_stream_t *s);
 
 
 }  // namespace ql

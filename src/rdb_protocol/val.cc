@@ -2,25 +2,211 @@
 #include "rdb_protocol/val.hpp"
 
 #include "containers/name_string.hpp"
-#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 #include "stl_utils.hpp"
+#include "thread_local.hpp"
 
 namespace ql {
 
-table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
+class get_selection_t : public single_selection_t {
+public:
+    get_selection_t(env_t *_env,
+                    protob_t<const Backtrace> _bt,
+                    counted_t<table_t> _tbl,
+                    datum_t _key,
+                    datum_t _row = datum_t())
+        : env(_env),
+          bt(std::move(_bt)),
+          tbl(std::move(_tbl)),
+          key(std::move(_key)),
+          row(std::move(_row)) { }
+    virtual datum_t get() {
+        if (!row.has()) {
+            row = tbl->get_row(env, key);
+        }
+        return row;
+    }
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+        return tbl->tbl->read_changes(
+            env,
+            squash,
+            changefeed::keyspec_t::point_t{store_key_t(key.print_primary())},
+            bt,
+            tbl->display_name());
+    }
+    virtual datum_t replace(
+        counted_t<const func_t> f, bool nondet_ok,
+        durability_requirement_t dur_req, return_changes_t return_changes) {
+        std::vector<datum_t > keys{key};
+        // We don't need to fetch the value for deterministic replacements.
+        std::vector<datum_t > vals{
+            f->is_deterministic() ? datum_t() : get()};
+        return tbl->batched_replace(
+            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+    }
+    virtual const counted_t<table_t> &get_tbl() { return tbl; }
+private:
+    env_t *env;
+    protob_t<const Backtrace> bt;
+    counted_t<table_t> tbl;
+    datum_t key, row;
+};
+
+namespace es_helper {
+// We don't want to be recomputing this all the time.
+TLS_with_init(map_wire_func_t *, fptr, NULL);
+map_wire_func_t map_wire_func() {
+    if (TLS_get_fptr() == NULL) {
+        auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
+        r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
+        compile_env_t compile_env((var_visibility_t()));
+        func_term_t func_term(&compile_env, map.release_counted());
+        var_scope_t var_scope;
+        counted_t<const func_t> f = func_term.eval_to_func(var_scope);
+        TLS_set_fptr(new map_wire_func_t(f));
+    }
+    return *TLS_get_fptr();
+}
+} // namespace es_helper
+
+class extreme_selection_t : public single_selection_t {
+public:
+    extreme_selection_t(env_t *_env,
+                        protob_t<const Backtrace> _bt,
+                        counted_t<table_slice_t> _slice,
+                        std::string _err)
+        : env(_env),
+          bt(std::move(_bt)),
+          slice(std::move(_slice)),
+          err(std::move(_err)) { }
+    virtual datum_t get() {
+        if (!row.has()) {
+            batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+            row = slice->as_seq(env, bt)->next(env, batchspec);
+            if (!row.has()) {
+                rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+            }
+        }
+        return row;
+    }
+    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+        changefeed::keyspec_t::spec_t spec =
+            ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
+        auto s = slice->get_tbl()->tbl->read_changes(
+            env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
+        s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);
+        return s;
+    }
+    virtual datum_t replace(
+        counted_t<const func_t> f, bool nondet_ok,
+        durability_requirement_t dur_req, return_changes_t return_changes) {
+        std::vector<datum_t > vals{get()};
+        std::vector<datum_t > keys{
+            vals[0].get_field(
+                datum_string_t(get_tbl()->get_pkey()),
+                NOTHROW)};
+        r_sanity_check(keys[0].has());
+        return slice->get_tbl()->batched_replace(
+            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+    }
+    virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
+private:
+    env_t *env;
+    protob_t<const Backtrace> bt;
+    counted_t<table_slice_t> slice;
+    datum_t row;
+    std::string err;
+};
+
+counted_t<single_selection_t> single_selection_t::from_key(
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_t> table, datum_t key) {
+    return make_counted<get_selection_t>(
+        env, std::move(bt), std::move(table), std::move(key));
+}
+counted_t<single_selection_t> single_selection_t::from_row(
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_t> table, datum_t row) {
+    datum_t d = row.get_field(datum_string_t(table->get_pkey()), NOTHROW);
+    r_sanity_check(d.has());
+    return make_counted<get_selection_t>(
+        env, std::move(bt), std::move(table), std::move(d), std::move(row));
+}
+counted_t<single_selection_t> single_selection_t::from_slice(
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_slice_t> table, std::string err) {
+    return make_counted<extreme_selection_t>(
+        env, std::move(bt), std::move(table), std::move(err));
+}
+
+table_slice_t::table_slice_t(counted_t<table_t> _tbl,
+                             boost::optional<std::string> _idx,
+                             sorting_t _sorting,
+                             datum_range_t _bounds)
+    : pb_rcheckable_t(_tbl->backtrace()),
+      tbl(std::move(_tbl)), idx(std::move(_idx)),
+      sorting(_sorting), bounds(std::move(_bounds)) { }
+
+
+counted_t<datum_stream_t> table_slice_t::as_seq(
+    env_t *env, const protob_t<const Backtrace> &bt) {
+    return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);
+}
+
+counted_t<table_slice_t>
+table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
+    rcheck(sorting == sorting_t::UNORDERED, base_exc_t::GENERIC,
+           "Cannot perform multiple indexed ORDER_BYs on the same table.");
+    bool idx_legal = idx ? (*idx == _idx) : true;
+    r_sanity_check(idx_legal || !bounds.is_universe());
+    rcheck(idx_legal, base_exc_t::GENERIC,
+           strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
+                     _idx.c_str(), (*idx).c_str()));
+    return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
+}
+
+counted_t<table_slice_t>
+table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
+    rcheck(bounds.is_universe(), base_exc_t::GENERIC,
+           "Cannot perform multiple BETWEENs on the same table.");
+    bool idx_legal = idx ? (*idx == _idx) : true;
+    r_sanity_check(idx_legal || sorting != sorting_t::UNORDERED);
+    rcheck(idx_legal, base_exc_t::GENERIC,
+           strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
+                     _idx.c_str(), (*idx).c_str()));
+    return make_counted<table_slice_t>(
+        tbl, std::move(_idx), sorting, std::move(_bounds));
+}
+
+ql::changefeed::keyspec_t::range_t table_slice_t::get_change_spec() {
+    return ql::changefeed::keyspec_t::range_t{
+        std::vector<transform_variant_t>(),
+        idx && *idx == tbl->get_pkey() ? boost::none : idx,
+        sorting,
+        bounds};
+}
+
+counted_t<datum_stream_t> table_t::as_seq(
+    env_t *env,
+    const std::string &idx,
+    const protob_t<const Backtrace> &bt,
+    const datum_range_t &bounds,
+    sorting_t sorting) {
+    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
+}
+
+table_t::table_t(counted_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
-      table(std::move(_table)),
-      use_outdated(_use_outdated),
-      bounds(datum_range_t::universe()),
-      sorting(sorting_t::UNORDERED)
+      tbl(std::move(_tbl)),
+      use_outdated(_use_outdated)
 { }
 
 datum_t table_t::make_error_datum(const base_exc_t &exception) {
@@ -49,6 +235,7 @@ datum_t table_t::batched_replace(
         std::vector<datum_t> replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
+            r_sanity_check(vals[i].has());
             datum_t new_val;
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
@@ -72,7 +259,7 @@ datum_t table_t::batched_replace(
         result.add_warnings(conditions, env->limits());
         return std::move(result).to_datum();
     } else {
-        return table->write_batched_replace(
+        return tbl->write_batched_replace(
             env, keys, replacement_generator, return_changes,
             durability_requirement);
     }
@@ -108,7 +295,7 @@ datum_t table_t::batched_insert(
     }
 
     datum_t insert_stats =
-        table->write_batched_insert(
+        tbl->write_batched_insert(
             env, std::move(valid_inserts), std::move(pkey_was_autogenerated),
             conflict_behavior, return_changes, durability_requirement);
     std::set<std::string> conditions;
@@ -126,22 +313,22 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      sindex_multi_bool_t multi,
                                      sindex_geo_bool_t geo) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    return table->sindex_create(env, id, index_func, multi, geo);
+    return tbl->sindex_create(env, id, index_func, multi, geo);
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    return table->sindex_drop(env, id);
+    return tbl->sindex_drop(env, id);
 }
 
 MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
                                                        const std::string &old_name,
                                                        const std::string &new_name,
                                                        bool overwrite) {
-    return table->sindex_rename(env, old_name, new_name, overwrite);
+    return tbl->sindex_rename(env, old_name, new_name, overwrite);
 }
 
 datum_t table_t::sindex_list(env_t *env) {
-    std::vector<std::string> sindexes = table->sindex_list(env);
+    std::vector<std::string> sindexes = tbl->sindex_list(env, use_outdated);
     std::vector<datum_t> array;
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
@@ -153,7 +340,7 @@ datum_t table_t::sindex_list(env_t *env) {
 
 datum_t table_t::sindex_status(env_t *env,
         std::set<std::string> sindexes) {
-    std::map<std::string, datum_t> statuses = table->sindex_status(env, sindexes);
+    std::map<std::string, datum_t> statuses = tbl->sindex_status(env, sindexes);
     std::vector<datum_t> array;
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
@@ -170,10 +357,7 @@ datum_t table_t::sindex_status(env_t *env,
     return datum_t(std::move(array), env->limits());
 }
 
-MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC,
-                  bounds.is_universe() && sorting == sorting_t::UNORDERED,
-                  "sync can only be applied directly to a table.");
+MUST_USE bool table_t::sync(env_t *env) {
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.
     return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
@@ -181,16 +365,16 @@ MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
 
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
-    return table->write_sync_depending_on_durability(
+    return tbl->write_sync_depending_on_durability(
         env, durability_requirement);
 }
 
 const std::string &table_t::get_pkey() {
-    return table->get_pkey();
+    return tbl->get_pkey();
 }
 
 datum_t table_t::get_row(env_t *env, datum_t pval) {
-    return table->read_row(env, pval, use_outdated);
+    return tbl->read_row(env, pval, use_outdated);
 }
 
 counted_t<datum_stream_t> table_t::get_all(
@@ -198,11 +382,7 @@ counted_t<datum_stream_t> table_t::get_all(
         datum_t value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
-               "Cannot chain get_all and other indexed operations.");
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
-    return table->read_all(
+    return tbl->read_all(
         env,
         get_all_sindex_id,
         bt,
@@ -212,66 +392,14 @@ counted_t<datum_stream_t> table_t::get_all(
         use_outdated);
 }
 
-void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
-                          const rcheckable_t *parent) {
-    r_sanity_check(_sorting != sorting_t::UNORDERED);
-
-    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
-            "Cannot apply 2 indexed orderings to the same TABLE.");
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
-                sindex_id->c_str(), new_sindex_id.c_str()));
-
-    sindex_id = new_sindex_id;
-    sorting = _sorting;
-}
-
-void table_t::add_bounds(datum_range_t &&new_bounds, const std::string &new_sindex_id,
-                         const rcheckable_t *parent) {
-    if (sindex_id) {
-        rcheck_target(
-            parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation.  Trying to use %s and %s.",
-                sindex_id->c_str(), new_sindex_id.c_str()));
-    } else {
-        sindex_id = new_sindex_id;
-    }
-
-    rcheck_target(parent, base_exc_t::GENERIC, bounds.is_universe(),
-                  "Cannot chain multiple betweens to the same table.");
-    bounds = std::move(new_bounds);
-}
-
-counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
-        const protob_t<const Backtrace> &bt) {
-    return table->read_all(
-        env,
-        (sindex_id ? *sindex_id : get_pkey()),
-        bt,
-        display_name(),
-        bounds,
-        sorting,
-        use_outdated);
-}
-
 counted_t<datum_stream_t> table_t::get_intersecting(
         env_t *env,
         const datum_t &query_geometry,
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
-                  "Cannot chain get_intersecting with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
-                  "get_intersecting cannot use the primary index.");
-    sindex_id = new_sindex_id;
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
-
-    return table->read_intersecting(
+    return tbl->read_intersecting(
         env,
-        *sindex_id,
+        new_sindex_id,
         parent->backtrace(),
         display_name(),
         use_outdated,
@@ -286,19 +414,10 @@ datum_t table_t::get_nearest(
         const ellipsoid_spec_t &geo_system,
         dist_unit_t dist_unit,
         const std::string &new_sindex_id,
-        const pb_rcheckable_t *parent,
         const configured_limits_t &limits) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
-                  "Cannot chain get_nearest with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
-                  "get_nearest cannot use the primary index.");
-    sindex_id = new_sindex_id;
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
-
-    return table->read_nearest(
+    return tbl->read_nearest(
         env,
-        *sindex_id,
+        new_sindex_id,
         display_name(),
         use_outdated,
         center,
@@ -318,6 +437,7 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
     const int t1 = _t1, t2 = _t2,
         DB               = val_t::type_t::DB,
         TABLE            = val_t::type_t::TABLE,
+        TABLE_SLICE      = val_t::type_t::TABLE_SLICE,
         SELECTION        = val_t::type_t::SELECTION,
         SEQUENCE         = val_t::type_t::SEQUENCE,
         SINGLE_SELECTION = val_t::type_t::SINGLE_SELECTION,
@@ -326,7 +446,9 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
         GROUPED_DATA     = val_t::type_t::GROUPED_DATA;
     switch (t1) {
     case DB:               return t2 == DB;
-    case TABLE:            return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
+    case TABLE:            return t2 == TABLE || t2 == TABLE_SLICE
+                                  || t2 == SELECTION || t2 == SEQUENCE;
+    case TABLE_SLICE:      return t2 == TABLE_SLICE || t2 == SELECTION || t2 == SEQUENCE;
     case SELECTION:        return t2 == SELECTION || t2 == SEQUENCE;
     case SEQUENCE:         return t2 == SEQUENCE;
     case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
@@ -344,6 +466,7 @@ const char *val_t::type_t::name() const {
     switch (raw_type) {
     case DB: return "DATABASE";
     case TABLE: return "TABLE";
+    case TABLE_SLICE: return "TABLE_SLICE";
     case SELECTION: return "SELECTION";
     case SEQUENCE: return "SEQUENCE";
     case SINGLE_SELECTION: return "SINGLE_SELECTION";
@@ -369,27 +492,11 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
     guarantee(groups.has());
 }
 
-val_t::val_t(datum_t _datum, counted_t<table_t> _table,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
+val_t::val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
       type(type_t::SINGLE_SELECTION),
-      table(_table),
-      u(_datum) {
-    guarantee(table.has());
-    guarantee(datum().has());
-}
-
-val_t::val_t(datum_t _datum,
-             datum_t _orig_key,
-             counted_t<table_t> _table,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
-      type(type_t::SINGLE_SELECTION),
-      table(_table),
-      orig_key(_orig_key),
-      u(_datum) {
-    guarantee(table.has());
-    guarantee(datum().has());
+      u(_selection) {
+    guarantee(single_selection().has());
 }
 
 val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
@@ -406,22 +513,24 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<table_t> _table,
-             counted_t<datum_stream_t> _sequence,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
+val_t::val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
       type(type_t::SELECTION),
-      table(_table),
-      u(_sequence) {
-    guarantee(table.has());
-    guarantee(sequence().has());
+      u(_selection) {
+    guarantee(selection().has());
 }
 
 val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
-      table(_table) {
-    guarantee(table.has());
+      u(_table) {
+    guarantee(table().has());
+}
+val_t::val_t(counted_t<table_slice_t> _slice, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
+      type(type_t::TABLE_SLICE),
+      u(_slice) {
+    guarantee(table_slice().has());
 }
 val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -442,22 +551,35 @@ val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
 
 datum_t val_t::as_datum() const {
-    if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
-        rcheck_literal_type(type_t::DATUM);
+    if (type.raw_type == type_t::DATUM) {
+        return datum();
+    } else if (type.raw_type == type_t::SINGLE_SELECTION) {
+        return single_selection()->get();
     }
-    return datum();
+    rcheck_literal_type(type_t::DATUM);
+    unreachable();
 }
 
 counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
-    return table;
+    return table();
+}
+counted_t<table_slice_t> val_t::as_table_slice() {
+    if (type.raw_type == type_t::TABLE) {
+        return make_counted<table_slice_t>(table());
+    } else {
+        rcheck_literal_type(type_t::TABLE_SLICE);
+        return table_slice();
+    }
 }
 
 counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
-    if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
+    if (type.raw_type == type_t::SEQUENCE) {
         return sequence();
-    } else if (type.raw_type == type_t::TABLE) {
-        return table->as_datum_stream(env, backtrace());
+    } else if (type.raw_type == type_t::SELECTION) {
+        return selection()->seq;
+    } else if (type.raw_type == type_t::TABLE_SLICE || type.raw_type == type_t::TABLE) {
+        return as_table_slice()->as_seq(env, backtrace());
     } else if (type.raw_type == type_t::DATUM) {
         return datum().as_datum_stream(backtrace());
     }
@@ -488,17 +610,37 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
         : maybe_as_grouped_data();
 }
 
-std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
-val_t::as_selection(env_t *env) {
-    if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
-        rcheck_literal_type(type_t::SELECTION);
+counted_t<table_t> val_t::get_underlying_table() const {
+    if (type.raw_type == type_t::TABLE) {
+        return table();
+    } else if (type.raw_type == type_t::SELECTION) {
+        return selection()->table;
+    } else if(type.raw_type == type_t::SINGLE_SELECTION) {
+        return single_selection()->get_tbl();
+    } else if (type.raw_type == type_t::TABLE_SLICE) {
+        return table_slice()->get_tbl();
+    } else {
+        r_sanity_check(false);
+        unreachable();
     }
-    return std::make_pair(table, as_seq(env));
 }
 
-std::pair<counted_t<table_t>, datum_t> val_t::as_single_selection() {
+counted_t<selection_t> val_t::as_selection(env_t *env) {
+    if (type.raw_type == type_t::SELECTION) {
+        return selection();
+    } else if (type.is_convertible(type_t::TABLE_SLICE)) {
+        counted_t<table_slice_t> slice = as_table_slice();
+        return make_counted<selection_t>(
+            slice->get_tbl(),
+            slice->as_seq(env, backtrace()));
+    }
+    rcheck_literal_type(type_t::SELECTION);
+    unreachable();
+}
+
+counted_t<single_selection_t> val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
-    return std::make_pair(table, datum());
+    return single_selection();
 }
 
 counted_t<const func_t> val_t::as_func(function_shortcut_t shortcut) {
@@ -541,7 +683,7 @@ counted_t<const db_t> val_t::as_db() const {
     return db();
 }
 
-datum_t val_t::as_ptype(const std::string s) {
+datum_t val_t::as_ptype(const std::string s) const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -552,7 +694,7 @@ datum_t val_t::as_ptype(const std::string s) {
     }
 }
 
-bool val_t::as_bool() {
+bool val_t::as_bool() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -561,7 +703,7 @@ bool val_t::as_bool() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-double val_t::as_num() {
+double val_t::as_num() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -570,7 +712,7 @@ double val_t::as_num() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-int64_t val_t::as_int() {
+int64_t val_t::as_int() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -579,7 +721,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-datum_string_t val_t::as_str() {
+datum_string_t val_t::as_str() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -602,10 +744,10 @@ std::string val_t::print() const {
     } else if (get_type().is_convertible(type_t::DB)) {
         return strprintf("db(\"%s\")", as_db()->name.c_str());
     } else if (get_type().is_convertible(type_t::TABLE)) {
-        return strprintf("table(\"%s\")", table->name.c_str());
+        return strprintf("table(\"%s\")", get_underlying_table()->name.c_str());
     } else if (get_type().is_convertible(type_t::SELECTION)) {
         return strprintf("SELECTION ON table(%s)",
-                         table->name.c_str());
+                         get_underlying_table()->name.c_str());
     } else {
         // TODO: Do something smarter here?
         return strprintf("VALUE %s", get_type().name());
@@ -623,10 +765,6 @@ std::string val_t::trunc_print() const {
         }
         return s;
     }
-}
-
-datum_t val_t::get_orig_key() const {
-    return orig_key;
 }
 
 } // namespace ql

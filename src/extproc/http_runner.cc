@@ -31,7 +31,7 @@ http_opts_t::http_opts_t() :
     result_format(http_result_format_t::AUTO),
     proxy(),
     url(),
-    url_params(),
+    url_params(std::map<datum_string_t, ql::datum_t>()),
     header(),
     data(),
     form_data(),

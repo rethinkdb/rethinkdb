@@ -57,6 +57,10 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
     return s;
 }
 
+bool mock_namespace_interface_t::check_readiness(table_readiness_t, signal_t *) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
     ql::configured_limits_t limits;
     response->response = point_read_response_t();
@@ -69,8 +73,17 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     }
 }
 
+void mock_namespace_interface_t::read_visitor_t::operator()(const dummy_read_t &) {
+    response->response = dummy_read_response_t();
+}
+
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_subscribe_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_limit_subscribe_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
@@ -216,6 +229,10 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);
     response->response = std::move(result).to_datum();
+}
+
+void mock_namespace_interface_t::write_visitor_t::operator()(const dummy_write_t &) {
+    response->response = dummy_write_response_t();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
@@ -369,10 +386,19 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
     }
 }
 
+bool test_rdb_env_t::instance_t::db_config(
+        UNUSED const std::vector<name_string_t> &db_names,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor, UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_db_env_t::instance_t doesn't support db_config()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const boost::optional<name_string_t> &primary_dc,
-        UNUSED bool hard_durability, UNUSED const std::string &primary_key,
+        UNUSED const table_generate_config_params_t &config_params,
+        UNUSED const std::string &primary_key,
         UNUSED signal_t *local_interruptor, std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
@@ -403,41 +429,59 @@ class fake_ref_tracker_t : public namespace_interface_access_t::ref_tracker_t {
 
 bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         counted_t<const ql::db_t> db,
-        UNUSED signal_t *local_interruptor, scoped_ptr_t<base_table_t> *table_out,
+        boost::optional<admin_identifier_format_t> identifier_format,
+        UNUSED signal_t *local_interruptor, counted_t<base_table_t> *table_out,
         std::string *error_out) {
     auto it = tables.find(std::make_pair(db->id, name));
     if (it == tables.end()) {
         *error_out = "No table with that name";
         return false;
     } else {
+        if (static_cast<bool>(identifier_format)) {
+            *error_out = "identifier_format doesn't make sense for "
+                "test_rdb_env_t::instance_t";
+            return false;
+        }
         static fake_ref_tracker_t fake_ref_tracker;
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
-        table_out->init(new real_table_t(nil_uuid(), table_access,
+        table_out->reset(new real_table_t(nil_uuid(), table_access,
             primary_keys.at(std::make_pair(db->id, name)), NULL));
         return true;
     }
 }
 
 bool test_rdb_env_t::instance_t::table_config(
-        UNUSED const boost::optional<name_string_t> &name,
         UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::vector<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
-        UNUSED counted_t<ql::val_t> *resp_out,
+        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_config()";
     return false;
 }
 
 bool test_rdb_env_t::instance_t::table_status(
-        UNUSED const boost::optional<name_string_t> &name,
         UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::vector<name_string_t> &target_tables,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
-        UNUSED counted_t<ql::val_t> *resp_out,
+        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::vector<name_string_t> &target_tables,
+        UNUSED table_readiness_t readiness,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_wait()";
     return false;
 }
 
@@ -447,9 +491,49 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,
-        UNUSED ql::datum_t *new_config_out,
+        UNUSED ql::datum_t *result_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_reconfigure(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::env_t *local_env,
+        UNUSED std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support info()";
     return false;
 }
 

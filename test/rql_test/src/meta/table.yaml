@@ -33,44 +33,37 @@ tests:
       ot: []
 
     # Table create options
-    - py: db.table_create('ab', primary_key='bar', durability='soft')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'soft'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'soft'})
+    - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
+      js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
+      rb: db.table_create('ab', {:primary_key => 'bar', :shards => 1, :replicas => 1})
       ot: ({'created':1})
 
     - cd: db.table_drop('ab')
       ot: ({'dropped':1})
 
-    - py: db.table_create('ab', primary_key='bar', durability='hard')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'hard'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'hard'})
+    - py: db.table_create('ab', primary_key='bar', director_tag='default')
+      js: db.tableCreate('ab', {primary_key:'bar', directorTag:'default'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :director_tag => 'default'})
       ot: ({'created':1})
 
     - cd: db.table_drop('ab')
       ot: ({'dropped':1})
-
-    - py: db.table_create('ab', primary_key='bar', durability='wrong')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'wrong'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'wrong'})
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
     # Table reconfigure
     - cd: db.table_create('a')
       ot: ({'created':1})
 
-    - cd: db.table('a').reconfigure(1, 1)
+    - py: db.table('a').reconfigure(shards=1, replicas=1)
+      js: db.table('a').reconfigure({shards:1, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1)
 
-    - py: db.table('a').reconfigure(1, {"default":1})
-      js: db.table('a').reconfigure(1, {default:1})
-      rb: db.table('a').reconfigure(1, {:default => 1})
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, director_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, director_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :director_tag => 'default')
 
-    - py: db.table('a').reconfigure(1, 1, director_tag='default')
-      js: db.table('a').reconfigure(1, 1, {director_tag:'default'})
-      rb: db.table('a').reconfigure(1, 1, {:director_tag => 'default'})
-
-    - py: db.table('a').reconfigure(1, 1, dry_run=True)
-      js: db.table('a').reconfigure(1, 1, {dry_run:true})
-      rb: db.table('a').reconfigure(1, 1, {:dry_run => true})
+    - py: db.table('a').reconfigure(shards=1, replicas=1, dry_run=True)
+      js: db.table('a').reconfigure({shards:1, replicas:1, dry_run:true})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :dry_run => true)
 
     - cd: db.table_drop('a')
       ot: ({'dropped':1})
@@ -105,26 +98,46 @@ tests:
     - cd: db.table_create('a')
       ot: ({'created':1})
 
-    - cd: db.table('a').reconfigure(0, 1)
+    - py: db.table('a').reconfigure(shards=0, replicas=1)
+      js: db.table('a').reconfigure({shards:0, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 0, :replicas => 1)
       ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
 
-    - py: db.table('a').reconfigure(1, {"default":0})
-      js: db.table('a').reconfigure(1, {default:0})
-      rb: db.table('a').reconfigure(1, {:default => 0})
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, director_tag="foo")
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, director_tag:"foo"})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :director_tag => "foo")
       ot: >
-          err('RqlRuntimeError', 'Can\'t use server tag `default` for directors because
-          you specified no replicas in server tag `default`.', [])
+          err('RqlRuntimeError', 'Can\'t use server tag `foo` for directors because
+          you specified no replicas in server tag `foo`.', [])
 
-    - py: db.table('a').reconfigure(1, {"default":-3})
-      js: db.table('a').reconfigure(1, {default:-3})
-      rb: db.table('a').reconfigure(1, {:default => -3})
+    - py: db.table('a').reconfigure(shards=1, replicas={"foo":0}, director_tag="foo")
+      js: db.table('a').reconfigure({shards:1, replicas:{foo:0}, director_tag:"foo"})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:foo => 0}, :director_tag => "foo")
+      ot: >
+          err('RqlRuntimeError', 'You must set `replicas` to at least one. `replicas` includes
+          the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":0})
+      js: db.table('a').reconfigure({shards:1, replicas:{default:0}})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 0})
+      ot: err('RqlRuntimeError', '`director_tag` must be specified when `replicas` is an OBJECT.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":-3}, director_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:{default:-3}, director_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => -3}, :director_tag => 'default')
       ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
 
-    - cd: db.table('a').reconfigure(2, 1)
-      ot: >
-          err('RqlRuntimeError', 'There isn\'t enough data in the table to create 2
-          balanced shards. Try creating fewer shards; if you don\'t increase the number
-          of shards, it won\'t be necessary to calculate new balanced shards.', [])
+    - py: db.table('a').reconfigure(shards=1, replicas=3, director_tag='foo')
+      js: db.table('a').reconfigure({shards:1, replicas:3, director_tag:'foo'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :director_tag => 'foo')
+      ot: err('RqlRuntimeError', '`replicas` must be an OBJECT if `director_tag` is specified.', [])
+
+    # Test reconfigure auto-sharding without data
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
+
+    - cd: db.table_wait('a')
 
     # Insert some data so that `reconfigure()` can pick shard points
     - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
@@ -132,15 +145,64 @@ tests:
       rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
       ot: {"inserted": 4}
 
-    - cd: db.table('a').reconfigure(2, 1)
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
 
-    - cd: db.table('a').reconfigure(1, 2)
+    - py: db.table('a').reconfigure(shards=1, replicas=2)
+      js: db.table('a').reconfigure({shards:1, replicas:2})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 2)
       ot: >
-          err('RqlRuntimeError', 'You requested 2 replicas on servers with the tag
-          `default`, but there are only 1 servers with the tag `default`. It\'s
+          err('RqlRuntimeError', 'Can\'t put 2 replicas on servers with the tag
+          `default` because there are only 1 servers with the tag `default`. It\'s
           impossible to have more replicas of the data than there are servers.', [])
 
+    # Test rebalancing
+    - cd: db.table_wait('a')
+    - cd: db.table('a').rebalance().keys()
+      ot: bag(['old_status','new_status'])
+    - cd: db.table_wait('a')
+    - cd: db.rebalance().count()
+      ot: 1
+
     - cd: db.table_drop('a')
+      ot: ({'dropped':1})
+
+    # Reconfiguring all tables in a database
+    - cd: db.table_create('a')
+    - cd: db.table_create('b')
+    - cd: db.table_create('c')
+
+    - py: db.reconfigure(shards=0, replicas=1)
+      js: db.reconfigure({shards:0, replicas:1})
+      rb: db.reconfigure(:shards => 0, :replicas => 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":0})
+      js: db.reconfigure({shards:1, replicas:{default:0}})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => 0})
+      ot: err('RqlRuntimeError', '`director_tag` must be specified when `replicas` is an OBJECT.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":-3}, director_tag='default')
+      js: db.reconfigure({shards:1, replicas:{default:-3}, director_tag:'default'})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => -3}, :director_tag => 'default')
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
+
+    - py: db.reconfigure(shards=1, replicas=3, director_tag='foo')
+      js: db.reconfigure({shards:1, replicas:3, director_tag:'foo'})
+      rb: db.reconfigure(:shards => 1, :replicas => 3, :director_tag => 'foo')
+      ot: err('RqlRuntimeError', '`replicas` must be an OBJECT if `director_tag` is specified.', [])
+
+    - py: db.reconfigure(shards=2, replicas=1)['new_val']['config']['shards'].map(r.row.count())
+      js: db.reconfigure({shards:2, replicas:1})('new_'+'val')('config')('shards').map(r.row.count())
+      rb: db.reconfigure(:shards => 2, :replicas => 1)['new_val']['config']['shards'].map{ |t| t.count() }
+      ot: bag([2,2,2])
+
+    - cd: db.table_drop('a')
+      ot: ({'dropped':1})
+    - cd: db.table_drop('b')
+      ot: ({'dropped':1})
+    - cd: db.table_drop('c')
       ot: ({'dropped':1})
 
     # table_config and table_status porcelains
@@ -179,13 +241,27 @@ tests:
 
     - cd: >
           r.db('rethinkdb').table('table_'+'config').filter({'name':'testA'}).nth(0)
-          .eq(r.table_config('testA'))
+          .eq(r.table_config('testA').nth(0))
       ot: True
 
     - cd: >
           r.db('rethinkdb').table('table_'+'status').filter({'name':'testA'}).nth(0)
-          .eq(r.table_status('testA'))
+          .eq(r.table_status('testA').nth(0))
       ot: True
+
+    - py: r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"]
+      js: >
+          r.db('rethinkdb').table('table_'+'config', {identifierFormat: 'uuid'})
+          .nth(0)("db")
+      rb: >
+          r.db('rethinkdb').table('table_config', {:identifier_format => 'uuid'})
+          .nth(0)["db"]
+      ot: uuid()
+
+    - py: r.table('testA',identifier_format='uuid').count()
+      js: r.table('testA',{identifierFormat:'uuid'}).count()
+      rb: r.table('testA',{:identifier_format=>'uuid'}).count()
+      ot: 0
 
     - cd: db.table_drop('testA')
       ot: ({'dropped':1})

@@ -21,7 +21,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
 
     dp = opendir(base_path.path().c_str());
     if (dp == NULL) {
-        return false;
+        throw directory_open_failed_exc_t(get_errno(), base_path);
     }
 
     set_errno(0);

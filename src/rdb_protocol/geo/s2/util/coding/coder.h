@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "rdb_protocol/geo/s2/util/coding/varint.h"
+#include "rdb_protocol/geo/s2/base/docid.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/util/endian/endian.h"

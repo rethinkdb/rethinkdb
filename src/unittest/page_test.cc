@@ -1,9 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
-#include "buffer_cache/alt/page_cache.hpp"
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/page_cache.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"

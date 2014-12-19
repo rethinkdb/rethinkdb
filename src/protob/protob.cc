@@ -15,6 +15,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/auth_key.hpp"
+#include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -241,9 +242,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     client_context_t client_ctx(rdb_ctx, ql::reject_cfeeds_t::NO, &interruptor);
 
     std::string init_error;
-    int32_t client_magic_number = -1;
 
     try {
+        int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
         // With version 0_2 and up, the client drivers specifies the authorization key
@@ -289,8 +290,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         return;
     }
 
-    guarantee(client_magic_number != -1);
-
     try {
         if (!init_error.empty()) {
             conn->write(init_error.c_str(), init_error.length() + 1, &interruptor);
@@ -304,13 +303,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
-    for (;;) {
-        ql::protob_t<Query> query(ql::make_counted_query());
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
-        if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
-            Response response;
-            if (handler->run_query(query, &response, client_ctx)) {
-                protocol_t::send_response(response, handler, conn, client_ctx->interruptor);
+    ip_and_port_t peer;
+    if (conn->getpeername(&peer)) {
+        for (;;) {
+            ql::protob_t<Query> query(ql::make_counted_query());
+
+            if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
+                Response response;
+                if (handler->run_query(query, &response, client_ctx, peer)) {
+                    protocol_t::send_response(
+                        response, handler, conn, client_ctx->interruptor);
+                }
             }
         }
     }
@@ -444,7 +449,8 @@ void query_server_t::handle(const http_req_t &req,
 
             client_context_t *client_ctx = conn->get_ctx();
             interruptor_mixer_t interruptor_mixer(client_ctx, interruptor);
-            response_needed = handler->run_query(query, &response, client_ctx);
+            response_needed = handler->run_query(
+                query, &response, client_ctx, req.peer);
             rassert(response_needed);
         }
     }

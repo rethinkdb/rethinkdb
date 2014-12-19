@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "utils.hpp"
 
 cJSON *render_as_json(log_message_t *message) {
@@ -21,10 +21,10 @@ cJSON *render_as_json(log_message_t *message) {
 log_http_app_t::log_http_app_t(
         mailbox_manager_t *mm,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, log_server_business_card_t> > > &lmv,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &mitt) :
+        const clone_ptr_t<watchable_t<std::map<peer_id_t, server_id_t> > > &mitt) :
     mailbox_manager(mm),
     log_mailbox_view(lmv),
-    machine_id_translation_table(mitt)
+    server_id_translation_table(mitt)
     { }
 
 static bool scan_timespec(const char *string, struct timespec *out) {
@@ -56,25 +56,25 @@ void log_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
         *result = http_res_t(HTTP_NOT_FOUND);
         return;
     }
-    std::string machine_id_str = *it;
+    std::string server_id_str = *it;
     it++;
     if (it != req.resource.end()) {
         *result = http_res_t(HTTP_NOT_FOUND);
         return;
     }
 
-    std::vector<machine_id_t> machine_ids;
-    std::map<peer_id_t, machine_id_t> all_machines = machine_id_translation_table->get();
-    if (machine_id_str == "_") {
-        for (std::map<peer_id_t, machine_id_t>::iterator jt = all_machines.begin(); jt != all_machines.end(); ++jt) {
-            machine_ids.push_back(jt->second);
+    std::vector<server_id_t> server_ids;
+    std::map<peer_id_t, server_id_t> all_servers = server_id_translation_table->get();
+    if (server_id_str == "_") {
+        for (auto jt = all_servers.begin(); jt != all_servers.end(); ++jt) {
+            server_ids.push_back(jt->second);
         }
     } else {
-        const char *p = machine_id_str.c_str(), *start = p;
+        const char *p = server_id_str.c_str(), *start = p;
         while (true) {
             while (*p && *p != '+') p++;
             try {
-                machine_ids.push_back(str_to_uuid(std::string(start, p - start)));
+                server_ids.push_back(str_to_uuid(std::string(start, p - start)));
             } catch (const std::runtime_error &) {
                 *result = http_res_t(HTTP_NOT_FOUND);
                 return;
@@ -113,8 +113,8 @@ void log_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
     }
 
     std::vector<peer_id_t> peer_ids;
-    for (std::vector<machine_id_t>::const_iterator jt = machine_ids.begin(); jt != machine_ids.end(); ++jt) {
-        peer_id_t pid = machine_id_to_peer_id(*jt, machine_id_translation_table->get());
+    for (std::vector<server_id_t>::const_iterator jt = server_ids.begin(); jt != server_ids.end(); ++jt) {
+        peer_id_t pid = server_id_to_peer_id(*jt, server_id_translation_table->get());
         if (pid.is_nil()) {
             *result = http_res_t(HTTP_NOT_FOUND);
             return;
@@ -126,7 +126,7 @@ void log_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
 
     pmap(peer_ids.size(), boost::bind(
         &log_http_app_t::fetch_logs, this, _1,
-        machine_ids, peer_ids,
+        server_ids, peer_ids,
         max_length, min_timestamp, max_timestamp,
         map_to_fill.get(),
         interruptor));
@@ -135,12 +135,12 @@ void log_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
 }
 
 void log_http_app_t::fetch_logs(int i,
-        const std::vector<machine_id_t> &machines, const std::vector<peer_id_t> &peers,
+        const std::vector<server_id_t> &servers, const std::vector<peer_id_t> &peers,
         int max_messages, struct timespec min_timestamp, struct timespec max_timestamp,
         cJSON *map_to_fill,
         signal_t *interruptor) THROWS_NOTHING {
     std::map<peer_id_t, log_server_business_card_t> bcards = log_mailbox_view->get();
-    std::string key = uuid_to_str(machines[i]);
+    std::string key = uuid_to_str(servers[i]);
     if (bcards.count(peers[i]) == 0) {
         cJSON_AddItemToObject(map_to_fill, key.c_str(), cJSON_CreateString("lost contact with peer while fetching log"));
     }

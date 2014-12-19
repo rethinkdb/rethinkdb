@@ -148,7 +148,7 @@ class IterableResult
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
-        if !@_contFlag && !@_endFlag
+        if (not @_contFlag) and (not @_endFlag) and @_conn.isOpen()
             @_contFlag = true
             @_outstandingRequests += 1
             @_conn._continueQuery(@_token)
@@ -163,50 +163,36 @@ class IterableResult
             @_cbQueue.push cb
             @_promptNext()
 
-        if typeof cb is "function"
-            fn(cb)
-        else if cb is undefined
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
-        else
+        if cb? and typeof cb isnt 'function'
             throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
+
+        new Promise( (resolve, reject) ->
+            nextCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            fn(nextCb)
+        ).nodeify cb
 
 
     close: varar 0, 1, (cb) ->
-        if typeof cb is 'function'
+        new Promise( (resolve, reject) =>
             if @_endFlag is true
-                cb()
+                resolve()
             else
-                @_closeCb = cb
+                @_closeCb = (err) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve()
 
                 if @_outstandingRequests > 0
                     @_closeAsap = true
                 else
                     @_outstandingRequests += 1
                     @_conn._endQuery(@_token)
-
-        else
-            new Promise (resolve, reject) =>
-                if @_endFlag is true
-                    resolve()
-                else
-                    @_closeCb = (err) ->
-                        if (err)
-                            reject(err)
-                        else
-                            resolve()
-
-                    if @_outstandingRequests > 0
-                        @_closeAsap = true
-                    else
-                        @_outstandingRequests += 1
-                        @_conn._endQuery(@_token)
+        ).nodeify cb
 
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
@@ -246,19 +232,17 @@ class IterableResult
 
             @each eachCb, onFinish
 
-        if typeof cb is 'function'
-            fn(cb)
-        else if cb is undefined
-            p = new Promise (resolve, reject) =>
-                cb = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
-        else
+        if cb? and typeof cb isnt 'function'
             throw new err.RqlDriverError "First argument to `toArray` must be a function or undefined."
+
+        new Promise( (resolve, reject) =>
+            toArrayCb = (err, result) ->
+                if err?
+                    reject(err)
+                else
+                    resolve(result)
+            fn(toArrayCb)
+        ).nodeify cb
 
     _makeEmitter: ->
         @emitter = new EventEmitter
@@ -368,16 +352,14 @@ class ArrayResult extends IterableResult
             else
                 cb new err.RqlDriverError "No more rows in the cursor."
 
-        if typeof cb is "function"
-            fn(cb)
-        else
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
+        new Promise( (resolve, reject) ->
+            nextCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            fn(nextCb)
+        ).nodeify cb
 
 
     toArray: varar 0, 1, (cb) ->
@@ -388,17 +370,14 @@ class ArrayResult extends IterableResult
             else
                 cb(null, @)
 
-        if typeof cb is "function"
-            fn(cb)
-        else
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
+        new Promise( (resolve, reject) ->
+            toArrayCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            fn(toArrayCb)
+        ).nodeify cb
 
 
     close: ->

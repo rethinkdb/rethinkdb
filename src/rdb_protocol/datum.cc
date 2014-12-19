@@ -265,9 +265,7 @@ datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
 
 datum_t::datum_t(double _num) : data(_num) {
-    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
-    using namespace std; // NOLINT(build/namespaces) due to platform variation
-    rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
+    rcheck(risfinite(data.r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
@@ -337,7 +335,7 @@ datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
 
     // We don't sanitize the ptype because this is a fake ptype that should only
     // be used for serialization.
-    // TODO(2014-08): This is a bad thing.
+    // TODO(2015-01): This is a bad thing.
     return datum_t(std::move(map), datum_t::no_sanitize_ptype_t());
 }
 
@@ -493,7 +491,7 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return as_json().Print();
+    return has() ? as_json().Print() : "UNINITIALIZED";
 }
 
 std::string datum_t::trunc_print() const {
@@ -926,7 +924,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -936,14 +935,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     return compose_secondary(secondary_key_string, primary_key, tag_num);
 }
 
-struct components_t {
-    std::string secondary;
-    std::string primary;
-    boost::optional<uint64_t> tag_num;
-};
-
 void parse_secondary(const std::string &key,
-                     components_t *components) {
+                     components_t *components) THROWS_NOTHING {
     uint8_t start_of_tag = key[key.size() - 1],
             start_of_primary = key[key.size() - 2];
 
@@ -959,6 +952,12 @@ void parse_secondary(const std::string &key,
 #endif
         components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
+}
+
+components_t datum_t::extract_all(const std::string &str) {
+    components_t components;
+    parse_secondary(str, &components);
+    return components;
 }
 
 std::string datum_t::extract_primary(const std::string &secondary) {
@@ -1390,7 +1389,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
     switch (reql_version) {
     case reql_version_t::v1_13:
         return v1_13_cmp(rhs);
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -1404,7 +1404,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
+        return pseudo_cmp(reql_version_t::v1_16_is_latest, rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(), rhs.get_type_name());
     }
@@ -1607,7 +1607,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
         const size_t l_sz = l.arr_size();
         const size_t r_sz = r.arr_size();
         if (l_sz + r_sz > limits.array_size_limit()) {
-            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            conditions->insert(strprintf("Too many changes, array truncated to %zu.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
             for (size_t i = 0; i < l_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
@@ -1798,7 +1798,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1828,7 +1829,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1849,7 +1851,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                                start, vector.size()));
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -1889,7 +1892,119 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
     return datum_t(std::move(vector), datum_t::no_array_size_limit_check_t());
 }
 
+datum_range_t::datum_range_t()
+    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+datum_range_t::datum_range_t(
+    datum_t _left_bound, key_range_t::bound_t _left_bound_type,
+    datum_t _right_bound, key_range_t::bound_t _right_bound_type)
+    : left_bound(_left_bound), right_bound(_right_bound),
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+datum_range_t::datum_range_t(datum_t val)
+    : left_bound(val), right_bound(val),
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
 
+datum_range_t datum_range_t::universe()  {
+    return datum_range_t(datum_t(), key_range_t::open,
+                         datum_t(), key_range_t::open);
+}
+bool datum_range_t::is_universe() const {
+    return !left_bound.has() && !right_bound.has()
+        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+}
 
+bool datum_range_t::contains(reql_version_t reql_version,
+                             datum_t val) const {
+    return (!left_bound.has()
+            || left_bound.compare_lt(reql_version, val)
+            || (left_bound == val && left_bound_type == key_range_t::closed))
+        && (!right_bound.has()
+            || right_bound.compare_gt(reql_version, val)
+            || (right_bound == val && right_bound_type == key_range_t::closed));
+}
+
+key_range_t datum_range_t::to_primary_keyrange() const {
+    return key_range_t(
+        left_bound_type,
+        left_bound.has()
+            ? store_key_t(left_bound.print_primary())
+            : store_key_t::min(),
+        right_bound_type,
+        right_bound.has()
+            ? store_key_t(right_bound.print_primary())
+            : store_key_t::max());
+}
+
+key_range_t datum_range_t::to_sindex_keyrange() const {
+    return rdb_protocol::sindex_key_range(
+        left_bound.has()
+            ? store_key_t(left_bound.truncated_secondary())
+            : store_key_t::min(),
+        right_bound.has()
+            ? store_key_t(right_bound.truncated_secondary())
+            : store_key_t::max());
+}
+
+datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {
+    return datum_range_t(d, type, right_bound, right_bound_type);
+}
+
+datum_range_t datum_range_t::with_right_bound(datum_t d, key_range_t::bound_t type) {
+    return datum_range_t(left_bound, left_bound_type, d, type);
+}
+
+void debug_print(printf_buffer_t *buf, const datum_t &d) {
+    switch (d.data.get_internal_type()) {
+    case datum_t::internal_type_t::UNINITIALIZED:
+        buf->appendf("d/uninitialized");
+        break;
+    case datum_t::internal_type_t::R_ARRAY:
+        buf->appendf("d/array");
+        if (!d.data.r_array.has()) {
+            buf->appendf("(null!?)");
+        } else {
+            debug_print(buf, *d.data.r_array);
+        }
+        break;
+    case datum_t::internal_type_t::R_BINARY:
+        buf->appendf("d/binary(");
+        debug_print(buf, d.data.r_str);
+        buf->appendf(")");
+        break;
+    case datum_t::internal_type_t::R_BOOL:
+        buf->appendf("d/%s", d.data.r_bool ? "true" : "false");
+        break;
+    case datum_t::internal_type_t::R_NULL:
+        buf->appendf("d/null");
+        break;
+    case datum_t::internal_type_t::R_NUM:
+        buf->appendf("d/number(%" PR_RECONSTRUCTABLE_DOUBLE ")", d.data.r_num);
+        break;
+    case datum_t::internal_type_t::R_OBJECT:
+        buf->appendf("d/object");
+        debug_print(buf, *d.data.r_object);
+        break;
+    case datum_t::internal_type_t::R_STR:
+        buf->appendf("d/string(");
+        debug_print(buf, d.data.r_str);
+        buf->appendf(")");
+        break;
+    case datum_t::internal_type_t::BUF_R_ARRAY:
+        buf->appendf("d/buf_r_array(...)");
+        break;
+    case datum_t::internal_type_t::BUF_R_OBJECT:
+        buf->appendf("d/buf_r_object(...)");
+        break;
+    default:
+        buf->appendf("datum/garbage{internal_type=%d}", d.data.get_internal_type());
+        break;
+    }
+}
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
+                                      key_range_t::open, key_range_t::none);
+RDB_IMPL_ME_SERIALIZABLE_4(
+        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
+        left_bound_type, right_bound_type);
+INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(datum_range_t);
 
 } // namespace ql

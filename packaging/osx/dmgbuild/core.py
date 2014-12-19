@@ -66,7 +66,7 @@ def load_settings(filename, globs, locs):
 
 def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDPI=True):
     settings = {
-        # Actual settings
+        # Default settings
         'filename': filename,
         'volume_name': volume_name,
         'format': 'UDBZ',
@@ -84,8 +84,8 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         'sidebar_width': 180,
         'arrange_by': None,
         'grid_offset': (0, 0),
-        'grid_spacing': 120.0,
-        'scroll_position': (0, 0),
+        'grid_spacing': 100.0,
+        'scroll_position': (0.0, 0.0),
         'show_icon_preview': False,
         'show_item_info': False,
         'label_pos': 'bottom',
@@ -140,17 +140,18 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
     bounds = settings['window_rect']
     
     bwsp = {
-        'ShowStatusBar': settings['show_status_bar'],
-        'WindowBounds': '{{ %s, %s }, { %s, %s }}' % (bounds[0][0],
-                                                      bounds[0][1],
-                                                      bounds[1][0],
-                                                      bounds[1][1]),
-        'ContainerShowSidebar': False,
-        'SidebarWidth': settings['sidebar_width'],
-        'ShowTabView': settings['show_tab_view'],
-        'ShowToolbar': settings['show_toolbar'],
-        'ShowPathbar': settings['show_pathbar'],
-        'ShowSidebar': settings['show_sidebar']
+        b'ShowStatusBar': settings['show_status_bar'],
+        b'WindowBounds': b'{{%s, %s}, {%s, %s}}' % (bounds[0][0],
+                                                    bounds[0][1],
+                                                    bounds[1][0],
+                                                    bounds[1][1]),
+        b'ContainerShowSidebar': False,
+        b'PreviewPaneVisibility': False,
+        b'SidebarWidth': settings['sidebar_width'],
+        b'ShowTabView': settings['show_tab_view'],
+        b'ShowToolbar': settings['show_toolbar'],
+        b'ShowPathbar': settings['show_pathbar'],
+        b'ShowSidebar': settings['show_sidebar']
         }
 
     arrange_options = {
@@ -165,26 +166,26 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         }
 
     icvp = {
-        'viewOptionsVersion': 1,
-        'backgroundType': 0,
-        'backgroundColorRed': 1.0,
-        'backgroundColorGreen': 1.0,
-        'backgroundColorBlue': 1.0,
-        'gridOffsetX': settings['grid_offset'][0],
-        'gridOffsetY': settings['grid_offset'][1],
-        'gridSpacing': settings['grid_spacing'],
-        'arrangeBy': arrange_options.get(settings['arrange_by'], 'none'),
-        'showIconPreview': settings['show_icon_preview'],
-        'showItemInfo': settings['show_item_info'],
-        'labelOnBottom': settings['label_pos'] == 'bottom',
-        'textSize': settings['text_size'],
-        'iconSize': settings['icon_size'],
-        'scrollPositionX': settings['scroll_position'][0],
-        'scrollPositionY': settings['scroll_position'][1]
+        b'viewOptionsVersion': 1,
+        b'backgroundType': 0,
+        b'backgroundColorRed': 1.0,
+        b'backgroundColorGreen': 1.0,
+        b'backgroundColorBlue': 1.0,
+        b'gridOffsetX': float(settings['grid_offset'][0]),
+        b'gridOffsetY': float(settings['grid_offset'][1]),
+        b'gridSpacing': float(settings['grid_spacing']),
+        b'arrangeBy': str(arrange_options.get(settings['arrange_by'], 'none')),
+        b'showIconPreview': settings['show_icon_preview'] == True,
+        b'showItemInfo': settings['show_item_info'] == True,
+        b'labelOnBottom': settings['label_pos'] == 'bottom',
+        b'textSize': float(settings['text_size']),
+        b'iconSize': float(settings['icon_size']),
+        b'scrollPositionX': float(settings['scroll_position'][0]),
+        b'scrollPositionY': float(settings['scroll_position'][1])
         }
 
     background = settings['background']
-
+    
     columns = {
         'name': 'name',
         'date-modified': 'dateModified',
@@ -225,15 +226,15 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         }
         
     lsvp = {
-        'viewOptionsVersion': 1,
-        'sortColumn': columns.get(settings['list_sort_by'], 'name'),
-        'textSize': settings['list_text_size'],
-        'iconSize': settings['list_icon_size'],
-        'showIconPreview': settings['show_icon_preview'],
-        'scrollPositionX': settings['list_scroll_position'][0],
-        'scrollPositionY': settings['list_scroll_position'][1],
-        'useRelativeDates': settings['list_use_relative_dates'],
-        'calculateAllSizes': settings['list_calculate_all_sizes'],
+        b'viewOptionsVersion': 1,
+        b'sortColumn': columns.get(settings['list_sort_by'], 'name'),
+        b'textSize': float(settings['list_text_size']),
+        b'iconSize': float(settings['list_icon_size']),
+        b'showIconPreview': settings['show_icon_preview'],
+        b'scrollPositionX': settings['list_scroll_position'][0],
+        b'scrollPositionY': settings['list_scroll_position'][1],
+        b'useRelativeDates': settings['list_use_relative_dates'],
+        b'calculateAllSizes': settings['list_calculate_all_sizes'],
         }
 
     lsvp['columns'] = {}
@@ -353,9 +354,9 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
             c = colors.parseColor(background).to_rgb()
 
             icvp['backgroundType'] = 1
-            icvp['backgroundColorRed'] = c.r
-            icvp['backgroundColorGreen'] = c.g
-            icvp['backgroundColorBlue'] = c.b
+            icvp['backgroundColorRed'] = float(c.r)
+            icvp['backgroundColorGreen'] = float(c.g)
+            icvp['backgroundColorBlue'] = float(c.b)
         
         elif os.path.isfile(background):
             
@@ -365,6 +366,8 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
                 name, extension = os.path.splitext(os.path.basename(background))
                 orderedImages = [background]
                 imageDirectory = os.path.dirname(background)
+                if imageDirectory == '':
+                    imageDirectory = '.'
                 for candidateName in os.listdir(imageDirectory):
                     hasScale = re.match(
                         '^(?P<name>.+)@(?P<scale>\d+)x(?P<extension>\.\w+)$',

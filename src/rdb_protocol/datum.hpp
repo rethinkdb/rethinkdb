@@ -32,10 +32,16 @@ class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
 
+namespace unittest {
+struct make_sindex_read_t;
+}
+
 namespace ql {
 
 class datum_stream_t;
+class datum_t;
 class env_t;
+class grouped_data_t;
 class val_t;
 
 namespace pseudo {
@@ -62,7 +68,13 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 
-class grouped_data_t;
+void debug_print(printf_buffer_t *, const datum_t &);
+
+struct components_t {
+    std::string secondary;
+    std::string primary;
+    boost::optional<uint64_t> tag_num;
+};
 
 // A `datum_t` is basically a JSON value, with some special handling for
 // ReQL pseudo-types.
@@ -156,7 +168,7 @@ public:
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
-    // TODO(2014-08): Remove this constructor, it's a hack.
+    // TODO(2015-01): Remove this constructor, it's a hack.
     datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
     ~datum_t();
@@ -197,6 +209,7 @@ public:
     static boost::optional<uint64_t> extract_tag(
             const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
+    static components_t extract_all(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -248,6 +261,12 @@ public:
     // same type should compare appropriately, while disparate types are compared
     // alphabetically by type name.
     int cmp(reql_version_t reql_version, const datum_t &rhs) const;
+
+    template<class T>
+    bool operator<(const T &t) {
+        static_assert(sizeof(t) == 0, "Use `cmp`.");
+        unreachable();
+    }
 
     // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
     // Called by cmp, ==, !=.
@@ -365,9 +384,42 @@ private:
         internal_type_t internal_type;
     } data;
 
+    friend void ::ql::debug_print(printf_buffer_t *, const datum_t &);
+
 public:
     static const datum_string_t reql_type_string;
 };
+
+class datum_range_t {
+public:
+    datum_range_t();
+    datum_range_t(
+        datum_t left_bound,
+        key_range_t::bound_t left_bound_type,
+        datum_t right_bound,
+        key_range_t::bound_t right_bound_type);
+    // Range that includes just one value.
+    explicit datum_range_t(datum_t val);
+    static datum_range_t universe();
+
+    bool contains(reql_version_t reql_version, datum_t val) const;
+    bool is_universe() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+
+    // Make sure you know what you're doing if you call these, and think about
+    // truncated sindexes.
+    key_range_t to_primary_keyrange() const;
+    key_range_t to_sindex_keyrange() const;
+
+    datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
+    datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);
+private:
+
+    datum_t left_bound, right_bound;
+    key_range_t::bound_t left_bound_type, right_bound_type;
+};
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
 datum_t to_datum(const Datum *d, const configured_limits_t &);
 datum_t to_datum(cJSON *json, const configured_limits_t &);
@@ -426,6 +478,7 @@ public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
     explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
+    bool empty() const { return vector.empty(); }
     size_t size() const { return vector.size(); }
 
     void reserve(size_t n);

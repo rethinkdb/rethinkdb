@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -11,13 +11,16 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/terms/arr.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 
 namespace ql {
 
 obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
-        const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
-    : poly_type(_poly_type), func(make_counted_term()) {
+        const term_t *self, poly_type_t _poly_type, protob_t<const Term> term,
+        std::set<std::string> &&_acceptable_ptypes)
+    : poly_type(_poly_type), func(make_counted_term()), parent(self),
+      acceptable_ptypes(std::move(_acceptable_ptypes)) {
     auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
     // body is a new reql expression similar to term except that the first argument
@@ -42,9 +45,10 @@ obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
     self->prop_bt(func.get());
 }
 
-counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
-        const term_t *target, scope_env_t *env, args_t *args, counted_t<val_t> v0,
-        std::function<counted_t<val_t>()> helper) const {
+scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
+        const term_t *target, scope_env_t *env, args_t *args,
+        const scoped_ptr_t<val_t> &v0,
+        std::function<scoped_ptr_t<val_t>()> helper) const {
     datum_t d;
 
     if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -52,16 +56,33 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
     }
 
     if (d.has() && d.get_type() == datum_t::R_OBJECT) {
+        switch (env->env->reql_version()) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            if (d.is_ptype() &&
+                acceptable_ptypes.find(d.get_reql_type()) == acceptable_ptypes.end()) {
+                rfail_target(v0, base_exc_t::GENERIC,
+                             "Cannot call `%s` on objects of type `%s`.",
+                             parent->name(), d.get_type_name().c_str());
+            }
+            break;
+        default:
+            unreachable();
+        }
         return helper();
     } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
                (!d.has()
                 && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
         // The above if statement is complicated because it produces better
         // error messages on e.g. strings.
-        if (counted_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
-            rcheck_target(target, base_exc_t::GENERIC, no_recurse->as_bool() == false,
-                   strprintf("Cannot perform %s on a sequence of sequences.",
-                             target->name()));
+        if (scoped_ptr_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
+            rcheck_target(target,
+                          no_recurse->as_bool() == false,
+                          base_exc_t::GENERIC,
+                          strprintf("Cannot perform %s on a sequence of sequences.",
+                                    target->name()));
         }
 
         compile_env_t compile_env(env->scope.compute_visibility());
@@ -79,8 +100,9 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
                                        target->backtrace());
             break;
         case SKIP_MAP:
-            stream->add_transformation(concatmap_wire_func_t(f),
-                                       target->backtrace());
+            stream->add_transformation(
+                concatmap_wire_func_t(result_hint_t::AT_MOST_ONE, f),
+                target->backtrace());
             break;
         default: unreachable();
         }
@@ -96,12 +118,19 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                                            poly_type_t _poly_type, argspec_t argspec)
     : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-      impl(this, _poly_type, term) {
+      impl(this, _poly_type, term, std::set<std::string>()) {
 }
 
-counted_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
-                                                 eval_flags_t) const {
-    counted_t<val_t> v0 = args->arg(env, 0);
+obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                                           poly_type_t _poly_type, argspec_t argspec,
+                                           std::set<std::string> &&ptypes)
+    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+      impl(this, _poly_type, term, std::move(ptypes)) {
+}
+
+scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
+                                                    eval_flags_t) const {
+    scoped_ptr_t<val_t> v0 = args->arg(env, 0);
     return impl.eval_impl_dereferenced(this, env, args, v0,
                                        [&]{ return this->obj_eval(env, args, v0); });
 }
@@ -111,7 +140,8 @@ public:
     pluck_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -132,7 +162,8 @@ public:
     without_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -153,7 +184,8 @@ public:
     literal_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found: literal is only legal inside of "
                "the object passed to merge or update and cannot nest inside "
@@ -166,8 +198,7 @@ private:
         }
 
         r_sanity_check(!clobber);
-        std::set<std::string> permissible_ptypes;
-        permissible_ptypes.insert(pseudo::literal_string);
+        std::set<std::string> permissible_ptypes { pseudo::literal_string };
         return new_val(std::move(res).to_datum(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
@@ -179,18 +210,53 @@ public:
     merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            counted_t<val_t> v = args->arg(env, i, LITERAL_OK);
+            scoped_ptr_t<val_t> v = args->arg(env, i, LITERAL_OK);
 
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                d = d.merge(v->as_datum());
+                datum_t d0 = v->as_datum();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v,
+                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                      base_exc_t::GENERIC,
+                                      strprintf("Cannot merge objects of type `%s`.",
+                                                d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
+                }
+                d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
-                d = d.merge(f->call(env->env, d, LITERAL_OK)->as_datum());
+                datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v,
+                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                      base_exc_t::GENERIC,
+                                      strprintf("Cannot merge objects of type `%s`.",
+                                                d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
+                }
+                d = d.merge(d0);
             }
         }
         return new_val(d);
@@ -203,10 +269,10 @@ public:
     has_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
-
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
@@ -224,39 +290,45 @@ public:
     get_field_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        return new_val(v0->as_datum().get_field(args->arg(env, 1)->as_str()));
+    virtual scoped_ptr_t<val_t> obj_eval(
+        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        datum_t d = v0->as_datum();
+        return new_val(d.get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_field_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
-
-counted_t<val_t> nth_term_impl(const term_t *, scope_env_t *, counted_t<val_t>, counted_t<val_t>);
 
 class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
-          impl(this, SKIP_MAP, term) {}
+          impl(this, SKIP_MAP, term, std::set<std::string>()) {}
 private:
-    counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
-        return new_val(v0->as_datum().get_field(v1->as_str()));
+    scoped_ptr_t<val_t> obj_eval_dereferenced(
+        const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
+        datum_t d = v0->as_datum();
+        return new_val(d.get_field(v1->as_str()));
     }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
-        counted_t<val_t> v1 = args->arg(env, 1);
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v1 = args->arg(env, 1);
         datum_t d = v1->as_datum();
         r_sanity_check(d.has());
 
         switch (d.get_type()) {
-        case datum_t::R_NUM:
-            return nth_term_impl(this, env, v0, v1);
+        case datum_t::R_NUM: {
+            return nth_term_impl(this, env, std::move(v0), v1);
+        }
         case datum_t::R_STR:
-            return impl.eval_impl_dereferenced(this, env, args, v0,
-                                               [&]{ return this->obj_eval_dereferenced(v0, v1); });
+            return impl.eval_impl_dereferenced(
+                this, env, args, v0,
+                [&]{ return this->obj_eval_dereferenced(v0, v1); });
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:
         case datum_t::R_BOOL:
@@ -264,8 +336,10 @@ private:
         case datum_t::R_OBJECT:
         case datum_t::UNINITIALIZED:
         default:
-            d.type_error(strprintf("Expected NUMBER or STRING as second argument to `%s` but found %s.",
-                                   name(), d.get_type_name().c_str()));
+            d.type_error(
+                strprintf(
+                    "Expected NUMBER or STRING as second argument to `%s` but found %s.",
+                    name(), d.get_type_name().c_str()));
             unreachable();
         }
     }
@@ -277,24 +351,30 @@ private:
     obj_or_seq_op_impl_t impl;
 };
 
-counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_bracket_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<bracket_term_t>(env, term);
 }
 
-counted_t<term_t> make_has_fields_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_has_fields_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<has_fields_term_t>(env, term);
 }
 
-counted_t<term_t> make_pluck_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_pluck_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<pluck_term_t>(env, term);
 }
-counted_t<term_t> make_without_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_without_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_literal_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<literal_term_t>(env, term);
 }
-counted_t<term_t> make_merge_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_merge_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);
 }
 

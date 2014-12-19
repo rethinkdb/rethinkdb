@@ -209,7 +209,7 @@ tests:
     ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
 
   - cd: tbl.get_all(r.point(0, 0))
-    ot: err("RqlRuntimeError", "Cannot use a geospatial index with `get_all`.  Use `get_intersecting` instead.", [])
+    ot: err("RqlRuntimeError", "Cannot use a geospatial index with `get_all`. Use `get_intersecting` instead.", [])
 
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
@@ -254,11 +254,11 @@ tests:
   - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+    ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
   - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
+    ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })
@@ -383,6 +383,8 @@ tests:
   - cd: tbl.index_create('broken')
     ot: ({'created':1})
 
+  - cd: tbl.index_wait('broken')
+
   - rb: tbl.get_all(1, :index => 'c').orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
@@ -442,7 +444,11 @@ tests:
   - rb: tbl.between(nil, nil).between(nil, nil).map{|x| x[:id]}
     py: tbl.between(None, None).between(None, None).map(lambda x:x['id'])
     js: tbl.between(null, null).between(null, null).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Cannot chain multiple betweens to the same table.', [0])
+    ot: err('RqlRuntimeError', 'Cannot perform multiple BETWEENs on the same table.', [0])
+  - rb: tbl.order_by(index:'id').between(nil, 3).map{|x| x[:id]}
+    py: tbl.order_by(index='id').between(None, 3).map(lambda x:x['id'])
+    js: tbl.orderBy({index:'id'}).between(null, 3).map(function(x) { return x('id'); })
+    ot: ([0, 1, 2])
   - rb: tbl.between(0, nil).orderby(:id).map{|x| x[:id]}
     py: tbl.between(0, None).order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null).orderBy('id').map(function(x) { return x('id'); })

@@ -6,6 +6,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "store_subview.hpp"
 #include "store_view.hpp"
 
 struct multistore_ptr_t::switch_read_token_t {
@@ -107,7 +108,7 @@ void multistore_ptr_t::do_get_a_metainfo(int i,
 
             on_thread_t th(dest_thread);
 
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+            read_token_t store_token;
             switch_inner_read_token(i, internal_tokens->data()[i].token, &ct_interruptor, &store_token);
 
             store_views_[i]->do_get_metainfo(order_token, &store_token, &ct_interruptor, &metainfo);
@@ -180,7 +181,7 @@ void multistore_ptr_t::do_set_a_metainfo(int i,
 
         on_thread_t th(dest_thread);
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
+        write_token_t store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         store_views_[i]->set_metainfo(new_metainfo.mask(get_a_region(i)), order_token, &store_token, &ct_interruptor);
@@ -238,7 +239,7 @@ void multistore_ptr_t::switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t:
     }
 }
 
-void multistore_ptr_t::switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *store_token) {
+void multistore_ptr_t::switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, read_token_t *store_token) {
     fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
     internal_sink->assert_thread();
 
@@ -248,7 +249,7 @@ void multistore_ptr_t::switch_inner_read_token(int i, fifo_enforcer_read_token_t
     store_views_[i]->new_read_token(store_token);
 }
 
-void multistore_ptr_t::switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *store_token) {
+void multistore_ptr_t::switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, write_token_t *store_token) {
     fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
     internal_sink->assert_thread();
 

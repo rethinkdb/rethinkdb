@@ -11,7 +11,11 @@ void test_mangle(const std::string &pkey, const std::string &skey, boost::option
     std::string mangled = ql::datum_t::mangle_secondary(skey, pkey, tag_string);
     ASSERT_EQ(pkey, ql::datum_t::extract_primary(mangled));
     ASSERT_EQ(skey, ql::datum_t::extract_secondary(mangled));
-    ASSERT_EQ(tag, ql::datum_t::extract_tag(mangled));
+    boost::optional<uint64_t> extracted_tag = ql::datum_t::extract_tag(mangled);
+    ASSERT_EQ(static_cast<bool>(tag), static_cast<bool>(extracted_tag));
+    if (tag) {
+        ASSERT_EQ(*tag, *extracted_tag);
+    }
 }
 
 TEST(PrintSecondary, Mangle) {

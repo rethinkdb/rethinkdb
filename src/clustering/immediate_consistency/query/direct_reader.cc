@@ -10,7 +10,7 @@ direct_reader_t::direct_reader_t(
     mailbox_manager(mm),
     svs(svs_),
     read_mailbox(mm, std::bind(&direct_reader_t::on_read, this,
-                               ph::_1, ph::_2))
+                               ph::_1, ph::_2, ph::_3))
     { }
 
 direct_reader_business_card_t direct_reader_t::get_business_card() {
@@ -18,13 +18,13 @@ direct_reader_business_card_t direct_reader_t::get_business_card() {
 }
 
 void direct_reader_t::on_read(
+        signal_t *interruptor,
         const read_t &read,
         const mailbox_addr_t<void(read_response_t)> &cont) {
-    auto_drainer_t::lock_t keepalive(&drainer);
 
     try {
-        read_token_pair_t token_pair;
-        svs->new_read_token_pair(&token_pair);
+        read_token_t token;
+        svs->new_read_token(&token);
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t metainfo_checker_callback;
@@ -36,8 +36,8 @@ void direct_reader_t::on_read(
                   read,
                   &response,
                   order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
-                  &token_pair,
-                  keepalive.get_drain_signal());
+                  &token,
+                  interruptor);
         send(mailbox_manager, cont, response);
     } catch (const interrupted_exc_t &) {
         /* ignore */

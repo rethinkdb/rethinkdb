@@ -65,6 +65,7 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
+            const server_id_t &server_id,
             backfill_throttler_t *backfill_throttler,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
@@ -82,6 +83,7 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
+            const server_id_t &server_id,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             broadcaster_t *broadcaster,
@@ -130,7 +132,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     write_response_t local_writeread(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             write_durability_t durability,
@@ -138,7 +140,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void local_write(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             signal_t *interruptor)
@@ -148,10 +150,10 @@ public:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
-        write_queue_entry_t(const write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
-            write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
+        write_queue_entry_t(const write_t &w, state_timestamp_t ts, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
+            write(w), timestamp(ts), order_token(_order_token), fifo_token(ft) { }
         write_t write;
-        transition_timestamp_t transition_timestamp;
+        state_timestamp_t timestamp;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
     };
@@ -173,8 +175,10 @@ private:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
-    void on_write(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+    void on_write(
+            signal_t *interruptor,
+            const write_t &write,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
@@ -186,24 +190,30 @@ private:
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
-    void on_writeread(const write_t &write,
-            transition_timestamp_t transition_timestamp,
+    void on_writeread(
+            signal_t *interruptor,
+            const write_t &write,
+            state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(write_response_t)> ack_addr,
             write_durability_t durability)
         THROWS_NOTHING;
 
-    void on_read(const read_t &read,
+    void on_read(
+            signal_t *interruptor,
+            const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
-    void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
+    void advance_current_timestamp_and_pulse_waiters(state_timestamp_t timestamp);
 
     mailbox_manager_t *const mailbox_manager_;
+
+    server_id_t const server_id_;
 
     store_view_t *const svs_;
 
@@ -267,7 +277,7 @@ private:
     DISABLE_COPYING(listener_t);
 };
 
-RDB_DECLARE_SERIALIZABLE(listener_t::write_queue_entry_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(listener_t::write_queue_entry_t);
 
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */

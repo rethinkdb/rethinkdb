@@ -1,40 +1,33 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/last_seen_tracker.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 last_seen_tracker_t::last_seen_tracker_t(
-        const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &mv,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &mim) :
-    machines_view(mv), machine_id_map(mim),
-    machines_view_subs(boost::bind(&last_seen_tracker_t::on_machines_view_change, this)),
-    machine_id_map_subs(boost::bind(&last_seen_tracker_t::on_machine_id_map_change, this)) {
-
-    /* We would freeze `machines_view` as well here if we could */
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t machine_id_map_freeze(machine_id_map);
-
-    machines_view_subs.reset(machines_view);
-    machine_id_map_subs.reset(machine_id_map, &machine_id_map_freeze);
-
-    update();
+        const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > &sv,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *d):
+    servers_view(sv),
+    directory(d),
+    servers_view_subs(std::bind(
+        &last_seen_tracker_t::update, this, false), servers_view),
+    directory_subs(directory, std::bind(
+        &last_seen_tracker_t::update, this, false), false) {
+    update(true);
 }
 
-void last_seen_tracker_t::update() {
-    std::set<machine_id_t> visible;
-    std::map<peer_id_t, machine_id_t> machine_ids = machine_id_map->get().get_inner();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = machine_ids.begin();
-                                                     it != machine_ids.end();
-                                                     ++it) {
-        visible.insert(it->second);
-    }
-    machines_semilattice_metadata_t machine_metadata = machines_view->get();
-    for (machines_semilattice_metadata_t::machine_map_t::iterator it = machine_metadata.machines.begin();
-                                                                  it != machine_metadata.machines.end();
-                                                                  ++it) {
+void last_seen_tracker_t::update(bool is_start) {
+    ASSERT_FINITE_CORO_WAITING;
+    std::set<server_id_t> visible;
+    directory->read_all([&](const peer_id_t &, const cluster_directory_metadata_t *d) {
+        visible.insert(d->server_id);
+        });
+    servers_semilattice_metadata_t server_metadata = servers_view->get();
+    for (auto it = server_metadata.servers.begin();
+         it != server_metadata.servers.end(); ++it) {
         if (!it->second.is_deleted() && visible.find(it->first) == visible.end()) {
+            /* If the server was disconnected at startup, return `0` from
+            `get_disconnected_time()` instead of our start time */
+            microtime_t t = is_start ? 0 : current_microtime();
             /* If it was already present, this will have no effect. */
-            disconnected_times.insert(std::make_pair(it->first, current_microtime()));
+            disconnected_times.insert(std::make_pair(it->first, t));
         } else {
             disconnected_times.erase(it->first);
         }
@@ -47,12 +40,3 @@ void last_seen_tracker_t::update() {
     }
 }
 
-void last_seen_tracker_t::on_machines_view_change() {
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_map);
-    update();
-}
-
-void last_seen_tracker_t::on_machine_id_map_change() {
-    /* We would freeze `machines_view` here if we could */
-    update();
-}

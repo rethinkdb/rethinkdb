@@ -27,10 +27,10 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_15_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_16_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "1.15"
+#define CLUSTER_VERSION_STRING "1.16"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -253,9 +253,9 @@ connectivity_cluster_t::run_t::~run_t() {
     */
 }
 
-std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
+std::set<host_and_port_t> connectivity_cluster_t::run_t::get_canonical_addresses() {
     parent->assert_thread();
-    return routing_table.at(parent->me).ips();
+    return routing_table.at(parent->me).hosts();
 }
 
 int connectivity_cluster_t::run_t::get_port() {
@@ -461,9 +461,9 @@ public:
             intervals_since_last_read_done++;
         }
     }
-    void write(cluster_version_t, write_stream_t *) {
+    void write(write_stream_t *) {
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
-        attached, which will trigger `keepalive_read()` on the remote machine. */
+        attached, which will trigger `keepalive_read()` on the remote server. */
     }
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
@@ -756,7 +756,7 @@ void connectivity_cluster_t::run_t::handle(
     `conn_closer_2`. */
 
     // Get the name of our peer, for error reporting.
-    ip_address_t peer_addr;
+    ip_and_port_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
         peerstr = peer_addr.to_string();
@@ -937,7 +937,7 @@ void connectivity_cluster_t::run_t::handle(
     }
     if (expected_id && other_id != *expected_id) {
         // This is only a problem if we're not using a loopback address
-        if (!peer_addr.is_loopback()) {
+        if (!peer_addr.ip().is_loopback()) {
             logERR("Received inconsistent routing information (wrong ID) from %s, "
                    "closing connection.", peername);
         }
@@ -961,8 +961,8 @@ void connectivity_cluster_t::run_t::handle(
     parent->assert_thread();
 
     /* The trickiest case is when there are two or more parallel connections
-    that are trying to be established between the same two machines. We can get
-    this when e.g. machine A and machine B try to connect to each other at the
+    that are trying to be established between the same two servers. We can get
+    this when e.g. server A and server B try to connect to each other at the
     same time. It's important that exactly one of the connections actually gets
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
@@ -1093,7 +1093,7 @@ void connectivity_cluster_t::run_t::handle(
         connection_t conn_structure(this, other_id, conn, *other_peer_addr.get());
 
         /* `heartbeat_manager` will periodically send a heartbeat message to
-        other machines, and it will also close the connection if we don't
+        other servers, and it will also close the connection if we don't
         receive anything for a while. */
         heartbeat_manager_t heartbeat_manager(
             &conn_structure,
@@ -1198,11 +1198,6 @@ void connectivity_cluster_t::send_message(connection_t *connection,
                                      cluster_send_message_write_callback_t *callback) {
     // We could be on _any_ thread.
 
-    // At some point we'll have to look up the cluster version based on not a peer
-    // (right?) but rather, a _connection id_.  (The peer could get upgraded and then
-    // reconnect.)
-    const cluster_version_t cluster_version = cluster_version_t::CLUSTER;
-
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
@@ -1212,7 +1207,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
-        callback->write(cluster_version, &buffer);
+        callback->write(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING

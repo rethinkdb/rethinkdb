@@ -107,6 +107,10 @@ public:
         return ptr_ != NULL;
     }
 
+    explicit operator bool() const {
+        return ptr_ != NULL;
+    }
+
 private:
     T *ptr_;
 

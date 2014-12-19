@@ -5,6 +5,7 @@
 
 #include <functional>
 
+#include "debug.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
@@ -13,10 +14,8 @@
 
 /* raw_mailbox_t */
 
-const int raw_mailbox_t::address_t::ANY_THREAD = -1;
-
 raw_mailbox_t::address_t::address_t() :
-    peer(peer_id_t()), thread(ANY_THREAD), mailbox_id(0) { }
+    peer(peer_id_t()), thread(-1), mailbox_id(0) { }
 
 raw_mailbox_t::address_t::address_t(const address_t &a) :
     peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
@@ -38,12 +37,22 @@ raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_read_callback_t *_cal
     manager(m),
     mailbox_id(manager->register_mailbox(this)),
     callback(_callback) {
-    // Do nothing
+    guarantee(callback != nullptr);
 }
 
 raw_mailbox_t::~raw_mailbox_t() {
     assert_thread();
+    if (callback != nullptr) {
+        begin_shutdown();
+    }
+}
+
+void raw_mailbox_t::begin_shutdown() {
+    assert_thread();
+    guarantee(callback != nullptr);
+    callback = nullptr;
     manager->unregister_mailbox(mailbox_id);
+    drainer.begin_draining();
 }
 
 raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
@@ -65,7 +74,7 @@ public:
         subwriter(_subwriter) { }
     virtual ~raw_mailbox_writer_t() { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // Right now, we serialize this length/thread/mailbox information the same
         // way irrespective of version. (Serialization methods for primitive types
@@ -76,7 +85,7 @@ public:
         serialize_universal(&wm, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(cluster_version, &wm);
+        subwriter->write(cluster_version_t::CLUSTER, &wm);
 
         // Prepend the message length.
         // TODO: It would be more efficient if we could make this part of `msg`.
@@ -126,7 +135,14 @@ mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-    guarantee(mailboxes.empty(), "Please destroy all mailboxes before destroying the cluster");
+#ifndef NDEBUG
+    for (const auto &pair : mailboxes) {
+        debugf("ERROR: stray mailbox %p\n%s\n",
+               pair.second, pair.second->bt.lines().c_str());
+    }
+#endif
+    guarantee(mailboxes.empty(),
+              "Please destroy all mailboxes before destroying the cluster");
 }
 
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
@@ -171,11 +187,6 @@ void mailbox_manager_t::on_local_message(
 
     mailbox_header_t mbox_header;
     read_mailbox_header(&stream, &mbox_header);
-    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        // TODO: this will just run the callback on the current thread, maybe do
-        // some load balancing, instead
-        mbox_header.dest_thread = get_thread_id().threadnum;
-    }
 
     std::vector<char> stream_data;
     int64_t stream_data_offset = 0;
@@ -205,9 +216,6 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
                                    read_stream_t *stream) {
     mailbox_header_t mbox_header;
     read_mailbox_header(stream, &mbox_header);
-    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        mbox_header.dest_thread = get_thread_id().threadnum;
-    }
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
@@ -257,7 +265,14 @@ void mailbox_manager_t::mailbox_read_coroutine(
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
             if (mbox != NULL) {
-                mbox->callback->read(cluster_version_t::CLUSTER, &stream);
+                try {
+                    auto_drainer_t::lock_t keepalive(&mbox->drainer);
+                    mbox->callback->read(&stream, keepalive.get_drain_signal());
+                } catch (const interrupted_exc_t &) {
+                    /* Do nothing. It's no longer safe to access `mbox` (because the
+                    destructor is running) but otherwise we don't need to take any
+                    special action. */
+                }
             }
         } catch (const fake_archive_exc_t &e) {
             // Set a flag and handle the exception later.

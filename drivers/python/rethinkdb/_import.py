@@ -26,9 +26,9 @@ try:
 except NameError:
     xrange = range
 try:
-    from multiprocessing.queues import SimpleQueue
-except NameError:
     from multiprocessing import SimpleQueue
+except ImportError:
+    from multiprocessing.queues import SimpleQueue
 
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
@@ -628,6 +628,7 @@ def spawn_import_clients(options, files_info):
             # If an error has occurred, exit out early
             if not error_queue.empty():
                 exit_event.set()
+                errors.append(error_queue.get())
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
             update_progress(progress_info)
 
@@ -641,7 +642,7 @@ def spawn_import_clients(options, files_info):
             client_procs = [client for client in client_procs if client.is_alive()]
 
         # If we were successful, make sure 100% progress is reported
-        if error_queue.empty() and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set():
             print_progress(1.0)
 
         def plural(num, text):
@@ -658,12 +659,11 @@ def spawn_import_clients(options, files_info):
         raise RuntimeError("Interrupted")
 
     if not task_queue.empty():
-        error_queue.put((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
+        errors.append((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
 
-    if not error_queue.empty():
+    if len(errors) != 0:
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
-        while not error_queue.empty():
-            error = error_queue.get()
+        for error in errors:
             print("%s" % error[1], file=sys.stderr)
             if options["debug"]:
                 print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
@@ -693,6 +693,8 @@ def tables_check(progress, conn, files_info, force):
     # Ensure that all needed databases exist and tables don't
     db_list = r.db_list().run(conn)
     for db in set([file_info["db"] for file_info in files_info]):
+        if db == "rethinkdb":
+            raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
         if db not in db_list:
             r.db_create(db).run(conn)
 
@@ -759,6 +761,7 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    rdb_call_wrapper(conn_fn, "version check", check_version)
     already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
@@ -779,6 +782,9 @@ def import_directory(options):
     spawn_import_clients(options, files_info)
 
 def table_check(progress, conn, db, table, pkey, force):
+    if db == "rethinkdb":
+        raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
+
     if db not in r.db_list().run(conn):
         r.db_create(db).run(conn)
 
@@ -805,6 +811,7 @@ def import_file(options):
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    rdb_call_wrapper(conn_fn, "version check", check_version)
     pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory

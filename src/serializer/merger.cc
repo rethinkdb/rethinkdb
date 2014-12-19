@@ -13,7 +13,7 @@
 merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner,
                                          int _max_active_writes) :
     inner(std::move(_inner)),
-    index_writes_io_account(make_io_account(MERGED_INDEX_WRITE_IO_PRIORITY)),
+    block_writes_io_account(make_io_account(MERGER_BLOCK_WRITE_IO_PRIORITY)),
     on_inner_index_write_complete(new counted_cond_t()),
     unhandled_index_write_waiter_exists(false),
     num_active_writes(0),
@@ -27,8 +27,7 @@ merger_serializer_t::~merger_serializer_t() {
 }
 
 void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                      const std::vector<index_write_op_t> &write_ops,
-                                      file_account_t *) {
+                                      const std::vector<index_write_op_t> &write_ops) {
     rassert(coro_t::self() != NULL);
     assert_thread();
 
@@ -87,7 +86,7 @@ void merger_serializer_t::do_index_write() {
 
     new_mutex_in_line_t mutex_acq(&inner_index_write_mutex);
     mutex_acq.acq_signal()->wait();
-    inner->index_write(&mutex_acq, write_ops, index_writes_io_account.get());
+    inner->index_write(&mutex_acq, write_ops);
 
     write_complete->pulse();
 

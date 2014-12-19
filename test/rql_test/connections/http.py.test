@@ -7,10 +7,12 @@ import driver, utils
 if not os.path.isdir('run'):
     os.makedirs('run')
 
-buildDir = os.getenv('BUILD_DIR') or utils.latest_build_dir()
-if len(sys.argv) > 1:
-    buildDir = sys.argv[1]
-os.environ['BUILD_DIR'] = buildDir
+executable_path = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
+os.environ['RDB_EXE_PATH'] = executable_path
 
-server = driver.Process()
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'http.py'), str(server.driver_port)]))
+server = None
+if os.environ.get('RDB_DRIVER_PORT') is None:
+    server = driver.Process(executable_path=rethinkdb_exe)
+    os.environ['RDB_DRIVER_PORT'] = str(server.driver_port)
+
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'http.py')]))

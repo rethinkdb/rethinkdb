@@ -19,24 +19,27 @@ class TestHttpTerm(unittest.TestCase):
     def setUp(self):
         if self.conn == None:
             try:
-                self._server.driver_port = int(sys.argv[1])
+                self._server.driver_port = int(os.getenv('RDB_DRIVER_PORT') or sys.argv[1])
             except Exception:
-                self.__class__._server_log = tempfile.NamedTemporaryFile()
-                self.__class__._server = driver.Process(log_path=self._server_log.name)
+                self.__class__._server_log = tempfile.NamedTemporaryFile('w+')
+                self.__class__._server = driver.Process(console_output=self._server_log.name)
                 self.__class__.conn = self._server.driver_port
             
             self.__class__.conn = r.connect('localhost', self._server.driver_port)
+        
         if not hasattr(self, 'assertRaisesRegexp'):
             def assertRaisesRegexp_replacement(exception, regexp, function, *args, **kwds):
+                result = None
                 try:
-                    function(*args, **kwds)
+                    result = function(*args, **kwds)
                 except Exception as e:
-                    if not isinstance(e, Exception):
-                        raise
+                    if not isinstance(e, exception):
+                        raise AssertionError('Got the wrong type of exception: %s vs. expected: %s' % (e.__class__.__name__, exception.__name__))
                     if not re.match(regexp, str(e)):
-                        raise AssertionError('"%s" does not match "%s"' % (str(regexp), str(e)))
+                        raise AssertionError('Error message: "%s" does not match "%s"' % (str(regexp), str(e)))
                     return
-                raise AssertionError('TypeError not raised for: %s' % str(function))
+                else:
+                    raise AssertionError('%s not raised for: %s, rather got: %s' % (exception.__name__, repr(function), repr(result)))
             self.assertRaisesRegexp = assertRaisesRegexp_replacement
     
     def err_string(self, method, url, msg):
@@ -229,7 +232,7 @@ class TestHttpTerm(unittest.TestCase):
         self.assertEqual(res, None)
     
     def test_verify_http(self):
-        self.part_test_helper('http://dev.rethinkdb.com')
+        self.part_test_helper('http://dev.rethinkdb.com') # 301 redirection to https://dev.rethinkdb.com/
     
     def test_verify_https(self):
         self.part_test_helper('https://dev.rethinkdb.com')

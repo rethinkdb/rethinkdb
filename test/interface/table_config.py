@@ -1,37 +1,34 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+# Copyright 2014 RethinkDB, all rights reserved.
+
+"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
+
+from __future__ import print_function
+
+import os, pprint, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils
-from vcoptparse import *
-r = utils.import_python_driver()
+import driver, scenario_common, utils, vcoptparse
 
-"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and
-`rethinkdb.table_status` tables behave as expected."""
-
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    cluster1 = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, log_path = "create-output-1", machine_name = "a",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc1 = driver.Process(cluster1, files1, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, log_path = "create-output-2", machine_name = "b",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    proc2 = driver.Process(cluster1, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    proc1.wait_until_started_up()
-    proc2.wait_until_started_up()
-    cluster1.check()
-    conn = r.connect("localhost", proc1.driver_port)
+r = utils.import_python_driver()
+dbName, _ = utils.get_test_db_table()
 
+print("Starting cluster of %d servers (%.2fs)" % (3, time.time() - startTime))
+with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as cluster:
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
     def check_foo_config_matches(expected):
-        config = r.table_config("foo").run(conn)
+        config = r.db(dbName).table_config("foo").nth(0).run(conn)
         assert config["name"] == "foo" and config["db"] == "test"
         found = config["shards"]
         if len(expected) != len(found):
@@ -46,39 +43,41 @@ with driver.Metacluster() as metacluster:
     def check_status_matches_config():
         config = list(r.db("rethinkdb").table("table_config").run(conn))
         status = list(r.db("rethinkdb").table("table_status").run(conn))
-        uuids = set(row["uuid"] for row in config)
+        uuids = set(row["id"] for row in config)
         if not (len(uuids) == len(config) == len(status)):
             return False
-        if uuids != set(row["uuid"] for row in status):
+        if uuids != set(row["id"] for row in status):
             return False
         for c_row in config:
-            s_row = [row for row in status if row["uuid"] == c_row["uuid"]][0]
+            s_row = [row for row in status if row["id"] == c_row["id"]][0]
             if c_row["db"] != s_row["db"]:
                 return False
             if c_row["name"] != s_row["name"]:
                 return False
             c_shards = c_row["shards"]
             s_shards = s_row["shards"]
+            # Make sure that servers that have never been involved with the table will
+            # never appear in `table_status`. (See GitHub issue #3101.)
+            for s_shard in s_shards:
+                for doc in s_shard["replicas"]:
+                    assert doc["server"] != "never_used"
             if len(s_shards) != len(c_shards):
                 return False
             for (s_shard, c_shard) in zip(s_shards, c_shards):
-                if set(doc["server"] for doc in s_shard) != set(c_shard["replicas"]):
+                if set(doc["server"] for doc in s_shard["replicas"]) != \
+                        set(c_shard["replicas"]):
                     return False
-                s_directors = [doc["server"] for doc in s_shard
-                               if doc["role"] == "director"]
-                if len(s_directors) != 1:
+                if s_shard["director"] != c_shard["director"]:
                     return False
-                if s_directors[0] != c_shard["director"]:
+                if any(doc["state"] != "ready" for doc in s_shard["replicas"]):
                     return False
-                if any(doc["state"] != "ready" for doc in s_shard):
-                    return False
-            if not s_row["ready_for_outdated_reads"]:
+            if not s_row["status"]["ready_for_outdated_reads"]:
                 return False
-            if not s_row["ready_for_reads"]:
+            if not s_row["status"]["ready_for_reads"]:
                 return False
-            if not s_row["ready_for_writes"]:
+            if not s_row["status"]["ready_for_writes"]:
                 return False
-            if not s_row["ready_completely"]:
+            if not s_row["status"]["all_replicas_ready"]:
                 return False
         return True
 
@@ -101,106 +100,167 @@ with driver.Metacluster() as metacluster:
         except:
             config = list(r.db("rethinkdb").table("table_config").run(conn))
             status = list(r.db("rethinkdb").table("table_status").run(conn))
-            print "Something went wrong."
-            print "config =", config
-            print "status =", status
+            print("Something went wrong.\nconfig =")
+            pprint.pprint(config)
+            print("status =")
+            pprint.pprint(status)
             raise
 
-    print "Creating a table..."
-    r.db_create("test").run(conn)
-    r.table_create("foo").run(conn)
-    r.table_create("bar").run(conn)
-    r.db_create("test2").run(conn)
-    r.db("test2").table_create("bar2").run(conn)
-    r.table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
-    assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
+    # Make sure that `never_used` will never be picked as a default for a table by removing the `default` tag.
+    
+    res = r.db("rethinkdb").table("server_config").filter({"name": "never_used"}).update({"tags": []}).run(conn)
+    assert res["replaced"] == 1, res
 
-    print "Testing that table_config and table_status are sane..."
+    print("Creating dbs and tables (%.2fs)" % (time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    r.db(dbName).table_create("foo").run(conn)
+    r.db(dbName).table_create("bar").run(conn)
+    
+    if "test2" not in r.db_list().run(conn):
+        r.db_create("test2").run(conn)
+    r.db("test2").table_create("bar2").run(conn)
+    
+    print("Inserting data into foo (%.2fs)" % (time.time() - startTime))
+    
+    r.db(dbName).table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
+    assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(xrange(10))
+
+    print("Testing that table_config and table_status are sane (%.2fs)" % (time.time() - startTime))
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar"), ("test2", "bar2")]))
     wait_until(check_status_matches_config)
 
-    print "Testing that we can write to table_config..."
-    def test(shards):
-        print "Reconfiguring:", shards
-        res = r.table_config("foo").update({"shards": shards}).run(conn)
-        assert res["errors"] == 0
+    print("Testing that we can move around data by writing to table_config (%.2fs)" % (time.time() - startTime))
+    def test_shards(shards):
+        print("Reconfiguring:", {"shards": shards})
+        res = r.db(dbName).table_config("foo").update({"shards": shards}).run(conn)
+        assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
-        assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
-        print "OK"
-    test(
-        [{"replicas": ["a"], "director": "a"}])
-    test(
-        [{"replicas": ["b"], "director": "b"}])
-    test(
-        [{"replicas": ["a", "b"], "director": "a"}])
-    test(
-        [{"replicas": ["a"], "director": "a"},
-         {"replicas": ["b"], "director": "b"}])
-    test(
-        [{"replicas": ["a", "b"], "director": "a"},
-         {"replicas": ["a", "b"], "director": "b"}])
-    test(
-        [{"replicas": ["a"], "director": "a"}])
+        assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(xrange(10))
+        print("OK (%.2fs)" % (time.time() - startTime))
+    test_shards([{"replicas": ["a"], "director": "a"}])
+    test_shards([{"replicas": ["b"], "director": "b"}])
+    test_shards([{"replicas": ["a", "b"], "director": "a"}])
+    test_shards([
+        {"replicas": ["a"], "director": "a"},
+        {"replicas": ["b"], "director": "b"}
+    ])
+    test_shards([
+        {"replicas": ["a", "b"], "director": "a"},
+        {"replicas": ["a", "b"], "director": "b"}
+    ])
+    test_shards([{"replicas": ["a"], "director": "a"}])
 
-    print "Testing that table_config rejects invalid input..."
-    def test_invalid(shards):
-        print "Reconfiguring:", shards
-        res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}).update(
-                {"shards": shards}).run(conn)
+    print("Testing that table_config rejects invalid input (%.2fs)" % (time.time() - startTime))
+    def test_invalid(conf):
+        print("Reconfiguring:", conf)
+        res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}).replace(conf).run(conn)
         assert res["errors"] == 1
-        print "Error, as expected"
-    test_invalid([])
-    test_invalid("this is a string")
-    test_invalid(
-        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}])
-    test_invalid(
-        [{"replicas": [], "director": None}])
-    test_invalid(
-        [{"replicas": ["a"], "director": "b"}])
-    test_invalid(
-        [{"replicas": ["a"], "director": "b"},
-         {"replicas": ["b"], "director": "a"}])
+        print("Error, as expected")
+    test_invalid(r.row.merge({"shards": []}))
+    test_invalid(r.row.merge({"shards": "this is a string"}))
+    test_invalid(r.row.merge({"shards":
+        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": [], "director": None}]}))
+    test_invalid(r.row.merge({"shards": [{"replicas": ["a"], "director": "b"}]}))
+    test_invalid(r.row.merge(
+        {"shards": [{"replicas": ["a"], "director": "b"},
+                    {"replicas": ["b"], "director": "a"}]}))
+    test_invalid(r.row.merge({"primary_key": "new_primary_key"}))
+    test_invalid(r.row.merge({"db": "new_db"}))
+    test_invalid(r.row.merge({"extra_key": "extra_value"}))
+    test_invalid(r.row.without("name"))
+    test_invalid(r.row.without("primary_key"))
+    test_invalid(r.row.without("db"))
+    test_invalid(r.row.without("shards"))
 
-    print "Testing that we can rename tables through table_config..."
-    res = r.table_config("bar").update({"name": "bar2"}).run(conn)
+    print("Testing that we can rename tables through table_config (%.2fs)" % (time.time() - startTime))
+    res = r.db(dbName).table_config("bar").update({"name": "bar2"}).run(conn)
     assert res["errors"] == 0
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar2"), ("test2", "bar2")]))
 
-    print "Testing that we can't rename a table so as to cause a name collision..."
-    res = r.table_config("bar2").update({"name": "foo"}).run(conn)
+    print("Testing that we can't rename a table so as to cause a name collision (%.2fs)" % (time.time() - startTime))
+    res = r.db(dbName).table_config("bar2").update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
 
-    print "Testing that we can create a table through table_config..."
-    res = r.db("rethinkdb").table("table_config").insert({
+    print("Testing that we can create a table through table_config (%.2fs)" % (time.time() - startTime))
+    def test_create(doc, pkey):
+        res = r.db("rethinkdb").table("table_config") \
+               .insert(doc, return_changes=True).run(conn)
+        assert res["errors"] == 0, repr(res)
+        assert res["inserted"] == 1, repr(res)
+        assert doc["name"] in r.db(dbName).table_list().run(conn)
+        assert res["changes"][0]["new_val"]["primary_key"] == pkey
+        assert "shards" in res["changes"][0]["new_val"]
+        for i in xrange(10):
+            try:
+                r.db(dbName).table(doc["name"]).insert({}).run(conn)
+            except r.RqlRuntimeError:
+                time.sleep(1)
+            else:
+                break
+        else:
+            raise ValueError("Table took too long to become available")
+        rows = list(r.db(dbName).table(doc["name"]).run(conn))
+        assert len(rows) == 1 and list(rows[0].keys()) == [pkey]
+    test_create({
         "name": "baz",
         "db": "test",
         "primary_key": "frob",
         "shards": [{"replicas": ["a"], "director": "a"}]
-        }).run(conn)
-    assert res["errors"] == 0, repr(res)
-    assert res["inserted"] == 1, repr(res)
-    assert "baz" in r.table_list().run(conn)
-    for i in xrange(10):
-        try:
-            r.table("baz").insert({}).run(conn)
-        except r.RqlRuntimeError:
-            time.sleep(1)
-        else:
-            break
-    else:
-        raise ValueError("Table took too long to become available")
-    rows = list(r.table("baz").run(conn))
-    assert len(rows) == 1 and list(rows[0].keys()) == ["frob"]
+        }, "frob")
+    test_create({
+        "name": "baz2",
+        "db": "test",
+        "shards": [{"replicas": ["a"], "director": "a"}]
+        }, "id")
+    test_create({
+        "name": "baz3",
+        "db": "test"
+        }, "id")
 
-    print "Testing that we can delete a table through table_config..."
-    res = r.table_config("baz").delete().run(conn)
+    print("Testing that we can delete a table through table_config (%.2fs)" % (time.time() - startTime))
+    res = r.db(dbName).table_config("baz").delete().run(conn)
     assert res["errors"] == 0, repr(res)
     assert res["deleted"] == 1, repr(res)
-    assert "baz" not in r.table_list().run(conn)
+    assert "baz" not in r.db(dbName).table_list().run(conn)
 
-    cluster1.check_and_stop()
-print "Done."
+    print("Testing that identifier_format works (%.2fs)" % (time.time() - startTime))
+    a_uuid = r.db("rethinkdb").table("server_config") \
+              .filter({"name": "a"}).nth(0)["id"].run(conn)
+    db_uuid = r.db("rethinkdb").table("db_config") \
+               .filter({"name": "test"}).nth(0)["id"].run(conn)
+    res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
+           .insert({
+               "name": "idf_test",
+               "db": db_uuid,
+               "shards": [{"replicas": [a_uuid], "director": a_uuid}]
+               }) \
+           .run(conn)
+    assert res["inserted"] == 1, repr(res)
+    res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{"replicas": [a_uuid], "director": a_uuid}], repr(res)
+    res = r.db("rethinkdb").table("table_config", identifier_format="name") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{"replicas": ["a"], "director": "a"}], repr(res)
+    r.db(dbName).table_wait("idf_test").run(conn)
+    res = r.db("rethinkdb").table("table_status", identifier_format="uuid") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{
+        "replicas": [{"server": a_uuid, "state": "ready"}],
+        "director": a_uuid
+        }], repr(res)
+    res = r.db("rethinkdb").table("table_status", identifier_format="name") \
+           .filter({"name": "idf_test"}).nth(0).run(conn)
+    assert res["shards"] == [{
+        "replicas": [{"server": "a", "state": "ready"}],
+        "director": "a"
+        }], repr(res)
 
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

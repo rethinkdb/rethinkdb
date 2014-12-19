@@ -1,6 +1,6 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
-#include "s2.h"
+#include "rdb_protocol/geo/s2/s2.h"
 
 #include <unordered_set>
 
@@ -227,7 +227,10 @@ int S2::RobustCCW(S2Point const& a, S2Point const& b, S2Point const& c) {
 // the actual precision of the result is less than the maximum precision
 // specified).
 
-#include "rdb_protocol/geo/s2/util/math/mpfloat/mpfloat.h"
+// (RethinkDB --) This include is commented out so that scripts/process_headers.pl
+// worsk, because mpfloat.h does not exist.
+
+// #include "rdb_protocol/geo/s2/util/math/mpfloat/mpfloat.h"
 namespace geo {
 typedef MPFloat<6300> ExactFloat;
 }

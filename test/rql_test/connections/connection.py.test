@@ -7,9 +7,7 @@ import utils
 if not os.path.isdir('run'):
     os.makedirs('run')
 
-buildDir = os.getenv('BUILD_DIR') or utils.latest_build_dir()
-if len(sys.argv) > 1:
-    buildDir = sys.argv[1]
-os.environ['BUILD_DIR'] = buildDir
+rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
+os.environ['RDB_EXE_PATH'] = rethinkdb_exe
 
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'connection.py'), buildDir]))
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'connection.py')]))

@@ -1,56 +1,71 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-op = OptParser()
+import sys, os, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, utils, vcoptparse, workload_runner
+
+op = vcoptparse.OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    print "Starting cluster..."
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files1 = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
-                              executable_path = executable_path, command_prefix = command_prefix,
-                              extra_options = serve_options)
-    files2 = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process1.wait_until_started_up()
-    process2.wait_until_started_up()
+numNodes = 2
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
-    dc1 = http.add_datacenter()
-    http.move_server_to_datacenter(process1.files.machine_name, dc1)
-    dc2 = http.add_datacenter()
-    http.move_server_to_datacenter(process2.files.machine_name, dc2)
-    ns = scenario_common.prepare_table_for_workload(http, primary = dc1, affinities = {dc1: 0, dc2: 1})
-    http.wait_until_blueprint_satisfied(ns)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+    
+    print("Establishing ReQL Connection (%.2fs)" % (time.time() - startTime))
+    
+    server1 = cluster[0]
+    server2 = cluster[1]
+    conn = r.connect(host=server1.host, port=server1.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Setting primary to first server (%.2fs)" % (time.time() - startTime))
+    
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server1.name, 'replicas':[server1.name, server2.name]}]}).run(conn)['errors'] == 0
+    r.db(dbName).table_wait().run(conn)
     cluster.check()
-    http.check_no_issues()
-
-    workload_ports = scenario_common.get_workload_ports(ns, [process1, process2])
+    assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+    
+    print("Starting workload (%.2fs)" % (time.time() - startTime))
+    
+    workload_ports = workload_runner.RDBPorts(host=server1.host, http_port=server1.http_port, rdb_port=server1.driver_port, db_name=dbName, table_name=tableName)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
-        http.check_no_issues()
+        assert [] == list(r.db('rethinkdb').table('issues').run(conn))
         workload.check()
-        print "Changing the primary..."
-        http.set_table_affinities(ns, {dc1: 1, dc2: 1})
-        http.move_table_to_datacenter(ns, dc2)
-        http.set_table_affinities(ns, {dc1: 1, dc2: 0})
-        http.wait_until_blueprint_satisfied(ns)
+        
+        print("Changing the primary to second server (%.2fs)" % (time.time() - startTime))
+        
+        assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server1.name, server2.name]}]}).run(conn)['errors'] == 0
+        r.db(dbName).table_wait().run(conn)
         cluster.check()
-        http.check_no_issues()
+        assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+        
+        print("Running after workload (%.2fs)" % (time.time() - startTime))
+        
         workload.run_after()
-
-    http.check_no_issues()
-    cluster.check_and_stop()
+    
+    cluster.check()
+    assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

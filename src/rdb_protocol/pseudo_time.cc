@@ -314,7 +314,9 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     if (colpos != std::string::npos && (colpos + 1) < tz.size() && tz[colpos+1] == '-') {
         tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
     }
-    rcheck_target(target,  base_exc_t::GENERIC, tz != "UTC+00" && tz != "",
+    rcheck_target(target,
+                  tz != "UTC+00" && tz != "",
+                  base_exc_t::GENERIC,
                   "ISO 8601 string has no time zone, and no default time "
                   "zone was provided.");
 
@@ -365,10 +367,12 @@ datum_t iso8601_to_time(
         }
         time_t t(boost::date_time::not_a_date_time);
         ss >> t;
-        rcheck_target(
-            target, base_exc_t::GENERIC, !t.is_special(),
-            strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
-                      s.c_str(), sanitized.c_str()));
+        rcheck_target(target,
+                      !t.is_special(),
+                      base_exc_t::GENERIC, 
+                      strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
+                                s.c_str(),
+                                sanitized.c_str()));
         return boost_to_time(t, target);
     } HANDLE_BOOST_ERRORS(target);
 }
@@ -452,7 +456,7 @@ int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y) {
     r_sanity_check(x.is_ptype(time_string));
     r_sanity_check(y.is_ptype(time_string));
     // We know that these are both nums, so the reql_version doesn't actually affect
-    // anything (between v1_13 and v1_14_is_latest).  But it's safer not to have to
+    // anything (between v1_13 and v1_16_is_latest).  But it's safer not to have to
     // prove that, so we take it and pass it anyway.
     return x.get_field(epoch_time_key).cmp(reql_version, y.get_field(epoch_time_key));
 }

@@ -1,5 +1,7 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
+__all__ = ['RqlError', 'RqlClientError', 'RqlCompileError', 'RqlRuntimeError', 'RqlDriverError']
+
 import sys
 
 try:

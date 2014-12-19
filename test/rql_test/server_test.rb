@@ -3,42 +3,13 @@
 require 'test/unit'
 require 'pp'
 
-importFilePath = ''
-if ENV['RUBY_DRIVER_DIR']
-  if File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb')
-  elsif File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb')
-  else 
-    abort('The Ruby driver was not where it was expected based on RUBY_DRIVER_DIR: ' + ENV['RUBY_DRIVER_DIR'])
-  end
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-else
-  projectDir = File.dirname(File.dirname(File.dirname(File.expand_path(__FILE__))))
-  
-  ['build', ''].each do |pathPrefix|
-    dirPath = File.join(projectDir, pathPrefix, 'drivers', 'ruby', 'lib')
-    if File.file?(File.join(dirPath, 'rethinkdb.rb')) && File.file?(File.join(dirPath, 'ql2.pb.rb'))
-      importFilePath = File.join(dirPath, 'rethinkdb.rb')
-      break
-    end
-  end
-  
-  # import or fail
-  if importFilePath == ''
-    abort('Could not find a built ruby driver. Please build it.')
-  end
-  
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-end
-puts('RethinkDB driver loaded from: ' + File.dirname(importFilePath))
-include RethinkDB::Shortcuts
+# -- import the rethinkdb driver
 
-$port ||= ARGV[0].to_i
+require_relative './importRethinkDB.rb'
+
+# --
+
+$port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 ARGV.clear
 $c = r.connect(port: $port).repl
 
@@ -46,13 +17,13 @@ $run_exc = RethinkDB::RqlRuntimeError
 $comp_exc = RethinkDB::RqlCompileError
 
 $s1 = r((0...10).map{|i| {a: i, b: i%2, c: i%3, d: i%5}})
-$tbl1 = r.table('1')
+$tbl1 = r.db('test').table('1')
 $s2 = r((10...20).map{|i| {a: i, b: i%2, c: i%3, d: {e: i%5}}})
-$tbl2 = r.table('2')
+$tbl2 = r.db('test').table('2')
 $s12 = r($s1 + $s2)
-$tbl12 = r.table('12')
+$tbl12 = r.db('test').table('12')
 s_empty = r([])
-$tbl_empty = r.table('empty')
+$tbl_empty = r.db('test').table('empty')
 
 def synonyms(seq)
   [seq,
@@ -79,18 +50,18 @@ $batch_confs = [{}, {max_batch_rows: 3}]
 $slow = nil
 
 $gmrdata = [{"a"=>0, "arr"=>[0, 0], "id"=>0}, {"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1}, {"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}, {"a"=>0, "arr"=>[1, 3], "id"=>3}, {"a"=>1, "arr"=>[0, 4], "id"=>4}, {"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}, {"a"=>0, "arr"=>[0, 1], "id"=>6}, {"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7}, {"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}, {"a"=>0, "arr"=>[1, 4], "id"=>9}]
-$tbl = r.table('gmrdata')
+$tbl = r.db('test').table('gmrdata')
 
 class ClientTest < Test::Unit::TestCase
   def setup
     r.db_create('test').run rescue nil
-    r.table_create('test').run rescue nil
-    r.table_create('1').run rescue nil
-    r.table_create('2').run rescue nil
-    r.table_create('12').run rescue nil
-    r.table_create('empty').run rescue nil
-    r.table_create('gmrdata').run rescue nil
-    r.table_list.foreach{|x| r.table(x).delete}.run
+    r.db('test').table_create('test').run rescue nil
+    r.db('test').table_create('1').run rescue nil
+    r.db('test').table_create('2').run rescue nil
+    r.db('test').table_create('12').run rescue nil
+    r.db('test').table_create('empty').run rescue nil
+    r.db('test').table_create('gmrdata').run rescue nil
+    r.db('test').table_list.foreach{|x| r.db('test').table(x).delete}.run
     $tbl1.insert($s1).run
     $tbl2.insert($s2).run
     $tbl12.insert($s12).run
@@ -155,10 +126,15 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     ensure
       $dispatch_hook = nil
     end
-    assert_equal({'t' => 16, 'b' => [], 'r' => ["Client is buggy (failed to deserialize query)."]},
-                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(1337, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+                 $c.wait($c.dispatch([1, 1337, 1, {}], 1337)))
+    $c.register_query(-1, {})
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Protocol error, connection closed."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1)))
+    raise Exception, "Connection was not closed by protocol error." if $c.is_open()
+    $c.reconnect()
+    $c.register_query(16, {})
     assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, 1], 16)))
   end

@@ -18,7 +18,7 @@ void walk_wait_times(int i) {
         const ticks_t t2 = get_ticks();
         const int64_t diff = static_cast<int64_t>(t2) - static_cast<int64_t>(t);
         // Asserts that we're off by less than two milliseconds.
-        ASSERT_LT(abs(diff - wait_array[i][j] * MILLION), 2 * MILLION);
+        ASSERT_LT(llabs(diff - wait_array[i][j] * MILLION), 2 * MILLION);
         t = t2;
     }
 

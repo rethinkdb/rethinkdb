@@ -1,56 +1,81 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-op = OptParser()
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, workload_runner, scenario_common, utils, vcoptparse
+
+op = vcoptparse.OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    print "Starting cluster..."
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    primary_files = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1",
-                                 executable_path = executable_path, command_prefix = command_prefix)
-    primary = driver.Process(cluster, primary_files, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    secondary_files = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2",
-                                   executable_path = executable_path, command_prefix = command_prefix)
-    secondary = driver.Process(cluster, secondary_files, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    primary.wait_until_started_up()
-    secondary.wait_until_started_up()
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", secondary.http_port)])
-    primary_dc = http.add_datacenter()
-    http.move_server_to_datacenter(primary.files.machine_name, primary_dc)
-    secondary_dc = http.add_datacenter()
-    http.move_server_to_datacenter(secondary.files.machine_name, secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
-    http.set_table_ack_expectations(ns, {secondary_dc: 1})
-    http.wait_until_blueprint_satisfied(ns)
-    cluster.check()
-    http.check_no_issues()
+numNodes = 2
 
-    workload_ports = scenario_common.get_workload_ports(ns, [secondary])
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+    
+    print('Establishing ReQL connection (%.2fs)' % (time.time() - startTime))
+    
+    primary = cluster[0]
+    secondary = cluster[1]
+    conn1 = r.connect(host=primary.host, port=primary.driver_port)
+    conn2 = r.connect(host=secondary.host, port=secondary.driver_port)
+    
+    workload_ports = workload_runner.RDBPorts(host=secondary.host, http_port=secondary.http_port, rdb_port=secondary.driver_port, db_name=dbName, table_name=tableName)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn1):
+        r.db_create(dbName).run(conn1)
+    
+    if tableName in r.db(dbName).table_list().run(conn1):
+        r.db(dbName).table_drop(tableName).run(conn1)
+    r.db(dbName).table_create(tableName).run(conn1)
+    
+    print("Pinning table to first server (%.2fs)" % (time.time() - startTime))
+    
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':primary.name, 'replicas':[primary.name, secondary.name]}]}).run(conn1)['errors'] == 0
+    r.db(dbName).table_wait().run(conn1)
+    
+    print("Starting workload before (%.2fs)" % (time.time() - startTime))
+    
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
-        http.check_no_issues()
-        print "Killing the primary..."
+        issues = list(r.db('rethinkdb').table('issues').run(conn1))
+        assert len(issues) == 0, 'The server recorded the following issues: %s' % str(issues)
+        
+        print("Killing the primary (%.2fs)" % (time.time() - startTime))
         primary.close()
-        http.declare_machine_dead(primary.files.machine_name)
-        http.move_table_to_datacenter(ns, secondary_dc)
-        http.set_table_affinities(ns, {secondary_dc: 0})
-        http.wait_until_blueprint_satisfied(ns)
+        
+        print("Moving the shard to the secondary (%.2fs)" % (time.time() - startTime))
+        
+        assert r.db(dbName).table_config(tableName).update({'shards':[{'director':secondary.name, 'replicas':[secondary.name]}]}).run(conn2)['errors'] == 0
+        r.db(dbName).table_wait().run(conn2)
         cluster.check()
-        http.check_no_issues()
+        issues = list(r.db('rethinkdb').table('issues').run(conn2))
+        assert len(issues) > 0, 'The server did not record the issue for the killed server'
+        assert len(issues) == 1, 'The server recorded more issues than the single one expected: %s' % str(issues)
+        
+        print("Running workload after (%.2fs)" % (time.time() - startTime))
         workload.run_after()
+        
+        print("Declaring the primary dead (%.2fs)" % (time.time() - startTime))
+        
+        assert r.db('rethinkdb').table('server_config').get(primary.uuid).delete().run(conn2)['errors'] == 0
+        time.sleep(.1)
+        issues = list(r.db('rethinkdb').table('issues').run(conn2))
+        assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
 
-    http.check_no_issues()
-    cluster.check_and_stop()
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

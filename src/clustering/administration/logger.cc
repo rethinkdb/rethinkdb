@@ -26,6 +26,7 @@ std::string format_log_level(log_level_t l) {
     switch (l) {
         case log_level_debug: return "debug";
         case log_level_info: return "info";
+        case log_level_notice: return "notice";
         case log_level_warn: return "warn";
         case log_level_error: return "error";
         default: unreachable();
@@ -37,6 +38,8 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
         return log_level_debug;
     else if (s == "info")
         return log_level_info;
+    else if (s == "notice")
+        return log_level_notice;
     else if (s == "warn")
         return log_level_warn;
     else if (s == "error")
@@ -46,6 +49,9 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 }
 
 std::string format_log_message(const log_message_t &m, bool for_console) {
+    // never write an info level message to console
+    guarantee(!(for_console && m.level == log_level_info));
+
     std::string message = m.message;
     std::string message_reformatted;
 
@@ -57,7 +63,9 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
     } else {
-        prepend = strprintf("%s: ", format_log_level(m.level).c_str());
+        if (m.level != log_level_info && m.level != log_level_notice) {
+            prepend = strprintf("%s: ", format_log_level(m.level).c_str());
+        }
     }
     ssize_t prepend_length = prepend.length();
 
@@ -335,43 +343,66 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg);
-    std::string console_formatted = format_log_message(msg, true);
 
-    flockfile(stderr);
-
-    ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
-    if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        error_out->assign("cannot write to standard error: " + errno_string(get_errno()));
-        return false;
+    FILE* write_stream = nullptr;
+    int fileno = -1;
+    switch (msg.level) {
+        case log_level_info:
+            // no message on stdout/stderr
+            break;
+        case log_level_notice:
+            write_stream = stdout;
+            fileno = STDOUT_FILENO;
+            break;
+        case log_level_debug:
+        case log_level_warn:
+        case log_level_error:
+            write_stream = stderr;
+            fileno = STDERR_FILENO;
+            break;
+        default:
+            unreachable();
     }
 
-    int res = fsync(STDERR_FILENO);
-    if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
-        error_out->assign("cannot flush stderr: " + errno_string(get_errno()));
-        return false;
-    }
+    if (msg.level != log_level_info) {
+        // Write to stdout/stderr for all log levels but info (#3040)
+        std::string console_formatted = format_log_message(msg, true);
+        flockfile(write_stream);
 
-    funlockfile(stderr);
+        ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
+        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+            error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
+            return false;
+        }
+
+        int fsync_res = fsync(fileno);
+        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+            error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
+            return false;
+        }
+
+        funlockfile(write_stream);
+    }
 
     if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
         return false;
     }
 
-    res = fcntl(fd.get(), F_SETLKW, &filelock);
-    if (res != 0) {
+    int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);
+    if (fcntl_res != 0) {
         error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
 
-    write_res = ::write(fd.get(), formatted.data(), formatted.length());
+    ssize_t write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
         error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
 
-    res = fcntl(fd.get(), F_SETLK, &fileunlock);
-    if (res != 0) {
+    fcntl_res = fcntl(fd.get(), F_SETLK, &fileunlock);
+    if (fcntl_res != 0) {
         error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
@@ -393,7 +424,8 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
+thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator) :
+        log_write_issue_tracker(local_issue_aggregator) {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
@@ -451,13 +483,9 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
     bool ok;
     thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
-        issue.reset();
+        log_write_issue_tracker.report_success();
     } else {
-        if (!issue.has()) {
-            issue.init(new local_issue_tracker_t::entry_t(
-                issue_tracker,
-                local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)));
-        }
+        log_write_issue_tracker.report_error(error_message);
     }
 }
 

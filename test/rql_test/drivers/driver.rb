@@ -4,33 +4,14 @@ $test_count = 0
 $failure_count = 0
 $success_count = 0
 
-JSPORT = ARGV[0]
-CPPPORT = ARGV[1]
-DB_AND_TABLE_NAME = ARGV[2]
+DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+DB_AND_TABLE_NAME = ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME'] || 'no_table_specified'
 
-# -- import the called-for rethinkdb module
-if ENV['RUBY_DRIVER_DIR']
-  $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
-  require 'rethinkdb'
-  $LOAD_PATH.shift
-else
-  # look for the source directory
-  targetPath = File.expand_path(File.dirname(__FILE__))
-  while targetPath != File::Separator
-    sourceDir = File.join(targetPath, 'drivers', 'ruby')
-    if File.directory?(sourceDir)
-      unless system("make -C " + sourceDir)
-        abort "Unable to build the ruby driver at: " + sourceDir
-      end
-      $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
-      require 'rethinkdb'
-      $LOAD_PATH.shift
-      break
-    end
-    targetPath = File.dirname(targetPath)
-  end
-end
-extend RethinkDB::Shortcuts
+# -- import the rethinkdb driver
+
+require_relative '../importRethinkDB.rb'
+
+# --
 
 def show x
   if x.class == Err
@@ -44,8 +25,6 @@ NoError = "nope"
 AnyUUID = "<any uuid>"
 Err = Struct.new(:type, :message, :backtrace, :regex)
 Bag = Struct.new(:items)
-Int = Struct.new(:i)
-Floatable = Struct.new(:i)
 
 def bag list
   Bag.new(list)
@@ -59,6 +38,10 @@ def uuid
   AnyUUID
 end
 
+def shard
+  # do nothing in Ruby tests
+end
+
 def err(type, message, backtrace=[])
   Err.new(type, message, backtrace, false)
 end
@@ -67,92 +50,149 @@ def err_regex(type, message, backtrace=[])
   Err.new(type, message, backtrace, true)
 end
 
-def eq_test(one, two)
-  return cmp_test(one, two) == 0
+def eq_test(expected, result, testopts={})
+  return cmp_test(expected, result, testopts) == 0
 end
 
-def int_cmp i
-    Int.new i
+class Number
+  def initialize(value)
+    @value = value
+    @requiredType = value.class
+  end
+  
+  def method_missing(name, *args)
+    return @number.send(name, *args)
+  end
+  
+  def to_s
+    return @value.to_s + "(explicit" + @requiredType.name + ")"
+  end
+  
+  def inspect
+    return @value.to_s + " (explicit " + @requiredType.name + ")"
+  end
+  attr_reader :value 
+  attr_reader :requiredType 
 end
 
-def float_cmp i
-    Floatable.new i
+def int_cmp(value)
+  raise "int_cmp got a non Fixnum input: " + value.to_s unless value.kind_of?(Fixnum)
+  return Number.new(value)
 end
 
-def cmp_test(one, two)
-  if two.object_id == NoError.object_id
-    return -1 if one.class == Err
+def float_cmp(value)
+  raise "int_cmp got a non Float input: " + value.to_s unless value.kind_of?(Float)
+  return Number.new(value)
+end
+
+def cmp_test(expected, result, testopts={})
+  if expected.object_id == NoError.object_id
+    return -1 if result.class == Err
     return 0
   end
-
-  if two.object_id == AnyUUID.object_id
-    return -1 if not one.kind_of? String
-    return 0 if one.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
+  
+  if expected.nil? and result.nil?
+    return 0
+  elsif result.nil?
+    return 1
+  elsif expected.nil?
+    return -1
+  end
+  
+  if expected.object_id == AnyUUID.object_id
+    return -1 if not result.kind_of? String
+    return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
     return 1
   end
 
-  if one.class == String then
-    one = one.sub(/\nFailed assertion:(.|\n)*/, "")
+  if result.class == String then
+    result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
 
-  case "#{two.class}"
+  case "#{expected.class}"
   when "Err"
-    if one.kind_of? Exception
-      one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message, false)
+    if result.kind_of? Exception
+      result = Err.new("#{result.class}".sub(/^RethinkDB::/,""), result.message, false)
     end
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    if not two.regex
-      one_msg = one.message.sub(/:\n(.|\n)*|:$/, ".")
-      [one.type, one_msg] <=> [two.type, two.message]
+    if not expected.regex
+      result_msg = result.message.sub(/:\n(.|\n)*|:$/, ".")
+      [result.type, result_msg] <=> [expected.type, expected.message]
     else
-      if (Regexp.compile two.type) =~ one.type and
-          (Regexp.compile two.message) =~ one.message
+      if (Regexp.compile expected.type) =~ result.type and
+          (Regexp.compile expected.message) =~ result.message
         return 0
       end
       return -1
     end
 
   when "Array"
-    if one.respond_to? :to_a
-      one = one.to_a
+    if result.respond_to? :to_a
+      result = result.to_a
     end
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    cmp = one.length <=> two.length
+    cmp = result.length <=> expected.length
     return cmp if cmp != 0
-    return one.zip(two).reduce(0){ |acc, pair|
-      acc == 0 ? cmp_test(pair[0], pair[1]) : acc
+    expected.zip(result) { |pair|
+      cmp = cmp_test(pair[0], pair[1], testopts)
+      return cmp if cmp != 0
     }
+    return 0
 
   when "Hash"
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    one = Hash[ one.map{ |k,v| [k.to_s, v] } ]
-    two = Hash[ two.map{ |k,v| [k.to_s, v] } ]
-    cmp = one.keys.sort <=> two.keys.sort
+    result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
+    expected = Hash[ expected.map{ |k,v| [k.to_s, v] } ]
+    cmp = result.keys.sort <=> expected.keys.sort
     return cmp if cmp != 0
-    return one.keys.reduce(0){ |acc, k|
-      acc == 0 ? cmp_test(one[k], two[k]) : acc
+    expected.each_key { |key|
+      cmp = cmp_test(expected[key], result[key], testopts)
+      return cmp if cmp != 0
     }
+    return 0
 
   when "Bag"
-    return cmp_test(one.sort{ |a, b| cmp_test a, b },
-                    two.items.sort{ |a, b| cmp_test a, b })
-
-  when "Int"
-    return cmp_test([Fixnum.name, two.i], [one.class.name, one])
-
-  when "Floatable"
-    return cmp_test([Float, two.i], [one.class, one])
-
+    return cmp_test(
+      expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
+      result.sort{ |a, b| cmp_test(a, b, testopts) },
+      testopts
+    )
+  
+  when "Float", "Fixnum", "Number"
+    if not (result.kind_of? Float or result.kind_of? Fixnum)
+      cmp = result.class.name <=> expected.class.name
+      return cmp if cmp != 0
+    end
+    
+    if expected.kind_of?(Number)
+      if not result.kind_of?(expected.requiredType)
+        cmp = result.class.name <=> expected.class.name
+        return cmp if cmp != 0 else -1
+      end
+      expected = expected.value
+    end
+    
+    if testopts.has_key?(:precision)
+      diff = result - expected
+      if (diff).abs < testopts[:precision]
+        return 0
+      else
+        return diff <=> 0
+      end
+    else
+      return result <=> expected
+    end
+  
   else
     begin
-      cmp = one <=> two
+      cmp = result <=> expected
       return cmp if cmp != nil
-      return one.class.name <=> two.class.name
+      return result.class.name <=> expected.class.name
     rescue
-      return one.class.name <=> two.class.name
+      return result.class.name <=> expected.class.name
     end
   end
 end
@@ -160,7 +200,7 @@ end
 def eval_env; binding; end
 $defines = eval_env
 
-$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => CPPPORT)
+$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
 begin
   r.db_create('test').run($cpp_conn)
 rescue
@@ -183,7 +223,7 @@ def test src, expected, name, opthash=nil, testopts=nil
       eval(src, $defines)
     rescue Exception => e
       result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], "TODO")
-      return check_result name, src, result, expected
+      return check_result(name, src, result, expected, testopts)
     end
   end
   
@@ -211,7 +251,7 @@ def test src, expected, name, opthash=nil, testopts=nil
   rescue Exception => e
     result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], "TODO")
   end
-  return check_result name, src, result, expected
+  return check_result(name, src, result, expected, testopts)
   
 end
 
@@ -258,7 +298,7 @@ at_exit do
   puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
 end
 
-def check_result name, src, res, expected
+def check_result(name, src, result, expected, testopts={})
   sucessfulTest = true
   begin
     if expected && expected != ''
@@ -271,18 +311,18 @@ def check_result name, src, res, expected
     $stderr.puts "\tBODY: #{src}"
     $stderr.puts "\tEXPECTED: #{show expected}"
     $stderr.puts "\tFAILURE: #{e}"
-    puts; puts;
+    $stderr.puts ""
     sucessfulTest = false
   end
   if sucessfulTest
     begin
-      if ! eq_test(res, expected)
-        fail_test name, src, res, expected
+      if ! eq_test(expected, result, testopts)
+        fail_test(name, src, result, expected)
         sucessfulTest = false
       end
     rescue Exception => e
       sucessfulTest = false
-      puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
+      puts "#{name}: Error: #{e} when comparing #{show result} and #{show expected}"
     end
   end
   if sucessfulTest
@@ -299,7 +339,7 @@ def fail_test name, src, res, expected
   $stderr.puts "\tBODY: #{src}"
   $stderr.puts "\tVALUE: #{show res}"
   $stderr.puts "\tEXPECTED: #{show expected}"
-  puts; puts;
+  $stderr.puts ""
 end
 
 def the_end

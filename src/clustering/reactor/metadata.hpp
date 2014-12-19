@@ -18,7 +18,7 @@
 #include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
-currently happening on this machine. Each `reactor_business_card_t` only applies
+currently happening on this server. Each `reactor_business_card_t` only applies
 to a single namespace. */
 
 namespace reactor_business_card_details {

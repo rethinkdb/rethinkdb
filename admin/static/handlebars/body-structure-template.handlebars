@@ -1,0 +1,31 @@
+
+    <div id="sticky-wrap">
+        <div id="navbar-container"></div>
+        <div id="options_container"></div>
+        <div id="topbar"></div>
+        <div id="updates_container"> 
+        </div>
+        <div id="main-container">
+            <div id="cluster" class="container"></div>
+            <div id="modal-dialog"></div>
+        </div>
+    </div>
+    <div id="footer">
+        <div class="container">
+            <ul>
+                <li><a target="_blank" href="http://rethinkdb.com/docs/">Documentation</a></li>
+                <li><a target="_blank" href="http://rethinkdb.com/api/">API</a></li>
+                <li><a target="_blank" href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
+                <li><a target="_blank" href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
+                <li><a target="_blank" href="https://github.com/rethinkdb/rethinkdb/issues">Github</a></li>
+                <li><a target="_blank" href="http://rethinkdb.com/community/">Community</a></li>
+                {{!
+                        We use an invisible span with no content to preload the monospace font for the data explorer:
+                        This ensures that data explorer suggestions won't be delayed while loading the font.
+                        This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
+                }}
+            </ul>
+        </div>
+    </div>
+
+

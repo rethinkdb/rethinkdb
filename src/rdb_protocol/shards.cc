@@ -15,6 +15,16 @@ bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
 namespace ql {
 
+void debug_print(printf_buffer_t *buf, const rget_item_t &item) {
+    buf->appendf("rget_item{key=");
+    debug_print(buf, item.key);
+    buf->appendf(", sindex_key=");
+    debug_print(buf, item.sindex_key);
+    buf->appendf(", data=");
+    debug_print(buf, item.data);
+    buf->appendf("}");
+}
+
 accumulator_t::accumulator_t() : finished(false) { }
 accumulator_t::~accumulator_t() { }
 void accumulator_t::mark_finished() { finished = true; }
@@ -124,7 +134,7 @@ public:
     append_t(sorting_t _sorting, batcher_t *_batcher)
         : grouped_acc_t<stream_t>(stream_t()),
           sorting(_sorting), key_le(sorting), batcher(_batcher) { }
-private:
+protected:
     virtual bool should_send_batch() {
         return batcher != NULL && batcher->should_send_batch();
     }
@@ -198,6 +208,100 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
     return make_scoped<append_t>(sorting, batcher);
 }
 
+// This has to inherit from `eager_acc_t` so it can be produced in the terminal
+// visitor, but if you try to use it as an eager accumulator you'll get a
+// runtime error.
+class limit_append_t : public append_t, public eager_acc_t {
+public:
+    limit_append_t(
+        is_primary_t _is_primary,
+        size_t _n,
+        sorting_t sorting,
+        std::vector<scoped_ptr_t<op_t> > *_ops)
+        : append_t(sorting, &batcher),
+          is_primary(_is_primary),
+          seen_distinct(false),
+          seen(0),
+          n(_n),
+          ops(_ops),
+          batcher(batchspec_t::all().to_batcher()) { }
+private:
+    virtual void operator()(env_t *, groups_t *) {
+        guarantee(false); // Don't use this as an eager accumulator.
+    }
+    virtual void add_res(env_t *, result_t *) {
+        guarantee(false); // Don't use this as an eager accumulator.
+    }
+    virtual scoped_ptr_t<val_t> finish_eager(
+        protob_t<const Backtrace>, bool, const ql::configured_limits_t &) {
+        guarantee(false); // Don't use this as an eager accumulator.
+        unreachable();
+    }
+
+    virtual bool should_send_batch() {
+        return seen >= n && seen_distinct;
+    }
+    virtual bool accumulate(env_t *env,
+                            const datum_t &el,
+                            stream_t *stream,
+                            const store_key_t &key,
+                            // sindex_val may be NULL
+                            const datum_t &sindex_val) {
+        bool ret;
+        size_t seen_this_time = 0;
+        {
+            stream_t substream;
+            ret = append_t::accumulate(env, el, &substream, key, sindex_val);
+            for (auto &&item : substream) {
+                if (boost::optional<datum_t> d
+                    = ql::changefeed::apply_ops(item.data, *ops, env, item.sindex_key)) {
+                    item.data = *d;
+                    stream->push_back(std::move(item));
+                    seen_this_time += 1;
+                }
+            }
+        }
+        if (seen_this_time > 0) {
+            seen += seen_this_time;
+            if (is_primary == is_primary_t::YES) {
+                if (seen >= n) {
+                    seen_distinct = true;
+                }
+            } else {
+                guarantee(stream->size() > 0);
+                rget_item_t *last = &stream->back();
+                if (start_sindex) {
+                    std::string cur =
+                        datum_t::extract_secondary(key_to_unescaped_str(last->key));
+                    // We need to do this because the truncated sindex keys might be
+                    // different sizes depending on the length of the primary key.
+                    // (Also, I hate literally everything about our on-disk key format.)
+                    size_t minlen = std::min(cur.size(), (*start_sindex).size());
+                    if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
+                        seen_distinct = true;
+                    }
+                } else {
+                    if (seen >= n) {
+                        if (datum_t::key_is_truncated(last->key)) {
+                            start_sindex = datum_t::extract_secondary(
+                                key_to_unescaped_str(last->key));
+                        } else {
+                            seen_distinct = true;
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+    boost::optional<std::string> start_sindex;
+    is_primary_t is_primary;
+    bool seen_distinct;
+    size_t seen, n;
+    std::vector<scoped_ptr_t<op_t> > *ops;
+    batcher_t batcher;
+};
+
 bool is_grouped_data(const groups_t *gs, const ql::datum_t &q) {
     return gs->size() > 1 || q.has();
 }
@@ -227,7 +331,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.",
+                              env->limits().array_size_limit()).c_str());
             }
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
@@ -256,7 +361,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.",
+                              env->limits().array_size_limit()).c_str());
             }
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
@@ -265,7 +371,7 @@ private:
         }
     }
 
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped,
                                           const configured_limits_t &limits) {
         if (is_grouped) {
@@ -274,12 +380,12 @@ private:
                 (*ret)[kv->first] = datum_t(std::move(kv->second),
                                                                limits);
             }
-            return make_counted<val_t>(std::move(ret), bt);
+            return make_scoped<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
-            return make_counted<val_t>(datum_t::empty_array(), bt);
+            return make_scoped<val_t>(datum_t::empty_array(), bt);
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
-            return make_counted<val_t>(
+            return make_scoped<val_t>(
                 datum_t(std::move(groups.begin()->second), limits),
                 bt);
         }
@@ -315,13 +421,13 @@ private:
         groups->clear();
     }
 
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped,
                                           UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
-        counted_t<val_t> retval;
+        scoped_ptr_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             // The order of `acc` doesn't matter here because we're putting stuff
@@ -331,15 +437,16 @@ private:
                  ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
-            retval = make_counted<val_t>(std::move(ret), bt);
+            retval = make_scoped<val_t>(std::move(ret), bt);
         } else if (acc->size() == 0) {
             T t(*default_val);
-            retval = make_counted<val_t>(unpack(&t), bt);
+            retval = make_scoped<val_t>(unpack(&t), bt);
         } else {
             // Order doesnt' matter here because the size is 1.
             r_sanity_check(acc->size() == 1 &&
                            !acc->begin(grouped::order_doesnt_matter_t())->first.has());
-            retval = make_counted<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
+            retval = make_scoped<val_t>(
+                unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
         }
         acc->clear();
         return retval;
@@ -595,7 +702,7 @@ private:
         }
     }
     virtual datum_t unpack(datum_t *el) {
-        rcheck_target(f, base_exc_t::NON_EXISTENCE, el->has(), empty_stream_msg);
+        rcheck_target(f, el->has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
         return std::move(*el);
     }
     virtual void unshard_impl(env_t *env,
@@ -627,6 +734,10 @@ public:
     }
     T *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(f);
+    }
+    T *operator()(const limit_read_t &lr) const {
+        return new limit_append_t(
+            lr.is_primary, lr.n, lr.sorting, lr.ops);
     }
 };
 
@@ -719,10 +830,11 @@ private:
                 r_sanity_check(instance.size() == 0);
             }
 
-            rcheck_src(
-                bt.get(), base_exc_t::GENERIC,
-                groups->size() <= env->limits().array_size_limit(),
-                strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
+            rcheck_src(bt.get(),
+                       groups->size() <= env->limits().array_size_limit(),
+                       base_exc_t::GENERIC,
+                       strprintf("Too many groups (> %zu).",
+                                 env->limits().array_size_limit()));
         }
         size_t erased = groups->erase(datum_t());
         r_sanity_check(erased == 1);
@@ -919,5 +1031,18 @@ scoped_ptr_t<op_t> make_op(const transform_variant_t &tv) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(rget_item_t, key, empty_ok(sindex_key), data);
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
+template<cluster_version_t W>
+void serialize(write_message_t *, const limit_read_t &) {
+    crash("Cannot serialize a `limit_read_t`.");
+}
+template<cluster_version_t W>
+archive_result_t deserialize(read_stream_t *, limit_read_t *) {
+    crash("Cannot deserialize a `limit_read_t`.");
+}
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(limit_read_t);
 
 } // namespace ql

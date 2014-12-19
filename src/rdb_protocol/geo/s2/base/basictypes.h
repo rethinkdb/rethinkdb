@@ -69,7 +69,8 @@ const Hash8  kIllegalHash8 = static_cast<Hash8>(255);               // 2^8-1
 }  // namespace geo
 
 // Include docid.h at end because it needs the trait stuff.
-#include "rdb_protocol/geo/s2/base/docid.h"
+// RethinkDB Note:  There is seemingly no reason for this.  Commented out.
+// #include "rdb_protocol/geo/s2/base/docid.h"
 
 namespace geo {
 

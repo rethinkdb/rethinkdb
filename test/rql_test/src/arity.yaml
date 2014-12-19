@@ -71,7 +71,6 @@ tests:
 
     - ot: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:
-      - tbl.map()
       - tbl.concat_map()
       - tbl.skip()
       - tbl.limit()
@@ -122,7 +121,6 @@ tests:
 
     - ot: err("RqlCompileError", "Expected 2 arguments but found 3.", [])
       cd:
-      - tbl.map(1,2)
       - tbl.concat_map(1,2)
       - tbl.skip(1,2)
       - tbl.limit(1,2)
@@ -220,6 +218,12 @@ tests:
     - ot: err('RqlCompileError', "Expected 2 or more arguments but found 1.", [])
       cd:
       - tbl.get_all()
+
+    - cd: tbl.map()
+      ot:
+        py: err('RqlCompileError', "Expected 2 or more arguments but found 1.", [])
+        rb: err('RqlCompileError', "Expected 2 or more arguments but found 1.", [])
+        js: err('RqlDriverError', "Expected 1 or more arguments but found 0.", [])
 
     - ot: err("RqlCompileError", "Expected 3 arguments but found 2.", [])
       cd: r.branch(1,2)

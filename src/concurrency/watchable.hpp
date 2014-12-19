@@ -179,6 +179,14 @@ public:
 
     void set_value(const value_t &_value) {
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
+        if (value != _value) {
+            value = _value;
+            publisher_controller.publish(&call_function);
+        }
+    }
+
+    void set_value_no_equals(const value_t &_value) {
+        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         value = _value;
         publisher_controller.publish(&call_function);
     }
@@ -203,6 +211,17 @@ public:
     void apply_read(const std::function<void(const value_t*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(&value);
+    }
+
+    /* This returns a const reference to the current value. The caller is responsible for
+    ensuring that nothing calls `set_value()` or `apply_atomic_op()` while this reference
+    exists. */
+    const value_t &get_ref() {
+        return value;
+    }
+
+    value_t get() {
+        return value;
     }
 
 private:

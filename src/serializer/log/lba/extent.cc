@@ -99,6 +99,10 @@ extent_t::~extent_t() {
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
     file->read_async(extent_ref.offset() + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
+
+    // Ideally we would count these stats when the io operation completes,
+    // but this is more generic than doing it in each callback
+    em->stats->bytes_read(length);
 }
 
 void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
@@ -123,6 +127,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
             extent_block_t *b = current_block;
             current_block = NULL;
             b->write(io_account);
+            em->stats->bytes_written(DEVICE_BLOCK_SIZE);
         }
 
         length -= chunk;

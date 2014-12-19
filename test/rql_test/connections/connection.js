@@ -2,13 +2,18 @@
 // Tests the driver API for making connections and excercising the networking code
 /////
 
+var assert = require('assert');
+var path = require('path');
 var fs = require('fs');
 var spawn = require('child_process').spawn
 
-var assert = require('assert');
+// -- load rethinkdb from the proper location
 
-var r = require('../../../build/packages/js/rethinkdb');
-var build_dir = process.env.BUILD_DIR || '../../../build/debug'
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+
+// --
+
+var rethinkdbExe = process.env.RDB_EXE_PATH || '../../../build/debug/rethinkdb' // - ToDo: replace the hard code
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
 var port = null;
@@ -126,7 +131,7 @@ describe('Javascript connection API', function(){
                 server_out_log = fs.openSync('run/server-log.txt', 'a');
                 server_err_log = fs.openSync('run/server-error-log.txt', 'a');
                 cpp_server = spawn(
-                    build_dir + '/rethinkdb',
+                    rethinkdbExe,
                     ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
                     {stdio: ['ignore', 'pipe', 'pipe']});
 
@@ -166,7 +171,8 @@ describe('Javascript connection API', function(){
         });
 
         it("correct authorization key", function(done){
-            spawn(build_dir + '/rethinkdb',
+            spawn(
+                  rethinkdbExe,
                   ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter3'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(function(){
@@ -179,7 +185,8 @@ describe('Javascript connection API', function(){
         });
 
         it("wrong authorization key", function(done){
-            spawn(build_dir + '/rethinkdb',
+            spawn(
+                  rethinkdbExe,
                   ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter4'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
 
@@ -191,6 +198,18 @@ describe('Javascript connection API', function(){
         // TODO: test default port
 
         it("close twice and reconnect", withConnection(function(done, c){
+            testSimpleQuery(c, function(){
+                assert.doesNotThrow(function(){
+                    c.close({noreplyWait: false});
+                    c.close({noreplyWait: false});
+                    c.reconnect(function(err, c){
+                        assertNull(err);
+                        testSimpleQuery(c, done);
+                    });
+                });
+            });
+        }));
+        it("close twice (synchronously) and reconnect", withConnection(function(done, c){
             testSimpleQuery(c, function(){
                 assert.doesNotThrow(function(){
                     c.close();
@@ -289,7 +308,7 @@ describe('Javascript connection API', function(){
         it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1', {useOutdated:true}).run(c, function(){
-                    r.table('t1').run(c, {useOutdated: true}, done);});});
+                    r.db('test').table('t1').run(c, {useOutdated: true}, done);});});
         }));
 
         it("test default durability", withConnection(function(done, c){
@@ -380,7 +399,9 @@ describe('Javascript connection API', function(){
             r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
         }));
 
-
+        it("Callback must be a function", withConnection(function(done, c){
+            r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
+        }));
     });
 });
 

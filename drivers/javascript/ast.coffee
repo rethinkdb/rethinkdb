@@ -73,8 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
-                    return
+                    #options is a function here
+                    return Promise.reject(new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,42 +88,37 @@ class TermBase
 
         options = {} if not options?
 
-        # Check if the arguments are valid types
-        try
-            for own key of options
-                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-            if net.isConnection(connection) is false
-                throw new err.RqlDriverError "First argument to `run` must be an open connection."
-        catch e
-            if typeof callback is 'function'
-                return callback(e)
-            else
-                return new Promise (resolve, reject) =>
-                    reject(e)
+        if callback? and typeof callback isnt 'function'
+            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
-        if options.noreply is true or typeof callback is 'function'
+        # Check if the arguments are valid types
+        for own key of options
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
+                    .nodeify callback
+        if net.isConnection(connection) is false
+            return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
+
+        # if `noreply` is `true`, the callback will be immediately called without error
+        # so we do not have to worry about bluebird complaining about errors not being
+        # caught
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if err?
+                    reject(err)
+                else
+                    resolve(result)
+
             try
-                connection._start @, callback, options
+                connection._start @, wrappedCb, options
             catch e
                 # It was decided that, if we can, we prefer to invoke the callback
                 # with any errors rather than throw them as normal exceptions.
                 # Thus we catch errors here and invoke the callback instead of
                 # letting the error bubble up.
-                if typeof(callback) is 'function'
-                    callback(e)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
+                wrappedCb(e)
 
-                try
-                    connection._start @, callback, options
-                catch e
-                    callback(e)
+        ).nodeify callback
 
     toString: -> err.printQuery(@)
 
@@ -174,7 +169,7 @@ class RDBVal extends TermBase
     hasFields: (args...) -> new HasFields {}, @, args...
     withFields: (args...) -> new WithFields {}, @, args...
     keys: (args...) -> new Keys {}, @, args...
-    changes: (args...) -> new Changes {}, @, args...
+    changes: aropt (opts) -> new Changes opts, @
 
     # pluck and without on zero fields are allowed
     pluck: (args...) -> new Pluck {}, @, args...
@@ -183,7 +178,7 @@ class RDBVal extends TermBase
     merge: (args...) -> new Merge {}, @, args.map(funcWrap)...
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: (args...) -> new Reduce {}, @, args.map(funcWrap)...
-    map: (args...) -> new Map {}, @, args.map(funcWrap)...
+    map: varar 1, null, (args..., funcArg) -> new Map {}, @, args..., funcWrap(funcArg)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
     distinct: aropt (opts) -> new Distinct opts, @
@@ -191,6 +186,8 @@ class RDBVal extends TermBase
     union: (args...) -> new Union {}, @, args...
     nth: (args...) -> new Nth {}, @, args...
     bracket: (args...) -> new Bracket {}, @, args...
+    toJSON: (args...) -> new ToJsonString {}, @, args...
+    toJsonString: (args...) -> new ToJsonString {}, @, args...
     match: (args...) -> new Match {}, @, args...
     split: (args...) -> new Split {}, @, args.map(funcWrap)...
     upcase: (args...) -> new Upcase {}, @, args...
@@ -220,8 +217,6 @@ class RDBVal extends TermBase
 
     sum: (args...) -> new Sum {}, @, args.map(funcWrap)...
     avg: (args...) -> new Avg {}, @, args.map(funcWrap)...
-    min: (args...) -> new Min {}, @, args.map(funcWrap)...
-    max: (args...) -> new Max {}, @, args.map(funcWrap)...
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
@@ -279,6 +274,7 @@ class RDBVal extends TermBase
     tableList: (args...) -> new TableList {}, @, args...
     tableConfig: (args...) -> new TableConfig {}, @, args...
     tableStatus: (args...) -> new TableStatus {}, @, args...
+    tableWait: (args...) -> new TableWait {}, @, args...
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
@@ -290,7 +286,6 @@ class RDBVal extends TermBase
         # Default if no opts dict provided
         opts = {}
         keys = keysAndOpts
-
         # Look for opts dict
         if keysAndOpts.length > 1
             perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
@@ -298,8 +293,33 @@ class RDBVal extends TermBase
                     ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
                 opts = perhapsOptDict
                 keys = keysAndOpts[0...(keysAndOpts.length - 1)]
-
         new GetAll opts, @, keys...
+
+    min: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Min opts, @, keys.map(funcWrap)...
+
+    max: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+        # Look for opts dict
+        if keysAndOpts.length == 1
+            perhapsOptDict = keysAndOpts[0]
+            if perhapsOptDict and
+                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+                opts = perhapsOptDict
+                keys = []
+        new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
@@ -321,8 +341,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
-    reconfigure: aropt (num_shards, num_replicas, opts) ->
-        new Reconfigure opts, @, num_shards, num_replicas
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -386,6 +406,7 @@ translateBackOptargs = (optargs) ->
             when 'page_limit' then 'pageLimit'
             when 'director_tag' then 'directorTag'
             when 'dry_run' then 'dryRun'
+            when 'identifier_format' then 'identifierFormat'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
             when 'max_results' then 'maxResults'
@@ -412,6 +433,7 @@ translateOptargs = (optargs) ->
             when 'pageLimit' then 'page_limit'
             when 'directorTag' then 'director_tag'
             when 'dryRun' then 'dry_run'
+            when 'identifierFormat' then 'identifier_format'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
             when 'maxResults' then 'max_results'
@@ -729,7 +751,6 @@ class Changes extends RDBOp
     tt: protoTermType.CHANGES
     mt: 'changes'
 
-
 class Object_ extends RDBOp
     tt: protoTermType.OBJECT
     mt: 'object'
@@ -767,11 +788,11 @@ class Filter extends RDBOp
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: protoTermType.CONCATMAP
+    tt: protoTermType.CONCAT_MAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: protoTermType.ORDERBY
+    tt: protoTermType.ORDER_BY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
@@ -789,6 +810,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: protoTermType.NTH
     mt: 'nth'
+
+class ToJsonString extends RDBOp
+    tt: protoTermType.TO_JSON_STRING
+    mt: 'toJsonString'
 
 class Match extends RDBOp
     tt: protoTermType.MATCH
@@ -846,6 +871,10 @@ class Zip extends RDBOp
     tt: protoTermType.ZIP
     mt: 'zip'
 
+class Range extends RDBOp
+    tt: protoTermType.RANGE
+    st: 'range'
+
 class CoerceTo extends RDBOp
     tt: protoTermType.COERCE_TO
     mt: 'coerceTo'
@@ -855,7 +884,7 @@ class Ungroup extends RDBOp
     mt: 'ungroup'
 
 class TypeOf extends RDBOp
-    tt: protoTermType.TYPEOF
+    tt: protoTermType.TYPE_OF
     mt: 'typeOf'
 
 class Info extends RDBOp
@@ -894,6 +923,10 @@ class DbList extends RDBOp
     tt: protoTermType.DB_LIST
     st: 'dbList'
 
+class DbConfig extends RDBOp
+    tt: protoTermType.DB_CONFIG
+    st: 'dbConfig'
+
 class TableCreate extends RDBOp
     tt: protoTermType.TABLE_CREATE
     mt: 'tableCreate'
@@ -913,6 +946,10 @@ class TableConfig extends RDBOp
 class TableStatus extends RDBOp
     tt: protoTermType.TABLE_STATUS
     mt: 'tableStatus'
+
+class TableWait extends RDBOp
+    tt: protoTermType.TABLE_WAIT
+    mt: 'tableWait'
 
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
@@ -941,6 +978,10 @@ class IndexWait extends RDBOp
 class Reconfigure extends RDBOp
     tt: protoTermType.RECONFIGURE
     mt: 'reconfigure'
+
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC
@@ -975,7 +1016,7 @@ class All extends RDBOp
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: protoTermType.FOREACH
+    tt: protoTermType.FOR_EACH
     mt: 'forEach'
 
 class Func extends RDBOp
@@ -1220,17 +1261,23 @@ rethinkdb.db = (args...) -> new Db {}, args...
 rethinkdb.dbCreate = (args...) -> new DbCreate {}, args...
 rethinkdb.dbDrop = (args...) -> new DbDrop {}, args...
 rethinkdb.dbList = (args...) -> new DbList {}, args...
+rethinkdb.dbConfig = (args...) -> new DbConfig {}, args...
 
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
 rethinkdb.tableConfig = (args...) -> new TableConfig {}, args...
 rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
+rethinkdb.tableWait = (args...) -> new TableWait {}, args...
+
+rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = (args...) -> new Branch {}, args...
+rethinkdb.map = varar 1, null, (args..., funcArg) -> new Map {}, args..., funcWrap(funcArg)
 
 rethinkdb.asc = (args...) -> new Asc {}, args.map(funcWrap)...
 rethinkdb.desc = (args...) -> new Desc {}, args.map(funcWrap)...
@@ -1298,6 +1345,8 @@ rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
 
 rethinkdb.uuid = (args...) -> new UUID {}, args...
+
+rethinkdb.range = (args...) -> new Range {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

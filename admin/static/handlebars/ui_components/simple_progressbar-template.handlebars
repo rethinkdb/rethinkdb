@@ -1,0 +1,18 @@
+
+    {{#if operation_active}}
+    <div class="progress-status">
+        <div class="stages">
+            {{#if starting}}
+                <p>Started</p>
+            {{/if}}
+            {{#if processing}}
+                <p>Processing</p>
+            {{/if}}
+            {{#if finished}}
+                <p class="completed">Processed</p>
+            {{/if}}
+        </div>
+        <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+    </div>
+    {{/if}}
+</script#>

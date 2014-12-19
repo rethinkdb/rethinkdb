@@ -53,17 +53,27 @@ public:
     lock_t lock();
 
     void assert_not_draining() {
-        guarantee(!draining.is_pulsed());
+        guarantee(!is_draining());
     }
 
     void assert_draining() {
-        guarantee(draining.is_pulsed());
+        guarantee(is_draining());
     }
+
+    bool is_draining() {
+        return draining.is_pulsed();
+    }
+
+    signal_t *get_drain_signal() {
+        return &draining;
+    }
+
+    void begin_draining();
 
     void drain();
 
     void rethread(threadnum_t new_thread) {
-        rassert(refcount == 0);
+        guarantee(refcount == 0);
         real_home_thread = new_thread;
         draining.rethread(new_thread);
     }
@@ -74,7 +84,7 @@ private:
 
     cond_t draining;
     int refcount;
-    coro_t *when_done;
+    cond_t drained;
 };
 
 /* For example, here's a toy class to handle TCP connections:

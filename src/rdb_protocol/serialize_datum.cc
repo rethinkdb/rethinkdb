@@ -961,7 +961,10 @@ template archive_result_t deserialize<cluster_version_t::v1_13_2>(
 template archive_result_t deserialize<cluster_version_t::v1_14>(
         read_stream_t *s,
         empty_ok_ref_t<datum_t> datum);
-template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15>(
+        read_stream_t *s,
+        empty_ok_ref_t<datum_t> datum);
+template archive_result_t deserialize<cluster_version_t::v1_16_is_latest>(
         read_stream_t *s,
         empty_ok_ref_t<datum_t> datum);
 

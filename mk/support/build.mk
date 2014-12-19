@@ -48,7 +48,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$(warning Fetching $@ is disabled in --always-make (-B) mode)
 else
 	$P FETCH $*
-	name='$*'; $(PKG_SCRIPT) fetch "$${name%%_*}" $(call SUPPORT_LOG_REDIRECT, $(SUPPORT_LOG_DIR)/$*_fetch.log)
+	$(PKG_SCRIPT) fetch $* $(call SUPPORT_LOG_REDIRECT, $(SUPPORT_LOG_DIR)/$*_fetch.log)
 endif
 
 # List of files that make expects the packages to install
@@ -66,6 +66,10 @@ define support_rules
 fetch-$2: $(SUPPORT_SRC_DIR)/$2_$3
 build-$2: build-$2_$3
 clean-$2: clean-$2_$3
+
+.PHONY: shrinkwrap-$2
+shrinkwrap-$2:
+	$(PKG_SCRIPT) shrinkwrap $2_$3
 
 # Depend on node for fetching node packages
 $(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
@@ -96,7 +100,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
 	$$P BUILD $2_$3
-	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install $2 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
+	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install $2_$3 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
 	touch $(SUPPORT_BUILD_DIR)/$2_$3/install.witness
 endif
 
@@ -106,7 +110,7 @@ endif
 # guessed after the package has been installed.
 ifneq (undefined,$$(origin $2_LIB_NAME))
   $$(foreach lib,$$($2_LIB_NAME),\
-    $$(eval $$(lib)_LIBS = $$$$(shell $(PKG_SCRIPT) link-flags $2 $$(lib))))
+    $$(eval $$(lib)_LIBS = $$$$(shell $(PKG_SCRIPT) link-flags $2_$3 $$(lib))))
 endif
 
 endef
@@ -129,7 +133,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
 	$$P INSTALL-INCLUDE $2_$3
-	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install-include $2 \
+	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install-include $2_$3 \
 	  $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install-include.log)
 	test -e $1 && touch $1 || true
 endif

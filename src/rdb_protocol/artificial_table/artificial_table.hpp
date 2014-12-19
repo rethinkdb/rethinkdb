@@ -31,16 +31,13 @@ public:
         const std::string &get_all_sindex_id,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated);
-    counted_t<ql::datum_stream_t> read_row_changes(
+    counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name);
-    counted_t<ql::datum_stream_t> read_all_changes(
-        ql::env_t *env,
+        const ql::datum_t &, // TODO: implement squash
+        ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_intersecting(
@@ -80,7 +77,7 @@ public:
     bool sindex_drop(ql::env_t *env, const std::string &id);
     sindex_rename_result_t sindex_rename(ql::env_t *env,
         const std::string &old_name, const std::string &new_name, bool overwrite);
-    std::vector<std::string> sindex_list(ql::env_t *env);
+    std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated);
     std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
         const std::set<std::string> &sindexes);
 

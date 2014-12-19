@@ -172,14 +172,19 @@ class LittleEndian {
 
 
 // This one is safe to take as it's an extension
+#ifndef htonll
 #define htonll(x) ghtonll(x)
+#endif
 
 // ntoh* and hton* are the same thing for any size and bytesex,
 // since the function is an involution, i.e., its own inverse.
 #define gntohl(x) ghtonl(x)
 #define gntohs(x) ghtons(x)
 #define gntohll(x) ghtonll(x)
+
+#ifndef ntohll
 #define ntohll(x) htonll(x)
+#endif
 
 }  // namespace geo
 

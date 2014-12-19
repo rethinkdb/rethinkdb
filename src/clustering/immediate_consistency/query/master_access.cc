@@ -53,8 +53,9 @@ void master_access_t::read(
     mailbox_t<void(boost::variant<read_response_t, std::string>)>
         result_or_failure_mailbox(
             mailbox_manager,
-            std::bind(&promise_t<boost::variant<read_response_t, std::string> >::pulse,
-                        &result_or_failure, ph::_1));
+            [&](signal_t *, const boost::variant<read_response_t, std::string> &res) {
+                result_or_failure.pulse(res);
+            });
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
@@ -107,7 +108,9 @@ void master_access_t::write(
     promise_t<boost::variant<write_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<write_response_t, std::string>)> result_or_failure_mailbox(
         mailbox_manager,
-        std::bind(&promise_t<boost::variant<write_response_t, std::string> >::pulse, &result_or_failure, ph::_1));
+        [&](signal_t *, const boost::variant<write_response_t, std::string> &res) {
+            result_or_failure.pulse(res);
+        });
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();

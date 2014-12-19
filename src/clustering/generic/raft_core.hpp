@@ -14,6 +14,7 @@
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
@@ -48,10 +49,12 @@ code, by making it clearer what the meaning of a particular number is. */
 typedef uint64_t raft_term_t;
 typedef uint64_t raft_log_index_t;
 
-/* Every member of the Raft cluster is identified by a `machine_id_t`. The Raft paper
+/* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
-way of assigning integers, but we've already assigned a `machine_id_t` to each server in
-the cluster. */
+way of assigning integers. Note that `raft_member_id_t` is not a `machine_id_t` or a
+`peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
+different `raft_member_id_t` the second time. */
+typedef uuid_u raft_member_id_t;
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
@@ -59,20 +62,20 @@ public:
     /* Regular members of the Raft cluster go in `voting_members`. `non_voting_members`
     is for members that should receive updates, but that don't count for voting purposes.
     */
-    std::set<machine_id_t> voting_members, non_voting_members;
+    std::set<raft_member_id_t> voting_members, non_voting_members;
 
     /* Returns a list of all members, voting and non-voting. */
-    std::set<machine_id_t> get_all_members() const {
-        std::set<machine_id_t> members;
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members;
         members.insert(voting_members.begin(), voting_members.end());
         members.insert(non_voting_members.begin(), non_voting_members.end());
         return members;
     }
 
     /* Returns `true` if `members` constitutes a majority. */
-    bool is_quorum(const std::set<machine_id_t> &members) const {
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
         size_t votes = 0;
-        for (const machine_id_t &m : members) {
+        for (const raft_member_id_t &m : members) {
             votes += voting_members.count(m);
         }
         return (votes * 2 > voting_members.size());
@@ -80,7 +83,7 @@ public:
 
     /* Returns `true` if the given member can act as a leader. (Mostly this exists for
     consistency with `raft_complex_config_t`.) */
-    bool is_valid_leader(const machine_id_t &member) const {
+    bool is_valid_leader(const raft_member_id_t &member) const {
         return voting_members.count(member) == 1;
     }
 
@@ -108,18 +111,18 @@ public:
         return static_cast<bool>(new_config);
     }
 
-    std::set<machine_id_t> get_all_members() const {
-        std::set<machine_id_t> members = config.get_all_members();
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members = config.get_all_members();
         if (is_joint_consensus()) {
             /* Raft paper, Section 6: "Log entries are replicated to all servers in both
             configurations." */
-            std::set<machine_id_t> members2 = new_config->get_all_members();
+            std::set<raft_member_id_t> members2 = new_config->get_all_members();
             members.insert(members2.begin(), members2.end());
         }
         return members;
     }
 
-    bool is_quorum(const std::set<machine_id_t> &members) const {
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
         /* Raft paper, Section 6: "Agreement (for elections and entry commitment)
         requires separate majorities from both the old and new configurations." */
         if (is_joint_consensus()) {
@@ -129,7 +132,7 @@ public:
         }
     }
 
-    bool is_valid_leader(const machine_id_t &member) const {
+    bool is_valid_leader(const raft_member_id_t &member) const {
         /* Raft paper, Section 6: "Any server from either configuration may serve as
         leader." */
         return config.is_valid_leader(member) ||
@@ -151,23 +154,22 @@ class raft_log_entry_t {
 public:
     enum class type_t {
         /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
-        then `change` has a value but `configuration` is empty. */
+        then `change` has a value but `config` is empty. */
         regular,
-        /* A `configuration` log entry has a `raft_complex_config_t`. They are used to
-        change the cluster configuration. See Section 6 of the Raft paper. So if `type`
-        is `configuration`, then `configuration` has a value but `change` is empty. */
-        configuration,
+        /* A `config` log entry has a `raft_complex_config_t`. They are used to change
+        the cluster configuration. See Section 6 of the Raft paper. So if `type` is
+        `config`, then `config` has a value but `change` is empty. */
+        config,
         /* A `noop` log entry does nothing and carries niether a `change_t` nor a
-        `raft_configuration_t`. See Section 8 of the Raft paper. */
+        `raft_complex_config_t`. See Section 8 of the Raft paper. */
         noop
     };
 
     type_t type;
     raft_term_t term;
-    /* Whether `change` and `configuration` are empty or not depends on the value of
-    `type`. */
+    /* Whether `change` and `config` are empty or not depends on the value of `type`. */
     boost::optional<typename state_t::change_t> change;
-    boost::optional<raft_complex_config_t> configuration;
+    boost::optional<raft_complex_config_t> config;
 };
 
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
@@ -242,7 +244,7 @@ cluster persists to stable storage. */
 template<class state_t>
 class raft_persistent_state_t {
 public:
-    /* `make_initial(s)` returns a `raft_persistent_state_t` for a member of a new Raft
+    /* `make_initial()` returns a `raft_persistent_state_t` for a member of a new Raft
     instance with starting state `initial_state` and configuration `initial_config`. The
     caller must ensure that every member of the new Raft cluster starts with the same
     values for these variables. */
@@ -250,32 +252,21 @@ public:
         const state_t &initial_state,
         const raft_config_t &initial_config);
 
-    /* `make_join()` returns a `raft_persistent_state_t` for a Raft member that will be
-    joining an already-established Raft cluster. A Raft member initialized this way
-    should be added to the cluster as a non-voting member, and not made a voting member
-    until it has received a snapshot. */
-    static raft_persistent_state_t make_join();
-
 private:
     template<class state2_t> friend class raft_member_t;
 
     /* `current_term` and `voted_for` correspond to the variables with the same names in
     Figure 2 of the Raft paper. */
     raft_term_t current_term;
-    machine_id_t voted_for;
+    raft_member_id_t voted_for;
 
     /* `snapshot_state` corresponds to the stored snapshotted state, as described in
-    Section 7. An empty `boost::optional<state_t>()` is the initial state of the Raft
-    cluster, although in practice it will be initialized almost immediately. */
-    boost::optional<state_t> snapshot_state;
+    Section 7. */
+    state_t snapshot_state;
 
-    /* `snapshot_configuration` corresponds to the stored snapshotted configuration, as
-    described in Section 7. This implementation deviates from the Raft paper in that we
-    allow non-voting members to not know the cluster configuration until they receive
-    their first snapshot. This should be safe because they are non-voting members. If a
-    `raft_member_t` sees that its `snapshot_configuration` is empty, it assumes that it
-    is a non-voting member and will never try to become leader. */
-    boost::optional<raft_complex_config_t> snapshot_configuration;
+    /* `snapshot_config` corresponds to the stored snapshotted configuration, as
+    described in Section 7. */
+    raft_complex_config_t snapshot_config;
 
     /* `log.prev_index` and `log.prev_term` correspond to the "last included index" and
     "last included term" as described in Section 7. `log.entries` corresponds to the
@@ -320,7 +311,7 @@ private:
         /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
         the parameters with the same names in the Raft paper. */
         raft_term_t term;
-        machine_id_t candidate_id;
+        raft_member_id_t candidate_id;
         raft_log_index_t last_log_index;
         raft_term_t last_log_term;
     };
@@ -332,15 +323,15 @@ private:
         /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
         correspond to the parameters with the same names in the Raft paper. In the Raft
         paper, the content of the snapshot is sent as a series of binary blobs, but we
-        don't want to do that; instead, we send the `state_t` and `raft_configuration_t`
-        directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
-        the `offset`, `data`, and `done` parameters of the Raft paper. */
+        don't want to do that; instead, we send the `state_t` and `raft_complex_config_t`
+        directly. So our `snapshot_state` and `snapshot_config` parameters replace the
+        `offset`, `data`, and `done` parameters of the Raft paper. */
         raft_term_t term;
-        machine_id_t leader_id;
+        raft_member_id_t leader_id;
         raft_log_index_t last_included_index;
         raft_term_t last_included_term;
         state_t snapshot_state;
-        raft_complex_config_t snapshot_configuration;
+        raft_complex_config_t snapshot_config;
     };
 
     /* `append_entries_t` describes the parameters of the "AppendEntries RPC" described
@@ -351,7 +342,7 @@ private:
         same names in the Raft paper. `entries` corresponds to three of the paper's
         variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
         raft_term_t term;
-        machine_id_t leader_id;
+        raft_member_id_t leader_id;
         raft_log_t<state_t> entries;
         raft_log_index_t leader_commit;
     };
@@ -406,15 +397,18 @@ public:
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The RPC may or may
         not have been delivered. */
     virtual bool send_rpc(
-        const machine_id_t &dest,
+        const raft_member_id_t &dest,
         const raft_rpc_request_t<state_t> &request,
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out) = 0;
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
-    likely to succeed. */
-    virtual clone_ptr_t<watchable_t<std::set<machine_id_t> > >
-        get_connected_members() = 0;
+    likely to succeed. The values in the map should always be `nullptr`; the only reason
+    it's a map at all is that we don't have a `watchable_set_t` type. `std::nullptr_t`
+    was chosen because it has exactly one legal value (`nullptr`) and it's already
+    defined. */
+    virtual watchable_map_t<raft_member_id_t, std::nullptr_t>
+        *get_connected_members() = 0;
 
 protected:
     virtual ~raft_network_interface_t() { }
@@ -427,7 +421,7 @@ class raft_member_t : public home_thread_mixin_debug_only_t
 {
 public:
     raft_member_t(
-        const machine_id_t &this_member_id,
+        const raft_member_id_t &this_member_id,
         raft_storage_interface_t<state_t> *storage,
         raft_network_interface_t<state_t> *network,
         const raft_persistent_state_t<state_t> &persistent_state);
@@ -440,56 +434,85 @@ public:
     is undefined, the interrupted method call will not make invalid RPC calls or write
     invalid data to persistent storage.) */
 
-    /* `get_initialized_signal()` returns a signal that is pulsed if we have a valid
-    state. The only time it isn't pulsed is when we've just joined an existing Raft
-    cluster as a new member, and we haven't received the initial state yet. */
-    signal_t *get_initialized_signal() {
+    /* `state_and_config_t` describes the Raft cluster's current state, configuration,
+    and log index all in the same struct. The reason for putting them in the same struct
+    is so that they can be stored in a `watchable_t` and kept in sync. */
+    class state_and_config_t {
+    public:
+        state_and_config_t(raft_log_index_t _log_index, const state_t &_state,
+                           const raft_complex_config_t &_config) :
+            log_index(_log_index), state(_state), config(_config) { }
+        raft_log_index_t log_index;
+        state_t state;
+        raft_complex_config_t config;
+    };
+
+    /* `get_committed_state()` describes the state of the Raft cluster after all
+    committed log entries have been applied. */
+    clone_ptr_t<watchable_t<state_and_config_t> > get_committed_state() {
         assert_thread();
-        return &initialized_cond;
+        return committed_state.get_watchable();
     }
 
-    /* `get_state_machine()` tracks the current state of the state machine. It's illegal
-    to call this before `get_initialized_signal()` is pulsed. */
-    clone_ptr_t<watchable_t<state_t> > get_state_machine() {
+    /* `get_latest_state()` describes the state of the Raft cluster if every log entry,
+    including uncommitted entries, has been applied. */
+    clone_ptr_t<watchable_t<state_and_config_t> > get_latest_state() {
         assert_thread();
-        guarantee(initialized_cond.is_pulsed());
-        return state_machine.get_watchable();
+        return latest_state.get_watchable();
     }
+
+    /* `get_state_for_init()` returns a `raft_persistent_state_t` that could be used to
+    initialize a new member joining the Raft cluster. */
+    raft_persistent_state_t<state_t> get_state_for_init();
 
     /* TODO: These user-facing APIs are inadequate. We'll probably need:
-      * A way to block until a newly-created Raft cluster has elected a leader and is
-        ready for input.
-      * For queries initiated by the user, we'll want to be able to know if they
-        succeeded or failed. This should report "failed" if anything delays the query
-        significantly, such as if a new master is elected before the query is committed,
-        or if the master is no longer in contact with a majority.
       * A way to observe the state of the Raft cluster before initiating a change.
         Specifically, it would observe the "bleeding edge" state after everything in the
         log has been applied, not the committed state. This way we can enforce rules for
-        what changes are allowed following what states.
-    But I don't want to implement anything until I have a better sense of how these APIs
-    will end up being used. So I'll revisit this later. */
+        what changes are allowed following what states. */
 
-    /* Returns the Raft member that this member thinks is the leader, or `nil_uuid()` if
-    this member doesn't know of any leader. */
-    machine_id_t get_leader() {
-        assert_thread();
-        return current_term_leader_id;
+    /* `propose_change()` tries to apply a `change_t` to the cluster. It will block until
+    the change has been applied or something goes wrong. It will return `true` if the
+    change was applied and `false` if something went wrong; in the latter case, the
+    change may or may not eventually be applied.
+
+    Before calling `propose_change()`, first search for a cluster member for which
+    `get_readiness_for_change()` returns `true`. In general there will be only one such
+    member, since `get_readiness_for_change()` will return `false` for a non-leader node.
+    If you call `propose_change()` when `get_readiness_for_change()` is `false`, then
+    `propose_change()` will return `false`.
+
+    `propose_change()` takes two interruptors. The "hard" interruptor will definitely
+    interrupt it but may leave the `raft_member_t` in an invalid state, so only pulse it
+    if you are about to destroy the `raft_member_t`. The "soft" interruptor will only
+    interrupt the waiting phase of `propose_change()`, but it will leave the
+    `raft_member_t` in a valid state. */
+    bool propose_change(
+        const typename state_t::change_t &change,
+        signal_t *soft_interruptor,
+        signal_t *hard_interruptor);
+
+    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
+    through `propose_change()`. */
+    clone_ptr_t<watchable_t<bool> > get_readiness_for_change() {
+        return readiness_for_change.get_watchable();
     }
 
-    /* `propose_change_if_leader()` tries to perform the given change if this Raft member
-    is the leader. A return value of `true` means the change is being processed, but it
-    hasn't necessarily been committed and won't necessarily ever be. `false` means we are
-    not the leader or something went wrong. */
-    bool propose_change_if_leader(
-        const typename state_t::change_t &change,
-        signal_t *interruptor);
+    /* `propose_config_change()` is like `propose_change()` but for reconfiguring the
+    cluster. Note that it will fail (and `get_readiness_for_config_change()` will return
+    false) if there is already a config change in progress. So you should watch
+    `get_readiness_for_config_change()` to see when it's safe to start the next config
+    change. */
+    bool propose_config_change(
+        const raft_config_t &new_config,
+        signal_t *soft_interruptor,
+        signal_t *hard_interruptor);
 
-    /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
-    that it proposes a reconfiguration instead of a `change_t`. */
-    bool propose_config_change_if_leader(
-        const raft_config_t &configuration,
-        signal_t *interruptor);
+    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
+    through `propose_config_change()`. */
+    clone_ptr_t<watchable_t<bool> > get_readiness_for_config_change() {
+        return readiness_for_config_change.get_watchable();
+    }
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */
@@ -560,6 +583,14 @@ private:
     `candidate_and_leader_coro()`. */
     void on_watchdog_timer();
 
+    /* `apply_log_entries()` updates `state_and_config` with the entries from `log` with
+    indexes `first <= index <= last`. */
+    static void apply_log_entries(
+        state_and_config_t *state_and_config,
+        const raft_log_t<state_t> &log,
+        raft_log_index_t first,
+        raft_log_index_t last);
+
     /* `update_term()` sets the term to `new_term` and resets all per-term variables. It
     assumes that its caller will flush persistent state to stable storage eventually
     after it returns. */
@@ -576,13 +607,15 @@ private:
     `leader_update_match_index()` handles that automatically. It may flush persistent
     state to stable storage before it returns. */
     void leader_update_match_index(
-        /* Since `match_index` lives on the stack of `candidate_and_leader_coro()`, we
-        have to pass in a pointer. */
-        std::map<machine_id_t, raft_log_index_t> *match_index,
-        machine_id_t key,
+        raft_member_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
+
+    /* `update_readiness_for_change()` should be called whenever any of the variables
+    that are used to compute `readiness_for_change` or `readiness_for_config_change` are
+    modified. */
+    void update_readiness_for_change();
 
     /* `candidate_or_leader_become_follower()` moves us from the `candidate` or `leader`
     state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
@@ -626,11 +659,8 @@ private:
     void leader_spawn_update_coros(
         /* The value of `nextIndex` to use for each newly connected peer. */
         raft_log_index_t initial_next_index,
-        /* A map containing `matchIndex` for each connected peer, as described in Figure
-        2 of the Raft paper. This lives on the stack in `candidate_and_leader_coro()`. */
-        std::map<machine_id_t, raft_log_index_t> *match_indexes,
         /* A map containing an `auto_drainer_t` for each running update coroutine. */
-        std::map<machine_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
+        std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq);
 
     /* `leader_send_updates()` is a helper function for `candidate_and_leader_coro()`;
@@ -638,9 +668,8 @@ private:
     install-snapshot RPCs and/or append-entry RPCs out to the given peer until
     `update_keepalive.get_drain_signal()` is pulsed. */
     void leader_send_updates(
-        const machine_id_t &peer,
+        const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<machine_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
 
     /* `leader_continue_reconfiguration()` is a helper function for
@@ -663,18 +692,14 @@ private:
     /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
     the entry to be committed. It flushes persistent state to stable storage. */
-    void leader_append_log_entry(
+    raft_log_index_t leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
 
-    /* Returns the configuration that we should use for determining if we have a quorum
-    or not. */
-    raft_complex_config_t get_configuration();
-
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
-    const machine_id_t this_member_id;
+    const raft_member_id_t this_member_id;
 
     raft_storage_interface_t<state_t> *const storage;
     raft_network_interface_t<state_t> *const network;
@@ -684,20 +709,20 @@ private:
     name is so abbreviated. */
     raft_persistent_state_t<state_t> ps;
 
-    /* `state_machine` and `initialized_cond` together describe the "state machine" that
-    the Raft member is managing. If `initialized_cond` is unpulsed, then the state
-    machine is in the uninitialized state, and the contents of `state_machine` are
-    meaningless; if `initialized_cond` is pulsed, then the state machine is in an
-    initialized state, and `state_machine` stores that state. In the context of the
-    `raft_persistent_state_t` we represent this as a `boost::optional<state_t>`, but here
-    we want to store it in a form that is easier for users of `raft_member_t` to work
-    with. */
-    watchable_variable_t<state_t> state_machine;
-    cond_t initialized_cond;
+    /* `committed_state` describes the state after all committed log entries have been
+    applied. The `state` field of `committed_state` is equivalent to the "state machine"
+    in the Raft paper. The `log_index` field is equal to the `lastApplied` and
+    `commitIndex` variables in Figure 2 of the Raft paper. This implementation deviates
+    from the Raft paper in that the paper allows `lastApplied` to lag behind
+    `commitIndex`, but we require them to be equal at all times. */
+    watchable_variable_t<state_and_config_t> committed_state;
 
-    /* `commit_index` and `last_applied` correspond to the volatile state variables with
-    the same names in Figure 2 of the Raft paper. */
-    raft_log_index_t commit_index, last_applied;
+    /* `latest_state` describes the state after all log entries, not only committed ones,
+    have been applied. This is publicly exposed to the user, and it's also useful because
+    "a server always uses the latest configuration in its log, regardless of whether the
+    entry is committed" (Raft paper, Section 6). Whenever `ps.log` is modified,
+    `latest_state` must be updated to keep in sync. */
+    watchable_variable_t<state_and_config_t> latest_state;
 
     /* Only `candidate_and_leader_coro()` should ever change `mode` */
     mode_t mode;
@@ -705,12 +730,33 @@ private:
     /* `current_term_leader_id` is the ID of the member that is leader during this term.
     If we haven't seen any node acting as leader this term, it's `nil_uuid()`. We use it
     to redirect clients as described in Figure 2 and Section 8. */
-    machine_id_t current_term_leader_id;
+    raft_member_id_t current_term_leader_id;
 
-    /* `last_heard_from_leader` is the time that we last heard from a leader or
-    candidate. `on_watchdog_timer()` consults it to see if we should start an election.
-    */
-    microtime_t last_heard_from_leader;
+    /* `last_heard_from_candidate` and `last_heard_from_leader` are the times we last
+    received a message from a candidate or leader. When `on_watchdog_timer()` is deciding
+    whether or not to start a new election, it uses the later of the two. The reason they
+    are separate is because `on_request_vote_rpc()` should only disregard RPCs if it
+    hasn't heard from a leader recently, even if it has heard from a candidate. */
+    microtime_t last_heard_from_candidate, last_heard_from_leader;
+
+    /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of the
+    Raft paper. Note that it is only used if we are the leader; if we are not the leader,
+    then it must be empty. */
+    std::map<raft_member_id_t, raft_log_index_t> match_indexes;
+
+    /* `readiness_for_change` and `readiness_for_config_change` track whether this member
+    is ready to accept changes. A member is ready for changes if it is leader and in
+    contact with a quorum of followers; it is ready for config changes if those
+    conditions are met and it is also not currently in a reconfiguration. Whenever any of
+    those variables changes, `update_readiness_for_change()` must be called. */
+    watchable_variable_t<bool> readiness_for_change;
+    watchable_variable_t<bool> readiness_for_config_change;
+
+    /* When `propose_change()` and `propose_config_change()` are running, they insert a
+    `cond_t *` into `lost_readiness_waiters`. If we stop being master or lose contact
+    with a majority of the cluster nodes, then all of the conds in
+    `lost_readiness_waiters` will be pulsed. */
+    std::set<cond_t *> lost_readiness_waiters;
 
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if
@@ -720,17 +766,13 @@ private:
     new_mutex_t mutex;
 
     /* This mutex assertion controls writes to the Raft log and associated state.
-    Specifically, anything writing to `ps.log`, `ps.snapshot`, `state_machine`,
-    `commit_index`, or `last_applied` should hold this mutex assertion.
+    Specifically, anything writing to `ps.log`, `ps.snapshot`, `committed_state`,
+    `committed_config`, `commit_index`, or `last_applied` should hold this mutex
+    assertion.
     If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
     this temporarily; if we are candidate or leader, `candidate_and_leader_coro()` holds
     this at all times. */
     mutex_assertion_t log_mutex;
-
-    /* When we are leader, `update_watchers` is a set of conds that should be pulsed
-    every time we append something to the log or update `commit_index`. If we are not
-    leader, this is empty and unused. */
-    std::set<cond_t *> update_watchers;
 
     /* This makes sure that `candidate_and_leader_coro()` stops when the `raft_member_t`
     is destroyed. It's in a `scoped_ptr_t` so that
@@ -746,6 +788,11 @@ private:
     /* This periodically calls `on_watchdog_timer()` to check if we need to start a new
     election. It's in a `scoped_ptr_t` so that the destructor can destroy it early. */
     scoped_ptr_t<repeating_timer_t> watchdog_timer;
+
+    /* This calls `update_readiness_for_change()` whenever a peer connects or
+    disconnects. */
+    scoped_ptr_t<watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t>
+        connected_members_subs;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

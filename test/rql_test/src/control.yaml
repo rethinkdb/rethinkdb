@@ -238,21 +238,21 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
 
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
       rb: r([1, 2, 3]).for_each{ |x| x }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - cd: r.expr([1, 2, 3]).for_each(r.row)
       rb: []
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
       rb: r([1, 2, 3]).for_each{ |row| tbl }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.", [1, 1])'
 
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
@@ -271,10 +271,10 @@ tests:
 
     - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
       rb: r([1, 2]).map{ |row| tbl.insert({ :foo => row }) }
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: ({'created':1})
