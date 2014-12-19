@@ -388,8 +388,9 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 rfail_datum(base_exc_t::GENERIC,
-                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                            reason.explanation, reason.position, string.c_str());
+                            "String `%.20s` (truncated) is not a UTF-8 string; "
+                            "saw %s at position %zu.",
+                            string.c_str(), reason.explanation, reason.position);
             }
             break;
         default:
@@ -407,8 +408,9 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 rfail_datum(base_exc_t::GENERIC,
-                            "Illegal UTF-8 string: %s seen at position %zu in '%s'",
-                            reason.explanation, reason.position, string);
+                            "String `%.20s` (truncated) is not a UTF-8 string; "
+                            "saw %s at position %zu.",
+                            string, reason.explanation, reason.position);
             }
             break;
         default:
