@@ -473,6 +473,17 @@ TEST(UTF8IterationTest, SimpleString) {
     ASSERT_TRUE(it.is_done());
 }
 
+TEST(UTF8IterationTest, SimpleStringNormalIteration) {
+    std::string demo = "this is a demonstration string";
+    utf8::string_iterator_t it(demo);
+    utf8::string_iterator_t end;
+    auto following = demo.begin();
+    while (it != end) {
+        ASSERT_EQ(*following++, *it++);
+    }
+    ASSERT_TRUE(it.is_done());
+}
+
 TEST(UTF8IterationTest, SimpleCString) {
     const char *str = "this is a demonstration string";
     utf8::array_iterator_t it(str, str + strlen(str));
@@ -554,12 +565,12 @@ TEST(UTF8IterationTest, Zalgo) {
         "\u032b\u0329\u034e\u0332\u032c\u033a\u006c\u0318\u0347\u0354\u0067\u0336\u031e"
         "\u0359\u033c\u006f\u002e\u031b\u032b\u0329";
     utf8::array_iterator_t it(zalgo, zalgo + strlen(zalgo));
+    utf8::array_iterator_t end;
     const char32_t *current = zalgo_codepoints;
     size_t seen = 0;
-    while (!it.is_done()) {
-        char32_t parsed = *it;
-        ASSERT_EQ(*current, parsed);
-        ++it; ++current; ++seen;
+    while (it != end) {
+        ASSERT_EQ(*current++, *it++);
+        ++seen;
     }
     ASSERT_EQ(66, seen);
 }
