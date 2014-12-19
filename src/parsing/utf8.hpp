@@ -15,7 +15,7 @@ bool is_valid(const char *, const char *);
 bool is_valid(const datum_string_t &);
 
 struct reason_t {
-    const char * explanation;
+    const char *explanation;
     size_t position;
 };
 
