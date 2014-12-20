@@ -2,67 +2,150 @@
 #ifndef CLUSTERING_REACTOR_TABLE_DRIVER_HPP_
 #define CLUSTERING_REACTOR_TABLE_DRIVER_HPP_
 
-/* `table_driver_meta_state_t` describes the state of one server's relationship to one
-table, in a high-level sense. It's used to determine when the `table_driver_t` needs to
-take an action like spinning up a new Raft cluster member. */
-class table_driver_meta_state_t {
+class table_epoch_t {
 public:
-    /* `table_is_dropped` is `true` if the table has been dropped. In this case, the
-    other variables are irrelevant. */
-    bool table_is_dropped;
-    /* `epoch` is the UUID of the current epoch for the table, and `epoch_timestamp` is
-    the associated timestamp for that epoch. */
-    uuid_u epoch;
-    microtime_t epoch_timestamp;
-    /* If this server is a member (voting or non-voting) for the Raft cluster for this
-    table, then `server_is_member` will be `true` and `member_id` will be the server's
-    member ID. Otherwise, `server_is_member` will be false. In either case,
-    `member_id_log_index` is the index of an entry in the Raft log at which time the
-    information in `server_is_member` and `member_id` was accurate. */
-    bool server_is_member;
-    raft_member_id_t member_id;
-    raft_log_index_t member_id_log_index;
+    /* Every table's lifetime is divided into "epochs". Each epoch corresponds to one
+    Raft instance. Normally tables only have one epoch; a new epoch is created only when
+    the user manually overrides the Raft state, which requires creating a new Raft
+    instance.
+
+    `timestamp` is the wall-clock time when the epoch began. `id` is a unique ID created
+    for the epoch. An epoch with a later `timestamp` supersedes an epoch with an earlier
+    `timestamp`. `id` breaks ties. Ties are possible because the user may manually
+    override the Raft state on both sides of a netsplit, for example. */
+    microtime_t timestamp;
+    uuid_u id;
+
+    bool supersedes(const table_epoch_t &other) {
+        if (timestamp > other.timestamp) {
+            return true;
+        } else if (timestamp < other.timestamp) {
+            return false;
+        } else {
+            return id > other.id;
+        }
+    }
 };
+
+/* All table control actions (creating and dropping tables, adding and removing servers
+from a table, overriding a table's config) are associated with a
+`table_driver_timestamp_t`. These are used to keep track of which actions supersede which
+other actions. */
+class table_driver_timestamp_t {
+public:
+    table_epoch_t epoch;
+
+    /* Within each epoch, Raft log indices provide a monotonically increasing clock. */
+    raft_log_index_t log_index;
+
+    bool supersedes(const table_driver_timestamp_t &other) {
+        if (epoch.supersedes(other.epoch)) {
+            return true;
+        } else if (other.epoch.supersedes(epoch)) {
+            return false;
+        }
+        return log_index > other.log_index;
+    }
+
+    /* `make_drop()` returns a timestamp that supersedes all regular timestamps. */
+    static table_driver_timestamp_t make_drop_timestamp() {
+        table_driver_timestamp_t t;
+        t.epoch.timestamp = std::numeric_limits<microtime_t>::max();
+        t.epoch.id = nil_uuid();
+        t.log_index = 0;
+        return t;
+    }
+};
+
+/* Control actions are coordinated by sending messages to the `control` mailbox on a
+server's `table_driver_business_card_t`. When the user creates or drops a table, or
+manually overrides its state, then the parser will send control messages to the other
+servers. In addition, if a server sees that another server's state is out of date, it
+will send a control message to bring the other server up to date.
+
+Examples:
+
+  * When the user creates a table, the parsing server generates a UUID for the new table;
+    an initial epoch ID; an initial configuration for the table; and a `raft_member_id_t`
+    for each server in the table's configuration. Then it sends each of those servers a
+    control message with `table_id` set to the new table's UUID; `timestamp` set to the
+    newly-generated epoch; `is_deletion` set to `false`; `member_id` set to the new
+    `raft_member_id_t` for that server; and `initial_state` set to the newly-generated
+    table configuration.
+
+  * When the user drops a table, the parsing server sends a control message to every
+    visible member of the table's Raft cluster. `table_id` is the table being deleted;
+    `timestamp` is `table_driver_timestamp_t::make_drop_timestamp()`; `is_deletion` is
+    `true`; and `member_id` and `initial_state` are empty.
+
+  * When the user adds a server to the table's configuration, the parsing server will
+    initiate a regular Raft transaction (not a control message) to add the new server to
+    the Raft state and generate a `raft_member_id_t` for it. After the transaction
+    completes, one of the members in the Raft cluster will see that the new server is
+    present in the Raft configuration, but not acting as a cluster member. So that member
+    will send a control message to the new server with the new server's
+    `raft_member_id_t`, the current epoch ID, and the new timestamp.
+
+  * When the user removes a server from the table's configuration, the same process
+    happens; after the Raft cluster commits the removal transaction, one of the remaining
+    members sends it a message with `member_id` and `initial_state` empty, indicating
+    it's no longer a member of the cluster.
+
+  * In the table-creation scenario, suppose that two of the three servers for the table
+    dropped offline as the table was being created, so they didn't get the messages. When
+    they come back online, the server that did get the message will forward the message
+    to the remaining servers, so the table will finish being created.
+
+  * Similarly, if a server sees that a table was dropped, but it sees another server
+    acting as though the table still exists, it will forward the drop message to that
+    server.
+*/
 
 class table_driver_business_card_t {
 public:
     typedef mailbox_t<void(
-        namespace_id_t,
-        table_driver_meta_state_t,
-        boost::optional<raft_persistent_state_t<table_raft_state_t> >
+        namespace_id_t table_id,
+        table_driver_timestamp_t timestamp,
+        bool is_deletion,
+        boost::optional<raft_member_id_t> member_id,
+        boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state
         )> control_mailbox_t;
 
     control_mailbox_t::address_t control;
 };
 
-class table_driver_persistent_state_t {
+class table_persistent_state_t {
 public:
-    class table_state_t {
-    public:
-        table_driver_meta_state_t meta_state;
-        raft_persistent_state_t<table_raft_state_t> raft_state;
-    };
-    std::map<namespace_id_t, table_state_t> tables;
+    table_epoch_t epoch;
+    raft_member_id_t member_id;
+    raft_persistent_state_t<table_raft_state_t> raft_state;
 };
 
 class table_business_card_t {
 public:
+    /* The parsing server uses this mailbox to read the current table configuration from
+    the Raft cluster. */
     typedef mailbox_t<void(
         mailbox_t<void(table_config_t)>::address_t
         )> get_config_mailbox_t;
+    get_config_mailbox_t::address_t get_config;
 
+    /* This mailbox is for writing the Raft cluster state. Only the Raft leader will
+    expose this mailbox; the others will have `set_config` empty. */
     typedef mailbox_t<void(
         table_config_t,
-        mailbox_t<void()>::address_t
+        mailbox_t<void(bool)>::address_t
         )> set_config_mailbox_t;
+    boost::optional<set_config_mailbox_t::address_t> set_config;
 
-    table_driver_meta_state_t meta_state;
+    /* This is exposed so that other servers can check if they need to send a control
+    message to bring this server into a newer epoch */
+    table_epoch_t epoch;
 
+    /* The other members of the Raft cluster send Raft RPCs through
+    `raft_business_card`. */
+    raft_member_id_t raft_member_id;
     raft_business_card_t<table_raft_state_t> raft_business_card;
-
-    boost::optional<raft_term_t> term_if_leader;
-    get_config_mailbox_t::address_t get_config;
-    set_config_mailbox_t::address_t set_config;
 };
 
 class table_driver_t {
