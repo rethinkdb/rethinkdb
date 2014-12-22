@@ -152,13 +152,6 @@ bool is_valid(const char *start, const char *end) {
     return is_valid_internal(start, end, &reason);
 }
 
-bool is_valid(const char *str) {
-    reason_t reason;
-    size_t len = strlen(str);
-    const char *end = str + len;
-    return is_valid_internal(str, end, &reason);
-}
-
 bool is_valid(const datum_string_t &str, reason_t *reason) {
     return is_valid_internal(str.data(), str.data() + str.size(), reason);
 }
@@ -169,12 +162,6 @@ bool is_valid(const std::string &str, reason_t *reason) {
 
 bool is_valid(const char *start, const char *end, reason_t *reason) {
     return is_valid_internal(start, end, reason);
-}
-
-bool is_valid(const char *str, reason_t *reason) {
-    size_t len = strlen(str);
-    const char *end = str + len;
-    return is_valid_internal(str, end, reason);
 }
 
 } // namespace utf8
