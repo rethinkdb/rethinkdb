@@ -134,7 +134,7 @@ void version_checker_t::process_result(const http_result_t &result) {
             logWRN("Update server had some kind of problem: %s",
                    result.body.trunc_print().c_str());
         } else if (seen_version != new_version.as_str()) {
-            logNTC("New server version available: %s", new_version.trunc_print().c_str());
+            logNTC("New server version available: %s", new_version.print().c_str());
             ql::datum_t changelog = result.body.get_field("link_changelog", ql::NOTHROW);
             if (changelog.has() && changelog.get_type() == ql::datum_t::R_STR) {
                 logNTC("Changelog URL: %s", changelog.trunc_print().c_str());
