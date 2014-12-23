@@ -492,7 +492,7 @@ bool table_config_artificial_table_backend_t::write_row(
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
     auto it = md_change.get()->namespaces.find(table_id);
     guarantee(existed_before ==
-        (!it->second.is_deleted() && it != md_change.get()->namespaces.end()));
+        (it != md_change.get()->namespaces.end() && !it->second.is_deleted()));
 
     if (new_value_inout->has()) {
         /* We're updating an existing table (if `existed_before == true`) or creating
