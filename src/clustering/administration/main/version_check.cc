@@ -98,7 +98,11 @@ void version_checker_t::process_result(const http_result_t &result) {
         return;
     }
 
-    rassert(result.body.has());
+    if (!result.body.has()) {
+        logWRN("No body returned; aborting.");
+        return;
+    }
+
     ql::datum_t status = result.body.get_field("status", ql::NOTHROW);
     if (!status.has()) {
         logWRN("Got bizarre result from checking for updates; ignoring.");
