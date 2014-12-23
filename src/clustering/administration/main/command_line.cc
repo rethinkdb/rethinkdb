@@ -888,6 +888,9 @@ options::help_section_t get_log_options(std::vector<options::option_t> *options_
     options_out->push_back(options::option_t(options::names_t("--log-file"),
                                              options::OPTIONAL));
     help.add("--log-file file", "specify the file to log to, defaults to 'log_file'");
+    options_out->push_back(options::option_t(options::names_t("--no-version-checking"),
+                                            options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-version-checking", "disable automatic version checking");
     return help;
 }
 
@@ -1246,6 +1249,10 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     return true;
 }
 
+bool parse_version_checking_option(const std::map<std::string, options::values_t> &opts) {
+    return !exists_option(opts, "--no-version-checking");
+}
+
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--no-direct-io")) {
         logWRN("Ignoring 'no-direct-io' option. 'no-direct-io' is deprecated and "
@@ -1401,6 +1408,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        bool do_version_checking = parse_version_checking_option(opts);
+
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
@@ -1432,6 +1441,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                do_version_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));
@@ -1514,6 +1524,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                false,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));
@@ -1627,6 +1638,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        bool do_version_checking = parse_version_checking_option(opts);
+
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
         // is called on it.  This will be done after the metadata files have been created.
@@ -1678,6 +1691,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                do_version_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));

@@ -70,7 +70,7 @@ void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
     //opts.form_data["Cooked-Size-Of-Shards"]
     //    = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
     logINF("server # %lu", snapshot.servers.servers.size());
-    logINF("uname %s", uname_msr().c_str());
+    logINF("uname %s", uname.c_str());
     logINF("tables %lu", snapshot.rdb_namespaces->namespaces.size());
     logINF("databases %lu", snapshot.databases.databases.size());
 

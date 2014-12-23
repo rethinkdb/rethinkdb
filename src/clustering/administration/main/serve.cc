@@ -462,7 +462,7 @@ bool do_serve(io_backender_t *io_backender,
                     scoped_ptr_t<version_checker_t> checker;
                     scoped_ptr_t<repeating_timer_t> timer;
 
-                    if (i_am_a_server) {
+                    if (i_am_a_server && serve_info.do_version_checking) {
                         // XXX here is where version checking should occur?
                         checker.init(new version_checker_t(&rdb_ctx, stop_cond,
                                                            semilattice_manager_cluster.get_root_view(),
