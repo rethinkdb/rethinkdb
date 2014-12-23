@@ -9,7 +9,6 @@
 #include "extproc/http_runner.hpp"
 #include "rdb_protocol/env.hpp"
 
-std::string uname_msr();
 namespace ql {
 void dispatch_http(ql::env_t *env,
                    const http_opts_t &opts,
@@ -18,10 +17,14 @@ void dispatch_http(ql::env_t *env,
                    const ql::pb_rcheckable_t *parent);
 };
 
-version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx, signal_t *_interruptor) :
+version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx, signal_t *_interruptor,
+                                     version_checker_t::metadata_ptr_t _metadata,
+                                     const std::string &_uname) :
     rdb_ctx(_rdb_ctx),
     interruptor(_interruptor),
-    seen_version() {
+    seen_version(),
+    metadata(_metadata),
+    uname(_uname) {
     rassert(rdb_ctx != NULL);
 }
 
@@ -38,15 +41,19 @@ void version_checker_t::initial_check() {
     http_runner_t runner(env.get_extproc_pool());
     http_result_t result;
 
-    dispatch_http(&env, opts, &runner, &result, nullptr);
+    try {
+        dispatch_http(&env, opts, &runner, &result, nullptr);
+    } catch (const ql::base_exc_t &ex) {
+        logWRN("Saw exception `%s` in initial checkin", ex.what());
+    }
 
     process_result(result);
 }
 
-void version_checker_t::periodic_checkin() {
+void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
     logINF("Beginning periodic checkin");
 
-    const cluster_semilattice_metadata_t metadata;// = xxx;
+    const cluster_semilattice_metadata_t snapshot = metadata->get();
     ql::env_t env(rdb_ctx, interruptor, std::map<std::string, ql::wire_func_t>(), nullptr);
     http_opts_t opts;
     opts.method = http_method_t::POST;
@@ -55,24 +62,26 @@ void version_checker_t::periodic_checkin() {
     opts.url = "http://update.rethinkdb.com/checkin";
     opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
     opts.form_data["Version"] = RETHINKDB_VERSION;
-    opts.form_data["Number-Of-Servers"] = metadata.servers.servers.size();
-    opts.form_data["Uname"] = uname_msr();
-    int tables = 0;
-    for (auto it = metadata.rdb_namespaces->namespaces.begin();
-         it != metadata.rdb_namespaces->namespaces.end(); ++it) {
-        auto pair = *it;
-        tables++;
-    }
+    opts.form_data["Number-Of-Servers"] = snapshot.servers.servers.size();
+    opts.form_data["Uname"] = uname;
     opts.form_data["Cooked-Number-Of-Tables"]
         = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                    cook(metadata.databases.databases.size()));
-    opts.form_data["Cooked-Size-Of-Shards"]
-        = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
+                    cook(snapshot.rdb_namespaces->namespaces.size()));
+    //opts.form_data["Cooked-Size-Of-Shards"]
+    //    = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
+    logINF("server # %lu", snapshot.servers.servers.size());
+    logINF("uname %s", uname_msr().c_str());
+    logINF("tables %lu", snapshot.rdb_namespaces->namespaces.size());
+    logINF("databases %lu", snapshot.databases.databases.size());
 
     http_runner_t runner(env.get_extproc_pool());
     http_result_t result;
 
-    dispatch_http(&env, opts, &runner, &result, nullptr);
+    try {
+        dispatch_http(&env, opts, &runner, &result, nullptr);
+    } catch (const ql::base_exc_t &ex) {
+        logWRN("Saw exception `%s` in periodic checkin", ex.what());
+    }
 
     process_result(result);
 }

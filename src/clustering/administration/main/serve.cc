@@ -77,6 +77,8 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+std::string uname_msr();
+
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
@@ -85,6 +87,8 @@ bool do_serve(io_backender_t *io_backender,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
+    // Do this here so we don't block on popen while pretending to serve.
+    std::string uname = uname_msr();
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
@@ -455,15 +459,19 @@ bool do_serve(io_backender_t *io_backender,
                         logNTC("Proxy ready");
                     }
 
-                    // XXX here is where version checking should occur?
-                    cond_t version_cond;
-                    version_checker_t checker(&rdb_ctx, &version_cond);
-                    checker.initial_check();
-                    timer_token_t *timer = add_timer(1000, &checker);
+                    scoped_ptr_t<version_checker_t> checker;
+                    scoped_ptr_t<repeating_timer_t> timer;
+
+                    if (i_am_a_server) {
+                        // XXX here is where version checking should occur?
+                        checker.init(new version_checker_t(&rdb_ctx, stop_cond,
+                                                           semilattice_manager_cluster.get_root_view(),
+                                                           uname));
+                        checker->initial_check();
+                        timer.init(new repeating_timer_t(1000, checker.get()));
+                    }
 
                     stop_cond->wait_lazily_unordered();
-
-                    cancel_timer(timer);
 
 
                     if (stop_cond->get_source_signo() == SIGINT) {
