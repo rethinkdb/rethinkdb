@@ -44,10 +44,15 @@ void version_checker_t::initial_check() {
     try {
         dispatch_http(&env, opts, &runner, &result, nullptr);
     } catch (const ql::base_exc_t &ex) {
-        logWRN("Saw exception `%s` in initial checkin", ex.what());
-    }
+        if (ex.get_type() == ql::base_exc_t::NON_EXISTENCE) {
+            // non-200 result
+            logWRN("Update server is down");
 
-    process_result(result);
+            process_result(result);
+        } else {
+            logWRN("Saw exception `%s` in initial checkin", ex.what());
+        }
+    }
 }
 
 void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
@@ -75,11 +80,16 @@ void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
 
     try {
         dispatch_http(&env, opts, &runner, &result, nullptr);
-    } catch (const ql::base_exc_t &ex) {
-        logWRN("Saw exception `%s` in periodic checkin", ex.what());
-    }
 
-    process_result(result);
+        process_result(result);
+    } catch (const ql::base_exc_t &ex) {
+        if (ex.get_type() == ql::base_exc_t::NON_EXISTENCE) {
+            // non-200 result
+            logWRN("Update server is down");
+        } else {
+            logWRN("Saw exception `%s` in initial checkin", ex.what());
+        }
+    }
 }
 
 // sort of anonymize the input; specifically we want $2^(round(log_2(n)))$
