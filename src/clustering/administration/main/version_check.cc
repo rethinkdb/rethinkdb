@@ -118,7 +118,7 @@ void version_checker_t::process_result(const http_result_t &result) {
     }
     const datum_string_t &str = status.as_str();
     if (str == "ok") {
-        logINF("Server up-to-date");
+        logDBG("Server up-to-date");
     } else if (str == "error") {
         ql::datum_t reason = result.body.get_field("error", ql::NOTHROW);
         if (!reason.has() || reason.get_type() != ql::datum_t::R_STR) {
