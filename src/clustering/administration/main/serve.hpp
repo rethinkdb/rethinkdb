@@ -91,7 +91,7 @@ public:
     serve_info_t(std::vector<host_and_port_t> &&_joins,
                  std::string &&_reql_http_proxy,
                  std::string &&_web_assets,
-                 bool _do_version_checking,
+                 update_check_t _do_version_checking,
                  service_address_ports_t _ports,
                  boost::optional<std::string> _config_file,
                  std::vector<std::string> &&_argv) :
@@ -112,7 +112,7 @@ public:
     peer_address_set_t peers;
     std::string reql_http_proxy;
     std::string web_assets;
-    bool do_version_checking;
+    update_check_t do_version_checking;
     service_address_ports_t ports;
     boost::optional<std::string> config_file;
     /* The original arguments, so we can display them in `server_status`. All the

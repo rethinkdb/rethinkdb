@@ -1250,8 +1250,10 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     return true;
 }
 
-bool parse_update_checking_option(const std::map<std::string, options::values_t> &opts) {
-    return !exists_option(opts, "--no-update-check");
+update_check_t parse_update_checking_option(const std::map<std::string, options::values_t> &opts) {
+    return exists_option(opts, "--no-update-check")
+        ? update_check_t::do_not_perform
+        : update_check_t::perform;
 }
 
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
@@ -1409,7 +1411,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        bool do_update_checking = parse_update_checking_option(opts);
+        update_check_t do_update_checking = parse_update_checking_option(opts);
 
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
@@ -1525,7 +1527,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
-                                false,
+                                update_check_t::do_not_perform,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));
@@ -1639,7 +1641,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        bool do_update_checking = parse_update_checking_option(opts);
+        update_check_t do_update_checking = parse_update_checking_option(opts);
 
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
