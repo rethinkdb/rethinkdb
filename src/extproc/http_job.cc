@@ -509,6 +509,9 @@ void set_default_opts(CURL *curl_handle,
 
     exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 
+    // Enable cookies - needed for multiple requests like redirects or digest auth
+    exc_setopt(curl_handle, CURLOPT_COOKIEFILE, "", "COOKIEFILE");
+
     // Use the proxy set when launched
     if (!proxy.empty()) {
         exc_setopt(curl_handle, CURLOPT_PROXY, proxy.c_str(), "PROXY");
