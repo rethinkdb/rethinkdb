@@ -122,16 +122,16 @@ void version_checker_t::process_result(const http_result_t &result) {
     } else if (str == "error") {
         ql::datum_t reason = result.body.get_field("error", ql::NOTHROW);
         if (!reason.has() || reason.get_type() != ql::datum_t::R_STR) {
-            logWRN("Remote server had some kind of problem: %s",
+            logWRN("Update server had some kind of problem: %s",
                    result.body.trunc_print().c_str());
         } else {
-            logWRN("Remote server returned error message %s when checking for updates.",
+            logWRN("Update server returned error message %s when checking for updates.",
                    reason.trunc_print().c_str());
         }
     } else if (str == "need_update") {
         ql::datum_t new_version = result.body.get_field("last_version", ql::NOTHROW);
         if (!new_version.has() || new_version.get_type() != ql::datum_t::R_STR) {
-            logWRN("Remote server had some kind of problem: %s",
+            logWRN("Update server had some kind of problem: %s",
                    result.body.trunc_print().c_str());
         } else if (seen_version != new_version.as_str()) {
             logNTC("New server version available: %s", new_version.trunc_print().c_str());
@@ -145,7 +145,7 @@ void version_checker_t::process_result(const http_result_t &result) {
             // in spamming them.
         }
     } else {
-        logWRN("Remote server gave a status code I don't understand: %s",
+        logWRN("Update server gave a status code I don't understand: %s",
                result.body.trunc_print().c_str());
     }
 }
