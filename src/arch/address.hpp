@@ -122,7 +122,7 @@ class ip_and_port_t {
 public:
     ip_and_port_t();
     ip_and_port_t(const ip_address_t &_ip, port_t _port);
-    ip_and_port_t(sockaddr const *);
+    explicit ip_and_port_t(sockaddr const *);
 
     bool operator < (const ip_and_port_t &other) const;
     bool operator == (const ip_and_port_t &other) const;

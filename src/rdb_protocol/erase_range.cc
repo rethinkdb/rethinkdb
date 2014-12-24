@@ -256,3 +256,4 @@ done_traversing_t rdb_erase_small_range(
 
     return key_collector.get_done_traversing();
 }
+
