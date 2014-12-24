@@ -29,8 +29,6 @@ version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx, signal_t *_interru
 }
 
 void version_checker_t::initial_check() {
-    logINF("Beginning initial checkin");
-
     ql::env_t env(rdb_ctx, interruptor, std::map<std::string, ql::wire_func_t>(), nullptr);
     http_opts_t opts;
     opts.limits = env.limits();
@@ -56,8 +54,6 @@ void version_checker_t::initial_check() {
 }
 
 void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
-    logINF("Beginning periodic checkin");
-
     const cluster_semilattice_metadata_t snapshot = metadata->get();
     ql::env_t env(rdb_ctx, interruptor, std::map<std::string, ql::wire_func_t>(), nullptr);
     http_opts_t opts;
