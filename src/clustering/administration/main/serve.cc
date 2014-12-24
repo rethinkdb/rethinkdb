@@ -470,7 +470,7 @@ bool do_serve(io_backender_t *io_backender,
                                                            semilattice_manager_cluster.get_root_view(),
                                                            uname));
                         checker->initial_check();
-                        const unsigned long day_in_ms = 24 * 60 * 60 * 1000;
+                        const int64_t day_in_ms = 24 * 60 * 60 * 1000;
                         timer.init(new repeating_timer_t(day_in_ms, checker.get()));
                     }
 
