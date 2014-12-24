@@ -19,7 +19,15 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
 // --
 
-var port = parseInt(process.env.RDB_DRIVER_PORT, 10)
+var httpbinAddress = process.env.HTTPBIN_TEST_ADDRESS || 'httpbin.org';
+var httpAddress = process.env.HTTP_TEST_ADDRESS || 'dev.rethinkdb.com';
+var httpsAddress = process.env.HTTPS_TEST_ADDRESS || 'dev.rethinkdb.com';
+var port = parseInt(process.env.RDB_DRIVER_PORT, 10);
+
+var imageAddress = httpAddress;
+if (imageAddress == 'dev.rethinkdb.com') {
+    imageAddress = 'www.rethinkdb.com/assets/images/docs/api_illustrations';
+}
 
 var withConnection = function(f){
     return function(done){
@@ -95,7 +103,7 @@ function err_string(method, url, msg) {
 
 describe('Javascript HTTP test - ', function() {
     describe('GET', function() {
-        var url = 'httpbin.org/get'
+        var url = 'http://' + httpbinAddress + '/get'
         it('check basic GET result', withConnection(function(done, conn) {
             r.http(url).run(conn, function(err, res) {
                 expect_no_error(err);
@@ -108,7 +116,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('params', function() {
-        var url = 'httpbin.org/get'
+        var url = 'http://' + httpbinAddress + '/get'
         it('with null', withConnection(function(done, conn) {
             r.http(url, {params:{fake:123,things:'stuff',nil:null}}).run(conn, function(err, res) {
                 expect_no_error(err);
@@ -129,7 +137,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('header', function() {
-        var url = 'httpbin.org/headers'
+        var url = 'http://' + httpbinAddress + '/headers'
         it('object', withConnection(function(done, conn) {
             r.http(url, {header:{Test:'entry','Accept-Encoding':'override'}}).run(conn, function(err, res) {
                 expect_no_error(err);
@@ -149,7 +157,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('HEAD', function() {
-        var url = 'httpbin.org/get'
+        var url = 'http://' + httpbinAddress + '/get'
         it('with text resultFormat', withConnection(function(done, conn) {
             r.http(url, {method:'HEAD', resultFormat:'text'}).run(conn, function(err, res) {
                 expect_no_error(err);
@@ -167,7 +175,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('POST', function() {
-        var url = 'httpbin.org/post'
+        var url = 'http://' + httpbinAddress + '/post'
         it('form-encoded object', withConnection(function(done, conn) {
             var post_data = {str:'%in fo+',number:135.5,nil:null}
             r.http(url, {method:'POST', data:post_data}).run(conn, function(err, res) {
@@ -207,7 +215,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('PUT', function() {
-        var url = 'httpbin.org/put'
+        var url = 'http://' + httpbinAddress + '/put'
         it('object', withConnection(function(done, conn) {
             var put_data = {nested:{arr:[123.45, ['a', 555], 0.123],str:'info',number:135,nil:null},time:r.epochTime(1000)}
             r.http(url, {method:'PUT', data:put_data}).run(conn, function(err, res) {
@@ -228,7 +236,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('PATCH', function() {
-        var url = 'httpbin.org/patch'
+        var url = 'http://' + httpbinAddress + '/patch'
         it('object', withConnection(function(done, conn) {
             var patch_data = {nested:{arr:[123.45, ['a', 555], 0.123],str:'info',number:135,nil:null},time:r.epochTime(1000)}
             r.http(url, {method:'PATCH', data:patch_data}).run(conn, function(err, res) {
@@ -249,7 +257,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('DELETE', function() {
-        var url = 'httpbin.org/delete'
+        var url = 'http://' + httpbinAddress + '/delete'
         it('object', withConnection(function(done, conn) {
             var delete_data = {nested:{arr:[123.45, ['a', 555], 0.123],str:'info',number:135,nil:null},time:r.epochTime(1000)}
             r.http(url, {method:'DELETE', data:delete_data}).run(conn, function(err, res) {
@@ -270,7 +278,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('redirect', function() {
-        var url = 'httpbin.org/redirect/2'
+        var url = 'http://' + httpbinAddress + '/redirect/2'
         it('with no redirects allowed', withConnection(function(done, conn) {
             r.http(url, {redirects:0}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 302'));
@@ -286,14 +294,14 @@ describe('Javascript HTTP test - ', function() {
         it('with enough redirects allowed', withConnection(function(done, conn) {
             r.http(url, {redirects:2}).run(conn, function(err, res) {
                 expect_no_error(err);
-                expect_eq(res['headers']['Host'], 'httpbin.org');
+                expect_eq(res['headers']['Host'], httpbinAddress);
                 done();
             });
         }));
     });
 
     describe('gzip', function() {
-        var url = 'httpbin.org/gzip';
+        var url = 'http://' + httpbinAddress + '/gzip';
         it('check decompression', withConnection(function(done, conn) {
             r.http(url).run(conn, function(err, res) {
                 expect_no_error(err);
@@ -304,7 +312,7 @@ describe('Javascript HTTP test - ', function() {
     });
 
     describe('errors - ', function() {
-        var url = 'httpbin.org/html'
+        var url = 'http://' + httpbinAddress + '/html'
         it('failed json parse', withConnection(function(done, conn) {
             r.http(url, {resultFormat:'json'}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'failed to parse JSON response'));
@@ -314,7 +322,7 @@ describe('Javascript HTTP test - ', function() {
     });
     
     describe('basic auth', function() {
-        var url = 'http://httpbin.org/basic-auth/azure/hunter2'
+        var url = 'http://' + httpbinAddress + '/basic-auth/azure/hunter2'
         it('wrong password', withConnection(function(done, conn) {
             r.http(url, {auth:{type:'basic',user:'azure',pass:'wrong'}}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
@@ -349,35 +357,31 @@ describe('Javascript HTTP test - ', function() {
         }));
     });
 
-    // This test requires us to set a cookie (any cookie) due to a bug in httpbin.org
-    // See https://github.com/kennethreitz/httpbin/issues/124
     describe('digest auth', function() {
-        var url = 'http://httpbin.org/digest-auth/auth/azure/hunter2'
+        var url = 'http://' + httpbinAddress + '/digest-auth/auth/azure/hunter2'
         it('wrong password', withConnection(function(done, conn) {
-            r.http(url, {header:{Cookie:'dummy'}, redirects:5,
+            r.http(url, redirects:5,
                 auth:{type:'digest',user:'azure',pass:'wrong'}}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
-        // httpbin apparently doesn't check the username, just the password
-        // it('wrong username', withConnection(function(done, conn) {
-        //     r.http(url, {header:{'Cookie':'dummy'}, redirects:5,
-        //         auth:{type:'digest',user:'fake',pass:'hunter2'}}).run(conn, function(err, res) {
-        //         expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
-        //         done();
-        //     });
-        // }));
-        // httpbin has a 500 error on this
-        // it('wrong auth type', withConnection(function(done, conn) {
-        //     r.http(url, {header:{'Cookie':'dummy'}, redirects:5,
-        //         auth:{type:'basic',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
-        //         expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
-        //         done();
-        //     });
-        // }));
+        it('wrong username', withConnection(function(done, conn) {
+            r.http(url, redirects:5,
+                auth:{type:'digest',user:'fake',pass:'hunter2'}}).run(conn, function(err, res) {
+                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                done();
+            });
+        }));
+        it('wrong auth type', withConnection(function(done, conn) {
+            r.http(url, redirects:5,
+                auth:{type:'basic',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
+                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                done();
+            });
+        }));
         it('correct credentials', withConnection(function(done, conn) {
-            r.http(url, {header:{Cookie:'dummy'}, redirects:5,
+            r.http(url, redirects:5,
                    auth:{type:'digest',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
                 expect_no_error(err);
                 expect_eq(res, {authenticated:true,user:'azure'});
@@ -401,16 +405,16 @@ describe('Javascript HTTP test - ', function() {
             });
         }
         it('HTTP', withConnection(function(done, conn) {
-            test_part('http://dev.rethinkdb.com', done, conn);
+            test_part('http://' + httpAddress + '/redirect', done, conn);
         }));
         it('HTTPS', withConnection(function(done, conn) {
-            test_part('https://dev.rethinkdb.com', done, conn);
+            test_part('https://' + httpsAddress, done, conn);
         }));
     });
 
     describe('binary', function() {
         it('resultFormat: auto', withConnection(function(done, conn) {
-            r.http("www.rethinkdb.com/assets/images/docs/api_illustrations/quickstart.png")
+            r.http('http://' + imageAddress + '/quickstart.png')
              .do(function(row){return [row.typeOf(), row.count().gt(0)]})
              .run(conn, function(err, res) {
                 expect_no_error(err);
@@ -420,7 +424,7 @@ describe('Javascript HTTP test - ', function() {
             });
         }));
         it('resultFormat: binary', withConnection(function(done, conn) {
-            r.http("httpbin.org/get",{resultFormat:"binary"})
+            r.http('http://' + httpbinAddress + '/get',{resultFormat:"binary"})
              .do(function(row){return [row.typeOf(), row.slice(0,1).coerceTo("string")]})
              .run(conn, function(err, res) {
                 expect_no_error(err);

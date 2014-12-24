@@ -191,8 +191,12 @@ void check_error_result(const http_result_t &res,
         // Any error coming back from the extproc may be due to the fragility of
         // interfacing with external servers.  Provide a non-existence error so that
         // users may call `r.default` for more robustness.
-        rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                     "%s", error_string.c_str());
+        if (parent == nullptr) {
+            rfail_toplevel(base_exc_t::NON_EXISTENCE, "%s", error_string.c_str());
+        } else {
+            rfail_target(parent, base_exc_t::NON_EXISTENCE,
+                         "%s", error_string.c_str());
+        }
     }
 }
 

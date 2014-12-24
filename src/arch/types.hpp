@@ -101,8 +101,6 @@ enum class file_direct_io_mode_t {
     buffered_desired
 };
 
-
-
 class semantic_checking_file_t {
 public:
     semantic_checking_file_t() { }
