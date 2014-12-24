@@ -41,12 +41,11 @@ void version_checker_t::initial_check() {
 
     try {
         dispatch_http(&env, opts, &runner, &result, nullptr);
+        process_result(result);
     } catch (const ql::base_exc_t &ex) {
         if (ex.get_type() == ql::base_exc_t::NON_EXISTENCE) {
             // non-200 result
             logWRN("Update server is down");
-
-            process_result(result);
         } else {
             logWRN("Saw exception `%s` in initial checkin", ex.what());
         }
