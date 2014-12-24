@@ -695,10 +695,13 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
-std::string uname_msr() {
+// WARNING WARNING WARNING blocking
+// if in doubt, DO NOT USE.
+std::string run_uname(const std::string &flags) {
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
-    FILE *out = popen("uname -msr", "r");
+    const std::string combined = "uname -" + flags;
+    FILE *out = popen(combined.c_str(), "r");
     if (!out) return unknown;
     if (!fgets(buf, sizeof(buf), out)) {
         pclose(out);
@@ -706,6 +709,10 @@ std::string uname_msr() {
     }
     pclose(out);
     return buf;
+}
+
+std::string uname_msr() {
+    return run_uname("msr");
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,

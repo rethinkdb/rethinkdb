@@ -77,7 +77,7 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
-std::string uname_msr();
+std::string run_uname(const std::string &flags);
 
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
@@ -88,7 +88,7 @@ bool do_serve(io_backender_t *io_backender,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
     // Do this here so we don't block on popen while pretending to serve.
-    std::string uname = uname_msr();
+    std::string uname = run_uname("ms");
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
