@@ -101,11 +101,6 @@ enum class file_direct_io_mode_t {
     buffered_desired
 };
 
-enum class update_check_t {
-    do_not_perform,
-    perform,
-};
-
 class semantic_checking_file_t {
 public:
     semantic_checking_file_t() { }

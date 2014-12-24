@@ -16,6 +16,11 @@ struct http_result_t;
 
 class cluster_semilattice_metadata_t;
 
+enum class update_check_t {
+    do_not_perform,
+    perform,
+};
+
 class version_checker_t : public repeating_timer_callback_t {
 public:
     typedef boost::shared_ptr<semilattice_readwrite_view_t

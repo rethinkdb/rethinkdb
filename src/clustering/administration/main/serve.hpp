@@ -9,6 +9,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "arch/address.hpp"
 
 class os_signal_cond_t;
