@@ -17,6 +17,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
@@ -76,6 +77,10 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+// Defined in command_line.cc; not in any header, because it is not
+// safe to run in general.
+std::string run_uname(const std::string &flags);
+
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
@@ -84,6 +89,8 @@ bool do_serve(io_backender_t *io_backender,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
+    // Do this here so we don't block on popen while pretending to serve.
+    std::string uname = run_uname("ms");
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
@@ -452,6 +459,19 @@ bool do_serve(io_backender_t *io_backender,
                                uuid_to_str(server_id).c_str());
                     } else {
                         logNTC("Proxy ready");
+                    }
+
+                    scoped_ptr_t<version_checker_t> checker;
+                    scoped_ptr_t<repeating_timer_t> timer;
+
+                    if (i_am_a_server
+                        && serve_info.do_version_checking == update_check_t::perform) {
+                        checker.init(new version_checker_t(&rdb_ctx, stop_cond,
+                                                           semilattice_manager_cluster.get_root_view(),
+                                                           uname));
+                        checker->initial_check();
+                        const int64_t day_in_ms = 24 * 60 * 60 * 1000;
+                        timer.init(new repeating_timer_t(day_in_ms, checker.get()));
                     }
 
                     stop_cond->wait_lazily_unordered();

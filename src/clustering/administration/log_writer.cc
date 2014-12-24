@@ -84,6 +84,12 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
             } else {
                 message_reformatted.append("\\n");
             }
+        } else if (message[i] == '\t') {
+            if (for_console) {
+                message_reformatted.push_back('\t');
+            } else {
+                message_reformatted.append("\\t");
+            }
         } else if (message[i] == '\\') {
             if (for_console) {
                 message_reformatted.push_back(message[i]);
