@@ -310,6 +310,28 @@ def get_avalible_port(interface='localhost'):
     testSocket.close()
     return freePort
 
+def is_port_open(port, host='localhost'):
+    try:
+        port = int(port)
+        assert port > 0
+    except Exception:
+        raise ValueError('port must be a valid port, got: %s' % repr(port))
+    testSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    return 0 == testSocket.connect_ex((str(host), port))
+
+def wait_for_port(port, host='localhost', timeout=5):
+    try:
+        port = int(port)
+        assert port > 0
+    except Exception:
+        raise ValueError('port must be a valid port, got: %s' % repr(port))
+    deadline = timeout + time.time()
+    while deadline > time.time():
+        if is_port_open(port, host):
+            return
+        time.sleep(.1)
+    raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
+
 def shard_table(cluster_port, rdb_executable, table_name):
         
     blackHole = tempfile.NamedTemporaryFile('w+')
@@ -415,7 +437,7 @@ def nonblocking_readline(source):
         except Exception as e:
             raise ValueError('bad source file: %s got error: %s' % (str(source), str(e)))
     
-    elif isinstance(source, file):
+    elif hasattr(source, 'read'):
         try:
             int(source.fileno())
         except:
