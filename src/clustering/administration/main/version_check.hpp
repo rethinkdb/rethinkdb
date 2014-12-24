@@ -2,13 +2,15 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_VERSION_CHECK_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_VERSION_CHECK_HPP_
 
-#include "errors.hpp"
 #include <functional>
+
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/context.hpp"
-#include "arch/timing.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "arch/timing.hpp"
+#include "concurrency/auto_drainer.hpp"
+#include "rdb_protocol/context.hpp"
 
 struct http_result_t;
 
