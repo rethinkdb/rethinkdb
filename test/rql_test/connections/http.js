@@ -360,28 +360,28 @@ describe('Javascript HTTP test - ', function() {
     describe('digest auth', function() {
         var url = 'http://' + httpbinAddress + '/digest-auth/auth/azure/hunter2'
         it('wrong password', withConnection(function(done, conn) {
-            r.http(url, redirects:5,
+            r.http(url, {redirects:5,
                 auth:{type:'digest',user:'azure',pass:'wrong'}}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong username', withConnection(function(done, conn) {
-            r.http(url, redirects:5,
+            r.http(url, {redirects:5,
                 auth:{type:'digest',user:'fake',pass:'hunter2'}}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong auth type', withConnection(function(done, conn) {
-            r.http(url, redirects:5,
+            r.http(url, {redirects:5,
                 auth:{type:'basic',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
                 expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('correct credentials', withConnection(function(done, conn) {
-            r.http(url, redirects:5,
+            r.http(url, {redirects:5,
                    auth:{type:'digest',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
                 expect_no_error(err);
                 expect_eq(res, {authenticated:true,user:'azure'});
