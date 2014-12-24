@@ -77,6 +77,8 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+// Defined in command_line.cc; not in any header, because it is not
+// safe to run in general.
 std::string run_uname(const std::string &flags);
 
 bool do_serve(io_backender_t *io_backender,
