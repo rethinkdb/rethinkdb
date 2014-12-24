@@ -192,7 +192,7 @@ void check_error_result(const http_result_t &res,
         // interfacing with external servers.  Provide a non-existence error so that
         // users may call `r.default` for more robustness.
         if (parent == nullptr) {
-            rfail_datum(base_exc_t::NON_EXISTENCE, "%s", error_string.c_str());
+            rfail_toplevel(base_exc_t::NON_EXISTENCE, "%s", error_string.c_str());
         } else {
             rfail_target(parent, base_exc_t::NON_EXISTENCE,
                          "%s", error_string.c_str());
