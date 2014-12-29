@@ -144,6 +144,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
          * date. */
         directory_entry_t directory_entry(this, region);
         while (true) {
+
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster;
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > location_to_backfill_from;
             branch_id_t branch_id;
@@ -216,21 +217,20 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
             }
 
             try {
-                /* Generate a session id to do our backfill. */
-                backfill_session_id_t backfill_session_id = generate_uuid();
-
-                reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
-                                                                                     peer_id,
-                                                                                     activity_id);
-
                 /* We have found a broadcaster (a primary replica to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.set(reactor_business_card_t::secondary_backfilling_t(backfill_location));
+                directory_entry.set(reactor_business_card_t::secondary_backfilling_t());
 
                 cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
                 cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster(broadcaster, svs->home_thread());
                 cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
                 on_thread_t th(svs->home_thread());
+
+                map_insertion_sentry_t<region_t, reactor_progress_report_t>
+                    progress_tracker_on_svs_thread(
+                        progress_map.get(), region, reactor_progress_report_t{ false, { }});
+                progress_tracker_on_svs_thread.get_value()->backfills.push_back(
+                    std::make_pair(peer_id, 0.0));
 
                 // TODO: Don't use local stack variable for name.
                 std::string region_name = strprintf("be_secondary_%p", &region);
@@ -238,12 +238,21 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t listener(base_path, io_backender, mailbox_manager, server_id,
-                                    backfill_throttler, ct_broadcaster.get_watchable(),
-                                    branch_history_manager, svs,
-                                    ct_location_to_backfill_from.get_watchable(),
-                                    backfill_session_id, &region_perfmon_collection,
-                                    &ct_interruptor, &order_source);
+                listener_t listener(
+                    base_path,
+                    io_backender,
+                    mailbox_manager,
+                    server_id,
+                    backfill_throttler,
+                    ct_broadcaster.get_watchable(),
+                    branch_history_manager,
+                    svs,
+                    ct_location_to_backfill_from.get_watchable(),
+                    &region_perfmon_collection,
+                    &ct_interruptor,
+                    &order_source,
+                    &progress_tracker_on_svs_thread.get_value()->backfills.back().second
+                    );
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

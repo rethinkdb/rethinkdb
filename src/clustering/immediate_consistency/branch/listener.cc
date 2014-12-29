@@ -68,10 +68,10 @@ listener_t::listener_t(const base_path_t &base_path,
                        branch_history_manager_t *branch_history_manager,
                        store_view_t *svs,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
-                       backfill_session_id_t backfill_session_id,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
-                       order_source_t *order_source)
+                       order_source_t *order_source,
+                       double *backfill_progress_out)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
@@ -178,8 +178,8 @@ listener_t::listener_t(const base_path_t &base_path,
                        svs_,
                        svs_->get_region(),
                        replier->subview(&listener_t::get_backfiller_from_replier_bcard),
-                       backfill_session_id,
-                       interruptor);
+                       interruptor,
+                       backfill_progress_out);
         } // Release throttler_lock
     } catch (const resource_lost_exc_t &) {
         throw backfiller_lost_exc_t();

@@ -26,35 +26,13 @@ namespace reactor_business_card_details {
  *  - the peer is backfilling
  *  - another peer is a primary
  */
-class backfill_location_t {
-public:
-    backfill_location_t() { }
-    backfill_location_t(backfill_session_id_t _backfill_session_id, peer_id_t _peer_id, reactor_activity_id_t _activity_id)
-        : backfill_session_id(_backfill_session_id), peer_id(_peer_id), activity_id(_activity_id)
-    { }
-
-    backfill_session_id_t backfill_session_id;
-    peer_id_t peer_id;
-    reactor_activity_id_t activity_id;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(backfill_location_t,
-        backfill_session_id, peer_id, activity_id);
-};
-
-RDB_MAKE_SERIALIZABLE_3(backfill_location_t,
-                        backfill_session_id, peer_id, activity_id);
-
 class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
-
-    explicit primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
-        : backfills_waited_on(_backfills_waited_on)
-    { }
-    std::vector<backfill_location_t> backfills_waited_on;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(primary_when_safe_t, backfills_waited_on);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(primary_when_safe_t);
 };
 
-RDB_MAKE_SERIALIZABLE_1(primary_when_safe_t, backfills_waited_on);
+RDB_MAKE_SERIALIZABLE_0(primary_when_safe_t);
 
 /* This peer is currently a primary in working order. */
 class primary_t {
@@ -142,16 +120,10 @@ RDB_MAKE_SERIALIZABLE_4(secondary_without_primary_t,
 class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
-
-    explicit secondary_backfilling_t(backfill_location_t  _backfill)
-        : backfill(_backfill)
-    { }
-
-    backfill_location_t backfill;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(secondary_backfilling_t, backfill);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(secondary_backfilling_t);
 };
 
-RDB_MAKE_SERIALIZABLE_1(secondary_backfilling_t, backfill);
+RDB_MAKE_SERIALIZABLE_0(secondary_backfilling_t);
 
 /* This peer would like to erase its data and not do any job for this
  * shard, however it must stay up until every other peer is ready for it to
