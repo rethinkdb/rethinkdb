@@ -38,7 +38,7 @@ private:
     class counted_cond_t : public cond_t,
                            public single_threaded_countable_t<counted_cond_t> {
     };
-    counted_t<counted_cond_t> on_commit_complete;
+    counted_t<counted_cond_t> on_next_commit_complete;
     bool unhandled_commit_waiter_exists;
 
     int num_active_commits;
