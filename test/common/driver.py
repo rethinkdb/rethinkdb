@@ -610,7 +610,7 @@ class _Process(object):
         assert self.process is not None
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
-        utils.kill_process_group(self.process_group_id, shudown_grace=0)
+        utils.kill_process_group(self.process_group_id, shutdown_grace=0)
         
         self.close()
     
