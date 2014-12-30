@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import atexit, collections, fcntl, os, random, shutil, signal, socket, string, subprocess, sys, tempfile, threading, time, warnings
+import atexit, collections, fcntl, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
 
@@ -344,7 +344,7 @@ def shard_table(cluster_port, rdb_executable, table_name):
     time.sleep(3)
     return 0
 
-def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
+def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
     '''make sure that the given process group id is not running'''
     
     # -- validate input
@@ -364,35 +364,39 @@ def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
         raise ValueError('kill_process_group requires a valid timeout, got: %s' % str(timeout))
     
     try:
-        shudown_grace = float(shudown_grace)
-        if shudown_grace < 0:
+        shutdown_grace = float(shutdown_grace)
+        if shutdown_grace < 0:
             raise Exception()
     except Exception:
-        raise ValueError('kill_process_group requires a valid timeout, got: %s' % str(shudown_grace))
+        raise ValueError('kill_process_group requires a valid shutdown_grace value, got: %s' % str(shutdown_grace))
     
     # --
     
     # ToDo: check for child processes outside the process group
     
     deadline = time.time() + timeout
-    graceDeadline = time.time() + shudown_grace
+    graceDeadline = time.time() + shutdown_grace
     
+    psRegex = re.compile('^\s*(%d\s|\d+\s+%d\s)' % (processGroupId, processGroupId))
     psOutput = ''
-    psCommand = ['ps', '-g', str(processGroupId), '-o', 'pid,user,command', '-www']
-    
+    psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pgid=', '-o', 'pid=', '-o', 'command=', '-www']
+    psFilter = lambda output: [x for x in output.splitlines() if psRegex.match(x)]
     try:
         # -- allow processes to gracefully exit
         
-        if shudown_grace > 0:
+        if shutdown_grace > 0:
             os.killpg(processGroupId, signal.SIGTERM)
             
             while time.time() < graceDeadline:
                 os.killpg(processGroupId, 0) # 0 checks to see if the process is there
                 
-                # -- check with `ps` that it too thinks there is something there
-            
+                # - check with `ps` that it too thinks there is something there
+                try:
+                    os.waitpid(processGroupId, os.WNOHANG)
+                except exception: pass
                 psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-                if len(psOutput.splitlines()) < 2:
+                psLines = psFilter(psOutput)
+                if len(psLines) == 0:
                     return
                 
                 time.sleep(.1)
@@ -402,10 +406,13 @@ def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
         while time.time() < deadline:
             os.killpg(processGroupId, signal.SIGKILL)
             
-            # -- check with `ps` that it too thinks there is something there
-            
+            # - check with `ps` that it too thinks there is something there
+            try:
+                os.waitpid(processGroupId, os.WNOHANG)
+            except exception: pass
             psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-            if len(psOutput.splitlines()) < 2:
+            psLines = psFilter(psOutput)
+            if len(psLines) == 0:
                 return
             
             time.sleep(.2)
