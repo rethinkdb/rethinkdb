@@ -54,7 +54,7 @@ bool server_down_issue_t::build_info_and_description(
         if (!affected_servers_str.empty()) {
             affected_servers_str += ", ";
         }
-        affected_servers_str += name.str();
+        affected_servers_str += "`" + name.str() + "`";
         ++num_affected;
     }
     if (num_affected == 0) {
@@ -67,8 +67,19 @@ bool server_down_issue_t::build_info_and_description(
         std::move(affected_servers_builder).to_datum());
     *info_out = std::move(info_builder).to_datum();
     *description_out = datum_string_t(strprintf(
-        "Server `%s` is inaccessible from %s%s.", down_server_name.c_str(),
-        (num_affected == 1 ? "" : "these servers: "), affected_servers_str.c_str()));
+        "Server `%s` is inaccessible from %s%s. Here are some reasons why the server "
+        "may be inaccessible:\n\n"
+        "- The server process has crashed.\n"
+        "- The network connection between the two servers was interrupted.\n"
+        "- The server's canonical address is not configured properly.\n"
+        "- The server has experienced a hardware failure.\n"
+        "\nIf the server's data has been permanently lost (for example, a disk failure) "
+        "you can resolve this issue by deleting the server's entry from the "
+        "`rethinkdb.server_config` system table. Once you've deleted the server's "
+        "entry, its data and configuration will be discarded.",
+        down_server_name.c_str(),
+        (num_affected == 1 ? "" : "these servers: "),
+        affected_servers_str.c_str()));
     return true;
 }
 
