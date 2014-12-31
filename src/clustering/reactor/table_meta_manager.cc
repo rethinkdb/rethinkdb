@@ -354,3 +354,47 @@ void table_meta_manager_t::schedule_sync(
     });
 }
 
+bool table_create(
+        mailbox_manager_t *mailbox_manager,
+        watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
+            *table_meta_manager_directory,
+        const table_config_t &config,
+        signal_t *interruptor,
+        namespace_id_t *table_id_out) {
+    *table_id_out = generate_uuid();
+
+    table_meta_manager_business_card_t::action_timestamp_t timestamp;
+    timestamp.epoch.timestamp = current_microtime();
+    timestamp.epoch.id = generate_uuid();
+    timestamp.log_index = 0;
+
+    std::set<server_id_t> servers;
+    for (const table_config_t::shard_t &shard : config.shards) {
+        servers.insert(shard.replicas.begin(), shard.replicas.end());
+    }
+
+    table_raft_state_t raft_state;
+    raft_state.config = config;
+
+    raft_config_t raft_config;
+    for (const server_id_t &server_id : servers) {
+        raft_member_id_t member_id = generate_uuid();
+        raft_state.member_ids[server_id] = member_id;
+        raft_config.voting_members.insert(member_id);
+    }
+
+    raft_persistent_state_t<table_raft_state_t> raft_ps =
+        raft_persistent_state_t<table_raft_state_t>::make_initial(
+            raft_state, raft_config);
+
+    
+}
+
+bool table_drop(
+        mailbox_manager_t *mailbox_manager,
+        watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
+            *table_meta_manager_directory,
+        const namespace_id_t &table_id,
+        signal_t *interruptor) {
+}
+
