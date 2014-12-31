@@ -207,13 +207,26 @@ private:
             multistore_ptr_t *multistore_ptr);
         ~active_table_t();
 
-        table_meta_manager_t *parent;
-        namespace_id_t table_id;
-        raft_member_id_t member_id;
-        watchable_map_keyed_var_t<peer_id_t,
-            raft_member_id_t, raft_business_card_t<state_t> > directory_transform;
+        table_meta_manager_t * const parent;
+        const namespace_id_t table_id;
+        const table_meta_business_card_t::action_timestamp_t::epoch_t epoch;
+        const raft_member_id_t member_id;
+
+        /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
+        `table_meta_business_card_t`s and putting them into a map for the
+        `raft_networked_member_t` to use. */
+        std::map<peer_id_t, raft_member_id_t> old_peer_member_ids;
+        watchable_map_var_t<raft_member_id_t, raft_business_card_t<state_t> >
+            raft_directory;
+
         raft_networked_member_t<table_raft_state_t> raft;
+
         table_manager_t table_manager;
+
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+            ::all_subs_t table_directory_subs;
+        watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
+            raft_commit_subs;
     };
 
     /* We store a `table_t` for every table that we've ever been a member of since the

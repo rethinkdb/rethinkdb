@@ -328,6 +328,10 @@ public:
     }
     connectivity_cluster_t::message_tag_t get_message_tag() { return tag; }
 
+    peer_id_t get_me() {
+        return connectivity_cluster->get_me();
+    }
+
 protected:
     /* Registers the message handler with the cluster */
     cluster_message_handler_t(connectivity_cluster_t *connectivity_cluster,
