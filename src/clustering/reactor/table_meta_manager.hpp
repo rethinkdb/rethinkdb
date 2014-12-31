@@ -276,7 +276,7 @@ private:
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_state,
-        mailbox_t<void()>::address_t);
+        const mailbox_t<void()>::address_t &ack_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following
@@ -362,10 +362,13 @@ bool table_create(
         const table_config_t &config,
         signal_t *interruptor,
         namespace_id_t *table_id_out);
+
 bool table_drop(
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
             *table_meta_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+            *_table_meta_directory,
         const namespace_id_t &table_id,
         signal_t *interruptor);
 

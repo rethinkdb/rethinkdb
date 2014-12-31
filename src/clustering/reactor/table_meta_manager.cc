@@ -57,7 +57,7 @@ table_meta_manager_t::table_meta_manager_t(
         }, false),
     action_mailbox(mailbox_manager,
         std::bind(&table_meta_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7))
 {
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
@@ -184,7 +184,8 @@ void table_meta_manager_t::on_action(
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
-            &initial_state) {
+            &initial_state,
+        const mailbox_t<void()>::address_t &ack_addr) {
     /* Validate the incoming message */
     guarantee(static_cast<bool>(member_id) == static_cast<bool>(initial_state));
     guarantee(!(is_deletion && static_cast<bool>(member_id)));
@@ -257,6 +258,10 @@ void table_meta_manager_t::on_action(
             schedule_sync(table_id, &it->second, peer);
         }
     });
+
+    if (!ack_addr.is_nil()) {
+        send(mailbox_manager, ack_addr);
+    }
 }
 
 void table_meta_manager_t::do_sync(
@@ -267,7 +272,8 @@ void table_meta_manager_t::do_sync(
         const table_meta_manager_business_card_t &table_manager_bcard) {
     if (table.is_deleted && table_bcard != nullptr) {
         send(mailbox_manager, table_manager_bcard.action,
-            table_id, table.timestamp, true, boost::none, boost::none);
+            table_id, table.timestamp, true, boost::none, boost::none,
+            mailbox_t<void()>::address_t());
     } else if (table->active.has()) {
         raft_log_index_t log_index;
         boost::optional<member_id_t> member_id;
@@ -291,7 +297,8 @@ void table_meta_manager_t::do_sync(
             timestamp.epoch = table->timestamp.epoch;
             timestamp.log_index = log_index;
             send(mailbox_manager, table_manager_bcard.action,
-                table_id, timestamp, false, member_id, initial_state);
+                table_id, timestamp, false, member_id, initial_state,
+                mailbox_t<void()>::address_t());
         }
     }
 }
@@ -395,21 +402,75 @@ bool table_create(
             }
         });
 
-    for (const auto &pair : bcards) {
-        send(mailbox_manager, pair.second.action_mailbox,
-            *table_id_out,
-            timestamp,
-            false,
-            boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
-            boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps));
-    }
+    size_t acks = 0;
+    pmap(bcards.begin(), bcards.end(),
+    [&](const std::pair<server_id_t, table_meta_manager_business_card_t> &pair) {
+        try {
+            disconnect_watcher_t dw(mailbox_manager,
+                pair.second.action_mailbox.get_peer());
+            cond_t got_ack;
+            mailbox_t<void()> ack_mailbox(mailbox_manager,
+                [&](signal_t *) { got_ack.pulse(); });
+            wait_any_t interruptor2(&dw, interruptor);
+            send(mailbox_manager, pair.second.action_mailbox,
+                *table_id_out,
+                timestamp,
+                false,
+                boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
+                boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
+                ack_mailbox.get_address());
+            wait_interruptible(&got_ack, &interruptor2);
+            ++acks;
+        } catch (const interrupted_exc_t &) {
+            /* do nothing */
+        }
+    });
+
+    return (acks > 0);
 }
 
 bool table_drop(
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
             *table_meta_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+            *table_meta_directory,
         const namespace_id_t &table_id,
         signal_t *interruptor) {
+    std::map<server_id_t, table_meta_manager_business_card_t> bcards;
+    table_meta_directory->read_all_keys(
+    [&](const std::pair<peer_id_t, namespace_id_t> &key,
+            const table_meta_business_card_t *) {
+        if (key.second == table_id) {
+            table_meta_manager_directory->read_key(key.first,
+            [&](const table_meta_manager_business_card_t *bc) {
+                if (bc != nullptr) {
+                    bcards[bc->server_id] = *bc;
+                }
+            });
+        }
+    });
+
+    size_t acks = 0;
+    pmap(bcards.begin(), bcards.end(),
+    [&](const std::pair<server_id_t, table_meta_manager_business_card_t> &pair) {
+        try {
+            disconnect_watcher_t dw(mailbox_manager,
+                pair.second.action_mailbox.get_peer());
+            cond_t got_ack;
+            mailbox_t<void()> ack_mailbox(mailbox_manager,
+                [&](signal_t *) { got_ack.pulse(); });
+            wait_any_t interruptor2(&dw, interruptor);
+            send(mailbox_manager, pair.second.action_mailbox,
+                table_id, timestamp, true, boost::none, boost::none,
+                ack_mailbox.get_address());
+            wait_interruptible(&got_ack, &interruptor2);
+            ++acks;
+        } catch (const interrupted_exc_t &) {
+            /* do nothing */
+        }
+    });
+
+    return (acks > 0);
 }
 
