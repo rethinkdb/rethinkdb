@@ -387,7 +387,22 @@ bool table_create(
         raft_persistent_state_t<table_raft_state_t>::make_initial(
             raft_state, raft_config);
 
-    
+    std::map<server_id_t, table_meta_manager_business_card_t> bcards;
+    table_meta_manager_directory->read_all_keys(
+        [&](const peer_id_t &, const table_meta_manager_business_card_t *bc) {
+            if (servers.count(bc->server_id) == 1) {
+                bcards[bc->server_id] = *bc;
+            }
+        });
+
+    for (const auto &pair : bcards) {
+        send(mailbox_manager, pair.second.action_mailbox,
+            *table_id_out,
+            timestamp,
+            false,
+            boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
+            boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps));
+    }
 }
 
 bool table_drop(
