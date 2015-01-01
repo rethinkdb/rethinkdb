@@ -175,7 +175,17 @@ public:
                 /* `interruptor2` is only pulsed when the member is being destroyed, so
                 it's safe to pass as the `hard_interruptor` parameter */
                 try {
-                    res = member->propose_change(change, interruptor, interruptor2);
+                    scoped_ptr_t<raft_member_t<dummy_raft_state_t>::change_token_t> tok;
+                    {
+                        raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
+                            member, interruptor);
+                        tok = member->propose_change(&change_lock, change, interruptor2);
+                    }
+                    if (!tok.has()) {
+                        return;
+                    }
+                    wait_interruptible(tok->get_ready_signal(), interruptor);
+                    res = tok->wait();
                 } catch (const interrupted_exc_t &) {
                     if (interruptor2->is_pulsed()) {
                         throw;

@@ -12,6 +12,7 @@
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/promise.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
@@ -465,54 +466,91 @@ public:
     initialize a new member joining the Raft cluster. */
     raft_persistent_state_t<state_t> get_state_for_init();
 
-    /* TODO: These user-facing APIs are inadequate. We'll probably need:
-      * A way to observe the state of the Raft cluster before initiating a change.
-        Specifically, it would observe the "bleeding edge" state after everything in the
-        log has been applied, not the committed state. This way we can enforce rules for
-        what changes are allowed following what states. */
+    /* Here's how to perform a Raft transaction:
 
-    /* `propose_change()` tries to apply a `change_t` to the cluster. It will block until
-    the change has been applied or something goes wrong. It will return `true` if the
-    change was applied and `false` if something went wrong; in the latter case, the
-    change may or may not eventually be applied.
+    1. Find a `raft_member_t` in the cluster for which `get_readiness_for_change()`
+    returns true. (For a config transaction, use `get_readiness_for_config_change()`
+    instead.)
 
-    Before calling `propose_change()`, first search for a cluster member for which
-    `get_readiness_for_change()` returns `true`. In general there will be only one such
-    member, since `get_readiness_for_change()` will return `false` for a non-leader node.
-    If you call `propose_change()` when `get_readiness_for_change()` is `false`, then
-    `propose_change()` will return `false`.
+    2. Construct a `change_lock_t` on that `raft_member_t`.
 
-    `propose_change()` takes two interruptors. The "hard" interruptor will definitely
-    interrupt it but may leave the `raft_member_t` in an invalid state, so only pulse it
-    if you are about to destroy the `raft_member_t`. The "soft" interruptor will only
-    interrupt the waiting phase of `propose_change()`, but it will leave the
-    `raft_member_t` in a valid state. */
-    bool propose_change(
-        const typename state_t::change_t &change,
-        signal_t *soft_interruptor,
-        signal_t *hard_interruptor);
+    3. Call `propose_[config_]change()`. You can make multiple calls to
+    `propose_change()` with the same `change_lock_t`, but no more than one call to
+    `propose_config_change()`.
 
-    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
-    through `propose_change()`. */
+    4. Destroy the `change_lock_t` so the Raft cluster can process your transaction.
+
+    5. If you need to be notified of whether your transaction succeeds or not, wait on
+    the `change_token_t` returned by `propose_[config_]change()`. */
+
+    /* These watchables indicate whether this Raft member is ready to accept changes. In
+    general, if these watchables are true, then `propose_[config_]change()` will probably
+    succeed. (However, this is not guaranteed.) If these watchables are false, don't
+    bother trying `propose_[config_]change()`.
+
+    Under the hood, these are true if:
+    - This member is currently the leader
+    - This member is in contact with a quorum of followers
+    - We are not currently in a reconfiguration (for `get_readiness_for_config_change()`)
+   */
     clone_ptr_t<watchable_t<bool> > get_readiness_for_change() {
         return readiness_for_change.get_watchable();
     }
-
-    /* `propose_config_change()` is like `propose_change()` but for reconfiguring the
-    cluster. Note that it will fail (and `get_readiness_for_config_change()` will return
-    false) if there is already a config change in progress. So you should watch
-    `get_readiness_for_config_change()` to see when it's safe to start the next config
-    change. */
-    bool propose_config_change(
-        const raft_config_t &new_config,
-        signal_t *soft_interruptor,
-        signal_t *hard_interruptor);
-
-    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
-    through `propose_config_change()`. */
     clone_ptr_t<watchable_t<bool> > get_readiness_for_config_change() {
         return readiness_for_config_change.get_watchable();
     }
+
+    /* `change_lock_t` freezes the Raft member state in preparation for calling
+    `propose_[config_]change()`. Only one `change_lock_t` can exist at a time, and while
+    it exists, the Raft member will not process normal traffic; so don't keep the
+    `change_lock_t` around longer than necessary. However, it is safe to block while
+    holding the `change_lock_t` if you need to.
+
+    The point of `change_lock_t` is that `get_latest_state()` will not change while the
+    `change_lock_t` exists, unless the lock owner calls `propose_[config_]change()`. The
+    state reported by `get_latest_state()` is guaranteed to be the state that the
+    proposed change will be applied to. This makes it possible to atomically read the
+    state and issue a change conditional on the state. */
+    class change_lock_t {
+    public:
+        change_lock_t(raft_member_t *parent, signal_t *interruptor);
+    private:
+        friend class raft_member_t;
+        new_mutex_acq_t mutex_acq;
+    };
+
+    /* `change_token_t` is a way to track the progress of a change to the Raft cluster.
+    It's a promise that will be `true` if the change has been committed, and `false` if
+    something went wrong. If it returns `false`, the change may or may not eventually be
+    committed anyway. */
+    class change_token_t : public promise_t<bool> {
+    private:
+        friend class raft_member_t;
+        change_token_t(raft_member_t *parent, raft_log_index_t index, bool is_config);
+        promise_t<bool> promise;
+        bool is_config;
+        multimap_insertion_sentry_t<raft_log_index_t, change_token_t *> sentry;
+    };
+
+    /* `propose_change()` tries to apply a `change_t` to the cluster.
+    `propose_config_change()` tries to change the cluster's configuration. 
+
+    `propose_[config_]change()` will block while the change is being initiated; this
+    should be a relatively quick process. If you pulse the interruptor, the
+    `raft_member_t` may be left in an undefined internal state.
+
+    If the change is successfully initiated, `propose_[config_]change()` will return a
+    `change_token_t` that you can use to monitor the progress of the change. If it is not
+    successful, it will return `nullptr`. See `get_readiness_for_[config_]change()` for
+    an explanation of when and why it will return `nullptr`. */
+    scoped_ptr_t<change_token_t> propose_change(
+        change_lock_t *change_lock,
+        const typename state_t::change_t &change,
+        signal_t *interruptor);
+    scoped_ptr_t<change_token_t> propose_config_change(
+        change_lock_t *change_lock,
+        const raft_config_t &new_config,
+        signal_t *interruptor);
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */
@@ -692,7 +730,7 @@ private:
     /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
     the entry to be committed. It flushes persistent state to stable storage. */
-    raft_log_index_t leader_append_log_entry(
+    void leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
@@ -752,11 +790,12 @@ private:
     watchable_variable_t<bool> readiness_for_change;
     watchable_variable_t<bool> readiness_for_config_change;
 
-    /* When `propose_change()` and `propose_config_change()` are running, they insert a
-    `cond_t *` into `lost_readiness_waiters`. If we stop being master or lose contact
-    with a majority of the cluster nodes, then all of the conds in
-    `lost_readiness_waiters` will be pulsed. */
-    std::set<cond_t *> lost_readiness_waiters;
+    /* `propose_[config_]change()` inserts a `change_token_t *` into `change_tokens`. If
+    we stop being leader or lose contact with a majority of the cluster nodes, then all
+    of the change tokens will be notified that the changes they were waiting on have
+    failed. Whenever we commit a transaction, we also notify change tokens for success if
+    appropriate. If we are not leader, `change_tokens` will be empty. */
+    std::multimap<raft_log_index_t, change_token_t *> change_tokens;
 
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if
