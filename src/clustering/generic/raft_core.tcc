@@ -127,140 +127,98 @@ raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
 }
 
 template<class state_t>
-bool raft_member_t<state_t>::propose_change(
-        const typename state_t::change_t &change,
-        signal_t *soft_interruptor,
-        signal_t *hard_interruptor) {
-    assert_thread();
-    /* If we successfully push an entry into the log, `log_index` will be set to that
-    entry's index. */
-    raft_log_index_t log_index;
-    /* After we set up `lost_readiness_sentry`, `lost_readiness` will be pulsed if we
-    stop being master or we are no longer in contact with a quorum of followers. */
-    cond_t lost_readiness;
-    set_insertion_sentry_t<cond_t *> lost_readiness_sentry;
-    {
-        new_mutex_acq_t mutex_acq(&mutex, soft_interruptor);
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-
-        if (!readiness_for_change.get_ref()) {
-            debugf("%s propose_change(%s) not ready\n",
-                uuid_to_str(this_member_id).substr(0,4).c_str(),
-                uuid_to_str(change).substr(0,2).c_str());
-            return false;
-        }
-        guarantee(mode == mode_t::leader);
-        lost_readiness_sentry.reset(&lost_readiness_waiters, &lost_readiness);
-
-        raft_log_entry_t<state_t> new_entry;
-        new_entry.type = raft_log_entry_t<state_t>::type_t::regular;
-        new_entry.change = boost::optional<typename state_t::change_t>(change);
-        new_entry.term = ps.current_term;
-
-        log_index = leader_append_log_entry(new_entry, &mutex_acq, hard_interruptor);
-
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-    }
-    /* Now that we've pushed an entry into the log, wait for it to be committed, or for
-    this member to stop being leader. */
-    try {
-        wait_any_t waiter(soft_interruptor, hard_interruptor, &lost_readiness);
-        committed_state.get_watchable()->run_until_satisfied(
-            [&](const state_and_config_t &cs) {
-                return cs.log_index >= log_index;
-            },
-            &waiter);
-    } catch (const interrupted_exc_t &) {
-        if (soft_interruptor->is_pulsed() || hard_interruptor->is_pulsed()) {
-            debugf("%s propose_change(%s) interrupted\n",
-                uuid_to_str(this_member_id).substr(0,4).c_str(),
-                uuid_to_str(change).substr(0,2).c_str());
-            throw;
-        } else {
-            guarantee(lost_readiness.is_pulsed());
-            /* Something went wrong before we could commit the entry. */
-            debugf("%s propose_change(%s) lost readiness\n",
-                uuid_to_str(this_member_id).substr(0,4).c_str(),
-                uuid_to_str(change).substr(0,2).c_str());
-            return false;
-        }
-    }
-    debugf("%s propose_change(%s) success\n",
-        uuid_to_str(this_member_id).substr(0,4).c_str(),
-        uuid_to_str(change).substr(0,2).c_str());
-    return true;
+raft_member_t<state_t>::change_lock_t::change_lock_t(
+        raft_member_t *parent,
+        signal_t *interruptor) :
+    mutex_acq(&parent->mutex, interruptor) {
+    DEBUG_ONLY_CODE(parent->check_invariants(&mutex_acq));
 }
 
 template<class state_t>
-bool raft_member_t<state_t>::propose_config_change(
-        const raft_config_t &new_config,
-        signal_t *soft_interruptor,
-        signal_t *hard_interruptor) {
+raft_member_t<state_t>::change_token_t::change_token_t(
+        raft_member_t *_parent,
+        raft_log_index_t _index,
+        bool _is_config) :
+    is_config(_is_config), sentry(&_parent->change_tokens, _index, this) { } 
+
+template<class state_t>
+scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
+raft_member_t<state_t>::propose_change(
+        change_lock_t *change_lock,
+        const typename state_t::change_t &change,
+        signal_t *interruptor) {
     assert_thread();
-    /* If we successfully push an entry into the log, `log_index` will be set to that
-    entry's index. */
-    raft_log_index_t log_index;
-    /* After we set up `lost_readiness_sentry`, `lost_readiness` will be pulsed if we
-    stop being master or we are no longer in contact with a quorum of followers. */
-    cond_t lost_readiness;
-    set_insertion_sentry_t<cond_t *> lost_readiness_sentry;
-    {
-        new_mutex_acq_t mutex_acq(&mutex, soft_interruptor);
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+    change_lock->mutex_acq.guarantee_is_holding(&mutex);
 
-        if (readiness_for_config_change.get_ref()) {
-            return false;
-        }
-        guarantee(mode == mode_t::leader);
-        guarantee(!committed_state.get_ref().config.is_joint_consensus());
-        guarantee(!latest_state.get_ref().config.is_joint_consensus());
-        lost_readiness_sentry.reset(&lost_readiness_waiters, &lost_readiness);
-
-        /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
-        configuration]" */
-        raft_complex_config_t new_complex_config;
-        new_complex_config.config = committed_state.get_ref().config.config;
-        new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
-
-        raft_log_entry_t<state_t> new_entry;
-        new_entry.type = raft_log_entry_t<state_t>::type_t::config;
-        new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
-        new_entry.term = ps.current_term;
-
-        log_index = leader_append_log_entry(new_entry, &mutex_acq, hard_interruptor);
-
-        /* Now that we've put a config entry into the log, we'll have to flip
-        `readiness_for_config_change` */
-        update_readiness_for_change();
-        guarantee(!readiness_for_config_change.get_ref());
-
-        /* When the joint consensus is committed, `leader_continue_reconfiguration()`
-        will take care of initiating the second step of the reconfiguration. */
-
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+    if (!readiness_for_change.get_ref()) {
+        return scoped_ptr_t<change_token_t>();
     }
-    /* Now, we wait until either both phases of the reconfiguration are complete, or this
-    member stops being leader, before we return. */
-    try {
-        wait_any_t waiter(soft_interruptor, hard_interruptor, &lost_readiness);
-        committed_state.get_watchable()->run_until_satisfied(
-            [&](const state_and_config_t &cs) {
-                /* The `cs.log_index > log_index` condition ensures that the first phase
-                of the reconfiguration was complete; the `!is_joint_consensus()`
-                condition ensures that the second phase was complete. */
-                return cs.log_index > log_index && !cs.config.is_joint_consensus();
-            },
-            &waiter);
-    } catch (const interrupted_exc_t &) {
-        if (soft_interruptor->is_pulsed() || hard_interruptor->is_pulsed()) {
-            throw;
-        } else {
-            guarantee(lost_readiness.is_pulsed());
-            /* Something went wrong before we could commit the entry. */
-            return false;
-        }
+    guarantee(mode == mode_t::leader);
+
+    /* We have to construct the change token before we create the log entry. If we are
+    the only member of the cluster, then `leader_append_log_entry()` will commit the
+    entry as well as create it; by creating the change token first, we ensure that it
+    will get notified if this happens. */
+    raft_log_index_t log_index = ps.log.get_latest_index() + 1;
+    scoped_ptr_t<change_token_t> change_token(
+        new change_token_t(this, log_index, false));
+
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_t<state_t>::type_t::regular;
+    new_entry.change = boost::optional<typename state_t::change_t>(change);
+    new_entry.term = ps.current_term;
+
+    leader_append_log_entry(new_entry, &change_lock->mutex_acq, interruptor);
+    guarantee(ps.log.get_latest_index() == log_index);
+
+    DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
+    return change_token;
+}
+
+template<class state_t>
+scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
+raft_member_t<state_t>::propose_config_change(
+        change_lock_t *change_lock,
+        const raft_config_t &new_config,
+        signal_t *interruptor) {
+    assert_thread();
+    change_lock->mutex_acq.guarantee_is_holding(&mutex);
+
+    if (!readiness_for_config_change.get_ref()) {
+        return scoped_ptr_t<change_token_t>();
     }
-    return true;
+    guarantee(mode == mode_t::leader);
+    guarantee(!committed_state.get_ref().config.is_joint_consensus());
+    guarantee(!latest_state.get_ref().config.is_joint_consensus());
+
+    raft_log_index_t log_index = ps.log.get_latest_index() + 1;
+    scoped_ptr_t<change_token_t> change_token(
+        new change_token_t(this, log_index, true));
+
+    /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
+    configuration]" */
+    raft_complex_config_t new_complex_config;
+    new_complex_config.config = committed_state.get_ref().config.config;
+    new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
+
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+    new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
+    new_entry.term = ps.current_term;
+
+    leader_append_log_entry(new_entry, &change_lock->mutex_acq, interruptor);
+    guarantee(ps.log.get_latest_index() == log_index);
+
+    /* Now that we've put a config entry into the log, we'll have to flip
+    `readiness_for_config_change` */
+    update_readiness_for_change();
+    guarantee(!readiness_for_config_change.get_ref());
+
+    /* When the joint consensus is committed, `leader_continue_reconfiguration()`
+    will take care of initiating the second step of the reconfiguration. */
+
+    DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
+    return change_token;
 }
 
 template<class state_t>
@@ -1038,6 +996,24 @@ void raft_member_t<state_t>::update_commit_index(
         return true;
     });
 
+    /* Notify any change tokens that were waiting on this commit */
+    for (auto it = change_tokens.begin();
+            it != change_tokens.upper_bound(new_commit_index);) {
+        /* We might remove the entry from the map, which would invalidate the iterator.
+        So we have to increment the iterator now. */
+        change_token_t *token = it->second;
+        ++it;
+        /* If the change token corresponds to a configuration change, it's not finished
+        until both phases of the config change have been committed. */
+        if (token->is_config && committed_state.get_ref().config.is_joint_consensus()) {
+            /* We committed the first part of the config change, but not the second. */
+            continue;
+        }
+        token->pulse(true);
+        /* This removes it from the map */
+        token->sentry.reset();
+    }
+
     /* Take a snapshot as described in Section 7. We can snapshot any time we like; this
     implementation currently snapshots after every change. If the `state_t` ever becomes
     large enough that flushing it to disk is expensive, we could delay snapshotting until
@@ -1129,8 +1105,10 @@ void raft_member_t<state_t>::update_readiness_for_change() {
     }
     readiness_for_change.set_value(false);
     readiness_for_config_change.set_value(false);
-    for (cond_t *cond : lost_readiness_waiters) {
-        cond->pulse_if_not_already_pulsed();
+    while (!change_tokens.empty()) {
+        change_tokens.begin()->second->pulse(false);
+        /* This will remove the change token from the map */
+        change_tokens.begin()->second->sentry.reset();
     }
 }
 
@@ -1823,7 +1801,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
 }
 
 template<class state_t>
-raft_log_index_t raft_member_t<state_t>::leader_append_log_entry(
+void raft_member_t<state_t>::leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
@@ -1861,8 +1839,6 @@ raft_log_index_t raft_member_t<state_t>::leader_append_log_entry(
     it's possible that we could send an AppendEntries RPC for log entries that were not
     on our disk yet, and it's not obvious whether that is safe. */
     storage->write_persistent_state(ps, interruptor);
-
-    return ps.log.get_latest_index();
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */
