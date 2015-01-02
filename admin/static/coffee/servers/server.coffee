@@ -222,7 +222,7 @@ module 'ServerView', ->
             @listenTo @collection, 'remove', @render
 
         render: =>
-            if @model.get('status') != 'available'
+            if @model.get('status') != 'connected'
                 last_seen = $.timeago(
                     @model.get('connection').time_disconnected).slice(0, -4)
                 uptime = null

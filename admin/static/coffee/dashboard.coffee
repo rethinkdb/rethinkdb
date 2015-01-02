@@ -76,9 +76,9 @@ module 'DashboardView', ->
 
                     num_tables: table_config.count()
                     num_servers: server_status.count()
-                    num_available_servers: server_status.filter({status: "available"}).count()
+                    num_available_servers: server_status.filter({status: "connected"}).count()
                     servers_non_available: server_status.filter (server) ->
-                        server("status").ne("available")
+                        server("status").ne("connected")
             ).merge
                 num_non_available_tables: r.row("tables_with_primaries_not_ready").count()
 
