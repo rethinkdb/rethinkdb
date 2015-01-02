@@ -44,6 +44,7 @@ public:
 private:
     static const uuid_u base_sindex_id;
     static const uuid_u base_disk_compaction_id;
+    static const uuid_u base_backfill_id;
 
     void on_get_job_reports(
         UNUSED signal_t *interruptor,
