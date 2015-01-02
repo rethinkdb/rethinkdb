@@ -191,7 +191,7 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     } else {
         // Otherwise we need to use the local addresses with the cluster port
         if (local_addresses.empty()) {
-            local_addresses = get_local_ips(std::set<ip_address_t>(), true);
+            local_addresses = get_local_ips(std::set<ip_address_t>(), true, true);
         }
         for (auto it = local_addresses.begin();
              it != local_addresses.end(); ++it) {

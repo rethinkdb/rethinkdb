@@ -61,7 +61,7 @@ std::string service_address_ports_t::get_addresses_string() const {
 
     // Get the actual list for printing if we're listening on all addresses.
     if (is_bind_all()) {
-        actual_addresses = get_local_ips(std::set<ip_address_t>(), true);
+        actual_addresses = get_local_ips(std::set<ip_address_t>(), true, true);
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
