@@ -393,7 +393,7 @@ def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
                 # - check with `ps` that it too thinks there is something there
                 try:
                     os.waitpid(processGroupId, os.WNOHANG)
-                except exception: pass
+                except Exception: pass
                 psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
                 psLines = psFilter(psOutput)
                 if len(psLines) == 0:
@@ -409,7 +409,7 @@ def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
             # - check with `ps` that it too thinks there is something there
             try:
                 os.waitpid(processGroupId, os.WNOHANG)
-            except exception: pass
+            except Exception: pass
             psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
             psLines = psFilter(psOutput)
             if len(psLines) == 0:
