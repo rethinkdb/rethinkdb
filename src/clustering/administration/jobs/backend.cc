@@ -55,6 +55,11 @@ void jobs_artificial_table_backend_t::get_all_job_reports(
                     if (result.second == false) {
                         result.first->second.duration = std::max(
                             result.first->second.duration, return_job_report.duration);
+                        result.first->second.is_ready &= return_job_report.is_ready;
+                        result.first->second.progress_numerator +=
+                            return_job_report.progress_numerator;
+                        result.first->second.progress_denominator +=
+                            return_job_report.progress_denominator;
                     }
                     result.first->second.servers.insert(peer.second.server_id);
                 }

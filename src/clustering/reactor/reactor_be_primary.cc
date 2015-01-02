@@ -18,6 +18,7 @@
 #include "config/args.hpp"
 #include "stl_utils.hpp"
 #include "store_view.hpp"
+#include "time.hpp"
 
 reactor_t::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
     : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version),
@@ -473,7 +474,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
 
         map_insertion_sentry_t<region_t, reactor_progress_report_t>
             progress_tracker_on_svs_thread(
-                progress_map.get(), region, reactor_progress_report_t{ false, { }});
+                progress_map.get(),
+                region,
+                reactor_progress_report_t{false, current_microtime(), { }});
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get

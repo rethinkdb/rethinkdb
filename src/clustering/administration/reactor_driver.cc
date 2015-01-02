@@ -296,6 +296,20 @@ public:
         return stores_lifetimer_.get_sindex_jobs();
     }
 
+    typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>
+        backfill_progress_t;
+    backfill_progress_t get_backfill_progress() const {
+        backfill_progress_t backfill_progress;
+
+        for (auto const &backfill : reactor_->get_progress()) {
+            backfill_progress.insert(
+                std::make_pair(std::make_pair(namespace_id_, backfill.first),
+                               backfill.second));
+        }
+
+        return backfill_progress;
+    }
+
 private:
     void initialize_reactor(io_backender_t *io_backender) {
         perfmon_collection_repo_t::collections_t *perfmon_collections = parent_->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id_);
@@ -434,6 +448,19 @@ reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
     }
 
     return sindex_jobs;
+}
+
+reactor_driver_t::backfill_progress_t reactor_driver_t::get_backfill_progress() const {
+    reactor_driver_t::backfill_progress_t backfill_progress;
+
+    for (auto const &reactor : reactor_data) {
+        auto reactor_backfill_progress = reactor.second->get_backfill_progress();
+        backfill_progress.insert(
+            std::make_move_iterator(reactor_backfill_progress.begin()),
+            std::make_move_iterator(reactor_backfill_progress.end()));
+    }
+
+    return backfill_progress;
 }
 
 void reactor_driver_t::delete_reactor_data(

@@ -27,6 +27,9 @@ public:
     /* `is_ready` is true if the shard is completely ready. */
     bool is_ready;
 
+    /* `start_time` is the moment the `reactor_progress_report_t` was constructed. */
+    microtime_t start_time;
+
     /* `backfills` contains the peer ID and progress fraction (from 0 to 1) for each
     backfill that this server is receiving for that shard. The backfills will stay even
     after `is_ready` becomes `true`, but all the progress fractions will be 1.  */

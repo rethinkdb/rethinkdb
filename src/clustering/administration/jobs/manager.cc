@@ -18,6 +18,9 @@ const uuid_u jobs_manager_t::base_sindex_id =
 const uuid_u jobs_manager_t::base_disk_compaction_id =
     str_to_uuid("b8766ece-d15c-4f96-bee5-c0edacf10c9c");
 
+const uuid_u jobs_manager_t::base_backfill_id =
+    str_to_uuid("a5e1b38d-c712-42d7-ab4c-f177a3fb0d20");
+
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id) :
     mailbox_manager(_mailbox_manager),
@@ -97,6 +100,30 @@ void jobs_manager_t::on_get_job_reports(
             // `disk_compaction` jobs do not have a duration, it's set to -1 to prevent
             // it being displayed later.
             job_reports.emplace_back(id, "disk_compaction", -1);
+        }
+
+        for (auto const &report : reactor_driver->get_backfill_progress()) {
+            // Only report the duration of backfills still in progress.
+            double duration = report.second.is_ready
+                ? 0
+                : time - std::min(report.second.start_time, time);
+
+            std::string base_str =
+                uuid_to_str(server_id) + uuid_to_str(report.first.first);
+            for (auto const &backfill : report.second.backfills) {
+                uuid_u id = uuid_u::from_hash(
+                    base_backfill_id, base_str + uuid_to_str(backfill.first.get_uuid()));
+
+                job_reports.emplace_back(
+                    id,
+                    "backfill",
+                    duration,
+                    report.first.first,
+                    report.second.is_ready,
+                    backfill.second,
+                    backfill.first,
+                    server_id);
+            }
         }
     }
 

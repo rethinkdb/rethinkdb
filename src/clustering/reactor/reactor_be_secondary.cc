@@ -11,6 +11,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "config/args.hpp"
 #include "store_view.hpp"
+#include "time.hpp"
 
 bool reactor_t::find_broadcaster_in_directory(
         const region_t &region,
@@ -228,7 +229,9 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
 
                 map_insertion_sentry_t<region_t, reactor_progress_report_t>
                     progress_tracker_on_svs_thread(
-                        progress_map.get(), region, reactor_progress_report_t{ false, { }});
+                        progress_map.get(),
+                        region,
+                        reactor_progress_report_t{false, current_microtime(), { }});
                 progress_tracker_on_svs_thread.get_value()->backfills.push_back(
                     std::make_pair(peer_id, 0.0));
 
@@ -253,6 +256,8 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                     &order_source,
                     &progress_tracker_on_svs_thread.get_value()->backfills.back().second
                     );
+
+                progress_tracker_on_svs_thread.get_value()->is_ready = true;
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
