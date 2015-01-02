@@ -134,7 +134,11 @@ bool job_report_t::to_datum(
                 if (servers.find(source_server.get()) == servers.end()) {
                     servers_builder.add(source_server_name_or_uuid);
                 }
+            } else {
+                return false;
             }
+        } else {
+            return false;
         }
 
         ql::datum_t destination_server_name_or_uuid;
@@ -149,6 +153,8 @@ bool job_report_t::to_datum(
             if (servers.find(destination_server) == servers.end()) {
                 servers_builder.add(destination_server_name_or_uuid);
             }
+        } else {
+            return false;
         }
     }
 

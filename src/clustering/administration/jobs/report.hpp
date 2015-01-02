@@ -24,12 +24,15 @@ class job_report_t {
 public:
     job_report_t();
 
+    // For `"query"` jobs, taking a `ip_and_port_t` of the client issuing the query
     job_report_t(
             uuid_u const &id,
             std::string const &type,
             double duration,
             ip_and_port_t const &client_addr_port);
 
+    // For `"backfill"` jobs, taking extra variables for progress, source, and
+    // destination servers
     job_report_t(
             uuid_u const &id,
             std::string const &type,
@@ -40,6 +43,7 @@ public:
             peer_id_t const &source_peer,
             server_id_t const &destination_server);
 
+    // For `"disk_compation"` and `"index_construction"` jobs
     job_report_t(
             uuid_u const &id,
             std::string const &type,
