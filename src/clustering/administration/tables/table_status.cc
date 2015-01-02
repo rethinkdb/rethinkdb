@@ -81,7 +81,7 @@ ql::datum_t convert_primary_replica_status_to_datum(
     const char *state;
     *has_primary_replica_out = false;
     if (status == nullptr) {
-        state = "missing";
+        state = "disconnected";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
@@ -116,7 +116,7 @@ ql::datum_t convert_replica_status_to_datum(
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
     if (status == nullptr) {
-        state = "missing";
+        state = "disconnected";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
@@ -148,10 +148,11 @@ ql::datum_t convert_nothing_status_to_datum(
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
     if (status == nullptr) {
-        /* The server is missing. Don't display the missing server for this table because
-        the config says it shouldn't have data. This is misleading because it might still
-        have data for this table, if the config was changed but it didn't get a chance to
-        offload its data before going missing. But there's nothing we can do. */
+        /* The server is disconnected. Don't display the missing server for this table
+        because the config says it shouldn't have data. This is misleading because it
+        might still have data for this table, if the config was changed but it didn't
+        get a chance to offload its data before disconnecting. But there's nothing we
+        can do. */
         *is_unfinished_out = false;
         return ql::datum_t();
     } else if (!check_complete_set(*status)) {
