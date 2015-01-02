@@ -512,10 +512,22 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
         task_queue.put((db, table, object_buffers))
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
-# error occurs.  Progress is not used as this will either succeed or fail.
-def create_table(progress, conn, db, table, pkey):
+# error occurs.  Progress will resume where it left off.
+def create_table(progress, conn, db, table, pkey, sindexes):
     if table not in r.db(db).table_list().run(conn):
         r.db(db).table_create(table, primary_key=pkey).run(conn)
+
+    if progress[0] is None:
+        progress[0] = 0
+
+    # Recreate secondary indexes - assume that any indexes that already exist are wrong
+    # and create them from scratch
+    indexes = r.db(db).table(table).index_list().run(conn)
+    for sindex in sindexes[progress[0]:]:
+        if sindex['index'] in indexes:
+            r.db(db).table(table).index_drop(sindex['index']).run(conn)
+        r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+        progress[0] += 1
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
@@ -524,7 +536,7 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         primary_key = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key)
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key, file_info["info"]["indexes"])
 
         if file_info["format"] == "json":
             json_reader(task_queue,
