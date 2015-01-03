@@ -7,6 +7,7 @@
 #include "btree/keys.hpp"
 #include "btree/leaf_node.hpp"
 #include "concurrency/interruptor.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"

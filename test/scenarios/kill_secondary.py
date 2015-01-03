@@ -42,7 +42,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     print("Reconfiguring table to have 1 shard but %d replicas (%.2fs)" % (numNodes, time.time() - startTime))
     
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numNodes).run(conn)
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server.name, 'replicas':r.row['shards'][0]['replicas']}]}).run(conn)['errors'] == 0
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':server.name, 'replicas':r.row['shards'][0]['replicas']}]}).run(conn)['errors'] == 0
     r.db(dbName).table_wait().run(conn)
     
     cluster.check()

@@ -13,7 +13,6 @@
 #include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -27,35 +26,13 @@ namespace reactor_business_card_details {
  *  - the peer is backfilling
  *  - another peer is a primary
  */
-class backfill_location_t {
-public:
-    backfill_location_t() { }
-    backfill_location_t(backfill_session_id_t _backfill_session_id, peer_id_t _peer_id, reactor_activity_id_t _activity_id)
-        : backfill_session_id(_backfill_session_id), peer_id(_peer_id), activity_id(_activity_id)
-    { }
-
-    backfill_session_id_t backfill_session_id;
-    peer_id_t peer_id;
-    reactor_activity_id_t activity_id;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(backfill_location_t,
-        backfill_session_id, peer_id, activity_id);
-};
-
-RDB_MAKE_SERIALIZABLE_3(backfill_location_t,
-                        backfill_session_id, peer_id, activity_id);
-
 class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
-
-    explicit primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
-        : backfills_waited_on(_backfills_waited_on)
-    { }
-    std::vector<backfill_location_t> backfills_waited_on;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(primary_when_safe_t, backfills_waited_on);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(primary_when_safe_t);
 };
 
-RDB_MAKE_SERIALIZABLE_1(primary_when_safe_t, backfills_waited_on);
+RDB_MAKE_SERIALIZABLE_0(primary_when_safe_t);
 
 /* This peer is currently a primary in working order. */
 class primary_t {
@@ -94,7 +71,7 @@ public:
 RDB_MAKE_SERIALIZABLE_4(primary_t,
                         broadcaster, replier, master, direct_reader);
 
-/* This peer is currently a secondary in working order. */
+/* This peer is currently a secondary replica in working order. */
 class secondary_up_to_date_t {
 public:
     secondary_up_to_date_t(branch_id_t _branch_id,
@@ -115,8 +92,8 @@ public:
 
 RDB_MAKE_SERIALIZABLE_3(secondary_up_to_date_t, branch_id, replier, direct_reader);
 
-/* This peer would like to be a secondary but cannot because it failed to
- * find a primary. It may or may not have ever seen a primary. */
+/* This peer would like to be a secondary replica but cannot because it failed to
+ * find a primary replica. It may or may not have ever seen a primary. */
 class secondary_without_primary_t {
 public:
     secondary_without_primary_t(region_map_t<version_range_t> _current_state, backfiller_business_card_t _backfiller,
@@ -138,21 +115,15 @@ public:
 RDB_MAKE_SERIALIZABLE_4(secondary_without_primary_t,
                         current_state, backfiller, direct_reader, branch_history);
 
-/* This peer is in the process of becoming a secondary, barring failures it
- * will become a secondary when it completes backfilling. */
+/* This peer is in the process of becoming a secondary replica, barring failures it
+ * will become a secondary replica when it completes backfilling. */
 class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
-
-    explicit secondary_backfilling_t(backfill_location_t  _backfill)
-        : backfill(_backfill)
-    { }
-
-    backfill_location_t backfill;
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(secondary_backfilling_t, backfill);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(secondary_backfilling_t);
 };
 
-RDB_MAKE_SERIALIZABLE_1(secondary_backfilling_t, backfill);
+RDB_MAKE_SERIALIZABLE_0(secondary_backfilling_t);
 
 /* This peer would like to erase its data and not do any job for this
  * shard, however it must stay up until every other peer is ready for it to
@@ -190,7 +161,7 @@ public:
 RDB_MAKE_SERIALIZABLE_0(nothing_when_done_erasing_t);
 
 /* This peer has no data for the shard, is not backfilling and is not a
- * primary or a secondary. */
+ * primary or secondary replica. */
 class nothing_t {
 public:
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_t);

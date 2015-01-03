@@ -14,4 +14,7 @@ for module in (net, query, ast, errors):
         setattr(r, functionName, staticmethod(getattr(module, functionName)))
 rethinkdb = r
 
+# set the _r attribute to net.Connection
+Connection._r = r
+
 __all__ = ['r', 'rethinkdb'] + errors.__all__

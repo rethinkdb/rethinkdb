@@ -2,7 +2,7 @@
 # Copyright 2014 RethinkDB, all rights reserved.
 
 # issue-url: https://github.com/rethinkdb/rethinkdb/issues/3038
-# issue-description: when a master suddenly dies changefeed requests to that server are not cleaned up correctly
+# issue-description: when a primary replica suddenly dies changefeed requests to that server are not cleaned up correctly
 
 import os, subprocess, sys, tempfile, threading, time
 

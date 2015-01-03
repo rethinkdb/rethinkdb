@@ -17,7 +17,6 @@
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -150,33 +149,6 @@ public:
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
-
-// ctx-less json adapter for directory_echo_wrapper_t
-template <class T>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
-    return get_json_subfields(&target->internal);
-}
-
-template <class T>
-cJSON *render_as_json(directory_echo_wrapper_t<T> *target) {
-    return render_as_json(&target->internal);
-}
-
-template <class T>
-void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
-    apply_json_to(change, &target->internal);
-}
-
-// ctx-less json adapter concept for cluster_directory_metadata_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target);
-cJSON *render_as_json(cluster_directory_metadata_t *target);
-void apply_json_to(cJSON *change, cluster_directory_metadata_t *target);
-
-
-// ctx-less json adapter for cluster_directory_peer_type_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *);
-cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
-void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 
 enum metadata_search_status_t {
     METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE

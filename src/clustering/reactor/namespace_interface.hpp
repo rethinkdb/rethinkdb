@@ -40,11 +40,11 @@ public:
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
 
-    /* Returns a signal that will be pulsed when we have either successfully
-    connected or tried and failed to connect to every master that was present
-    at the time that the constructor was called. This is to avoid the case where
-    we get errors like "lost contact with master" when really we just haven't
-    finished connecting yet. */
+    /* Returns a signal that will be pulsed when we have either successfully connected
+    or tried and failed to connect to every primary replica that was present at the time
+    that the constructor was called. This is to avoid the case where we get errors like
+    "lost contact with primary replica" when really we just haven't finished connecting
+    yet. */
     signal_t *get_initial_ready_signal() {
         return &start_cond;
     }

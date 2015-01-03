@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 common_server_artificial_table_backend_t::common_server_artificial_table_backend_t(
         boost::shared_ptr< semilattice_readwrite_view_t<
@@ -24,6 +25,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
@@ -45,7 +47,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
             continue;
         }
         if (!format_row(it->second, it->first, sl_it->second.get_ref(),
-                        interruptor, &row, error_out)) {
+                        &ct_interruptor, &row, error_out)) {
             return false;
         }
         rows_out->push_back(row);
@@ -58,6 +60,7 @@ bool common_server_artificial_table_backend_t::read_row(
         signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
+    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
@@ -68,7 +71,7 @@ bool common_server_artificial_table_backend_t::read_row(
         return true;
     } else {
         return format_row(server_name, server_id, *server_sl,
-            interruptor, row_out, error_out);
+                          &ct_interruptor, row_out, error_out);
     }
 }
 

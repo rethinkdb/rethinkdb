@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
+#include "btree/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -156,20 +157,6 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
-
-/* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
- * the btree, and m is the number of documents actually being deleted.
- * It also requires O(m) memory.
- * It returns a number of modification reports that should be applied
- * to secondary indexes separately. Blobs are detached, and should be deleted later
- * if required (passing the modification reports to store_t::update_sindexes()
- * takes care of that). */
-void rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &keys,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           std::vector<rdb_modification_report_t> *mod_reports_out);
 
 void rdb_rget_slice(
     btree_slice_t *slice,

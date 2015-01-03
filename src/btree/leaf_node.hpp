@@ -72,7 +72,7 @@ leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node);
 leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node);
 
 leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
-leaf_node_t::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+leaf_node_t::reverse_iterator exclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
 
 
 

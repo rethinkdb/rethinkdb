@@ -26,7 +26,9 @@ name_collision_issue_t::name_collision_issue_t(const issue_id_t &_issue_id,
     collided_ids(_collided_ids) { }
 
 void generic_build_info_and_description(
-        const std::string &type,
+        const std::string &long_type_plural,
+        const char *short_type_singular,
+        const char *system_table_name,
         const name_string_t &name,
         const std::vector<uuid_u> &ids,
         ql::datum_t *info_out,
@@ -45,8 +47,12 @@ void generic_build_info_and_description(
     builder.overwrite("ids", std::move(ids_builder).to_datum());
     *info_out = std::move(builder).to_datum();
     *description_out = datum_string_t(strprintf(
-        "The following %s are all named '%s': %s.",
-        type.c_str(), name.c_str(), ids_str.c_str()));
+        "There are multiple %s named `%s`. RethinkDB requires that every %s have a "
+        "unique name. Please update the `name` field of the conflicting %ss' documents "
+        "in the `rethinkdb.%s` system table.\n\nThe UUIDs of the conflicting %ss are as "
+        "follows: %s",
+        long_type_plural.c_str(), name.c_str(), short_type_singular, short_type_singular,
+        system_table_name, short_type_singular, ids_str.c_str()));
 }
 
 server_name_collision_issue_t::server_name_collision_issue_t(
@@ -63,7 +69,8 @@ bool server_name_collision_issue_t::build_info_and_description(
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
     generic_build_info_and_description(
-        "servers", name, collided_ids, info_out, description_out);
+        "servers", "server", "server_config", name, collided_ids,
+        info_out, description_out);
     return true;
 }
 
@@ -81,7 +88,8 @@ bool db_name_collision_issue_t::build_info_and_description(
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
     generic_build_info_and_description(
-        "databases", name, collided_ids, info_out, description_out);
+        "databases", "database", "db_config", name, collided_ids,
+        info_out, description_out);
     return true;
 }
 
@@ -109,7 +117,8 @@ bool table_name_collision_issue_t::build_info_and_description(
     }
     ql::datum_t partial_info;
     generic_build_info_and_description(
-        strprintf("tables in database `%s`", db_name.c_str()), name, collided_ids,
+        strprintf("tables in database `%s`", db_name.c_str()),
+        "table", "table_config", name, collided_ids,
         &partial_info, description_out);
     ql::datum_object_builder_t info_rebuilder(partial_info);
     info_rebuilder.overwrite("db", db_name_or_uuid);

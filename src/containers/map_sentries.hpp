@@ -44,6 +44,11 @@ public:
     map_insertion_sentry_t(const map_insertion_sentry_t &) = delete;
     map_insertion_sentry_t &operator=(const map_insertion_sentry_t &) = delete;
 
+    value_t *get_value() {
+        guarantee(map != nullptr);
+        return &it->second;
+    }
+
     void reset() {
         if (map != nullptr) {
             map->erase(it);

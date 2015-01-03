@@ -79,7 +79,7 @@ shardStartTime = time.time()
 tableId = r.db(dbName).table_config(tableName).nth(0)['id'].run(conn)
 shardsArray = []
 for _ in range(4):
-    shardsArray.append({'director':server.name, 'replicas':[server.name]})
+    shardsArray.append({'primary_replica':server.name, 'replicas':[server.name]})
 assert r.db('rethinkdb').table('table_config').get(tableId).update({'shards':shardsArray}).run(conn)['errors'] == 0
 
 # -- wait for the table to be ready

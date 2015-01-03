@@ -198,15 +198,15 @@ ql::datum_t convert_table_config_shard_to_datum(
         convert_replica_list_to_datum(shard.replicas, identifier_format,
                                       server_config_client));
 
-    ql::datum_t director;
-    if (!convert_server_id_to_datum(
-            shard.director, identifier_format, server_config_client, &director,
-            nullptr)) {
-        /* If the previous director was declared dead, just display `null`. The user will
-        have to change this to a new server before the table will come back online. */
-        director = ql::datum_t::null();
+    ql::datum_t primary_replica;
+    if (!convert_server_id_to_datum(shard.primary_replica, identifier_format,
+                                    server_config_client, &primary_replica, nullptr)) {
+        /* If the previous primary replica was declared dead, just display `null`. The
+        user will have to change this to a new server before the table will come back 
+        online. */
+        primary_replica = ql::datum_t::null();
     }
-    builder.overwrite("director", director);
+    builder.overwrite("primary_replica", primary_replica);
 
     return std::move(builder).to_datum();
 }
@@ -236,28 +236,29 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    ql::datum_t director_datum;
-    if (!converter.get("director", &director_datum, error_out)) {
+    ql::datum_t primary_replica_datum;
+    if (!converter.get("primary_replica", &primary_replica_datum, error_out)) {
         return false;
     }
-    if (director_datum.get_type() == ql::datum_t::R_NULL) {
-        /* There's never a good reason for the user to intentionally set the director to
-        `null`; setting the director to `null` will ensure that the table cannot accept
-        queries. We allow it because if the director is declared dead, it will appear to
-        the user as `null`; and we want to allow the user to do things like
-        `r.table_config("foo").update({"name": "bar"})` even when the director is in that
-        state. */
-        shard_out->director = nil_uuid();
+    if (primary_replica_datum.get_type() == ql::datum_t::R_NULL) {
+        /* There's never a good reason for the user to intentionally set the primary
+        replica to `null`; setting the primary replica to `null` will ensure that the
+        table cannot accept queries. We allow it because if the primary replica is 
+        declared dead, it will appear to the user as `null`; and we want to allow the
+        user to do things like `r.table_config("foo").update({"name": "bar"})` even when
+        the primary replica is in that state. */
+        shard_out->primary_replica = nil_uuid();
     } else {
-        name_string_t director_name;
-        if (!convert_server_id_from_datum(director_datum, identifier_format,
-                server_config_client, &shard_out->director, &director_name, error_out)) {
-            *error_out = "In `director`: " + *error_out;
+        name_string_t primary_replica_name;
+        if (!convert_server_id_from_datum(primary_replica_datum, identifier_format,
+                server_config_client, &shard_out->primary_replica, &primary_replica_name, error_out)) {
+            *error_out = "In `primary_replica`: " + *error_out;
             return false;
         }
-        if (shard_out->replicas.count(shard_out->director) != 1) {
-            *error_out = strprintf("The director (server `%s`) must also be one of the "
-                "replicas.", director_name.c_str());
+        if (shard_out->replicas.count(shard_out->primary_replica) != 1) {
+            *error_out = strprintf("The server listed in the `primary_replica` field "
+                                   "(`%s`) must also appear in `replicas`.",
+                                   primary_replica_name.c_str());
             return false;
         }
     }
@@ -491,7 +492,7 @@ bool table_config_artificial_table_backend_t::write_row(
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
     auto it = md_change.get()->namespaces.find(table_id);
     guarantee(existed_before ==
-        (!it->second.is_deleted() && it != md_change.get()->namespaces.end()));
+        (it != md_change.get()->namespaces.end() && !it->second.is_deleted()));
 
     if (new_value_inout->has()) {
         /* We're updating an existing table (if `existed_before == true`) or creating
