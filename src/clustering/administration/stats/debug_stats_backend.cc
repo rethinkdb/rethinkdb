@@ -30,7 +30,6 @@ bool debug_stats_artificial_table_backend_t::write_row(
     return false;
 }
 
-
 bool debug_stats_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
         server_id_t const & server_id,

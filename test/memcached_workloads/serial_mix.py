@@ -68,7 +68,6 @@ def random_action(opts, mc, clone, deleted):
             key = random_key(opts)
         verify(opts, mc, clone, deleted, key)
 
-    # NOTE: Was: < 0.6, see below
     elif what_to_do < 0.95:
         # Set
         if random.random() < 0.3 and clone:
@@ -84,28 +83,6 @@ def random_action(opts, mc, clone, deleted):
         if ok == 0:
             raise ValueError("Could not set %r to %r." % (key, value))
         verify(opts, mc, clone, deleted, key)
-
-# NOTE (daniel): Append/prepend seems to be broken in our server.
-# I just needed a quick test to check the serializer, so I disabled it.
-#
-#    elif what_to_do < 0.95:
-#        # Append/prepend
-#        if not clone: return
-#        key = random.choice(clone.keys())
-#        # Make sure that the value we add isn't long enough to make the value larger than our
-#        # specified maximum value size
-#        value_to_pend = random_value(opts)[:opts["valuesize"] - len(clone[key])]
-#        if random.randint(1,2) == 1:
-#            # Append
-#            clone[key] += value_to_pend
-#            ok = mc.append(key, value_to_pend)
-#        else:
-#            # Prepend
-#            clone[key] = value_to_pend + clone[key]
-#            ok = mc.prepend(key, value_to_pend)
-#        if ok == 0:
-#            raise ValueError("Could not append/prepend %r to key %r" % (value_to_pend, key))
-#        verify(opts, mc, clone, deleted, key)
 
     else:
         # Delete

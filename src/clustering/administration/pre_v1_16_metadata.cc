@@ -304,22 +304,22 @@ namespace_semilattice_metadata_t migrate_table(
                     "servers.",
                     db_name.c_str(), table_name.c_str());
                 /* This is a hack; if the server doesn't have any role for this exact
-                shard, we'll just set it as a secondary. This will result in the user's
-                data being replicated too many times but at least they won't lose any
-                data. */
+                shard, we'll just set it as a secondary replica. This will result in the
+                user's data being replicated too many times but at least they won't lose
+                any data. */
                 role = blueprint_role_secondary;
             } else {
                 role = it->second;
             }
             if (role == blueprint_role_primary) {
-                if (!s->director.is_unset()) {
+                if (!s->primary_replica.is_unset()) {
                     logERR("Metadata corruption detected when migrating to RethinkDB "
                         "1.16 format: table `%s.%s` has two different servers listed as "
-                        "primary for a single shard.",
+                        "primary replica for a single shard.",
                         db_name.c_str(), table_name.c_str());
-                    /* Choose one director arbitrarily. It's not the end of the world. */
+                    /* Choose one primary arbitrarily. It's not the end of the world. */
                 }
-                s->director = server_roles.first;
+                s->primary_replica = server_roles.first;
                 s->replicas.insert(server_roles.first);
             } else if (role == blueprint_role_secondary) {
                 s->replicas.insert(server_roles.first);
@@ -331,11 +331,11 @@ namespace_semilattice_metadata_t migrate_table(
     }
     for (size_t i = 0; i < repli_info.shard_scheme.num_shards(); ++i) {
         table_config_t::shard_t *s = &repli_info.config.shards[i];
-        if (s->director.is_unset()) {
+        if (s->primary_replica.is_unset()) {
             /* This is probably impossible unless the user was mucking around with
             `/ajax`, but fortunately there's a pretty simple translation that won't break
             anything. */
-            s->director = nil_uuid();
+            s->primary_replica = nil_uuid();
         }
     }
 
@@ -364,14 +364,14 @@ namespace_semilattice_metadata_t migrate_table(
             continue;
         }
         if (pair.second.expectation_ == 1) {
-            bool all_directors_in_datacenter = true;
+            bool all_primaries_in_datacenter = true;
             for (const table_config_t::shard_t &shard : repli_info.config.shards) {
-                if (ack_servers.count(shard.director) != 1) {
-                    all_directors_in_datacenter = false;
+                if (ack_servers.count(shard.primary_replica) != 1) {
+                    all_primaries_in_datacenter = false;
                     break;
                 }
             }
-            if (all_directors_in_datacenter) {
+            if (all_primaries_in_datacenter) {
                 /* If this ack expectation is asking for a single ack from the primary
                 datacenter, we can safely treat it as a "general ack" because it's
                 guaranteed to be satisfied anyway. This is convenient because it might

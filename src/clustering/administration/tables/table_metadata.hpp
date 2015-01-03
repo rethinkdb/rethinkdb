@@ -10,16 +10,13 @@
 
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
-#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
-#include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
@@ -59,7 +56,7 @@ public:
     class shard_t {
     public:
         std::set<server_id_t> replicas;
-        server_id_t director;
+        server_id_t primary_replica;
     };
     std::vector<shard_t> shards;
     write_ack_config_t write_ack_config;

@@ -3223,6 +3223,7 @@ module 'DataExplorerView', ->
             # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
             if @has_too_many_datums(result)
                 return @template_json_tree.large_container
+                    too_many_datums: true
                     json_data: JSON.stringify(result, null, 4)
             else
                 return @template_json_tree.container

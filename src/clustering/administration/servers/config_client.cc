@@ -278,10 +278,12 @@ void server_config_client_t::recompute_server_id_to_peer_id_map() {
             for (auto dir_it = dir->get_inner().begin();
                       dir_it != dir->get_inner().end();
                     ++dir_it) {
-                new_map_s2p.insert(std::make_pair(
-                    dir_it->second.server_id, dir_it->first));
-                new_map_p2s.insert(std::make_pair(
-                    dir_it->first, dir_it->second.server_id));
+                if (dir_it->second.peer_type == SERVER_PEER) {
+                    new_map_s2p.insert(std::make_pair(
+                        dir_it->second.server_id, dir_it->first));
+                    new_map_p2s.insert(std::make_pair(
+                        dir_it->first, dir_it->second.server_id));
+                }
             }
     });
     server_id_to_peer_id_map.set_value(new_map_s2p);

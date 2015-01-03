@@ -626,7 +626,7 @@ def spawn_import_clients(options, files_info):
         while len(reader_procs) > 0:
             time.sleep(0.1)
             # If an error has occurred, exit out early
-            if not error_queue.empty():
+            while not error_queue.empty():
                 exit_event.set()
                 errors.append(error_queue.get())
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]

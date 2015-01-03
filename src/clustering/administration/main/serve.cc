@@ -12,11 +12,12 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
@@ -60,7 +61,8 @@ std::string service_address_ports_t::get_addresses_string() const {
 
     // Get the actual list for printing if we're listening on all addresses.
     if (is_bind_all()) {
-        actual_addresses = get_local_ips(std::set<ip_address_t>(), true);
+        actual_addresses = get_local_ips(std::set<ip_address_t>(),
+                                         local_ip_filter_t::ALL);
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
@@ -76,6 +78,10 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+// Defined in command_line.cc; not in any header, because it is not
+// safe to run in general.
+std::string run_uname(const std::string &flags);
+
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
@@ -84,6 +90,8 @@ bool do_serve(io_backender_t *io_backender,
               metadata_persistence::auth_persistent_file_t *auth_metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
+    // Do this here so we don't block on popen while pretending to serve.
+    std::string uname = run_uname("ms");
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
@@ -146,7 +154,7 @@ bool do_serve(io_backender_t *io_backender,
         // could initialize the cluster directory metadata with the proper
         // jobs_manager and stat_manager mailbox address
         jobs_manager_t jobs_manager(&mailbox_manager, server_id);
-        stat_manager_t stat_manager(&mailbox_manager);
+        stat_manager_t stat_manager(&mailbox_manager, server_id);
 
         cluster_directory_metadata_t initial_directory(
             server_id,
@@ -406,8 +414,6 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
                                 server_id,
-                                &mailbox_manager,
-                                directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
                         logNTC("Listening for administrative HTTP connections on port %d\n",
@@ -454,6 +460,19 @@ bool do_serve(io_backender_t *io_backender,
                                uuid_to_str(server_id).c_str());
                     } else {
                         logNTC("Proxy ready");
+                    }
+
+                    scoped_ptr_t<version_checker_t> checker;
+                    scoped_ptr_t<repeating_timer_t> timer;
+
+                    if (i_am_a_server
+                        && serve_info.do_version_checking == update_check_t::perform) {
+                        checker.init(new version_checker_t(&rdb_ctx, stop_cond,
+                                                           semilattice_manager_cluster.get_root_view(),
+                                                           uname));
+                        checker->initial_check();
+                        const int64_t day_in_ms = 24 * 60 * 60 * 1000;
+                        timer.init(new repeating_timer_t(day_in_ms, checker.get()));
                     }
 
                     stop_cond->wait_lazily_unordered();

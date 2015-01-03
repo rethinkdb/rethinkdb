@@ -1,10 +1,13 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/js_runner.hpp"
 
+#include <inttypes.h>   // For PRIu64
+
 #include <map>
 
 #include "extproc/js_job.hpp"
 #include "time.hpp"
+#include "utils.hpp"
 
 const size_t js_runner_t::CACHE_SIZE = 100;
 
@@ -124,16 +127,34 @@ js_result_t js_runner_t::eval(const std::string &source,
     object_buffer_t<js_timeout_t::sentry_t> sentry;
     sentry.create(&job_data->js_timeout, config.timeout_ms);
 
+    bool is_timeout = false;
     try {
-        result = job_data->js_job.eval(source);
-    } catch (...) {
-        // Sentry must be destroyed before the js_timeout
-        sentry.reset();
-        // This will mark the worker as errored so we don't try to re-sync with it
-        //  on the next line (since we're in a catch statement, we aren't allowed)
-        job_data->js_job.worker_error();
-        job_data.reset();
-        throw;
+        try {
+            result = job_data->js_job.eval(source);
+        } catch (...) {
+            // This inner try-catch block deals with cleanup after an exception, but due
+            // to this we must store whether we triggered the timeout signal.
+            is_timeout = job_data->js_timeout.get_signal()->is_pulsed();
+
+            // Sentry must be destroyed before the js_timeout
+            sentry.reset();
+            // This will mark the worker as errored so we don't try to re-sync with it
+            //  on the next line (since we're in a catch statement, we aren't allowed)
+            job_data->js_job.worker_error();
+            job_data.reset();
+
+            throw;
+        }
+    } catch (interrupted_exc_t const &e) {
+        // This outer try-catch block explicitly checks whether it was an
+        // `interrupted_exc_t`, and if so deals with the timeout if set.
+        if (is_timeout) {
+            return strprintf(
+                "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                source.c_str(), config.timeout_ms / 1000, config.timeout_ms % 1000);
+        } else {
+            throw;
+        }
     }
 
     // If the eval returned a function, cache it
@@ -159,16 +180,34 @@ js_result_t js_runner_t::call(const std::string &source,
     object_buffer_t<js_timeout_t::sentry_t> sentry;
     sentry.create(&job_data->js_timeout, config.timeout_ms);
 
+    bool is_timeout = false;
     try {
-        result = job_data->js_job.call(*fn_id, args);
-    } catch (...) {
-        // Sentry must be destroyed before the js_timeout
-        sentry.reset();
-        // This will mark the worker as errored so we don't try to re-sync with it
-        //  on the next line (since we're in a catch statement, we aren't allowed)
-        job_data->js_job.worker_error();
-        job_data.reset();
-        throw;
+        try {
+            result = job_data->js_job.call(*fn_id, args);
+        } catch (...) {
+            // This inner try-catch block deals with cleanup after an exception, but due
+            // to this we must store whether we triggered the timeout signal.
+            is_timeout = job_data->js_timeout.get_signal()->is_pulsed();
+
+            // Sentry must be destroyed before the js_timeout
+            sentry.reset();
+            // This will mark the worker as errored so we don't try to re-sync with it
+            //  on the next line (since we're in a catch statement, we aren't allowed)
+            job_data->js_job.worker_error();
+            job_data.reset();
+
+            throw;
+        }
+    } catch (interrupted_exc_t const &e) {
+        // This outer try-catch block explicitly checks whether it was an
+        // `interrupted_exc_t`, and if so deals with the timeout if set.
+        if (is_timeout) {
+            return strprintf(
+                "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                source.c_str(), config.timeout_ms / 1000, config.timeout_ms % 1000);
+        } else {
+            throw;
+        }
     }
 
     // If the call returned a function, cache it

@@ -216,19 +216,22 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
+    cond_t job_interruptor;
     map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
         ctx->get_query_jobs_for_this_thread(),
         generate_uuid(),
-        query_job_t(current_microtime(), peer));
+        query_job_t(current_microtime(), peer, &job_interruptor));
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
+
+    wait_any_t combined_interruptor(interruptor, &job_interruptor);
 
     switch (q->type()) {
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx, &combined_interruptor, global_optargs(q), trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -293,7 +296,7 @@ void run(protob_t<Query> q,
                                          env.get_all_optargs(),
                                          profile,
                                          seq);
-                    bool b = stream_cache->serve(token, res, interruptor);
+                    bool b = stream_cache->serve(token, res, &combined_interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -308,11 +311,16 @@ void run(protob_t<Query> q,
         } catch (const datum_exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
+        } catch (const interrupted_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR,
+                job_interruptor.is_pulsed()
+                    ? "Query interrupted through the `rethinkdb.jobs` table."
+                    : "Query interrupted.  Did you shut down the server?");
         }
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache->serve(token, res, interruptor);
+            bool b = stream_cache->serve(token, res, &combined_interruptor);
             if (!b) {
                 auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
                 fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
@@ -323,6 +331,11 @@ void run(protob_t<Query> q,
         } catch (const datum_exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
+        } catch (const interrupted_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR,
+                job_interruptor.is_pulsed()
+                    ? "Query interrupted through the `rethinkdb.jobs` table."
+                    : "Query interrupted.  Did you shut down the server?");
         }
     } break;
     case Query_QueryType_STOP: {

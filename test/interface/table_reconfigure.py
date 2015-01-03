@@ -51,7 +51,7 @@ with driver.Cluster(output_folder='.') as cluster:
     if tableName in r.db(dbName).table_list().run(conn):
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
-    res = r.db(dbName).table_config(tableName).update({"shards": [{"director": "s1", "replicas": ["s1"]}]}).run(conn)
+    res = r.db(dbName).table_config(tableName).update({"shards": [{"primary_replica": "s1", "replicas": ["s1"]}]}).run(conn)
     assert res["errors"] == 0
     r.db(dbName).table_wait(tableName).run(conn)
     
@@ -64,24 +64,24 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # Generate many configurations using `dry_run=True` and check to make sure they
     # satisfy the constraints
-    def test_reconfigure(num_shards, num_replicas, director_tag):
+    def test_reconfigure(num_shards, num_replicas, primary_replica_tag):
         
-        print("Making configuration num_shards=%d num_replicas=%r director_tag=%r (%.2fs)" % (num_shards, num_replicas, director_tag, time.time() - startTime))
-        new_config = r.db(dbName).table(tableName).reconfigure(shards=num_shards, replicas=num_replicas, director_tag=director_tag, dry_run=True)['new_val']['config'].run(conn)
+        print("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r (%.2fs)" % (num_shards, num_replicas, primary_replica_tag, time.time() - startTime))
+        new_config = r.db(dbName).table(tableName).reconfigure(shards=num_shards, replicas=num_replicas, primary_replica_tag=primary_replica_tag, dry_run=True)['new_val']['config'].run(conn)
         print(new_config)
 
         # Make sure new config follows all the rules
         assert len(new_config["shards"]) == num_shards
         for shard in new_config["shards"]:
-            assert shard["director"] in tag_table[director_tag]
+            assert shard["primary_replica"] in tag_table[primary_replica_tag]
             for tag, count in num_replicas.iteritems():
                 servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
                 assert len(servers_in_tag) == count
             assert len(shard["replicas"]) == sum(num_replicas.values())
-        directors = set(shard["director"] for shard in new_config["shards"])
+        primary_replicas = set(shard["primary_replica"] for shard in new_config["shards"])
 
         # Make sure new config distributes replicas evenly when possible
-        assert len(directors) == min(num_shards, num_servers)
+        assert len(primary_replicas) == min(num_shards, num_servers)
         for tag, count in num_replicas.iteritems():
             usages = {}
             for shard in new_config["shards"]:
@@ -114,10 +114,10 @@ with driver.Cluster(output_folder='.') as cluster:
         del row["id"]
         return row
     prev_config = get_config()
-    new_config = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2", dry_run=True)['new_val']['config'].run(conn)
+    new_config = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=True)['new_val']['config'].run(conn)
     assert prev_config != new_config, (prev_config, new_config)
     assert get_config() == prev_config
-    new_config_2 = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, director_tag="tag_2", dry_run=False)['new_val']['config'].run(conn)
+    new_config_2 = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=False)['new_val']['config'].run(conn)
     assert prev_config != new_config_2
     print("get_config()", get_config())
     print("new_config_2", new_config_2)
@@ -140,7 +140,7 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # Test that we prefer servers that held our data before
     for server in server_names:
-        res = r.db(dbName).table_config(tableName).update({"shards": [{"replicas": [server], "director": server}]}).run(conn)
+        res = r.db(dbName).table_config(tableName).update({"shards": [{"replicas": [server], "primary_replica": server}]}).run(conn)
         assert res["errors"] == 0, repr(res)
         for i in xrange(10):
             time.sleep(3)
@@ -149,8 +149,8 @@ with driver.Cluster(output_folder='.') as cluster:
         else:
             raise Exception("took too long to reconfigure")
         new_config = test_reconfigure(2, {"default": 1}, "default")
-        if (new_config["shards"][0]["director"] != server and
-                new_config["shards"][1]["director"] != server):
+        if (new_config["shards"][0]["primary_replica"] != server and
+                new_config["shards"][1]["primary_replica"] != server):
             raise Exception("expected to prefer %r, instead got %r" % (server, new_config))
 
     res = r.db(dbName).table_drop(tableName).run(conn)
@@ -167,7 +167,7 @@ with driver.Cluster(output_folder='.') as cluster:
     for server in server_names:
         res = r.db(dbName).table_config("blocker").update({"shards": [{
             "replicas": [n for n in server_names if n != server],
-            "director": [n for n in server_names if n != server][0]
+            "primary_replica": [n for n in server_names if n != server][0]
             }]}).run(conn)
         assert res["errors"] == 0
         for i in xrange(10):

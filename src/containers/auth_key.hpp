@@ -4,7 +4,6 @@
 
 #include <string>
 
-#include "http/json/json_adapter.hpp"
 #include "rpc/serialize_macros.hpp"
 
 // A type to enforce authorization key length
@@ -43,10 +42,5 @@ inline bool operator!=(const auth_key_t &x, const auth_key_t &y) {
 inline bool operator<(const auth_key_t &x, const auth_key_t &y) {
     return x.str() < y.str();
 }
-
-// ctx-less json adapter concept for auth_key_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(auth_key_t *target);
-cJSON *render_as_json(auth_key_t *target);
-void apply_json_to(cJSON *change, auth_key_t *target);
 
 #endif  // CONTAINERS_AUTH_KEY_HPP_

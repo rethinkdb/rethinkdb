@@ -37,9 +37,12 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
     
-    print("Setting primary to first server (%.2fs)" % (time.time() - startTime))
+    print("Setting primary replica to first server (%.2fs)" % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server1.name, 'replicas':[server1.name, server2.name]}]}).run(conn)['errors'] == 0
+    assert r.db(dbName).table_config(tableName) \
+            .update({'shards':[{'primary_replica':server1.name, \
+                                'replicas':[server1.name, server2.name]}]}) \
+            .run(conn)['errors'] == 0
     r.db(dbName).table_wait().run(conn)
     cluster.check()
     assert [] == list(r.db('rethinkdb').table('issues').run(conn))
@@ -53,9 +56,9 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         assert [] == list(r.db('rethinkdb').table('issues').run(conn))
         workload.check()
         
-        print("Changing the primary to second server (%.2fs)" % (time.time() - startTime))
+        print("Changing the primary replica to second server (%.2fs)" % (time.time() - startTime))
         
-        assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server1.name, server2.name]}]}).run(conn)['errors'] == 0
+        assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':server2.name, 'replicas':[server1.name, server2.name]}]}).run(conn)['errors'] == 0
         r.db(dbName).table_wait().run(conn)
         cluster.check()
         assert [] == list(r.db('rethinkdb').table('issues').run(conn))

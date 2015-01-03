@@ -116,7 +116,8 @@ cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_
     region_t whole;
     region_join_result_t res = region_join(s, &whole);
     if (res != REGION_JOIN_OK || whole != region_t::universe()) {
-        throw cannot_perform_query_exc_t("cannot compute sharding scheme because masters are missing or duplicate");
+        throw cannot_perform_query_exc_t("cannot compute sharding scheme because "
+                                         "primary replicas are missing or duplicated");
     }
     return std::set<region_t>(s.begin(), s.end());
 }
@@ -155,7 +156,8 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                  ++jt) {
                 if ((*jt)->master_access) {
                     if (chosen_relationship) {
-                        throw cannot_perform_query_exc_t("Too many masters available");
+                        throw cannot_perform_query_exc_t(
+                            "Too many primary replicas available");
                     }
                     chosen_relationship = *jt;
                 }
@@ -167,15 +169,16 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                     if (primary != region_to_primary->second.end()) {
                         std::string mid = uuid_to_str(primary->second);
                         // Throw a more specific error if possible
-                        throw cannot_perform_query_exc_t("Master for shard " +
-                                                         key_range_to_string(it->first.inner) +
-                                                         " not available (server " +
-                                                         mid + " is not ready)");
+                        throw cannot_perform_query_exc_t(
+                            strprintf("Primary replica for shard %s not available "
+                                      "(server %s is not ready)",
+                                      key_range_to_string(it->first.inner).c_str(),
+                                      mid.c_str()));
                     }
                 }
-                throw cannot_perform_query_exc_t("Master for shard " +
-                                                 key_range_to_string(it->first.inner) +
-                                                 " not available");
+                throw cannot_perform_query_exc_t(
+                    strprintf("Primary replica for shard %s not available",
+                              key_range_to_string(it->first.inner).c_str()));
             }
             new_op_info->master_access = chosen_relationship->master_access;
             (new_op_info->master_access->*how_to_make_token)(
@@ -242,9 +245,9 @@ void cluster_namespace_interface_t::perform_immediate_op(
             &master_to_contact->enforcement_token,
             interruptor);
     } catch (const resource_lost_exc_t&) {
-        failures->at(i).assign("lost contact with master");
+        failures->at(i).assign("lost contact with primary replica");
     } catch (const cannot_perform_query_exc_t& e) {
-        failures->at(i).assign("master error: " + std::string(e.what()));
+        failures->at(i).assign("primary replica error: " + std::string(e.what()));
     } catch (const interrupted_exc_t&) {
         guarantee(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and just return immediately.

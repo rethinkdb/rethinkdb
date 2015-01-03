@@ -32,13 +32,16 @@ struct backfill_queue_entry_t {
     backfill_queue_entry_t() { }
     backfill_queue_entry_t(bool _is_not_last_backfill_chunk,
                            const backfill_chunk_t &_chunk,
+                           double _progress,
                            fifo_enforcer_write_token_t _write_token)
         : is_not_last_backfill_chunk(_is_not_last_backfill_chunk),
           chunk(_chunk),
+          progress(_progress),
           write_token(_write_token) { }
 
     bool is_not_last_backfill_chunk;
     backfill_chunk_t chunk;
+    double progress;
     fifo_enforcer_write_token_t write_token;
 };
 
@@ -47,12 +50,20 @@ struct backfill_queue_entry_t {
 class chunk_callback_t : public coro_pool_callback_t<backfill_queue_entry_t>,
                          public home_thread_mixin_debug_only_t {
 public:
-    chunk_callback_t(store_view_t *_svs,
-                     fifo_enforcer_queue_t<backfill_queue_entry_t> *_chunk_queue, mailbox_manager_t *_mbox_manager,
-                     mailbox_addr_t<void(int)> _allocation_mailbox) :
-        svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
-        allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
-        done_message_arrived(false), num_outstanding_chunks(0)
+    chunk_callback_t(
+            store_view_t *_svs,
+            fifo_enforcer_queue_t<backfill_queue_entry_t> *_chunk_queue,
+            mailbox_manager_t *_mbox_manager,
+            mailbox_addr_t<void(int)> _allocation_mailbox,
+            double *_progress_out) :
+        svs(_svs),
+        chunk_queue(_chunk_queue),
+        mbox_manager(_mbox_manager),
+        allocation_mailbox(_allocation_mailbox),
+        progress_out(_progress_out),
+        unacked_chunks(0),
+        done_message_arrived(false),
+        num_outstanding_chunks(0)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {
@@ -78,6 +89,10 @@ public:
         /* Warning: This function is called with the chunks in the right order.
         No re-ordering must happen before apply_backfill_chunk is called. */
         try {
+            if (progress_out != nullptr) {
+                *progress_out = chunk.progress;
+            }
+
             if (chunk.is_not_last_backfill_chunk) {
                 /* This is an actual backfill chunk */
 
@@ -140,6 +155,7 @@ private:
     fifo_enforcer_queue_t<backfill_queue_entry_t> *chunk_queue;
     mailbox_manager_t *mbox_manager;
     mailbox_addr_t<void(int)> allocation_mailbox;
+    double *progress_out;
     int unacked_chunks;
     bool done_message_arrived;
     int num_outstanding_chunks;
@@ -153,10 +169,12 @@ void backfillee(
         store_view_t *svs,
         region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
-        backfill_session_id_t backfill_session_id,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        double *progress_out)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
+    backfill_session_id_t backfill_session_id = generate_uuid();
+
     rassert(region_is_superset(svs->get_region(), region));
     resource_access_t<backfiller_business_card_t> backfiller(backfiller_metadata);
 
@@ -206,20 +224,23 @@ void backfillee(
             mailbox_manager,
             [&](signal_t *, const fifo_enforcer_write_token_t &token) {
                 chunk_queue.push(token,
-                    backfill_queue_entry_t(false, backfill_chunk_t(), token));
+                    backfill_queue_entry_t(false, backfill_chunk_t(), 1.0, token));
             });
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
-        mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager,
-            [&](signal_t *,
-                    const backfill_chunk_t &chunk,
-                    fifo_enforcer_write_token_t token) {
-                // Here we reconstruct the ordering of the backfill chunks.
-                // (note how `chunk_queue` is a `fifo_enforcer_queue_t`)
-                chunk_queue.push(token, backfill_queue_entry_t(true, chunk, token));
-            });
+        mailbox_t<void(backfill_chunk_t, double, fifo_enforcer_write_token_t)>
+            chunk_mailbox(
+                mailbox_manager,
+                [&](signal_t *,
+                        const backfill_chunk_t &chunk,
+                        double progress,
+                        fifo_enforcer_write_token_t token) {
+                    // Here we reconstruct the ordering of the backfill chunks.
+                    // (note how `chunk_queue` is a `fifo_enforcer_queue_t`)
+                    chunk_queue.push(token,
+                        backfill_queue_entry_t(true, chunk, progress, token));
+                });
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
@@ -336,7 +357,8 @@ void backfillee(
             &write_token,
             interruptor);
 
-        chunk_callback_t chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
+        chunk_callback_t chunk_callback(
+            svs, &chunk_queue, mailbox_manager, allocation_mailbox, progress_out);
 
         coro_pool_t<backfill_queue_entry_t> backfill_workers(CHUNK_PROCESSING_CONCURRENCY,
                                                              &chunk_queue, &chunk_callback);

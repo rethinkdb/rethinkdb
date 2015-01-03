@@ -458,10 +458,10 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, director_tag:STRING} -> OBJECT
-                            // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, director_tag:STRING} -> OBJECT
-                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, director_tag:STRING} -> OBJECT
-                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, director_tag:STRING} -> OBJECT
+        TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -486,10 +486,10 @@ message Term {
                              // [String...] -> StreamSelection
         // Generates a new config for the given table, or all tables in the given database
         // The `shards` and `replicas` arguments are required
-        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
-                             // Database, {shards:NUMBER, replicas:OBJECT[, director_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
-                             // Table, {shards:NUMBER, replicas:NUMBER[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Table, {shards:NUMBER, replicas:OBJECT[, director_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+                             // Table, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Table, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT

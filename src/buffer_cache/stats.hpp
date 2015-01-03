@@ -17,7 +17,7 @@ public:
 
     class perfmon_value_t : public perfmon_t {
     public:
-        perfmon_value_t(alt_cache_stats_t *_parent);
+        explicit perfmon_value_t(alt_cache_stats_t *_parent);
         void *begin_stats();
         void visit_stats(void *);
         ql::datum_t end_stats(void *);

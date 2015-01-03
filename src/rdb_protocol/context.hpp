@@ -61,13 +61,13 @@ public:
     static table_generate_config_params_t make_default() {
         table_generate_config_params_t p;
         p.num_shards = 1;
-        p.director_tag = name_string_t::guarantee_valid("default");
-        p.num_replicas[p.director_tag] = 1;
+        p.primary_replica_tag = name_string_t::guarantee_valid("default");
+        p.num_replicas[p.primary_replica_tag] = 1;
         return p;
     }
     size_t num_shards;
     std::map<name_string_t, size_t> num_replicas;
-    name_string_t director_tag;
+    name_string_t primary_replica_tag;
 };
 
 enum class admin_identifier_format_t {
