@@ -3,6 +3,7 @@
 #define CLUSTERING_GENERIC_RAFT_NETWORK_HPP_
 
 #include "clustering/generic/raft_core.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 /* This file is for running the Raft protocol using RethinkDB's clustering primitives.
 The core logic for the Raft protocol is in `raft_core.hpp`, not here. This just adds a
@@ -31,6 +32,10 @@ public:
         const raft_persistent_state_t<state_t> &persistent_state);
 
     raft_business_card_t get_business_card();
+
+    raft_member_t<state_t> *get_raft() {
+        return &member;
+    }
 
 private:
     /* The `send_rpc()`, `get_connected_members()`, and `write_persistent_state()`

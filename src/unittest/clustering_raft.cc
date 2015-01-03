@@ -5,6 +5,8 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/generic/raft_network.hpp"
+#include "clustering/generic/raft_network.tcc"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -46,6 +48,9 @@ public:
                 size_t num,
                 const dummy_raft_state_t &initial_state,
                 std::vector<raft_member_id_t> *member_ids_out) :
+            mailbox_manager(&connectivity_cluster, 'M'),
+            connectivity_cluster_run(&connectivity_cluster, get_unittest_address(),
+                peer_address_t(), ANY_PORT, 0),
             check_invariants_timer(100, [this]() {
                 coro_t::spawn_sometime(std::bind(
                     &dummy_raft_cluster_t::check_invariants,
@@ -112,7 +117,7 @@ public:
         }
         member_info_t *i = members.at(member_id).get();
         if (i->rpc_drainer.has() && live != live_t::alive) {
-            alive_members.delete_key(member_id);
+            member_directory.delete_key(member_id);
             scoped_ptr_t<auto_drainer_t> dummy;
             std::swap(i->rpc_drainer, dummy);
             dummy.reset();
@@ -125,14 +130,14 @@ public:
                 i->member.reset();
             }
             if (!i->member.has() && live != live_t::dead) {
-                i->member.init(new dummy_raft_member_t(
-                    member_id, i, i, i->stored_state));
+                i->member.init(new raft_networked_member_t<dummy_raft_state_t>(
+                    member_id, &mailbox_manager, &member_directory, i, i->stored_state));
                 i->member_drainer.init(new auto_drainer_t);
             }
         }
         if (!i->rpc_drainer.has() && live == live_t::alive) {
             i->rpc_drainer.init(new auto_drainer_t);
-            alive_members.set_key(member_id, nullptr);
+            member_directory.set_key(member_id, i->member->get_business_card());
         }
     }
 
@@ -223,7 +228,7 @@ public:
         if (i->member_drainer.has()) {
             auto_drainer_t::lock_t keepalive = i->member_drainer->lock();
             try {
-                fun(i->member.get(), keepalive.get_drain_signal());
+                fun(i->member->get_raft(), keepalive.get_drain_signal());
             } catch (const interrupted_exc_t &) {
                 /* do nothing */
             }
@@ -235,64 +240,14 @@ public:
 
 private:
     class member_info_t :
-        public raft_storage_interface_t<dummy_raft_state_t>,
-        public raft_network_interface_t<dummy_raft_state_t> {
+        public raft_storage_interface_t<dummy_raft_state_t> {
     public:
         member_info_t() { }
         member_info_t(member_info_t &&) = default;
         member_info_t &operator=(member_info_t &&) = default;
 
-        /* These are the methods for `raft_{network,storage}_interface_t`. */
-        bool send_rpc(
-                const raft_member_id_t &dest,
-                const raft_rpc_request_t<dummy_raft_state_t> &request,
-                signal_t *interruptor,
-                raft_rpc_reply_t *reply_out) {
-            /* This is convoluted because if `interruptor` is pulsed, we want to return
-            immediately but we don't want to pulse the interruptor for `on_rpc()`. So we
-            have to spawn a separate coroutine for `on_rpc()`. The coroutine communicates
-            with `send_rpc()` through `reply_info_t`, which is stored on the heap so it
-            remains valid even if `send_rpc()` is interrupted. */
-            class reply_info_t {
-            public:
-                cond_t done;
-                bool ok;
-                raft_rpc_reply_t reply;
-            };
-            std::shared_ptr<reply_info_t> reply_info(new reply_info_t);
-            block(interruptor);
-            coro_t::spawn_sometime(
-                [this, dest, request, reply_info] () {
-                    member_info_t *other = parent->members.at(dest).get();
-                    if (other->rpc_drainer.has()) {
-                        auto_drainer_t::lock_t keepalive(other->rpc_drainer.get());
-                        try {
-                            block(keepalive.get_drain_signal());
-                            other->member->on_rpc(request, keepalive.get_drain_signal(),
-                                &reply_info->reply);
-                            block(keepalive.get_drain_signal());
-                            reply_info->ok = true;
-                        } catch (interrupted_exc_t) {
-                            reply_info->ok = false;
-                        }
-                    } else {
-                        reply_info->ok = false;
-                    }
-                    reply_info->done.pulse();
-                });
-            wait_interruptible(&reply_info->done, interruptor);
-            block(interruptor);
-            if (reply_info->ok) {
-                *reply_out = reply_info->reply;
-            }
-            return reply_info->ok;
-        }
-        watchable_map_var_t<raft_member_id_t, std::nullptr_t> *get_connected_members() {
-            return &parent->alive_members;
-        }
         void write_persistent_state(
-                const raft_persistent_state_t<dummy_raft_state_t> &
-                    persistent_state,
+                const raft_persistent_state_t<dummy_raft_state_t> &persistent_state,
                 signal_t *interruptor) {
             block(interruptor);
             stored_state = persistent_state;
@@ -315,7 +270,7 @@ private:
         /* If the member is alive, `member`, `member_drainer`, and `rpc_drainer` are set.
         If the member is isolated, `member` and `member_drainer` are set but
         `rpc_drainer` is empty. If the member is dead, all are empty. */
-        scoped_ptr_t<dummy_raft_member_t> member;
+        scoped_ptr_t<raft_networked_member_t<dummy_raft_state_t> > member;
         scoped_ptr_t<auto_drainer_t> member_drainer, rpc_drainer;
     };
 
@@ -342,8 +297,13 @@ private:
         dummy_raft_member_t::check_invariants(member_ptrs);
     }
 
+    connectivity_cluster_t connectivity_cluster;
+    mailbox_manager_t mailbox_manager;
+    connectivity_cluster_t::run_t connectivity_cluster_run;
+
     std::map<raft_member_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_map_var_t<raft_member_id_t, std::nullptr_t> alive_members;
+    watchable_map_var_t<raft_member_id_t, raft_business_card_t<dummy_raft_member_t> >
+        member_directory;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
 };
