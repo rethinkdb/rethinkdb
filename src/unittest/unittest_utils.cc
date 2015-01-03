@@ -101,7 +101,8 @@ void let_stuff_happen() {
 }
 
 std::set<ip_address_t> get_unittest_addresses() {
-    return get_local_ips(std::set<ip_address_t>(), true, false);
+    return get_local_ips(std::set<ip_address_t>(),
+                         local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK);
 }
 
 void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {

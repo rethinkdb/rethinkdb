@@ -97,8 +97,15 @@ RDB_SERIALIZE_OUTSIDE(ip_address_t);
 std::string str_gethostname();
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
+
+enum class local_ip_filter_t {
+    MATCH_FILTER,
+    MATCH_FILTER_OR_LOOPBACK,
+    ALL
+};
+
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
-                                     bool include_loopback, bool get_all);
+                                     local_ip_filter_t filter_type);
 
 class port_t {
 public:

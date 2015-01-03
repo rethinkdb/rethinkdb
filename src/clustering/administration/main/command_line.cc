@@ -528,20 +528,19 @@ private:
 };
 
 std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options,
-                                           bool include_loopback) {
+                                           local_ip_filter_t filter_type) {
     std::set<ip_address_t> set_filter;
-    bool all = false;
 
     // Scan through specified bind options
     for (size_t i = 0; i < bind_options.size(); ++i) {
         if (bind_options[i] == "all") {
-            all = true;
+            filter_type = local_ip_filter_t::ALL;
         } else {
             // Verify that all specified addresses are valid ip addresses
             try {
                 ip_address_t addr(bind_options[i]);
                 if (addr.is_any()) {
-                    all = true;
+                    filter_type = local_ip_filter_t::ALL;
                 } else {
                     set_filter.insert(addr);
                 }
@@ -553,7 +552,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
         }
     }
 
-    std::set<ip_address_t> result = get_local_ips(set_filter, include_loopback, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, filter_type);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
@@ -571,7 +570,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
-    if (all) {
+    if (filter_type == local_ip_filter_t::ALL) {
         return std::set<ip_address_t>();
     }
 
@@ -639,7 +638,9 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
     const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
     return service_address_ports_t(
         get_local_addresses(all_options(opts, "--bind"),
-                            !exists_option(opts, "--no-default-bind")),
+                            exists_option(opts, "--no-default-bind") ?
+                                local_ip_filter_t::MATCH_FILTER :
+                                local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK),
         get_canonical_addresses(opts, cluster_port),
         cluster_port,
         get_single_int(opts, "--client-port"),

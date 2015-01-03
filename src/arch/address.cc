@@ -110,8 +110,7 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
 }
 
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
-                                     bool include_loopback,
-                                     bool get_all) {
+                                     local_ip_filter_t filter_type) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
 
@@ -150,8 +149,10 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
 
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
-        if (get_all || filter.find(ip) != filter.end() ||
-            (include_loopback && ip.is_loopback())) {
+        if (filter_type == local_ip_filter_t::ALL ||
+            filter.find(ip) != filter.end() ||
+            (filter_type == local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK &&
+             ip.is_loopback())) {
             filtered_ips.insert(ip);
         }
     }
