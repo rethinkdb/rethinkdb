@@ -124,7 +124,7 @@ private:
     internal_vec_t regions_and_values;
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(region_map_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(region_map_t<T>);
 
 template <class V>
 void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {

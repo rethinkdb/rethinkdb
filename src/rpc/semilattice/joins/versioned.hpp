@@ -97,7 +97,7 @@ private:
     uuid_u tiebreaker;
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(versioned_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(versioned_t<T>);
 
 template <class T>
 bool operator==(const versioned_t<T> &a, const versioned_t<T> &b) {

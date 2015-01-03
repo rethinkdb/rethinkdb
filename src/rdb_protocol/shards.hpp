@@ -253,7 +253,7 @@ private:
     std::map<datum_t, T, optional_datum_less_t> m;
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t<T>);
 
 template <class T>
 void debug_print(printf_buffer_t *buf, const grouped_t<T> &value) {
