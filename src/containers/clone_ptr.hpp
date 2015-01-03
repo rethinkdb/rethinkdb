@@ -77,7 +77,7 @@ private:
     scoped_ptr_t<T> object;
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(clone_ptr_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(clone_ptr_t<T>);
 
 #include "containers/clone_ptr.tcc"
 

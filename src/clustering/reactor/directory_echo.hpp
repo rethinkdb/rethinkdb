@@ -35,7 +35,7 @@ public:
         internal, version, ack_mailbox);
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(directory_echo_wrapper_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(directory_echo_wrapper_t<T>);
 
 template<class internal_t>
 class directory_echo_writer_t {

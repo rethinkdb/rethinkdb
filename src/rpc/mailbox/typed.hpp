@@ -76,7 +76,7 @@ private:
     raw_mailbox_t::address_t addr;
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t<T>);
 
 template<>
 class mailbox_t< void() > {

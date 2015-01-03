@@ -20,7 +20,7 @@ public:
                                       request_addr, relinquish_tickets_addr);
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_server_business_card_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_server_business_card_t<T>);
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_client_business_card_t {
@@ -45,7 +45,9 @@ public:
             reclaim_tickets_addr);
 };
 
-RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_client_business_card_t);
+#define COMMA ,
+RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_client_business_card_t<T COMMA U>);
+#undef COMMA
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_business_card_t {
@@ -66,6 +68,8 @@ public:
     }
 };
 
-RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_business_card_t);
+#define COMMA ,
+RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_business_card_t<T COMMA U>);
+#undef COMMA
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_ */

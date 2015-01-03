@@ -4,7 +4,7 @@
 
 namespace pre_v1_16 {
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(vclock_t);
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(vclock_t<T>);
 RDB_IMPL_SERIALIZABLE_1(persistable_blueprint_t, machines_roles);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(persistable_blueprint_t);
 RDB_IMPL_SERIALIZABLE_1(database_semilattice_metadata_t, name);
