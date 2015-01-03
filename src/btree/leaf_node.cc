@@ -417,7 +417,7 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
     const btree_key_t *last = left_exclusive_or_null;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        if (failed(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0,
+        if (failed(last == NULL || btree_key_cmp(last, key) < 0,
                    "keys out of order")) {
             return false;
         }
@@ -425,8 +425,7 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
     }
 
     if (failed(last == NULL || right_inclusive_or_null == NULL
-               || sized_strcmp(last->contents, last->size,
-                               right_inclusive_or_null->contents, right_inclusive_or_null->size) <= 0,
+               || btree_key_cmp(last, right_inclusive_or_null) <= 0,
                "keys out of order (with right_inclusive key)")) {
         return false;
     }
@@ -1167,7 +1166,7 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out) {
 
         const btree_key_t *ek = entry_key(get_entry(node, node->pair_offsets[test_point]));
 
-        int res = sized_strcmp(key->contents, key->size, ek->contents, ek->size);
+        int res = btree_key_cmp(key, ek);
 
         if (res < 0) {
             // key < *test_point.
@@ -1632,10 +1631,10 @@ reverse_iterator &reverse_iterator::operator--() {
 
 bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
 bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
-bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
-bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
-bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
-bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ > other.inner_; }
+bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ >= other.inner_; }
+bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ <= other.inner_; }
 
 
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
@@ -1665,15 +1664,17 @@ leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &
     }
 }
 
-leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+leaf::reverse_iterator exclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
     if (index < leaf_node.num_pairs) {
         const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
         const btree_key_t *ekey = leaf::entry_key(entry);
         if (entry_is_live(entry) &&
-            sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
-            return leaf_node_t::reverse_iterator(&leaf_node, index);
+            btree_key_cmp(ekey, key) == 0) {
+            // We have to skip this entry to make the iterator exclusive,
+            // hence the ++.
+            return ++leaf_node_t::reverse_iterator(&leaf_node, index);
         }
     }
 

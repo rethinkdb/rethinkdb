@@ -29,7 +29,7 @@ module 'ServerView', ->
                                             .info()('doc_count_estimates')(index)
                                         index: index.add(1)
                                         num_shards: table('shards').count()
-                                        role: r.branch(server('name').eq(shard('director')),
+                                        role: r.branch(server('name').eq(shard('primary_replica')),
                                             'primary', 'secondary')
                                         )
                                 ).filter((shard) ->

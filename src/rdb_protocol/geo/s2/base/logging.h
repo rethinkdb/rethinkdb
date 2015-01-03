@@ -19,8 +19,8 @@
 #include <sstream>
 
 #include "errors.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/geo/s2/base/macros.h"
-#include "clustering/administration/logger.hpp"
 
 namespace geo {
 

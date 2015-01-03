@@ -3,12 +3,15 @@
 
 #include <functional>
 
+#include "clustering/administration/datum_adapter.hpp"
 #include "concurrency/watchable.hpp"
 #include "perfmon/collect.hpp"
 #include "perfmon/filter.hpp"
 #include "stl_utils.hpp"
 
-stat_manager_t::stat_manager_t(mailbox_manager_t* mm) :
+stat_manager_t::stat_manager_t(mailbox_manager_t* mm,
+                               server_id_t _own_server_id) :
+    own_server_id(_own_server_id),
     mailbox_manager(mm),
     get_stats_mailbox(mailbox_manager,
                       std::bind(&stat_manager_t::on_stats_request,
@@ -26,7 +29,11 @@ void stat_manager_t::on_stats_request(
     perfmon_filter_t request(requested_stats);
     ql::datum_t perfmon_result(perfmon_get_stats());
     perfmon_result = request.filter(perfmon_result);
-    send(mailbox_manager, reply_address, perfmon_result);
+
+    // Add in our own server id so the other side does not need to perform lookups
+    ql::datum_object_builder_t stats(perfmon_result);
+    stats.overwrite("server_id", convert_uuid_to_datum(own_server_id));
+    send(mailbox_manager, reply_address, std::move(stats).to_datum());
 }
 
 bool fetch_stats_from_server(
@@ -60,6 +67,7 @@ bool fetch_stats_from_server(
 
     if (timeout.is_pulsed()) {
         *error_out = "Stats request timed out.";
+        return false;
     }
 
     guarantee(done.is_pulsed());

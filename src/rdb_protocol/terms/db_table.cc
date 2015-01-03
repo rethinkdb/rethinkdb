@@ -27,15 +27,15 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const char *type_str) {
     return name;
 }
 
-void get_replicas_and_director(const scoped_ptr_t<val_t> &replicas,
-                               const scoped_ptr_t<val_t> &director_tag,
-                               table_generate_config_params_t *params) {
+void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
+                              const scoped_ptr_t<val_t> &primary_replica_tag,
+                              table_generate_config_params_t *params) {
     if (replicas.has()) {
         params->num_replicas.clear();
         datum_t datum = replicas->as_datum();
         if (datum.get_type() == datum_t::R_OBJECT) {
-            rcheck_target(replicas.get(), director_tag.has(), base_exc_t::GENERIC,
-                "`director_tag` must be specified when `replicas` is an OBJECT.");
+            rcheck_target(replicas.get(), primary_replica_tag.has(), base_exc_t::GENERIC,
+                "`primary_replica_tag` must be specified when `replicas` is an OBJECT.");
             for (size_t i = 0; i < datum.obj_size(); ++i) {
                 std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
                 name_string_t name;
@@ -55,10 +55,10 @@ void get_replicas_and_director(const scoped_ptr_t<val_t> &replicas,
                 params->num_replicas.insert(std::make_pair(name, size_count));
             }
         } else if (datum.get_type() == datum_t::R_NUM) {
-            rcheck_target(replicas.get(), !director_tag.has(), base_exc_t::GENERIC,
-                "`replicas` must be an OBJECT if `director_tag` is specified.");
+            rcheck_target(replicas.get(), !primary_replica_tag.has(), base_exc_t::GENERIC,
+                "`replicas` must be an OBJECT if `primary_replica_tag` is specified.");
             size_t count = replicas->as_int<size_t>();
-            params->num_replicas.insert(std::make_pair(params->director_tag, count));
+            params->num_replicas.insert(std::make_pair(params->primary_replica_tag, count));
         } else {
             rfail_target(replicas, base_exc_t::GENERIC,
                 "Expected type OBJECT or NUMBER but found %s:\n%s",
@@ -66,8 +66,8 @@ void get_replicas_and_director(const scoped_ptr_t<val_t> &replicas,
         }
     }
 
-    if (director_tag.has()) {
-        params->director_tag = get_name(director_tag, "Server tag");
+    if (primary_replica_tag.has()) {
+        params->primary_replica_tag = get_name(primary_replica_tag, "Server tag");
     }
 }
 
@@ -139,7 +139,7 @@ class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
-            optargspec_t({"primary_key", "shards", "replicas", "director_tag"})) { }
+            optargspec_t({"primary_key", "shards", "replicas", "primary_replica_tag"})) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         /* Parse arguments */
@@ -153,10 +153,10 @@ private:
             config_params.num_shards = shards_optarg->as_int();
         }
 
-        // Parse the 'replicas' and 'director_tag' optargs
-        get_replicas_and_director(args->optarg(env, "replicas"),
-                                  args->optarg(env, "director_tag"),
-                                  &config_params);
+        // Parse the 'replicas' and 'primary_replica_tag' optargs
+        get_replicas_and_primary(args->optarg(env, "replicas"),
+                                 args->optarg(env, "primary_replica_tag"),
+                                 &config_params);
 
         std::string primary_key = "id";
         if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
@@ -422,7 +422,7 @@ class reconfigure_term_t : public meta_op_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0, 1),
-            optargspec_t({"director_tag", "dry_run", "replicas", "shards"})) { }
+            optargspec_t({"primary_replica_tag", "dry_run", "replicas", "shards"})) { }
 private:
     scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
                                         args_t *args,
@@ -436,7 +436,7 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
                                           args_t *args,
                                           eval_flags_t) const {
-        // Use the default director_tag, unless the optarg overwrites it
+        // Use the default primary_replica_tag, unless the optarg overwrites it
         table_generate_config_params_t config_params =
             table_generate_config_params_t::make_default();
 
@@ -446,10 +446,10 @@ private:
                       "Every table must have at least one shard.");
         config_params.num_shards = shards_optarg->as_int();
 
-        // Parse the 'replicas' and 'director_tag' optargs
-        get_replicas_and_director(required_optarg(env, args, "replicas"),
-                                  args->optarg(env, "director_tag"),
-                                  &config_params);
+        // Parse the 'replicas' and 'primary_replica_tag' optargs
+        get_replicas_and_primary(required_optarg(env, args, "replicas"),
+                                 args->optarg(env, "primary_replica_tag"),
+                                 &config_params);
 
         // Parse the 'dry_run' optarg
         bool dry_run = false;
@@ -476,8 +476,6 @@ private:
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
-            on this table */
             success = env->env->reql_cluster_interface()->table_reconfigure(
                     table->db, name, config_params, dry_run,
                     env->env->interruptor, &result, &error);
@@ -518,8 +516,6 @@ private:
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
-            on this table */
             success = env->env->reql_cluster_interface()->table_rebalance(
                     table->db, name, env->env->interruptor, &result, &error);
         }

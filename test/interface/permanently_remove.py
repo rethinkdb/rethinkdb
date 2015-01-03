@@ -43,7 +43,7 @@ with driver.Cluster(output_folder='.') as cluster:
             "name": "test",
             "primary_key": "id",
             "shards": [{
-                "director": "PrinceHamlet",
+                "primary_replica": "PrinceHamlet",
                 "replicas": ["PrinceHamlet", "KingHamlet"]
                 }],
             "write_acks": "single"
@@ -54,7 +54,7 @@ with driver.Cluster(output_folder='.') as cluster:
             "name": "test2",
             "primary_key": "id",
             "shards": [{
-                "director": "KingHamlet",
+                "primary_replica": "KingHamlet",
                 "replicas": ["PrinceHamlet", "KingHamlet"]
                 }],
             "write_acks": "single"
@@ -65,7 +65,7 @@ with driver.Cluster(output_folder='.') as cluster:
             "name": "test3",
             "primary_key": "id",
             "shards": [{
-                "director": "KingHamlet",
+                "primary_replica": "KingHamlet",
                 "replicas": ["KingHamlet"]
                 }],
             "write_acks": "single"
@@ -137,27 +137,27 @@ with driver.Cluster(output_folder='.') as cluster:
     assert not test2_status["status"]["ready_for_reads"]
     assert not test3_status["status"]["ready_for_outdated_reads"]
     assert r.db(dbName).table_config("test").nth(0)["shards"].run(conn) == [{
-        "director": "PrinceHamlet",
+        "primary_replica": "PrinceHamlet",
         "replicas": ["PrinceHamlet"]
         }]
     assert r.db(dbName).table_config("test2").nth(0)["shards"].run(conn) == [{
-        "director": None,
+        "primary_replica": None,
         "replicas": ["PrinceHamlet"]
         }]
     assert r.db(dbName).table_config("test3").nth(0)["shards"].run(conn) == [{
-        "director": None,
+        "primary_replica": None,
         "replicas": []
         }]
 
-    print("Testing that having director=None doesn't break `table_config` (%.2fs)" % (time.time() - startTime))
+    print("Testing that having primary_replica=None doesn't break `table_config` (%.2fs)" % (time.time() - startTime))
     # By changing the table's name, we force a write to `table_config`, which tests the
-    # code path that writes `"director": None`.
+    # code path that writes `"primary_replica": None`.
     res = r.db(dbName).table_config("test2").update({"name": "test2x"}).run(conn)
     assert res["errors"] == 0
     res = r.db(dbName).table_config("test2x").update({"name": "test2"}).run(conn)
     assert res["errors"] == 0
     assert r.db(dbName).table_config("test2").nth(0)["shards"].run(conn) == [{
-        "director": None,
+        "primary_replica": None,
         "replicas": ["PrinceHamlet"]
         }]
 

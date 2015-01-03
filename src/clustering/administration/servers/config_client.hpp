@@ -46,7 +46,8 @@ public:
         return out;
     }
 
-    /* This map contains all connected servers, including permanently removed ones. */
+    /* This map contains all connected servers, including permanently removed ones,
+       and excluding proxy servers. */
     clone_ptr_t<watchable_t<std::map<server_id_t, peer_id_t> > >
     get_server_id_to_peer_id_map() {
         return server_id_to_peer_id_map.get_watchable();
@@ -65,7 +66,8 @@ public:
         return out;
     }
 
-    /* This map contains all connected servers, including permanently removed ones. */
+    /* This map contains all connected servers, including permanently removed ones,
+       and excluding proxy servers. */
     clone_ptr_t<watchable_t<std::map<peer_id_t, server_id_t> > >
     get_peer_id_to_server_id_map() {
         return peer_id_to_server_id_map.get_watchable();
@@ -84,8 +86,8 @@ public:
         return out;
     }
 
-    /* Returns all servers with the given tag, not counting permanently removed ones.
-    RSI(reql_admin): Decide if this should count disconnected servers or not. */
+    /* Returns all servers with the given tag, counting disconnected servers but not
+    counting permanently removed ones. */
     std::set<server_id_t> get_servers_with_tag(const name_string_t &tag);
 
     /* `change_server_name` changes the name of the peer named `old_name` to `new_name`.

@@ -40,11 +40,14 @@ bool log_write_issue_t::build_info_and_description(
     info_builder.overwrite("message", convert_string_to_datum(message));
     *info_out = std::move(info_builder).to_datum();
     *description_out = datum_string_t(strprintf(
-        "The following server%s encountered an error ('%s') while writing log "
-        "statements: %s.",
-        (affected_server_ids.size() == 1 ? "" : "s"),
+        "The following server%s encountered an error while writing log statements: %s.\n"
+        "\nThe error message reported is: %s\n\nPlease fix the problem that is "
+        "preventing the server%s from writing to their log file. This issue will go "
+        "away the next time the server successfully writes to the log file.",
+        affected_server_ids.size() == 1 ? "" : "s",
+        servers_string.c_str(),
         message.c_str(),
-        servers_string.c_str()));
+        affected_server_ids.size() == 1 ? "" : "s"));
     return true;
 }
 

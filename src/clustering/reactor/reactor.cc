@@ -67,6 +67,22 @@ reactor_t::get_reactor_directory() {
     return directory_buffer.get_output();
 }
 
+std::map<region_t, reactor_progress_report_t> reactor_t::get_progress() {
+    std::map<region_t, reactor_progress_report_t> output;
+    pmap(get_num_threads(), [&](int i) {
+        std::map<region_t, reactor_progress_report_t> temp;
+        {
+            on_thread_t th((threadnum_t(i)));
+            temp = *progress_map.get();
+        }
+        for (const auto &pair : temp) {
+            auto res = output.insert(pair);
+            guarantee(res.second);
+        }
+    });
+    return output;
+}
+
 reactor_t::directory_entry_t::directory_entry_t(reactor_t *_parent, region_t _region)
     : parent(_parent), region(_region), reactor_activity_id(nil_uuid())
 { }

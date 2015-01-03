@@ -72,7 +72,7 @@ with driver.Cluster(output_folder='.') as cluster:
     
     print('Setting inital table replication settings (%.2fs)' % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':primary.name, 'replicas':[primary.name, replicaPool[0].name]}]}).run(conn)['errors'] == 0
+    assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':primary.name, 'replicas':[primary.name, replicaPool[0].name]}]}).run(conn)['errors'] == 0
     
     r.db(dbName).table_wait().run(conn)
     cluster.check()
@@ -97,7 +97,7 @@ with driver.Cluster(output_folder='.') as cluster:
             print("Changing the number of secondaries from %d to %d (%.2fs)" % (current, current + s, time.time() - startTime))
             current += s
             
-            assert r.db(dbName).table_config(tableName).update({'shards':[{'director':primary.name, 'replicas':[primary.name] + [x.name for x in replicaPool[:current]]}]}).run(conn)['errors'] == 0
+            assert r.db(dbName).table_config(tableName).update({'shards':[{'primary_replica':primary.name, 'replicas':[primary.name] + [x.name for x in replicaPool[:current]]}]}).run(conn)['errors'] == 0
             r.db(dbName).table_wait().run(conn) # ToDo: add timeout when avalible
             
             cluster.check()

@@ -33,14 +33,12 @@ backfiller_t::backfiller_t(mailbox_manager_t *mm,
       backfill_mailbox(mailbox_manager,
                        std::bind(&backfiller_t::on_backfill, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
       cancel_backfill_mailbox(mailbox_manager,
-                              std::bind(&backfiller_t::on_cancel_backfill, this, ph::_1, ph::_2)),
-      request_progress_mailbox(mailbox_manager,
-                               std::bind(&backfiller_t::request_backfill_progress, this, ph::_1, ph::_2, ph::_3)) { }
+                              std::bind(&backfiller_t::on_cancel_backfill, this, ph::_1, ph::_2))
+      { }
 
 backfiller_business_card_t backfiller_t::get_business_card() {
     return backfiller_business_card_t(backfill_mailbox.get_address(),
-                                                  cancel_backfill_mailbox.get_address(),
-                                                  request_progress_mailbox.get_address());
+                                                  cancel_backfill_mailbox.get_address());
 }
 
 bool backfiller_t::confirm_and_send_metainfo(region_map_t<binary_blob_t> metainfo,
@@ -93,25 +91,20 @@ bool backfiller_t::confirm_and_send_metainfo(region_map_t<binary_blob_t> metainf
     return true;
 }
 
-void do_send_chunk(mailbox_manager_t *mbox_manager,
-                   mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
-                   const backfill_chunk_t &chunk,
-                   fifo_enforcer_source_t *fifo_src,
-                   co_semaphore_t *chunk_semaphore,
-                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    chunk_semaphore->co_lock_interruptible(interruptor);
-    send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
-}
-
 class backfiller_send_backfill_callback_t : public send_backfill_callback_t {
 public:
-    backfiller_send_backfill_callback_t(const region_map_t<version_range_t> *start_point,
-                                        mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
-                                        mailbox_manager_t *mailbox_manager,
-                                        mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
-                                        fifo_enforcer_source_t *fifo_src,
-                                        co_semaphore_t *chunk_semaphore,
-                                        backfiller_t *backfiller)
+    backfiller_send_backfill_callback_t(
+            const region_map_t<version_range_t> *start_point,
+            mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+            mailbox_manager_t *mailbox_manager,
+            mailbox_addr_t<void(
+                backfill_chunk_t,
+                double,
+                fifo_enforcer_write_token_t
+                )> chunk_cont,
+            fifo_enforcer_source_t *fifo_src,
+            co_semaphore_t *chunk_semaphore,
+            backfiller_t *backfiller)
         : start_point_(start_point),
           end_point_cont_(end_point_cont),
           mailbox_manager_(mailbox_manager),
@@ -120,18 +113,32 @@ public:
           chunk_semaphore_(chunk_semaphore),
           backfiller_(backfiller) { }
 
+    traversal_progress_combiner_t progress_combiner_;
+
     bool should_backfill_impl(const region_map_t<binary_blob_t> &metainfo) {
         return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
     }
 
     void send_chunk(const backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        do_send_chunk(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_, interruptor);
+        chunk_semaphore_->co_lock_interruptible(interruptor);
+        progress_completion_fraction_t frac = progress_combiner_.guess_completion();
+        send(mailbox_manager_, chunk_cont_,
+            chunk,
+            frac.invalid()
+                ? 0.0   /* `frac.invalid()` is only true at start (I think) */
+                : static_cast<double>(frac.estimate_of_released_nodes) /
+                    frac.estimate_of_total_nodes,
+            fifo_src_->enter_write());
     }
 private:
     const region_map_t<version_range_t> *start_point_;
     mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont_;
     mailbox_manager_t *mailbox_manager_;
-    mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont_;
+    mailbox_addr_t<void(
+        backfill_chunk_t,
+        double,
+        fifo_enforcer_write_token_t
+        )> chunk_cont_;
     fifo_enforcer_source_t *fifo_src_;
     co_semaphore_t *chunk_semaphore_;
     backfiller_t *backfiller_;
@@ -139,14 +146,19 @@ private:
     DISABLE_COPYING(backfiller_send_backfill_callback_t);
 };
 
-void backfiller_t::on_backfill(signal_t *interruptor,
-                               backfill_session_id_t session_id,
-                               const region_map_t<version_range_t> &start_point,
-                               const branch_history_t &start_point_associated_branch_history,
-                               mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
-                               mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
-                               mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
-                               mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box) {
+void backfiller_t::on_backfill(
+        signal_t *interruptor,
+        backfill_session_id_t session_id,
+        const region_map_t<version_range_t> &start_point,
+        const branch_history_t &start_point_associated_branch_history,
+        mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+        mailbox_addr_t<void(
+            backfill_chunk_t,
+            double,
+            fifo_enforcer_write_token_t
+            )> chunk_cont,
+        mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
+        mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box) {
 
     assert_thread();
     guarantee(region_is_superset(svs->get_region(), start_point.get_domain()));
@@ -155,10 +167,6 @@ void backfiller_t::on_backfill(signal_t *interruptor,
        session can be interrupted if the backfillee decides to abort */
     cond_t local_interruptor;
     map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
-
-    /* Set up a local progress monitor so people can query us for progress. */
-    traversal_progress_combiner_t local_progress;
-    map_insertion_sentry_t<backfill_session_id_t, traversal_progress_combiner_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
 
     /* Set up a cond that gets pulsed if we're interrupted by either the
        backfillee stopping or the backfiller destructor being called, but don't
@@ -186,8 +194,9 @@ void backfiller_t::on_backfill(signal_t *interruptor,
         read_token_t send_backfill_token;
         svs->new_read_token(&send_backfill_token);
 
-        backfiller_send_backfill_callback_t
-            send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
+        backfiller_send_backfill_callback_t send_backfill_cb(
+            &start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src,
+            &chunk_semaphore, this);
 
         /* Actually perform the backfill */
         svs->send_backfill(
@@ -196,7 +205,7 @@ void backfiller_t::on_backfill(signal_t *interruptor,
                                                       &get_earliest_timestamp_of_version_range
                                                       ),
                      &send_backfill_cb,
-                     local_backfill_progress[session_id],
+                     &send_backfill_cb.progress_combiner_,
                      &send_backfill_token,
                      &interrupted);
 
@@ -230,17 +239,3 @@ void backfiller_t::on_cancel_backfill(
     }
 }
 
-
-void backfiller_t::request_backfill_progress(UNUSED signal_t *interruptor,
-                                             backfill_session_id_t session_id,
-                                             mailbox_addr_t<void(std::pair<int, int>)> response_mbox) {
-    if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
-        progress_completion_fraction_t fraction = local_backfill_progress[session_id]->guess_completion();
-        std::pair<int, int> pair_fraction = std::make_pair(fraction.estimate_of_released_nodes, fraction.estimate_of_total_nodes);
-        send(mailbox_manager, response_mbox, pair_fraction);
-    } else {
-        send(mailbox_manager, response_mbox, std::make_pair(-1, -1));
-    }
-
-    //TODO indicate an error has occurred
-}

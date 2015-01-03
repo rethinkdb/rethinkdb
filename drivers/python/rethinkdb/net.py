@@ -126,6 +126,9 @@ class Cursor(object):
                 self.conn._end_cursor(self)
 
 class Connection(object):
+    
+    _r = None # injected into the class from __init__.py
+    
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.closing = False

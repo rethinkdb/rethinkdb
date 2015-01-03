@@ -34,22 +34,3 @@ bool timing_sensitive_equals(const auth_key_t &x, const auth_key_t &y) {
     return all_equal;
 }
 
-json_adapter_if_t::json_adapter_map_t get_json_subfields(auth_key_t *) {
-    std::string fake_target;
-    return get_json_subfields(&fake_target);
-}
-
-cJSON *render_as_json(auth_key_t *target) {
-    std::string tmp = target->str();
-    return render_as_json(&tmp);
-}
-
-void apply_json_to(cJSON *change, auth_key_t *target) {
-    std::string tmp;
-    apply_json_to(change, &tmp);
-    if (!target->assign_value(tmp)) {
-        std::string msg = strprintf("auth key too long (max %d chars)", auth_key_t::max_length);
-        throw schema_mismatch_exc_t(msg);
-    }
-}
-
