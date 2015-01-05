@@ -389,7 +389,7 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
             if (!utf8::is_valid(string, &reason)) {
                 rfail_datum(base_exc_t::GENERIC,
                             "String `%.20s` (truncated) is not a UTF-8 string; "
-                            "saw %s at position %zu.",
+                            "%s at position %zu.",
                             string.c_str(), reason.explanation, reason.position);
             }
             break;
@@ -409,7 +409,7 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
             if (!utf8::is_valid(string, &reason)) {
                 rfail_datum(base_exc_t::GENERIC,
                             "String `%.20s` (truncated) is not a UTF-8 string; "
-                            "saw %s at position %zu.",
+                            "%s at position %zu.",
                             string, reason.explanation, reason.position);
             }
             break;
