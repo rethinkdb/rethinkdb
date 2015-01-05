@@ -264,5 +264,11 @@ tests:
       rb: r.table('testA',{:identifier_format=>'uuid'}).count()
       ot: 0
 
+    - cd: db.table_drop('testA')
+      ot: partial({'tables_dropped':1})
+
+    - cd: db.table_drop('testB')
+      ot: partial({'tables_dropped':1})
+
     - cd: r.db_drop('test2')
       ot: partial({'dbs_dropped':1,'tables_dropped':1})
