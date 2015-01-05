@@ -297,10 +297,14 @@ bool table_generate_config(
                 }
                 directory_view->read_key(std::make_pair(*peer_id, table_id),
                     [&](const namespace_directory_metadata_t *metadata) {
+                        /* If this is `nullptr`, that means that the server is connected
+                        but it doesn't have a reactor entry for this table. This is
+                        usually because the table was just created or the server just
+                        reconnected. In this case, we don't put an entry in the map, and
+                        this is equivalent to assuming the server has no data for the
+                        shard. */
                         if (metadata != nullptr) {
                             directory_metadata[server_id] = metadata->internal;
-                        } else {
-                            missing.insert(server_id);
                         }
                     });
             }

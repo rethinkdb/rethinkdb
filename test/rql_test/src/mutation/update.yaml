@@ -4,7 +4,7 @@ tests:
 
     # Set up some data
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - def: tbl2 = r.db('test').table('test2')
 
@@ -178,5 +178,5 @@ tests:
 
     # clean up
     - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 

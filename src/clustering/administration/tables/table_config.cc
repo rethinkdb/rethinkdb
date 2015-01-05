@@ -273,10 +273,18 @@ bool convert_table_config_shard_from_datum(
 /* This is separate from `format_row()` because it needs to be publicly exposed so it can
    be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
+        namespace_id_t table_id,
+        name_string_t table_name,
+        const ql::datum_t &db_name_or_uuid,
+        const std::string &primary_key,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
+    builder.overwrite("name", convert_name_to_datum(table_name));
+    builder.overwrite("db", db_name_or_uuid);
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("primary_key", convert_string_to_datum(primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             [&](const table_config_t::shard_t &shard) {
@@ -301,18 +309,9 @@ bool table_config_artificial_table_backend_t::format_row(
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     assert_thread();
-
-    ql::datum_t start = convert_table_config_to_datum(
-        metadata.replication_info.get_ref().config, identifier_format,
-        server_config_client);
-    ql::datum_object_builder_t builder(start);
-    builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", db_name_or_uuid);
-    builder.overwrite("id", convert_uuid_to_datum(table_id));
-    builder.overwrite(
-        "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
-    *row_out = std::move(builder).to_datum();
-
+    *row_out = convert_table_config_to_datum(table_id, table_name, db_name_or_uuid,
+        metadata.primary_key.get_ref(), metadata.replication_info.get_ref().config, 
+        identifier_format, server_config_client);
     return true;
 }
 
@@ -579,27 +578,27 @@ bool table_config_artificial_table_backend_t::write_row(
 
         if (!existed_before || new_table_name != old_table_name) {
             /* Prevent name collisions if possible */
-            metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
-                &md_change.get()->namespaces);
-            metadata_search_status_t status;
-            namespace_predicate_t pred(&new_table_name, &db_id);
-            ns_searcher.find_uniq(pred, &status);
-            if (status != METADATA_ERR_NONE) {
-                if (!existed_before) {
-                    /* This message looks weird in the context of the variable named
-                    `existed_before`, but it's correct. `existed_before` is true if a
-                    table with the specified UUID already exists; but we're showing the
-                    user an error if a table with the specified name already exists. */
-                    *error_out = strprintf("Table `%s.%s` already exists.",
-                        db_name.c_str(), new_table_name.c_str());
-                } else {
-                    *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
-                        "because table `%s.%s` already exists.",
-                        db_name.c_str(), old_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str());
+            for (const auto &pair : md_change.get()->namespaces) {
+                if (!pair.second.is_deleted() &&
+                        pair.second.get_ref().database.get_ref() == db_id &&
+                        pair.second.get_ref().name.get_ref() == new_table_name) {
+                    if (!existed_before) {
+                        /* This message looks weird in the context of the variable named
+                        `existed_before`, but it's correct. `existed_before` is true if a
+                        table with the specified UUID already exists; but we're showing
+                        the user an error if a table with the specified name already
+                        exists. */
+                        *error_out = strprintf("Table `%s.%s` already exists.",
+                            db_name.c_str(), new_table_name.c_str());
+                    } else {
+                        *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
+                            "because table `%s.%s` already exists.",
+                            db_name.c_str(), old_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str());
+                    }
+                    return false;
                 }
-                return false;
             }
         }
 

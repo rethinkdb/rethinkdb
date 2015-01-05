@@ -16,7 +16,7 @@ tests:
     - rb: r.db('test').table_drop('t1081')
 
     - rb: r.table_create('1081')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - rb: r.table('1081').insert({:password => 0})[:inserted]
       ot: 1
@@ -36,4 +36,4 @@ tests:
       ot: ("STREAM")
 
     - rb: r.table_drop('1081')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

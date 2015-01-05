@@ -29,10 +29,10 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     
     if dbName not in r.db_list().run(conn):
         res = r.db_create(dbName).run(conn)
-        assert res["created"] == 1
+        assert res["dbs_created"] == 1
     
     res = r.db(dbName).table_create(tableName).run(conn)
-    assert res["created"] == 1
+    assert res["tables_created"] == 1
 
     res = r.db(dbName).table(tableName).info().run(conn)
     pprint.pprint(res)
@@ -51,7 +51,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     assert N*2/fudge <= res["doc_count_estimates"][0] <= N*2*fudge
 
     r.db(dbName).table(tableName).reconfigure(shards=2, replicas=1).run(conn)
-    res = list(r.db(dbName).table_wait(tableName).run(conn))
+    res = r.db(dbName).table(tableName).wait()["status_changes"][0]["new_val"].run(conn)
     pprint.pprint(res)
 
     res = r.db(dbName).table(tableName).info().run(conn)
@@ -61,7 +61,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     # Make sure that oversharding doesn't break distribution queries
     r.db(dbName).table(tableName).reconfigure(shards=2, replicas=2).run(conn)
-    res = list(r.db(dbName).table_wait(tableName).run(conn))
+    res = r.db(dbName).table(tableName).wait()["status_changes"][0]["new_val"].run(conn)
     pprint.pprint(res)
 
     res = r.db(dbName).table(tableName).info().run(conn)
