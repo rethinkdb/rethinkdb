@@ -300,8 +300,6 @@ private:
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or
-            `.order_by()` on this table */
             success = env->env->reql_cluster_interface()->table_config(
                     table->db, name, backtrace(), env->env, &selection, &error);
         }
@@ -321,8 +319,6 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-        /* RSI(reql_admin): Make sure the user didn't call `.between()` or
-        `.order_by()` on this table */
         std::string error;
         scoped_ptr_t<val_t> selection;
         if (!env->env->reql_cluster_interface()->table_status(
@@ -362,12 +358,11 @@ private:
             target = args->arg(env, 0);
         }
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
-            return eval_impl_on_table_or_db(env, args, flags, target->as_db(), nullptr);
+            return eval_impl_on_table_or_db(env, args, flags, target->as_db(),
+                boost::none);
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            /* RSI(reql_admin): Make sure the user didn't call `.between()` or
-            `.order_by()` on this table */
             return eval_impl_on_table_or_db(env, args, flags, table->db, name);
         }
     }

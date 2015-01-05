@@ -107,7 +107,7 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
     ql::datum_t old_config;
-    int tables_dropped;
+    size_t tables_dropped;
     {
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
@@ -557,10 +557,7 @@ bool real_reql_cluster_interface_t::wait_internal(
                     if (res == table_wait_result_t::DELETED) {
                         /* Remove this entry so we don't keep trying to wait on it after
                         it's been erased */
-                        auto jt = it;
-                        ++jt;
-                        tables.erase(it);
-                        it = jt;
+                        tables.erase(it++);
                     } else {
                         new_statuses[*it] = status;
                         ++it;

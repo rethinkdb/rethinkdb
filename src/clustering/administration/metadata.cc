@@ -109,7 +109,7 @@ bool search_table_metadata_by_name(
         return false;
     } else if (found >= 2) {
         *error_out = strprintf("Table `%s.%s` is ambiguous; there are multiple "
-            "databases with that name.", db_name.c_str(), name.c_str());
+            "tables with that name in that database.", db_name.c_str(), name.c_str());
         return false;
     } else {
         return true;
