@@ -387,10 +387,12 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
         case reql_version_t::v1_16_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
                 rfail_datum(base_exc_t::GENERIC,
-                            "String `%.20s` (truncated) is not a UTF-8 string; "
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
                             "%s at position %zu.",
-                            string.c_str(), reason.explanation, reason.position);
+                            truncation_length, string.c_str(), reason.explanation,
+                            reason.position);
             }
             break;
         default:
@@ -407,10 +409,12 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v1_16_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
                 rfail_datum(base_exc_t::GENERIC,
-                            "String `%.20s` (truncated) is not a UTF-8 string; "
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
                             "%s at position %zu.",
-                            string, reason.explanation, reason.position);
+                            truncation_length, string, reason.explanation,
+                            reason.position);
             }
             break;
         default:
