@@ -79,7 +79,7 @@ Handlebars.registerHelper 'humanize_uuid', (str) ->
 Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     if not status?
         status = 'N/A'
-    success = if status == 'available' then 'success' else 'failure'
+    success = if status == 'connected' then 'success' else 'failure'
     reachability = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
     return new Handlebars.SafeString(reachability)
 

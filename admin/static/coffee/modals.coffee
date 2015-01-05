@@ -222,10 +222,10 @@ module 'Modals', ->
                     primary_key = 'id'
 
 
-                query = r.db(system_db).table("server_status").filter({status: "available"}).coerceTo("ARRAY").do (servers) =>
+                query = r.db(system_db).table("server_status").filter({status: "connected"}).coerceTo("ARRAY").do (servers) =>
                     r.branch(
                         servers.isEmpty(),
-                        r.error("No server is available"),
+                        r.error("No server is connected"),
                         servers.sample(1).nth(0)("name").do( (server) =>
                             r.db(system_db).table("table_config").insert
                                 db: @formdata.database

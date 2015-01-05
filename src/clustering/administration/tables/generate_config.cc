@@ -283,7 +283,7 @@ bool table_generate_config(
     /* Fetch reactor information for all of the servers */
     std::map<server_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
     if (table_id != nil_uuid()) {
-        std::set<server_id_t> missing;
+        std::set<server_id_t> disconnected;
         for (auto it = servers_with_tags.begin();
                   it != servers_with_tags.end();
                 ++it) {
@@ -292,7 +292,7 @@ bool table_generate_config(
                 boost::optional<peer_id_t> peer_id =
                     server_config_client->get_peer_id_for_server_id(server_id);
                 if (!static_cast<bool>(peer_id)) {
-                    missing.insert(server_id);
+                    disconnected.insert(server_id);
                     continue;
                 }
                 directory_view->read_key(std::make_pair(*peer_id, table_id),
@@ -309,9 +309,9 @@ bool table_generate_config(
                     });
             }
         }
-        if (!missing.empty()) {
+        if (!disconnected.empty()) {
             *error_out = strprintf("Can't configure table because server `%s` is "
-                "missing", server_names.at(*missing.begin()).c_str());
+                "disconnected", server_names.at(*disconnected.begin()).c_str());
             return false;
         }
     }

@@ -277,7 +277,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             admin_identifier_format_t::name, server_config_client);
     }
 
-    // This could hang because of a node going down or the user deleting the table.
+    // This could hang because of a node disconnecting or the user deleting the table.
     // In that case, timeout after 10 seconds and pretend everything's alright.
     signal_timer_t timer_interruptor;
     wait_any_t combined_interruptor(interruptor, &timer_interruptor);

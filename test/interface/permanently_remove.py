@@ -92,7 +92,7 @@ with driver.Cluster(output_folder='.') as cluster:
     issues = list(r.db("rethinkdb").table("issues").run(conn))
     pprint.pprint(issues)
     assert len(issues) == 1, issues
-    assert issues[0]["type"] == "server_down"
+    assert issues[0]["type"] == "server_disconnected"
     assert issues[0]["critical"]
     assert "KingHamlet" in issues[0]["description"]
     assert issues[0]["info"]["server"] == "KingHamlet"

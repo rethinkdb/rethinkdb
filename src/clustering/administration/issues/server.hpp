@@ -30,9 +30,9 @@ public:
 private:
     void recompute();
 
-    watchable_variable_t<std::vector<server_down_issue_t> > down_issues;
+    watchable_variable_t<std::vector<server_disconnected_issue_t> > disconnected_issues;
     watchable_variable_t<std::vector<server_ghost_issue_t> > ghost_issues;
-    local_issue_aggregator_t::subscription_t<server_down_issue_t> down_subs;
+    local_issue_aggregator_t::subscription_t<server_disconnected_issue_t> disconnected_subs;
     local_issue_aggregator_t::subscription_t<server_ghost_issue_t> ghost_subs;
 
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
