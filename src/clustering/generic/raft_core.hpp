@@ -153,32 +153,33 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(raft_complex_config_t);
 
+enum class raft_log_entry_type_t {
+    /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
+    then `change` has a value but `config` is empty. */
+    regular,
+    /* A `config` log entry has a `raft_complex_config_t`. They are used to change
+    the cluster configuration. See Section 6 of the Raft paper. So if `type` is
+    `config`, then `config` has a value but `change` is empty. */
+    config,
+    /* A `noop` log entry does nothing and carries niether a `change_t` nor a
+    `raft_complex_config_t`. See Section 8 of the Raft paper. */
+    noop
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, uint8_t,
+    raft_log_entry_type_t::regular, raft_log_entry_type_t::noop);
+
 /* `raft_log_entry_t` describes an entry in the Raft log. */
 template<class state_t>
 class raft_log_entry_t {
 public:
-    enum class type_t {
-        /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
-        then `change` has a value but `config` is empty. */
-        regular,
-        /* A `config` log entry has a `raft_complex_config_t`. They are used to change
-        the cluster configuration. See Section 6 of the Raft paper. So if `type` is
-        `config`, then `config` has a value but `change` is empty. */
-        config,
-        /* A `noop` log entry does nothing and carries niether a `change_t` nor a
-        `raft_complex_config_t`. See Section 8 of the Raft paper. */
-        noop
-    };
-
-    type_t type;
+    raft_log_entry_type_t type;
     raft_term_t term;
     /* Whether `change` and `config` are empty or not depends on the value of `type`. */
     boost::optional<typename state_t::change_t> change;
     boost::optional<raft_complex_config_t> config;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(type, term, change, config);
+    RDB_MAKE_ME_SERIALIZABLE_4(raft_log_entry_t, type, term, change, config);
 };
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(raft_log_entry_t<T>);
 
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
 up in Raft: in an "AppendEntries RPC", and in each server's local state. The Raft paper
@@ -246,9 +247,8 @@ public:
         entries.push_back(entry);
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_3(prev_index, prev_term, entries);
+    RDB_MAKE_ME_SERIALIZABLE_3(raft_log_t, prev_index, prev_term, entries);
 };
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(raft_log_t<T>);
 
 /* `raft_persistent_state_t` describes the information that each member of the Raft
 cluster persists to stable storage. */
@@ -284,10 +284,9 @@ private:
     `log` variable in Figure 2. */
     raft_log_t<state_t> log;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(current_term, voted_for, snapshot_state, snapshot_config,
-        log);
+    RDB_MAKE_ME_SERIALIZABLE_5(raft_persistent_state_t, current_term, voted_for,
+        snapshot_state, snapshot_config, log);
 };
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(raft_persistent_state_t<T>);
 
 /* `raft_storage_interface_t` is an abstract class that `raft_member_t` uses to store
 data on disk. */
@@ -329,14 +328,9 @@ private:
         raft_member_id_t candidate_id;
         raft_log_index_t last_log_index;
         raft_term_t last_log_term;
-        RDB_MAKE_ME_SERIALIZABLE_4(term, candidate_id, last_log_index, last_log_term);
+        RDB_MAKE_ME_SERIALIZABLE_4(request_vote_t,
+            term, candidate_id, last_log_index, last_log_term);
     };
-    template <cluster_version_t W, class T>
-    friend void serialize(write_message_t *wm,
-        const typename raft_rpc_request_t<T>::request_vote_t &);
-    template <cluster_version_t W, class T>
-    friend archive_result_t deserialize(read_stream_t *,
-        typename raft_rpc_request_t<T>::request_vote_t *);
 
     /* `install_snapshot_t` describes the parameters of the "InstallSnapshot RPC"
     described in Figure 13 of the Raft paper. */
@@ -354,15 +348,10 @@ private:
         raft_term_t last_included_term;
         state_t snapshot_state;
         raft_complex_config_t snapshot_config;
-        RDB_MAKE_ME_SERIALIZABLE_6(term, leader_id, last_included_index,
-            last_included_term, snapshot_state, snapshot_config);
+        RDB_MAKE_ME_SERIALIZABLE_6(install_snapshot_t,
+            term, leader_id, last_included_index, last_included_term, snapshot_state,
+            snapshot_config);
     };
-    template <cluster_version_t W, class T>
-    friend void serialize(write_message_t *wm,
-        const typename raft_rpc_request_t<T>::install_snapshot_t &);
-    template <cluster_version_t W, class T>
-    friend archive_result_t deserialize(read_stream_t *,
-        typename raft_rpc_request_t<T>::install_snapshot_t *);
 
     /* `append_entries_t` describes the parameters of the "AppendEntries RPC" described
     in Figure 2 of the Raft paper. */
@@ -375,28 +364,14 @@ private:
         raft_member_id_t leader_id;
         raft_log_t<state_t> entries;
         raft_log_index_t leader_commit;
-        RDB_MAKE_ME_SERIALIZABLE_4(term, leader_id, entries, leader_commit);
+        RDB_MAKE_ME_SERIALIZABLE_4(append_entries_t,
+            term, leader_id, entries, leader_commit);
     };
-    template <cluster_version_t W, class T>
-    friend void serialize(write_message_t *wm,
-        const typename raft_rpc_request_t<T>::append_entries_t &);
-    template <cluster_version_t W, class T>
-    friend archive_result_t deserialize(read_stream_t *,
-        typename raft_rpc_request_t<T>::append_entries_t *);
 
     boost::variant<request_vote_t, install_snapshot_t, append_entries_t> request;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(request);
-    template <cluster_version_t W, class T>
-    friend void serialize(write_message_t *wm, const raft_rpc_request_t<T> &);
-    template <cluster_version_t W, class T>
-    friend archive_result_t deserialize(read_stream_t *, raft_rpc_request_t<T> *);
+    RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_request_t, request);
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(typename raft_rpc_request_t<T>::request_vote_t);
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(typename raft_rpc_request_t<T>::install_snapshot_t);
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(typename raft_rpc_request_t<T>::append_entries_t);
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(raft_rpc_request_t<T>);
 
 /* `raft_rpc_reply_t` describes the reply to a `raft_rpc_request_t`. */
 class raft_rpc_reply_t {
@@ -409,24 +384,16 @@ private:
     public:
         raft_term_t term;
         bool vote_granted;
-        RDB_MAKE_ME_SERIALIZABLE_2(term, vote_granted);
+        RDB_MAKE_ME_SERIALIZABLE_2(request_vote_t, term, vote_granted);
     };
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const request_vote_t &);
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *, request_vote_t *);
 
     /* `install_snapshot_t` describes in the information returned from the
     "InstallSnapshot RPC" described in Figure 13 of the Raft paper. */
     class install_snapshot_t {
     public:
         raft_term_t term;
-        RDB_MAKE_ME_SERIALIZABLE_1(term);
+        RDB_MAKE_ME_SERIALIZABLE_1(install_snapshot_t, term);
     };
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const install_snapshot_t &);
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *, install_snapshot_t *);
 
     /* `append_entries_t` describes the information returned from the
     "AppendEntries RPC" described in Figure 2 of the Raft paper. */
@@ -434,26 +401,13 @@ private:
     public:
         raft_term_t term;
         bool success;
-        RDB_MAKE_ME_SERIALIZABLE_2(term, success);
+        RDB_MAKE_ME_SERIALIZABLE_2(append_entries_t, term, success);
     };
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const append_entries_t &);
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *, append_entries_t *);
 
     boost::variant<request_vote_t, install_snapshot_t, append_entries_t> reply;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(reply);
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const raft_rpc_reply_t &);
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *, raft_rpc_reply_t *);
+    RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_reply_t, reply);
 };
-
-RDB_SERIALIZE_OUTSIDE(raft_rpc_reply_t::request_vote_t);
-RDB_SERIALIZE_OUTSIDE(raft_rpc_reply_t::install_snapshot_t);
-RDB_SERIALIZE_OUTSIDE(raft_rpc_reply_t::append_entries_t);
-RDB_SERIALIZE_OUTSIDE(raft_rpc_reply_t);
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
 messages over the network. */

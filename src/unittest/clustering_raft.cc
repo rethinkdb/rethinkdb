@@ -29,6 +29,7 @@ public:
         return state != other.state;
     }
 };
+RDB_MAKE_SERIALIZABLE_1(dummy_raft_state_t, state);
 
 typedef raft_member_t<dummy_raft_state_t> dummy_raft_member_t;
 
