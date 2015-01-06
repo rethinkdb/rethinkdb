@@ -64,6 +64,7 @@ public:
     counted_t<const func_t> compile_wire_func_or_null() const;
 
 private:
+    bool has() const { return wrapped.has(); }
     wire_func_t wrapped;
 };
 

@@ -137,8 +137,8 @@ template <cluster_version_t W>
 void serialize(write_message_t *wm, const var_scope_t &vs) {
     serialize<W>(wm, vs.vars);
     serialize<W>(wm, vs.implicit_depth);
-    if (implicit_depth == 1) {
-        const bool has = maybe_implicit.has();
+    if (vs.implicit_depth == 1) {
+        const bool has = vs.maybe_implicit.has();
         serialize<W>(wm, has);
         if (has) {
             serialize<W>(wm, vs.maybe_implicit);
@@ -177,14 +177,14 @@ archive_result_t deserialize(read_stream_t *s, var_scope_t *vs) {
 INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(var_scope_t);
 
 template archive_result_t
-deserialize<cluster_version_t::v1_13>(read_stream_t *s, const var_scope_t &);
+deserialize<cluster_version_t::v1_13>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-deserialize<cluster_version_t::v1_13_2>(read_stream_t *s, const var_scope_t &);
+deserialize<cluster_version_t::v1_13_2>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-deserialize<cluster_version_t::v1_14>(read_stream_t *s, const var_scope_t &);
+deserialize<cluster_version_t::v1_14>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-deserialize<cluster_version_t::v1_15>(read_stream_t *s, const var_scope_t &);
+deserialize<cluster_version_t::v1_15>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-deserialize<cluster_version_t::v1_16_is_latest>(read_stream_t *s, const var_scope_t &);
+deserialize<cluster_version_t::v1_16_is_latest>(read_stream_t *s, var_scope_t *);
 
 }  // namespace ql

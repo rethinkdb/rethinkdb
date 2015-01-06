@@ -70,9 +70,9 @@ public:
     var_visibility_t compute_visibility() const;
 
     template <cluster_version_t W>
-    void serialize(write_message_t *wm, const var_scope_t &);
+    friend void serialize(write_message_t *wm, const var_scope_t &);
     template <cluster_version_t W>
-    archive_result_t deserialize(read_stream_t *s, var_scope_t *);
+    friend archive_result_t deserialize(read_stream_t *s, var_scope_t *);
 
 private:
     std::map<sym_t, datum_t> vars;

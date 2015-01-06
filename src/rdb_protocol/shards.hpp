@@ -48,8 +48,9 @@ struct rget_item_t {
         : key(std::forward<T>(_key)), sindex_key(_sindex_key), data(_data) { }
     store_key_t key;
     ql::datum_t sindex_key, data;
-    RDB_DECLARE_ME_SERIALIZABLE(rget_item_t);
 };
+
+RDB_DECLARE_SERIALIZABLE(rget_item_t);
 
 void debug_print(printf_buffer_t *, const rget_item_t &);
 

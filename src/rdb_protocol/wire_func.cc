@@ -144,7 +144,7 @@ INSTANTIATE_SERIALIZABLE_SINCE_v1_13(wire_func_t);
 
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const maybe_wire_func_t &mwf) {
-    bool has_value = mwf.wrapped.has();
+    bool has_value = mwf.has();
     serialize<W>(wm, has_value);
     if (has_value) {
         serialize<W>(wm, mwf.wrapped);
@@ -216,7 +216,7 @@ RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(distinct_wire_func_t, use_index);
 
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const bt_wire_func_t &btwf) {
-    serialize_protobuf(wm, *btwf->bt);
+    serialize_protobuf(wm, *btwf.bt);
 }
 
 template <cluster_version_t W>

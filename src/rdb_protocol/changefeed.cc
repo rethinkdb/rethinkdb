@@ -963,7 +963,7 @@ RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
 RDB_IMPL_SERIALIZABLE_5(
     msg_t::change_t,
-    old_indexes, new_indexes, pkey, empty_ok(old_val), empty_ok(new_val));
+    old_indexes, new_indexes, pkey, old_val, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
