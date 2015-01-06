@@ -132,6 +132,7 @@ def do_import(temp_dir, options):
     import_args.extend(["--directory", temp_dir])
     import_args.extend(["--auth", options["auth_key"]])
     import_args.extend(["--clients", str(options["clients"])])
+    import_args.extend(["--secondary-indexes"])
 
     for db, table in options["tables"]:
         if table is None:

@@ -58,6 +58,7 @@ def print_import_help():
     print("  -d [ --directory ] DIR           the directory to import data from")
     print("  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may")
     print("                                   be specified multiple times)")
+    print("  --secondary-indexes              recreate secondary indexes for the imported tables")
     print("")
     print("Import file:")
     print("  -f [ --file ] FILE               the file to import data from")
@@ -107,6 +108,7 @@ def parse_options():
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--secondary-indexes", dest="create_sindexes", action="store_true", default=False)
 
     # File import options
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
@@ -140,6 +142,7 @@ def parse_options():
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
+    res["create_sindexes"] = options.create_sindexes
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -187,6 +190,8 @@ def parse_options():
             raise RuntimeError("Error: --import option is not valid when importing a single file")
         if options.directory is not None:
             raise RuntimeError("Error: --directory option is not valid when importing a single file")
+        if options.create_sindexes:
+            raise RuntimeError("Error: secondary index information is only available when importing a directory")
 
         import_file = options.import_file
         res["import_file"] = os.path.abspath(import_file)
@@ -524,6 +529,8 @@ def create_table(progress, conn, db, table, pkey, sindexes):
     # and create them from scratch
     indexes = r.db(db).table(table).index_list().run(conn)
     for sindex in sindexes[progress[0]:]:
+        if not isinstance(sindex, dict) or not all(k in sindex for k in ('index', 'function')):
+            raise RuntimeError("Error: '%s.%s' data does not contain secondary index functions, `--secondary-index` cannot be used" % (db, table))
         if sindex['index'] in indexes:
             r.db(db).table(table).index_drop(sindex['index']).run(conn)
         r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
@@ -536,7 +543,8 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         primary_key = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key, file_info["info"]["indexes"])
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
+                         file_info["info"]["indexes"] if options["create_sindexes"] else [])
 
         if file_info["format"] == "json":
             json_reader(task_queue,
