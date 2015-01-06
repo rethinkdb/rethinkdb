@@ -14,6 +14,8 @@ class Tables extends Backbone.Collection
 
 class Table extends Backbone.Model
 
+class Reconfigure extends Backbone.Model
+
 class Databases extends Backbone.Collection
     model: Database
     name: 'Databases'

@@ -22,7 +22,7 @@ module 'ServerView', ->
                     server.merge( (server) ->
                         responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
-                                shards: table("shards").map(r.range(table('shards').count()), (shard, index) ->
+                                shards: table("shards").map(r.range(), (shard, index) ->
                                     shard.merge(
                                         num_keys: r.db(table('db')) \
                                             .table(table('name')) \

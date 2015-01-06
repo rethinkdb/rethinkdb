@@ -125,3 +125,30 @@
     font-weight: 400;
     font-style: normal;
 }
+
+/* Ionicons */
+
+@font-face {
+    font-family: "Ionicons";
+    src:url("ionicons.eot?v=2.0.0");
+    src:url("ionicons.eot?v=2.0.0#iefix") format("embedded-opentype"),
+      url("ionicons.ttf?v=2.0.0") format("truetype"),
+      url("ionicons.woff?v=2.0.0") format("woff"),
+      url("ionicons.svg?v=2.0.0#Ionicons") format("svg");
+    font-weight: normal;
+    font-style: normal;
+}
+
+.ion {
+  display: inline-block;
+  font-family: "Ionicons";
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  text-rendering: auto;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

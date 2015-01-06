@@ -118,6 +118,9 @@ Handlebars.registerHelper 'print_safe', (str) ->
     else
         return ""
 
+# Increment a number
+Handlebars.registerHelper 'inc', (num) -> num + 1
+
 # Register some useful partials
 Handlebars.registerPartial 'backfill_progress_summary', $('#backfill_progress_summary-partial').html()
 Handlebars.registerPartial 'backfill_progress_details', $('#backfill_progress_details-partial').html()
