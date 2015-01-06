@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
 
-"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
+"""Checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
 
 from __future__ import print_function
 

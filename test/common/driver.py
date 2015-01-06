@@ -285,7 +285,7 @@ class Files(object):
         else:
             db_containter = db_containter or '.'
             self.db_path = os.path.join(db_containter, str(db_path))
-        assert not os.path.exists(self.db_path)
+        assert not os.path.exists(self.db_path), 'The path given for the new files already existed: %s' % self.db_path
         
         moveConsole = False
         if console_output is None:

@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
-raise NotImplementedError('This needs to be re-worked with access to shard boundries found through ReQL admin')
-
-import collections, itertools, os, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
-
-lock = threading.Lock()
+import copy, itertools, os, sys, threading, time, unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import driver, utils
 
+# --
+
+lock = threading.Lock()
+
 r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+# --
 
 def synchronized(lock):
 	""" Synchronization decorator """
@@ -20,287 +23,205 @@ def synchronized(lock):
 		return newFunction
 	return wrap
 
-def checkedCall(command):
-	'''wrapper on subprocess.check_call to handle collecting stdout/stderr for errors'''
-	
-	output = tempfile.TemporaryFile('w+')
-	try:
-		subprocess.check_call(command, stdout=output, stderr=output)
-	except subprocess.CalledProcessError as e:
-		output.seek(0)
-		raise subprocess.CalledProcessError(e.returncode, e.cmd, output=output.read())
-
 class NextWithTimeout(threading.Thread):
+	'''Constantly tries to fetch the next item on an changefeed'''
 	
-	feed = None
-	result = None
 	daemon = True
 	
-	def __init__(self, feed):
-		super(NextWithTimeout, self).__init__()
-		self.feed = iter(feed)
+	feed = None
+	timeout = None
 	
-	@classmethod
-	def getNext(cls, feed, timeout=5):
-		
-		instance = NextWithTimeout(feed)
-		instance.start()
-		deadline = time.time() + timeout
+	keepRunning = True
+	latestResult = None
+	
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, exitType, value, traceback):
+		self.keepRunning = False
+	
+	def __init__(self, feed, timeout=5):
+		self.feed = iter(feed)
+		self.timeout = timeout
+		super(NextWithTimeout, self).__init__()
+		self.start()
+	
+	def __iter__(self):
+		return self
+	
+	def next(self):
+		deadline = time.time() + self.timeout
 		while time.time() < deadline:
-			instance.join(.1)
-			if not instance.isAlive():
-				if isinstance(instance.result, Exception):
-					raise instance.result
-				return instance.result
-		# we are leaving a daemon process run
-		raise Exception('Timed out waiting %d seconds for next item' % timeout)
+			if self.latestResult is not None:
+				if isinstance(self.latestResult, Exception):
+					raise self.latestResult
+				result = self.latestResult
+				self.latestResult = None
+				return result
+			time.sleep(.05)
+		else:
+			raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
+	
+	def __next__(self):
+		return self.next()
 	
 	def run(self):
-		try:
-			return next(self.feed)
-		except Exception as e:
-			self.result = e
+		while self.keepRunning:
+			if self.latestResult is not None:
+				time.sleep(.1)
+				continue
+			try:
+				self.latestResult = next(self.feed)
+				time.sleep(.5)
+			except Exception as e:
+				self.latestResult = e
+				self.keepRunning = False
 
 class ChangefeedsTest_Base(unittest.TestCase):
 	
 	# -- settings
 	
-	dbName = 'test'
-	tableName = 'changefeedIntegration'
-	
-	serversToStart = 4
+	shardLevel = 2
 	replicationLevel = 2
 	recordsToGenerate = 1000
 	samplesPerShard = 5
-	splitStrings = ['Nc081680000000000#557'] # magic format
 	
 	# -- class variables
 	
-	servers = None
-	shards = None # [{'range':[lower, upper], 'primary':MACHINE_NAME, 'secondary':[MACHINE_NAME, ...]}]
-		
-	# -- constants
-	
-	ServerEntry = collections.namedtuple('ServerEntry', ['process', 'connection', 'logfile', 'uuid'])
-	ShardEntry = collections.namedtuple('ShardEntry', ['lower', 'lowerHTTP', 'lowerCLI', 'upper', 'upperHTTP', 'upperCLI', 'primary_replica', 'secondary_replicas', 'sample'])
+	cluster = None
+	conn = None
 	
 	# --
 	
 	@classmethod
-	def getShards(cls, refresh=False):
+	def getPrimaryForShard(cls, index, table=None, db=None):
+		if table is None:
+			table = tableName
+		if db is None:
+			db = dbName
 		
-		if cls.shards is not None and refresh is False:
-			return cls.shards
-		
-		server = cls.servers[0]
-		adminConn = http_admin.ClusterAccess([(server.process.host, server.process.http_port)])
-		
-		cls.shards = []
-		for lowerHTTP, upperHTTP in adminConn.find_table(cls.tableName).shard_ranges():
-			if lowerHTTP in (None, ''):
-				lower = None
-				lowerHTTP = ''
-				lowerCLI = ''
-			elif lowerHTTP.startswith('N'):
-				lower = int(lowerHTTP.split('%23')[1]) # ToDo: take the magic out of this, handle non-integer values
-				lowerCLI = lowerHTTP.replace('%23', r'\23')
-			elif lowerHTTP.startswith('S'):
-				lower = lowerHTTP[1:]
-				lowerCLI = lowerHTTP.replace('%23', r'\23')
-			
-			if upperHTTP in (None, ''):
-				upper = None
-				upperHTTP = ''
-				upperCLI = ''
-			elif upperHTTP.startswith('N'):
-				upper = int(upperHTTP.split('%23')[1]) # ToDo: take the magic out of this, handle non-integer values
-				upperCLI = upperHTTP.replace('%23', r'\23')
-			elif upperHTTP.startswith('S'):
-				upper = upperHTTP[1:]
-				upperCLI = upperHTTP.replace('%23', r'\23')
-			
-			sample = [x['id'] for x in r.db(cls.dbName).table(cls.tableName).between(lower, upper).limit(1).run(server.connection)][0]
-			
-			cls.shards.append(cls.ShardEntry(lower=lower, lowerHTTP=lowerHTTP, lowerCLI=lowerHTTP.replace('%23', r'\23'), upper=upper, upperHTTP=upperHTTP, upperCLI=upperCLI, primary_replica=None, secondary_replicas=None, sample=sample))
-		
-		if len(cls.shards) == 0:
-			sample = [x['id'] for x in r.db(cls.dbName).table(cls.tableName).between(None, None).limit(1).run(server.connection)][0]
-			cls.shards.append(cls.ShardEntry(lower=None, lowerHTTP=None, lowerCLI=None, upper=None, upperHTTP=None, upperCLI=None, primary_replica=None, secondary_replicas=None, sample=sample))
-		
-		return cls.shards
+		serverName = r.db(dbName).table(tableName).config()['shards'].nth(index)['primary_replica'].run(cls.conn)
+		for server in cls.cluster:
+			if server.name == serverName:
+				return server
+		return None
 	
 	@classmethod
-	def waitForShards(cls, timeout=20):
+	def getReplicaForShard(cls, index, table=None, db=None):
+		if table is None:
+			table = tableName
+		if db is None:
+			db = dbName
 		
-		connection = cls.servers[0].connection
+		shardsData = r.db(dbName).table(tableName).config()['shards'].nth(index).run(cls.conn)
+		replicaNames = [x for x in shardsData['replicas'] if x != shardsData['primary_replica']]
 		
-		deadline = time.time() + 10
-		lastError = None
-		shards = cls.getShards()
-		while time.time() < deadline:
-			try:
-				for shard in shards:
-					r.db(cls.dbName).table(cls.tableName).get(shard.sample).run(connection)
-				lastError = None
-				break
-			except r.RqlRuntimeError as e:
-				lastError = e
-				time.sleep(0.05)
-		if lastError is not None:
-			raise lastError
+		for server in cls.cluster:
+			if server.name in replicaNames:
+				return server
+		return None
 	
 	@classmethod
 	@synchronized(lock)
 	def setUp(cls):
 		
-		# -- short-circut if we are alread setup
+		# -- short-circuit if we are already setup
 		
-		if cls.servers is not None:
+		if cls.cluster is not None:
 			return
 		
 		# -- start the servers
 		
-		cls.servers = []
-		cluster = None
-		for i in range (cls.serversToStart):
-			logfile = tempfile.NamedTemporaryFile('w+')
-			server = driver.Process(cluster=cluster, console_output=logfile.name)
-			server.wait_until_started_up()
-			cluster = server.cluster
-			connection =  r.connect(host=server.host, port=server.driver_port)
-			uuid = urllib2.urlopen('http://%s:%d/ajax/semilattice/me' % (server.host, server.http_port)).read().replace('"', '')
-			cls.servers.append(cls.ServerEntry(process=server, connection=connection, logfile=logfile, uuid=uuid))
+		cls.cluster = driver.Cluster(initial_servers=cls.shardLevel * cls.replicationLevel)
 		
-		primaryServer = cls.servers[0]
+		server = cls.cluster[0]
+		cls.conn = r.connect(host=server.host, port=server.driver_port)
 		
 		# -- ensure db is available
 		
-		if cls.dbName not in r.db_list().run(primaryServer.connection):
-			r.db_create(cls.dbName).run(primaryServer.connection)
+		if dbName not in r.db_list().run(cls.conn):
+			r.db_create(dbName).run(cls.conn)
 		
 		# -- setup test table
 		
-		if cls.tableName in r.db(cls.dbName).table_list().run(primaryServer.connection):
-			r.db(cls.dbName).table_drop(cls.tableName).run(primaryServer.connection) # ensure we have a clean table
-		r.db(cls.dbName).table_create(cls.tableName).run(primaryServer.connection)
+		if tableName in r.db(dbName).table_list().run(cls.conn):
+			r.db(dbName).table_drop(tableName).run(cls.conn) # ensure we have a clean table
+		r.db(dbName).table_create(tableName).run(cls.conn)
 		
-		r.db(cls.dbName).table(cls.tableName).insert([{'id': x} for x in range(1, cls.recordsToGenerate + 1)]).run(primaryServer.connection)
+		r.db(dbName).table(tableName).insert(r.range(1, cls.recordsToGenerate + 1).map({'id':r.row})).run(cls.conn)
 		
-		# -- shard and replicate the table and pin the two shards to the two servers
+		# - shard and replicate the table
 		
-		# ToDo: convert this to ReQL commands when avalible
+		primaries = iter(cls.cluster[:cls.shardLevel])
+		replicas = iter(cls.cluster[cls.shardLevel:])
 		
-		adminCommandPrefix = [primaryServer.process.executable_path, 'admin', '--join', '%s:%d' % (primaryServer.process.host, primaryServer.process.cluster_port)]
-		
-		# - shard the table
-		
-		adminConn = http_admin.ClusterAccess([(primaryServer.process.host, primaryServer.process.http_port)])
-		
-		lastSplit = None
-		for splitString in cls.splitStrings:
-			adminConn.add_table_shard(cls.tableName, splitString)
-		
-		time.sleep(2)
-		cls.waitForShards()
-		
-		# - parse out the shards created
-		
-		shards = cls.getShards(refresh=True)
-		
-		# - set replication level
-		
-		if cls.replicationLevel > 1:
-			
-			checkedCall(adminCommandPrefix + ['set', 'replicas', '%s.%s' % (cls.dbName, cls.tableName), str(cls.replicationLevel)])
-			checkedCall(adminCommandPrefix + ['set', 'durability', '%s.%s' % (cls.dbName, cls.tableName), '--hard'])
-		
-		# - pin the shards
-		
-		if len(cls.servers) < cls.replicationLevel * len(shards):
-			raise Exception('There are only %d servers, but we need %d (%d replicas x %d shards)' % (len(servers), cls.replicationLevel * len(cls.shards), cls.replicationLevel, len(cls.shards)))
-		
-		for i in range(len(shards)):
-			shard = shards[i]
-			
-			# - primary replica
-			
-			checkedCall(adminCommandPrefix + ['pin', 'shard', '%s.%s' % (cls.dbName, cls.tableName), '%s-%s' % (shard.lowerCLI, shard.upperCLI), '--master', cls.servers[i].uuid])
-			cls.shards[i] = cls.shards[i]._replace(primary_replica=cls.servers[i])
-			
-			# - secondary replicas
-			
-			if cls.replicationLevel > 1:
-				uuids = []
-				replicaServers = []
-				for j in range(1, cls.replicationLevel):
-					replicaServer = cls.servers[(cls.replicationLevel * j + 1) + i -1]
-					replicaServers.append(replicaServer)
-					uuids.append(replicaServer.uuid)
-				checkedCall(adminCommandPrefix + ['pin', 'shard', '%s.%s' % (cls.dbName, cls.tableName), '%s-%s' % (shard.lowerCLI, shard.upperCLI), '--replicas', ','.join(uuids)])
-				cls.shards[i] = cls.shards[i]._replace(secondary_replicas=replicaServers)
-		
-		# make sure everything is avalible
-		
-		time.sleep(10) # way too long, but newton is sometimes not showing the operations for quite some time
-		cls.waitForShards()
+		shardPlan = []
+		for primary in primaries:
+			chosenReplicas = [replicas.next().name for _ in range(0, cls.replicationLevel - 1)]
+			shardPlan.append({'primary_replica':primary.name, 'replicas':[primary.name] + chosenReplicas})
+		assert (r.db(dbName).table(tableName).config().update({'shards':shardPlan}).run(cls.conn))['errors'] == 0
+		r.db(dbName).table(tableName).wait().run(cls.conn)
 	
 	@classmethod
+	@synchronized(lock)
 	def tearDown(cls):
-		
-		if cls.servers is None:
-			return
 		
 		# verify that the servers are still running
 		lastError = None
-		for server in cls.servers:
+		for server in cls.cluster:
 			try:
-				server.process.check()
+				server.check()
 			except Exception as e:
 				lastError = e
 		if lastError is not None:
-			cls.servers = None
+			cls.cluster = None
+			cls.conn = None
 			raise e
 	
-	def makeChanges(self, samplesPerShard=None, connectionsToUse=None):
+	def makeChanges(self, samplesPerShard=None, connections=None):
 		'''make a number of minor changes to records, and return those ids'''
 		
 		if samplesPerShard is None:
 			samplesPerShard = self.samplesPerShard
 		
-		if connectionsToUse is None:
-			connectionsToUse = itertools.cycle([x.connection for x in self.servers])
+		if connections is None:
+			connections = itertools.cycle([self.conn])
 		else:
-			connectionsToUse = itertools.cycle(connectionsToUse)
+			connections = itertools.cycle(connections)
 		
 		changedRecordIds = []
-		shards = self.getShards()
-		for lower, upper in [(x.lower, x.upper) for x in shards]:
+		for lower, upper in utils.getShardRanges(connections.next(), tableName):
 			
-			sampleIds = [x['id'] for x in r.db(self.dbName).table(self.tableName).between(lower, upper).sample(samplesPerShard).run(connectionsToUse.next())]
+			conn = connections.next()
+			sampleIds = (x['id'] for x in r.db(dbName).table(tableName).between(lower, upper).sample(samplesPerShard).run(conn))
 			
 			for thisId in sampleIds:
-				r.db(self.dbName).table(self.tableName).update({'id':thisId, 'changed':True}).run(connectionsToUse.next())
+				r.db(dbName).table(tableName).get(thisId).update({'changed':True}).run(conn)
 				changedRecordIds.append(thisId)
 		
 		changedRecordIds.sort()
 		return changedRecordIds
 
-class ChangefeedsTest(ChangefeedsTest_Base):
+class ChangefeedsTest_Basic(ChangefeedsTest_Base):
 	'''Basic tests'''
 	
 	def test_simple(self):
+		'''Make simple changes and ensure a single changefeed sees them'''
 		
-		expectedCount = self.samplesPerShard * len(self.getShards())
-		changefeed = r.db(self.dbName).table(self.tableName).changes().limit(expectedCount).run(self.servers[0].connection)
+		server = self.cluster[0]
+		conn = r.connect(host=server.host, port=server.driver_port)
 		
-		expectedChangedIds = self.makeChanges()
-		self.assertEqual(expectedChangedIds, sorted([x['new_val']['id'] for x in changefeed]))
+		expectedCount = self.samplesPerShard * len(utils.getShardRanges(conn, tableName))
+		with NextWithTimeout(r.db(dbName).table(tableName).changes().limit(expectedCount).run(conn)) as changefeed:
+			expectedChangedIds = self.makeChanges()
+			self.assertEqual(expectedChangedIds, sorted([x['new_val']['id'] for x in changefeed]))
 	
 	def test_multiple_servers(self):
 		'''The same changefeed on multiple servers should get the same results'''
 		
-		expectedCount = self.samplesPerShard * len(self.getShards())
-		changefeeds = [r.db(self.dbName).table(self.tableName).changes().limit(expectedCount).run(x.connection) for x in self.servers]
+		connections = [r.connect(host=x.host, port=x.driver_port) for x in self.cluster]
+		expectedCount = self.samplesPerShard * len(utils.getShardRanges(connections[0], tableName))
+		changefeeds = [NextWithTimeout(r.db(dbName).table(tableName).changes().limit(expectedCount).run(x)) for x in connections]
 		
 		# add data across all of the connections
 		
@@ -321,95 +242,123 @@ class ChangefeedsTest_Destructive(ChangefeedsTest_Base):
 		'''For destructive tests we close down everything after each test'''
 		
 		lastError = None
-		for server in cls.servers:
+		for server in copy.copy(cls.cluster):
 			try:
-				server.process.check_and_stop()
+				server.check_and_stop()
 			except RuntimeError:
 				pass
 			except Exception as e:
 				lastError = e
-		cls.servers = None
+		cls.cluster = None
+		cls.conn = None
 		if lastError is not None:
 			raise lastError
 	
 	def test_primary_falure(self):
 		'''Test that we get the expected error when the primary replica for a shard fails for a range'''
 		
-		server = self.servers[0]
-		conn = server.connection
+		stable = self.getPrimaryForShard(0)
+		sacrifice = self.getPrimaryForShard(1)
+		self.assertTrue(stable != sacrifice, msg='There were not enough primary servers')
+		
+		conn = r.connect(host=stable.host, port=stable.driver_port)
 		
 		# start the changefeed
 		
-		changefeed = r.db(self.dbName).table(self.tableName).changes().run(conn)
+		changefeed = r.db(dbName).table(tableName).changes().run(conn)
 		
 		# add a change and retrieve it
 					
-		r.db(self.dbName).table(self.tableName).insert({}).run(conn)
-		NextWithTimeout.getNext(changefeed)
+		r.db(dbName).table(tableName).insert({}).run(self.conn)
+		next(changefeed)
 		
-		# kill a primary server
+		# kill the sacrifice server
 		
-		self.servers[1].process.kill()
+		sacrifice.process.kill()
 		
 		# check that we error
 		
-		self.assertRaises(r.RqlRuntimeError, NextWithTimeout.getNext, changefeed)
+		self.assertRaises(r.RqlRuntimeError, next, changefeed)
 
 	def test_secondary_failure(self):
 		'''Test when a secondary shardholder fails for a range'''
 		
-		conn = self.servers[0].connection
+		primary = self.getPrimaryForShard(0)
+		replica = self.getReplicaForShard(0)
+		
+		conn = r.connect(host=primary.host, port=primary.driver_port)
+		changesConn = r.connect(host=primary.host, port=primary.driver_port)
+		
+		# ensure that the replica is not also a primary
+		
+		self.assertTrue(replica.name not in r.db(dbName).table(tableName).config()['shards']['primary_replica'].run(conn), msg='Replica is also a primary')
 		
 		# start the changefeed
 		
-		changefeed = r.db(self.dbName).table(self.tableName).changes().run(conn)
+		with NextWithTimeout(r.db(dbName).table(tableName).changes().run(changesConn)) as changefeed:
 		
-		# add a change and retrieve it
-					
-		r.db(self.dbName).table(self.tableName).insert({}).run(conn)
-		NextWithTimeout.getNext(changefeed)
-		
-		# kill a secondary server
-		
-		self.servers[2].process.kill()
-		
-		# add another item and make sure we still work
-		
-		r.db(self.dbName).table(self.tableName).update({'id':1, 'updated':True}).run(conn)
-		NextWithTimeout.getNext(changefeed)
+			# add a change and retrieve it
+			
+			r.db(dbName).table(tableName).insert({}).run(self.conn)
+			next(changefeed)
+			
+			# kill a secondary server
+			
+			replica.kill()
+			
+			# - add another item inside that range and make sure we still work
+			
+			targetRange = utils.getShardRanges(conn, table=tableName, db=dbName)[0]
+			updateItem = r.db(dbName).table(tableName).between(targetRange[0], targetRange[1]).nth(0).run(conn)
+			
+			# with write_acks = majority
+			
+			self.assertTrue((r.db(dbName).table(tableName).config().update({'write_acks':'majority'}).run(conn))['errors'] == 0)
+			self.assertRaises(r.RqlRuntimeError, r.db(dbName).table(tableName).get(updateItem['id']).update({'updated':True}).run, conn)
+			
+			# with write_acks = single
+			
+			self.assertTrue((r.db(dbName).table(tableName).config().update({'write_acks':'single'}).run(conn))['errors'] == 0)
+			time.sleep(.1) # newton is a little slow to get this done
+			r.db(dbName).table(tableName).get(updateItem['id']).update({'updated':True}).run(conn)
+			next(changefeed)
 
 	def test_connection_death(self):
 		'''Test that the client handles the death of the server at the other end of the connection correctly'''
 		
-		server = self.servers[2]
-		conn = server.connection
-		conn2 = self.servers[0].connection
+		stable = self.getPrimaryForShard(0)
+		sacrifice = self.getPrimaryForShard(1)
+		
+		stable_conn = r.connect(host=stable.host, port=stable.driver_port)
+		sacrifice_conn = r.connect(host=sacrifice.host, port=sacrifice.driver_port)
 		
 		# start the changefeed
 		
-		changefeed = r.db(self.dbName).table(self.tableName).changes().run(conn)
+		changefeed = r.db(dbName).table(tableName).changes().run(sacrifice_conn)
 		
 		# add a change and retrieve it
-					
-		r.db(self.dbName).table(self.tableName).insert({}).run(conn)
-		NextWithTimeout.getNext(changefeed)
 		
-		# kill a secondary server
+		r.db(dbName).table(tableName).insert({}).run(stable_conn)
+		next(changefeed)
 		
-		self.servers[2].process.kill()
+		# kill a primary server
 		
-		# add another item and make sure we still work
+		sacrifice.process.kill()
 		
-		r.db(self.dbName).table(self.tableName).update({'id':1, 'updated':True}).run(conn2)
+		# change an item in the stable range
+		
+		stableRange = utils.getShardRanges(stable_conn, table=tableName, db=dbName)[0]
+		updateItem = r.db(dbName).table(tableName).between(stableRange[0], stableRange[1]).nth(0).run(stable_conn)
+		r.db(dbName).table(tableName).get(updateItem['id']).update({'updated':True}).run(stable_conn)
 		
 		# check that we error
 		
-		self.assertRaises(r.RqlDriverError, NextWithTimeout.getNext, changefeed)
+		self.assertRaises(r.RqlDriverError, next, changefeed)
 
 # ===== main
 
 def main():
-    unittest.main()
+	unittest.main()
 
 if __name__ == '__main__':
-    main()
+	main()
