@@ -76,7 +76,7 @@ readTableProcess = utils.PerformContinuousAction(connection=r.connect(host=serve
 # - perform the shard
 
 shardStartTime = time.time()
-tableId = r.db(dbName).table_config(tableName).nth(0)['id'].run(conn)
+tableId = r.db(dbName).table(tableName).config()['id'].run(conn)
 shardsArray = []
 for _ in range(4):
     shardsArray.append({'primary_replica':server.name, 'replicas':[server.name]})

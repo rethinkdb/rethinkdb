@@ -8,7 +8,7 @@ tests:
     - def: obj = r.expr({'a':1})
     - def: array = r.expr([1])
     - cd: db.table_create('test1')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl = db.table('test1')
 
     - ot: err("RqlCompileError", "Expected 0 arguments but found 1.", [])
@@ -331,4 +331,4 @@ tests:
 
     # Clean up
     - cd: db.table_drop('test1')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

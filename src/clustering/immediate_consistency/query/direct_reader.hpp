@@ -10,8 +10,8 @@ class store_view_t;
 /* For each primary or secondary replica of each shard, there is a `direct_reader_t`.
 The `direct_reader_t` allows the `cluster_namespace_interface_t` to bypass the
 `broadcaster_t` and read directly from the B-tree itself. This reduces network traffic
-and is possible even when the primary replica is down, but the data it returns might
-be out of date. */
+and is possible even when the primary replica is unavailable, but the data it returns
+might be out of date. */
 
 class direct_reader_t {
 public:

@@ -72,7 +72,7 @@ with driver.Cluster(output_folder='.') as cluster:
         }
         ]).run(conn)
     assert res["inserted"] == 3, res
-    r.db(dbName).table_wait("test", "test2", "test3").run(conn)
+    r.db(dbName).wait().run(conn)
     
     print("Inserting data into tables (%.2fs)" % (time.time() - startTime))
     
@@ -92,7 +92,7 @@ with driver.Cluster(output_folder='.') as cluster:
     issues = list(r.db("rethinkdb").table("issues").run(conn))
     pprint.pprint(issues)
     assert len(issues) == 1, issues
-    assert issues[0]["type"] == "server_down"
+    assert issues[0]["type"] == "server_disconnected"
     assert issues[0]["critical"]
     assert "KingHamlet" in issues[0]["description"]
     assert issues[0]["info"]["server"] == "KingHamlet"
@@ -103,7 +103,9 @@ with driver.Cluster(output_folder='.') as cluster:
     assert issues[0]["info"]["server"] == king_hamlet.uuid
     assert issues[0]["info"]["affected_servers"] == [prince_hamlet.uuid]
 
-    test_status, test2_status, test3_status = r.db(dbName).table_status("test", "test2", "test3").run(conn)
+    test_status = r.db(dbName).table("test").status().run(conn)
+    test2_status = r.db(dbName).table("test2").status().run(conn)
+    test3_status = r.db(dbName).table("test3").status().run(conn)
     assert test_status["status"]["ready_for_writes"], test_status
     assert not test_status["status"]["all_replicas_ready"], test_status
     assert test2_status["status"]["ready_for_outdated_reads"], test2_status
@@ -131,20 +133,22 @@ with driver.Cluster(output_folder='.') as cluster:
     assert dl_issue["info"]["table"] == "test3"
     assert "Some data has probably been lost permanently" in dl_issue["description"]
 
-    test_status, test2_status, test3_status = r.db(dbName).table_status("test", "test2", "test3").run(conn)
+    test_status = r.db(dbName).table("test").status().run(conn)
+    test2_status = r.db(dbName).table("test2").status().run(conn)
+    test3_status = r.db(dbName).table("test3").status().run(conn)
     assert test_status["status"]["all_replicas_ready"]
     assert test2_status["status"]["ready_for_outdated_reads"]
     assert not test2_status["status"]["ready_for_reads"]
     assert not test3_status["status"]["ready_for_outdated_reads"]
-    assert r.db(dbName).table_config("test").nth(0)["shards"].run(conn) == [{
+    assert r.db(dbName).table("test").config()["shards"].run(conn) == [{
         "primary_replica": "PrinceHamlet",
         "replicas": ["PrinceHamlet"]
         }]
-    assert r.db(dbName).table_config("test2").nth(0)["shards"].run(conn) == [{
+    assert r.db(dbName).table("test2").config()["shards"].run(conn) == [{
         "primary_replica": None,
         "replicas": ["PrinceHamlet"]
         }]
-    assert r.db(dbName).table_config("test3").nth(0)["shards"].run(conn) == [{
+    assert r.db(dbName).table("test3").config()["shards"].run(conn) == [{
         "primary_replica": None,
         "replicas": []
         }]
@@ -152,22 +156,22 @@ with driver.Cluster(output_folder='.') as cluster:
     print("Testing that having primary_replica=None doesn't break `table_config` (%.2fs)" % (time.time() - startTime))
     # By changing the table's name, we force a write to `table_config`, which tests the
     # code path that writes `"primary_replica": None`.
-    res = r.db(dbName).table_config("test2").update({"name": "test2x"}).run(conn)
+    res = r.db(dbName).table("test2").config().update({"name": "test2x"}).run(conn)
     assert res["errors"] == 0
-    res = r.db(dbName).table_config("test2x").update({"name": "test2"}).run(conn)
+    res = r.db(dbName).table("test2x").config().update({"name": "test2"}).run(conn)
     assert res["errors"] == 0
-    assert r.db(dbName).table_config("test2").nth(0)["shards"].run(conn) == [{
+    assert r.db(dbName).table("test2").config()["shards"].run(conn) == [{
         "primary_replica": None,
         "replicas": ["PrinceHamlet"]
         }]
 
     print("Fixing table `test2` (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table("test2").reconfigure(shards=1, replicas=1).run(conn)
-    r.db(dbName).table_wait("test2").run(conn)
+    r.db(dbName).table("test2").wait().run(conn)
 
     print("Fixing table `test3` (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table("test3").reconfigure(shards=1, replicas=1).run(conn)
-    r.db(dbName).table_wait("test3").run(conn)
+    r.db(dbName).table("test3").wait().run(conn)
 
     print("Bringing the dead server back as a ghost (%.2fs)" % (time.time() - startTime))
     ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files, console_output="king-hamlet-ghost-log", command_prefix=command_prefix)

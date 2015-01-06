@@ -68,7 +68,7 @@ time.sleep(5) # longer than I like, but some servers are taking this long
 adminConn.wait_until_blueprint_satisfied(tableName)
 
 deadline = time.time() + 30
-while time.time() < deadline: # ToDo: use the table_wait command when available
+while time.time() < deadline: # ToDo: use the table.wait command when available
 	try:
 		r.db(databaseName).table(tableName).get(1).run(connA)
 		r.db(databaseName).table(tableName).get(records).run(connA)

@@ -1160,7 +1160,7 @@ class WorkerThread(threading.Thread):
             # -- remove any other connected servers
             
             r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
-            r.table_wait().run(self.reqlConnection)
+            r.wait().run(self.reqlConnection)
             
         except Exception as e:
             warnings.warn('Unable to clean server, starting a new one. Error message: %s' % str(e)) # ToDo: improve logging
@@ -1232,7 +1232,7 @@ class WorkerThread(threading.Thread):
                             try:
                                 self.server.check()
                             except Exception as e:
-                                test.endTest(result='crashed server', errorMessage='Server crashed durring testing' % test.timeout)
+                                test.endTest(result='crashed server', errorMessage='Server crashed during testing')
                                 restartServer = True
                                 # ToDo: copy the server logs into the folder
                                 break

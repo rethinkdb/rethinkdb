@@ -5,11 +5,11 @@
 #include "containers/archive/stl_types.hpp"
 #include "arch/timing.hpp"
 
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(http_result_t, header, body, error);
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(http_result_t, header, body, cookies, error);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(http_opts_t::http_auth_t, type, username, password);
-RDB_IMPL_SERIALIZABLE_14(http_opts_t,
-    auth, method, result_format, url, proxy, url_params, header, data, form_data, limits,
-    timeout_ms, attempts, max_redirects, verify);
+RDB_IMPL_SERIALIZABLE_15(http_opts_t,
+    auth, method, result_format, url, proxy, url_params, header, cookies, data,
+    form_data, limits, timeout_ms, attempts, max_redirects, verify);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(http_opts_t);
 
 std::string http_method_to_str(http_method_t method) {
@@ -32,6 +32,7 @@ http_opts_t::http_opts_t() :
     url(),
     url_params(std::map<datum_string_t, ql::datum_t>()),
     header(),
+    cookies(),
     data(),
     form_data(),
     limits(),
@@ -93,3 +94,4 @@ void http_runner_t::http(const http_opts_t &opts,
         throw;
     }
 }
+

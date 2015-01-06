@@ -1,0 +1,46 @@
+<ul class="assignments_list">
+  {{#if errors}}
+  <li class="invalid">
+    Server changes not shown: Invalid configuration.
+  </li>
+  {{else}}
+  <li class="tree-line"></li>
+  {{#each shards}}
+  <li class="datacenter parent {{change}}">
+    <div class="datacenter-info parent-info">
+      <p class="name">
+        <span >Shard {{inc @index}}</span>
+      </p>
+    </div>
+  </li>
+  {{#each replicas}}
+  {{#unless role_change}}
+  <li class="server child {{change}}">
+  {{else}}
+  <li class="server child role-change">
+  {{/unless}}
+    <div class="tree-node"></div>
+    <div class="server-info child-info {{change}}">
+      <p class="name"><a href="#/servers/{{id}}">{{name}}</a></p>
+      {{#unless role_change}}
+      {{#if role}}
+      <p class="role role-{{role}}">{{capitalize role}} replica</p>
+      {{else}}
+      <p class="role role-{{old_role}}">{{capitalize old_role}} replica</p>
+      {{/if}}
+      {{else}}
+      <p class="role role-{{role}}">
+        <span class="change">
+          <span class="deleted">
+            {{capitalize old_role}}</span>
+          <b>&rarr;</b>
+          <span class="added">{{capitalize role}} replica</span>
+        </span>
+      </p> 
+      {{/unless}}
+    </div>
+  </li>
+  {{/each}}
+  {{/each}}
+  {{/if}}
+</ul>
