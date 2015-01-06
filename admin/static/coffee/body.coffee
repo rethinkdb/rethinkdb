@@ -59,7 +59,7 @@ module 'MainView', ->
                 num_issues: r.db(system_db).table('issues').count()
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
-                    server("status").eq("available")
+                    server("status").eq("connected")
                 ).count()
                 num_tables: r.db(system_db).table('table_config').count()
                 num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->

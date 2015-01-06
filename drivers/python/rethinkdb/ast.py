@@ -942,23 +942,20 @@ class DB(RqlTopLevelQuery):
     tt = pTerm.DB
     st = 'db'
 
+    def table_list(self, *args):
+        return TableList(self, *args)
+
+    def config(self, *args):
+        return Config(self, *args)
+
+    def wait(self, *args):
+        return Wait(self, *args)
+
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
 
     def rebalance(self, *args, **kwargs):
         return Rebalance(self, *args, **kwargs)
-
-    def table_list(self, *args):
-        return TableList(self, *args)
-
-    def table_config(self, *args):
-        return TableConfig(self, *args)
-
-    def table_status(self, *args):
-        return TableStatus(self, *args)
-
-    def table_wait(self, *args):
-        return TableWait(self, *args)
 
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
@@ -1023,6 +1020,15 @@ class Table(RqlQuery):
 
     def index_wait(self, *args):
         return IndexWait(self, *args)
+
+    def status(self, *args):
+        return Status(self, *args)
+
+    def config(self, *args):
+        return Config(self, *args)
+
+    def wait(self, *args):
+        return Wait(self, *args)
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
@@ -1208,10 +1214,6 @@ class DbList(RqlTopLevelQuery):
     tt = pTerm.DB_LIST
     st = "db_list"
 
-class DbConfig(RqlTopLevelQuery):
-    tt = pTerm.DB_CONFIG
-    st = "db_config"
-
 class TableCreate(RqlMethodQuery):
     tt = pTerm.TABLE_CREATE
     st = "table_create"
@@ -1236,30 +1238,6 @@ class TableListTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_LIST
     st = "table_list"
 
-class TableConfig(RqlMethodQuery):
-    tt = pTerm.TABLE_CONFIG
-    st = "table_config"
-
-class TableConfigTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_CONFIG
-    st = "table_config"
-
-class TableStatus(RqlMethodQuery):
-    tt = pTerm.TABLE_STATUS
-    st = "table_status"
-
-class TableStatusTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_STATUS
-    st = "table_status"
-
-class TableWait(RqlMethodQuery):
-    tt = pTerm.TABLE_WAIT
-    st = "table_wait"
-
-class TableWaitTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_WAIT
-    st = "table_wait"
-
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE
     st = 'index_create'
@@ -1283,6 +1261,22 @@ class IndexStatus(RqlMethodQuery):
 class IndexWait(RqlMethodQuery):
     tt = pTerm.INDEX_WAIT
     st = 'index_wait'
+
+class Config(RqlMethodQuery):
+    tt = pTerm.CONFIG
+    st = "config"
+
+class Status(RqlMethodQuery):
+    tt = pTerm.STATUS
+    st = "status"
+
+class Wait(RqlMethodQuery):
+    tt = pTerm.WAIT
+    st = "wait"
+
+class WaitTL(RqlTopLevelQuery):
+    tt = pTerm.WAIT
+    st = "wait"
 
 class Reconfigure(RqlMethodQuery):
     tt = pTerm.RECONFIGURE

@@ -67,13 +67,11 @@ public:
 
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
-    RDB_MAKE_ME_SERIALIZABLE_1(num);
+    RDB_MAKE_ME_SERIALIZABLE_1(state_timestamp_t, num);
 
 private:
     uint64_t num;
 };
-
-RDB_SERIALIZE_OUTSIDE(state_timestamp_t);
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 

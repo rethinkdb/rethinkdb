@@ -118,13 +118,11 @@ public:
         return regions_and_values[n];
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
+    RDB_MAKE_ME_SERIALIZABLE_1(region_map_t, regions_and_values);
 
 private:
     internal_vec_t regions_and_values;
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(region_map_t<T>);
 
 template <class V>
 void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {

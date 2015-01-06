@@ -176,6 +176,10 @@ def finalize_directory(base_path, base_path_partial):
 # succeed or fail, there is no partial success.
 def write_table_metadata(progress, conn, db, table, base_path):
     table_info = r.db(db).table(table).info().run(conn)
+
+    # Rather than just the index names, store all index information
+    table_info['indexes'] = r.db(db).table(table).index_status().run(conn, binary_format='raw')
+
     out = open(base_path + "/%s/%s.info" % (db, table), "w")
     out.write(json.dumps(table_info) + "\n")
     out.close()

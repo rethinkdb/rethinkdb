@@ -157,7 +157,7 @@ ql::datum_t convert_debug_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", db_name_or_uuid);
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+    builder.overwrite("id", convert_uuid_to_datum(uuid));
 
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
     dir->read_all([&](const std::pair<peer_id_t, namespace_id_t> &key,

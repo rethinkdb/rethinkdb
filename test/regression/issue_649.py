@@ -45,17 +45,17 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
 
     print("Splitting into %d shards (%.2fs)" % (numShards, time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=numShards, replicas=1).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Setting replication factor to %d (%.2fs)" % (numReplicas, time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=numShards, replicas=numReplicas).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Merging shards together again (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
     
     print("Checking that table has the expected number of items (%.2fs)" % (time.time() - startTime))

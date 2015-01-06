@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rpc/connectivity/peer_id.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(peer_id_t, uuid);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(peer_id_t, uuid);
 
 // Universal serialization functions: you MUST NOT change their implementations.
 // (You could find a way to remove these functions, though.)

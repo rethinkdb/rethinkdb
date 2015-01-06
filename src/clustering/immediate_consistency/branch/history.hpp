@@ -112,8 +112,8 @@ meta-info of the store.
 
 Thus, the branches form a directed acyclic graph. The branch created by the
 first primary "descends" from `version_t::zero()`. When a primary is created as
-a replacement for a dead primary, its branch descends from the branch of the
-dead primary. When shards are split or merged, the newly-created branches may
+a replacement for an unavailable primary, its branch descends from the branch of the
+unavailable primary. When shards are split or merged, the newly-created branches may
 descend from part of a single existing branch or from part of several existing
 branches.
 

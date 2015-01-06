@@ -212,15 +212,11 @@ bool convert_database_id_from_datum(
                                      &name, error_out)) {
             return false;
         }
-        const_metadata_searcher_t<database_semilattice_metadata_t> searcher(
-            &metadata.databases.databases);
-        metadata_search_status_t search_status;
-        auto it = searcher.find_uniq(name, &search_status);
-        if (!check_metadata_status(
-                search_status, "Database", name.str(), true, error_out)) {
+        database_id_t id;
+        if (!search_db_metadata_by_name(metadata.databases, name, &id, error_out)) {
             return false;
         }
-        if (db_id_out != nullptr) *db_id_out = it->first;
+        if (db_id_out != nullptr) *db_id_out = id;
         if (db_name_out != nullptr) *db_name_out = name;
         return true;
     } else {

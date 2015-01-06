@@ -143,7 +143,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
                 info.config.shards[i].primary_replica))) {
             /* The server was permanently removed. `table_config` will show `null` in
             the `primary_replica` field. Pick a random peer ID to make sure that the
-            table acts as though the primary replica is missing. */
+            table acts as though the primary replica is unavailable. */
             peer = peer_id_t(generate_uuid());
         } else {
             peer = trans.server_id_to_peer_id(info.config.shards[i].primary_replica);

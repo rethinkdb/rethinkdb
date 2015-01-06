@@ -48,8 +48,8 @@ std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues() const {
                                &local_issues.log_write_issues,
                                server_id_it->second);
 
-        add_issues_from_server(peer_it.second.server_down_issues,
-                               &local_issues.server_down_issues,
+        add_issues_from_server(peer_it.second.server_disconnected_issues,
+                               &local_issues.server_disconnected_issues,
                                server_id_it->second);
 
         add_issues_from_server(peer_it.second.server_ghost_issues,

@@ -167,25 +167,24 @@ bool db_config_artificial_table_backend_t::write_row(
 
         if (!existed_before || new_db_name != old_db_name) {
             /* Prevent name collisions if possible */
-            metadata_searcher_t<database_semilattice_metadata_t> ns_searcher(
-                &md.databases);
-            metadata_search_status_t status;
-            ns_searcher.find_uniq(new_db_name, &status);
-            if (status != METADATA_ERR_NONE) {
-                if (!existed_before) {
-                    /* This message looks weird in the context of the variable named
-                    `existed_before`, but it's correct. `existed_before` is true if a
-                    database with the specified UUID already exists; but we're showing
-                    the user an error if a database with the specified name already
-                    exists. */
-                    *error_out = strprintf("Database `%s` already exists.",
-                        new_db_name.c_str());
-                } else {
-                    *error_out = strprintf("Cannot rename database `%s` to `%s` because "
-                        "database `%s` already exists.", old_db_name.c_str(),
-                        new_db_name.c_str(), new_db_name.c_str());
+            for (const auto &pair : md.databases) {
+                if (!pair.second.is_deleted() &&
+                        pair.second.get_ref().name.get_ref() == new_db_name) {
+                    if (!existed_before) {
+                        /* This message looks weird in the context of the variable named
+                        `existed_before`, but it's correct. `existed_before` is true if a
+                        database with the specified UUID already exists; but we're
+                        showing the user an error if a database with the specified name
+                        already exists. */
+                        *error_out = strprintf("Database `%s` already exists.",
+                            new_db_name.c_str());
+                    } else {
+                        *error_out = strprintf("Cannot rename database `%s` to `%s` "
+                            "because database `%s` already exists.", old_db_name.c_str(),
+                            new_db_name.c_str(), new_db_name.c_str());
+                    }
+                    return false;
                 }
-                return false;
             }
         }
 

@@ -196,7 +196,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                  * race condition should the broadcaster go down. */
                 boost::optional<boost::optional<broadcaster_business_card_t> > broadcaster_business_card = broadcaster->get();
                 if (!broadcaster_business_card || !*broadcaster_business_card) {
-                    /* Either the peer went down immediately after we found it
+                    /* Either the peer disconnected immediately after we found it
                      * or the peer is still connected but the broadcaster on
                      * its server was destroyed. Either way we need to go
                      * through the loop again. */
