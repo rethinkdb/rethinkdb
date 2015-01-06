@@ -657,9 +657,8 @@ module 'TableView', ->
                     if view.model is index
                         index.destroy()
                         ((view) =>
-                            view.$el.slideUp 'fast', =>
-                                view.remove()
-                                @indexes_view.splice(@indexes_view.indexOf(view), 1)
+                            view.remove()
+                            @indexes_view.splice(@indexes_view.indexOf(view), 1)
                         )(view)
                         break
                 if @collection.length is 0
@@ -667,18 +666,18 @@ module 'TableView', ->
 
         render_error: (args) =>
             @$('.alert_error_content').html @error_template args
-            @$('.main_alert_error').slideDown 'fast'
-            @$('.main_alert').slideUp 'fast'
+            @$('.main_alert_error').show()
+            @$('.main_alert').hide()
 
         render_feedback: (args) =>
             if @$('.main_alert').css('display') is 'none'
                 @$('.alert_content').html @alert_message_template args
-                @$('.main_alert').slideDown 'fast'
+                @$('.main_alert').show()
             else
                 @$('.main_alert').fadeOut 'fast', =>
                     @$('.alert_content').html @alert_message_template args
                     @$('.main_alert').fadeIn 'fast'
-            @$('.main_alert_error').slideUp 'fast'
+            @$('.main_alert_error').hide()
 
         render: =>
             return @
@@ -686,14 +685,14 @@ module 'TableView', ->
         # Show the form to add a secondary index
         show_add_index: (event) =>
             event.preventDefault()
-            @$('.add_index_li').slideDown 'fast'
-            @$('.create_container').slideUp 'fast'
+            @$('.add_index_li').show()
+            @$('.create_container').hide()
             @$('.new_index_name').focus()
 
         # Hide the form to add a secondary index
         hide_add_index: =>
-            @$('.add_index_li').slideUp 'fast'
-            @$('.create_container').slideDown 'fast'
+            @$('.add_index_li').hide()
+            @$('.create_container').show()
             @$('.new_index_name').val ''
 
         # We catch enter and esc when the user is writing a secondary index name
@@ -744,7 +743,7 @@ module 'TableView', ->
             if event? and @$(event.target)?.data('name')?
                 @deleting_secondary_index = null
             event.preventDefault()
-            $(event.target).parent().slideUp 'fast'
+            $(event.target).parent().hide()
 
         remove: =>
             @stopListening()
@@ -811,7 +810,7 @@ module 'TableView', ->
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
             event.preventDefault()
-            @$('.alert_confirm_delete').slideDown 'fast'
+            @$('.alert_confirm_delete').show()
 
         delete_index: =>
             @$('.btn').prop 'disabled', 'disabled'
@@ -834,7 +833,7 @@ module 'TableView', ->
 
         # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
         cancel_delete: ->
-            @$('.alert_confirm_delete').slideUp 'fast'
+            @$('.alert_confirm_delete').hide()
 
         remove: =>
             if @progress_bar?
