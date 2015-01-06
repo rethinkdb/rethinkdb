@@ -48,10 +48,8 @@ struct rget_item_t {
         : key(std::forward<T>(_key)), sindex_key(_sindex_key), data(_data) { }
     store_key_t key;
     ql::datum_t sindex_key, data;
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(rget_item_t);
 };
-
-RDB_SERIALIZE_OUTSIDE(rget_item_t);
 
 void debug_print(printf_buffer_t *, const rget_item_t &);
 
@@ -184,18 +182,20 @@ public:
     grouped_t() : m(optional_datum_less_t(reql_version_t::v1_16_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
+    friend
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
-    rdb_serialize(write_message_t *wm) const {
-        serialize_varint_uint64(wm, m.size());
-        for (auto it = m.begin(); it != m.end(); ++it) {
+    serialize(write_message_t *wm, const grouped_t &g) {
+        serialize_varint_uint64(wm, g.m.size());
+        for (auto it = g.m.begin(); it != g.m.end(); ++it) {
             serialize_grouped<W>(wm, it->first);
             serialize_grouped<W>(wm, it->second);
         }
     }
     template <cluster_version_t W>
+    friend
     typename std::enable_if<W == cluster_version_t::CLUSTER, archive_result_t>::type
-    rdb_deserialize(read_stream_t *s) {
-        guarantee(m.empty());
+    deserialize(read_stream_t *s, grouped_t *g) {
+        guarantee(g->m.empty());
 
         uint64_t sz;
         archive_result_t res = deserialize_varint_uint64(s, &sz);
@@ -203,14 +203,14 @@ public:
         if (sz > std::numeric_limits<size_t>::max()) {
             return archive_result_t::RANGE_ERROR;
         }
-        auto pos = m.begin();
+        auto pos = g->m.begin();
         for (uint64_t i = 0; i < sz; ++i) {
             std::pair<datum_t, T> el;
             res = deserialize_grouped<W>(s, &el.first);
             if (bad(res)) { return res; }
             res = deserialize_grouped<W>(s, &el.second);
             if (bad(res)) { return res; }
-            pos = m.insert(pos, std::move(el));
+            pos = g->m.insert(pos, std::move(el));
         }
         return archive_result_t::SUCCESS;
     }
@@ -252,8 +252,6 @@ public:
 private:
     std::map<datum_t, T, optional_datum_less_t> m;
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t<T>);
 
 template <class T>
 void debug_print(printf_buffer_t *buf, const grouped_t<T> &value) {

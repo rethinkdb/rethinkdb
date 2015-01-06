@@ -25,10 +25,9 @@ public:
         create_mailbox(cm), delete_mailbox(dm)
         { }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_2(registrar_business_card_t,
+        create_mailbox, delete_mailbox);
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(registrar_business_card_t<T>);
 
 template <class business_card_t>
 RDB_MAKE_EQUALITY_COMPARABLE_2(registrar_business_card_t<business_card_t>,

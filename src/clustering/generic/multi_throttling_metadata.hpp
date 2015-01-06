@@ -15,12 +15,11 @@ public:
         request_addr(ra), relinquish_tickets_addr(rta) { }
     mailbox_addr_t<void(request_t)> request_addr;
     mailbox_addr_t<void(int)> relinquish_tickets_addr;
-    RDB_MAKE_ME_SERIALIZABLE_2(request_addr, relinquish_tickets_addr);
+    RDB_MAKE_ME_SERIALIZABLE_2(multi_throttling_server_business_card_t,
+        request_addr, relinquish_tickets_addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(multi_throttling_server_business_card_t,
                                       request_addr, relinquish_tickets_addr);
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_server_business_card_t<T>);
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_client_business_card_t {
@@ -37,17 +36,13 @@ public:
     mailbox_addr_t<void(multi_throttling_server_business_card_t<request_t>)> intro_addr;
     mailbox_addr_t<void(int)> give_tickets_addr;
     mailbox_addr_t<void(int)> reclaim_tickets_addr;
-    RDB_MAKE_ME_SERIALIZABLE_4(inner_client_business_card,
-                               intro_addr, give_tickets_addr, reclaim_tickets_addr);
+    RDB_MAKE_ME_SERIALIZABLE_4(multi_throttling_client_business_card_t,
+        inner_client_business_card, intro_addr, give_tickets_addr, reclaim_tickets_addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(
             multi_throttling_client_business_card_t,
             inner_client_business_card, intro_addr, give_tickets_addr,
             reclaim_tickets_addr);
 };
-
-#define COMMA ,
-RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_client_business_card_t<T COMMA U>);
-#undef COMMA
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_business_card_t {
@@ -61,15 +56,11 @@ public:
             const registrar_business_card_t<client_business_card_t> &r) :
         registrar(r) { }
     registrar_business_card_t<client_business_card_t> registrar;
-    RDB_MAKE_ME_SERIALIZABLE_1(registrar);
+    RDB_MAKE_ME_SERIALIZABLE_1(multi_throttling_business_card_t, registrar);
 
     bool operator==(const multi_throttling_business_card_t &other) const {
         return registrar == other.registrar;
     }
 };
-
-#define COMMA ,
-RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_business_card_t<T COMMA U>);
-#undef COMMA
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_ */

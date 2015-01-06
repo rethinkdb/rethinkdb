@@ -70,17 +70,18 @@ struct msg_t {
         limit_start_t() { }
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_start_t);
     };
     struct limit_change_t {
         uuid_u sub;
         boost::optional<std::string> old_key;
         boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > > new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_change_t);
     };
     struct limit_stop_t {
         uuid_u sub;
         exc_t exc;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
@@ -88,9 +89,11 @@ struct msg_t {
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */
         datum_t old_val, new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(change_t);
     };
-    struct stop_t { };
+    struct stop_t {
+        RDB_DECLARE_ME_SERIALIZABLE(stop_t);
+    };
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
@@ -111,11 +114,6 @@ struct msg_t {
     boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 };
 
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::limit_stop_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 
 class real_feed_t;

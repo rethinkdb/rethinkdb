@@ -22,10 +22,8 @@ struct http_result_t {
     ql::datum_t body;
     std::string error;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(http_result_t);
 };
-
-RDB_SERIALIZE_OUTSIDE(http_result_t);
 
 class extproc_pool_t;
 class http_runner_t;
@@ -112,10 +110,8 @@ struct http_opts_t {
 
     bool verify;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(http_opts_t);
 };
-
-RDB_SERIALIZE_OUTSIDE(http_opts_t);
 
 RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
 

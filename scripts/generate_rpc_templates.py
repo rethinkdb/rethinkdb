@@ -148,7 +148,7 @@ if __name__ == "__main__":
     print
     print "    friend class mailbox_t<T>;"
     print
-    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
+    print "    RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);"
     print "    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);"
     print
     print "private:"
@@ -160,8 +160,6 @@ if __name__ == "__main__":
     print
     print "    raw_mailbox_t::address_t addr;"
     print "};"
-    print
-    print "RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t<T>);"
 
     for nargs in xrange(15):
         generate_async_message_template(nargs)

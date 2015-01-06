@@ -81,14 +81,14 @@ private:
 };
 
 template <cluster_version_t W>
-void wire_func_t::rdb_serialize(write_message_t *wm) const {
-    r_sanity_check(func.has());
+void serialize(write_message_t *wm, const wire_func_t &wf) {
+    r_sanity_check(wf.func.has());
     wire_func_serialization_visitor_t<W> v(wm);
-    func->visit(&v);
+    wf.func->visit(&v);
 }
 
 template <cluster_version_t W>
-archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
     archive_result_t res;
 
     wire_func_type_t type;
@@ -114,7 +114,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
 
         compile_env_t env(
             scope.compute_visibility().with_func_arg_name_list(arg_names));
-        func = make_counted<reql_func_t>(
+        wf->func = make_counted<reql_func_t>(
             backtrace, scope, arg_names, compile_term(&env, body));
         return res;
     } break;
@@ -131,7 +131,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         res = deserialize_protobuf(s, &*backtrace);
         if (bad(res)) { return res; }
 
-        func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
+        wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
         return res;
     } break;
     default:
@@ -139,32 +139,32 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(wire_func_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(wire_func_t);
 
 
 template <cluster_version_t W>
-void maybe_wire_func_t::rdb_serialize(write_message_t *wm) const {
-    bool has_value = wrapped.has();
+void serialize(write_message_t *wm, const maybe_wire_func_t &mwf) {
+    bool has_value = mwf.wrapped.has();
     serialize<W>(wm, has_value);
     if (has_value) {
-        serialize<W>(wm, wrapped);
+        serialize<W>(wm, mwf.wrapped);
     }
 }
 
 template <cluster_version_t W>
-archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t deserialize(read_stream_t *s, maybe_wire_func_t *mwf) {
     bool has_value;
     archive_result_t res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
     if (has_value) {
-        return deserialize<W>(s, &wrapped);
+        return deserialize<W>(s, &mwf->wrapped);
     } else {
-        wrapped = wire_func_t();
+        mwf->wrapped = wire_func_t();
         return archive_result_t::SUCCESS;
     }
 }
 
-INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(maybe_wire_func_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(maybe_wire_func_t);
 
 counted_t<const func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
     if (wrapped.has()) {
@@ -204,7 +204,7 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
     return bt.get_bt();
 }
 
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(count_wire_func_t);
 
@@ -215,19 +215,19 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(filter_wire_func_t, filter_func, default_fil
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(distinct_wire_func_t, use_index);
 
 template <cluster_version_t W>
-void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
-    serialize_protobuf(wm, *bt);
+void serialize(write_message_t *wm, const bt_wire_func_t &btwf) {
+    serialize_protobuf(wm, *btwf->bt);
 }
 
 template <cluster_version_t W>
-archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t deserialize(read_stream_t *s, bt_wire_func_t *btwf) {
     protob_t<Backtrace> backtrace = make_counted_backtrace();
     archive_result_t res = deserialize_protobuf(s, backtrace.get());
     if (bad(res)) { return res; }
-    bt = std::move(backtrace);
+    btwf->bt = std::move(backtrace);
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(bt_wire_func_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(bt_wire_func_t);
 
 }  // namespace ql

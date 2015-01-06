@@ -30,12 +30,10 @@ private:
     directory_echo_version_t version;
     mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
 public:
-    RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_3(directory_echo_wrapper_t, internal, version, ack_mailbox);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(directory_echo_wrapper_t<internal_t>,
         internal, version, ack_mailbox);
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(directory_echo_wrapper_t<T>);
 
 template<class internal_t>
 class directory_echo_writer_t {

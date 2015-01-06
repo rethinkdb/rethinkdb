@@ -70,9 +70,9 @@ public:
     var_visibility_t compute_visibility() const;
 
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const;
+    void serialize(write_message_t *wm, const var_scope_t &);
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    archive_result_t deserialize(read_stream_t *s, var_scope_t *);
 
 private:
     std::map<sym_t, datum_t> vars;
@@ -83,8 +83,6 @@ private:
     // if the value got filtered out (where the body of a func doesn't use it).
     datum_t maybe_implicit;
 };
-
-RDB_SERIALIZE_OUTSIDE(var_scope_t);
 
 }  // namespace ql
 

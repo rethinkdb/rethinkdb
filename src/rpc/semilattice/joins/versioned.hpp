@@ -72,7 +72,7 @@ public:
         on_change();
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_3(value, timestamp, tiebreaker);
+    RDB_MAKE_ME_SERIALIZABLE_3(versioned_t, value, timestamp, tiebreaker);
 
 private:
     template<class TT>
@@ -96,8 +96,6 @@ private:
     time_t timestamp;
     uuid_u tiebreaker;
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(versioned_t<T>);
 
 template <class T>
 bool operator==(const versioned_t<T> &a, const versioned_t<T> &b) {

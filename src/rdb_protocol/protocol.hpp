@@ -270,10 +270,9 @@ struct changefeed_point_stamp_response_t {
     // servers and don't synchronize with each other.)
     std::pair<uuid_u, uint64_t> stamp;
     ql::datum_t initial_val;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
+RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
 
 struct dummy_read_response_t {
     // dummy read always succeeds
