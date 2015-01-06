@@ -25,6 +25,7 @@ def print_restore_help():
     print("  --hard-durability                use hard durability writes (slower, but less memory")
     print("                                   consumption on the server)")
     print("  --force                          import data even if a table already exists")
+    print("  --no-secondary-indexes           do not create secondary indexes for the restored tables")
     print("")
     print("EXAMPLES:")
     print("")
@@ -53,6 +54,7 @@ def parse_options():
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
@@ -94,6 +96,7 @@ def parse_options():
     res["clients"] = options.clients
     res["hard"] = options.hard
     res["force"] = options.force
+    res["create_sindexes"] = options.create_sindexes
     res["debug"] = options.debug
     return res
 
@@ -132,7 +135,6 @@ def do_import(temp_dir, options):
     import_args.extend(["--directory", temp_dir])
     import_args.extend(["--auth", options["auth_key"]])
     import_args.extend(["--clients", str(options["clients"])])
-    import_args.extend(["--secondary-indexes"])
 
     for db, table in options["tables"]:
         if table is None:
@@ -146,6 +148,8 @@ def do_import(temp_dir, options):
         import_args.append("--force")
     if options["debug"]:
         export_args.extend(["--debug"])
+    if not options["create_sindexes"]:
+        import_args.extend(["--no-secondary-indexes"])
 
     res = subprocess.call(import_args)
     if res != 0:

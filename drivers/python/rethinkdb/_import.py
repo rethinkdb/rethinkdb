@@ -58,7 +58,7 @@ def print_import_help():
     print("  -d [ --directory ] DIR           the directory to import data from")
     print("  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may")
     print("                                   be specified multiple times)")
-    print("  --secondary-indexes              recreate secondary indexes for the imported tables")
+    print("  --no-secondary-indexes           do not create secondary indexes for the imported tables")
     print("")
     print("Import file:")
     print("  -f [ --file ] FILE               the file to import data from")
@@ -108,7 +108,7 @@ def parse_options():
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
-    parser.add_option("--secondary-indexes", dest="create_sindexes", action="store_true", default=False)
+    parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
 
     # File import options
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
@@ -529,11 +529,10 @@ def create_table(progress, conn, db, table, pkey, sindexes):
     # and create them from scratch
     indexes = r.db(db).table(table).index_list().run(conn)
     for sindex in sindexes[progress[0]:]:
-        if not isinstance(sindex, dict) or not all(k in sindex for k in ('index', 'function')):
-            raise RuntimeError("Error: '%s.%s' data does not contain secondary index functions, `--secondary-index` cannot be used" % (db, table))
-        if sindex['index'] in indexes:
-            r.db(db).table(table).index_drop(sindex['index']).run(conn)
-        r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+        if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
+            if sindex['index'] in indexes:
+                r.db(db).table(table).index_drop(sindex['index']).run(conn)
+            r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
         progress[0] += 1
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
