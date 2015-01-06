@@ -190,8 +190,6 @@ def parse_options():
             raise RuntimeError("Error: --import option is not valid when importing a single file")
         if options.directory is not None:
             raise RuntimeError("Error: --directory option is not valid when importing a single file")
-        if options.create_sindexes:
-            raise RuntimeError("Error: secondary index information is only available when importing a directory")
 
         import_file = options.import_file
         res["import_file"] = os.path.abspath(import_file)
