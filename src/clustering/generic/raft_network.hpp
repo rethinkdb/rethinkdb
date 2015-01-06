@@ -3,6 +3,7 @@
 #define CLUSTERING_GENERIC_RAFT_NETWORK_HPP_
 
 #include "clustering/generic/raft_core.hpp"
+#include "concurrency/watchable_transform.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* This file is for running the Raft protocol using RethinkDB's clustering primitives.
@@ -31,7 +32,7 @@ public:
         raft_storage_interface_t<state_t> *storage,
         const raft_persistent_state_t<state_t> &persistent_state);
 
-    raft_business_card_t get_business_card();
+    raft_business_card_t<state_t> get_business_card();
 
     raft_member_t<state_t> *get_raft() {
         return &member;
@@ -49,9 +50,9 @@ private:
 
     /* The `on_rpc()` methods are mailbox callbacks. */
     void on_rpc(
-        const raft_rpc_reply_t &rpc,
-        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr,
-        auto_drainer_t::lock_t keepalive);
+        signal_t *interruptor,
+        const raft_rpc_request_t<state_t> &rpc,
+        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr);
 
     mailbox_manager_t *mailbox_manager;
     watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *peers;
@@ -59,16 +60,23 @@ private:
     /* This transforms the `watchable_map_t` that we got through our constructor into a
     value suitable for returning from `get_connected_members()` */
     class peers_map_transformer_t :
-        watchable_map_transform_t<
+        public watchable_map_transform_t<
             raft_member_id_t, raft_business_card_t<state_t>,
             raft_member_id_t, std::nullptr_t>
     {
+    public:
+        peers_map_transformer_t(
+                watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *w) :
+            watchable_map_transform_t<
+                raft_member_id_t, raft_business_card_t<state_t>,
+                raft_member_id_t, std::nullptr_t>(w) { }
     private:
         bool key_1_to_2(const raft_member_id_t &key1, raft_member_id_t *key2_out) {
             *key2_out = key1;
             return true;
         }
-        void value_1_to_2(const raft_business_card_t<state_t>, std::nullptr_t *) {
+        void value_1_to_2(const raft_business_card_t<state_t> *,
+                          const std::nullptr_t **) {
             /* Do nothing; the `std::nullptr_t *` must already be set to the correct
             value. */
         }
@@ -80,8 +88,6 @@ private:
     peers_map_transformer_t peers_map_transformer;
 
     raft_member_t<state_t> member;
-
-    auto_drainer_t drainer;
 
     typename raft_business_card_t<state_t>::rpc_mailbox_t rpc_mailbox;
 };

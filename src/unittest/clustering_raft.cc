@@ -49,7 +49,7 @@ public:
                 const dummy_raft_state_t &initial_state,
                 std::vector<raft_member_id_t> *member_ids_out) :
             mailbox_manager(&connectivity_cluster, 'M'),
-            connectivity_cluster_run(&connectivity_cluster, get_unittest_address(),
+            connectivity_cluster_run(&connectivity_cluster, get_unittest_addresses(),
                 peer_address_t(), ANY_PORT, 0),
             check_invariants_timer(100, [this]() {
                 coro_t::spawn_sometime(std::bind(
@@ -89,7 +89,7 @@ public:
         bool found_init_state = false;
         for (const auto &pair : members) {
             if (pair.second->member_drainer.has()) {
-                init_state = pair.second->member->get_state_for_init();
+                init_state = pair.second->member->get_raft()->get_state_for_init();
                 found_init_state = true;
                 break;
             }
@@ -137,7 +137,8 @@ public:
         }
         if (!i->rpc_drainer.has() && live == live_t::alive) {
             i->rpc_drainer.init(new auto_drainer_t);
-            member_directory.set_key(member_id, i->member->get_business_card());
+            member_directory.set_key_no_equals(
+                member_id, i->member->get_business_card());
         }
     }
 
@@ -147,7 +148,8 @@ public:
         while (true) {
             for (const auto &pair : members) {
                 if (pair.second->member_drainer.has() &&
-                        pair.second->member->get_readiness_for_change()->get()) {
+                        pair.second->member->get_raft()->
+                            get_readiness_for_change()->get()) {
                     return pair.first;
                 }
             }
@@ -291,7 +293,7 @@ private:
         for (auto &pair : members) {
             if (pair.second->member_drainer.has()) {
                 keepalives.push_back(pair.second->member_drainer->lock());
-                member_ptrs.insert(pair.second->member.get());
+                member_ptrs.insert(pair.second->member->get_raft());
             }
         }
         dummy_raft_member_t::check_invariants(member_ptrs);
@@ -302,7 +304,7 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
     std::map<raft_member_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_map_var_t<raft_member_id_t, raft_business_card_t<dummy_raft_member_t> >
+    watchable_map_var_t<raft_member_id_t, raft_business_card_t<dummy_raft_state_t> >
         member_directory;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
