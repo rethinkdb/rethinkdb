@@ -3,8 +3,8 @@
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Issue
     @templates =
-        server_down:
-            Handlebars.templates['resolve_issues-server_down-template']
+        server_disconnected:
+            Handlebars.templates['resolve_issues-server_disconnected-template']
         server_ghost:
             Handlebars.templates['resolve_issues-server_ghost-template']
         server_name_collision:
