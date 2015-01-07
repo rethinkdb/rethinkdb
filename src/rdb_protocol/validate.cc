@@ -193,7 +193,7 @@ static std::set<std::string> acceptable_keys = {
     "array_limit",
     "identifier_format",
     "right_bound",
-
+    "db",
     "min_batch_rows",
     "max_batch_rows",
     "max_batch_bytes",
