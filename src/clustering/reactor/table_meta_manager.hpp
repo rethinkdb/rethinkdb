@@ -2,11 +2,32 @@
 #ifndef CLUSTERING_REACTOR_TABLE_META_MANAGER_HPP_
 #define CLUSTERING_REACTOR_TABLE_META_MANAGER_HPP_
 
+#include "clustering/administration/tables/table_metadata.hpp"
+#include "clustering/generic/raft_network.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
+
+class table_raft_state_t {
+public:
+    class change_t {
+    public:
+        /* placeholder */
+    };
+    void apply_change(const change_t &) {
+        /* placeholder */
+    }
+    bool operator==(const table_raft_state_t &other) const {
+        return config == other.config && member_ids == other.member_ids;
+    }
+    table_config_t config;
+    std::map<server_id_t, raft_member_id_t> member_ids;
+};
+RDB_MAKE_SERIALIZABLE_0(table_raft_state_t::change_t);
+RDB_MAKE_SERIALIZABLE_2(table_raft_state_t, config, member_ids);
+
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
 it handles high-level administrative operations: table creation and deletion, adding and
 removing this server from the table, and manually overriding the table configuration.
-These are called "meta actions". It also handles creating and destroying tables' data
-files. It creates one `table_manager_t` for each table hosted on this server.
+These are called "meta actions".
 
 Meta actions are coordinated by sending messages to the `action` mailbox on a server's
 `table_meta_business_card_t`. When the user creates or drops a table, or manually
@@ -71,23 +92,31 @@ public:
             microtime_t timestamp;
             uuid_u id;
 
-            bool supersedes(const epoch_t &other) {
+            bool operator==(const epoch_t &other) const {
+                return timestamp == other.timestamp && id == other.id;
+            }
+            bool operator!=(const epoch_t &other) const {
+                return !(*this == other);
+            }
+
+            bool supersedes(const epoch_t &other) const {
                 if (timestamp > other.timestamp) {
                     return true;
                 } else if (timestamp < other.timestamp) {
                     return false;
                 } else {
-                    return id > other.id;
+                    return other.id < id;
                 }
             }
         };
 
         epoch_t epoch;
 
-        /* Within each epoch, Raft log indices provide a monotonically increasing clock. */
+        /* Within each epoch, Raft log indices provide a monotonically increasing clock.
+        */
         raft_log_index_t log_index;
 
-        bool supersedes(const action_timestamp_t &other) {
+        bool supersedes(const action_timestamp_t &other) const {
             if (epoch.supersedes(other.epoch)) {
                 return true;
             } else if (other.epoch.supersedes(epoch)) {
@@ -112,6 +141,10 @@ public:
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
+RDB_DECLARE_SERIALIZABLE(
+    table_meta_manager_business_card_t::action_timestamp_t::epoch_t);
+RDB_DECLARE_SERIALIZABLE(table_meta_manager_business_card_t::action_timestamp_t);
+RDB_DECLARE_SERIALIZABLE(table_meta_manager_business_card_t);
 
 class table_meta_business_card_t {
 public:
@@ -124,12 +157,11 @@ public:
     raft_member_id_t raft_member_id;
     raft_business_card_t<table_raft_state_t> raft_business_card;
 
-    table_business_card_t table_business_card;
-
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
+RDB_DECLARE_SERIALIZABLE(table_meta_business_card_t);
 
 class table_meta_persistent_state_t {
 public:
@@ -137,25 +169,30 @@ public:
     raft_member_id_t member_id;
     raft_persistent_state_t<table_raft_state_t> raft_state;
 };
+RDB_DECLARE_SERIALIZABLE(table_meta_persistent_state_t);
 
 class table_meta_persistence_interface_t {
 public:
     virtual void read_all_tables(
         const std::function<void(
-            const table_id_t &table_id,
+            const namespace_id_t &table_id,
             const table_meta_persistent_state_t &state,
             scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
         signal_t *interruptor) = 0;
     virtual void add_table(
-        const table_id_t &table,
+        const namespace_id_t &table,
         const table_meta_persistent_state_t &state,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) = 0;
     virtual void update_table(
-        const table_id_t &table,
-        const table_meta_persistent_state_t &state) = 0;
+        const namespace_id_t &table,
+        const table_meta_persistent_state_t &state,
+        signal_t *interruptor) = 0;
     virtual void remove_table(
-        const table_id_t &table) = 0;
+        const namespace_id_t &table,
+        signal_t *interruptor) = 0;
+protected:
+    virtual ~table_meta_persistence_interface_t() { }
 };
 
 class table_meta_manager_t {
@@ -167,21 +204,11 @@ public:
             *_table_meta_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
             *_table_meta_directory,
-        table_meta_persistence_interface_t *_persistence_interface,
-        const base_path_t &_base_path,
-        io_backender_t *_io_backender,
-        backfill_throttler_t *_backfill_throttler,
-        branch_history_manager_t *_branch_history_manager,
-        perfmon_collection_t *_perfmon_collection,
-        rdb_context_t *_rdb_context,
-        watchable_map_t<
-            std::pair<peer_id_t, namespace_id_t>,
-            namespace_directory_metadata_t
-            > *_reactor_directory_view);
+        table_meta_persistence_interface_t *_persistence_interface);
 
     table_meta_manager_business_card_t get_table_meta_manager_business_card() {
         table_meta_manager_business_card_t bcard;
-        bcard.action = action_mailbox.get_address();
+        bcard.action_mailbox = action_mailbox.get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -202,27 +229,30 @@ private:
         active_table_t(
             table_meta_manager_t *_parent,
             const namespace_id_t &_table_id,
-            const table_meta_business_card_t::action_timestamp_t::epoch_t &_epoch,
+            const table_meta_manager_business_card_t::action_timestamp_t::epoch_t
+                &_epoch,
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
             multistore_ptr_t *multistore_ptr);
         ~active_table_t();
 
+        void write_persistent_state(
+            const raft_persistent_state_t<table_raft_state_t> &persistent_state,
+            signal_t *interruptor);
+
         table_meta_manager_t * const parent;
         const namespace_id_t table_id;
-        const table_meta_business_card_t::action_timestamp_t::epoch_t epoch;
+        const table_meta_manager_business_card_t::action_timestamp_t::epoch_t epoch;
         const raft_member_id_t member_id;
 
         /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
         `table_meta_business_card_t`s and putting them into a map for the
         `raft_networked_member_t` to use. */
         std::map<peer_id_t, raft_member_id_t> old_peer_member_ids;
-        watchable_map_var_t<raft_member_id_t, raft_business_card_t<state_t> >
+        watchable_map_var_t<raft_member_id_t, raft_business_card_t<table_raft_state_t> >
             raft_directory;
 
         raft_networked_member_t<table_raft_state_t> raft;
-
-        table_manager_t table_manager;
 
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
             ::all_subs_t table_directory_subs;
@@ -248,7 +278,7 @@ private:
 
         /* `timestamp` is the timestamp of the latest action message we've received for
         this table. */
-        table_meta_business_card_t::action_timestamp_t timestamp;
+        table_meta_manager_business_card_t::action_timestamp_t timestamp;
 
         /* `is_deleted` is `true` if this table has been dropped. */
         bool is_deleted;
@@ -271,7 +301,7 @@ private:
     void on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_meta_business_card_t::action_timestamp_t &timestamp,
+        const table_meta_manager_business_card_t::action_timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
@@ -316,20 +346,7 @@ private:
         * const table_meta_directory;
     table_meta_persistence_interface_t * const persistence_interface;
 
-    /* The only thing we use these variables for is passing them to `table_manager_t` so
-    it can pass them to `reactor_t` */
-    const base_path_t base_path;
-    io_backender_t * const io_backender,
-    backfill_throttler_t * const backfill_throttler,
-    branch_history_manager_t * const branch_history_manager,
-    perfmon_collection_t * const perfmon_collection,
-    rdb_context_t * const rdb_context,
-    watchable_map_t<
-        std::pair<peer_id_t, namespace_id_t>,
-        namespace_directory_metadata_t
-        > * const reactor_directory_view;
-
-    std::map<namespace_id_t, table_t> tables;
+    std::map<namespace_id_t, scoped_ptr_t<table_t> > tables;
 
     /* You must hold this mutex whenever you:
        - Access the `tables` map
