@@ -192,8 +192,6 @@ static std::set<std::string> acceptable_keys = {
     "binary_format",
     "array_limit",
     "identifier_format",
-    "left_bound",
-    "right_bound",
     "db",
     "min_batch_rows",
     "max_batch_rows",
