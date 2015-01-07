@@ -28,7 +28,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     conn = r.connect(host=server.host, port=server.driver_port)
     
     def check_foo_config_matches(expected):
-        config = r.db(dbName).table_config("foo").nth(0).run(conn)
+        config = r.db(dbName).table("foo").config().run(conn)
         assert config["name"] == "foo" and config["db"] == "test"
         found = config["shards"]
         if len(expected) != len(found):
@@ -115,7 +115,14 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     
     if dbName not in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
-    r.db(dbName).table_create("foo").run(conn)
+
+    res = r.db(dbName).table_create("foo").run(conn)
+    assert res["tables_created"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] is None
+    assert res["config_changes"][0]["new_val"] == \
+        r.db(dbName).table("foo").config().run(conn)
+
     r.db(dbName).table_create("bar").run(conn)
     
     if "test2" not in r.db_list().run(conn):
@@ -135,7 +142,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     print("Testing that we can move around data by writing to table_config (%.2fs)" % (time.time() - startTime))
     def test_shards(shards):
         print("Reconfiguring:", {"shards": shards})
-        res = r.db(dbName).table_config("foo").update({"shards": shards}).run(conn)
+        res = r.db(dbName).table("foo").config().update({"shards": shards}).run(conn)
         assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
@@ -178,14 +185,22 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     test_invalid(r.row.without("shards"))
 
     print("Testing that we can rename tables through table_config (%.2fs)" % (time.time() - startTime))
-    res = r.db(dbName).table_config("bar").update({"name": "bar2"}).run(conn)
+    res = r.db(dbName).table("bar").config().update({"name": "bar2"}).run(conn)
     assert res["errors"] == 0
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar2"), ("test2", "bar2")]))
 
     print("Testing that we can't rename a table so as to cause a name collision (%.2fs)" % (time.time() - startTime))
-    res = r.db(dbName).table_config("bar2").update({"name": "foo"}).run(conn)
+    res = r.db(dbName).table("bar2").config().update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
+
+    print("Testing table_drop() (%.2fs)" % (time.time() - startTime))
+    foo_config = r.db(dbName).table("foo").config().run(conn)
+    res = r.db(dbName).table_drop("foo").run(conn)
+    assert res["tables_dropped"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] == foo_config
+    assert res["config_changes"][0]["new_val"] is None
 
     print("Testing that we can create a table through table_config (%.2fs)" % (time.time() - startTime))
     def test_create(doc, pkey):
@@ -224,7 +239,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         }, "id")
 
     print("Testing that we can delete a table through table_config (%.2fs)" % (time.time() - startTime))
-    res = r.db(dbName).table_config("baz").delete().run(conn)
+    res = r.db(dbName).table("baz").config().delete().run(conn)
     assert res["errors"] == 0, repr(res)
     assert res["deleted"] == 1, repr(res)
     assert "baz" not in r.db(dbName).table_list().run(conn)
@@ -248,7 +263,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     res = r.db("rethinkdb").table("table_config", identifier_format="name") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{"replicas": ["a"], "primary_replica": "a"}], repr(res)
-    r.db(dbName).table_wait("idf_test").run(conn)
+    r.db(dbName).table("idf_test").wait().run(conn)
     res = r.db("rethinkdb").table("table_status", identifier_format="uuid") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{

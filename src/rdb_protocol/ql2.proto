@@ -454,10 +454,6 @@ message Term {
         // With no arguments, returns the contents of the `rethinkdb.db_config` system
         // table. With string arguments, returns only the rows corresponding to the DBs
         // with the given names.
-        DB_CONFIG     = 178; // [String...] -> StreamSelection
-        // Creates a table with a particular name in a particular
-        // database.  (You may omit the first argument to use the
-        // default database.)
         TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
                             // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
                             // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
@@ -471,29 +467,28 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST    = 62; // Database -> ARRAY
                             //  -> ARRAY
-        // With no string arguments, returns the rows in the `rethinkdb.table_config`
-        // system table for tables in the given database, or the default database if none
-        // is specified. With string arguments, returns only the rows corresponding to
-        // the tables with the given names.
-        TABLE_CONFIG  = 174; // Database[, String...] -> StreamSelection
-                             // [String...] -> StreamSelection
-        // Like TABLE_CONFIG, except it returns the row in
-        // `table_status` instead of `table_config`.
-        TABLE_STATUS  = 175; // Database[, String...] -> StreamSelection
-                             // [String...] -> StreamSelection
-        // Waits for table(s) to be fully ready for read/write operations
-        TABLE_WAIT    = 177; // Database[, String...] -> StreamSelection
-                             // [String...] -> StreamSelection
+        // Returns the row in the `rethinkdb.table_config` or `rethinkdb.db_config` table
+        // that corresponds to the given database or table.
+        CONFIG  = 174; // Database -> SingleSelection
+                       // Table -> SingleSelection
+        // Returns the row in the `rethinkdb.table_status` table that corresponds to the
+        // given table.
+        STATUS  = 175; // Table -> SingleSelection
+        // Called on a table, waits for that table to be ready for read/write operations.
+        // Called on a database, waits for all of the tables in the database to be ready.
+        // Returns the corresponding row or rows from the `rethinkdb.table_status` table.
+        WAIT    = 177; // Table -> OBJECT
+                       // Database -> OBJECT
         // Generates a new config for the given table, or all tables in the given database
         // The `shards` and `replicas` arguments are required
-        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
-                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> ARRAY
+        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
                              // Table, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
                              // Table, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT
-                             // Database -> ARRAY
+                             // Database -> OBJECT
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.

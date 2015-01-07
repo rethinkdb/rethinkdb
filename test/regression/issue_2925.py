@@ -22,7 +22,7 @@ num_rows = 30000
 def populate_table(conn):
     r.db_create(dbName).run(conn)
     res = r.db(dbName).table_create(tableName).run(conn)
-    assert res == {"created": 1}
+    assert res["tables_created"] == 1
     next_id = 0
     while next_id < num_rows:
         batch = [{'id':next_id + i, 'data': r.random(1, 100)} for i in xrange(min(1000, num_rows - next_id))]

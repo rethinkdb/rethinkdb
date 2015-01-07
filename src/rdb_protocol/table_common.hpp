@@ -15,6 +15,10 @@ secondary index that doesn't exist. It's defined here so that `real_table_t` and
 std::string error_message_index_not_found(
         const std::string &sindex, const std::string &table);
 
+/* Returns `[{"old_val": old_val, "new_val": new_val}]` */
+MUST_USE ql::datum_t
+make_replacement_pair(ql::datum_t old_val, ql::datum_t new_val);
+
 /* `rcheck_row_replacement()` checks that a change to a row is legal. Specifically, it
 makes sure that the new row is an object and has the same primary key as the old row. */
 void rcheck_row_replacement(

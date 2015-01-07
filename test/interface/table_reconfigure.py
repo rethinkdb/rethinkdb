@@ -51,9 +51,10 @@ with driver.Cluster(output_folder='.') as cluster:
     if tableName in r.db(dbName).table_list().run(conn):
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
-    res = r.db(dbName).table_config(tableName).update({"shards": [{"primary_replica": "s1", "replicas": ["s1"]}]}).run(conn)
+    res = r.db(dbName).table(tableName).config() \
+        .update({"shards": [{"primary_replica": "s1", "replicas": ["s1"]}]}).run(conn)
     assert res["errors"] == 0
-    r.db(dbName).table_wait(tableName).run(conn)
+    r.db(dbName).table(tableName).wait().run(conn)
     
     print("Adding data (%.2fs)" % (time.time() - startTime))
     
@@ -67,7 +68,13 @@ with driver.Cluster(output_folder='.') as cluster:
     def test_reconfigure(num_shards, num_replicas, primary_replica_tag):
         
         print("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r (%.2fs)" % (num_shards, num_replicas, primary_replica_tag, time.time() - startTime))
-        new_config = r.db(dbName).table(tableName).reconfigure(shards=num_shards, replicas=num_replicas, primary_replica_tag=primary_replica_tag, dry_run=True)['new_val']['config'].run(conn)
+        res = r.db(dbName).table(tableName).reconfigure(shards=num_shards,
+            replicas=num_replicas, primary_replica_tag=primary_replica_tag, dry_run=True).run(conn)
+        assert res["reconfigured"] == 0
+        assert len(res["config_changes"]) == 1
+        assert res["config_changes"][0]["old_val"] == \
+            r.db(dbName).table(tableName).config().run(conn)
+        new_config = res["config_changes"][0]['new_val']
         print(new_config)
 
         # Make sure new config follows all the rules
@@ -106,45 +113,50 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
-    def get_config():
-        row = r.db(dbName).table_config(tableName).nth(0).run(conn)
-        del row["name"]
-        del row["db"]
-        del row["primary_key"]
-        del row["id"]
-        return row
-    prev_config = get_config()
-    new_config = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=True)['new_val']['config'].run(conn)
-    assert prev_config != new_config, (prev_config, new_config)
-    assert get_config() == prev_config
-    new_config_2 = r.db(dbName).table(tableName).reconfigure(shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=False)['new_val']['config'].run(conn)
-    assert prev_config != new_config_2
-    print("get_config()", get_config())
-    print("new_config_2", new_config_2)
-    print("prev_config", prev_config)
-    assert get_config() == new_config_2
+    status_before = r.db(dbName).table(tableName).status().run(conn)
+    config_before = r.db(dbName).table(tableName).config().run(conn)
+    dry_run_res = r.db(dbName).table(tableName).reconfigure(
+        shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=True).run(conn)
+    status_between = r.db(dbName).table(tableName).status().run(conn)
+    config_between = r.db(dbName).table(tableName).config().run(conn)
+    wet_run_res = r.db(dbName).table(tableName).reconfigure(
+        shards=1, replicas={"tag_2": 1}, primary_replica_tag="tag_2", dry_run=False).run(conn)
+    config_after = r.db(dbName).table(tableName).config().run(conn)
+    assert dry_run_res["reconfigured"] == 0, dry_run_res
+    assert wet_run_res["reconfigured"] == 1, wet_run_res
+    assert dry_run_res["config_changes"][0]["old_val"] == config_before
+    assert dry_run_res["config_changes"][0]["new_val"] != config_before
+    assert config_before == config_between
+    assert wet_run_res["config_changes"][0]["old_val"] == config_between
+    assert wet_run_res["config_changes"][0]["new_val"] == config_after
+    assert config_after != config_between
+    assert "status_changes" not in dry_run_res
+    assert status_before == status_between
+    assert wet_run_res["status_changes"][0]["old_val"] == status_between
+    assert wet_run_res["status_changes"][0]["new_val"] != status_between
     
     print("Test table_create parameters (%.2fs)" % (time.time() - startTime))
     
     # Test that configuration parameters to `table_create()` work
     res = r.db(dbName).table_create("blablabla", replicas=2, shards=8).run(conn)
-    assert res == {"created": 1}
-    conf = r.db(dbName).table_config("blablabla").nth(0).run(conn)
+    assert res["tables_created"] == 1
+    conf = r.db(dbName).table("blablabla").config().run(conn)
     assert len(conf["shards"]) == 8
     for i in xrange(8):
         assert len(conf["shards"][i]["replicas"]) == 2
     res = r.db(dbName).table_drop("blablabla").run(conn)
-    assert res == {"dropped": 1}
+    assert res["tables_dropped"] == 1
     
     print("Test table re-creation preference (%.2fs)" % (time.time() - startTime))
     
     # Test that we prefer servers that held our data before
     for server in server_names:
-        res = r.db(dbName).table_config(tableName).update({"shards": [{"replicas": [server], "primary_replica": server}]}).run(conn)
+        res = r.db(dbName).table(tableName).config() \
+            .update({"shards": [{"replicas": [server], "primary_replica": server}]}).run(conn)
         assert res["errors"] == 0, repr(res)
         for i in xrange(10):
             time.sleep(3)
-            if r.db(dbName).table_status(tableName).nth(0).run(conn)["status"]["all_replicas_ready"]:
+            if r.db(dbName).table(tableName).status().run(conn)["status"]["all_replicas_ready"]:
                 break
         else:
             raise Exception("took too long to reconfigure")
@@ -154,7 +166,7 @@ with driver.Cluster(output_folder='.') as cluster:
             raise Exception("expected to prefer %r, instead got %r" % (server, new_config))
 
     res = r.db(dbName).table_drop(tableName).run(conn)
-    assert res == {"dropped": 1}
+    assert res["tables_dropped"] == 1
     
     print("Test table provisioning preference (%.2fs)" % (time.time() - startTime))
     
@@ -163,26 +175,26 @@ with driver.Cluster(output_folder='.') as cluster:
     # then we create a table "probe", and assert that it resides on the one unused
     # server.
     res = r.db(dbName).table_create("blocker").run(conn)
-    assert res == {"created": 1}
+    assert res["tables_created"] == 1
     for server in server_names:
-        res = r.db(dbName).table_config("blocker").update({"shards": [{
+        res = r.db(dbName).table("blocker").config().update({"shards": [{
             "replicas": [n for n in server_names if n != server],
             "primary_replica": [n for n in server_names if n != server][0]
             }]}).run(conn)
         assert res["errors"] == 0
         for i in xrange(10):
             time.sleep(3)
-            if r.db(dbName).table_status("blocker").nth(0) \
+            if r.db(dbName).table("blocker").status() \
                     .run(conn)["status"]["all_replicas_ready"]:
                 break
         else:
             raise ValueError("took too long to reconfigure")
         res = r.db(dbName).table_create("probe").run(conn)
-        assert res == {"created": 1}
-        probe_config = r.db(dbName).table_config("probe").nth(0).run(conn)
+        assert res["tables_created"] == 1
+        probe_config = r.db(dbName).table("probe").config().run(conn)
         assert probe_config["shards"][0]["replicas"] == [server]
         res = r.db(dbName).table_drop("probe").run(conn)
-        assert res == {"dropped": 1}
+        assert res["tables_dropped"] == 1
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

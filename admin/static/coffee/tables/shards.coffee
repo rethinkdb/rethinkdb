@@ -8,7 +8,6 @@ module 'TableView', ->
         className: 'shards_container'
         template:
             main: Handlebars.templates['shards_container-template']
-            status: Handlebars.templates['shard_status-template']
 
         view_template: Handlebars.templates['view_shards-template']
         edit_template: Handlebars.templates['edit_shards-template']
@@ -18,7 +17,6 @@ module 'TableView', ->
 
 
         initialize: (data) =>
-            @listenTo @model, 'change:num_available_shards', @render_status
             if @collection?
                 @listenTo @collection, 'update', @render_data_distribution
 
@@ -27,43 +25,15 @@ module 'TableView', ->
             @shard_settings = new TableView.ShardSettings
                 model: @model
                 container: @
-            @progress_bar = new UIComponents.OperationProgressBar @template.status
 
         set_distribution: (shards) =>
             @collection = shards
             @listenTo @collection, 'update', @render_data_distribution
             @render_data_distribution()
 
-
-        # Render the status of sharding
-        render_status: =>
-            # If some shards are not ready, it means some replicas are also not ready
-            # In this case the replicas view will call fetch_progress every seconds,
-            # so we do need to set an interval to refresh more often
-            progress_bar_info =
-                got_response: true
-
-            if @model.get('num_available_shards') < @model.get('num_shards')
-                if @progress_bar.get_stage() is 'none'
-                    @progress_bar.skip_to_processing() # if the stage is 'none', we skipt to processing
-
-            @progress_bar.render(
-                @model.get('num_available_shards'),
-                @model.get('num_shards'),
-                progress_bar_info
-            )
-            return @
-
         render: =>
             @$el.html @template.main()
             @$('.edit-shards').html @shard_settings.render().$el
-
-            @$('.shard-status').html @progress_bar.render(
-                @model.get('num_available_shards'),
-                @model.get('num_shards'),
-                {got_response: true}
-            ).$el
-
             @init_chart = false
             setTimeout => # Let the element be inserted in the main DOM tree
                 @render_data_distribution()
@@ -86,8 +56,12 @@ module 'TableView', ->
                 @$('.outdated_distribution').slideDown 'fast'
 
         render_data_distribution: =>
-            if not @collection?
-                return 0
+            if not @collection? or @collection.length == 0
+                # Sometimes, while reconfiguring, the collection of
+                # shards is unavailable. Rather than error out, we
+                # just refuse to re-render the distribution until the
+                # data is available again.
+                return
 
             $('.tooltip').remove()
 
@@ -95,8 +69,10 @@ module 'TableView', ->
             @$('.outdated_distribution').slideUp 'fast'
             @$('.shard-diagram').show()
 
-            max_keys = d3.max @collection.models, (shard) -> return shard.get('num_keys')
-            min_keys = d3.min @collection.models, (shard) -> return shard.get('num_keys')
+            max_keys = d3.max(@collection.models, (shard) ->
+                return shard.get('num_keys')) ? 100
+            min_keys = d3.min(@collection.models, (shard) ->
+                return shard.get('num_keys')) ? 0
 
             svg_width = 328 # Width of the whole svg
             svg_height = 270 # Height of the whole svg
@@ -145,7 +121,7 @@ module 'TableView', ->
                 .attr('width', bar_width)
                 .attr( 'height', (d) -> return y(d.num_keys))
                 .attr( 'title', (d) ->
-                    return "Shard: #{d.index}<br />~#{d.num_keys} keys"
+                    return "Shard #{d.index + 1}<br />~#{d.num_keys} keys"
                 )
 
             bars.transition()
@@ -188,7 +164,7 @@ module 'TableView', ->
             axe_legend = []
             axe_legend.push
                 x: margin_width
-                y: Math.floor(margin_height/2)
+                y: Math.floor(margin_height/2 + 2)
                 string: 'Docs'
                 anchor: 'middle'
             axe_legend.push
@@ -321,7 +297,8 @@ module 'TableView', ->
             ignore = (shard) -> shard('role').ne('nothing')
             query = r.db(@model.get('db')).table(@model.get('name')).reconfigure(
                 new_num_shards,
-                r.db(system_db).table('table_status').get(@model.get('id'))('shards').nth(0).filter(ignore).count()
+                r.db(system_db).table('table_status')
+                    .get(@model.get('id'))('shards')(0).filter(ignore).count()
             )
             driver.run_once query, (error, result) =>
                 if error?

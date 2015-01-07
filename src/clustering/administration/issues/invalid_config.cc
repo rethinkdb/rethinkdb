@@ -97,12 +97,12 @@ invalid_config_issue_tracker_t::~invalid_config_issue_tracker_t() { }
 std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues() const {
     std::vector<scoped_ptr_t<issue_t> > issues;
     cluster_semilattice_metadata_t md = cluster_sl_view->get();
-    const_metadata_searcher_t<namespace_semilattice_metadata_t> searcher(
-        &md.rdb_namespaces->namespaces);
-    for (auto it = searcher.find_next(searcher.begin()); it != searcher.end();
-            it = searcher.find_next(++it)) {
+    for (const auto &pair : md.rdb_namespaces->namespaces) {
+        if (pair.second.is_deleted()) {
+            continue;
+        }
         const table_config_t &config =
-            it->second.get_ref().replication_info.get_ref().config;
+            pair.second.get_ref().replication_info.get_ref().config;
         write_ack_config_checker_t ack_checker(config, md.servers);
         bool need_primary = false, data_loss = false, write_acks = false;
         for (const table_config_t::shard_t &shard : config.shards) {
@@ -123,11 +123,11 @@ std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues()
             }
         }
         if (data_loss) {
-            issues.push_back(make_scoped<data_loss_issue_t>(it->first));
+            issues.push_back(make_scoped<data_loss_issue_t>(pair.first));
         } else if (need_primary) {
-            issues.push_back(make_scoped<need_primary_issue_t>(it->first));
+            issues.push_back(make_scoped<need_primary_issue_t>(pair.first));
         } else if (write_acks) {
-            issues.push_back(make_scoped<write_acks_issue_t>(it->first));
+            issues.push_back(make_scoped<write_acks_issue_t>(pair.first));
         }
     }
     return issues;

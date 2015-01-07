@@ -81,7 +81,7 @@ ql::datum_t convert_primary_replica_status_to_datum(
     const char *state;
     *has_primary_replica_out = false;
     if (status == nullptr) {
-        state = "missing";
+        state = "disconnected";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
@@ -116,7 +116,7 @@ ql::datum_t convert_replica_status_to_datum(
     const char *state;
     *has_outdated_reader_out = *has_replica_out = false;
     if (status == nullptr) {
-        state = "missing";
+        state = "disconnected";
     } else if (!check_complete_set(*status)) {
         state = "transitioning";
     } else {
@@ -148,10 +148,11 @@ ql::datum_t convert_nothing_status_to_datum(
         const std::vector<reactor_activity_entry_t> *status,
         bool *is_unfinished_out) {
     if (status == nullptr) {
-        /* The server is missing. Don't display the missing server for this table because
-        the config says it shouldn't have data. This is misleading because it might still
-        have data for this table, if the config was changed but it didn't get a chance to
-        offload its data before going missing. But there's nothing we can do. */
+        /* The server is disconnected. Don't display the missing server for this table
+        because the config says it shouldn't have data. This is misleading because it
+        might still have data for this table, if the config was changed but it didn't
+        get a chance to offload its data before disconnecting. But there's nothing we
+        can do. */
         *is_unfinished_out = false;
         return ql::datum_t();
     } else if (!check_complete_set(*status)) {
@@ -354,7 +355,8 @@ ql::datum_t convert_table_status_to_datum(
                         namespace_directory_metadata_t> *dir,
         admin_identifier_format_t identifier_format,
         const servers_semilattice_metadata_t &server_md,
-        server_config_client_t *server_config_client) {
+        server_config_client_t *server_config_client,
+        table_readiness_t *readiness_out) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", db_name_or_uuid);
@@ -391,6 +393,10 @@ ql::datum_t convert_table_status_to_datum(
         readiness == table_readiness_t::finished));
     builder.overwrite("status", std::move(status_builder).to_datum());
 
+    if (readiness_out != nullptr) {
+        *readiness_out = readiness;
+    }
+
     return std::move(builder).to_datum();
 }
 
@@ -411,7 +417,8 @@ bool table_status_artificial_table_backend_t::format_row(
         directory_view,
         identifier_format,
         semilattice_view->get().servers,
-        server_config_client);
+        server_config_client,
+        nullptr);
     return true;
 }
 
@@ -428,54 +435,50 @@ bool table_status_artificial_table_backend_t::write_row(
 table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &table_id,
         table_readiness_t wait_readiness,
-        table_status_artificial_table_backend_t *table_status_backend,
-        signal_t *interruptor) {
+        table_status_artificial_table_backend_t *backend,
+        signal_t *interruptor,
+        ql::datum_t *status_out) {
     int num_checks = 0;
     bool deleted = false;
-    table_directory_converter_t table_directory(table_status_backend->directory_view,
-                                                table_id);
-
+    table_directory_converter_t table_directory(backend->directory_view, table_id);
     table_directory.run_all_until_satisfied(
         [&](UNUSED watchable_map_t<peer_id_t,
                                    namespace_directory_metadata_t> *d) -> bool {
             ASSERT_NO_CORO_WAITING;
             ++num_checks;
-            table_status_backend->assert_thread();
-            boost::optional<table_readiness_t> actual_readiness;
+            backend->assert_thread();
 
-            cluster_semilattice_metadata_t md =
-                table_status_backend->semilattice_view->get();
+            cluster_semilattice_metadata_t md = backend->semilattice_view->get();
+            ql::datum_t db_name_or_uuid;
+            name_string_t table_name;
             std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
                 ::const_iterator it;
-            if (search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
-                    table_id, &it)) {
-                const table_replication_info_t &repli_info =
-                    it->second.get_ref().replication_info.get_ref();
-
-                write_ack_config_checker_t ack_checker(repli_info.config, md.servers);
-
-                actual_readiness = table_readiness_t::finished;
-                for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
-                    table_readiness_t this_shard_readiness;
-                    convert_table_status_shard_to_datum(
-                        table_id,
-                        repli_info.shard_scheme.get_shard_range(i),
-                        repli_info.config.shards[i],
-                        table_status_backend->directory_view,
-                        admin_identifier_format_t::uuid,   /* irrelevant */
-                        table_status_backend->server_config_client,
-                        ack_checker,
-                        &this_shard_readiness);
-                    actual_readiness = std::min(*actual_readiness, this_shard_readiness);
-                }
-            }
-
-            if (!actual_readiness) {
+            bool ok1 = convert_table_id_to_datums(table_id, backend->identifier_format,
+                md, nullptr, &table_name, &db_name_or_uuid, nullptr);
+            bool ok2 = search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
+                table_id, &it);
+            guarantee(ok1 == ok2);
+            if (!ok1) {
+                /* Table has been deleted. This is as ready as it's ever going to be. */
                 deleted = true;
-                return true; // The table was deleted, this is as ready as it's going to be
+                return true;
             }
 
-            return actual_readiness >= wait_readiness;
+            table_readiness_t readiness;
+            ql::datum_t row = convert_table_status_to_datum(table_name, db_name_or_uuid,
+                table_id, it->second.get_ref().replication_info.get_ref(),
+                backend->directory_view, backend->identifier_format,
+                backend->semilattice_view->get().servers, backend->server_config_client,
+                &readiness);
+
+            if (readiness >= wait_readiness) {
+                if (status_out != nullptr) {
+                    *status_out = row;
+                }
+                return true;
+            } else {
+                return false;
+            }
         },
         interruptor);
     return deleted ? table_wait_result_t::DELETED :

@@ -16,7 +16,10 @@
 class server_config_client_t;
 class table_status_artificial_table_backend_t;
 
-// Utility function to wait for table readiness through the `table_status` backend
+/* Utility function to wait for table readiness through the `table_status` backend. Note
+that even if this function indicates that the table is ready, an attempt to write to it
+may fail, because this server's `cluster_namespace_interface_t` might not be ready yet.
+If you need that, call `namespace_interface_t::check_readiness()` after calling this. */
 enum class table_wait_result_t {
     WAITED,    // The table is ready after waiting for it
     IMMEDIATE, // The table was already ready
@@ -26,7 +29,8 @@ table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &table_id,
         table_readiness_t readiness,
         table_status_artificial_table_backend_t *table_status_backend,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        ql::datum_t *status_out   /* can be null */);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -60,7 +64,7 @@ private:
 
     friend table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &, table_readiness_t,
-        table_status_artificial_table_backend_t *, signal_t *);
+        table_status_artificial_table_backend_t *, signal_t *, ql::datum_t *);
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t> *directory_view;

@@ -313,6 +313,9 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     rassert(res.header.has());
     rassert(res.body.has());
 
+    // Carry over the cookies from the previous request
+    opts.cookies = std::move(res.cookies);
+
     datum_t empty
         = datum_t(std::map<datum_string_t, datum_t>());
     std::map<datum_string_t, datum_t> arg_obj

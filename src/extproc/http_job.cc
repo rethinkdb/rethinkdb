@@ -19,6 +19,9 @@
 void parse_header(const std::string &header,
                   http_result_t *res_out);
 
+void save_cookies(CURL *curl_handle,
+                  http_result_t *res_out);
+
 enum class attach_json_to_error_t { YES, NO };
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
@@ -47,19 +50,19 @@ public:
 class scoped_curl_handle_t {
 public:
     scoped_curl_handle_t() :
-        handle(curl_easy_init()) {
+        curl_handle(curl_easy_init()) {
     }
 
     ~scoped_curl_handle_t() {
-        curl_easy_cleanup(handle);
+        curl_easy_cleanup(curl_handle);
     }
 
     CURL *get() {
-        return handle;
+        return curl_handle;
     }
 
 private:
-    CURL *handle;
+    CURL *curl_handle;
 };
 
 // Used for adding headers, which cannot be freed until after the request is done
@@ -474,6 +477,12 @@ void transfer_verify_opt(bool verify, CURL *curl_handle) {
     exc_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, val, "SSL VERIFY HOST");
 }
 
+void transfer_cookies(const std::vector<std::string> &cookies, CURL *curl_handle) {
+    for (auto const &cookie : cookies) {
+        exc_setopt(curl_handle, CURLOPT_COOKIELIST, cookie.c_str(), "COOKIELIST");
+    }
+}
+
 void transfer_opts(http_opts_t *opts,
                    CURL *curl_handle,
                    curl_data_t *curl_data) {
@@ -486,6 +495,9 @@ void transfer_opts(http_opts_t *opts,
 
     // Set method last as it may override some options libcurl automatically sets
     transfer_method_opt(opts, curl_handle, curl_data);
+
+    // Copy any saved cookies from a previous request (e.g. in the case of depagination)
+    transfer_cookies(opts->cookies, curl_handle);
 }
 
 void set_default_opts(CURL *curl_handle,
@@ -509,6 +521,9 @@ void set_default_opts(CURL *curl_handle,
 
     exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 
+    // Enable cookies - needed for multiple requests like redirects or digest auth
+    exc_setopt(curl_handle, CURLOPT_COOKIEFILE, "", "COOKIEFILE");
+
     // Use the proxy set when launched
     if (!proxy.empty()) {
         exc_setopt(curl_handle, CURLOPT_PROXY, proxy.c_str(), "PROXY");
@@ -525,13 +540,8 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         return;
     }
 
-    try {
-        set_default_opts(curl_handle.get(), opts->proxy, curl_data);
-        transfer_opts(opts, curl_handle.get(), &curl_data);
-    } catch (const curl_exc_t &ex) {
-        res_out->error.assign(ex.what());
-        return;
-    }
+    set_default_opts(curl_handle.get(), opts->proxy, curl_data);
+    transfer_opts(opts, curl_handle.get(), &curl_data);
 
     CURLcode curl_res = CURLE_OK;
     long response_code = 0; // NOLINT(runtime/int)
@@ -590,6 +600,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         res_out->error = strprintf("status code %ld", response_code);
     } else {
         parse_header(header_data, res_out);
+        save_cookies(curl_handle.get(), res_out);
 
         // If this was a HEAD request, we should not be handling data, just return R_NULL
         // so the user knows the request succeeded
@@ -819,6 +830,24 @@ void header_parser_singleton_t::add_link_header(const std::string &line) {
 void parse_header(const std::string &header,
                   http_result_t *res_out) {
     res_out->header = header_parser_singleton_t::parse(header);
+}
+
+void save_cookies(CURL *curl_handle, http_result_t *res_out) {
+    struct curl_slist *cookies;
+    CURLcode curl_res = curl_easy_getinfo(curl_handle, CURLINFO_COOKIELIST, &cookies);
+
+    if (curl_res != CURLE_OK) {
+        throw curl_exc_t("failed to get a list of cookies from the session");
+    }
+
+    res_out->cookies.clear();
+    for (curl_slist *current = cookies; current != NULL; current = current->next) {
+        res_out->cookies.push_back(std::string(current->data));
+    }
+
+    if (cookies != NULL) {
+        curl_slist_free_all(cookies);
+    }
 }
 
 void json_to_datum(const std::string &json,

@@ -105,13 +105,12 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DB_CREATE:          return make_db_create_term(env, t);
     case Term::DB_DROP:            return make_db_drop_term(env, t);
     case Term::DB_LIST:            return make_db_list_term(env, t);
-    case Term::DB_CONFIG:          return make_db_config_term(env, t);
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
-    case Term::TABLE_CONFIG:       return make_table_config_term(env, t);
-    case Term::TABLE_STATUS:       return make_table_status_term(env, t);
-    case Term::TABLE_WAIT:         return make_table_wait_term(env, t);
+    case Term::CONFIG:             return make_config_term(env, t);
+    case Term::STATUS:             return make_status_term(env, t);
+    case Term::WAIT:               return make_wait_term(env, t);
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
     case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);

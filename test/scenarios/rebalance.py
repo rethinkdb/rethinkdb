@@ -64,7 +64,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     print("Sharding table (%.2fs)" % (time.time() - startTime))
     
     r.db(dbName).reconfigure(shards=numNodes, replicas=numNodes).run(conn)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     
     print("Inserting data (%.2fs)" % (time.time() - startTime))
     
@@ -84,7 +84,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
             print("Sharding table to %d shards (%.2fs)" % (currentShards, time.time() - startTime))
             
             r.db(dbName).reconfigure(shards=currentShards, replicas=numNodes).run(conn)
-            r.db(dbName).table_wait().run(conn)
+            r.db(dbName).wait().run(conn)
             cluster.check()
             assert [] == list(r.db('rethinkdb').table('issues').run(conn))
         

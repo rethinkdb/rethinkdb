@@ -28,11 +28,18 @@
 @sans: 'Open Sans', sans-serif;
 @serif: 'Copse', serif;
 @monospace: monospace;
+@ionicons: 'Ionicons';
 
 // Visualizations (graphs, etc.)
 @import "vis.less";
 
-/* 
+//Flexbox ms prefixes
+@import "flexbox-mixins.less";
+
+// Ionicon mixins
+@import "ionicons.less";
+
+/*
     ----------------------------------------------------------------------
     Sticky footer and 100% height
         - Uses Adham Dannaway's sticky footer approach (adhamdannaway.com)
@@ -58,6 +65,53 @@ html, body {
         font-family: @monospace;
     }
 }
+.new-box(@icon, @border, @background, @icon-color) {
+    @icon-size: 18px;
+    border: 1px solid @border;
+    text-align: left;
+    background-color: @background;
+    font-family: @sans;
+    border-radius: 3px;
+    color: lighten(black, 30%);
+    position: relative;
+    padding: 0px;
+    
+    p {
+        margin: 10px 10px 10px @icon-size + 15 !important;
+    }
+    
+    &::before {
+        content: @icon;
+        font-family: @ionicons;
+        font-size: @icon-size;
+        color: @icon-color;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        height: 100%;
+    }
+}
+.new-infobox {
+    //@border-color: rgb(201, 217, 225);
+    @border-color: #C9D9E1;
+    @icon-color: darken(saturate(#9FCADF, 10%), 10%);
+    @background-color: lighten(@icon-color, 30%);
+    .new-box(@ionicon-var-information-circled,
+             @border-color,
+             @background-color,
+             @icon-color);
+}
+
+.new-errorbox {
+    @icon-color: darken(saturate(#F1D5D5, 10%), 20%);
+    @border-color: #D8C8C8;
+    @background-color: #F2E4E4;
+    .new-box(@ionicon-var-alert-circled,
+             @border-color,
+             @background-color,
+             @icon-color);
+}
+
 #main_view{
     height: 100%;
 }
@@ -84,12 +138,12 @@ body:before {
     z-index: 201;
     left: 50%;
     top: -10px;
-    width: 0; 
-    height: 0; 
+    width: 0;
+    height: 0;
     margin: 1px 0px 0px 185px;
     border-left: 10px solid transparent;
-    border-right: 10px solid transparent; 
-    border-bottom:10px solid #F6F0E3; 
+    border-right: 10px solid transparent;
+    border-bottom:10px solid #F6F0E3;
 }
 .options_background{
     width: 100%;
@@ -363,13 +417,13 @@ button.btn {
 }
 #main-container {
     padding-top: 30px;
-    
+
     .cluster_with_margin{
         padding: 0px 20px;
     }
 
     .section {
-        padding: 20px 25px; 
+        padding: 20px 25px;
         margin-bottom: 25px;
 
         // csshat
@@ -443,7 +497,7 @@ TODO: retire this
         }
     }
 
-    p.copyright { 
+    p.copyright {
         float: right;
         margin: 0;
     }
@@ -464,7 +518,7 @@ TODO: retire this
     #navbar {
         font-family: @sans;
         @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
-        
+
         /* left nav (logo, links, etc.) */
         ul.nav-left {
             margin: 0;
@@ -605,7 +659,7 @@ TODO: retire this
         }
 
         h4 {
-            font-family: @serif; 
+            font-family: @serif;
             font-size: 18px;
             line-height: 24px;
             margin: 0;
@@ -641,7 +695,7 @@ TODO: retire this
             position: relative;
             background-color: #dd504e;
 
-            @border: 1px solid #b54a48; 
+            @border: 1px solid #b54a48;
             border-top: @border;
             border-bottom: @border;
 
@@ -650,7 +704,7 @@ TODO: retire this
             &.no-issues {
                 background-color: #4E9258;
                 border-color: #41834a;
-                &:before { 
+                &:before {
                     background-color: #4E9258;
                     border-color: #41834a;
                 }
@@ -674,7 +728,7 @@ TODO: retire this
 
             // Hack required for the css arrow-- we need to hide the bottom half of the arrow, so fill it in with a gradient overlay
             .gradient-overlay {
-                /* transform z-index hack */    
+                /* transform z-index hack */
                 .transform(~"rotate(0deg)");
 
                 background-color: #dd504e; // layer fill content
@@ -706,7 +760,7 @@ TODO: retire this
         background-color: #fcfcfc;
         border-bottom: 1px solid #ccc;
         #issue-alerts .alert {
-            display: block; 
+            display: block;
 
             background: 15px center no-repeat url('images/resolve_issue-resolved_icon.png');
             padding-left: 40px;
@@ -718,9 +772,9 @@ TODO: retire this
     }
 }
 
-/* 
+/*
     ----------------------------
-    Overwrite modal 
+    Overwrite modal
     ----------------------------
 */
 .overwrite_modal{
@@ -732,7 +786,7 @@ TODO: retire this
     margin: 50px 0px 0px -470px;
 }
 
-/* 
+/*
     ----------------------------
     Modal styles
     ----------------------------
@@ -825,17 +879,17 @@ TODO: retire this
         margin-right: auto;
         overflow: auto;
         border-collapse: collapse;
-        display: flex;
+        .flex();
         .panel {
             border: thin solid #dfdfdf;
-            flex-grow: 1;
+            .flex-grow(1);
             @bad: #e85250;
             @good: #3ba51a;
             vertical-align: top;
             & > div:first-child{
                 padding: 20px;
-                display: flex;
-                justify-content: center;
+                .flex();
+                .flex-justify(center);
             }
             h3 {
                 margin-top: 0;
@@ -845,7 +899,7 @@ TODO: retire this
                 color: #4c4c4c;
                 padding-left: 21px;
             }
-            
+
             .no-problems-detected h3 { background: 0 3px no-repeat url('images/green-light.png'); }
             .problems-detected h3 { background: 0 3px no-repeat url('images/red-light.png'); }
 
@@ -889,44 +943,44 @@ TODO: retire this
                     z-index: 201;
                     top: 60px;
                     left: -11px;
-                    width: 0; 
-                    height: 0; 
+                    width: 0;
+                    height: 0;
                     border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent; 
-                    border-right:10px solid #bbb; 
+                    border-bottom: 10px solid transparent;
+                    border-right:10px solid #bbb;
                 }
                 .arrow_left_overlay{
                     position: absolute;
                     z-index: 202;
                     top: 60px;
                     left: -10px; //TODO
-                    width: 0; 
-                    height: 0; 
+                    width: 0;
+                    height: 0;
                     border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent; 
-                    border-right:10px solid #fff; 
+                    border-bottom: 10px solid transparent;
+                    border-right:10px solid #fff;
                 }
                 .arrow_right{
                     position: absolute;
                     z-index: 201;
                     top: 60px;
                     left: 471px;
-                    width: 0; 
-                    height: 0; 
+                    width: 0;
+                    height: 0;
                     border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent; 
-                    border-left:10px solid #bbb; 
+                    border-bottom: 10px solid transparent;
+                    border-left:10px solid #bbb;
                 }
                 .arrow_right_overlay{
                     position: absolute;
                     z-index: 202;
                     top: 60px;
                     left: 470px;
-                    width: 0; 
-                    height: 0; 
+                    width: 0;
+                    height: 0;
                     border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent; 
-                    border-left:10px solid #fff; 
+                    border-bottom: 10px solid transparent;
+                    border-left:10px solid #fff;
                 }
 
                 h4{
@@ -964,7 +1018,7 @@ TODO: retire this
         }
     }
     #log-view {
-        h2.title { 
+        h2.title {
             border-bottom: thin solid #f0f0f0;
             padding-bottom: 22px;
             margin-bottom: 0;
@@ -1000,7 +1054,7 @@ TODO: retire this
         border: thin solid #cfcfcf;
         .border-radius(3px);
         margin-top: 12px;
-    
+
         .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
 
         .checkbox-container {
@@ -1030,7 +1084,7 @@ TODO: retire this
             }
         }
 
-        .server-details { 
+        .server-details {
             position: relative;
             margin-left: 45px;
 
@@ -1103,7 +1157,7 @@ TODO: retire this
             background: #fff;
             .border-radius(4px 4px 0px 0px);
 
-            .element-type, h3.name { 
+            .element-type, h3.name {
                 display: inline-block;
                 vertical-align: middle;
             }
@@ -1143,7 +1197,7 @@ TODO: retire this
             border: thin solid #cfcfcf;
             .border-radius(3px);
             margin-top: 12px;
-        
+
             .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
 
             .checkbox-container {
@@ -1174,10 +1228,10 @@ TODO: retire this
             }
 
             .element-details {
-                display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: stretch;
+                .flex();
+                .flex-direction(row);
+                .flex-justify(space-between);
+                .flex-align-items(stretch);
                 height: 100%;
 
                 @border_padding: 20px;
@@ -1192,8 +1246,8 @@ TODO: retire this
                     @offset: 8px;
                     padding: 0 @offset * 2;
                     border-left: thin solid #e4e4e4;
-                    display: flex;
-                    align-items: center;
+                    .flex();
+                    .flex-align-items(center);
                     height: 100%;
                 }
                 // mixin for icons
@@ -1211,7 +1265,7 @@ TODO: retire this
                     font-weight: bold;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    flex-grow: 2;
+                    .flex-grow(2);
                 }
                 .quick_info {
                     .with-icon('images/graph-icon.png');
@@ -1261,7 +1315,7 @@ TODO: retire this
             .border-radius(4px 4px 0px 0px);
 
             .summary {
-                .element-type, h3.name { 
+                .element-type, h3.name {
                     display: inline-block;
                     vertical-align: middle;
                 }
@@ -1302,7 +1356,7 @@ TODO: retire this
             border: thin solid #cfcfcf;
             .border-radius(3px);
             margin-top: 12px;
-        
+
             .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
 
             .checkbox-container {
@@ -1332,7 +1386,7 @@ TODO: retire this
                 }
             }
 
-            .element-details { 
+            .element-details {
                 position: relative;
                 margin-left: 45px;
 
@@ -1437,7 +1491,7 @@ TODO: retire this
                 border-top: 0;
             }
             p {
-                margin: 0; 
+                margin: 0;
                 font-family: @sans;
             }
             .message { font-size: 14px; }
@@ -1462,7 +1516,7 @@ TODO: retire this
 
 /*
     ----------------------------
-    Data explorer 
+    Data explorer
     ----------------------------
 */
 /* Prevent the user from selecting something when he's resizing a div */
@@ -1531,11 +1585,11 @@ TODO: retire this
             z-index: 201;
             top: 10px;
             left: 0px;
-            width: 0; 
-            height: 0; 
+            width: 0;
+            height: 0;
             border-left: 10px solid transparent;
-            border-right: 10px solid transparent; 
-            border-bottom:10px solid #bbb; 
+            border-right: 10px solid transparent;
+            border-bottom:10px solid #bbb;
         }
         .suggestion_description_arrow_overlay{
             display: none;
@@ -1543,11 +1597,11 @@ TODO: retire this
             z-index: 202;
             top: 11px;
             left: 0px; //TODO
-            width: 0; 
-            height: 0; 
+            width: 0;
+            height: 0;
             border-left: 10px solid transparent;
-            border-right: 10px solid transparent; 
-            border-bottom:10px solid #fff; 
+            border-right: 10px solid transparent;
+            border-bottom:10px solid #fff;
         }
         .suggestion_full_container{
             position: absolute;
@@ -1667,8 +1721,8 @@ TODO: retire this
         .arrow_dataexplorer{
             display: none;
             float: right;
-            width: 0; 
-            height: 0; 
+            width: 0;
+            height: 0;
             border-left: 6px solid transparent;
             border-right: 6px solid transparent;
             border-bottom: 6px solid #aaa;
@@ -1688,8 +1742,8 @@ TODO: retire this
                         list-style: none;
                         padding: 0px;
                         width: 100%;
-                        display: flex;
-                        flex-direction: column;
+                        .flex();
+                        .flex-direction(column);
                         overflow: hidden;
                         .query_history{
                             margin: 0px;
@@ -1715,14 +1769,14 @@ TODO: retire this
                                 overflow: auto;
                                 //word-break: break-word;
                                 margin: 10px;
-                                display: flex;
+                                .flex();
                                 flex-direction: row;
-                                justify-content: space-between;
+                                .flex-justify(space-between);
                                 .right_container{
                                     width: 100%;
-                                    display: flex;
-                                    justify-content: flex-end;
-                                    align-items: flex-end;
+                                    .flex();
+                                    .flex-justify(flex-end);
+                                    .flex-align-items(flex-end);
                                     .btn{
                                         padding: 2px 10px;
                                         margin: 10px;
@@ -1763,7 +1817,7 @@ TODO: retire this
                             margin: 0px;
                             padding: 11px 4px;
                             margin: 0px 0px 0px 26px;
-                            color: #aaa;               
+                            color: #aaa;
                             &.displayed{
                                 display: block;
                             }
@@ -2035,7 +2089,7 @@ TODO: retire this
                 // Same as button.btn:hover
                 .box-shadow(inset 0 0 1px 1px #fff);
                 .background-image(linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%));
-                
+
             }
             &.zeroclipboard-is-active {
                 // Same as button.btn:active
@@ -2217,7 +2271,7 @@ TODO: retire this
                         cursor: text;
                         .jt_arrow, .jta_arrow{
                             cursor: default;
-                        }   
+                        }
                     }
                 }
             }
@@ -2357,7 +2411,7 @@ TODO: retire this
     Element views
     ----------------------------
 */
-#database-view, #table-view, #datacenter-view, #server-view {
+#database-view, #table-view, #datacenter-view, #server-view, .reconfigure-modal {
     h1.title {
         font-family: @serif;
         color: #4d535c;
@@ -2373,13 +2427,13 @@ TODO: retire this
         float: right;
         margin-left: 10px;
     }
-    .section h2.title { 
+    .section h2.title {
         border-bottom: thin solid #f0f0f0;
-        padding-bottom: 22px;
-        margin-bottom: 0;
+        padding-bottom: 15px;
+        margin-bottom: 2px;
     }
     .section.statistics {
-        > h2.title { 
+        > h2.title {
             border-bottom: thin solid #f0f0f0;
             padding-bottom: 20px;
             margin-bottom: 0;
@@ -2433,8 +2487,8 @@ TODO: retire this
             height: @element_height;
             position: relative;
             list-style-type: none;
-            p { 
-                color: #a7a7a7;
+            p {
+                color: #5c;
                 position: absolute;
                 text-overflow: ellipsis;
                 overflow: hidden;
@@ -2460,9 +2514,9 @@ TODO: retire this
         top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
         bottom: (@element_height / 2) - 1;
         width: @square_bullet_width;
-        background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
+        background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png');
         background-position: left top, ((@square_bullet_width / 2) - 1) center;
-        background-repeat: no-repeat, repeat-y;  
+        background-repeat: no-repeat, repeat-y;
     }
 
     .tree-view {
@@ -2482,14 +2536,14 @@ TODO: retire this
                 top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
                 bottom: (@element_height / 2) - 1;
                 width: @square_bullet_width;
-                background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
+                background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png');
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
-                background-repeat: no-repeat, repeat-y;  
+                background-repeat: no-repeat, repeat-y;
             }
             // parent element details
             .parent-info {
                 margin-left: @square_bullet_width + 12px;
-                p { 
+                p {
                     text-overflow: ellipsis;
                     overflow: hidden;
                     line-height: @element_height;
@@ -2513,7 +2567,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('images/list-square-bullet.png'), url('images/list-horiz-dash.png');  
+                background-image: url('images/list-square-bullet.png'), url('images/list-horiz-dash.png');
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
@@ -2524,8 +2578,8 @@ TODO: retire this
                 border-bottom: @border;
                 height: @element_height;
                 position: relative;
-                p { 
-                    color: #a7a7a7;
+                p {
+                    color: #5c6169;
                     position: absolute;
                     text-overflow: ellipsis;
                     overflow: hidden;
@@ -2573,40 +2627,48 @@ TODO: retire this
     }
 }
 
-#table-view {
-    .section.tree-view.server-assignments {
+#table-view, .reconfigure-modal {
+    .section.tree-view.server-assignments, .tree-view{
         @element_height: 40px;
         li.server .server-info {
             background: left center no-repeat url('images/server-icon.png');
+            &.added {
+                background: left center no-repeat url('images/server-icon-added.png');
+            }
+            &.deleted {
+                background: left center no-repeat url('images/server-icon-removed.png');
+            }
             padding-left: 30px;
             .name {
                 width: 300px;
                 height: @element_height;
             }
-            .primary {
-                right: 150px;
-                width: 145px;
+            .primary, .secondary {
+                width: 250px;
+                right: 0px;
+                text-align: left;
                 padding-left: 30px;
+            }
+            .primary {
                 background: left center no-repeat url('images/layers-icon.png');
             }
             .secondary {
-                right: 150px;
-                width: 145px;
-                padding-left: 30px;
                 background: left center no-repeat url('images/grid-icon.png');
             }
         }
         .num-keys {
+            position: relative;
             float: right;
-            margin-right: 183px;
-            padding-left: 35px;
+            right: 160px;
+            width: 150px;
+            padding-left: 30px;
             background: left center no-repeat url('images/bars-icon_server-assignments.png');
         }
     }
     .section.replication {
         h2.title {
             border-bottom: none;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
         }
         .nav-tabs { padding-left: 0; }
         p, a { font-family: @sans; }
@@ -2650,7 +2712,7 @@ TODO: retire this
                     margin-top: 6px;
                     float: right;
                     margin-left: 15px;
-                }               
+                }
             }
         }
         .hide-mdc { display: none; }
@@ -2669,7 +2731,7 @@ TODO: retire this
                 .btn{
                     float: right;
                     margin-left: 15px;
-                }               
+                }
                 p {
                     margin: 0;
                     &.caption {
@@ -2691,7 +2753,7 @@ TODO: retire this
             }
             .datacenter_list_container {
                 padding: 0px;
-                @default: #efefef; 
+                @default: #efefef;
                 @active: #23a5df;
                 @universe: #f7ae41;
                 @height: 40px;
@@ -2715,11 +2777,11 @@ TODO: retire this
                         }
                     }
                     .border-radius(3px);
-                    
+
                     &.active {
                         background-color: @active;
                         border-color: @active;
-                        a { 
+                        a {
                             @color: #fff;
                             color: @color;
                             &:hover { color: @color; }
@@ -2740,7 +2802,7 @@ TODO: retire this
                             top:0;
                         }
                     }
-                    
+
 
                     &.universe {
                         background: @universe url('images/globe-icon_white.png') 8px center no-repeat;
@@ -2752,11 +2814,11 @@ TODO: retire this
                             &:hover { color: @color; }
                             padding-left: 24px;
                         }
-                        
+
                         &.active:after {
                             border-left-color: @universe;
                         }
-                        
+
                     }
                 }
             }
@@ -2845,10 +2907,6 @@ TODO: retire this
         }
     }
     .section.sharding {
-        h2.title {
-            border-bottom: none;
-            padding-bottom: 10px;
-        }
         .edit-shards {
             @icon_width: 40px;
             margin: 20px 0;
@@ -2872,7 +2930,7 @@ TODO: retire this
                 }
                 background: left 9px no-repeat url('images/bars-icon.png');
             }
-            input.num-shards { 
+            input.num-shards {
                 margin: -5px 6px 3px 0px;
                 width: 30px;
                 padding: 3px 4px;
@@ -2890,11 +2948,15 @@ TODO: retire this
             }
         }
         .shard-graph {
+
             line { stroke: #dcdcdc; }
             .rect { fill: #9ad7f2; }
             text { fill: #a3a3a3; }
             .shard-diagram{
                 display: none;
+                width: 100%;
+                height: 100%;
+                padding: 15px 4px 4px 4px;
             }
         }
     }
@@ -2907,7 +2969,7 @@ TODO: retire this
             margin: 10px 0px 0px 0px;
             padding: 0px;
             .square_li{
-                background-image: url('images/list-square-bullet.png'); 
+                background-image: url('images/list-square-bullet.png');
                 background-position: left center;
                 background-repeat: no-repeat;
                 padding: 5px 0px 5px 20px;
@@ -3094,7 +3156,7 @@ TODO: retire this
         .transition(~"left 0.15s ease-out");
         background-color: #F7AE41;
     }
-    &.switch-green { 
+    &.switch-green {
         background-color: #65bd63;
         .gradient(~"linear-gradient(top, #9dd993, #65bd63)");
     }
@@ -3114,7 +3176,7 @@ TODO: retire this
     ----------------------------
 */
 
-.replica-status, .shard-status{
+.backfill-progress {
     p {
         margin: 0;
         line-height: 48px;
@@ -3142,7 +3204,7 @@ TODO: retire this
     border-bottom: 1px solid #efefef;
     margin-bottom: 20px;
 }
-.replica-status, .shard-status, .secondary_indexes {
+.secondary_indexes {
     font-family: @sans;
     font-size: 15px;
     color: #72BDDF;
@@ -3153,38 +3215,38 @@ TODO: retire this
         font-size: 24px;
         color: #5C6169;
     }
-
-    .progress-status {
+}
+.progress-status {
+    padding: 10px 0;
+    p {
+        color: #a9a9a9;
+        line-height: normal;
+    }
+    .progress {
+        height: 12px;
+        .border-radius(12px);
+        width: 65%;
+        .bar {
+            width: 100%;
+            background-color: #f7ad41;
+            .gradient(~"linear-gradient(bottom, rgba(247,175,67,1), rgba(249,190,103, 1))"); // gradient overlay
+            .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
+        }
+    }
+    .stages {
+        width: 30%;
+        float: right;
         p {
-            color: #a9a9a9;
-            line-height: normal;
-        }
-        .progress {
-            height: 12px;
-            .border-radius(12px);
-            width: 65%;
-            .bar { 
-                width: 100%;
-                background-color: #f7ad41;
-                .gradient(~"linear-gradient(bottom, rgba(247,175,67,1), rgba(249,190,103, 1))"); // gradient overlay
-                .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
-            }
-        }
-        .stages {
-            width: 30%;
-            float: right;
-            p {
-                text-align: right;
+            text-align: right;
+            font-size: 13px;
+            margin: -3px 0px 15px 0px;
+            &.completed:before {
+                content: '\2714';
+                display: block;
+                float: left;
                 font-size: 13px;
-                margin: -3px 0px 15px 0px;
-                &.completed:before {
-                    content: '\2714';
-                    display: block;
-                    float: left;
-                    font-size: 13px;
-                    color: #4E9258;
-                    padding-left: 10px;
-                }
+                color: #4E9258;
+                padding-left: 10px;
             }
         }
     }
@@ -3368,3 +3430,262 @@ TODO: retire this
     }
 }
 
+.reconfigure-panel {
+    font-family: @sans;
+    .info {
+        .flex();
+        .flex-align-items(center);
+        .flex-justify(space-between);
+        div {
+            vertical-align: middle;
+        }
+    }
+    button {
+        height: 75%;
+        margin: 0px 5px;
+    }
+    span.value {
+        padding: 0px 6px 0px 6px;
+        color: #f7ae41;
+        font-size: 24px;
+        line-height: 48px;
+    }
+    span.caption {
+        color: #a9a9a9;
+        font-size: 16px;
+    }
+
+}
+
+// override bootstrap
+#modal-dialog {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 1050;
+    &.visible {
+        .flex();
+    }
+    .flex-justify(center);
+    .flex-align-items(center);
+    .modal {
+        position: static;
+        margin: 0px;
+        top: auto;
+        left: auto;
+        
+    }
+}
+
+.reconfigure-modal {
+    @ease-in-circ: cubic-bezier(0.6, 0.04, 0.98, 0.335);
+    @header-height: 53px;
+    @intro-height: 183px;
+    @footer-height: 30px;
+    @expand-link-height: 23px;
+    @diff-height: 300px;
+    @expanded-height: 582px;
+    @transition-speed: 0.2s;
+    .modal-body .expandbox {
+        min-height: 0px;
+        max-height: @diff-height;
+        transition: min-height @transition-speed @ease-in-circ;
+        &.expanded {
+            @media (min-height: @expanded-height) {
+                min-height: @diff-height + @expand-link-height;
+            }
+            @media (max-height: @expanded-height) {
+                min-height: @diff-height / 2 + @expand-link-height;
+            }
+        }
+    }
+    .reconfigure-diff {
+        @border-color: #d8d8d8;
+        @background-color: #fbfbfb;
+        padding: 0px 6px;
+        background: top right no-repeat url('images/thinker_watermark.png');
+        border: 1px solid #fff;
+        border-radius: 3px;
+        background-color: @background-color;
+        height: 0;
+        transition:
+        border-color @transition-speed,
+        height @transition-speed @ease-in-circ;
+        &:first-child {
+            // We can't put the padding in the box, otherwise it will
+            // have a height when collapsed. So we put a top margin on
+            // the first child instead. Changing the padding on
+            // expansion causes too many slow layout changes, and the
+            // animation smoothness suffers.
+            margin-top: 6px;
+        }
+        &:last-child {
+            // similar reasoning to :first-child above
+            margin-bottom: 6px;
+        }
+        &.expanded {
+            border-color: @border-color;
+            @media (min-height: @expanded-height) {
+                height: @diff-height - 12px;
+            }
+            @media (max-height: @expanded-height) {
+                height: @diff-height / 2 - 12px;
+            }
+        }
+    }
+    .flex();
+    .flex-direction(column);
+    .flex-justify(space-between);
+    .alert_modal {
+        display: none;
+    }
+    .alert.error {
+        .new-errorbox;
+        display: none;
+        &.shown {
+            display: block;
+        }
+        p {
+            display: none;
+            &.shown {
+                display: block;
+            }
+        }
+    }
+    .modal-body {
+        max-height: 100%;
+        overflow-y: hidden;
+        padding-bottom: 0px;
+    }
+    .modal-footer {
+        display: block;
+        &:after {
+            content: none;
+            display: none;
+            clear: none;
+        }
+    }
+    .intro {
+        .flex();
+        .flex-direction(column);
+        .flex-align-items(stretch);
+        .infobox {
+            .new-infobox;
+            margin-top: 10px;
+        }
+        .reconfigure-form {
+            .flex();
+            .flex-align-items(flex-start);
+            .flex-justify(space-around);
+            margin: 10px 0px;
+            span.caption {
+                color: #555;
+                font-size: 14px;
+            }
+            .inline-edit {
+                margin: 4px 6px 3px 0px;
+                width: 30px;
+                padding: 3px 4px;
+                height: 28px;
+                font-size: 20px;
+                font-family: @sans;
+            }
+            .max.caption {
+                padding: 0px 1px;
+                color: #a9a9a9;
+                font-size: 10px;
+            }
+        }
+    }
+    a.expand-tree {
+        &:hover {
+            text-decoration: none;
+        }
+        padding-bottom: 5px;
+        display: block;
+        text-align: left;
+        &::before {
+            content: url('images/arrow_right.png');
+            padding: 0 10px 0 0;
+        }
+        &.expanded::before {
+            content: url('images/arrow_down.png');
+            padding: 0 10px 0 0;
+        }
+    }
+    .reconfigure-diff {
+        overflow-y: auto;
+        margin-bottom: 10px;
+        @li-height: 25px;
+        p {
+            font-size: 12px !important;
+            line-height: @li-height !important;
+        }
+        li.parent .parent-info p.name {
+            width: 100%;
+        }
+        li.parent.deleted {
+            text-decoration: line-through;
+        }
+        li.invalid {
+            width: 100%;
+            border-radius: 3px;
+            margin-top: 5px;
+            padding: 10px;
+            background-image: none;
+        }
+
+        .tree-line {
+            top: 12px;
+        }
+        &.tree-view li {
+            p.role {
+                position: static;
+                width: 55%;
+                float: right;
+                padding-left: 20px;
+                background-size: 14px 14px;
+            }
+            .role-secondary {
+                font-weight: normal;
+                background: left center no-repeat url('images/grid-icon.png');
+            }
+            .role-primary {
+                font-weight: bold;
+                background: left center no-repeat url('images/layers-icon.png');
+            }
+        }
+        div.server-info.child-info {
+            height: @li-height;
+            margin-left: 30px;
+            padding-left: 25px;
+            background-size: 20px 15px !important;
+        }
+        li {
+            &.deleted {
+                background-color: rgba(255, 0, 0, 0.05);
+                .role {
+                    text-decoration: line-through;
+                }
+            }
+            &.added {
+                background-color: rgba(0,255,0, 0.10);
+            }
+            &.role-change {
+                background-color: rgba(255, 255, 0, 0.10);
+            }
+        }
+        .change {
+            .deleted {
+                text-decoration: line-through;
+            }
+            .added {
+                background-color: transparent;
+                color: #f7ae41;
+            }
+        }
+    }
+}
