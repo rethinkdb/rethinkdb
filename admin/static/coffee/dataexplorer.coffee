@@ -1,8 +1,5 @@
 # TODO ATN
-# at what scroll point should the updating stop
-# what if the whole batch fits in the window, how to pause?
-# when user scrolls down, update should stop
-# when they scroll back up, the update should pick up again, or display a button to do so
+# add pause/unpause button
 # the indexes in the table view should be reversed.
 # views should not completely redraw every added row
 # rate limit events to avoid freezing the browser when there are too many
@@ -2931,13 +2928,22 @@ module 'DataExplorerView', ->
             dom_element.css 'max-width', 'none'
             @parent.set_scrollbar()
 
+        pause_feed: =>
+            @pause_at = @query_result.results.length
+
+        unpause_feed: =>
+            delete @pause_at
+
         current_batch: =>
             switch @query_result.type
                 when 'value'
                     return @query_result.value
                 when 'cursor'
                     if @query_result.is_feed
-                        latest = @query_result.results[-@parent.container.limit .. ]
+                        if @pause_at?
+                            latest = @query_result.results[@pause_at - @parent.container.limit .. @pause_at]
+                        else
+                            latest = @query_result.results[@parent.container.limit ..]
                         latest.reverse()
                         return latest
                     else
@@ -3571,6 +3577,7 @@ module 'DataExplorerView', ->
                     feed:
                         if @query_result.is_feed
                             ended: @query_result.ended
+                            # HERE
                 @$('.execution_time').tooltip
                     for_dataexplorer: true
                     trigger: 'hover'
