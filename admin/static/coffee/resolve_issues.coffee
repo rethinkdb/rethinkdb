@@ -69,7 +69,7 @@ module 'ResolveIssuesView', ->
         remove_server: (event) =>
             modalModel = new Backbone.Model
                 name: @model.get('info').server
-                id: @model.get('info').server_id
+                id: @model.get('info').id
                 parent: @model
             @modal = new Modals.RemoveServerModal
                 model: modalModel
