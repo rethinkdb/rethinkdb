@@ -181,3 +181,30 @@ void validate_pb(const Term::AssocPair &ap) {
     check_has(ap, has_val, "val");
     validate_pb(ap.val());
 }
+
+static std::set<std::string> acceptable_keys = {
+    "use_outdated",
+    "noreply",
+    "time_format",
+    "profile",
+    "durability",
+    "group_format",
+    "binary_format",
+    "array_limit",
+    "identifier_format",
+    "min_batch_rows",
+    "max_batch_rows",
+    "max_batch_bytes",
+    "max_batch_seconds",
+    "first_batch_scaledown_factor",
+};
+
+void validate_optargs(const Query &q) {
+    for (int i = 0; i < q.global_optargs_size(); ++i) {
+        rcheck_toplevel(
+            acceptable_keys.find(q.global_optargs(i).key()) != acceptable_keys.end(),
+            ql::base_exc_t::GENERIC,
+            strprintf("MALFORMED QUERY (global optarg `%s` is not recognized)",
+                      q.global_optargs(i).key().c_str()));
+    }
+}
