@@ -675,7 +675,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
         }
         const raft_log_entry_t<state_t> &e = request.entries.get_entry_ref(i);
         if (e.type == raft_log_entry_type_t::regular) {
-            new_entries += uuid_to_str(*e.change).substr(0,2);
+            new_entries += "CHANGE";
         } else if (e.type == raft_log_entry_type_t::config) {
             new_entries += "CONFIG";
         } else {
