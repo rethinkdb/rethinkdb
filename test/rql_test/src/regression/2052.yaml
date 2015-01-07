@@ -8,6 +8,6 @@ tests:
     runopts:
       obviously_bogus: "16"
     ot:
-      rb: err("RqlDriverError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])
-      js: err("RqlClientError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])
-      py: err("RqlClientError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])
+      rb: err("RqlDriverError", "Unrecognized global optional argument `obviously_bogus`.", [])
+      js: err("RqlClientError", "Unrecognized global optional argument `obviously_bogus`.", [])
+      py: err("RqlClientError", "Unrecognized global optional argument `obviously_bogus`.", [])

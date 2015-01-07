@@ -206,7 +206,7 @@ void validate_optargs(const Query &q) {
         rcheck_toplevel(
             acceptable_keys.find(q.global_optargs(i).key()) != acceptable_keys.end(),
             ql::base_exc_t::GENERIC,
-            strprintf("MALFORMED QUERY (global optarg `%s` is not recognized)",
+            strprintf("Unrecognized global optional argument `%s`.",
                       q.global_optargs(i).key().c_str()));
     }
 }
