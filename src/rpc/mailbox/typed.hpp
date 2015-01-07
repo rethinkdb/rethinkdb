@@ -25,7 +25,7 @@ public:
 
     friend class mailbox_t<T>;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(addr);
+    RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
 private:
@@ -75,8 +75,6 @@ private:
 
     raw_mailbox_t::address_t addr;
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t);
 
 template<>
 class mailbox_t< void() > {

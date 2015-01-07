@@ -955,16 +955,15 @@ void limit_manager_t::abort(exc_t e) {
 }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
+RDB_IMPL_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
-RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
+RDB_IMPL_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
-
-RDB_IMPL_ME_SERIALIZABLE_5(
+RDB_IMPL_SERIALIZABLE_5(
     msg_t::change_t,
-    old_indexes, new_indexes, pkey, empty_ok(old_val), empty_ok(new_val));
+    old_indexes, new_indexes, pkey, old_val, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 

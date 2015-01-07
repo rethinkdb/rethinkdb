@@ -35,7 +35,7 @@ public:
     typedef std::map<version_map_t, T> value_map_t;
     value_map_t values;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(values);
+    RDB_MAKE_ME_SERIALIZABLE_1(vclock_t, values);
 };
 
 class persistable_blueprint_t {
@@ -95,7 +95,7 @@ public:
     uint32_t expectation_;
     bool hard_durability_;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(ack_expectation_t);
 };
 
 class namespace_semilattice_metadata_t {

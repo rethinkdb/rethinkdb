@@ -14,7 +14,7 @@ bool auth_key_t::assign_value(const std::string &new_key) {
     return true;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(auth_key_t, key);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_key_t, key);
 
 
 bool timing_sensitive_equals(const auth_key_t &x, const auth_key_t &y) {

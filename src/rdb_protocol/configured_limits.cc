@@ -24,8 +24,8 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *argume
     }
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1(configured_limits_t, array_size_limit_);
-INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(configured_limits_t);
+RDB_IMPL_SERIALIZABLE_1(configured_limits_t, array_size_limit_);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(configured_limits_t);
 
 const configured_limits_t configured_limits_t::unlimited(std::numeric_limits<size_t>::max());
 

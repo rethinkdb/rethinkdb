@@ -35,13 +35,11 @@ public:
         return uuid.is_nil();
     }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(peer_id_t);
 
 private:
     uuid_u uuid;
 };
-
-RDB_SERIALIZE_OUTSIDE(peer_id_t);
 
 void serialize_universal(write_message_t *wm, const peer_id_t &peer_id);
 archive_result_t deserialize_universal(read_stream_t *s, peer_id_t *peer_id);

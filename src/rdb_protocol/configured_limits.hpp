@@ -22,12 +22,10 @@ public:
 
     static const configured_limits_t unlimited;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(configured_limits_t);
 private:
     size_t array_size_limit_;
 };
-
-RDB_SERIALIZE_OUTSIDE(configured_limits_t);
 
 configured_limits_t from_optargs(rdb_context_t *ctx, signal_t *interruptor,
                                  global_optargs_t *optargs);

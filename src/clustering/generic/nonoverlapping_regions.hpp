@@ -45,12 +45,10 @@ public:
         return regions_ == other.regions_;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(regions_);
+    RDB_MAKE_ME_SERIALIZABLE_1(nonoverlapping_regions_t, regions_);
 
 private:
     std::set<region_t> regions_;
 };
-
-RDB_SERIALIZE_OUTSIDE(nonoverlapping_regions_t);
 
 #endif  // CLUSTERING_GENERIC_NONOVERLAPPING_REGIONS_HPP_
