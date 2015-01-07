@@ -44,8 +44,11 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     
     print("Pinning table to first server (%.2fs)" % (time.time() - startTime))
     
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':primary.name, 'replicas':[primary.name, secondary.name]}]}).run(conn1)['errors'] == 0
-    r.db(dbName).table_wait().run(conn1)
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':primary.name, 'replicas':[primary.name, secondary.name]}
+        ]}).run(conn1)['errors'] == 0
+    r.db(dbName).wait().run(conn1)
     
     print("Starting workload before (%.2fs)" % (time.time() - startTime))
     
@@ -60,8 +63,11 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         
         print("Moving the shard to the secondary (%.2fs)" % (time.time() - startTime))
         
-        assert r.db(dbName).table_config(tableName).update({'shards':[{'director':secondary.name, 'replicas':[secondary.name]}]}).run(conn2)['errors'] == 0
-        r.db(dbName).table_wait().run(conn2)
+        assert r.db(dbName).table(tableName).config() \
+            .update({'shards':[
+                {'primary_replica':secondary.name, 'replicas':[secondary.name]}
+            ]}).run(conn2)['errors'] == 0
+        r.db(dbName).wait().run(conn2)
         cluster.check()
         issues = list(r.db('rethinkdb').table('issues').run(conn2))
         assert len(issues) > 0, 'The server did not record the issue for the killed server'

@@ -35,9 +35,9 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Testing pre-sharding with UUID primary keys (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table_create("uuid_pkey").run(conn)
-    assert res["created"] == 1
+    assert res["tables_created"] == 1
     r.db(dbName).table("uuid_pkey").reconfigure(shards=10, replicas=1).run(conn)
-    r.db(dbName).table_wait("uuid_pkey").run(conn)
+    r.db(dbName).table("uuid_pkey").wait().run(conn)
     res = r.db(dbName).table("uuid_pkey").insert([{}]*1000).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
     res = r.db(dbName).table("uuid_pkey").info().run(conn)["doc_count_estimates"]
@@ -47,7 +47,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Testing down-sharding existing balanced shards (%.2fs)" % (time.time() - startTime))
     r.db(dbName).table("uuid_pkey").reconfigure(shards=2, replicas=1).run(conn)
-    r.db(dbName).table_wait("uuid_pkey").run(conn)
+    r.db(dbName).table("uuid_pkey").wait().run(conn)
     res = r.db(dbName).table("uuid_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
@@ -55,11 +55,11 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Testing sharding of existing inserted data (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table_create("numeric_pkey").run(conn)
-    assert res["created"] == 1
+    assert res["tables_created"] == 1
     res = r.db(dbName).table("numeric_pkey").insert([{"id": n} for n in xrange(1000)]).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
     r.db(dbName).table("numeric_pkey").reconfigure(shards=10, replicas=1).run(conn)
-    r.db(dbName).table_wait("numeric_pkey").run(conn)
+    r.db(dbName).table("numeric_pkey").wait().run(conn)
     res = r.db(dbName).table("numeric_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
@@ -67,9 +67,9 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     print("Creating an unbalanced table (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table_create("unbalanced").run(conn)
-    assert res["created"] == 1
+    assert res["tables_created"] == 1
     r.db(dbName).table("unbalanced").reconfigure(shards=2, replicas=1).run(conn)
-    r.db(dbName).table_wait("unbalanced").run(conn)
+    r.db(dbName).table("unbalanced").wait().run(conn)
     res = r.db(dbName).table("unbalanced").insert([{"id": n} for n in xrange(1000)]).run(conn)
     assert res["inserted"] == 1000 and res["errors"] == 0
     res = r.db(dbName).table("unbalanced").info().run(conn)["doc_count_estimates"]
@@ -80,8 +80,13 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     # RSI(reql_admin): Once #2896 is implemented, make sure the server has an issue now
 
     print("Fixing the unbalanced table (%.2fs)" % (time.time() - startTime))
-    r.db(dbName).table("unbalanced").rebalance().run(conn)
-    r.db(dbName).table_wait("unbalanced").run(conn)
+    status_before = r.db(dbName).table("unbalanced").status().run(conn)
+    res = r.db(dbName).table("unbalanced").rebalance().run(conn)
+    assert res["rebalanced"] == 1
+    assert len(res["status_changes"]) == 1
+    assert res["status_changes"][0]["old_val"] == status_before
+    assert res["status_changes"][0]["new_val"]["status"]["all_replicas_ready"] == False
+    r.db(dbName).table("unbalanced").wait().run(conn)
     res = r.db(dbName).table("unbalanced").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:

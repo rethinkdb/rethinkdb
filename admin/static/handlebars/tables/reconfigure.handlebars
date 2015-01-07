@@ -1,0 +1,13 @@
+<h2 class="title">Sharding and replication</h2>
+<div class="info">
+  <div>
+    <span class="shards value">{{num_shards}}</span>
+    <span class="caption">{{pluralize_noun "shard" num_shards}}</span>
+  </div>
+  <div>
+    <span class="replicas value">{{num_replicas_per_shard}}</span>
+    <span class="caption">{{pluralize_noun "replica" num_replicas_per_shard}} per shard</span>
+  </div>
+  <button class="reconfigure btn">Reconfigure</button>
+</div>
+<div class='backfill-progress'></div>

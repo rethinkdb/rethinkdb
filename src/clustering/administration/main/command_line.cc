@@ -34,8 +34,9 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
@@ -526,20 +527,20 @@ private:
     std::string info;
 };
 
-std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options) {
+std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options,
+                                           local_ip_filter_t filter_type) {
     std::set<ip_address_t> set_filter;
-    bool all = false;
 
     // Scan through specified bind options
     for (size_t i = 0; i < bind_options.size(); ++i) {
         if (bind_options[i] == "all") {
-            all = true;
+            filter_type = local_ip_filter_t::ALL;
         } else {
             // Verify that all specified addresses are valid ip addresses
             try {
                 ip_address_t addr(bind_options[i]);
                 if (addr.is_any()) {
-                    all = true;
+                    filter_type = local_ip_filter_t::ALL;
                 } else {
                     set_filter.insert(addr);
                 }
@@ -551,7 +552,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
         }
     }
 
-    std::set<ip_address_t> result = get_local_ips(set_filter, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, filter_type);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
@@ -569,7 +570,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
-    if (all) {
+    if (filter_type == local_ip_filter_t::ALL) {
         return std::set<ip_address_t>();
     }
 
@@ -635,14 +636,18 @@ peer_address_t get_canonical_addresses(const std::map<std::string, options::valu
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
     const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
-    return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
-                                   get_canonical_addresses(opts, cluster_port),
-                                   cluster_port,
-                                   get_single_int(opts, "--client-port"),
-                                   exists_option(opts, "--no-http-admin"),
-                                   offseted_port(get_single_int(opts, "--http-port"), port_offset),
-                                   offseted_port(get_single_int(opts, "--driver-port"), port_offset),
-                                   port_offset);
+    return service_address_ports_t(
+        get_local_addresses(all_options(opts, "--bind"),
+                            exists_option(opts, "--no-default-bind") ?
+                                local_ip_filter_t::MATCH_FILTER :
+                                local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK),
+        get_canonical_addresses(opts, cluster_port),
+        cluster_port,
+        get_single_int(opts, "--client-port"),
+        exists_option(opts, "--no-http-admin"),
+        offseted_port(get_single_int(opts, "--http-port"), port_offset),
+        offseted_port(get_single_int(opts, "--driver-port"), port_offset),
+        port_offset);
 }
 
 
@@ -695,10 +700,13 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
-std::string uname_msr() {
+// WARNING WARNING WARNING blocking
+// if in doubt, DO NOT USE.
+std::string run_uname(const std::string &flags) {
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
-    FILE *out = popen("uname -msr", "r");
+    const std::string combined = "uname -" + flags;
+    FILE *out = popen(combined.c_str(), "r");
     if (!out) return unknown;
     if (!fgets(buf, sizeof(buf), out)) {
         pclose(out);
@@ -706,6 +714,10 @@ std::string uname_msr() {
     }
     pclose(out);
     return buf;
+}
+
+std::string uname_msr() {
+    return run_uname("msr");
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,
@@ -888,6 +900,10 @@ options::help_section_t get_log_options(std::vector<options::option_t> *options_
     options_out->push_back(options::option_t(options::names_t("--log-file"),
                                              options::OPTIONAL));
     help.add("--log-file file", "specify the file to log to, defaults to 'log_file'");
+    options_out->push_back(options::option_t(options::names_t("--no-update-check"),
+                                            options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-update-check", "disable checking for available updates.  Also turns "
+             "off anonymous usage data collection.");
     return help;
 }
 
@@ -964,8 +980,6 @@ std::set<name_string_t> parse_server_tag_options(
         /* We silently accept tags that appear multiple times. */
         server_tag_names.insert(tag);
     }
-    /* RSI(reql_admin): Maybe we should give the user a way to disable the default
-    tag. */
     server_tag_names.insert(name_string_t::guarantee_valid("default"));
     return server_tag_names;
 }
@@ -1041,7 +1055,11 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; if not specified, 127.0.0.1 and ::1 will be used");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections, loopback addresses are enabled by default");
+
+    options_out->push_back(options::option_t(options::names_t("--no-default-bind"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-default-bind", "disable automatic listening on loopback addresses");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
@@ -1248,6 +1266,12 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     return true;
 }
 
+update_check_t parse_update_checking_option(const std::map<std::string, options::values_t> &opts) {
+    return exists_option(opts, "--no-update-check")
+        ? update_check_t::do_not_perform
+        : update_check_t::perform;
+}
+
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--no-direct-io")) {
         logWRN("Ignoring 'no-direct-io' option. 'no-direct-io' is deprecated and "
@@ -1403,6 +1427,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        update_check_t do_update_checking = parse_update_checking_option(opts);
+
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
@@ -1434,6 +1460,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));
@@ -1516,6 +1543,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                update_check_t::do_not_perform,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));
@@ -1629,6 +1657,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        update_check_t do_update_checking = parse_update_checking_option(opts);
+
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
         // is called on it.  This will be done after the metadata files have been created.
@@ -1680,6 +1710,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
+                                do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc));

@@ -353,13 +353,15 @@ void test_rdb_env_t::instance_t::interrupt() {
 }
 
 bool test_rdb_env_t::instance_t::db_create(UNUSED const name_string_t &name,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
+        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
 }
 
 bool test_rdb_env_t::instance_t::db_drop(UNUSED const name_string_t &name,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
+        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
 }
@@ -381,15 +383,16 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
         *error_out = "No database with that name";
         return false;
     } else {
-        *db_out = make_counted<const ql::db_t>(it->second, name.str());
+        *db_out = make_counted<const ql::db_t>(it->second, name);
         return true;
     }
 }
 
 bool test_rdb_env_t::instance_t::db_config(
-        UNUSED const std::vector<name_string_t> &db_names,
+        UNUSED const counted_t<const ql::db_t> &db,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED signal_t *local_interruptor, UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_db_env_t::instance_t doesn't support db_config()";
     return false;
@@ -399,14 +402,18 @@ bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &config_params,
         UNUSED const std::string &primary_key,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
 }
 
 bool test_rdb_env_t::instance_t::table_drop(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support mutation";
     return false;
 }
@@ -451,12 +458,22 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
     }
 }
 
+bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::env_t *local_env,
+        UNUSED std::vector<int64_t> *doc_counts_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support info()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_config(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::vector<name_string_t> &target_tables,
+        UNUSED const name_string_t &name,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED signal_t *local_interruptor,
-        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_config()";
     return false;
@@ -464,10 +481,10 @@ bool test_rdb_env_t::instance_t::table_config(
 
 bool test_rdb_env_t::instance_t::table_status(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::vector<name_string_t> &target_tables,
+        UNUSED const name_string_t &name,
         UNUSED const ql::protob_t<const Backtrace> &bt,
-        UNUSED signal_t *local_interruptor,
-        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";
     return false;
@@ -475,13 +492,22 @@ bool test_rdb_env_t::instance_t::table_status(
 
 bool test_rdb_env_t::instance_t::table_wait(
         UNUSED counted_t<const ql::db_t> db,
-        UNUSED const std::vector<name_string_t> &target_tables,
+        UNUSED const name_string_t &name,
         UNUSED table_readiness_t readiness,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED signal_t *local_interruptor,
-        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        UNUSED ql::datum_t *result_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support table_wait()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED table_readiness_t readiness,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support db_wait()";
     return false;
 }
 
@@ -524,16 +550,6 @@ bool test_rdb_env_t::instance_t::db_rebalance(
         UNUSED ql::datum_t *result_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
-    return false;
-}
-
-bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
-        UNUSED counted_t<const ql::db_t> db,
-        UNUSED const name_string_t &name,
-        UNUSED ql::env_t *local_env,
-        UNUSED std::vector<int64_t> *doc_counts_out,
-        std::string *error_out) {
-    *error_out = "test_rdb_env_t::instance_t doesn't support info()";
     return false;
 }
 

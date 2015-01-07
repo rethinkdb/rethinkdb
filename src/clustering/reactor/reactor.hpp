@@ -11,12 +11,30 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/cow_ptr.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class io_backender_t;
 class multistore_ptr_t;
 class backfill_throttler_t;
+
+/* `reactor_t::get_progress()` will return a map with one `reactor_progress_report_t` for
+each primary or secondary shard that is currently backfilling or has completed a
+backfill. */
+class reactor_progress_report_t {
+public:
+    /* `is_ready` is true if the shard is completely ready. */
+    bool is_ready;
+
+    /* `start_time` is the moment the `reactor_progress_report_t` was constructed. */
+    microtime_t start_time;
+
+    /* `backfills` contains the peer ID and progress fraction (from 0 to 1) for each
+    backfill that this server is receiving for that shard. The backfills will stay even
+    after `is_ready` becomes `true`, but all the progress fractions will be 1.  */
+    std::vector<std::pair<peer_id_t, double> > backfills;
+};
 
 class reactor_t : public home_thread_mixin_t {
 public:
@@ -38,6 +56,10 @@ public:
             rdb_context_t *) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > get_reactor_directory();
+
+    /* This might block */
+    std::map<region_t, reactor_progress_report_t> get_progress();
+
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
      * into the directory for a role that we are performing (a role that we
@@ -178,7 +200,15 @@ private:
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const region_t &region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    bool attempt_backfill_from_peers(
+        directory_entry_t *directory_entry,
+        reactor_progress_report_t *progress_tracker_on_svs_thread,
+        order_source_t *order_source,
+        const region_t &region,
+        store_view_t *svs,
+        const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
@@ -209,6 +239,13 @@ private:
     multistore_ptr_t *underlying_svs;
 
     std::map<region_t, current_role_t *> current_roles;
+
+    /* `reactor_be_primary()` and `reactor_be_secondary()` automatically maintain their
+    own entries in this map. Using `one_per_thread_t` is kind of overkill here because
+    it automatically switches threads to do the construction and destruction, but the
+    additional overhead from the thread switches isn't a big enough cost to justify
+    changing it. */
+    one_per_thread_t<std::map<region_t, reactor_progress_report_t> > progress_map;
 
     auto_drainer_t drainer;
 

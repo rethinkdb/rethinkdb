@@ -84,13 +84,6 @@ archive_result_t deserialize(read_stream_t *s, datum_t *datum) {
     return datum_deserialize(s, datum);
 }
 
-template <cluster_version_t W>
-void serialize(write_message_t *wm,
-               const empty_ok_t<const datum_t> &datum);
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s,
-                             empty_ok_ref_t<datum_t> datum);
-
 }  // namespace ql
 
 // Q. Why do we have datum_serialize/datum_deserialize?

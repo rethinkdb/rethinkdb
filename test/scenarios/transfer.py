@@ -52,17 +52,21 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Explicitly adding server to the table (%.2fs)" % (time.time() - startTime))
-    
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server2.name, server1.name]}]})['errors'].run(conn1) == 0
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]}
+        ]})['errors'].run(conn1) == 0
     
     print("Waiting for backfill (%.2fs)" % (time.time() - startTime))
     
-    r.db(dbName).table_wait().run(conn1)
+    r.db(dbName).wait().run(conn1)
     
     print("Removing the first server from the table (%.2fs)" % (time.time() - startTime))
-    
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server2.name, 'replicas':[server2.name]}]})['errors'].run(conn1) == 0
-    r.db(dbName).table_wait().run(conn1)
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':server2.name, 'replicas':[server2.name]}
+        ]})['errors'].run(conn1) == 0
+    r.db(dbName).wait().run(conn1)
     
     print("Shutting down first server (%.2fs)" % (time.time() - startTime))
     
@@ -78,7 +82,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     assert r.db('rethinkdb').table('server_config').get(server1.uuid).delete().run(conn2)['errors'] == 0
     time.sleep(.1)
-    r.db(dbName).table_wait().run(conn2)
+    r.db(dbName).wait().run(conn2)
     
     issues = list(r.db('rethinkdb').table('issues').run(conn2))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)

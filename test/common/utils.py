@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import collections, fcntl, os, random, signal, socket, string, subprocess, sys, tempfile, threading, time
+import atexit, collections, fcntl, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
 
@@ -310,6 +310,28 @@ def get_avalible_port(interface='localhost'):
     testSocket.close()
     return freePort
 
+def is_port_open(port, host='localhost'):
+    try:
+        port = int(port)
+        assert port > 0
+    except Exception:
+        raise ValueError('port must be a valid port, got: %s' % repr(port))
+    testSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    return 0 == testSocket.connect_ex((str(host), port))
+
+def wait_for_port(port, host='localhost', timeout=5):
+    try:
+        port = int(port)
+        assert port > 0
+    except Exception:
+        raise ValueError('port must be a valid port, got: %s' % repr(port))
+    deadline = timeout + time.time()
+    while deadline > time.time():
+        if is_port_open(port, host):
+            return
+        time.sleep(.1)
+    raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
+
 def shard_table(cluster_port, rdb_executable, table_name):
         
     blackHole = tempfile.NamedTemporaryFile('w+')
@@ -322,7 +344,7 @@ def shard_table(cluster_port, rdb_executable, table_name):
     time.sleep(3)
     return 0
 
-def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
+def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
     '''make sure that the given process group id is not running'''
     
     # -- validate input
@@ -342,61 +364,72 @@ def kill_process_group(processGroupId, timeout=20, shudown_grace=5):
         raise ValueError('kill_process_group requires a valid timeout, got: %s' % str(timeout))
     
     try:
-        shudown_grace = float(shudown_grace)
-        if shudown_grace < 0:
+        shutdown_grace = float(shutdown_grace)
+        if shutdown_grace < 0:
             raise Exception()
     except Exception:
-        raise ValueError('kill_process_group requires a valid timeout, got: %s' % str(shudown_grace))
+        raise ValueError('kill_process_group requires a valid shutdown_grace value, got: %s' % str(shutdown_grace))
     
     # --
     
     # ToDo: check for child processes outside the process group
     
     deadline = time.time() + timeout
-    graceDeadline = time.time() + shudown_grace
+    graceDeadline = time.time() + shutdown_grace
     
-    # -- allow processes to gracefully exit
-    
-    if shudown_grace > 0:
-        os.killpg(processGroupId, signal.SIGTERM)
+    psRegex = re.compile('^\s*(%d\s|\d+\s+%d\s)' % (processGroupId, processGroupId))
+    psOutput = ''
+    psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pgid=', '-o', 'pid=', '-o', 'command=', '-www']
+    psFilter = lambda output: [x for x in output.splitlines() if psRegex.match(x)]
+    try:
+        # -- allow processes to gracefully exit
         
-        while time.time() < graceDeadline:
-            try:
+        if shutdown_grace > 0:
+            os.killpg(processGroupId, signal.SIGTERM)
+            
+            while time.time() < graceDeadline:
                 os.killpg(processGroupId, 0) # 0 checks to see if the process is there
-            except OSError as e:
-                if e.errno == 3: # No such process
+                
+                # - check with `ps` that it too thinks there is something there
+                try:
+                    os.waitpid(processGroupId, os.WNOHANG)
+                except Exception: pass
+                psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
+                psLines = psFilter(psOutput)
+                if len(psLines) == 0:
                     return
-                elif e.errno == 1: # Operation not permitted
-                    return # not our process
-                else:
-                    print('tried to signal: ', processGroupId)
-                    raise
-    
-    # -- slam the remaining processes
-    
-    while time.time() < deadline:
-        try:
-            os.killpg(processGroupId, 0) # 0 checks to see if the process is there
+                
+                time.sleep(.1)
+        
+        # -- slam the remaining processes
+        
+        while time.time() < deadline:
             os.killpg(processGroupId, signal.SIGKILL)
-        except OSError as e:
-            if e.errno == 3: # No such process
+            
+            # - check with `ps` that it too thinks there is something there
+            try:
+                os.waitpid(processGroupId, os.WNOHANG)
+            except Exception: pass
+            psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
+            psLines = psFilter(psOutput)
+            if len(psLines) == 0:
                 return
-            elif e.errno == 1: # Operation not permitted
-                return # not our process
-            else:
-                raise
+            
+            time.sleep(.2)
+    
+    except OSError as e:
+        if e.errno == 3: # No such process
+            return
+        elif e.errno == 1: # Operation not permitted: not our process
+            return
         else:
-            time.sleep(.1)
-    
-    # -- check with `ps` that it too thinks there is something there
-    
-    output, _ = subprocess.Popen(['ps', '-g', str(processGroupId), '-o', 'pid,user,command', '-www'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-    if len(output.splitlines()) < 2:
-        return
+            warnings.warn('Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), psOutput.decode('utf-8')))
+            raise
     
     # --
     
-    raise Warning('Unable to kill all of the processes for process group %d after %d seconds:\n%s\n' % (processGroupId, timeout, output))
+    timeElapsed = timeout - (deadline - time.time())
+    raise Warning('Unable to kill all of the processes for process group %d after %.2f seconds:\n%s\n' % (processGroupId, timeElapsed, psOutput.decode('utf-8')))
     # ToDo: better categorize the error
 
 def nonblocking_readline(source):
@@ -411,7 +444,7 @@ def nonblocking_readline(source):
         except Exception as e:
             raise ValueError('bad source file: %s got error: %s' % (str(source), str(e)))
     
-    elif isinstance(source, file):
+    elif hasattr(source, 'read'):
         try:
             int(source.fileno())
         except:
@@ -461,3 +494,22 @@ def nonblocking_readline(source):
             unprocessed = waitingLines.pop()
         
         # wrap around to pass the data
+
+def cleanupPath(path):
+    '''meant to be used with atexit, this deletes the given folder'''
+    path = str(path)
+    if os.path.isdir(path):
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            warnings.warn('Warning: unable to cleanup folder: %s - got error: %s' % (str(path), str(e)))
+    elif os.path.isfile(path):
+        try:
+            os.unlink(path)
+        except Exception as e:
+            warnings.warn('Warning: unable to cleanup file: %s - got error: %s' % (str(path), str(e)))
+
+def cleanupPathAtExit(path):
+    '''helper for cleanupPath'''
+    atexit.register(cleanupPath, path)
+

@@ -20,7 +20,7 @@ class registrant_t {
 
 public:
     /* This constructor registers with the given registrant. If the registrant
-    is already dead, it throws an exception. Otherwise, it returns immediately.
+    is already unavailable, it throws an exception. Otherwise, it returns immediately.
     */
     registrant_t(
             mailbox_manager_t *mm,

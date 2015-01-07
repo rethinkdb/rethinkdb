@@ -29,9 +29,9 @@ private:
     ticks_t t;
 };
 
-// Because being primary for a shard usually comes with a higher cost than
-// being secondary, we want to consider that difference in the replica assignment.
-// The concrete value of these doesn't matter, only their ratio
+// Because being the primary replica for a shard usually comes with a higher cost than
+// being a secondary replica, we want to consider that difference in the replica
+// assignment. The concrete value of these doesn't matter, only their ratio
 // (float)PRIMARY_USAGE_COST/(float)SECONDARY_USAGE_COST is important.
 // As long as PRIMARY_USAGE_COST > SECONDARY_USAGE_COST, this is a solution to
 // https://github.com/rethinkdb/rethinkdb/issues/344 (if the server roles are
@@ -45,7 +45,7 @@ void calculate_server_usage(
         for (const server_id_t &server : shard.replicas) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
-        (*usage)[shard.director] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
+        (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
     }
 }
 
@@ -74,11 +74,12 @@ static bool validate_params(
         *error_out = strprintf("Maximum number of shards is %zu.", max_shards);
         return false;
     }
-    if (params.num_replicas.count(params.director_tag) == 0 ||
-            params.num_replicas.at(params.director_tag) == 0) {
-        *error_out = strprintf("Can't use server tag `%s` for directors because you "
-            "specified no replicas in server tag `%s`.", params.director_tag.c_str(),
-            params.director_tag.c_str());
+    if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
+            params.num_replicas.at(params.primary_replica_tag) == 0) {
+        *error_out = strprintf("Can't use server tag `%s` for primary replicas "
+                               "because you specified no replicas in server tag `%s`.",
+                               params.primary_replica_tag.c_str(),
+                               params.primary_replica_tag.c_str());
         return false;
     }
     std::map<server_id_t, name_string_t> servers_claimed;
@@ -282,7 +283,7 @@ bool table_generate_config(
     /* Fetch reactor information for all of the servers */
     std::map<server_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
     if (table_id != nil_uuid()) {
-        std::set<server_id_t> missing;
+        std::set<server_id_t> disconnected;
         for (auto it = servers_with_tags.begin();
                   it != servers_with_tags.end();
                 ++it) {
@@ -291,22 +292,26 @@ bool table_generate_config(
                 boost::optional<peer_id_t> peer_id =
                     server_config_client->get_peer_id_for_server_id(server_id);
                 if (!static_cast<bool>(peer_id)) {
-                    missing.insert(server_id);
+                    disconnected.insert(server_id);
                     continue;
                 }
                 directory_view->read_key(std::make_pair(*peer_id, table_id),
                     [&](const namespace_directory_metadata_t *metadata) {
+                        /* If this is `nullptr`, that means that the server is connected
+                        but it doesn't have a reactor entry for this table. This is
+                        usually because the table was just created or the server just
+                        reconnected. In this case, we don't put an entry in the map, and
+                        this is equivalent to assuming the server has no data for the
+                        shard. */
                         if (metadata != nullptr) {
                             directory_metadata[server_id] = metadata->internal;
-                        } else {
-                            missing.insert(server_id);
                         }
                     });
             }
         }
-        if (!missing.empty()) {
+        if (!disconnected.empty()) {
             *error_out = strprintf("Can't configure table because server `%s` is "
-                "missing", server_names.at(*missing.begin()).c_str());
+                "disconnected", server_names.at(*disconnected.begin()).c_str());
             return false;
         }
     }
@@ -368,23 +373,24 @@ bool table_generate_config(
 
         /* This algorithm has a flaw; it will sometimes distribute replicas unevenly. For
         example, suppose that we have three servers, A, B, and C; three shards; and we
-        want to place a director and another replica for each shard. We assign directors
-        as follows:
-             server: A B C
-           director: 1 2 3
-        Now, it's time to assign replicas. We start assigning replicas as follows:
-             server: A B C
-           director: 1 2 3
-            replica: 2 1
+        want to place a primary replica and a secondary replica for each shard. We assign
+        primary replicas as follows:
+                    server: A B C
+           primary replica: 1 2 3
+        Now, it's time to assign secondary replicas. We start assigning secondaries as
+        follows:
+                      server: A B C
+             primary replica: 1 2 3
+           secondary replica: 2 1
         When it comes time to place the replica for shard 3, we cannot place it on server
-        C because server C is already the director for shard 3. So we have to place it on
-        server A or B. So we end up with a server with 3 replicas and a server with only
-        1 replica, instead of having two replicas on each server. */
+        C because server C is already the primary replica for shard 3. So we have to
+        place it on server A or B. So we end up with a server with 3 replicas and a
+        server with only 1 replica, instead of having two replicas on each server. */
 
-        /* First, select the directors if appropriate. We select directors separately
-        before selecting replicas because it's important for all the directors to end up
-        on different servers if possible. */
-        if (server_tag == params.director_tag) {
+        /* First, select the primary replicas if appropriate. We select primary
+        replicas separately before selecting secondary replicas because it's important
+        for all the primary replicas to end up on different servers if possible. */
+        if (server_tag == params.primary_replica_tag) {
             std::multiset<counted_t<countable_wrapper_t<server_pairings_t> > > s;
             for (const auto &x : pairings) {
                 if (!x.second.pairings.empty()) {
@@ -394,18 +400,18 @@ bool table_generate_config(
             }
             pick_best_pairings(
                 params.num_shards,
-                1,   /* only one director per shard */
+                1,   /* only one primary replica per shard */
                 std::move(s),
                 PRIMARY_USAGE_COST,
                 &yielder,
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
-                    guarantee(config_out->shards[shard].director.is_unset());
+                    guarantee(config_out->shards[shard].primary_replica.is_unset());
                     config_out->shards[shard].replicas.insert(server);
-                    config_out->shards[shard].director = server;
-                    /* We have to update `pairings` as directors are selected so that our
-                    second call to `pick_best_pairings()` will take into account the
-                    choices made in this round. */
+                    config_out->shards[shard].primary_replica = server;
+                    /* We have to update `pairings` as priamry replicas are selected so
+                    that our second call to `pick_best_pairings()` will take into account
+                    the choices made in this round. */
                     pairings[server].self_usage_cost += PRIMARY_USAGE_COST;
                     for (auto p_it = pairings[server].pairings.begin();
                               p_it != pairings[server].pairings.end();
@@ -418,7 +424,7 @@ bool table_generate_config(
                 });
         }
 
-        /* Now select the remaining replicas. */
+        /* Now select the remaining secondary replicas. */
         std::multiset<counted_t<countable_wrapper_t<server_pairings_t> > > s;
         for (const auto &x : pairings) {
             if (!x.second.pairings.empty()) {
@@ -428,7 +434,7 @@ bool table_generate_config(
         }
         pick_best_pairings(
             params.num_shards,
-            it->second - (server_tag == params.director_tag ? 1 : 0),
+            it->second - (server_tag == params.primary_replica_tag ? 1 : 0),
             std::move(s),
             SECONDARY_USAGE_COST,
             &yielder,
@@ -439,7 +445,7 @@ bool table_generate_config(
     }
 
     for (size_t shard = 0; shard < params.num_shards; ++shard) {
-        guarantee(!config_out->shards[shard].director.is_unset());
+        guarantee(!config_out->shards[shard].primary_replica.is_unset());
         guarantee(config_out->shards[shard].replicas.size() == total_replicas);
     }
 

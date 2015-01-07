@@ -5,13 +5,13 @@ tests:
     # Set up some more tables
 
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl2 = r.db('test').table('test2')
 
     - py: r.db('test').table_create('test3', primary_key='foo')
       rb: r.db('test').table_create('test3', {:primary_key=>'foo'})
       js: r.db('test').tableCreate('test3', {'primaryKey':'foo'})
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl3 = r.db('test').table('test3')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
@@ -131,11 +131,11 @@ tests:
       ot: [{'a':1},{'a':2,'b':2},{'a':3,'b':3}]
 
     - rb: r.table_create('senders')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
     - rb: r.table_create('receivers')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
     - rb: r.table_create('messages')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - rb: r.table('senders').insert({id:1, sender:'Sender One'})['inserted']
       ot: 1
@@ -149,12 +149,12 @@ tests:
 
     # Clean up
     - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - cd: r.db('test').table_drop('test3')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - rb: r.db('test').table_drop('senders')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - rb: r.db('test').table_drop('messages')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - rb: r.db('test').table_drop('receivers')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

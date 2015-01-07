@@ -4,6 +4,7 @@
 
 #include <inttypes.h>
 
+#include <deque>
 #include <limits>
 #include <list>  // ugh
 #include <map>
@@ -18,7 +19,7 @@
 
 namespace std {
 
-// Implementations for pair, map, set, string, and vector.
+// Implementations for deque, pair, map, set, string, and vector.
 
 template <cluster_version_t W, class T, class U>
 size_t serialized_size(const std::pair<T, U> &p) {
@@ -172,6 +173,36 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
     v->resize(sz);
     for (uint64_t i = 0; i < sz; ++i) {
         res = deserialize<W>(s, &(*v)[i]);
+        if (bad(res)) { return res; }
+    }
+
+    return archive_result_t::SUCCESS;
+}
+
+template <cluster_version_t W, class T>
+void serialize(write_message_t *wm, const std::deque<T> &v) {
+    serialize_varint_uint64(wm, v.size());
+    for (typename std::deque<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
+        serialize<W>(wm, *it);
+    }
+}
+
+template <cluster_version_t W, class T>
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::deque<T> *v) {
+    // Omit assertions because it's not a shame if a std::list gets corrupted.
+
+    uint64_t sz;
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
+    if (bad(res)) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    for (uint64_t i = 0; i < sz; ++i) {
+        // We avoid copying a non-empty value.
+        v->push_back(T());
+        res = deserialize<W>(s, &v->back());
         if (bad(res)) { return res; }
     }
 

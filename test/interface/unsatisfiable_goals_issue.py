@@ -51,14 +51,14 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     
     assertRaises(r.RqlRuntimeError, r.db(dbName).table(tableName).reconfigure(shards=1, replicas=4).run, conn)
     
-    print("Trying to set impossible goals through table_config (%.2fs)" % (time.time() - startTime))
-    
-    assert r.db(dbName).table_config(tableName).update({'shards':[{'director':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
-    assert r.db(dbName).table_config(tableName).update({'write_acks':[{'acks':'majority', 'replicas':['larkost_local_kxj', 'alpha']}]})['errors'].run(conn) == 1
+    print("Trying to set impossible goals through table.config (%.2fs)" % (time.time() - startTime))
+
+    assert r.db(dbName).table(tableName).config().update({'shards':[{'primary_replica':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
+    assert r.db(dbName).table(tableName).config().update({'write_acks':[{'acks':'majority', 'replicas':['larkost_local_kxj', 'alpha']}]})['errors'].run(conn) == 1
     
     print("Trying to set impossible goals through rethinkdb.table_config (%.2fs)" % (time.time() - startTime))
     
-    assert r.db('rethinkdb').table('table_config').filter({'name':tableName}).nth(0).update({'shards':[{'director':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
+    assert r.db('rethinkdb').table('table_config').filter({'name':tableName}).nth(0).update({'shards':[{'primary_replica':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
     
     print("Checking server up (%.2fs)" % (time.time() - startTime))
     

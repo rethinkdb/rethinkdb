@@ -11,7 +11,7 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT
 var DB_AND_TABLE_NAME = process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME || 'no_table_specified'
 
-var TRACE_ENABLED = false;
+var TRACE_ENABLED = process.env.VERBOSE || false;
 
 // -- utilities --
 
@@ -30,62 +30,79 @@ function clone(source) {
     return result;
 }
 
-function eq_test(one, two, compOpts) {
-    TRACE("eq_test: " + JSON.stringify(one) + " | == | " + JSON.stringify(two));
-    if (one instanceof Function) {
-        return one(two);
-    } else if (two instanceof Function) {
-        return two(one);
+function eq_test(expected, result, compOpts, partial) {
+    TRACE("eq_test: " + JSON.stringify(expected) + " | == | " + JSON.stringify(result) + " | == | " + partial);
+    if (expected instanceof Function) {
+        return expected(result);
+    } else if (result instanceof Function) {
+        return result(expected);
     
-    } else if (typeof one !== typeof two) {
+    } else if (typeof expected !== typeof result) {
         return false;
     
-    } else if (parseFloat(one) === one && parseFloat(two) === two) {
+    } else if (parseFloat(expected) === expected && parseFloat(result) === result) {
         if (compOpts && 'precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
-            return Math.abs(one - two) <= compOpts['precision'];
+            return Math.abs(expected - result) <= compOpts['precision'];
         } else {
-            return one === two;
+            return expected === result;
         }
     
-    } else if (typeof one === 'string') {
-        one = one.replace(/\nFailed assertion([\r\n]|.)*/m, "");
-        two = two.replace(/\nFailed assertion([\r\n]|.)*/m, "");
-        return one == two;
+    } else if (typeof expected === 'string') {
+        expected = expected.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+        result = result.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+        return expected == result;
         
-    } else if (Array.isArray(one)) {
-        
-        // short circut on length
-        if (one.length !== two.length) return false;
-
-        // Recurse on each element of array
-        for (var i = 0; i < one.length; i++) {
-            if (!eq_test(one[i], two[i], compOpts)) return false;
+    } else if (Array.isArray(expected)) {
+        if (partial) {
+            // short circut on length
+            if (expected.length > result.length) return false;
+            
+            // Recurse on each element of expected
+            var resultIndex = 0;
+            for (var expectedIndex in expected) {
+                var foundIt = false;
+                for (; resultIndex < result.length; resultIndex++) {
+                    if (eq_test(expected[expectedIndex], result[resultIndex], compOpts)) {
+                        foundIt = true;
+                        break;
+                    }
+                }
+                if (foundIt == false) {
+                    return false;
+                }
+            }
+        } else {
+            // short circut on length
+            if (expected.length !== result.length) return false;
+            
+            // Recurse on each element of expected
+            for (var i = 0; i < expected.length; i++) {
+                if (!eq_test(expected[i], result[i], compOpts)) return false;
+            }
         }
 
         return true;
 
-    } else if (one instanceof Buffer) {
-        if (one.length !== two.length) return false;
-        for (var i = 0; i < one.length; i++) {
-            if (one[i] !== two[i]) return false;
+    } else if (expected instanceof Buffer) {
+        if (expected.length !== result.length) return false;
+        for (var i = 0; i < expected.length; i++) {
+            if (expected[i] !== result[i]) return false;
         }
         return true;
-    } else if (one instanceof Object) {
-
+    
+    } else if (expected instanceof Object) {
         // short circut on keys
-        if (!eq_test(Object.keys(one).sort(), Object.keys(two).sort(), compOpts)) return false;
+        if (!eq_test(Object.keys(expected).sort(), Object.keys(result).sort(), compOpts, partial)) return false;
         
         // Recurse on each property of object
-        for (var key in one) {
-            if (one.hasOwnProperty(key)) {
-                if (!eq_test(one[key], two[key], compOpts)) return false;
-            }
+        for (var key in expected) {
+            if (expected.hasOwnProperty(key) && !eq_test(expected[key], result[key], compOpts)) return false;
         }
         return true;
 
     } else {
         // Primitive comparison
-        return ((typeof one === typeof two) && (one === two)) || (isNaN(one) && isNaN(two))
+        return ((typeof expected === typeof result) && (expected === result)) || (isNaN(expected) && isNaN(result))
     }
 }
 
@@ -430,7 +447,7 @@ function setup_table(table_variable_name, table_name) {
                             if (err) {
                                 unexpectedException("teardown_table", err);
                             }
-                            if (res.dropped != 1) {
+                            if (res.tables_dropped != 1) {
                                 unexpectedException("teardown_table", "table not dropped", res);
                             }
                             process.exit(exit_code);
@@ -477,7 +494,7 @@ function setup_table(table_variable_name, table_name) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
-                    if (res.created != 1) {
+                    if (res.tables_created != 1) {
                         unexpectedException("setup_table", "table not created", res);
                     }
                     defines[table_variable_name] = r.db("test").table(table_name);
@@ -513,16 +530,31 @@ function define(expr) {
 }
 
 // Invoked by generated code to support bag comparison on this expected value
-function bag(list, compOpts) {
-    var bag = eval(list).sort(le_test);
+function bag(expected, compOpts, partial) {
+    var bag = eval(expected).sort(le_test);
     var fun = function(other) {
         other = other.sort(le_test);
-        return eq_test(bag, other, compOpts);
+        return eq_test(bag, other, compOpts, true);
     };
     fun.toString = function() {
-        return "bag("+list+")";
+        return "bag(" + expected + ")";
     };
-    return fun;
+}
+
+function partial(expected, compOpts) {
+    if (Array.isArray(expected)) {
+        return bag(expected, compOpts, true);
+    } else if (expected instanceof Object) {
+        var fun = function(result) {
+            return eq_test(expected, result, compOpts, true);
+        };
+        fun.toString = function() {
+            return "partial dict(" + expected + ")";
+        };
+        return fun;
+    } else {
+        unexpectedException("partial can only handle Arrays and Objects, got: " + typeof(expected));
+    }
 }
 
 // Invoked by generated code to demonstrate expected error output

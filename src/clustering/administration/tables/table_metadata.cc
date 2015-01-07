@@ -16,9 +16,9 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(write_ack_config_t, mode, complex_reqs);
 RDB_IMPL_EQUALITY_COMPARABLE_2(write_ack_config_t, mode, complex_reqs);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_t::shard_t,
-                                    replicas, director);
+                                    replicas, primary_replica);
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replicas, director);
+                               replicas, primary_replica);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_config_t,
                                     shards, write_ack_config, durability);

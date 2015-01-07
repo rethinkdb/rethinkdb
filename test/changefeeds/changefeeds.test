@@ -82,7 +82,7 @@ class ChangefeedsTest_Base(unittest.TestCase):
 	# -- constants
 	
 	ServerEntry = collections.namedtuple('ServerEntry', ['process', 'connection', 'logfile', 'uuid'])
-	ShardEntry = collections.namedtuple('ShardEntry', ['lower', 'lowerHTTP', 'lowerCLI', 'upper', 'upperHTTP', 'upperCLI', 'master', 'replicas', 'sample'])
+	ShardEntry = collections.namedtuple('ShardEntry', ['lower', 'lowerHTTP', 'lowerCLI', 'upper', 'upperHTTP', 'upperCLI', 'primary_replica', 'secondary_replicas', 'sample'])
 	
 	# --
 	
@@ -121,11 +121,11 @@ class ChangefeedsTest_Base(unittest.TestCase):
 			
 			sample = [x['id'] for x in r.db(cls.dbName).table(cls.tableName).between(lower, upper).limit(1).run(server.connection)][0]
 			
-			cls.shards.append(cls.ShardEntry(lower=lower, lowerHTTP=lowerHTTP, lowerCLI=lowerHTTP.replace('%23', r'\23'), upper=upper, upperHTTP=upperHTTP, upperCLI=upperCLI, master=None, replicas=None, sample=sample))
+			cls.shards.append(cls.ShardEntry(lower=lower, lowerHTTP=lowerHTTP, lowerCLI=lowerHTTP.replace('%23', r'\23'), upper=upper, upperHTTP=upperHTTP, upperCLI=upperCLI, primary_replica=None, secondary_replicas=None, sample=sample))
 		
 		if len(cls.shards) == 0:
 			sample = [x['id'] for x in r.db(cls.dbName).table(cls.tableName).between(None, None).limit(1).run(server.connection)][0]
-			cls.shards.append(cls.ShardEntry(lower=None, lowerHTTP=None, lowerCLI=None, upper=None, upperHTTP=None, upperCLI=None, master=None, replicas=None, sample=sample))
+			cls.shards.append(cls.ShardEntry(lower=None, lowerHTTP=None, lowerCLI=None, upper=None, upperHTTP=None, upperCLI=None, primary_replica=None, secondary_replicas=None, sample=sample))
 		
 		return cls.shards
 	
@@ -222,12 +222,12 @@ class ChangefeedsTest_Base(unittest.TestCase):
 		for i in range(len(shards)):
 			shard = shards[i]
 			
-			# - master
+			# - primary replica
 			
 			checkedCall(adminCommandPrefix + ['pin', 'shard', '%s.%s' % (cls.dbName, cls.tableName), '%s-%s' % (shard.lowerCLI, shard.upperCLI), '--master', cls.servers[i].uuid])
-			cls.shards[i] = cls.shards[i]._replace(master=cls.servers[i])
+			cls.shards[i] = cls.shards[i]._replace(primary_replica=cls.servers[i])
 			
-			# - secondary
+			# - secondary replicas
 			
 			if cls.replicationLevel > 1:
 				uuids = []
@@ -237,7 +237,7 @@ class ChangefeedsTest_Base(unittest.TestCase):
 					replicaServers.append(replicaServer)
 					uuids.append(replicaServer.uuid)
 				checkedCall(adminCommandPrefix + ['pin', 'shard', '%s.%s' % (cls.dbName, cls.tableName), '%s-%s' % (shard.lowerCLI, shard.upperCLI), '--replicas', ','.join(uuids)])
-				cls.shards[i] = cls.shards[i]._replace(replicas=replicaServers)
+				cls.shards[i] = cls.shards[i]._replace(secondary_replicas=replicaServers)
 		
 		# make sure everything is avalible
 		
@@ -333,7 +333,7 @@ class ChangefeedsTest_Destructive(ChangefeedsTest_Base):
 			raise lastError
 	
 	def test_primary_falure(self):
-		'''Test that we get the expected error when the master for a shard fails for a range'''
+		'''Test that we get the expected error when the primary replica for a shard fails for a range'''
 		
 		server = self.servers[0]
 		conn = server.connection

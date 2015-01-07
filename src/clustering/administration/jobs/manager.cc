@@ -8,8 +8,9 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/context.hpp"
 
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(jobs_manager_business_card_t,
-                                    get_job_reports_mailbox_address);
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
+                                    get_job_reports_mailbox_address,
+                                    job_interrupt_mailbox_address);
 
 const uuid_u jobs_manager_t::base_sindex_id =
     str_to_uuid("74d855a5-0c40-4930-a451-d1ce508ef2d2");
@@ -17,18 +18,25 @@ const uuid_u jobs_manager_t::base_sindex_id =
 const uuid_u jobs_manager_t::base_disk_compaction_id =
     str_to_uuid("b8766ece-d15c-4f96-bee5-c0edacf10c9c");
 
+const uuid_u jobs_manager_t::base_backfill_id =
+    str_to_uuid("a5e1b38d-c712-42d7-ab4c-f177a3fb0d20");
+
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id) :
     mailbox_manager(_mailbox_manager),
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
                                       this, ph::_1, ph::_2)),
+    job_interrupt_mailbox(_mailbox_manager,
+                          std::bind(&jobs_manager_t::on_job_interrupt,
+                                    this, ph::_1, ph::_2)),
     server_id(_server_id) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
     business_card.get_job_reports_mailbox_address =
         get_job_reports_mailbox.get_address();
+    business_card.job_interrupt_mailbox_address = job_interrupt_mailbox.get_address();
     return business_card;
 }
 
@@ -93,7 +101,47 @@ void jobs_manager_t::on_get_job_reports(
             // it being displayed later.
             job_reports.emplace_back(id, "disk_compaction", -1);
         }
+
+        for (auto const &report : reactor_driver->get_backfill_progress()) {
+            // Only report the duration of backfills still in progress.
+            double duration = report.second.is_ready
+                ? 0
+                : time - std::min(report.second.start_time, time);
+
+            std::string base_str =
+                uuid_to_str(server_id) + uuid_to_str(report.first.first);
+            for (auto const &backfill : report.second.backfills) {
+                uuid_u id = uuid_u::from_hash(
+                    base_backfill_id, base_str + uuid_to_str(backfill.first.get_uuid()));
+
+                job_reports.emplace_back(
+                    id,
+                    "backfill",
+                    duration,
+                    report.first.first,
+                    report.second.is_ready,
+                    backfill.second,
+                    backfill.first,
+                    server_id);
+            }
+        }
     }
 
     send(mailbox_manager, reply_address, job_reports);
+}
+
+void jobs_manager_t::on_job_interrupt(
+        UNUSED signal_t *interruptor, uuid_u const &id) {
+    pmap(get_num_threads(), [&](int32_t threadnum) {
+        on_thread_t thread((threadnum_t(threadnum)));
+
+        if (rdb_context != nullptr) {
+            rdb_context_t::query_jobs_t *query_jobs =
+                rdb_context->get_query_jobs_for_this_thread();
+            rdb_context_t::query_jobs_t::const_iterator iterator = query_jobs->find(id);
+            if (iterator != query_jobs->end()) {
+                iterator->second.interruptor->pulse_if_not_already_pulsed();
+            }
+        }
+    });
 }

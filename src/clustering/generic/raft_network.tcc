@@ -16,8 +16,7 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
     peers_map_transformer(peers),
     member(this_member_id, storage, this, persistent_state),
     rpc_mailbox(mailbox_manager,
-        std::bind(&raft_networked_member_t::on_rpc, this,
-            ph::_1, ph::_2, auto_drainer_t::lock_t(&drainer)))
+        std::bind(&raft_networked_member_t::on_rpc, this, ph::_1, ph::_2, ph::_3))
     { }
 
 template<class state_t>
@@ -40,20 +39,21 @@ bool raft_networked_member_t<state_t>::send_rpc(
         return false;
     }
     /* Send message and wait for a reply */
-    disconnect_watcher_t watcher(mailbox_manager, bcard.rpc.get_peer());
+    disconnect_watcher_t watcher(mailbox_manager, bcard->rpc.get_peer());
     cond_t got_reply;
     mailbox_t<void(raft_rpc_reply_t)> reply_mailbox(
         mailbox_manager,
-        [&](raft_rpc_reply_t &&reply) {
+        [&](signal_t *, raft_rpc_reply_t &&reply) {
             *reply_out = reply;
             got_reply.pulse();
         });
-    send(mailbox_manager, addr, request, reply_mailbox.get_address());
+    send(mailbox_manager, bcard->rpc, request, reply_mailbox.get_address());
     wait_any_t waiter(&watcher, &got_reply);
     wait_interruptible(&waiter, interruptor);
     return got_reply.is_pulsed();
 }
 
+template<class state_t>
 watchable_map_t<raft_member_id_t, std::nullptr_t> *
         raft_networked_member_t<state_t>::get_connected_members() {
     return &peers_map_transformer;
@@ -61,11 +61,11 @@ watchable_map_t<raft_member_id_t, std::nullptr_t> *
 
 template<class state_t>
 void raft_networked_member_t<state_t>::on_rpc(
+        signal_t *interruptor,
         const raft_rpc_request_t<state_t> &request,
-        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr,
-        auto_drainer_t::lock_t keepalive) {
+        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr) {
     raft_rpc_reply_t reply;
-    member.on_rpc(request, keepalive.get_drain_signal(), &reply);
+    member.on_rpc(request, interruptor, &reply);
     send(mailbox_manager, reply_addr, reply);
 }
 

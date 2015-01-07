@@ -64,9 +64,9 @@ bool server_status_artificial_table_backend_t::format_row(
     }
 
     if (directory) {
-        builder.overwrite("status", ql::datum_t("available"));
+        builder.overwrite("status", ql::datum_t("connected"));
     } else {
-        builder.overwrite("status", ql::datum_t("unavailable"));
+        builder.overwrite("status", ql::datum_t("disconnected"));
     }
 
     ql::datum_object_builder_t conn_builder;

@@ -41,32 +41,32 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     
     print("Splitting into two shards (%.2fs)" % (time.time() - startTime))
     shards = [
-        {'director':server1.name, 'replicas':[server1.name, server2.name]},
-        {'director':server2.name, 'replicas':[server2.name, server1.name]}
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]},
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]}
     ]
-    res = r.db(dbName).table_config(tableName).update({'shards':shards}).run(conn)
+    res = r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)
     assert res['errors'] == 0, 'Errors after splitting into two shards: %s' % repr(res)
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
-    print("Changing the primary (%.2fs)" % (time.time() - startTime))
+    print("Changing the primary replica (%.2fs)" % (time.time() - startTime))
     shards = [
-        {'director':server2.name, 'replicas':[server2.name, server1.name]},
-        {'director':server1.name, 'replicas':[server1.name, server2.name]}
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]},
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}
     ]
-    assert r.db(dbName).table_config(tableName).update({'shards':shards}).run(conn)['errors'] == 0
-    r.db(dbName).table_wait().run(conn)
+    assert r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)['errors'] == 0
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     print("Changing it back (%.2fs)" % (time.time() - startTime))
     shards = [
-        {'director':server2.name, 'replicas':[server2.name, server1.name]},
-        {'director':server1.name, 'replicas':[server1.name, server2.name]}
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]},
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}
     ]
-    assert r.db(dbName).table_config(tableName).update({'shards':shards}).run(conn)['errors'] == 0
+    assert r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)['errors'] == 0
 
     print("Waiting for it to take effect (%.2fs)" % (time.time() - startTime))
-    r.db(dbName).table_wait().run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
     assert len(list(r.db('rethinkdb').table('issues').run(conn))) == 0

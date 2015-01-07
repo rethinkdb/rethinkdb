@@ -43,24 +43,30 @@ parsed_stats_t::table_stats_t::table_stats_t() :
     read_bytes_per_sec(0), read_bytes_total(0),
     written_bytes_per_sec(0), written_bytes_total(0) { }
 
-parsed_stats_t::parsed_stats_t(const std::map<server_id_t, ql::datum_t> &stats) {
-    for (auto const &serv_pair : stats) {
-        server_stats_t &serv_stats = servers[serv_pair.first];
-
-        if (!serv_pair.second.has()) {
+parsed_stats_t::parsed_stats_t(const std::vector<ql::datum_t> &stats) {
+    for (auto const &s : stats) {
+        if (!s.has()) {
             continue;
         }
 
+        ql::datum_t server_id_datum = s.get_field("server_id",
+                                                  ql::throw_bool_t::NOTHROW);
+        server_id_t server_id;
+        std::string error;
+        bool res = convert_uuid_from_datum(server_id_datum, &server_id, &error);
+        guarantee(res, "Stats contained an invalid server id. %s", error.c_str());
+
+        server_stats_t &serv_stats = servers[server_id];
+
         serv_stats.responsive = true;
-        r_sanity_check(serv_pair.second.get_type() == ql::datum_t::R_OBJECT);
-        for (size_t i = 0; i < serv_pair.second.obj_size(); ++i) {
-            std::pair<datum_string_t, ql::datum_t> perf_pair =
-                serv_pair.second.get_pair(i);
+        r_sanity_check(s.get_type() == ql::datum_t::R_OBJECT);
+        for (size_t i = 0; i < s.obj_size(); ++i) {
+            std::pair<datum_string_t, ql::datum_t> perf_pair = s.get_pair(i);
             if (perf_pair.first == "query_engine") {
                 store_query_engine_stats(perf_pair.second, &serv_stats);
             } else {
                 namespace_id_t table_id;
-                bool res = str_to_uuid(perf_pair.first.to_std(), &table_id);
+                res = str_to_uuid(perf_pair.first.to_std(), &table_id);
                 if (res) {
                     store_table_stats(table_id, perf_pair.second, &serv_stats);
                 }
@@ -113,7 +119,7 @@ void parsed_stats_t::store_shard_values(const ql::datum_t &shard_perf,
                                       &stats_out->written_docs_per_sec);
                     add_perfmon_value(sub_pair.second, "total_keys_read",
                                       &stats_out->read_docs_total);
-                    add_perfmon_value(sub_pair.second, "total_keys_read",
+                    add_perfmon_value(sub_pair.second, "total_keys_written",
                                       &stats_out->written_docs_total);
                 } else if (key == "cache") {
                     add_perfmon_value(sub_pair.second, "in_use_bytes",
@@ -146,7 +152,7 @@ void parsed_stats_t::store_serializer_values(const ql::datum_t &ser_perf,
                         &stats_out->garbage_bytes);
     store_perfmon_value(ser_perf, "serializer_bytes_in_use",
                         &stats_out->preallocated_bytes);
-    stats_out->data_bytes *= DEFAULT_EXTENT_SIZE;
+    stats_out->data_bytes = stats_out->data_bytes * DEFAULT_EXTENT_SIZE - stats_out->garbage_bytes;
     stats_out->metadata_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->preallocated_bytes -= stats_out->data_bytes +
         stats_out->garbage_bytes + stats_out->metadata_bytes;
@@ -248,12 +254,12 @@ std::set<std::vector<std::string> > stats_request_t::global_stats_filter() {
           {"[0-9A-Fa-f-]+", "serializers" } });
 }
 
-std::vector<std::pair<server_id_t, peer_id_t> > stats_request_t::all_peers(
-        server_config_client_t *server_config_client) {
-    std::vector<std::pair<server_id_t, peer_id_t> > res;
-    for (auto const &pair :
-            server_config_client->get_server_id_to_peer_id_map()->get()) {
-        res.push_back(pair);
+std::vector<peer_id_t> stats_request_t::all_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory) {
+    std::vector<peer_id_t> res;
+    res.reserve(directory.size());
+    for (auto const &pair : directory) {
+        res.push_back(pair.first);
     }
     return res;
 }
@@ -281,9 +287,10 @@ std::set<std::vector<std::string> > cluster_stats_request_t::get_filter() const 
           {".*", "serializers", "shard_[0-9]+", "btree-.*", "keys_.*" } });
 }
 
-std::vector<std::pair<server_id_t, peer_id_t> > cluster_stats_request_t::get_peers(
-        server_config_client_t *server_config_client) const {
-    return all_peers(server_config_client);
+std::vector<peer_id_t> cluster_stats_request_t::get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+        server_config_client_t *) const {
+    return all_peers(directory);
 }
 
 bool cluster_stats_request_t::check_existence(const metadata_t &) const {
@@ -342,9 +349,10 @@ std::set<std::vector<std::string> > table_stats_request_t::get_filter() const {
         });
 }
 
-std::vector<std::pair<server_id_t, peer_id_t> > table_stats_request_t::get_peers(
-        server_config_client_t *server_config_client) const {
-    return all_peers(server_config_client);
+std::vector<peer_id_t> table_stats_request_t::get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+        server_config_client_t *) const {
+    return all_peers(directory);
 }
 
 bool table_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -408,15 +416,15 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
           {".*", "serializers", "shard_[0-9]+", "btree-.*" } });
 }
 
-std::vector<std::pair<server_id_t, peer_id_t> > server_stats_request_t::get_peers(
+std::vector<peer_id_t> server_stats_request_t::get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
     boost::optional<peer_id_t> peer =
         server_config_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        return std::vector<std::pair<server_id_t, peer_id_t> >();
+        return std::vector<peer_id_t>();
     }
-    return std::vector<std::pair<server_id_t, peer_id_t> >(1,
-        std::make_pair(server_id, peer.get()));
+    return std::vector<peer_id_t>(1, peer.get());
 }
 
 bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
@@ -499,15 +507,15 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
         { uuid_to_str(table_id), "serializers" } });
 }
 
-std::vector<std::pair<server_id_t, peer_id_t> > table_server_stats_request_t::get_peers(
+std::vector<peer_id_t> table_server_stats_request_t::get_peers(
+        const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
     boost::optional<peer_id_t> peer =
         server_config_client->get_peer_id_for_server_id(server_id);
     if (!static_cast<bool>(peer)) {
-        return std::vector<std::pair<server_id_t, peer_id_t> >();
+        return std::vector<peer_id_t>();
     }
-    return std::vector<std::pair<server_id_t, peer_id_t> >(1,
-        std::make_pair(server_id, peer.get()));
+    return std::vector<peer_id_t>(1, peer.get());
 }
 
 bool table_server_stats_request_t::check_existence(const metadata_t &metadata) const {

@@ -227,10 +227,10 @@ void run_backfill_test(io_backender_t *io_backender,
         branch_history_manager,
         &store2,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
-        order_source);
+        order_source,
+        nullptr);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
@@ -299,10 +299,10 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         branch_history_manager,
         &store2,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
-        order_source);
+        order_source,
+        nullptr);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());

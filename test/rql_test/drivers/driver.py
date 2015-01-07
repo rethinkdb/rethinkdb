@@ -86,7 +86,7 @@ def check_pp(src, query):
     #    print("Printed query: %s", composed)
 
 class Lst:
-    def __init__(self, lst, **kwargs):
+    def __init__(self, lst, partial=None, **kwargs):
         self.lst = lst
         self.kwargs = kwargs
 
@@ -106,37 +106,55 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
-    def __init__(self, lst, **kwargs):
+    def __init__(self, lst, partial=False, **kwargs):
         self.lst = sorted(lst, key=lambda x: repr(x))
+        self.partial = partial == True
         self.kwargs = kwargs
 
     def __eq__(self, other):
         if not hasattr(other, '__iter__'):
             return False
-
+        
         other = sorted(other, key=lambda x: repr(x))
-
-        if len(self.lst) != len(other):
-            return False
-
-        for a, b in zip(self.lst, other):
-            if not eq(a, **self.kwargs)(b):
+        
+        if self.partial:
+            if len(self.lst) > len(other):
                 return False
-
+            
+            otherIter = iter(other)
+            for mine in self.lst:
+                for theirs in otherIter:
+                    if eq(mine, **self.kwargs)(theirs):
+                        break
+                else:
+                    return False
+        else:
+            if len(self.lst) != len(other):
+                return False
+        
+            for a, b in zip(self.lst, other):
+                if not eq(a, **self.kwargs)(b):
+                    return False
+        
         return True
 
 class Dct:
-    def __init__(self, dct, **kwargs):
+    def __init__(self, dct, partial=False, **kwargs):
         assert isinstance(dct, dict)
         self.dct = dct
+        self.partial = partial == True
         self.kwargs = kwargs
 
     def __eq__(self, other):
         if not isinstance(other, dict):
             return False
         
-        if not set(self.keys()) == set(other.keys()):
-            return False
+        if self.partial is True:
+            if not set(self.keys()).issubset(set(other.keys())):
+                return False
+        else:
+            if not set(self.keys()) == set(other.keys()):
+                return False
         
         for key in self.dct:
             if not key in other:
@@ -195,7 +213,7 @@ class Err:
 
 
 class Arr:
-    def __init__(self, length, thing=None, **kwargs):
+    def __init__(self, length, thing=None, partial=None, **kwargs):
         self.length = length
         self.thing = thing
         self.kwargs = kwargs
@@ -376,7 +394,7 @@ def setup_table(table_variable_name, table_name):
     def _teardown_table():
         if DB_AND_TABLE_NAME == "no_table_specified":
             res = r.db("test").table_drop(table_name).run(driver.cpp_conn)
-            assert res == {"dropped": 1}
+            assert res["tables_dropped"] == 1
         else:
             db, table = DB_AND_TABLE_NAME.split(".")
             res = r.db(db).table(table).delete().run(driver.cpp_conn)
@@ -387,7 +405,7 @@ def setup_table(table_variable_name, table_name):
     atexit.register(_teardown_table)
     if DB_AND_TABLE_NAME == "no_table_specified":
         res = r.db("test").table_create(table_name).run(driver.cpp_conn)
-        assert res == {"created": 1}
+        assert res["tables_created"] == 1
         globals()[table_variable_name] = r.db("test").table(table_name)
     else:
         db, table = DB_AND_TABLE_NAME.split(".")
@@ -402,6 +420,14 @@ def define(expr):
 
 def bag(lst):
     return Bag(lst)
+
+def partial(expected):
+    if hasattr(expected, 'keys'):
+        return Dct(expected, partial=True)
+    elif hasattr(expected, '__iter__'):
+        return Bag(expected, partial=True)
+    else:
+        raise ValueError('partial can only work on dicts or interables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)

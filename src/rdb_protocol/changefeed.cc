@@ -955,16 +955,15 @@ void limit_manager_t::abort(exc_t e) {
 }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
+RDB_IMPL_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
-RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
+RDB_IMPL_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
-
-RDB_IMPL_ME_SERIALIZABLE_5(
+RDB_IMPL_SERIALIZABLE_5(
     msg_t::change_t,
-    old_indexes, new_indexes, pkey, empty_ok(old_val), empty_ok(new_val));
+    old_indexes, new_indexes, pkey, old_val, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
@@ -1468,7 +1467,7 @@ public:
 
             std::vector<std::pair<datum_t, datum_t> > pairs;
             // This has to be a multimap because of multi-indexes.
-            std::multimap<datum_t, decltype(pairs)::iterator,
+            std::multimap<datum_t, decltype(pairs.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
                 new_val_index(
                     [](const datum_t &a, const datum_t &b) {
@@ -1486,7 +1485,7 @@ public:
                     = note_change_impl(change_pair.first, change_pair.second);
                 if (pair.first.has() || pair.second.has()) {
                     auto it = new_val_index.find(pair.first);
-                    decltype(pairs)::iterator pairs_it;
+                    decltype(pairs.begin()) pairs_it;
                     if (it == new_val_index.end()) {
                         pairs.push_back(pair);
                         pairs_it = pairs.end()-1;
@@ -1836,7 +1835,7 @@ private:
 void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
     // messages because we haven't managed to get a message to the
-    // stop mailboxes for some of the masters yet).  This also stops
+    // stop mailboxes for some of the primary replicas yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer. Because we acquire the auto drainer, we don't pay any
     // attention to the mailbox's signal.

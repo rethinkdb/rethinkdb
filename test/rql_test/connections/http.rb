@@ -7,6 +7,18 @@ require_relative '../importRethinkDB.rb'
 # --
 
 $port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+$httpbinAddress = ARGV[1] || ENV['HTTPBIN_TEST_ADDRESS'] || 'httpbin.org'
+$httpAddress = ARGV[2] || ENV['HTTP_TEST_ADDRESS'] || 'dev.rethinkdb.com'
+$httpsAddress = ARGV[3] || ENV['HTTPS_TEST_ADDRESS'] || 'dev.rethinkdb.com'
+
+if $httpAddress == 'dev.rethinkdb.com'
+    $imageAddress = 'www.rethinkdb.com/assets/images/docs/api_illustrations'
+else
+    $imageAddress = $httpAddress
+end
+
+puts 'RethinkDB Driver Port: ' + $port.to_s
+
 $c = r.connect(:host => 'localhost', :port => $port).repl
 
 def expect_eq(left, right)
@@ -32,7 +44,7 @@ def err_string(method, url, msg)
 end
 
 def test_get()
-    url = 'httpbin.org/get'
+    url = 'http://' + $httpbinAddress + '/get'
 
     res = r.http(url).run()
     expect_eq(res['args'], {})
@@ -41,7 +53,7 @@ def test_get()
 end
 
 def test_params()
-    url = 'httpbin.org/get'
+    url = 'http://' + $httpbinAddress + '/get'
 
     res = r.http(url, {:params => {'fake' => 123, 'things' => 'stuff', 'nil' => nil}}).run()
     expect_eq(res['args']['fake'], '123')
@@ -54,7 +66,7 @@ def test_params()
 end
 
 def test_headers()
-    url = 'httpbin.org/headers'
+    url = 'http://' + $httpbinAddress + '/headers'
 
     res = r.http(url, {:header => {'Test' => 'entry', 'Accept-Encoding' => 'override'}}).run()
     expect_eq(res['headers']['Test'], 'entry')
@@ -66,7 +78,7 @@ def test_headers()
 end
 
 def test_head()
-    url = 'httpbin.org/get'
+    url = 'http://' + $httpbinAddress + '/get'
 
     res = r.http(url, {:method => 'HEAD', :result_format => 'text'}).run()
     expect_eq(res, nil)
@@ -76,7 +88,7 @@ def test_head()
 end
 
 def test_post()
-    url = 'httpbin.org/post'
+    url = 'http://' + $httpbinAddress + '/post'
     post_data = {'str' => '%in fo+', 'number' => 135.5,'nil' => nil}
     res = r.http(url, {:method => 'POST',
                        :data => post_data}).run()
@@ -111,7 +123,7 @@ $obj_data = {'nested' => {'arr' => [123.45, ['a', 555], 0.123],
 $str_data = '<arbitrary> +%data!$%^</arbitrary>'
 
 def test_put()
-    url = 'httpbin.org/put'
+    url = 'http://' + $httpbinAddress + '/put'
     res = r.http(url, {:method => 'PUT', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -121,7 +133,7 @@ def test_put()
 end
 
 def test_patch()
-    url = 'httpbin.org/patch'
+    url = 'http://' + $httpbinAddress + '/patch'
     res = r.http(url, {:method => 'PATCH', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -131,7 +143,7 @@ def test_patch()
 end
 
 def test_delete()
-    url = 'httpbin.org/delete'
+    url = 'http://' + $httpbinAddress + '/delete'
     res = r.http(url, {:method => 'DELETE', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -141,28 +153,28 @@ def test_delete()
 end
 
 def test_redirects()
-    url = 'httpbin.org/redirect/2'
+    url = 'http://' + $httpbinAddress + '/redirect/2'
     expect_error(r.http(url, {:redirects => 0}),
                  RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 302'))
     expect_error(r.http(url, {:redirects => 1}),
                  RethinkDB::RqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
     res = r.http(url, {:redirects => 2}).run()
-    expect_eq(res['headers']['Host'], 'httpbin.org')
+    expect_eq(res['headers']['Host'], $httpbinAddress)
 end
 
 def test_gzip()
-    res = r.http('httpbin.org/gzip').run()
+    res = r.http('http://' + $httpbinAddress + '/gzip').run()
     expect_eq(res['gzipped'], true)
 end
 
 def test_failed_json_parse()
-    url = 'httpbin.org/html'
+    url = 'http://' + $httpbinAddress + '/html'
     expect_error(r.http(url, {:result_format => 'json'}),
                  RethinkDB::RqlRuntimeError, err_string('GET', url, 'failed to parse JSON response'))
 end
 
 def test_basic_auth()
-    url = 'http://httpbin.org/basic-auth/azure/hunter2'
+    url = 'http://' + $httpbinAddress + '/basic-auth/azure/hunter2'
 
     # Wrong password
     expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'wrong'}}),
@@ -185,34 +197,26 @@ def test_basic_auth()
     expect_eq(res, {'authenticated' => true, 'user' => 'azure'})
 end
 
-# This test requires us to set a cookie (any cookie) due to a bug in httpbin.org
-# See https://github.com/kennethreitz/httpbin/issues/124
 def test_digest_auth()
-    url = 'http://httpbin.org/digest-auth/auth/azure/hunter2'
+    url = 'http://' + $httpbinAddress + '/digest-auth/auth/azure/hunter2'
 
     # Wrong password
-    expect_error(r.http(url, {:header => {'Cookie' => 'dummy'},
-                              :redirects => 5,
+    expect_error(r.http(url, {:redirects => 5,
                               :auth => {:type => 'digest', :user => 'azure', :pass => 'wrong'}}),
                  RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
-    # httpbin apparently doesn't check the username, just the password
     # Wrong username
-    #expect_error(r.http(url, {:header => {'Cookie' => 'dummy'},
-    #                          :redirects => 5,
-    #                          :auth => {:type => 'digest', :user => 'fake', :pass => 'hunter2'}}),
-    #             RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(r.http(url, {:redirects => 5,
+                              :auth => {:type => 'digest', :user => 'fake', :pass => 'hunter2'}}),
+                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
-    # httpbin has a 500 error on this
     # Wrong authentication type
-    #expect_error(r.http(url, {:header => {'Cookie' => 'dummy'},
-    #                          :redirects => 5,
-    #                          :auth => {:type => 'basic', :user => 'azure', :pass => 'hunter2'}}),
-    #             RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(r.http(url, {:redirects => 5,
+                              :auth => {:type => 'basic', :user => 'azure', :pass => 'hunter2'}}),
+                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
-    res = r.http(url, {:header => {'Cookie' => 'dummy'},
-                       :redirects => 5,
+    res = r.http(url, {:redirects => 5,
                        :auth => {:type => 'digest', :user => 'azure', :pass => 'hunter2'}}).run()
     expect_eq(res, {'authenticated' => true, 'user' => 'azure'})
 end
@@ -226,17 +230,17 @@ def test_verify()
         expect_eq(res, nil)
     end
 
-    test_part('http://dev.rethinkdb.com')
-    test_part('https://dev.rethinkdb.com')
+    test_part('http://' + $httpAddress + '/redirect')
+    test_part('https://' + $httpsAddress)
 end
 
 def test_binary()
-    res = r.http('www.rethinkdb.com/assets/images/docs/api_illustrations/quickstart.png') \
+    res = r.http('http://' + $imageAddress + '/quickstart.png') \
            .do{|row| [row.type_of(), row.count().gt(0)]} \
            .run()
     expect_eq(res, ['PTYPE<BINARY>', true])
 
-    res = r.http('httpbin.org/get',{:result_format => 'binary'}) \
+    res = r.http('http://' + $httpbinAddress + '/get',{:result_format => 'binary'}) \
            .do{|row| [row.type_of(), row.slice(0,1).coerce_to("string")]} \
            .run()
     expect_eq(res, ['PTYPE<BINARY>', '{'])
