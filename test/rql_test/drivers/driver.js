@@ -213,7 +213,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 TRACE("==== runTest == non-function: " + src)
 
                 if (!runopts) {
-                    runopts = {max_batch_rows: 3}
+                    runopts = {maxBatchRows: 3}
                 } else {
                     for (var opt in runopts) {
                         runopts[opt] = eval(runopts[opt])
