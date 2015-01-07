@@ -276,6 +276,9 @@ class Connection extends events.EventEmitter
         query.query = term.build()
         query.token = token
         # Set global options
+        for own key, value of opts
+            query.global_optargs[@_fromCamelCase(key)] = r.expr(value).build()
+
         if @db?
             query.global_optargs['db'] = r.db(@db).build()
 
@@ -288,27 +291,6 @@ class Connection extends events.EventEmitter
         if opts.profile?
             query.global_optargs['profile'] = r.expr(!!opts.profile).build()
 
-        if opts.durability?
-            query.global_optargs['durability'] = r.expr(opts.durability).build()
-
-        if opts.minBatchRows?
-            query.global_optargs['min_batch_rows'] = r.expr(opts.minBatchRows).build()
-
-        if opts.maxBatchRows?
-            query.global_optargs['max_batch_rows'] = r.expr(opts.maxBatchRows).build()
-
-        if opts.minBatchBytes?
-            query.global_optargs['min_batch_bytes'] = r.expr(opts.minBatchBytes).build()
-
-        if opts.maxBatchSeconds?
-            query.global_optargs['max_batch_seconds'] = r.expr(opts.maxBatchSeconds).build()
-
-        if opts.firstBatchScaledownFactor?
-            query.global_optargs['first_batch_scaledown_factor'] = r.expr(opts.firstBatchScaledownFactor).build()
-
-        if opts.arrayLimit?
-            query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()
-
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
@@ -317,6 +299,11 @@ class Connection extends events.EventEmitter
 
         if opts.noreply? and opts.noreply and typeof(cb) is 'function'
             cb null # There is no error and result is `undefined`
+
+    _fromCamelCase: (token) ->
+        token.replace(/[A-Z]/g, (match) =>
+            "_"+match.toLowerCase()
+        )
 
     _continueQuery: (token) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."

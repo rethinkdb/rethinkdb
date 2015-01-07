@@ -1,0 +1,13 @@
+desc: 2052 -- Verify that the server rejects bogus global options.
+tests:
+  - cd: r.expr(1)
+    runopts:
+      array_limit: "16"
+    ot: 1
+  - cd: r.expr(1)
+    runopts:
+      obviously_bogus: "16"
+    ot:
+      rb: err("RqlDriverError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])
+      js: err("RqlClientError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])
+      py: err("RqlClientError", "MALFORMED QUERY (global optarg `obviously_bogus` is not recognized)", [])

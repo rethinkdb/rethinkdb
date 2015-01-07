@@ -36,27 +36,27 @@ function eq_test(expected, result, compOpts, partial) {
         return expected(result);
     } else if (result instanceof Function) {
         return result(expected);
-    
+
     } else if (typeof expected !== typeof result) {
         return false;
-    
+
     } else if (parseFloat(expected) === expected && parseFloat(result) === result) {
         if (compOpts && 'precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
             return Math.abs(expected - result) <= compOpts['precision'];
         } else {
             return expected === result;
         }
-    
+
     } else if (typeof expected === 'string') {
         expected = expected.replace(/\nFailed assertion([\r\n]|.)*/m, "");
         result = result.replace(/\nFailed assertion([\r\n]|.)*/m, "");
         return expected == result;
-        
+
     } else if (Array.isArray(expected)) {
         if (partial) {
             // short circut on length
             if (expected.length > result.length) return false;
-            
+
             // Recurse on each element of expected
             var resultIndex = 0;
             for (var expectedIndex in expected) {
@@ -74,7 +74,7 @@ function eq_test(expected, result, compOpts, partial) {
         } else {
             // short circut on length
             if (expected.length !== result.length) return false;
-            
+
             // Recurse on each element of expected
             for (var i = 0; i < expected.length; i++) {
                 if (!eq_test(expected[i], result[i], compOpts)) return false;
@@ -89,11 +89,11 @@ function eq_test(expected, result, compOpts, partial) {
             if (expected[i] !== result[i]) return false;
         }
         return true;
-    
+
     } else if (expected instanceof Object) {
         // short circut on keys
         if (!eq_test(Object.keys(expected).sort(), Object.keys(result).sort(), compOpts, partial)) return false;
-        
+
         // Recurse on each property of object
         for (var key in expected) {
             if (expected.hasOwnProperty(key) && !eq_test(expected[key], result[key], compOpts)) return false;
@@ -190,12 +190,12 @@ process.on(
 
 // Connect first to cpp server
 r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
-            
+
     if(cpp_conn_err){
         console.log("Failed to connect to server:", cpp_conn_err);
         process.exit(1);
     }
-    
+
     // Pull a test off the queue and run it
     function runTest() { try {
         var testPair = tests.shift();
@@ -211,15 +211,15 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 var runopts = testPair[3];
                 var testopts = testPair[4];
                 TRACE("==== runTest == non-function: " + src)
-                
+
                 if (!runopts) {
-                    runopts = {batchConf: {max_els: 3}}
+                    runopts = {max_batch_rows: 3}
                 } else {
                     for (var opt in runopts) {
                         runopts[opt] = eval(runopts[opt])
                     }
-                    if (!("batchConf" in runopts)) {
-                        runopts.batchConf = {max_els: 3}
+                    if (!("maxBatchRows" in runopts)) {
+                        runopts.maxBatchRows = 3
                     }
                 }
                 if (!testopts) {
@@ -229,7 +229,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 if ('precision' in testopts) {
                     compOpts['precision'] = testopts['precision']
                 }
-                
+
                 // - convert expected value into a function for comparison
                 try {
                     with (defines) {
@@ -243,9 +243,9 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 }
                 if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
-                
+
                 TRACE('expected value: ' + exp_fun.toString() + ' from ' + exp_val)
-                
+
                 // - build the test
                 var test = null;
                 try {
@@ -264,12 +264,12 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                     } else {
                         printTestFailure(testName, src, ["Error eval'ing test src:\n\t", bld_err]);
                     }
-    
+
                     // continue to next test
                     runTest();
                     return;
                 }
-    
+
                 // Run test first on cpp server
                 if (testopts && testopts['reql-query'] == false) {
                     TRACE("non reql-query result: " + test)
@@ -286,7 +286,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                         with (defines) {
                             test.run(cpp_conn, clone_runopts, function(err, cursor) {run_callback(err, cursor, clone_testopts)} );
                         }
-                    
+
                     } catch(err) {
                         TRACE("querry error - " + err)
                         if (exp_fun.isErr) {
@@ -296,13 +296,13 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                         } else {
                             printTestFailure(testName, src, ["Error running test:\n\t", err]);
                         }
-    
+
                         // Continue to next test
                         runTest();
                         return;
                     }
                 }
-                
+
                 function afterArray(cpp_err, cpp_res) { try {
                     TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " exected function: " + exp_fun.toString());
                     if (cpp_err) {
@@ -319,7 +319,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                             } else {
                                 info = JSON.stringify(cpp_res);
                             }
-                            
+
                             if (cpp_err.stack) {
                                 info += "\n\nStack:\n" + cpp_err.stack.toString();
                             }
@@ -328,7 +328,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                     } else if (!exp_fun(cpp_res)) {
                         printTestFailure(testName, src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(cpp_res), "\n\tEXPECTED: ", exp_val]);
                     }
-    
+
                     // Continue to next test. Tests are fully sequential
                     // so you can rely on previous queries results in
                     // subsequent tests.
@@ -338,11 +338,11 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                     console.log("stack: " + String(err.stack))
                     unexpectedException("afterArray", testName, err);
                 } }
-                 
+
                 function process_iterable(feed, test_options) {
                     TRACE('process_iterable')
                     var accumulator = [];
-                    
+
                     feed.each(
                         function(err, _row) {
                             TRACE('process_iterable_internal')
@@ -372,14 +372,14 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                         }
                     );
                 }
-                
+
                 function run_callback(cpp_err, cpp_res_cursor, test_options) { try {
                     TRACE("run_callback src:" + src + ", err:" + cpp_err + ", result:" + cpp_res_cursor);
-                    
+
                     if (test_options && test_options['variable']) {
                         defines[test_options['variable']] = cpp_res_cursor;
                     }
-                    
+
                     if (cpp_err) {
                         afterArray(cpp_err, null, test_options);
                     } else if (cpp_res_cursor instanceof Object && cpp_res_cursor.toArray) {
@@ -415,7 +415,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
         console.log("stack: " + String(err.stack))
         unexpectedException("runTest", testName, testPair[1], err);
     } }
-    
+
     // Start the recursion though all the tests
     r.dbCreate('test').run(cpp_conn, runTest);
 });

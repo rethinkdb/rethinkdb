@@ -91,11 +91,6 @@ class TermBase
         if callback? and typeof callback isnt 'function'
             return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
-        # Check if the arguments are valid types
-        for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit', 'identifierFormat']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>, identifierFormat: <string>}."))
-                    .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
 
