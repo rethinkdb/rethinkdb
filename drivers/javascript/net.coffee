@@ -277,7 +277,7 @@ class Connection extends events.EventEmitter
         query.token = token
         # Set global options
         for own key, value of opts
-            query.global_optargs[@_fromCamelCase(key)] = r.expr(value).build()
+            query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
 
         if @db?
             query.global_optargs['db'] = r.db(@db).build()
@@ -299,11 +299,6 @@ class Connection extends events.EventEmitter
 
         if opts.noreply? and opts.noreply and typeof(cb) is 'function'
             cb null # There is no error and result is `undefined`
-
-    _fromCamelCase: (token) ->
-        token.replace(/[A-Z]/g, (match) =>
-            "_"+match.toLowerCase()
-        )
 
     _continueQuery: (token) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."

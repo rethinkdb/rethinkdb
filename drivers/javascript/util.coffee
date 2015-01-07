@@ -44,6 +44,16 @@ module.exports.toArrayBuffer = (node_buffer) ->
         arr[i] = value
     return arr.buffer
 
+module.exports.fromCamelCase = (token) ->
+    token.replace(/[A-Z]/g, (match) =>
+        "_"+match.toLowerCase()
+    )
+
+module.exports.toCamelCase = (token) ->
+    token.replace(/_[a-z]/g, (match) =>
+        match[1].toUpperCase()
+    )
+
 convertPseudotype = (obj, opts) ->
     # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
     # second layer of type switching here on the obfuscated field "$reql_type$"
