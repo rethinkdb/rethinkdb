@@ -207,9 +207,15 @@ void run(protob_t<Query> q,
          Response *res) {
     try {
         validate_pb(*q);
-        validate_optargs(*q);
     } catch (const base_exc_t &e) {
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+        return;
+    }
+
+    try {
+        validate_optargs(*q);
+    } catch (const base_exc_t &e) {
+        fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
         return;
     }
 #ifdef INSTRUMENT

@@ -7,7 +7,4 @@ tests:
   - cd: r.expr(1)
     runopts:
       obviously_bogus: "16"
-    ot:
-      rb: err("RqlDriverError", "Unrecognized global optional argument `obviously_bogus`.", [])
-      js: err("RqlClientError", "Unrecognized global optional argument `obviously_bogus`.", [])
-      py: err("RqlClientError", "Unrecognized global optional argument `obviously_bogus`.", [])
+    ot: err("RqlCompileError", "Unrecognized global optional argument `obviously_bogus`.", [])
