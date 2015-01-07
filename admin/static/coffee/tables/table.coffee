@@ -36,23 +36,23 @@ module 'TableView', ->
                     r.db(system_db).table('server_config').coerceTo('array'),
                     r.db(system_db).table('table_status').get(this_id),
                     r.db(system_db).table('table_config').get(this_id),
-                    (server_config, table, table_config) ->
+                    (server_config, table_status, table_config) ->
                         r.branch(
-                            table.eq(null),
+                            table_status.eq(null),
                             null,
-                            table.merge(
+                            table_status.merge(
                                 max_shards: 32
-                                num_shards: table("shards").count()
+                                num_shards: table_config("shards").count()
                                 num_servers: server_config.count()
                                 num_default_servers: server_config.filter((server) ->
                                     server('tags').contains('default')).count()
-                                num_available_shards: table("shards").count((row) -> row('primary_replica').ne(null))
-                                num_replicas: table("shards").concatMap( (shard) -> shard('replicas')).count()
-                                num_available_replicas: table("shards").concatMap((shard) ->
+                                num_available_shards: table_status("shards").count((row) -> row('primary_replica').ne(null))
+                                num_replicas: table_config("shards").concatMap( (shard) -> shard('replicas')).count()
+                                num_available_replicas: table_status("shards").concatMap((shard) ->
                                     shard('replicas').filter({state: "ready"})).count()
-                                num_replicas_per_shard: table("shards").map((shard) -> shard('replicas').count()).max()
-                                status: table('status')
-                                id: table("id")
+                                num_replicas_per_shard: table_config("shards").map((shard) -> shard('replicas').count()).max()
+                                status: table_status('status')
+                                id: table_status("id")
                                 # These are updated below if the table is ready
                             ).without('shards')
                         )
@@ -66,33 +66,33 @@ module 'TableView', ->
                 r.db(system_db).table('table_status').get(this_id),
                 r.db(system_db).table('table_config').get(this_id),
                 r.db(system_db).table('server_config').coerceTo('array'),
-                (table, table_config, server_config) ->
-                    table.merge({
-                        indexes: r.db(table("db"))
-                            .table(table("name"), {useOutdated: true})
+                (table_status, table_config, server_config) ->
+                    table_status.merge({
+                        indexes: r.db(table_status("db"))
+                            .table(table_status("name"), {useOutdated: true})
                             .indexStatus()
                             .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
                             .merge( (index) -> {
                                 id: index("index")
-                                db: table("db")
-                                table: table("name")
+                                db: table_status("db")
+                                table: table_status("name")
                             }) # add an id for backbone
-                        distribution: r.db(table('db'))
-                            .table(table('name'), {useOutdated: true})
+                        distribution: r.db(table_status('db'))
+                            .table(table_status('name'), {useOutdated: true})
                             .info()('doc_count_estimates')
                             .map(r.range(), (num_keys, position) ->
                                 num_keys: num_keys
                                 id: position)
                             .coerceTo('array')
-                        total_keys: r.db(table('db'))
-                            .table(table('name'), {useOutdated: true})
+                        total_keys: r.db(table_status('db'))
+                            .table(table_status('name'), {useOutdated: true})
                             .info()('doc_count_estimates')
                             .sum()
                         shards_assignments: table_config("shards").map(r.range(),
                             (shard, position) ->
                                 id: position.add(1)
-                                num_keys: r.db(table('db'))
-                                    .table(table('name'), {useOutdated: true})
+                                num_keys: r.db(table_status('db'))
+                                    .table(table_status('name'), {useOutdated: true})
                                     .info()('doc_count_estimates')(position)
                                 primary:
                                     id: server_config.filter({name: shard("primary_replica")}).nth(0)("id")

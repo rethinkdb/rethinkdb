@@ -3,10 +3,10 @@
         <button class="btn btn-danger solve-issue remove-server">
           Permanently remove
         </button>
-        <p class="issue-type">Server down</p>
+        <p class="issue-type">Server disconnected</p>
         <p class="message">
          <a class="change-route" href="#servers/{{info.server_id}}"> {{info.server}}</a>
-          is inaccessible</p>
+          is disconnected</p>
         {{!-- Uncomment this when the time attribute is re-added
         <p class="datetime"><abbr class="timeago" title="{{time}}">{{time}}</abbr></p>
         --}}
@@ -14,7 +14,7 @@
     <hr />
     <div class="issue-details">
       <p>
-        Server <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_name}}</a> is unavailable from:
+        Server <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_name}}</a> is disconnected from:
       </p>
       <ul>
         {{#each info.affected_servers}}

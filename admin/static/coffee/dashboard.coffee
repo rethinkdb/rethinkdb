@@ -25,13 +25,14 @@ module 'DashboardView', ->
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
                     num_primaries: table_config('shards').concatMap(identity)("primary_replica").count()
-                    num_available_primaries: table_status.map((table) ->
-                        table('shards').map((shard) ->
+                    num_available_primaries: table_status.concatMap((table) ->
+                        table('shards').concatMap((shard) ->
                             shard('replicas').filter((replica) ->
-                                replica('server').eq(shard('primary_replica').and(replica('state').eq('ready')))
+                                replica('server').eq(shard('primary_replica'))
+                                    .and(replica('state').eq('ready'))
                             )
                         )
-                    ).concatMap(identity).count()
+                    ).count()
                     num_replicas: table_config('shards').concatMap(identity)("replicas").concatMap(identity).count()
                     num_available_replicas: table_status('shards')
                         .concatMap((shard) -> shard('replicas'))

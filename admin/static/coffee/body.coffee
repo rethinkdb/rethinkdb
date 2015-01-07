@@ -51,11 +51,24 @@ module 'MainView', ->
             })
 
         fetch_data: (server_uuid) =>
+            get_name = (id) ->
+                r.db('rethinkdb').table('server_config').get(id)('name')
+            issues_query = r.db(system_db).table('issues', identifierFormat: 'uuid')
+                .merge((issue) ->
+                    r.branch(issue('type').ne('server_disconnected'),
+                        issue,
+                        info:
+                            id: issue('info')('server')
+                            server: get_name(issue('info')('server'))
+                            affected_servers: issue('info')('affected_servers')
+                                .map(get_name)
+                    )
+                ).coerceTo('array')
             query = r.expr
                 databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
-                issues: r.db(system_db).table('issues').coerceTo("ARRAY")
+                issues: issues_query
                 num_issues: r.db(system_db).table('issues').count()
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->

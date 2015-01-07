@@ -361,13 +361,13 @@ module 'Modals', ->
             super
 
             if @$('.verification').val().toLowerCase() is 'remove'
-                query = r.db(system_db).table('table_config')
+                query = r.db(system_db).table('server_config')
                     .get(@model.get('id')).delete()
                 driver.run_once query, (err, result) =>
-                        if err?
-                            @on_success_with_error()
-                        else
-                            @on_success()
+                    if err?
+                        @on_success_with_error()
+                    else
+                        @on_success()
             else
                 @$('.error_verification').slideDown 'fast'
                 @reset_buttons()
