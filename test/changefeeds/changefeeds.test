@@ -242,7 +242,7 @@ class ChangefeedsTest_Destructive(ChangefeedsTest_Base):
 		'''For destructive tests we close down everything after each test'''
 		
 		lastError = None
-		for server in copy.copy(cls.cluster):
+		for server in copy.copy(cls.cluster.processes):
 			try:
 				server.check_and_stop()
 			except RuntimeError:
