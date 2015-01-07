@@ -9,9 +9,9 @@ tests:
     ## DB create
 
     - cd: r.db_create('a')
-      ot: ({'created':1})
+      ot: partial({'dbs_created':1})
     - cd: r.db_create('b')
-      ot: ({'created':1})
+      ot: partial({'dbs_created':1})
 
     ## DB list
     
@@ -20,35 +20,32 @@ tests:
 
     ## DB config
 
-    - cd: r.db_config().pluck('name')
-      ot: bag([{'name':'test'},{'name':'a'},{'name':'b'}])
-
-    - cd: r.db_config('a', 'b').pluck('name')
-      ot: bag([{'name':'a'},{'name':'b'}])
+    - cd: r.db('a').config()
+      ot: {'name':'a','uuid':uuid()}
 
     ## DB drop
 
     - cd: r.db_drop('b')
-      ot: ({'dropped':1})
+      ot: partial({'dbs_dropped':1})
 
     - cd: r.db_list()
       ot: bag(['rethinkdb', 'a', 'test'])
 
     - cd: r.db_drop('a')
-      ot: ({'dropped':1})
+      ot: partial({'dbs_dropped':1})
 
     - cd: r.db_list()
       ot: bag(['rethinkdb', 'test'])
 
     ## DB errors
     - cd: r.db_create('bar')
-      ot: ({'created':1})
+      ot: partial({'dbs_created':1})
 
     - cd: r.db_create('bar')
       ot: err('RqlRuntimeError', 'Database `bar` already exists.', [0])
 
     - cd: r.db_drop('bar')
-      ot: ({'dropped':1})
+      ot: partial({'dbs_dropped':1})
 
     - cd: r.db_drop('bar')
       ot: err('RqlRuntimeError', 'Database `bar` does not exist.', [0])

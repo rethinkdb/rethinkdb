@@ -16,11 +16,11 @@ RDB_IMPL_EQUALITY_COMPARABLE_3(outdated_index_issue_t,
                                issue_id, affected_server_ids, indexes);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(outdated_index_issue_t);
 
-RDB_IMPL_SERIALIZABLE_3(server_down_issue_t,
-                        issue_id, affected_server_ids, down_server_id);
-RDB_IMPL_EQUALITY_COMPARABLE_3(server_down_issue_t,
-                               issue_id, affected_server_ids, down_server_id);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_down_issue_t);
+RDB_IMPL_SERIALIZABLE_3(server_disconnected_issue_t,
+                        issue_id, affected_server_ids, disconnected_server_id);
+RDB_IMPL_EQUALITY_COMPARABLE_3(server_disconnected_issue_t,
+                               issue_id, affected_server_ids, disconnected_server_id);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_disconnected_issue_t);
 
 RDB_IMPL_SERIALIZABLE_4(server_ghost_issue_t,
                         issue_id, ghost_server_id, hostname, pid);
@@ -30,12 +30,12 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_ghost_issue_t);
 
 RDB_IMPL_SERIALIZABLE_4(local_issues_t,
                         log_write_issues,
-                        server_down_issues,
+                        server_disconnected_issues,
                         server_ghost_issues,
                         outdated_index_issues);
 RDB_IMPL_EQUALITY_COMPARABLE_4(local_issues_t,
                                log_write_issues,
-                               server_down_issues,
+                               server_disconnected_issues,
                                server_ghost_issues,
                                outdated_index_issues);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(local_issues_t);

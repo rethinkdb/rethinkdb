@@ -20,6 +20,10 @@
 struct http_result_t {
     ql::datum_t header;
     ql::datum_t body;
+
+    // Cookies are not used in the query language, but they should be passed to any
+    // subsequent HTTP requests for the query (e.g. if performing depagination).
+    std::vector<std::string> cookies;
     std::string error;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -98,6 +102,7 @@ struct http_opts_t {
     std::string url;
     ql::datum_t url_params;
     std::vector<std::string> header;
+    std::vector<std::string> cookies;
 
     // These will be used based on the method specified
     std::string data;

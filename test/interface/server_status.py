@@ -45,7 +45,7 @@ with driver.Cluster(output_folder='.') as cluster:
     #print("Status for a connected server:")
     #pprint.pprint(st)
     
-    assert st["status"] == "available"
+    assert st["status"] == "connected"
 
     assert isinstance(st["process"]["version"], basestring)
     assert st["process"]["version"].startswith("rethinkdb")
@@ -72,7 +72,7 @@ with driver.Cluster(output_folder='.') as cluster:
     
     st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
     assert st2["process"]["cache_size_mb"] == 123
-    assert st2["status"] == "available"
+    assert st2["status"] == "connected"
     
     assert st2["id"] == process2.uuid
     assert st2["process"]["pid"] == process2.process.pid
@@ -91,7 +91,7 @@ with driver.Cluster(output_folder='.') as cluster:
     deadline = time.time() + 10
     while time.time() < deadline:
         st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
-        if st2["status"] == "unavailable":
+        if st2["status"] == "disconnected":
             break
     else:
         assert False, 'Server b did not become unavalible after 10 seconds'

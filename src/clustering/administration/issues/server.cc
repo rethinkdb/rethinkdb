@@ -5,9 +5,9 @@
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 
-const datum_string_t server_down_issue_t::server_down_issue_type =
-    datum_string_t("server_down");
-const uuid_u server_down_issue_t::base_issue_id =
+const datum_string_t server_disconnected_issue_t::server_disconnected_issue_type =
+    datum_string_t("server_disconnected");
+const uuid_u server_disconnected_issue_t::base_issue_id =
     str_to_uuid("377a1d56-db29-416d-97f7-4ce1efc6e97b");
 
 const datum_string_t server_ghost_issue_t::server_ghost_issue_type =
@@ -15,27 +15,31 @@ const datum_string_t server_ghost_issue_t::server_ghost_issue_type =
 const uuid_u server_ghost_issue_t::base_issue_id =
     str_to_uuid("193df26a-eac7-4373-bf0a-12bbc0b869ed");
 
-server_down_issue_t::server_down_issue_t() { }
+server_disconnected_issue_t::server_disconnected_issue_t() { }
 
-server_down_issue_t::server_down_issue_t(const server_id_t &_down_server_id) :
-    local_issue_t(from_hash(base_issue_id, _down_server_id)),
-    down_server_id(_down_server_id) { }
+server_disconnected_issue_t::server_disconnected_issue_t(
+        const server_id_t &_disconnected_server_id) :
+    local_issue_t(from_hash(base_issue_id, _disconnected_server_id)),
+    disconnected_server_id(_disconnected_server_id) { }
 
-bool server_down_issue_t::build_info_and_description(
+bool server_disconnected_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
         server_config_client_t *server_config_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
-    ql::datum_t down_server_name_or_uuid;
-    name_string_t down_server_name;
-    if (!convert_server_id_to_datum(down_server_id, identifier_format,
-            server_config_client, &down_server_name_or_uuid, &down_server_name)) {
+    ql::datum_t disconnected_server_name_or_uuid;
+    name_string_t disconnected_server_name;
+    if (!convert_server_id_to_datum(disconnected_server_id,
+                                    identifier_format,
+                                    server_config_client,
+                                    &disconnected_server_name_or_uuid,
+                                    &disconnected_server_name)) {
         /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
-        brief window of time before the `server_down_issue_t` is destroyed. During that
-        time, if the user reads from `rethinkdb.issues`, we don't want to show them an
-        issue saying "__deleted_server__ is still connected". So we return `false` in
-        this case. */
+        brief window of time before the `server_disconnected_issue_t` is destroyed.
+        During that time, if the user reads from `rethinkdb.issues`, we don't want to
+        show them an issue saying "__deleted_server__ is still connected". So we return
+        `false` in this case. */
         return false;
     }
     ql::datum_array_builder_t affected_servers_builder(
@@ -62,7 +66,7 @@ bool server_down_issue_t::build_info_and_description(
         return false;
     }
     ql::datum_object_builder_t info_builder;
-    info_builder.overwrite("server", down_server_name_or_uuid);
+    info_builder.overwrite("server", disconnected_server_name_or_uuid);
     info_builder.overwrite("affected_servers",
         std::move(affected_servers_builder).to_datum());
     *info_out = std::move(info_builder).to_datum();
@@ -77,7 +81,7 @@ bool server_down_issue_t::build_info_and_description(
         "you can resolve this issue by deleting the server's entry from the "
         "`rethinkdb.server_config` system table. Once you've deleted the server's "
         "entry, its data and configuration will be discarded.",
-        down_server_name.c_str(),
+        disconnected_server_name.c_str(),
         (num_affected == 1 ? "" : "these servers: "),
         affected_servers_str.c_str()));
     return true;
@@ -120,10 +124,10 @@ server_issue_tracker_t::server_issue_tracker_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
         server_config_client_t *_server_config_client,
         server_config_server_t *_server_config_server) :
-    down_issues(std::vector<server_down_issue_t>()),
+    disconnected_issues(std::vector<server_disconnected_issue_t>()),
     ghost_issues(std::vector<server_ghost_issue_t>()),
-    down_subs(parent, down_issues.get_watchable(),
-        &local_issues_t::server_down_issues),
+    disconnected_subs(parent, disconnected_issues.get_watchable(),
+        &local_issues_t::server_disconnected_issues),
     ghost_subs(parent, ghost_issues.get_watchable(),
         &local_issues_t::server_ghost_issues),
     cluster_sl_view(_cluster_sl_view),
@@ -145,9 +149,9 @@ server_issue_tracker_t::server_issue_tracker_t(
 }
 
 server_issue_tracker_t::~server_issue_tracker_t() {
-    // Clear any outstanding down/ghost issues
-    down_issues.apply_atomic_op(
-        [] (std::vector<server_down_issue_t> *issues) -> bool {
+    // Clear any outstanding disconnected/ghost issues
+    disconnected_issues.apply_atomic_op(
+        [] (std::vector<server_disconnected_issue_t> *issues) -> bool {
             issues->clear();
             return true;
         });
@@ -159,7 +163,7 @@ server_issue_tracker_t::~server_issue_tracker_t() {
 }
 
 void server_issue_tracker_t::recompute() {
-    std::vector<server_down_issue_t> down_list;
+    std::vector<server_disconnected_issue_t> disconnected_list;
     std::vector<server_ghost_issue_t> ghost_list;
     for (auto const &pair : cluster_sl_view->get().servers.servers) {
         boost::optional<peer_id_t> peer_id =
@@ -170,7 +174,7 @@ void server_issue_tracker_t::recompute() {
                 */
                 continue;
             }
-            down_list.push_back(server_down_issue_t(pair.first));
+            disconnected_list.push_back(server_disconnected_issue_t(pair.first));
         } else if (pair.second.is_deleted() && static_cast<bool>(peer_id)) {
             directory_view->read_key(*peer_id,
                 [&](const cluster_directory_metadata_t *md) {
@@ -185,31 +189,30 @@ void server_issue_tracker_t::recompute() {
                 });
         }
     }
-    down_issues.set_value(down_list);
+    disconnected_issues.set_value(disconnected_list);
     ghost_issues.set_value(ghost_list);
 }
 
 void server_issue_tracker_t::combine(
         local_issues_t *local_issues,
         std::vector<scoped_ptr_t<issue_t> > *issues_out) {
-    // Combine down issues
+    // Combine disconnected issues
     {
-        std::map<server_id_t, server_down_issue_t*> combined_down_issues;
-        for (auto &down_issue : local_issues->server_down_issues) {
-            auto combined_it = combined_down_issues.find(down_issue.down_server_id);
-            if (combined_it == combined_down_issues.end()) {
-                combined_down_issues.insert(std::make_pair(
-                    down_issue.down_server_id,
-                    &down_issue));
+        std::map<server_id_t, server_disconnected_issue_t*> combined_issues;
+        for (auto &issue : local_issues->server_disconnected_issues) {
+            auto combined_it = combined_issues.find(issue.disconnected_server_id);
+            if (combined_it == combined_issues.end()) {
+                combined_issues.insert(std::make_pair(
+                    issue.disconnected_server_id, &issue));
             } else {
-                rassert(down_issue.affected_server_ids.size() == 1);
-                combined_it->second->add_server(down_issue.affected_server_ids[0]);
+                rassert(issue.affected_server_ids.size() == 1);
+                combined_it->second->add_server(issue.affected_server_ids[0]);
             }
         }
 
-        for (auto const &it : combined_down_issues) {
+        for (auto const &it : combined_issues) {
             issues_out->push_back(scoped_ptr_t<issue_t>(
-                new server_down_issue_t(*it.second)));
+                new server_disconnected_issue_t(*it.second)));
         }
     }
 

@@ -22,7 +22,7 @@ module 'ServerView', ->
                     server.merge( (server) ->
                         responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
-                                shards: table("shards").map(r.range(table('shards').count()), (shard, index) ->
+                                shards: table("shards").map(r.range(), (shard, index) ->
                                     shard.merge(
                                         num_keys: r.db(table('db')) \
                                             .table(table('name')) \
@@ -222,7 +222,7 @@ module 'ServerView', ->
             @listenTo @collection, 'remove', @render
 
         render: =>
-            if @model.get('status') != 'available'
+            if @model.get('status') != 'connected'
                 last_seen = $.timeago(
                     @model.get('connection').time_disconnected).slice(0, -4)
                 uptime = null

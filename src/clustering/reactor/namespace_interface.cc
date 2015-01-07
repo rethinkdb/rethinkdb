@@ -116,8 +116,9 @@ cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_
     region_t whole;
     region_join_result_t res = region_join(s, &whole);
     if (res != REGION_JOIN_OK || whole != region_t::universe()) {
-        throw cannot_perform_query_exc_t("cannot compute sharding scheme because "
-                                         "primary replicas are missing or duplicated");
+        throw cannot_perform_query_exc_t("cannot compute sharding scheme "
+                                         "because primary replicas are "
+                                         "unavailable or duplicated");
     }
     return std::set<region_t>(s.begin(), s.end());
 }

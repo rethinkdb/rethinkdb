@@ -94,7 +94,7 @@ public:
     counted_t<const db_t> db;
     const std::string name;   /* TODO: Make this a `name_string_t` */
     std::string display_name() {
-        return db->name + "." + name;
+        return db->name.str() + "." + name;
     }
 
     counted_t<datum_stream_t> as_seq(

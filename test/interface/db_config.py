@@ -29,7 +29,10 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
 
     assert list(r.db("rethinkdb").table("db_config").run(conn)) == []
     res = r.db_create("foo").run(conn)
-    assert res == {"created":1}
+    assert res["dbs_created"] == 1
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] is None
+    assert res["config_changes"][0]["new_val"] == r.db("foo").config().run(conn)
 
     rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 1 and rows[0]["name"] == "foo"
@@ -44,29 +47,33 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
     assert len(rows) == 1 and rows[0]["name"] == "foo2"
 
     res = r.db_create("bar").run(conn)
-    assert res == {"created": 1}
+    assert res["dbs_created"] == 1
 
     rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
     bar_uuid = [row["id"] for row in rows if row["name"] == "bar"][0]
 
-    rows = list(r.db_config().run(conn))
-    assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
-
-    rows = list(r.db_config("foo2").run(conn))
-    assert len(rows) == 1 and rows[0]["name"] == "foo2"
+    foo2_config = r.db("foo2").config().run(conn)
+    assert foo2_config["name"] == "foo2"
 
     try:
-        rows = r.db_config("not_a_database").run(conn)
+        rows = r.db("not_a_database").config().run(conn)
     except r.RqlRuntimeError:
         pass
     else:
-        raise ValueError("db_config() porcelain should fail if argument does not exist.")
+        raise ValueError("r.db().config() should fail if argument does not exist.")
 
     res = r.db("rethinkdb").table("db_config").get(bar_uuid).update({"name": "foo2"}) \
            .run(conn)
     # This would cause a name conflict, so it should fail
     assert res["errors"] == 1
+
+    res = r.db_drop("foo2").run(conn)
+    assert res["dbs_dropped"] == 1
+    assert res["tables_dropped"] == 0
+    assert len(res["config_changes"]) == 1
+    assert res["config_changes"][0]["old_val"] == foo2_config
+    assert res["config_changes"][0]["new_val"] is None
 
     res = r.db("rethinkdb").table("db_config").insert({"name": "baz"}).run(conn)
     assert res["errors"] == 0

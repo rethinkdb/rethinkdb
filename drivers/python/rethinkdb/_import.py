@@ -58,6 +58,7 @@ def print_import_help():
     print("  -d [ --directory ] DIR           the directory to import data from")
     print("  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may")
     print("                                   be specified multiple times)")
+    print("  --no-secondary-indexes           do not create secondary indexes for the imported tables")
     print("")
     print("Import file:")
     print("  -f [ --file ] FILE               the file to import data from")
@@ -107,6 +108,7 @@ def parse_options():
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
 
     # File import options
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
@@ -140,6 +142,7 @@ def parse_options():
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
+    res["create_sindexes"] = options.create_sindexes
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -512,10 +515,23 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
         task_queue.put((db, table, object_buffers))
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
-# error occurs.  Progress is not used as this will either succeed or fail.
-def create_table(progress, conn, db, table, pkey):
+# error occurs.  Progress will resume where it left off.
+def create_table(progress, conn, db, table, pkey, sindexes):
     if table not in r.db(db).table_list().run(conn):
         r.db(db).table_create(table, primary_key=pkey).run(conn)
+
+    if progress[0] is None:
+        progress[0] = 0
+
+    # Recreate secondary indexes - assume that any indexes that already exist are wrong
+    # and create them from scratch
+    indexes = r.db(db).table(table).index_list().run(conn)
+    for sindex in sindexes[progress[0]:]:
+        if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
+            if sindex['index'] in indexes:
+                r.db(db).table(table).index_drop(sindex['index']).run(conn)
+            r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+        progress[0] += 1
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
@@ -524,7 +540,8 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         primary_key = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key)
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
+                         file_info["info"]["indexes"] if options["create_sindexes"] else [])
 
         if file_info["format"] == "json":
             json_reader(task_queue,
