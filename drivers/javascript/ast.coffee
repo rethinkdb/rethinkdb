@@ -272,7 +272,7 @@ class RDBVal extends TermBase
 
     config: () -> new Config {}, @
     status: () -> new Status {}, @
-    wait: () -> new Wait {}, @
+    wait: aropt (opts) -> new Wait opts @
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
@@ -1220,7 +1220,7 @@ rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
 
-rethinkdb.wait = () -> new Wait {}
+rethinkdb.wait = aropt (opts) -> new Wait opts
 rethinkdb.reconfigure = (opts) -> new Reconfigure opts
 rethinkdb.rebalance = () -> new Rebalance {}
 
