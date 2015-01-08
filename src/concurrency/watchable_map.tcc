@@ -177,3 +177,37 @@ void watchable_map_var_t<key_t, value_t>::delete_key(const key_t &key) {
     watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
 }
 
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::change_key(
+        const key_t &key,
+        const std::function<bool(bool *exists, value_t *value)> &callback) {
+    rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
+    auto it = map.find(key);
+    if (it != map.end()) {
+        bool exists = true;
+        if (!callback(&exists, &it->second)) {
+            guarantee(exists);
+            return;
+        }
+        if (exists) {
+            watchable_map_t<key_t, value_t>::notify_change(
+                key, &it->second, &write_acq);
+        } else {
+            map.erase(it);
+            watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+        }
+    } else {
+        bool exists = false;
+        value_t value_buffer;
+        if (!callback(&exists, &value_buffer)) {
+            guarantee(!exists);
+            return;
+        }
+        if (exists) {
+            auto pair = map.insert(std::make_pair(key, std::move(value_buffer)));
+            watchable_map_t<key_t, value_t>::notify_change(
+                key, &pair.first->second, &write_acq);
+        }
+    }
+}
+

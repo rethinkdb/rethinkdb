@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_transform.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "stl_utils.hpp"
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>

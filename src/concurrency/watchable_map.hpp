@@ -154,6 +154,17 @@ public:
     /* `delete_key()` removes `key` from the map if it was present before. */
     void delete_key(const key_t &key);
 
+    /* `change_key()` atomically modifies the value of `key`. It calls the callback
+    exactly once, with two parameters `exists` and `value`. If the key is present,
+    `*exists` will be `true` and `*value` will be its value; if the key is absent, then
+    `*exists` will be `false` and `*value` will be a valid buffer but with undefined
+    contents. The callback can modify `*exists` and/or `*value`. It must return `true` if
+    it makes any changes. these changes will be reflected in the `watchable_map_t`. The
+    callback must not block or call any other methods of the `watchable_map_var_t`. */
+    void change_key(
+        const key_t &key,
+        const std::function<bool(bool *exists, value_t *value)> &callback);
+
     void rethread(threadnum_t new_thread) {
         watchable_map_t<key_t, value_t>::rethread(new_thread);
         rwi_lock.rethread(new_thread);

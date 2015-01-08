@@ -19,6 +19,8 @@ public:
         )> rpc_mailbox_t;
 
     typename rpc_mailbox_t::address_t rpc;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(raft_business_card_t, rpc);
 };
 
 template<class state_t>
