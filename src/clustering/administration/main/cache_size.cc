@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <unistd.h>
 
+#if defined(__MACH__)
+#include <availability.h>
+#include <mach/mach.h>
+#endif
+
 #include <limits>
 #include <string>
 
@@ -11,10 +16,6 @@
 #include "arch/types.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
-
-#if defined(__MACH__)
-#include "mach/mach.h"
-#endif
 
 #ifndef __MACH__
 
@@ -153,10 +154,21 @@ uint64_t get_avail_mem_size() {
             "(errno=%d).\n", get_errno());
         return 1024 * MEGABYTE;
     }
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+    // We know the field we want showed up in 10.9.  It may have shown
+    // up in 10.8, but is definitely not in 10.7.  Per availability.h,
+    // we use a raw number rather than the corresponding #define.
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 1090
+    uint64_t ret = vmstat.free_count * page_size;
+#else
     // external_page_count is the number of pages that are file-backed (non-swap) --
     // see /usr/include/mach/vm_statistics.h, see also vm_stat.c, the implementation
     // of vm_stat, in Darwin.
     uint64_t ret = (vmstat.free_count + vmstat.external_page_count) * page_size;
+#endif // __MAC_OS_X_VERSION_MIN_REQUIRED < 1090
+#else
+#error "We don't support Mach kernels other than OS X, sorry."
+#endif // __MAC_OS_X_VERSION_MIN_REQUIRED
     return ret;
 #else
     {
@@ -216,6 +228,3 @@ void log_warnings_for_cache_size(uint64_t bytes) {
         logWRN("Cache size is very low and may impact performance.");
     }
 }
-
-
-
