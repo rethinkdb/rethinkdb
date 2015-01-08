@@ -13,8 +13,8 @@
 #include "utils.hpp"
 
 #if defined(__MACH__)
-#include "mach/mach.h"
 #include <availability.h>
+#include <mach/mach.h>
 #endif
 
 #ifndef __MACH__
