@@ -14,6 +14,7 @@
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
+#include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
@@ -63,9 +64,7 @@ public:
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
     scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
-    bool is_gc_active() const {
-        return serializer_->is_gc_active();
-    }
+    bool is_gc_active() const;
 
     typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
@@ -122,6 +121,10 @@ public:
 
     typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
+
+    typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>
+        backfill_progress_t;
+    backfill_progress_t get_backfill_progress() const;
 
 private:
     friend class watchable_and_reactor_t;

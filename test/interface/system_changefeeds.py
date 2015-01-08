@@ -18,17 +18,17 @@ scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 class AsyncChangefeed(object):
-    def __init__(self, host, port, db, table):
+    def __init__(self, host, port, query):
         self.conn = r.connect(host, port)
         self.stopping = False
         self.err = None
         self.changes = []
-        self.thr = threading.Thread(target = self.run, args = (db, table))
+        self.thr = threading.Thread(target = self.run, args = (query, ))
         self.thr.daemon = True
         self.thr.start()
-    def run(self, db, table):
+    def run(self, query):
         try:
-            for x in r.db(db).table(table).changes().run(self.conn):
+            for x in eval(query).changes().run(self.conn):
                 self.changes.append(x)
         except Exception, e:
             self.err = sys.exc_info()
@@ -43,9 +43,9 @@ with driver.Metacluster() as metacluster:
     _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     
     print("Spinning up two processes...")
-    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", command_prefix=command_prefix)
+    files1 = driver.Files(metacluster, console_output="create-output-1", server_name="a", server_tags=["a_tag"], command_prefix=command_prefix)
     proc1 = driver.Process(cluster1, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
-    files2 = driver.Files(metacluster, console_output="create-output-2", server_name="b", command_prefix=command_prefix)
+    files2 = driver.Files(metacluster, console_output="create-output-2", server_name="b", server_tags=["b_tag"], command_prefix=command_prefix)
     proc2 = driver.Process(cluster1, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
@@ -56,7 +56,8 @@ with driver.Metacluster() as metacluster:
         "table_config", "table_status"]
     feeds = { }
     for name in tables:
-        feeds[name] = AsyncChangefeed(proc1.host, proc1.driver_port, "rethinkdb", name)
+        feeds[name] = AsyncChangefeed(proc1.host, proc1.driver_port,
+            "r.db('rethinkdb').table(%r)" % name)
 
     def check(expected, timer):
         time.sleep(timer)
@@ -81,34 +82,49 @@ with driver.Metacluster() as metacluster:
 
     print("Creating database...")
     res = r.db_create("test").run(conn)
-    assert res == {"created": 1}, res
+    assert res.get("dbs_created", 0) == 1, res
     check(["db_config"], 1.0)
 
-    print("Creating table...")
-    res = r.table_create("test").run(conn)
-    assert res == {"created": 1}, res
-    res = r.table_config("test") \
-           .update({"shards": [{"director": "a", "replicas": ["a", "b"]}]}).run(conn)
-    assert res["errors"] == 0, res
-    r.table_wait("test").run(conn)
+    print("Creating tables...")
+    res = r.table_create("test", replicas={"a_tag": 1}, primary_replica_tag="a_tag").run(conn)
+    assert res["tables_created"] == 1, res
+    res = r.table_create("test2", replicas={"b_tag": 1}, primary_replica_tag="b_tag").run(conn)
+    assert res["tables_created"] == 1, res
     check(["table_config", "table_status"], 1.0)
+
+    feeds["test_config"] = AsyncChangefeed(proc1.host, proc1.driver_port,
+        "r.table('test').config()")
+    feeds["test_status"] = AsyncChangefeed(proc1.host, proc1.driver_port,
+        "r.table('test').status()")
+    feeds["test2_config"] = AsyncChangefeed(proc1.host, proc1.driver_port,
+        "r.table('test2').config()")
+    feeds["test2_status"] = AsyncChangefeed(proc1.host, proc1.driver_port,
+        "r.table('test2').status()")
+
+    res = r.table("test").config() \
+           .update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
+    assert res["errors"] == 0, res
+    r.table("test").wait().run(conn)
+    check(["table_config", "table_status", "test_config", "test_status"], 1.0)
 
     print("Renaming server...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "b"}) \
            .update({"name": "c"}).run(conn)
     assert res["replaced"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status"], 1.0)
+    check(["server_config", "server_status", "table_config", "table_status",
+        "test_config", "test_status", "test2_config", "test2_status"], 1.0)
 
     print("Killing one server...")
     proc2.check_and_stop()
-    check(["server_status", "table_status", "issues"], 1.0)
+    check(["server_status", "table_status", "issues",
+        "test_status", "test2_status"], 1.0)
 
     print("Declaring it dead...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "c"}).delete() \
            .run(conn)
     assert res["deleted"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status", "issues"],
-          1.0)
+    check(["server_config", "server_status", "table_config", "table_status", "issues",
+        "test_config", "test_status", "test2_config", "test2_status"], 1.0)
 
     print("Shutting everything down...")
     cluster1.check_and_stop()

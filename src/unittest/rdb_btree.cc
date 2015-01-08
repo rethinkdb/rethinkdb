@@ -11,6 +11,7 @@
 #include "containers/uuid.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -457,11 +458,13 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports_out;
-        rdb_erase_small_range(&tester,
+        rdb_erase_small_range(store.btree.get(),
+                              &tester,
                               key_range_t::universe(),
                               super_block.get(),
                               &deletion_context,
                               &dummy_interruptor,
+                              0,
                               &mod_reports_out);
     }
 

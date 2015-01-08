@@ -276,6 +276,9 @@ class Connection extends events.EventEmitter
         query.query = term.build()
         query.token = token
         # Set global options
+        for own key, value of opts
+            query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
+
         if @db?
             query.global_optargs['db'] = r.db(@db).build()
 
@@ -287,27 +290,6 @@ class Connection extends events.EventEmitter
 
         if opts.profile?
             query.global_optargs['profile'] = r.expr(!!opts.profile).build()
-
-        if opts.durability?
-            query.global_optargs['durability'] = r.expr(opts.durability).build()
-
-        if opts.minBatchRows?
-            query.global_optargs['min_batch_rows'] = r.expr(opts.minBatchRows).build()
-
-        if opts.maxBatchRows?
-            query.global_optargs['max_batch_rows'] = r.expr(opts.maxBatchRows).build()
-
-        if opts.minBatchBytes?
-            query.global_optargs['min_batch_bytes'] = r.expr(opts.minBatchBytes).build()
-
-        if opts.maxBatchSeconds?
-            query.global_optargs['max_batch_seconds'] = r.expr(opts.maxBatchSeconds).build()
-
-        if opts.firstBatchScaledownFactor?
-            query.global_optargs['first_batch_scaledown_factor'] = r.expr(opts.firstBatchScaledownFactor).build()
-
-        if opts.arrayLimit?
-            query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply
@@ -493,10 +475,15 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        if @_connId? # @connId is null is the connection was previously closed/cancel
+        if @_connId? # @connId is null if the connection was previously closed/cancel
             @xhr.abort()
             xhr = new XMLHttpRequest
             xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+
+            # We ignore the result, but Firefox doesn't. Without this line it complains
+            # about "No element found" when trying to parse the response as xml.
+            xhr.responseType = "arraybuffer"
+
             xhr.send()
             @_url = null
             @_connId = null

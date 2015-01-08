@@ -191,7 +191,8 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     } else {
         // Otherwise we need to use the local addresses with the cluster port
         if (local_addresses.empty()) {
-            local_addresses = get_local_ips(std::set<ip_address_t>(), true);
+            local_addresses = get_local_ips(std::set<ip_address_t>(),
+                                            local_ip_filter_t::ALL);
         }
         for (auto it = local_addresses.begin();
              it != local_addresses.end(); ++it) {
@@ -756,7 +757,7 @@ void connectivity_cluster_t::run_t::handle(
     `conn_closer_2`. */
 
     // Get the name of our peer, for error reporting.
-    ip_address_t peer_addr;
+    ip_and_port_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
         peerstr = peer_addr.to_string();
@@ -937,7 +938,7 @@ void connectivity_cluster_t::run_t::handle(
     }
     if (expected_id && other_id != *expected_id) {
         // This is only a problem if we're not using a loopback address
-        if (!peer_addr.is_loopback()) {
+        if (!peer_addr.ip().is_loopback()) {
             logERR("Received inconsistent routing information (wrong ID) from %s, "
                    "closing connection.", peername);
         }

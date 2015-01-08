@@ -36,10 +36,10 @@ private:
     DISABLE_COPYING(ack_checker_t);
 };
 
-/* Each shard has a `broadcaster_t` on its primary server. Each server sends
+/* Each shard has a `broadcaster_t` on its primary replica. Each server sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
-on the primary server, which forwards the queries to the `broadcaster_t`. From
-there, the `broadcaster_t` distributes them to one or more `listener_t`s.
+on the primary replica server, which forwards the queries to the `broadcaster_t`.
+From there, the `broadcaster_t` distributes them to one or more `listener_t`s.
 
 When the `broadcaster_t` is first created, it generates a new unique branch ID.
 The `broadcaster_t` is the authority on what sequence of operations is performed

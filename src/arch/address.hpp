@@ -83,7 +83,8 @@ public:
     const struct in6_addr &get_ipv6_addr() const;
     uint32_t get_ipv6_scope_id() const;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
+    RDB_MAKE_ME_SERIALIZABLE_4(ip_address_t,
+        addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 
 private:
     addr_type_t addr_type;
@@ -92,29 +93,41 @@ private:
     uint32_t ipv6_scope_id;
 };
 
-RDB_SERIALIZE_OUTSIDE(ip_address_t);
-
 std::string str_gethostname();
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
-std::set<ip_address_t> get_local_ips(std::set<ip_address_t> filter, bool get_all);
+
+enum class local_ip_filter_t {
+    MATCH_FILTER,
+    MATCH_FILTER_OR_LOOPBACK,
+    ALL
+};
+
+std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
+                                     local_ip_filter_t filter_type);
 
 class port_t {
 public:
+    static constexpr int max_port = 65535;
+
     explicit port_t(int _port);
+    explicit port_t(sockaddr const *);
+
     int value() const;
-    RDB_MAKE_ME_SERIALIZABLE_1(value_);
+
+    std::string to_string() const;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(port_t, value_);
 
 private:
     int value_;
 };
 
-RDB_SERIALIZE_OUTSIDE(port_t);
-
 class ip_and_port_t {
 public:
     ip_and_port_t();
     ip_and_port_t(const ip_address_t &_ip, port_t _port);
+    explicit ip_and_port_t(sockaddr const *);
 
     bool operator < (const ip_and_port_t &other) const;
     bool operator == (const ip_and_port_t &other) const;
@@ -122,14 +135,14 @@ public:
     const ip_address_t &ip() const;
     port_t port() const;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
+    std::string to_string() const;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_and_port_t, ip_, port_);
 
 private:
     ip_address_t ip_;
     port_t port_;
 };
-
-RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
 // This implementation is used over operator == because we want to ignore different scope
 // ids in the case of IPv6
@@ -149,14 +162,12 @@ public:
     const std::string &host() const;
     port_t port() const;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
+    RDB_MAKE_ME_SERIALIZABLE_2(host_and_port_t, host_, port_);
 
 private:
     std::string host_;
     port_t port_;
 };
-
-RDB_SERIALIZE_OUTSIDE(host_and_port_t);
 
 class peer_address_t {
 public:

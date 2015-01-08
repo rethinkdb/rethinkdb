@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
+#include "arch/address.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -104,13 +106,12 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DB_CREATE:          return make_db_create_term(env, t);
     case Term::DB_DROP:            return make_db_drop_term(env, t);
     case Term::DB_LIST:            return make_db_list_term(env, t);
-    case Term::DB_CONFIG:          return make_db_config_term(env, t);
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
-    case Term::TABLE_CONFIG:       return make_table_config_term(env, t);
-    case Term::TABLE_STATUS:       return make_table_status_term(env, t);
-    case Term::TABLE_WAIT:         return make_table_wait_term(env, t);
+    case Term::CONFIG:             return make_config_term(env, t);
+    case Term::STATUS:             return make_status_term(env, t);
+    case Term::WAIT:               return make_wait_term(env, t);
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
     case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
@@ -203,6 +204,7 @@ void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
          stream_cache_t *stream_cache,
+         ip_and_port_t const &peer,
          Response *res) {
     try {
         validate_pb(*q);
@@ -210,21 +212,33 @@ void run(protob_t<Query> q,
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
         return;
     }
+
+    try {
+        validate_optargs(*q);
+    } catch (const base_exc_t &e) {
+        fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
+        return;
+    }
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    map_insertion_sentry_t<uuid_u, microtime_t> job_sentry(
-        ctx->get_query_jobs_for_this_thread(), generate_uuid(), current_microtime());
+    cond_t job_interruptor;
+    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
+        ctx->get_query_jobs_for_this_thread(),
+        generate_uuid(),
+        query_job_t(current_microtime(), peer, &job_interruptor));
 
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
+
+    wait_any_t combined_interruptor(interruptor, &job_interruptor);
 
     switch (q->type()) {
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx, &combined_interruptor, global_optargs(q), trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -289,7 +303,7 @@ void run(protob_t<Query> q,
                                          env.get_all_optargs(),
                                          profile,
                                          seq);
-                    bool b = stream_cache->serve(token, res, interruptor);
+                    bool b = stream_cache->serve(token, res, &combined_interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -304,11 +318,16 @@ void run(protob_t<Query> q,
         } catch (const datum_exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
+        } catch (const interrupted_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR,
+                job_interruptor.is_pulsed()
+                    ? "Query interrupted through the `rethinkdb.jobs` table."
+                    : "Query interrupted.  Did you shut down the server?");
         }
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache->serve(token, res, interruptor);
+            bool b = stream_cache->serve(token, res, &combined_interruptor);
             if (!b) {
                 auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
                 fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
@@ -319,6 +338,11 @@ void run(protob_t<Query> q,
         } catch (const datum_exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
+        } catch (const interrupted_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR,
+                job_interruptor.is_pulsed()
+                    ? "Query interrupted through the `rethinkdb.jobs` table."
+                    : "Query interrupted.  Did you shut down the server?");
         }
     } break;
     case Query_QueryType_STOP: {

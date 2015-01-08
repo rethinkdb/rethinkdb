@@ -585,26 +585,17 @@ void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     write_coro_pool.rethread(new_thread);
 }
 
-int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
-    const socklen_t buflength = INET6_ADDRSTRLEN;
-    char buf[buflength + 1] = { 0 };
-    socklen_t mutable_buflength = buflength;
-    int res = ::getsockname(sock.get(), reinterpret_cast<sockaddr *>(&buf[0]), &mutable_buflength);
-    if (res == 0) {
-        *ip = ip_address_t(reinterpret_cast<sockaddr *>(&buf[0]));
-    }
-    return res;
-}
+bool linux_tcp_conn_t::getpeername(ip_and_port_t *ip_and_port) {
+    struct sockaddr_storage addr;
+    socklen_t addr_len = sizeof(addr);
 
-int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
-    const socklen_t buflength = INET6_ADDRSTRLEN;
-    char buf[buflength + 1] = { 0 };
-    socklen_t mutable_buflength = buflength;
-    int res = ::getpeername(sock.get(), reinterpret_cast<sockaddr *>(&buf[0]), &mutable_buflength);
+    int res = ::getpeername(sock.get(), reinterpret_cast<sockaddr *>(&addr), &addr_len);
     if (res == 0) {
-        *ip = ip_address_t(reinterpret_cast<sockaddr *>(&buf[0]));
+        *ip_and_port = ip_and_port_t(reinterpret_cast<sockaddr *>(&addr));
+        return true;
     }
-    return res;
+
+    return false;
 }
 
 void linux_tcp_conn_t::on_event(int /* events */) {

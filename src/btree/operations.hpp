@@ -261,10 +261,13 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out);
 
+/* Note that there's no guarantee that `pass_back_superblock` will have been
+ * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,
+ * the superblock is returned only when `*kevaluey_location_out` gets destructed. */
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
-        const value_deleter_t *detacher,
+        const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
@@ -276,11 +279,22 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace);
 
+/* Specifies whether `apply_keyvalue_change` should delete or erase a value.
+The difference is that deleting a value updates the node's replication timestamp
+and creates a deletion entry in the leaf. This means that the deletion is going
+to be backfilled.
+An erase on the other hand just removes the keyvalue from the leaf node, as if
+it had never existed.
+If the change is the result of a ReQL query, you'll almost certainly want DELETE
+and not ERASE. */
+enum class delete_or_erase_t { DELETE, ERASE };
+
 void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp,
-        const value_deleter_t *detacher,
-        key_modification_callback_t *km_callback);
+        const value_deleter_t *balancing_detacher,
+        key_modification_callback_t *km_callback,
+        delete_or_erase_t delete_or_erase = delete_or_erase_t::DELETE);
 
 #endif  // BTREE_OPERATIONS_HPP_

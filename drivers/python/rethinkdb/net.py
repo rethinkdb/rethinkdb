@@ -126,6 +126,9 @@ class Cursor(object):
                 self.conn._end_cursor(self)
 
 class Connection(object):
+    
+    _r = None # injected into the class from __init__.py
+    
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.closing = False
@@ -237,10 +240,13 @@ class Connection(object):
                 try:
                     chunk = self.socket.recv(length - len(res))
                     break
-                except IOError as e:
-                    if e.errno != errno.EINTR:
+                except IOError as err:
+                    if err.errno != errno.EINTR:
                         self.close(noreply_wait=False)
-                        raise
+                        raise RqlDriverError('Interrupted connection while receiving from %s:%s - %s' % (self.host, self.port, str(err)))
+                except Exception as err:
+                    self.close(noreply_wait=False)
+                    raise RqlDriverError('Error recieving from %s:%s - %s' % (self.host, self.port, str(err)))
                 except:
                     self.close(noreply_wait=False)
                     raise
@@ -255,10 +261,13 @@ class Connection(object):
         while offset < len(data):
             try:
                 offset += self.socket.send(data[offset:])
-            except IOError as e:
-                if e.errno != errno.EINTR:
+            except IOError as err:
+                if err.errno != errno.EINTR:
                     self.close(noreply_wait=False)
-                    raise
+                    raise RqlDriverError('Interrupted connection while sending to %s:%s - %s' % (self.host, self.port, str(err)))
+            except Exception as err:
+                self.close(noreply_wait=False)
+                raise RqlDriverError('Error sending to %s:%s - %s' % (self.host, self.port, str(err)))
             except:
                 self.close(noreply_wait=False)
                 raise

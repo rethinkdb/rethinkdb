@@ -49,26 +49,28 @@ public:
         next(_next) { }
 
     bool db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
     bool db_drop(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
     bool db_list(
             signal_t *interruptor,
             std::set<name_string_t> *names_out, std::string *error_out);
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out);
-    bool db_config(const std::vector<name_string_t> &db_names,
+    bool db_config(
+            const counted_t<const ql::db_t> &db,
             const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            ql::env_t *env,
+            scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out);
 
     bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
             const std::string &primary_key, signal_t *interruptor,
-            std::string *error_out);
+            ql::datum_t *result_out, std::string *error_out);
     bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
     bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor,
             std::set<name_string_t> *names_out, std::string *error_out);
@@ -76,21 +78,39 @@ public:
             boost::optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             std::string *error_out);
-    bool table_config(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
-            const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+    bool table_estimate_doc_counts(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            ql::env_t *env,
+            std::vector<int64_t> *doc_counts_out,
             std::string *error_out);
-    bool table_status(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+    bool table_config(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
             const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            ql::env_t *env,
+            scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out);
-    bool table_wait(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+    bool table_status(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            const ql::protob_t<const Backtrace> &bt,
+            ql::env_t *env,
+            scoped_ptr_t<ql::val_t> *selection_out,
+            std::string *error_out);
+
+    bool table_wait(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
             table_readiness_t readiness,
-            const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out);
+    bool db_wait(
+            counted_t<const ql::db_t> db,
+            table_readiness_t readiness,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
             std::string *error_out);
 
     bool table_reconfigure(
@@ -108,6 +128,7 @@ public:
             signal_t *interruptor,
             ql::datum_t *result_out,
             std::string *error_out);
+
     bool table_rebalance(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
@@ -118,12 +139,6 @@ public:
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
-    bool table_estimate_doc_counts(
-            counted_t<const ql::db_t> db,
-            const name_string_t &name,
-            ql::env_t *env,
-            std::vector<int64_t> *doc_counts_out,
             std::string *error_out);
 
 private:

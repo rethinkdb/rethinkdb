@@ -11,7 +11,7 @@
 #include "store_view.hpp"
 
 
-/* Returns true if every peer listed as a primary for this shard in the
+/* Returns true if every peer listed as a primary replica for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
 bool reactor_t::is_safe_for_us_to_be_nothing(
@@ -104,7 +104,7 @@ void reactor_t::be_nothing(region_t region,
             will proceed as long as it can see *some* state for every other node, even if
             that state is a `nothing_t`. It won't consider us as a backfill source, but
             that's OK because we don't have any data so we would never be a better
-            backfill source than the primary node itself. */
+            backfill source than the primary replica itself. */
             if (have_data) {
                 /* We offer backfills while waiting for it to be safe to shutdown in case
                 another peer needs a copy of the data. */
@@ -124,15 +124,15 @@ void reactor_t::be_nothing(region_t region,
                 /* Make sure everyone sees that we're trying to erase our data,
                  * it's important to do this to avoid the following race condition:
                  *
-                 * Peer 1 and Peer 2 both are secondaries.
+                 * Peer 1 and Peer 2 both are secondary replicas.
                  * Peer 1 gets a blueprint saying its role is nothing and peer 2's role
                  * is secondary,
                  * Peer 2 gets a blueprint saying its role is nothing and peer 1's role
                  * is secondary,
                  *
-                 * since each one sees the other is secondary they both think it's
-                 * safe to shutdown and thus destroy their data leading to data
-                 * loss.
+                 * since each one sees that the other is a secondary replica, they both
+                 * think it's safe to shutdown and thus destroy their data leading to
+                 * data loss.
                  *
                  * The below line makes sure that they will sync their new roles
                  * with one another before they begin destroying data.

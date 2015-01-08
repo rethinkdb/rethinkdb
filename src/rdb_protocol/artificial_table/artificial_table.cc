@@ -74,22 +74,9 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     return stream;
 }
 
-counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
-        ql::env_t *env,
-        ql::datum_t pval,
-        const ql::protob_t<const Backtrace> &bt,
-        const std::string &table_name) {
-    return read_changes(
-        env,
-        ql::changefeed::keyspec_t::spec_t(
-            ql::changefeed::keyspec_t::point_t{
-                store_key_t(pval.print_primary())}),
-        bt,
-        table_name);
-}
-
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         ql::env_t *env,
+        const ql::datum_t &,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
@@ -137,7 +124,11 @@ ql::datum_t artificial_table_t::write_batched_replace(
         const counted_t<const ql::func_t> &func,
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
-    /* RSI(reql_admin): Should we require that durability is soft? */
+    /* Note that we ignore the `durability` optarg. In theory we could assert that it's
+    unspecified or specified to be "soft", since durability is irrelevant or effectively
+    soft for system tables anyway. But this might lead to some confusing errors if the
+    user passes `durability="hard"` as a global optarg. So we silently ignore it. */
+
     ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
 

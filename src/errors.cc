@@ -15,7 +15,7 @@
 #include "utils.hpp"
 #include "backtrace.hpp"
 #include "thread_local.hpp"
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "arch/timing.hpp"
 
 TLS_with_init(bool, crashed, false); // to prevent crashing within crashes

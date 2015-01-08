@@ -31,12 +31,12 @@ module 'ServersView', ->
                 primary_count:
                     r.db(system_db).table('table_config')
                     .concatMap( (table) -> table("shards") )
-                    .filter((shard) -> shard("director").eq(server("name")))
+                    .filter((shard) -> shard("primary_replica").eq(server("name")))
                     .count()
                 secondary_count:
                     r.db(system_db).table('table_config')
                     .concatMap((table) -> table("shards"))
-                    .filter((shard) -> shard("director").ne(server("name")))
+                    .filter((shard) -> shard("primary_replica").ne(server("name")))
                     .concatMap((shard) -> shard("replicas"))
                     .filter((replica) -> replica.eq(server("name")))
                     .count()

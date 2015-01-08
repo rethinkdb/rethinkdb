@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <functional>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -11,6 +13,7 @@
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
+#include "concurrency/throttled_committer.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "clustering/administration/pre_v1_16_metadata.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -542,7 +545,8 @@ class cluster_persistent_file_t::persistent_branch_history_manager_t : public br
 public:
     persistent_branch_history_manager_t(cluster_persistent_file_t *p,
                                         bool create)
-        : parent(p) {
+        : parent(p),
+          flusher(std::bind(&persistent_branch_history_manager_t::flush, this), 1) {
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
@@ -566,26 +570,18 @@ public:
         return it->second;
     }
 
-    std::set<branch_id_t> known_branches() THROWS_NOTHING {
-        std::set<branch_id_t> res;
-
-        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator it = bh.branches.begin();
-             it != bh.branches.end();
-             ++it) {
-            res.insert(it->first);
-        }
-
-        return res;
+    bool is_branch_known(branch_id_t branch) THROWS_NOTHING {
+        return bh.branches.count(branch) > 0;
     }
 
     void create_branch(branch_id_t branch_id,
                        const branch_birth_certificate_t &bc,
-                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                       UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         std::pair<std::map<branch_id_t, branch_birth_certificate_t>::iterator, bool>
             insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
         guarantee(insert_res.second);
-        flush(interruptor);
+        flusher.sync();
     }
 
     void export_branch_history(branch_id_t branch,
@@ -611,16 +607,17 @@ public:
     }
 
     void import_branch_history(const branch_history_t &new_records,
-                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                               UNUSED signal_t *interruptor)
+                               THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         for (std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
             bh.branches.insert(std::make_pair(it->first, it->second));
         }
-        flush(interruptor);
+        flusher.sync();
     }
 
 private:
-    void flush(UNUSED signal_t *interruptor) {
+    void flush() {
         object_buffer_t<txn_t> txn;
         parent->get_write_transaction(&txn);
         buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -635,6 +632,7 @@ private:
 
     cluster_persistent_file_t *parent;
     branch_history_t bh;
+    throttled_committer_t flusher;
 };
 
 /* These must be defined when the definition of

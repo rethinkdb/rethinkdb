@@ -198,15 +198,15 @@ ql::datum_t convert_table_config_shard_to_datum(
         convert_replica_list_to_datum(shard.replicas, identifier_format,
                                       server_config_client));
 
-    ql::datum_t director;
-    if (!convert_server_id_to_datum(
-            shard.director, identifier_format, server_config_client, &director,
-            nullptr)) {
-        /* If the previous director was declared dead, just display `null`. The user will
-        have to change this to a new server before the table will come back online. */
-        director = ql::datum_t::null();
+    ql::datum_t primary_replica;
+    if (!convert_server_id_to_datum(shard.primary_replica, identifier_format,
+                                    server_config_client, &primary_replica, nullptr)) {
+        /* If the previous primary replica was declared dead, just display `null`. The
+        user will have to change this to a new server before the table will come back 
+        online. */
+        primary_replica = ql::datum_t::null();
     }
-    builder.overwrite("director", director);
+    builder.overwrite("primary_replica", primary_replica);
 
     return std::move(builder).to_datum();
 }
@@ -236,28 +236,29 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    ql::datum_t director_datum;
-    if (!converter.get("director", &director_datum, error_out)) {
+    ql::datum_t primary_replica_datum;
+    if (!converter.get("primary_replica", &primary_replica_datum, error_out)) {
         return false;
     }
-    if (director_datum.get_type() == ql::datum_t::R_NULL) {
-        /* There's never a good reason for the user to intentionally set the director to
-        `null`; setting the director to `null` will ensure that the table cannot accept
-        queries. We allow it because if the director is declared dead, it will appear to
-        the user as `null`; and we want to allow the user to do things like
-        `r.table_config("foo").update({"name": "bar"})` even when the director is in that
-        state. */
-        shard_out->director = nil_uuid();
+    if (primary_replica_datum.get_type() == ql::datum_t::R_NULL) {
+        /* There's never a good reason for the user to intentionally set the primary
+        replica to `null`; setting the primary replica to `null` will ensure that the
+        table cannot accept queries. We allow it because if the primary replica is 
+        declared dead, it will appear to the user as `null`; and we want to allow the
+        user to do things like `r.table_config("foo").update({"name": "bar"})` even when
+        the primary replica is in that state. */
+        shard_out->primary_replica = nil_uuid();
     } else {
-        name_string_t director_name;
-        if (!convert_server_id_from_datum(director_datum, identifier_format,
-                server_config_client, &shard_out->director, &director_name, error_out)) {
-            *error_out = "In `director`: " + *error_out;
+        name_string_t primary_replica_name;
+        if (!convert_server_id_from_datum(primary_replica_datum, identifier_format,
+                server_config_client, &shard_out->primary_replica, &primary_replica_name, error_out)) {
+            *error_out = "In `primary_replica`: " + *error_out;
             return false;
         }
-        if (shard_out->replicas.count(shard_out->director) != 1) {
-            *error_out = strprintf("The director (server `%s`) must also be one of the "
-                "replicas.", director_name.c_str());
+        if (shard_out->replicas.count(shard_out->primary_replica) != 1) {
+            *error_out = strprintf("The server listed in the `primary_replica` field "
+                                   "(`%s`) must also appear in `replicas`.",
+                                   primary_replica_name.c_str());
             return false;
         }
     }
@@ -272,10 +273,18 @@ bool convert_table_config_shard_from_datum(
 /* This is separate from `format_row()` because it needs to be publicly exposed so it can
    be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
+        namespace_id_t table_id,
+        name_string_t table_name,
+        const ql::datum_t &db_name_or_uuid,
+        const std::string &primary_key,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
+    builder.overwrite("name", convert_name_to_datum(table_name));
+    builder.overwrite("db", db_name_or_uuid);
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("primary_key", convert_string_to_datum(primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             [&](const table_config_t::shard_t &shard) {
@@ -300,18 +309,9 @@ bool table_config_artificial_table_backend_t::format_row(
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     assert_thread();
-
-    ql::datum_t start = convert_table_config_to_datum(
-        metadata.replication_info.get_ref().config, identifier_format,
-        server_config_client);
-    ql::datum_object_builder_t builder(start);
-    builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", db_name_or_uuid);
-    builder.overwrite("id", convert_uuid_to_datum(table_id));
-    builder.overwrite(
-        "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
-    *row_out = std::move(builder).to_datum();
-
+    *row_out = convert_table_config_to_datum(table_id, table_name, db_name_or_uuid,
+        metadata.primary_key.get_ref(), metadata.replication_info.get_ref().config, 
+        identifier_format, server_config_client);
     return true;
 }
 
@@ -491,7 +491,7 @@ bool table_config_artificial_table_backend_t::write_row(
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md.rdb_namespaces);
     auto it = md_change.get()->namespaces.find(table_id);
     guarantee(existed_before ==
-        (!it->second.is_deleted() && it != md_change.get()->namespaces.end()));
+        (it != md_change.get()->namespaces.end() && !it->second.is_deleted()));
 
     if (new_value_inout->has()) {
         /* We're updating an existing table (if `existed_before == true`) or creating
@@ -578,27 +578,27 @@ bool table_config_artificial_table_backend_t::write_row(
 
         if (!existed_before || new_table_name != old_table_name) {
             /* Prevent name collisions if possible */
-            metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
-                &md_change.get()->namespaces);
-            metadata_search_status_t status;
-            namespace_predicate_t pred(&new_table_name, &db_id);
-            ns_searcher.find_uniq(pred, &status);
-            if (status != METADATA_ERR_NONE) {
-                if (!existed_before) {
-                    /* This message looks weird in the context of the variable named
-                    `existed_before`, but it's correct. `existed_before` is true if a
-                    table with the specified UUID already exists; but we're showing the
-                    user an error if a table with the specified name already exists. */
-                    *error_out = strprintf("Table `%s.%s` already exists.",
-                        db_name.c_str(), new_table_name.c_str());
-                } else {
-                    *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
-                        "because table `%s.%s` already exists.",
-                        db_name.c_str(), old_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str(),
-                        db_name.c_str(), new_table_name.c_str());
+            for (const auto &pair : md_change.get()->namespaces) {
+                if (!pair.second.is_deleted() &&
+                        pair.second.get_ref().database.get_ref() == db_id &&
+                        pair.second.get_ref().name.get_ref() == new_table_name) {
+                    if (!existed_before) {
+                        /* This message looks weird in the context of the variable named
+                        `existed_before`, but it's correct. `existed_before` is true if a
+                        table with the specified UUID already exists; but we're showing
+                        the user an error if a table with the specified name already
+                        exists. */
+                        *error_out = strprintf("Table `%s.%s` already exists.",
+                            db_name.c_str(), new_table_name.c_str());
+                    } else {
+                        *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
+                            "because table `%s.%s` already exists.",
+                            db_name.c_str(), old_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str(),
+                            db_name.c_str(), new_table_name.c_str());
+                    }
+                    return false;
                 }
-                return false;
             }
         }
 

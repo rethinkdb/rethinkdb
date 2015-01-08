@@ -46,13 +46,6 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def cleanupMetaclusterFolder(path):
-    if os.path.isdir(str(path)):
-        try:
-            shutil.rmtree(path)
-        except Exception as e:
-            warnings.warn('Warning: unable to cleanup Metacluster folder: %s - got error: %s' % (str(path), str(e)))
-
 runningServers = []
 def endRunningServers():
     for server in copy.copy(runningServers):
@@ -79,7 +72,7 @@ class Metacluster(object):
         
         if output_folder is None:
             self.dbs_path = tempfile.mkdtemp()
-            atexit.register(cleanupMetaclusterFolder, self.dbs_path)
+            utils.cleanupPathAtExit(self.dbs_path)
         else:
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
@@ -292,7 +285,7 @@ class Files(object):
         else:
             db_containter = db_containter or '.'
             self.db_path = os.path.join(db_containter, str(db_path))
-        assert not os.path.exists(self.db_path)
+        assert not os.path.exists(self.db_path), 'The path given for the new files already existed: %s' % self.db_path
         
         moveConsole = False
         if console_output is None:
@@ -617,7 +610,7 @@ class _Process(object):
         assert self.process is not None
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
-        utils.kill_process_group(self.process_group_id, shudown_grace=0)
+        utils.kill_process_group(self.process_group_id, shutdown_grace=0)
         
         self.close()
     
@@ -651,18 +644,6 @@ class _Process(object):
             self.cluster.processes.remove(self)
             self.cluster = None
     
-    def shard_table(self, table_name):
-        
-        blackHole = tempfile.NamedTemporaryFile(mode='w+')
-        commandPrefix = [self.executable_path, 'admin', '--join', '%s:%d' % (self.host, self.cluster_port), 'split', 'shard', str(table_name)]
-        
-        for splitPoint in ('Nc040800000000000\2333', 'Nc048800000000000\2349', 'Nc04f000000000000\2362'):
-            returnCode = subprocess.call(commandPrefix + [splitPoint], stdout=blackHole, stderr=blackHole)
-            if returnCode != 0:
-                return returnCode
-        time.sleep(3)
-        return 0
-
 class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """

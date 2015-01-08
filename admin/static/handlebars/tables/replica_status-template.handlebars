@@ -7,11 +7,11 @@
                 {{/if}}
                 {{#if processing}}
                     <p class="completed">Started</p>
-                    <p>Replicating</p>
+                    <p>Table reconfiguring</p>
                 {{/if}}
                 {{#if finished}}
                     <p class="completed">Started</p>
-                    <p class="completed">Replicated</p>
+                    <p class="completed">Table reconfigured</p>
                 {{/if}}
             </div>
             {{#if starting}}
@@ -28,7 +28,5 @@
             {{/if}}
             <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
         </div>
-    {{else}}
-    <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} available</p>
     {{/if}}
 

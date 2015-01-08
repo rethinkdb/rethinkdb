@@ -1,3 +1,9 @@
+    {{#if too_many_datums}}
+    <div class="alert displayed_alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>Syntax highlighting is disabled because of the amount of data returned by the query.</p>
+    </div>
+    {{/if}}
 
     <div class="json_tree">
         <span class="jt_arrow"></span>

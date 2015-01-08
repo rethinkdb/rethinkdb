@@ -499,17 +499,25 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
             std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
+            // We need to truncate the skey down to the smallest *guaranteed*
+            // length of secondary index keys in the btree.
+            // This is important because the prefix of a truncated sindex key
+            // that's actually getting stored can vary for different documents
+            // even with the same key, if their primary key is of different lengths.
+            // If we didn't do that, the search range which we construct in the
+            // next step might miss some relevant keys that have been truncated
+            // differently. (the lack of this was the cause of
+            // https://github.com/rethinkdb/rethinkdb/issues/3444)
+            skey.erase(datum_t::max_trunc_size());
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum
-                // possible row with this truncated sindex but smaller than the
-                // minimum possible row with a larger sindex.
+                // possible row with this truncated sindex.
                 rng.right = key_range_t::right_bound_t(
                     store_key_t(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF)));
             } else {
                 // We construct a left bound that's smaller than the minimum
-                // possible row with this truncated sindex but larger than the
-                // maximum possible row with a smaller sindex.
+                // possible row with this truncated sindex.
                 rng.left = store_key_t(skey);
             }
             if (rng.right.unbounded || rng.left < rng.right.key) {

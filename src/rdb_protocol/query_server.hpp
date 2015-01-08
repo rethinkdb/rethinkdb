@@ -28,7 +28,8 @@ public:
 
     MUST_USE bool run_query(const ql::protob_t<Query> &query,
                             Response *response_out,
-                            client_context_t *client_ctx);
+                            client_context_t *client_ctx,
+                            ip_and_port_t const &peer);
 
     void unparseable_query(int64_t token,
                            Response *response_out,

@@ -34,12 +34,14 @@ namespace ql {
              rdb_context_t *ctx,
              signal_t *interruptor,
              stream_cache_t *stream_cache,
+             ip_and_port_t const &peer,
              Response *response_out);
 }
 
 bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
                                    Response *response_out,
-                                   client_context_t *client_ctx) {
+                                   client_context_t *client_ctx,
+                                   ip_and_port_t const &peer) {
     guarantee(client_ctx->interruptor != NULL);
     response_out->set_token(query->token());
 
@@ -55,6 +57,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
                 rdb_ctx,
                 client_ctx->interruptor,
                 &client_ctx->stream_cache,
+                peer,
                 response_out);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());

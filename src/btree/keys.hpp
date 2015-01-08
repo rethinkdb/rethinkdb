@@ -160,20 +160,18 @@ public:
     }
 
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const {
-        serialize_for_metainfo(wm);
+    friend void serialize(write_message_t *wm, const store_key_t &sk) {
+        sk.serialize_for_metainfo(wm);
     }
 
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        return deserialize_for_metainfo(s);
+    friend archive_result_t deserialize(read_stream_t *s, store_key_t *sk) {
+        return sk->deserialize_for_metainfo(s);
     }
 
 private:
     char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
 };
-
-RDB_SERIALIZE_OUTSIDE(store_key_t);
 
 inline bool operator==(const store_key_t &k1, const store_key_t &k2) {
     return k1.size() == k2.size() && memcmp(k1.contents(), k2.contents(), k1.size()) == 0;

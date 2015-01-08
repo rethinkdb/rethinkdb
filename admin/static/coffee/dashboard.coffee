@@ -24,14 +24,15 @@ module 'DashboardView', ->
                 r.db(system_db).table('table_status').coerceTo("ARRAY"),
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
-                    num_primaries: table_config('shards').concatMap(identity)("director").count()
-                    num_available_primaries: table_status.map((table) ->
-                        table('shards').map((shard) ->
+                    num_primaries: table_config('shards').concatMap(identity)("primary_replica").count()
+                    num_available_primaries: table_status.concatMap((table) ->
+                        table('shards').concatMap((shard) ->
                             shard('replicas').filter((replica) ->
-                                replica('server').eq(shard('director').and(replica('state').eq('ready')))
+                                replica('server').eq(shard('primary_replica'))
+                                    .and(replica('state').eq('ready'))
                             )
                         )
-                    ).concatMap(identity).count()
+                    ).count()
                     num_replicas: table_config('shards').concatMap(identity)("replicas").concatMap(identity).count()
                     num_available_replicas: table_status('shards')
                         .concatMap((shard) -> shard('replicas'))
@@ -39,7 +40,7 @@ module 'DashboardView', ->
                         .filter( (assignment) -> assignment("state").eq("ready"))
                         .count()
                     tables_with_primaries_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                        shards: table("shards").map(r.range(), (doc, position) ->
                             doc.merge
                                 id: r.add(
                                     table("db"),
@@ -52,12 +53,12 @@ module 'DashboardView', ->
                                 num_shards: table("shards").count()
                         ).map( (shard) ->
                             shard('replicas').filter (replica) ->
-                                replica("server").eq(shard('director')).and(replica("state").ne("ready"))
+                                replica("server").eq(shard('primary_replica')).and(replica("state").ne("ready"))
                         ).concatMap(identity).coerceTo('array')
                     ).filter (table) ->
                         table("shards").isEmpty().not()
                     tables_with_replicas_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(table('shards').count()), (doc, position) ->
+                        shards: table("shards").map(r.range(), (doc, position) ->
                             doc.merge
                                 id: r.add(
                                     table("db"),
@@ -76,9 +77,9 @@ module 'DashboardView', ->
 
                     num_tables: table_config.count()
                     num_servers: server_status.count()
-                    num_available_servers: server_status.filter({status: "available"}).count()
+                    num_available_servers: server_status.filter({status: "connected"}).count()
                     servers_non_available: server_status.filter (server) ->
-                        server("status").ne("available")
+                        server("status").ne("connected")
             ).merge
                 num_non_available_tables: r.row("tables_with_primaries_not_ready").count()
 

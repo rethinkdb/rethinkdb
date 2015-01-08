@@ -70,17 +70,18 @@ struct msg_t {
         limit_start_t() { }
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_start_t);
     };
     struct limit_change_t {
         uuid_u sub;
         boost::optional<std::string> old_key;
         boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > > new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_change_t);
     };
     struct limit_stop_t {
         uuid_u sub;
         exc_t exc;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
@@ -88,9 +89,11 @@ struct msg_t {
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */
         datum_t old_val, new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(change_t);
     };
-    struct stop_t { };
+    struct stop_t {
+        RDB_DECLARE_ME_SERIALIZABLE(stop_t);
+    };
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
@@ -111,11 +114,6 @@ struct msg_t {
     boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 };
 
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::limit_stop_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 
 class real_feed_t;
@@ -171,7 +169,7 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 
 // The `client_t` exists on the server handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
-// should call `new_feed`.  The `client_t` will give it back a stream of rows.
+// should call `new_stream`.  The `client_t` will give it back a stream of rows.
 // The `client_t` does this by maintaining an internal map from table UUIDs to
 // `real_feed_t`s.  (It does this so that there is at most one `real_feed_t` per
 // <table, client> pair, to prevent redundant cluster messages.)  The actual
@@ -190,8 +188,9 @@ public:
         );
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(
+    counted_t<datum_stream_t> new_stream(
         env_t *env,
+        const datum_t &squash,
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
@@ -208,15 +207,15 @@ private:
         > const namespace_source;
     std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
-    // read whenever `new_feed` is called, and needs to be written to whenever
-    // `new_feed` is called with a table not already in the `feeds` map, or
+    // read whenever `new_stream` is called, and needs to be written to whenever
+    // `new_stream` is called with a table not already in the `feeds` map, or
     // whenever `maybe_remove_feed` or `detach_feed` is called.
     //
-    // This lock is held for a long time when `new_feed` is called with a table
+    // This lock is held for a long time when `new_stream` is called with a table
     // not already in the `feeds` map (in fact, it's held long enough to do a
     // cluster read).  This should only be a problem if the number of tables
     // (*not* the number of feeds) is large relative to read throughput, because
-    // otherwise most of the calls to `new_feed` that block will see the table
+    // otherwise most of the calls to `new_stream` that block will see the table
     // as soon as they're woken up and won't have to do a second read.
     rwlock_t feeds_lock;
     auto_drainer_t drainer;

@@ -44,7 +44,90 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.old_key).c_str(),
                      print(change.new_val).c_str());
 }
-}  // namespace debug
+} // namespace debug
+
+enum class pop_type_t { RANGE, POINT };
+class maybe_squashing_queue_t {
+public:
+    virtual ~maybe_squashing_queue_t() { }
+    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) = 0;
+    virtual size_t size() const = 0;
+    virtual void clear() = 0;
+    virtual datum_t pop(pop_type_t pop_type) {
+        std::pair<datum_t, datum_t> pair = pop_impl();
+        switch (pop_type) {
+        case pop_type_t::RANGE: return datum_t(std::map<datum_string_t, datum_t>{
+            {datum_string_t("old_val"), pair.first},
+            {datum_string_t("new_val"), pair.second}});
+        case pop_type_t::POINT: return pair.second;
+        default: unreachable();
+        }
+    }
+private:
+    virtual std::pair<datum_t, datum_t> pop_impl() = 0;
+};
+
+class squashing_queue_t : public maybe_squashing_queue_t {
+    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
+        auto it = queue.find(key);
+        if (it == queue.end()) {
+            auto pair = std::make_pair(std::move(key),
+                                       std::make_pair(std::move(old_val),
+                                                      std::move(new_val)));
+            it = queue.insert(std::move(pair)).first;
+            // `add` should never be called with `old_val == new_val`, or else
+            // `nonsquashing_queue_t` is incorrect.
+            guarantee(it->second.first != it->second.second);
+        } else {
+            if (!it->second.first.has()) {
+                it->second.first = std::move(old_val);
+            }
+            it->second.second = std::move(new_val);
+            if (it->second.first == it->second.second) {
+                queue.erase(it);
+            }
+        }
+    }
+    virtual size_t size() const {
+        return queue.size();
+    }
+    virtual void clear() {
+        queue.clear();
+    }
+    virtual std::pair<datum_t, datum_t> pop_impl() {
+        guarantee(size() != 0);
+        auto it = queue.begin();
+        auto ret = std::move(it->second);
+        queue.erase(it);
+        return ret;
+    }
+    std::map<store_key_t, std::pair<datum_t, datum_t> > queue;
+};
+
+class nonsquashing_queue_t : public maybe_squashing_queue_t {
+    virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
+        queue.emplace_back(std::move(old_val), std::move(new_val));
+    }
+    virtual size_t size() const {
+        return queue.size();
+    }
+    virtual void clear() {
+        queue.clear();
+    }
+    virtual std::pair<datum_t, datum_t> pop_impl() {
+        guarantee(size() != 0);
+        auto ret = std::move(queue.front());
+        queue.pop_front();
+        return ret;
+    }
+    std::deque<std::pair<datum_t, datum_t> > queue;
+};
+
+scoped_ptr_t<maybe_squashing_queue_t> make_maybe_squashing_queue(bool squash) {
+    return squash
+        ? scoped_ptr_t<maybe_squashing_queue_t>(new squashing_queue_t())
+        : scoped_ptr_t<maybe_squashing_queue_t>(new nonsquashing_queue_t());
+}
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -872,16 +955,15 @@ void limit_manager_t::abort(exc_t e) {
 }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
+RDB_IMPL_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
-RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
+RDB_IMPL_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_2(msg_t::limit_stop_t, sub, exc);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_stop_t);
-
-RDB_IMPL_ME_SERIALIZABLE_5(
+RDB_IMPL_SERIALIZABLE_5(
     msg_t::change_t,
-    old_indexes, new_indexes, pkey, empty_ok(old_val), empty_ok(new_val));
+    old_indexes, new_indexes, pkey, old_val, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
@@ -901,7 +983,7 @@ public:
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
 protected:
-    explicit subscription_t(feed_t *_feed);
+    explicit subscription_t(feed_t *_feed, const datum_t &squash);
     void maybe_signal_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
@@ -911,11 +993,16 @@ protected:
     // an error object to the user with the number of skipped elements before
     // continuing.
     size_t skipped;
-    // The feed we're subscribed to.
-    feed_t *feed;
+    feed_t *feed; // The feed we're subscribed to.
+    const bool squash; // Whether or not to squash changes.
+    // Whether we're in the middle of one logical batch (only matters for squashing).
+    bool mid_batch;
 private:
+    const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
+    virtual void note_data_wait() = 0;
+    virtual bool active() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -926,12 +1013,31 @@ class flat_sub_t : public subscription_t {
 public:
     template<class... Args>
     explicit flat_sub_t(Args &&... args)
-        : subscription_t(std::forward<Args>(args)...) { }
+        : subscription_t(std::forward<Args>(args)...),
+          queue(make_maybe_squashing_queue(squash)) { }
     virtual void add_el(
         const uuid_u &uuid,
         uint64_t stamp,
-        datum_t d,
-        const configured_limits_t &limits) = 0;
+        const store_key_t &key,
+        datum_t old_val,
+        datum_t new_val,
+        const configured_limits_t &limits) {
+        if (update_stamp(uuid, stamp)) {
+            queue->add(key, std::move(old_val), std::move(new_val));
+            if (queue->size() > limits.array_size_limit()) {
+                skipped += queue->size();
+                queue->clear();
+            }
+            maybe_signal_cond();
+        }
+    }
+protected:
+    // The queue of changes we've accumulated since the last time we were read from.
+    const scoped_ptr_t<maybe_squashing_queue_t> queue;
+private:
+    virtual bool has_el() { return queue->size() != 0; }
+    virtual void note_data_wait() { }
+    virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
 };
 
 class range_sub_t;
@@ -1161,14 +1267,17 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, store_key_t _key)
-        : flat_sub_t(feed), key(std::move(_key)), stamp(0) {
+    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
+        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0), started(false) {
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
-        destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
+        destructor_cleanup(
+            std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
     }
-    virtual void start_artificial(const uuid_u &) { } // `stamp` already 0
+    virtual void start_artificial(const uuid_u &) {
+        started = true;
+    }
     virtual void start_real(env_t *env,
                             std::string,
                             namespace_interface_t *nif,
@@ -1193,40 +1302,30 @@ public:
             stamp = start_stamp;
             el = std::move(resp->initial_val);
         }
+        started = true;
     }
-    virtual void add_el(const uuid_u &,
-                        uint64_t d_stamp,
-                        datum_t d,
-                        const configured_limits_t &) {
-        assert_thread();
-        // We use `>=` because we might have the same stamp as the start stamp
-        // (the start stamp reads the stamp non-destructively on the shards).
-        // We do ordering and duplicate checking in the layer above, so apart
-        // from that we have a strict ordering.
-        if (d_stamp >= stamp) {
-            stamp = d_stamp;
-            el = std::move(d);
-            maybe_signal_cond();
+    virtual bool update_stamp(const uuid_u &, uint64_t new_stamp) {
+        if (new_stamp >= stamp) {
+            stamp = new_stamp;
+            return true;
         }
+        return false;
     }
 private:
-    virtual bool has_el() { return el.has(); }
-    virtual datum_t pop_el() {
-        guarantee(has_el());
-        datum_t ret = el;
-        el.reset();
-        return ret;
-    }
+    virtual datum_t pop_el() { return queue->pop(pop_type_t::POINT); }
+    virtual bool active() { return started; }
+
     store_key_t key;
     uint64_t stamp;
     datum_t el;
+    bool started;
 };
 
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
-        : flat_sub_t(feed), spec(std::move(_spec)) {
+    range_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::range_t _spec)
+        : flat_sub_t(feed, squash), spec(std::move(_spec)) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -1270,7 +1369,7 @@ public:
         return spec.range.to_primary_keyrange().contains_key(pkey);
     }
 
-    bool active() {
+    virtual bool active() {
         // If we don't have start timestamps, we haven't started, and if we have
         // exc, we've stopped.
         return start_stamps.size() != 0 && !exc;
@@ -1294,30 +1393,18 @@ public:
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
 
-    virtual void add_el(const uuid_u &uuid,
-                        uint64_t stamp,
-                        datum_t d,
-                        const configured_limits_t &limits) {
+    virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) {
         guarantee(active());
         auto it = start_stamps.find(uuid);
         guarantee(it != start_stamps.end());
-        if (stamp >= it->second) {
-            els.push_back(std::move(d));
-            if (els.size() > limits.array_size_limit()) {
-                skipped += els.size();
-                els.clear();
-            }
-            maybe_signal_cond();
-        }
+        // Note that we currently *DO NOT* update the stamp for range
+        // subscriptions.  If we get changes with stamps after the start stamp
+        // we eventually receive, they are just discarded.  This will change in
+        // the future when we support `return_initial` on range changefeeds.
+        return new_stamp >= it->second;
     }
 private:
-    virtual bool has_el() { return els.size() != 0; }
-    virtual datum_t pop_el() {
-        guarantee(has_el());
-        datum_t ret = std::move(els.front());
-        els.pop_front();
-        return ret;
-    }
+    virtual datum_t pop_el() { return queue->pop(pop_type_t::RANGE); }
 
     scoped_ptr_t<env_t> env;
     std::vector<scoped_ptr_t<op_t> > ops;
@@ -1326,8 +1413,6 @@ private:
     // read.  We use these to make sure we don't see changes from writes before
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
-    // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<datum_t> els;
     keyspec_t::range_t spec;
     auto_drainer_t drainer;
 };
@@ -1335,8 +1420,8 @@ private:
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed, keyspec_t::limit_t _spec)
-        : subscription_t(feed),
+    limit_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::limit_t _spec)
+        : subscription_t(feed, squash),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -1363,9 +1448,62 @@ public:
             }
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
-            for (auto &&pair : changes) {
+            for (const auto &pair : changes) {
                 note_change(pair.first, pair.second);
             }
+            guarantee(queued_changes.size() == 0);
+            maybe_signal_cond();
+        }
+    }
+
+    // For limit changefeeds, the easiest way to effectively squash changes is
+    // to delay applying them to the active data set until our timer is up.
+    virtual void note_data_wait() {
+        ASSERT_NO_CORO_WAITING;
+        if (queued_changes.size() != 0 && need_init == got_init) {
+            guarantee(squash);
+            decltype(queued_changes) changes;
+            changes.swap(queued_changes);
+
+            std::vector<std::pair<datum_t, datum_t> > pairs;
+            // This has to be a multimap because of multi-indexes.
+            std::multimap<datum_t, decltype(pairs.begin()),
+                          std::function<bool(const datum_t &, const datum_t &)> >
+                new_val_index(
+                    [](const datum_t &a, const datum_t &b) {
+                        if (!a.has() || !b.has()) {
+                            return a.has() < b.has();
+                        } else {
+                            return a.compare_lt(reql_version_t::LATEST, b);
+                        }
+                    });
+
+            // We do things this way rather than simply diffing the active sets
+            // because it's easier to avoid irrational intermediate states.
+            for (const auto &change_pair : changes) {
+                std::pair<datum_t, datum_t> pair
+                    = note_change_impl(change_pair.first, change_pair.second);
+                if (pair.first.has() || pair.second.has()) {
+                    auto it = new_val_index.find(pair.first);
+                    decltype(pairs.begin()) pairs_it;
+                    if (it == new_val_index.end()) {
+                        pairs.push_back(pair);
+                        pairs_it = pairs.end()-1;
+                    } else {
+                        pairs_it = it->second;
+                        pairs_it->second = pair.second;
+                        new_val_index.erase(it);
+                    }
+                    new_val_index.insert(std::make_pair(pair.second, pairs_it));
+                }
+            }
+
+            for (auto &&pair : pairs) {
+                if (pair.first != pair.second) {
+                    push_el(std::move(pair.first), std::move(pair.second));
+                }
+            }
+
             guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
         }
@@ -1434,17 +1572,39 @@ public:
         maybe_start();
     }
 
+    void push_el(datum_t old_val, datum_t new_val) {
+        // Empty changes should have been caught above us.
+        guarantee(old_val.has() || new_val.has());
+        els.push_back(
+            datum_t(std::map<datum_string_t, datum_t> {
+                { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
+                { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() }
+            }));
+        maybe_signal_cond();
+    }
+
     virtual void note_change(
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
         // If we aren't done initializing yet, just queue up the change.  It
-        // will be sent in `maybe_start`.
-        if (need_init != got_init) {
+        // will be sent in `maybe_start`.  We also queue up changes in the case
+        // where we're squashing.
+        if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
-            return;
+        } else {
+            std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
+            if (pair.first.has() || pair.second.has()) {
+                push_el(std::move(pair.first), std::move(pair.second));
+            }
         }
+    }
+
+    std::pair<datum_t, datum_t> note_change_impl(
+        const boost::optional<std::string> &old_key,
+        const boost::optional<item_t> &new_val) {
+        ASSERT_NO_CORO_WAITING;
 
         boost::optional<item_t> old_send, new_send;
         if (old_key) {
@@ -1502,20 +1662,16 @@ public:
         guarantee(active_data.size() == spec.limit
                   || active_data.size() == item_queue.size());
 
-        if ((old_send || new_send)
-            && !(old_send && new_send && (*old_send == *new_send))) {
-            datum_t d =
-                datum_t(std::map<datum_string_t, datum_t> {
-                    { datum_string_t("old_val"),
-                      old_send ? (*old_send).second.second : datum_t::null() },
-                    { datum_string_t("new_val"),
-                      new_send ? (*new_send).second.second : datum_t::null() } });
-            els.push_back(d);
-            maybe_signal_cond();
+        datum_t old_d = old_send ? (*old_send).second.second : datum_t();
+        datum_t new_d = new_send ? (*new_send).second.second : datum_t();
+        if (old_d.has() && new_d.has() && old_d == new_d) {
+            old_d = new_d = datum_t();
         }
+        return std::make_pair(old_d, new_d);
     }
 
     virtual bool has_el() { return els.size() != 0; }
+    virtual bool active() { return need_init == got_init; }
     virtual datum_t pop_el() {
         guarantee(has_el());
         datum_t ret = std::move(els.front());
@@ -1604,20 +1760,8 @@ public:
                     old_val = change.old_val;
                 }
             }
-            datum_t obj(std::map<datum_string_t, datum_t>{
-                {datum_string_t("new_val"), new_val},
-                {datum_string_t("old_val"), old_val}
-            });
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                datum_t del_obj(std::map<datum_string_t, datum_t>{
-                    {datum_string_t("new_val"), null},
-                    {datum_string_t("old_val"), old_val}
-                });
-                datum_t add_obj(std::map<datum_string_t, datum_t>{
-                    {datum_string_t("new_val"), new_val},
-                    {datum_string_t("old_val"), null}
-                });
                 size_t old_vals = 0, new_vals = 0;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
@@ -1636,23 +1780,27 @@ public:
                     }
                 }
                 while (new_vals > 0 && old_vals > 0) {
-                    sub->add_el(server_uuid, stamp, obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, new_val, default_limits);
                     --new_vals;
                     --old_vals;
                 }
                 while (old_vals > 0) {
                     guarantee(new_vals == 0);
-                    sub->add_el(server_uuid, stamp, del_obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, null, default_limits);
                     --old_vals;
                 }
                 while (new_vals > 0) {
                     guarantee(old_vals == 0);
-                    sub->add_el(server_uuid, stamp, add_obj, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                null, new_val, default_limits);
                     --new_vals;
                 }
             } else {
                 if (sub->contains(change.pkey)) {
-                    sub->add_el(server_uuid, stamp, std::move(obj), default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey,
+                                old_val, new_val, default_limits);
                 }
             }
         });
@@ -1663,13 +1811,15 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
+                      change.pkey,
+                      change.old_val.has() ? change.old_val : null,
                       change.new_val.has() ? change.new_val : null,
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
         feed->each_sub(*lock,
-                       std::bind(&subscription_t::stop,
+                       std::bind(&flat_sub_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -1685,7 +1835,7 @@ private:
 void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
     // messages because we haven't managed to get a message to the
-    // stop mailboxes for some of the masters yet).  This also stops
+    // stop mailboxes for some of the primary replicas yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer. Because we acquire the auto drainer, we don't pay any
     // attention to the mailbox's signal.
@@ -1746,7 +1896,12 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed) : skipped(0), feed(_feed), cond(NULL) {
+subscription_t::subscription_t(feed_t *_feed, const datum_t &_squash)
+    : skipped(0),
+      feed(_feed),
+      squash(_squash.as_bool()),
+      min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
+      cond(NULL) {
     guarantee(feed != NULL);
 }
 
@@ -1757,28 +1912,52 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
-    if (!has_el() && !exc && skipped == 0) {
-        cond_t wait_for_data;
-        cond = &wait_for_data;
+
+    // We wait for data if we don't have any or if we're squashing and not
+    // in the middle of a logical batch.
+    if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
         signal_timer_t timer;
         if (batcher->get_batch_type() == batch_type_t::NORMAL
             || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
             timer.start(batcher->microtime_left() / 1000);
         }
-        try {
-            wait_any_t any_interruptor(interruptor, &timer);
-            // We don't need to wait on the drain signal because the interruptor
-            // will be pulsed if we're shutting down.
-            wait_interruptible(cond, &any_interruptor);
-        } catch (const interrupted_exc_t &e) {
-            cond = NULL;
-            if (timer.is_pulsed()) {
-                return std::vector<datum_t>();
-            }
-            throw e;
+        // If we have to wait, wait.
+        if (min_interval > 0.0
+            && active()
+            && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
+            signal_timer_t min_timer;
+            min_timer.start(min_interval * 1000);
+            // It's OK to let the `interrupted_exc_t` propagate up.
+            wait_interruptible(&min_timer, interruptor);
         }
-        guarantee(cond == NULL);
-        guarantee(has_el() || exc || skipped != 0);
+        // If we still don't have data, wait for data with a timeout.  (Note
+        // that if we're squashing, we started the timeout *before* waiting
+        // on `min_timer`.)
+        if (!has_el()) {
+            note_data_wait();
+            cond_t wait_for_data;
+            cond = &wait_for_data;
+            try {
+                wait_any_t any_interruptor(interruptor, &timer);
+                // We don't need to wait on the drain signal because the interruptor
+                // will be pulsed if we're shutting down.  Not that `cond` might
+                // already be reset by the time we get here, so make sure to wait on
+                // `&wait_for_data`.
+                wait_interruptible(&wait_for_data, &any_interruptor);
+            } catch (const interrupted_exc_t &e) {
+                cond = NULL;
+                if (timer.is_pulsed()) {
+                    return std::vector<datum_t>();
+                }
+                throw e;
+            }
+            guarantee(cond == NULL);
+            if (!has_el()) {
+                // If we don't have an element, it must be because we squashed
+                // changes down to nothing, got an error, or skipped some rows.
+                guarantee(squash || exc || skipped != 0);
+            }
+        }
     }
 
     std::vector<datum_t> v;
@@ -1793,12 +1972,18 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
                                 strprintf("Changefeed cache over array size limit, "
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
-    } else {
+    } else if (has_el()) {
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
             batcher->note_el(el);
             v.push_back(std::move(el));
         }
+        // We're in the middle of one logical batch if we stopped early because
+        // of the batcher rather than because we ran out of elements.  (This
+        // matters for squashing.)
+        mid_batch = batcher->should_send_batch();
+    } else {
+        return std::vector<datum_t>();
     }
     guarantee(v.size() != 0);
     return std::move(v);
@@ -2085,30 +2270,33 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed, const keyspec_t::spec_t &spec) {
+    feed_t *feed, const datum_t &squash, const keyspec_t::spec_t &spec) {
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
-        explicit spec_visitor_t(feed_t *_feed) : feed(_feed) { }
+        explicit spec_visitor_t(feed_t *_feed, const datum_t *_squash)
+            : feed(_feed), squash(_squash) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, range);
+            return new range_sub_t(feed, *squash, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, limit);
+            return new limit_sub_t(feed, *squash, limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, point.key);
+            return new point_sub_t(feed, *squash, point.key);
         }
         feed_t *feed;
+        const datum_t *squash;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(spec_visitor_t(feed), spec));
+        boost::apply_visitor(spec_visitor_t(feed, &squash), spec));
 }
 
-counted_t<datum_stream_t>
-client_t::new_feed(env_t *env,
-                   const namespace_id_t &uuid,
-                   const protob_t<const Backtrace> &bt,
-                   const std::string &table_name,
-                   const keyspec_t::spec_t &spec) {
+counted_t<datum_stream_t> client_t::new_stream(
+    env_t *env,
+    const datum_t &squash,
+    const namespace_id_t &uuid,
+    const protob_t<const Backtrace> &bt,
+    const std::string &table_name,
+    const keyspec_t::spec_t &spec) {
     try {
         scoped_ptr_t<subscription_t> sub;
         boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
@@ -2139,7 +2327,7 @@ client_t::new_feed(env_t *env,
             on_thread_t th2(old_thread);
             real_feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub = new_sub(feed, spec);
+            sub = new_sub(feed, squash, spec);
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
@@ -2213,7 +2401,8 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
-    scoped_ptr_t<subscription_t> sub = new_sub(feed.get(), spec);
+    scoped_ptr_t<subscription_t> sub = new_sub(
+        feed.get(), datum_t::boolean(false), spec);
     sub->start_artificial(uuid);
     return make_counted<stream_t>(std::move(sub), bt);
 }

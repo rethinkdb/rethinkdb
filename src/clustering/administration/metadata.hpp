@@ -17,7 +17,6 @@
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
-#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -151,43 +150,6 @@ public:
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
-// ctx-less json adapter for directory_echo_wrapper_t
-template <class T>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
-    return get_json_subfields(&target->internal);
-}
-
-template <class T>
-cJSON *render_as_json(directory_echo_wrapper_t<T> *target) {
-    return render_as_json(&target->internal);
-}
-
-template <class T>
-void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
-    apply_json_to(change, &target->internal);
-}
-
-// ctx-less json adapter concept for cluster_directory_metadata_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target);
-cJSON *render_as_json(cluster_directory_metadata_t *target);
-void apply_json_to(cJSON *change, cluster_directory_metadata_t *target);
-
-
-// ctx-less json adapter for cluster_directory_peer_type_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *);
-cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
-void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
-
-enum metadata_search_status_t {
-    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE
-};
-
-bool check_metadata_status(metadata_search_status_t status,
-                           const char *entity_type,
-                           const std::string &entity_name,
-                           bool expect_present,
-                           std::string *error_out);
-
 template<class T>
 bool search_metadata_by_uuid(
         std::map<uuid_u, deletable_t<T> > *map,
@@ -216,118 +178,18 @@ bool search_const_metadata_by_uuid(
     }
 }
 
-/* A helper class to search through metadata in various ways.  Can be
-   constructed from a pointer to the internal map of the metadata,
-   e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
-   for examples on how to use.
-   `generic_metadata_searcher_t` should not be directly used. Instead there
-   are two variants defined below:
-     `const_metadata_searcher_t` for const maps
-     and `metadata_searcher_t` for non-const maps. */
-template<class T, class metamap_t, class iterator_t>
-class generic_metadata_searcher_t {
-public:
-    typedef iterator_t iterator;
-    iterator begin() {return map->begin();}
-    iterator end() {return map->end();}
+bool search_db_metadata_by_name(
+        const databases_semilattice_metadata_t &metadata,
+        const name_string_t &name,
+        database_id_t *id_out,
+        std::string *error_out);
 
-    explicit generic_metadata_searcher_t(metamap_t *_map): map(_map) { }
-
-    template<class callable_t>
-    /* Find the next iterator >= [start] matching [predicate]. */
-    iterator find_next(iterator start, const callable_t& predicate) {
-        iterator it;
-        for (it = start; it != end(); ++it) {
-            if (it->second.is_deleted()) continue;
-            if (predicate(it->second.get_ref())) break;
-        }
-        return it;
-    }
-    /* Find the next iterator >= [start] (as above, but predicate always true). */
-    iterator find_next(iterator start) {
-        iterator it;
-        for (it = start; it != end(); ++it) {
-            if (!it->second.is_deleted()) {
-                break;
-            }
-        }
-        return it;
-    }
-
-    /* Find the unique entry matching [predicate].  If there is no unique entry,
-       return [end()] and set the optional status parameter appropriately. */
-    template<class callable_t>
-    iterator find_uniq(const callable_t& predicate, metadata_search_status_t *out = 0) {
-        iterator it, retval;
-        if (out) *out = METADATA_SUCCESS;
-        retval = it = find_next(begin(), predicate);
-        if (it == end()) {
-            if (out) *out = METADATA_ERR_NONE;
-        } else if (find_next(++it, predicate) != end()) {
-            if (out) *out = METADATA_ERR_MULTIPLE;
-            retval = end();
-        }
-        return retval;
-    }
-    /* As above, but matches by name instead of a predicate. */
-    iterator find_uniq(const name_string_t &name, metadata_search_status_t *out = 0) {
-        return find_uniq(name_predicate_t(&name), out);
-    }
-
-    struct name_predicate_t {
-        bool operator()(T metadata) const {
-            return metadata.name.get_ref() == *name;
-        }
-        explicit name_predicate_t(const name_string_t *_name): name(_name) { }
-    private:
-        const name_string_t *name;
-    };
-private:
-    metamap_t *map;
-};
-template<class T>
-class metadata_searcher_t :
-        public generic_metadata_searcher_t<T,
-            typename std::map<uuid_u, deletable_t<T> >,
-            typename std::map<uuid_u, deletable_t<T> >::iterator> {
-public:
-    typedef typename std::map<uuid_u, deletable_t<T> >::iterator iterator;
-    typedef typename std::map<uuid_u, deletable_t<T> > metamap_t;
-    explicit metadata_searcher_t(metamap_t *_map) :
-            generic_metadata_searcher_t<T, metamap_t, iterator>(_map) { }
-};
-template<class T>
-class const_metadata_searcher_t :
-        public generic_metadata_searcher_t<T,
-            const typename std::map<uuid_u, deletable_t<T> >,
-            typename std::map<uuid_u, deletable_t<T> >::const_iterator> {
-public:
-    typedef typename std::map<uuid_u, deletable_t<T> >::const_iterator iterator;
-    typedef const typename std::map<uuid_u, deletable_t<T> > metamap_t;
-    explicit const_metadata_searcher_t(metamap_t *_map) :
-            generic_metadata_searcher_t<T, metamap_t, iterator>(_map) { }
-};
-
-class namespace_predicate_t {
-public:
-    bool operator()(const namespace_semilattice_metadata_t &ns) const {
-        if (name && ns.name.get_ref() != *name) {
-            return false;
-        } else if (db_id && ns.database.get_ref() != *db_id) {
-            return false;
-        }
-        return true;
-    }
-    explicit namespace_predicate_t(const name_string_t *_name): name(_name), db_id(NULL) { }
-    explicit namespace_predicate_t(const uuid_u *_db_id): name(NULL), db_id(_db_id) { }
-    namespace_predicate_t(const name_string_t *_name, const uuid_u *_db_id):
-        name(_name), db_id(_db_id) { }
-private:
-    const name_string_t *name;
-    const uuid_u *db_id;
-
-    DISABLE_COPYING(namespace_predicate_t);
-};
-
+bool search_table_metadata_by_name(
+        const namespaces_semilattice_metadata_t &metadata,
+        const database_id_t &db_id,
+        const name_string_t &db_name,
+        const name_string_t &name,
+        namespace_id_t *id_out,
+        std::string *error_out);
 
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

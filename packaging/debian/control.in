@@ -7,7 +7,7 @@ Homepage: http://www.rethinkdb.com
 
 Package: VERSIONED_QUALIFIED_PACKAGE_NAME
 Architecture: i386 amd64
-Pre-Depends: adduser (>= 3.40)
+Pre-Depends: adduser (>= 3.40), procps (>= 3.2)
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)

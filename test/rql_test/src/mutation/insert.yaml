@@ -4,7 +4,7 @@ tests:
 
     # Set up our secondary test table
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - def: tbl2 = r.db('test').table('test2')
 
@@ -115,7 +115,7 @@ tests:
     - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
       def: tblpkey = r.db('test').table('testpkey')
 
@@ -138,7 +138,7 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: r.db('test').table_drop('testpkey')
-      ot: "({'dropped':1})"
+      ot: "partial({'tables_dropped':1})"
 
     # Insert within for each
     - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
@@ -148,4 +148,4 @@ tests:
 
     # clean up
     - cd: r.db('test').table_drop('test2')
-      ot: "({'dropped':1})"
+      ot: "partial({'tables_dropped':1})"

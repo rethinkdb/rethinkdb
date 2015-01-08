@@ -14,5 +14,6 @@ void validate_pb(const Datum &d);
 void validate_pb(const Datum::AssocPair &ap);
 void validate_pb(const Term &t);
 void validate_pb(const Term::AssocPair &ap);
+void validate_optargs(const Query &q);
 
 #endif  // RDB_PROTOCOL_VALIDATE_HPP_
