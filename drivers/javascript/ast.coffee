@@ -272,7 +272,7 @@ class RDBVal extends TermBase
 
     config: () -> new Config {}, @
     status: () -> new Status {}, @
-    wait: aropt (opts) -> new Wait opts @
+    wait: aropt (opts) -> new Wait opts, @
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 

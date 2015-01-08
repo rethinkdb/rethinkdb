@@ -373,10 +373,10 @@ public:
     wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         table_or_db_meta_term_t(env, term, optargspec_t({"timeout", "wait_for"})) { }
 private:
-    static const char *wait_outdated_reads_str;
-    static const char *wait_reads_str;
-    static const char *wait_writes_str;
-    static const char *wait_all_str;
+    static constexpr const char * const wait_outdated_str = "ready_for_outdated_reads";
+    static constexpr const char * const wait_reads_str = "ready_for_reads";
+    static constexpr const char * const wait_writes_str = "ready_for_writes";
+    static constexpr const char * const wait_all_str = "all_replicas_ready";
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
@@ -385,7 +385,7 @@ private:
         // Handle 'wait_for' optarg
         table_readiness_t readiness = table_readiness_t::finished;
         if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
-            if (wait_for->as_str() == wait_outdated_reads_str) {
+            if (wait_for->as_str() == wait_outdated_str) {
                 readiness = table_readiness_t::outdated_reads;
             } else if (wait_for->as_str() == wait_reads_str) {
                 readiness = table_readiness_t::reads;
@@ -398,19 +398,17 @@ private:
                              "Unknown table readiness state: '%s', must be one of "
                              "'%s', '%s', '%s', or '%s'",
                              wait_for->as_str().to_std().c_str(),
-                             wait_outdated_reads_str, wait_reads_str,
+                             wait_outdated_str, wait_reads_str,
                              wait_writes_str, wait_all_str);
             }
         }
 
         // Handle 'timeout' optarg
         signal_timer_t timeout_timer;
-        scoped_ptr_t<wait_any_t> combined_interruptor;
-        signal_t *interruptor = env->env->interruptor;
+        wait_any_t combined_interruptor(env->env->interruptor);
         if (scoped_ptr_t<val_t> timeout = args->optarg(env, "timeout")) {
             timeout_timer.start(timeout->as_int<uint64_t>() * 1000);
-            combined_interruptor.init(new wait_any_t(interruptor, &timeout_timer));
-            interruptor = combined_interruptor.get();
+            combined_interruptor.add(&timeout_timer);
         }
 
         // Perform db or table wait
@@ -419,14 +417,14 @@ private:
         std::string error;
         try {
             if (static_cast<bool>(name_if_table)) {
-                success = env->env->reql_cluster_interface()->table_wait(
-                    db, *name_if_table, readiness, interruptor, &result, &error);
+                success = env->env->reql_cluster_interface()->table_wait(db,
+                    *name_if_table, readiness, &combined_interruptor, &result, &error);
             } else {
                 success = env->env->reql_cluster_interface()->db_wait(
-                    db, readiness, interruptor, &result, &error);
+                    db, readiness, &combined_interruptor, &result, &error);
             }
         } catch (const interrupted_exc_t &ex) {
-            if (!combined_interruptor || !timeout_timer.is_pulsed()) {
+            if (!timeout_timer.is_pulsed()) {
                 throw;
             }
             rfail(base_exc_t::GENERIC, "Timed out while waiting for tables.");
@@ -439,11 +437,6 @@ private:
     }
     virtual const char *name() const { return "wait"; }
 };
-
-const char *wait_term_t::wait_outdated_reads_str("ready_for_outdated_reads");
-const char *wait_term_t::wait_reads_str("ready_for_reads");
-const char *wait_term_t::wait_writes_str("ready_for_writes");
-const char *wait_term_t::wait_all_str("all_replicas_ready");
 
 class reconfigure_term_t : public table_or_db_meta_term_t {
 public:

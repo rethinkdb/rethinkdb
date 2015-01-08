@@ -264,6 +264,11 @@ tests:
       rb: r.table('testA',{:identifier_format=>'uuid'}).count()
       ot: 0
 
+    - py: r.wait(wait_for='all_replicas_ready', timeout=5)
+      js: r.wait({waitFor:'all' + '_' + 'replicas' + '_' + 'ready', timeout:5})
+      rb: r.wait(:wait_for => 'all_replicas_ready', :timeout => 5)
+      ot: partial({'ready':2})
+
     - cd: db.table_drop('testA')
       ot: partial({'tables_dropped':1})
 
