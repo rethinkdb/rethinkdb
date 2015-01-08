@@ -66,16 +66,17 @@ void run_with_broadcaster(
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t> >(boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card())));
 
-    scoped_ptr_t<listener_t> initial_listener(
-        new listener_t(base_path_t("."), //TODO is it bad that this isn't configurable?
-                                       &io_backender,
-                                       cluster.get_mailbox_manager(),
-                                       broadcaster_business_card_watchable_variable.get_watchable(),
-                                       &branch_history_manager,
-                                       broadcaster.get(),
-                                       &get_global_perfmon_collection(),
-                                       &interruptor,
-                                       &order_source));
+    scoped_ptr_t<listener_t> initial_listener(new listener_t(
+        base_path_t("."), //TODO is it bad that this isn't configurable?
+        &io_backender,
+        cluster.get_mailbox_manager(),
+        generate_uuid(),
+        broadcaster_business_card_watchable_variable.get_watchable(),
+        &branch_history_manager,
+        broadcaster.get(),
+        &get_global_perfmon_collection(),
+        &interruptor,
+        &order_source));
 
     fun(std::make_pair(&io_backender, &cluster),
         &branch_history_manager,
@@ -187,15 +188,16 @@ void run_backfill_test(size_t value_padding_length,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        generate_uuid(),
         &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,
         replier_business_card_variable.get_watchable(),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
-        order_source);
+        order_source,
+        nullptr);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
@@ -306,15 +308,16 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        generate_uuid(),
         &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,
         replier_business_card_variable.get_watchable(),
-        generate_uuid(),
         &get_global_perfmon_collection(),
         &interruptor,
-        order_source);
+        order_source,
+        nullptr);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());

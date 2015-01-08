@@ -79,6 +79,10 @@ void debugf(const char *msg, ...) {
 
 #endif  // NDEBUG
 
+void debug_print(printf_buffer_t *buf, int x) {
+    buf->appendf("%d", x);
+}
+
 void debug_print(printf_buffer_t *buf, uint64_t x) {
     buf->appendf("%" PRIu64, x);
 }

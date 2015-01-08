@@ -162,6 +162,8 @@ public:
 
     bool coop_lock_and_check();
 
+    virtual bool is_gc_active() const;
+
 private:
     void register_block_token(ls_block_token_pointee_t *token, int64_t offset);
     bool tokens_exist_for_offset(int64_t off);

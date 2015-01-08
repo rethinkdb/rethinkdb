@@ -52,8 +52,6 @@ public:
     void assert_read_mode() const;
     void assert_write_mode() const;
     const std::string &tag() const;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
@@ -82,14 +80,13 @@ private:
     friend class order_sink_t;
     friend class order_checkpoint_t;
     friend class plain_sink_t;
-};
 
 #ifndef NDEBUG
-RDB_SERIALIZE_OUTSIDE(order_token_t);
+    RDB_DECLARE_ME_SERIALIZABLE(order_token_t);
 #else
-RDB_MAKE_SERIALIZABLE_0(order_token_t);
+    RDB_MAKE_ME_SERIALIZABLE_0(order_token_t);
 #endif
-
+};
 
 /* Order sources create order tokens with increasing values for a
    specific bucket. */

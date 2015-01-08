@@ -5,11 +5,10 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rdb_protocol/wait_for_readiness.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
@@ -48,13 +47,16 @@ public:
     cond_t *pulse_when_ref_count_becomes_nonzero;
 };
 
-namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                   const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-                                   clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
-                                   rdb_context_t *_ctx)
+namespace_repo_t::namespace_repo_t(
+        mailbox_manager_t *_mailbox_manager,
+        const boost::shared_ptr<semilattice_read_view_t<
+            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *_directory,
+        rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_view(semilattice_view),
-      namespaces_directory_metadata(_namespaces_directory_metadata),
+      directory(_directory),
       ctx(_ctx),
       namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
 {
@@ -63,27 +65,9 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 
 namespace_repo_t::~namespace_repo_t() { }
 
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > res;
-    for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator it  = ns_directory_metadata.get_inner().begin();
-         it != ns_directory_metadata.get_inner().end();
-         ++it) {
-        namespaces_directory_metadata_t::reactor_bcards_map_t::const_iterator jt =
-            it->second.reactor_bcards.find(n_id);
-        if (jt != it->second.reactor_bcards.end()) {
-            res[it->first] = jt->second.internal;
-        } else {
-            res[it->first] = cow_ptr_t<reactor_business_card_t>();
-        }
-    }
-
-    return res;
-}
-
 void copy_region_maps_to_thread(
-        const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > &from,
-        one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > > *to,
+        const std::map<namespace_id_t, std::map<key_range_t, server_id_t> > &from,
+        one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > > *to,
         int thread, UNUSED auto_drainer_t::lock_t keepalive) {
     on_thread_t th((threadnum_t(thread)));
     *to->get() = from;
@@ -91,7 +75,7 @@ void copy_region_maps_to_thread(
 
 void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
     ASSERT_NO_CORO_WAITING;
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > new_reg_to_pri_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > new_reg_to_pri_maps;
 
     namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
     const namespaces_semilattice_metadata_t::namespace_map_t &ns = namespaces_view.get()->get().get()->namespaces;
@@ -99,25 +83,10 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
         if (it->second.is_deleted()) {
             continue;
         }
-        if (it->second.get_ref().blueprint.in_conflict()) {
-            /* The reactor won't do anything while the blueprint is in conflict, so the
-            old mapping is probably still accurate, although there's no guarantee. */
-            auto jt = region_to_primary_maps.get()->find(it->first);
-            if (jt != region_to_primary_maps.get()->end()) {
-                new_reg_to_pri_maps[it->first] = jt->second;
-            }
-            continue;
-        }
-        const persistable_blueprint_t &bp = it->second.get_ref().blueprint.get_ref();
-        persistable_blueprint_t::role_map_t::const_iterator it2;
-        for (it2 = bp.machines_roles.begin(); it2 != bp.machines_roles.end(); ++it2) {
-            const persistable_blueprint_t::region_to_role_map_t &roles = it2->second;
-            persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
-            for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
-                if (it3->second == blueprint_role_t::blueprint_role_primary) {
-                    new_reg_to_pri_maps[it->first][it3->first.inner] = it2->first;
-                }
-            }
+        table_replication_info_t info = it->second.get_ref().replication_info.get_ref();
+        for (size_t i = 0; i < info.config.shards.size(); ++i) {
+            new_reg_to_pri_maps[it->first][info.shard_scheme.get_shard_range(i)] =
+                info.config.shards[i].primary_replica;
         }
     }
 
@@ -145,9 +114,10 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     switch back. In destruction we need to do the reverse. Fortunately RAII works really
     nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > subview =
-        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards, _1, namespace_id));
-    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
+
+    table_directory_converter_t table_directory(directory, namespace_id);
+    cross_thread_watchable_map_var_t<peer_id_t, namespace_directory_metadata_t>
+        cross_thread_watchable(&table_directory, thread);
     on_thread_t switch_back(thread);
 
     cluster_namespace_interface_t namespace_interface(

@@ -239,7 +239,7 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
 
 void lba_list_t::add_inline_entry(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint32_t ser_block_size) {
-    
+
     rassert(!check_inline_lba_full());
     inline_lba_entries[inline_lba_entries_count++] =
             lba_entry_t::make(block, recency, offset, ser_block_size);

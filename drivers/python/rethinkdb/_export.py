@@ -135,13 +135,15 @@ def parse_options():
 # connection errors occur.  Don't bother setting progress, because this is a
 # fairly small operation.
 def get_tables(progress, conn, tables):
-    dbs = r.db_list().run(conn)
+    dbs = r.db_list().filter(r.row.ne('rethinkdb')).run(conn)
     res = []
 
     if len(tables) == 0:
         tables = [(db, None) for db in dbs]
 
     for db_table in tables:
+        if db_table[0] == 'rethinkdb':
+            raise RuntimeError("Error: Cannot export tables from the system database: 'rethinkdb'")
         if db_table[0] not in dbs:
             raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
@@ -174,6 +176,10 @@ def finalize_directory(base_path, base_path_partial):
 # succeed or fail, there is no partial success.
 def write_table_metadata(progress, conn, db, table, base_path):
     table_info = r.db(db).table(table).info().run(conn)
+
+    # Rather than just the index names, store all index information
+    table_info['indexes'] = r.db(db).table(table).index_status().run(conn, binary_format='raw')
+
     out = open(base_path + "/%s/%s.info" % (db, table), "w")
     out.write(json.dumps(table_info) + "\n")
     out.close()
@@ -204,6 +210,9 @@ def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_
                 progress_info[0].value += 20
     finally:
         progress_info[0].value += read_rows % 20
+
+    # Export is done - since we used estimates earlier, update the actual table size
+    progress_info[1].value = progress_info[0].value
 
 def json_writer(filename, fields, task_queue, error_queue):
     try:
@@ -270,7 +279,7 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
         raise RuntimeError("unknown format type: %s" % format)
 
 def get_table_size(progress, conn, db, table, progress_info):
-    table_size = r.db(db).table(table).count().run(conn)
+    table_size = r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
     progress_info[1].value = table_size
     progress_info[0].value = 0
 
@@ -401,6 +410,7 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        rdb_call_wrapper(conn_fn, "version check", check_version)
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
         del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 

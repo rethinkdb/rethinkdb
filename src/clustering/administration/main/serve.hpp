@@ -9,6 +9,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "arch/address.hpp"
 
 class os_signal_cond_t;
@@ -91,13 +92,17 @@ public:
     serve_info_t(std::vector<host_and_port_t> &&_joins,
                  std::string &&_reql_http_proxy,
                  std::string &&_web_assets,
+                 update_check_t _do_version_checking,
                  service_address_ports_t _ports,
-                 boost::optional<std::string> _config_file) :
+                 boost::optional<std::string> _config_file,
+                 std::vector<std::string> &&_argv) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
         web_assets(std::move(_web_assets)),
+        do_version_checking(_do_version_checking),
         ports(_ports),
-        config_file(_config_file)
+        config_file(_config_file),
+        argv(std::move(_argv))
     { }
 
     void look_up_peers() {
@@ -108,8 +113,12 @@ public:
     peer_address_set_t peers;
     std::string reql_http_proxy;
     std::string web_assets;
+    update_check_t do_version_checking;
     service_address_ports_t ports;
     boost::optional<std::string> config_file;
+    /* The original arguments, so we can display them in `server_status`. All the
+    argument parsing has already been completed at this point. */
+    std::vector<std::string> argv;
 };
 
 /* This has been factored out from `command_line.hpp` because it takes a very
@@ -119,7 +128,6 @@ bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond);
 

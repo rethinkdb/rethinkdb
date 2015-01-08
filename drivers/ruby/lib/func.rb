@@ -25,6 +25,7 @@ module RethinkDB
       :between => 2,
       :table => -1,
       :table_create => -1,
+      :reconfigure => 0,
       :get_all => -1,
       :eq_join => -1,
       :javascript => -1,
@@ -45,7 +46,9 @@ module RethinkDB
       :get_intersecting => -1,
       :get_nearest => -1,
       :min => -1,
-      :max => -1
+      :max => -1,
+      :changes => -1,
+      :wait => 0
     }
     @@method_aliases = {
       :lt => :<,

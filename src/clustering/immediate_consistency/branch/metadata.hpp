@@ -60,11 +60,13 @@ public:
 
     listener_business_card_t() { }
     listener_business_card_t(const intro_mailbox_t::address_t &im,
-                             const write_mailbox_t::address_t &wm)
-        : intro_mailbox(im), write_mailbox(wm) { }
+                             const write_mailbox_t::address_t &wm,
+                             const server_id_t &si)
+        : intro_mailbox(im), write_mailbox(wm), server_id(si) { }
 
     intro_mailbox_t::address_t intro_mailbox;
     write_mailbox_t::address_t write_mailbox;
+    server_id_t server_id;
 };
 
 RDB_DECLARE_SERIALIZABLE(listener_business_card_t);
@@ -103,28 +105,26 @@ struct backfiller_business_card_t {
             region_map_t<version_range_t>,
             branch_history_t
             ) >,
-        mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)>,
+        mailbox_addr_t< void(
+            backfill_chunk_t,
+            double,
+            fifo_enforcer_write_token_t
+            ) >,
         mailbox_t<void(fifo_enforcer_write_token_t)>::address_t,
         mailbox_t<void(mailbox_addr_t<void(int)>)>::address_t
         )> backfill_mailbox_t;
 
     typedef mailbox_t<void(backfill_session_id_t)> cancel_backfill_mailbox_t;
 
-
-    /* Mailboxes used for requesting the progress of a backfill */
-    typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(std::pair<int, int>)>)> request_progress_mailbox_t;
-
     backfiller_business_card_t() { }
     backfiller_business_card_t(
             const backfill_mailbox_t::address_t &ba,
-            const cancel_backfill_mailbox_t::address_t &cba,
-            const request_progress_mailbox_t::address_t &pa) :
-        backfill_mailbox(ba), cancel_backfill_mailbox(cba), request_progress_mailbox(pa)
+            const cancel_backfill_mailbox_t::address_t &cba) :
+        backfill_mailbox(ba), cancel_backfill_mailbox(cba)
         { }
 
     backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
-    request_progress_mailbox_t::address_t request_progress_mailbox;
 };
 
 RDB_DECLARE_SERIALIZABLE(backfiller_business_card_t);

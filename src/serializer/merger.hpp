@@ -8,6 +8,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/throttled_committer.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/serializer.hpp"
@@ -108,6 +109,10 @@ public:
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }
 
+    /* Return true if the garbage collector is active */
+    bool is_gc_active() const {
+        return inner->is_gc_active();
+    }
 
 private:
     // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if
@@ -116,6 +121,8 @@ private:
     // This merges to_be_merged in-place into into_out.
     void merge_index_write_op(const index_write_op_t &to_be_merged,
                               index_write_op_t *into_out) const;
+
+    void do_index_write();
 
     const scoped_ptr_t<serializer_t> inner;
     const scoped_ptr_t<file_account_t> block_writes_io_account;
@@ -127,18 +134,7 @@ private:
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
 
-    // Index writes which are currently outstanding keep a pointer to this condition.
-    // It is pulsed once the write completes.
-    class counted_cond_t : public cond_t,
-                           public single_threaded_countable_t<counted_cond_t> {
-    };
-    counted_t<counted_cond_t> on_inner_index_write_complete;
-    bool unhandled_index_write_waiter_exists;
-
-    int num_active_writes;
-    int max_active_writes;
-
-    void do_index_write();
+    throttled_committer_t write_committer;
 
     DISABLE_COPYING(merger_serializer_t);
 };

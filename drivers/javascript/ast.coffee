@@ -91,11 +91,6 @@ class TermBase
         if callback? and typeof callback isnt 'function'
             return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
-        # Check if the arguments are valid types
-        for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
-                    .nodeify callback
         if net.isConnection(connection) is false
             return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
 
@@ -169,7 +164,7 @@ class RDBVal extends TermBase
     hasFields: (args...) -> new HasFields {}, @, args...
     withFields: (args...) -> new WithFields {}, @, args...
     keys: (args...) -> new Keys {}, @, args...
-    changes: (args...) -> new Changes {}, @, args...
+    changes: aropt (opts) -> new Changes opts, @
 
     # pluck and without on zero fields are allowed
     pluck: (args...) -> new Pluck {}, @, args...
@@ -273,6 +268,12 @@ class RDBVal extends TermBase
     tableDrop: (args...) -> new TableDrop {}, @, args...
     tableList: (args...) -> new TableList {}, @, args...
 
+    # Mixed db/table operations
+
+    config: () -> new Config {}, @
+    status: () -> new Status {}, @
+    wait: aropt (opts) -> new Wait opts, @
+
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
     # Table operations
@@ -338,6 +339,9 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
+    reconfigure: (opts) -> new Reconfigure opts, @
+    rebalance: () -> new Rebalance {}, @
+
     sync: (args...) -> new Sync {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
@@ -387,49 +391,15 @@ class DatumTerm extends RDBVal
 translateBackOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
-        key = switch key
-            when 'primary_key' then 'primaryKey'
-            when 'return_vals' then 'returnVals'
-            when 'return_changes' then 'returnChanges'
-            when 'use_outdated' then 'useOutdated'
-            when 'non_atomic' then 'nonAtomic'
-            when 'left_bound' then 'leftBound'
-            when 'right_bound' then 'rightBound'
-            when 'default_timezone' then 'defaultTimezone'
-            when 'result_format' then 'resultFormat'
-            when 'page_limit' then 'pageLimit'
-            when 'num_vertices' then 'numVertices'
-            when 'geo_system' then 'geoSystem'
-            when 'max_results' then 'maxResults'
-            when 'max_dist' then 'maxDist'
-            else key
-
-        result[key] = val
+        result[util.toCamelCase(key)] = val
     return result
 
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
-        # We translate known two word opt-args to camel case for your convience
-        key = switch key
-            when 'primaryKey' then 'primary_key'
-            when 'returnVals' then 'return_vals'
-            when 'returnChanges' then 'return_changes'
-            when 'useOutdated' then 'use_outdated'
-            when 'nonAtomic' then 'non_atomic'
-            when 'leftBound' then 'left_bound'
-            when 'rightBound' then 'right_bound'
-            when 'defaultTimezone' then 'default_timezone'
-            when 'resultFormat' then 'result_format'
-            when 'pageLimit' then 'page_limit'
-            when 'numVertices' then 'num_vertices'
-            when 'geoSystem' then 'geo_system'
-            when 'maxResults' then 'max_results'
-            when 'maxDist' then 'max_dist'
-            else key
-
+        # We translate opt-args to camel case for your convience
         if key is undefined or val is undefined then continue
-        result[key] = rethinkdb.expr val
+        result[util.fromCamelCase(key)] = rethinkdb.expr val
     return result
 
 class RDBOp extends RDBVal
@@ -739,7 +709,6 @@ class Changes extends RDBOp
     tt: protoTermType.CHANGES
     mt: 'changes'
 
-
 class Object_ extends RDBOp
     tt: protoTermType.OBJECT
     mt: 'object'
@@ -947,6 +916,26 @@ class IndexStatus extends RDBOp
 class IndexWait extends RDBOp
     tt: protoTermType.INDEX_WAIT
     mt: 'indexWait'
+
+class Config extends RDBOp
+    tt: protoTermType.CONFIG
+    mt: 'config'
+
+class Status extends RDBOp
+    tt: protoTermType.STATUS
+    mt: 'status'
+
+class Wait extends RDBOp
+    tt: protoTermType.WAIT
+    mt: 'wait'
+
+class Reconfigure extends RDBOp
+    tt: protoTermType.RECONFIGURE
+    mt: 'reconfigure'
+
+class Rebalance extends RDBOp
+    tt: protoTermType.REBALANCE
+    mt: 'rebalance'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC
@@ -1230,6 +1219,10 @@ rethinkdb.dbList = (args...) -> new DbList {}, args...
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
+
+rethinkdb.wait = aropt (opts) -> new Wait opts
+rethinkdb.reconfigure = (opts) -> new Reconfigure opts
+rethinkdb.rebalance = () -> new Rebalance {}
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

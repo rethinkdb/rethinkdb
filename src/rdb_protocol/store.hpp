@@ -10,10 +10,11 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "btree/erase_range.hpp"
+#include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/rwlock.hpp"
@@ -95,7 +96,8 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            outdated_index_report_t *_index_report);
+            outdated_index_report_t *_index_report,
+            namespace_id_t table_id);
     ~store_t();
 
     void note_reshard();
@@ -391,6 +393,11 @@ public:
                          const region_map_t<binary_blob_t> &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
+    namespace_id_t const &get_table_id() const;
+
+    typedef std::map<uuid_u, std::pair<microtime_t, std::string> > sindex_jobs_t;
+    sindex_jobs_t *get_sindex_jobs();
+
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
@@ -417,6 +424,12 @@ public:
     // any time the set of outdated indexes for this table changes
     outdated_index_report_t *index_report;
 
+private:
+    namespace_id_t table_id;
+
+    sindex_jobs_t sindex_jobs;
+
+public:
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write
     // lock on this and stays there for as long as it's running. It does not

@@ -1,20 +1,26 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+raise NotImplementedError('Needs Jobs table: https://github.com/rethinkdb/rethinkdb/issues/3115')
+
+import os, sys, time
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin, scenario_common, utils
-from vcoptparse import *
+import driver, http_admin, scenario_common, utils, vcoptparse
 
 r = utils.import_python_driver()
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
     processes = [
         driver.Process(
@@ -27,8 +33,8 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     ns = http.add_table(primary = dc)
     time.sleep(10)
     host, port = driver.get_table_host(processes)
@@ -53,7 +59,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking backfill progress... ",
     progress = http.get_progress()
-    for machine_id, temp1 in progress.iteritems():
+    for _, temp1 in progress.iteritems():
         for namespace_id, temp2 in temp1.iteritems():
             for activity_id, temp3 in temp2.iteritems():
                 for region, progress_val in temp3.iteritems():

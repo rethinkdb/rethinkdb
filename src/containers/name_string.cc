@@ -44,26 +44,14 @@ bool name_string_t::assign_value(const datum_string_t &s) {
     return true;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(name_string_t, str_);
-
-
-json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED name_string_t *target) {
-    std::string fake_target;
-    return get_json_subfields(&fake_target);
+name_string_t name_string_t::guarantee_valid(const char *name) {
+    name_string_t string;
+    bool ok = string.assign_value(name);
+    guarantee(ok, "The name `%s` is not valid.", name);
+    return string;
 }
 
-cJSON *render_as_json(name_string_t *target) {
-    std::string tmp = target->str();
-    return render_as_json(&tmp);
-}
-
-void apply_json_to(cJSON *change, name_string_t *target) {
-    std::string tmp;
-    apply_json_to(change, &tmp);
-    if (!target->assign_value(tmp)) {
-        throw schema_mismatch_exc_t("invalid name: " + tmp);
-    }
-}
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(name_string_t, str_);
 
 void debug_print(printf_buffer_t *buf, const name_string_t& s) {
     debug_print(buf, s.str());

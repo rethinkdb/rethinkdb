@@ -14,68 +14,22 @@
 #include "containers/scoped.hpp"
 #include "stl_utils.hpp"
 
-template<class key_t, class value_t>
-struct collapse_optionals_in_map_t {
-    collapse_optionals_in_map_t() { }
-    collapse_optionals_in_map_t(const collapse_optionals_in_map_t &) { }
-    collapse_optionals_in_map_t &operator=(const collapse_optionals_in_map_t &) {
-        subscription.reset();
-        return *this;
-    }
-    bool operator()(
-            const change_tracking_map_t<key_t, boost::optional<value_t> > &map,
-            change_tracking_map_t<key_t, value_t> *current_out) {
-        guarantee(current_out != NULL);
-
-        bool do_init = false;
-        if (!subscription.has() || !subscription->is_valid(map)) {
-            subscription = map.subscribe();
-            do_init = true;
-        }
-        guarantee(current_out->get_current_version() != 0 || do_init);
-
-        bool anything_changed = false;
-        std::set<key_t> keys_to_update;
-        current_out->begin_version();
-        if (do_init) {
-            current_out->clear();
-            for (auto it = map.get_inner().begin(); it != map.get_inner().end(); ++it) {
-                keys_to_update.insert(it->first);
-            }
-            anything_changed = true;
-        } else {
-            keys_to_update = subscription->get_changed_keys(map);
-        }
-        for (auto it = keys_to_update.begin(); it != keys_to_update.end(); it++) {
-            auto existing_it = current_out->get_inner().find(*it);
-            auto jt = map.get_inner().find(*it);
-            if (jt != map.get_inner().end() && jt->second) {
-                // Check if the new value is actually different from the old one
-                bool has_changed = existing_it == current_out->get_inner().end()
-                    || !(existing_it->second == jt->second.get());
-                if (has_changed) {
-                    current_out->set_value(*it, jt->second.get());
-                    anything_changed = true;
-                }
-            } else if (existing_it != current_out->get_inner().end()) {
-                current_out->delete_value(*it);
-                anything_changed = true;
-            }
-        }
-        return anything_changed;
-    }
-private:
-    scoped_ptr_t<typename change_tracking_map_t<key_t, boost::optional<value_t> >::subscription_t>
-        subscription;
-};
+/* The nap time of 200 ms was determined experimentally as follows: In the specific test,
+a 200 ms nap provided a high speed up when resharding a table in a cluster of 64 nodes.
+Higher values improved the efficiency of the operation only marginally, while
+unnecessarily slowing down directory changes in smaller clusters. */
+constexpr int64_t directory_buffer_nap = 200;
 
 reactor_t::reactor_t(
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
+        const server_id_t &sid,
         backfill_throttler_t *backfill_throttler_,
         ack_checker_t *ack_checker_,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > rd,
+        watchable_map_t<
+            peer_id_t, 
+            directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > *rd,
         branch_history_manager_t *bhm,
         clone_ptr_t<watchable_t<blueprint_t> > b,
         multistore_ptr_t *_underlying_svs,
@@ -87,12 +41,12 @@ reactor_t::reactor_t(
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     io_backender(_io_backender),
     mailbox_manager(mm),
+    server_id(sid),
     backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),
-    directory_echo_mirror(mailbox_manager, rd->incremental_subview<
-        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > (
-            collapse_optionals_in_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >())),
+    directory_buffer(directory_echo_writer.get_watchable(), directory_buffer_nap),
+    directory_echo_mirror(mailbox_manager, rd),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
@@ -108,8 +62,25 @@ reactor_t::reactor_t(
     }
 }
 
-clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_t::get_reactor_directory() {
-    return directory_echo_writer.get_watchable();
+clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >
+reactor_t::get_reactor_directory() {
+    return directory_buffer.get_output();
+}
+
+std::map<region_t, reactor_progress_report_t> reactor_t::get_progress() {
+    std::map<region_t, reactor_progress_report_t> output;
+    pmap(get_num_threads(), [&](int i) {
+        std::map<region_t, reactor_progress_report_t> temp;
+        {
+            on_thread_t th((threadnum_t(i)));
+            temp = *progress_map.get();
+        }
+        for (const auto &pair : temp) {
+            auto res = output.insert(pair);
+            guarantee(res.second);
+        }
+    });
+    return output;
 }
 
 reactor_t::directory_entry_t::directory_entry_t(reactor_t *_parent, region_t _region)
@@ -249,10 +220,6 @@ void reactor_t::run_cpu_sharded_role(
     }
 }
 
-bool we_see_our_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &bcards, peer_id_t me) {
-    return std_contains(bcards.get_inner(), me);
-}
-
 void reactor_t::run_role(
         region_t region,
         current_role_t *role,
@@ -275,9 +242,12 @@ void reactor_t::run_role(
              * correct assumption. The below line waits until the bcard shows
              * up in the directory thus make sure that the bcard is in the
              * directory before the be_role functions get called. */
-            directory_echo_mirror.get_internal()->run_until_satisfied(
-                boost::bind(&we_see_our_bcard, _1, get_me()), &wait_any,
-                REACTOR_RUN_UNTIL_SATISFIED_NAP);
+            directory_echo_mirror.get_internal()->run_key_until_satisfied(
+                get_me(),
+                [](const cow_ptr_t<reactor_business_card_t> *maybe_bcard) {
+                    return (maybe_bcard != nullptr);
+                },
+                &wait_any);
             // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
             pmap(svs_subview.num_stores(), boost::bind(&reactor_t::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
@@ -314,7 +284,7 @@ void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait
         /* This function waits for acks from all the peers mentioned in the
         blueprint. If the blueprint changes while we're waiting for acks, we
         restart from the top. This is important because otherwise we might
-        deadlock. For example, if we were waiting for a machine to come back up
+        deadlock. For example, if we were waiting for a server to come back up
         and then it was declared dead, our interruptor might not be pulsed but
         the `ack_waiter_t` would never be pulsed so we would get stuck. */
         cond_t blueprint_changed;

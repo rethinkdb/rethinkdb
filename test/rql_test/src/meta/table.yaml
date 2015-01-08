@@ -8,62 +8,78 @@ tests:
 
     # Table create
     - cd: db.table_create('a')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_list()
       ot: ['a']
 
     - cd: db.table_create('b')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_list()
       ot: bag(['a', 'b'])
 
     # Table drop
     - cd: db.table_drop('a')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_list()
       ot: ['b']
 
     - cd: db.table_drop('b')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_list()
       ot: []
 
     # Table create options
-    - py: db.table_create('ab', primary_key='bar', durability='soft')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'soft'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'soft'})
-      ot: ({'created':1})
+    - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
+      js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
+      rb: db.table_create('ab', {:primary_key => 'bar', :shards => 1, :replicas => 1})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_drop('ab')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 
-    - py: db.table_create('ab', primary_key='bar', durability='hard')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'hard'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'hard'})
-      ot: ({'created':1})
+    - py: db.table_create('ab', primary_key='bar', primary_replica_tag='default')
+      js: db.tableCreate('ab', {primary_key:'bar', primaryReplicaTag:'default'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :primary_replica_tag => 'default'})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_drop('ab')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 
-    - py: db.table_create('ab', primary_key='bar', durability='wrong')
-      js: db.tableCreate('ab', {primary_key:'bar', durability:'wrong'})
-      rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'wrong'})
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+    # Table reconfigure
+    - cd: db.table_create('a')
+      ot: partial({'tables_created':1})
 
+    - py: db.table('a').reconfigure(shards=1, replicas=1)
+      js: db.table('a').reconfigure({shards:1, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1)
+      ot: partial({'reconfigured':1})
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, primary_replica_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => 'default')
+      ot: partial({'reconfigured':1})
+
+    - py: db.table('a').reconfigure(shards=1, replicas=1, dry_run=True)
+      js: db.table('a').reconfigure({shards:1, replicas:1, dry_run:true})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :dry_run => true)
+      ot: partial({'reconfigured':0})
+
+    - cd: db.table_drop('a')
+      ot: partial({'tables_dropped':1})
 
     # Table errors
     - cd: db.table_create('foo')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - cd: db.table_create('foo')
       ot: err('RqlRuntimeError', 'Table `test.foo` already exists.', [0])
 
     - cd: db.table_drop('foo')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
 
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `test.foo` does not exist.', [0])
@@ -79,7 +95,185 @@ tests:
       rb: db.table_create('nonsense', :foo => 'bar')
       ot: err('RqlCompileError', "Unrecognized optional argument `foo`.", [])
 
-    - js: db.table_create('nonsense1', {'datacenter':'bar'})
-      py: db.table_create('nonsense1', datacenter='bar')
-      rb: db.table_create('nonsense1', :datacenter => 'bar')
-      ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+    # RSI(reql_admin): Add tests for table_create() with configuration parameters
+
+    # Table reconfigure errors
+    - cd: db.table_create('a')
+      ot: partial({'tables_created':1})
+
+    - py: db.table('a').reconfigure(shards=0, replicas=1)
+      js: db.table('a').reconfigure({shards:0, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 0, :replicas => 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="foo")
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, primary_replica_tag:"foo"})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "foo")
+      ot: >
+          err('RqlRuntimeError', 'Can\'t use server tag `foo` for primary replicas because
+          you specified no replicas in server tag `foo`.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"foo":0}, primary_replica_tag="foo")
+      js: db.table('a').reconfigure({shards:1, replicas:{foo:0}, primary_replica_tag:"foo"})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:foo => 0}, :primary_replica_tag => "foo")
+      ot: >
+          err('RqlRuntimeError', 'You must set `replicas` to at least one. `replicas` includes
+          the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":0})
+      js: db.table('a').reconfigure({shards:1, replicas:{default:0}})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 0})
+      ot: err('RqlRuntimeError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:{default:-3}, primary_replica_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => -3}, :primary_replica_tag => 'default')
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas=3, primary_replica_tag='foo')
+      js: db.table('a').reconfigure({shards:1, replicas:3, primary_replica_tag:'foo'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :primary_replica_tag => 'foo')
+      ot: err('RqlRuntimeError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
+
+    # Test reconfigure auto-sharding without data
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
+      ot: partial({'reconfigured':1})
+
+    - cd: db.table('a').wait()
+
+    # Insert some data so that `reconfigure()` can pick shard points
+    - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
+      js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
+      rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
+      ot: {"inserted": 4}
+
+    - py: db.table('a').reconfigure(shards=2, replicas=1)
+      js: db.table('a').reconfigure({shards:2, replicas:1})
+      rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
+      ot: partial({'reconfigured':1})
+
+    - py: db.table('a').reconfigure(shards=1, replicas=2)
+      js: db.table('a').reconfigure({shards:1, replicas:2})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 2)
+      ot: >
+          err('RqlRuntimeError', 'Can\'t put 2 replicas on servers with the tag
+          `default` because there are only 1 servers with the tag `default`. It\'s
+          impossible to have more replicas of the data than there are servers.', [])
+
+    # Test wait and rebalance
+    - cd: db.table('a').wait()
+      ot: partial({'ready':1})
+    - cd: db.table('a').rebalance()
+      ot: partial({'rebalanced':1})
+
+    - cd: db.wait()
+      ot: partial({'ready':1})
+    - cd: db.rebalance()
+      ot: partial({'rebalanced':1})
+
+    - cd: r.wait()
+      ot: partial({'ready':1})
+    - cd: r.rebalance()
+      ot: partial({'rebalanced':1})
+
+    - cd: db.table_drop('a')
+      ot: partial({'tables_dropped':1})
+
+    # Reconfiguring all tables in a database
+    - cd: db.table_create('a')
+    - cd: db.table_create('b')
+    - cd: db.table_create('c')
+
+    - py: db.reconfigure(shards=0, replicas=1)
+      js: db.reconfigure({shards:0, replicas:1})
+      rb: db.reconfigure(:shards => 0, :replicas => 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":0})
+      js: db.reconfigure({shards:1, replicas:{default:0}})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => 0})
+      ot: err('RqlRuntimeError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
+
+    - py: db.reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default')
+      js: db.reconfigure({shards:1, replicas:{default:-3}, primary_replica_tag:'default'})
+      rb: db.reconfigure(:shards => 1, :replicas => {:default => -3}, :primary_replica_tag => 'default')
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
+
+    - py: db.reconfigure(shards=1, replicas=3, primary_replica_tag='foo')
+      js: db.reconfigure({shards:1, replicas:3, primary_replica_tag:'foo'})
+      rb: db.reconfigure(:shards => 1, :replicas => 3, :primary_replica_tag => 'foo')
+      ot: err('RqlRuntimeError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
+
+    - py: db.reconfigure(shards=2, replicas=1)
+      js: db.reconfigure({shards:2, replicas:1})
+      rb: db.reconfigure(:shards => 2, :replicas => 1)
+      ot: partial({'reconfigured':3})
+
+    - cd: db.table_drop('a')
+      ot: partial({'tables_dropped':1})
+    - cd: db.table_drop('b')
+      ot: partial({'tables_dropped':1})
+    - cd: db.table_drop('c')
+      ot: partial({'tables_dropped':1})
+
+    # table_config and table_status porcelains
+    - cd: r.db_create("test2")
+      ot: partial({'dbs_created':1})
+
+    - def: db2 = r.db("test2")
+
+    - cd: db.table_create("testA")
+      ot: partial({'tables_created':1})
+    - cd: db.table_create("testB")
+      ot: partial({'tables_created':1})
+    - cd: db2.table_create("test2B")
+      ot: partial({'tables_created':1})
+
+    - cd: r.table('testA').config().pluck('db','name')
+      ot: {'db':'test','name':'testA'}
+
+    - cd: r.table('doesntexist').config()
+      ot: err('RqlRuntimeError', 'Table `test.doesntexist` does not exist.', [])
+
+    - cd: r.table('test2B').config()
+      ot: err('RqlRuntimeError', 'Table `test.test2B` does not exist.', [])
+
+    - cd: >
+          r.db('rethinkdb').table('table_'+'config').filter({'name':'testA'}).nth(0)
+          .eq(r.table('testA').config())
+      ot: True
+
+    - cd: >
+          r.db('rethinkdb').table('table_'+'status').filter({'name':'testA'}).nth(0)
+          .eq(r.table('testA').status())
+      ot: True
+
+    - py: r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"]
+      js: >
+          r.db('rethinkdb').table('table_'+'config', {identifierFormat: 'uuid'})
+          .nth(0)("db")
+      rb: >
+          r.db('rethinkdb').table('table_config', {:identifier_format => 'uuid'})
+          .nth(0)["db"]
+      ot: uuid()
+
+    - py: r.table('testA',identifier_format='uuid').count()
+      js: r.table('testA',{identifierFormat:'uuid'}).count()
+      rb: r.table('testA',{:identifier_format=>'uuid'}).count()
+      ot: 0
+
+    - py: r.wait(wait_for='all_replicas_ready', timeout=5)
+      js: r.wait({waitFor:'all' + '_' + 'replicas' + '_' + 'ready', timeout:5})
+      rb: r.wait(:wait_for => 'all_replicas_ready', :timeout => 5)
+      ot: partial({'ready':2})
+
+    - cd: db.table_drop('testA')
+      ot: partial({'tables_dropped':1})
+
+    - cd: db.table_drop('testB')
+      ot: partial({'tables_dropped':1})
+
+    - cd: r.db_drop('test2')
+      ot: partial({'dbs_dropped':1,'tables_dropped':1})

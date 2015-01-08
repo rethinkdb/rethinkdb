@@ -405,7 +405,7 @@ public:
     bool contains(reql_version_t reql_version, datum_t val) const;
     bool is_universe() const;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(datum_range_t);
 
     // Make sure you know what you're doing if you call these, and think about
     // truncated sindexes.
@@ -419,7 +419,6 @@ private:
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
 datum_t to_datum(const Datum *d, const configured_limits_t &);
 datum_t to_datum(cJSON *json, const configured_limits_t &);
@@ -478,6 +477,7 @@ public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
     explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
+    bool empty() const { return vector.empty(); }
     size_t size() const { return vector.size(); }
 
     void reserve(size_t n);

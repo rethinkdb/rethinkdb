@@ -1,0 +1,15 @@
+
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <p class="issue-type">Unknown issue</p>
+            <p class="message">{{issue_type}}</p>
+            {{!--<p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>--}}
+        </div>
+        <hr />
+        <div class="issue-details">
+            <p>An unknown issue was sent by the server. Please contact support.</p>
+            <p>Raw data: </p><pre>{{description}}</pre>
+        </div>
+    </div>
+
+

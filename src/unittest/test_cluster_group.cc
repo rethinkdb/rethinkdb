@@ -35,9 +35,6 @@
 
 namespace unittest {
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(test_cluster_directory_t, reactor_directory);
-
-
 void generate_sample_region(int i, int n, region_t *out) {
     // We keep old dummy-protocol style single-character key logic.
     *out = hash_region_t<key_range_t>(key_range_t(
@@ -47,48 +44,57 @@ void generate_sample_region(int i, int n, region_t *out) {
                                               store_key_t(std::string(1, 'a' + (((i + 1) * 26)/n)))));
 }
 
-bool is_blueprint_satisfied(const blueprint_t &bp,
-                            const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > &reactor_directory) {
-    for (blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
-         it != bp.peers_roles.end();
-         ++it) {
-
-        if (reactor_directory.find(it->first) == reactor_directory.end() ||
-            !reactor_directory.find(it->first)->second) {
-            return false;
-        }
-        reactor_business_card_t bcard = *reactor_directory.find(it->first)->second.get();
-
-        for (blueprint_t::region_to_role_map_t::const_iterator jt = it->second.begin();
-             jt != it->second.end();
-             ++jt) {
-            bool found = false;
-            for (reactor_business_card_t::activity_map_t::const_iterator kt = bcard.activities.begin();
-                 kt != bcard.activities.end();
-                 ++kt) {
-                if (jt->first == kt->second.region) {
-                    if (jt->second == blueprint_role_primary &&
-                        boost::get<reactor_business_card_t::primary_t>(&kt->second.activity) &&
-                        boost::get<reactor_business_card_t::primary_t>(kt->second.activity).replier.is_initialized()) {
-                        found = true;
-                        break;
-                    } else if (jt->second == blueprint_role_secondary &&
-                               boost::get<reactor_business_card_t::secondary_up_to_date_t>(&kt->second.activity)) {
-                        found = true;
-                        break;
-                    } else if (jt->second == blueprint_role_nothing &&
-                               boost::get<reactor_business_card_t::nothing_t>(&kt->second.activity)) {
-                        found = true;
-                        break;
-                    } else {
-                        return false;
+bool is_blueprint_satisfied(
+        const blueprint_t &bp,
+        watchable_map_t<peer_id_t, namespace_directory_metadata_t> *directory) {
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
+        bool ok;
+        directory->read_key(it->first, [&](const namespace_directory_metadata_t *md) {
+            if (md == nullptr) {
+                ok = false;
+                return;
+            }
+            const reactor_business_card_t &bcard = *md->internal;
+            for (blueprint_t::region_to_role_map_t::const_iterator jt = it->second.begin();
+                 jt != it->second.end();
+                 ++jt) {
+                bool found = false;
+                for (auto kt = bcard.activities.begin();
+                        kt != bcard.activities.end();
+                        ++kt) {
+                    if (jt->first == kt->second.region) {
+                        if (jt->second == blueprint_role_primary &&
+                            boost::get<reactor_business_card_t::primary_t>(
+                                &kt->second.activity) &&
+                            boost::get<reactor_business_card_t::primary_t>(
+                                kt->second.activity).replier.is_initialized()) {
+                            found = true;
+                            break;
+                        } else if (jt->second == blueprint_role_secondary &&
+                                boost::get<reactor_business_card_t::
+                                    secondary_up_to_date_t>(&kt->second.activity)) {
+                            found = true;
+                            break;
+                        } else if (jt->second == blueprint_role_nothing &&
+                                   boost::get<reactor_business_card_t::nothing_t>(
+                                        &kt->second.activity)) {
+                            found = true;
+                            break;
+                        } else {
+                            ok = false;
+                            return;
+                        }
                     }
                 }
+                if (!found) {
+                    ok = false;
+                    return;
+                }
             }
-
-            if (!found) {
-                return false;
-            }
+            ok = true;
+        });
+        if (!ok) {
+            return false;
         }
     }
     return true;
@@ -98,20 +104,16 @@ class test_reactor_t : private ack_checker_t {
 public:
     test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs);
     ~test_reactor_t();
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const;
-    write_durability_t get_write_durability(const peer_id_t &) const {
+    bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const;
+    write_durability_t get_write_durability() const {
         return write_durability_t::SOFT;
     }
 
     watchable_variable_t<blueprint_t> blueprint_watchable;
     backfill_throttler_t backfill_throttler;
     reactor_t reactor;
-    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >, test_cluster_directory_t> reactor_directory_copier;
-
-private:
-    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > &input);
-
-    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &bcards);
+    scoped_ptr_t<directory_write_manager_t<namespace_directory_metadata_t> >
+        directory_write_manager;
 };
 
 
@@ -122,10 +124,7 @@ private:
 reactor_test_cluster_t::reactor_test_cluster_t(int port) :
     connectivity_cluster(),
     mailbox_manager(&connectivity_cluster, 'M'),
-    our_directory_variable(test_cluster_directory_t()),
     directory_read_manager(&connectivity_cluster, 'D'),
-    directory_write_manager(&connectivity_cluster, 'D',
-        our_directory_variable.get_watchable()),
     connectivity_cluster_run(&connectivity_cluster,
                              get_unittest_addresses(),
                              peer_address_t(),
@@ -140,39 +139,26 @@ peer_id_t reactor_test_cluster_t::get_me() {
 
 test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, io_backender, &r->mailbox_manager, &backfill_throttler, this,
-            r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
-    reactor_directory_copier(&test_cluster_directory_t::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t::wrap_in_optional), &r->our_directory_variable) {
+    reactor(base_path, io_backender, &r->mailbox_manager, generate_uuid(),
+            &backfill_throttler, this, r->directory_read_manager.get_root_map_view(),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs,
+            &get_global_perfmon_collection(), NULL),
+    directory_write_manager(
+        new directory_write_manager_t<namespace_directory_metadata_t>(
+            &r->connectivity_cluster, 'D', reactor.get_reactor_directory())) {
     rassert(svs->get_region() == region_t::universe());
 }
 
 test_reactor_t::~test_reactor_t() { }
 
-bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
+bool test_reactor_t::is_acceptable_ack_set(const std::set<server_id_t> &acks) const {
     return acks.size() >= 1;
 }
 
-boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
-test_reactor_t::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > &input) {
-    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(input);
-}
-
-change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >
-test_reactor_t::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &bcards) {
-    change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > out;
-    out.begin_version();
-    for (auto it = bcards.get_inner().begin(); it != bcards.get_inner().end(); it++) {
-        out.set_value(it->first, it->second.reactor_directory);
-    }
-    return out;
-}
-
-
-test_cluster_group_t::test_cluster_group_t(int n_machines)
+test_cluster_group_t::test_cluster_group_t(int n_servers)
     : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)),
       balancer(new dummy_cache_balancer_t(GIGABYTE)) {
-    for (int i = 0; i < n_machines; i++) {
+    for (int i = 0; i < n_servers; i++) {
         files.push_back(make_scoped<temp_file_t>());
         filepath_file_opener_t file_opener(files[i]->name(), io_backender.get());
         standard_serializer_t::create(&file_opener,
@@ -255,27 +241,13 @@ void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
     }
 }
 
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > test_cluster_group_t::extract_reactor_business_cards_no_optional(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > out;
-    for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
-        if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
-        } else {
-            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t>()));
-        }
-    }
-    return out;
-}
-
 scoped_ptr_t<cluster_namespace_interface_t>
 test_cluster_group_t::make_namespace_interface(int i) {
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > region_to_primary_maps;
     auto ret = make_scoped<cluster_namespace_interface_t>(
             &test_clusters[i]->mailbox_manager,
             &region_to_primary_maps,
-            test_clusters[i]->directory_read_manager.get_root_view()
-            ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
+            test_clusters[i]->directory_read_manager.get_root_map_view(),
             generate_uuid(),
             &ctx);
     ret->get_initial_ready_signal()->wait_lazily_unordered();
@@ -297,27 +269,15 @@ void test_cluster_group_t::run_queries() {
     }
 }
 
-std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > test_cluster_group_t::extract_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input) {
-    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > out;
-    for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
-        if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t> >(it->second.reactor_directory->internal)));
-        } else {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t> >()));
-        }
-    }
-    return out;
-}
-
 void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t &bp) {
     try {
         const int timeout_ms = 60000;
         signal_timer_t timer;
         timer.start(timeout_ms);
-        test_clusters[0]->directory_read_manager.get_root_view()
-            ->subview(&test_cluster_group_t::extract_reactor_business_cards)
-            ->run_until_satisfied(boost::bind(&is_blueprint_satisfied, bp, _1), &timer);
+        test_clusters[0]->directory_read_manager.get_root_map_view()
+            ->run_all_until_satisfied(
+                boost::bind(&is_blueprint_satisfied, bp, _1),
+                &timer);
     } catch (const interrupted_exc_t &) {
         crash("The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.");
     }

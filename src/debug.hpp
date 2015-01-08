@@ -26,6 +26,7 @@ void debugf_prefix_buf(printf_buffer_t *buf);
 void debugf_dump_buf(printf_buffer_t *buf);
 
 // Primitive debug_print declarations.
+void debug_print(printf_buffer_t *buf, int x);
 void debug_print(printf_buffer_t *buf, uint64_t x);
 void debug_print(printf_buffer_t *buf, const std::string& s);
 

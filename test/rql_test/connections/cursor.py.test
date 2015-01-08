@@ -1,23 +1,22 @@
 #!/usr/bin/env python
 
+'''Tests the driver cursor API'''
+
 from __future__ import print_function
 
-import os, random, subprocess, sys, tempfile
+import os, random, re, subprocess, sys, tempfile, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
-
-r = utils.import_python_driver()
 
 try:
     xrange
 except NameError:
     xrange = range
 
-rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
-os.environ['RDB_EXE_PATH'] = rethinkdb_exe
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
 
-if not os.path.isdir('run'):
-    os.makedirs('run')
+rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
    
 # -- make sure a server is avalible
 
@@ -31,34 +30,123 @@ if None in (serverHost, serverPort):
     serverHost = server.host
     serverPort = server.driver_port
 
-# -- setup the tables
+# -- tests
     
-c = r.connect(host=serverHost, port=serverPort)
+class TestRangeCursor(unittest.TestCase):
+    def setUp(self):
+        self.conn = r.connect(host=serverHost, port=serverPort)
 
-if 'test' not in r.db_list().run(c):
-    r.db_create('test').run(c)
+        if not hasattr(self, 'assertRaisesRegexp'):
+            def assertRaisesRegexp_replacement(exception, regexp, function, *args, **kwds):
+                try:
+                    function(*args, **kwds)
+                except Exception as e:
+                    if not isinstance(e, Exception):
+                        raise
+                    if not re.match(regexp, str(e)):
+                        raise AssertionError('"%s" does not match "%s"' % (str(regexp), str(e)))
+                    return
+                raise AssertionError('TypeError not raised for: %s' % str(function))
+            self.assertRaisesRegexp = assertRaisesRegexp_replacement
 
-# ensure a clean table
-if 'test' in r.db('test').table_list().run(c):
-    r.db('test').table_drop('test').run(c)
-r.db('test').table_create('test').run(c)
+    def test_cursor_after_connection_close(self):
+        cursor = r.range().run(self.conn)
+        self.conn.close()
+        def read_cursor(cursor):
+            count = 0
+            for i in cursor:
+                count += 1
+            return count
+        count = self.assertRaisesRegexp(r.RqlRuntimeError, "Connection is closed.", read_cursor, cursor)
+        self.assertNotEqual(count, 0, "Did not get any cursor results")
 
-tbl = r.table('test')
+    def test_cursor_after_cursor_close(self):
+        cursor = r.range().run(self.conn)
+        cursor.close()
+        count = 0
+        for i in cursor:
+            count += 1
+        self.assertNotEqual(count, 0, "Did not get any cursor results")
 
-# -- generate the data
+    def test_cursor_close_in_each(self):
+        cursor = r.range().run(self.conn)
+        count = 0
+        for i in cursor:
+            count += 1
+            if count == 2:
+                cursor.close()
+        self.assertTrue(count > 2, "Did not get enough cursor results")
 
-num_rows = random.randint(1111, 2222)
+    def test_cursor_success(self):
+        range_size = 10000
+        cursor = r.range().limit(range_size).run(self.conn)
+        count = 0
+        for i in cursor:
+            count += 1
+        self.assertEqual(count, range_size, "Expected %d results on the cursor, but got %d" % (range_size, count))
 
-print("Inserting %d rows" % num_rows)
-range500 = list(range(0, 500))
-documents = [{'id':i, 'nums':range500} for i in xrange(0, num_rows)]
-chunks = (documents[i : i + 100] for i in xrange(0, len(documents), 100))
-for chunk in chunks:
-    tbl.insert(chunk).run(c)
-    print('.', end=' ')
-    sys.stdout.flush()
-print("Done\n")
+    def test_cursor_double_each(self):
+        range_size = 10000
+        cursor = r.range().limit(range_size).run(self.conn)
+        count = 0
+        for i in cursor:
+            count += 1
+        self.assertEqual(count, range_size, "Expected %d results on the cursor, but got %d" % (range_size, count))
+        for i in cursor:
+            count += 1
+        self.assertEqual(count, range_size, "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
 
-# -- run the test
+class TestCursor(unittest.TestCase):
+    
+    conn = None
+    num_rows = random.randint(1111, 2222)
+    
+    def setupTable(self):
+        
+        # - ensure a clean table
+        
+        if dbName not in r.db_list().run(self.conn):
+            r.db_create(dbName).run(self.conn)
+        
+        if tableName in r.db(dbName).table_list().run(self.conn):
+            r.db(dbName).table_drop(tableName).run(self.conn)
+        r.db(dbName).table_create(tableName).run(self.conn)
+        
+        # - populate the table with the requested data
+        
+        res = r.db(dbName).table(tableName).insert(r.range(self.num_rows).map(lambda x: {})).run(self.conn)
+        assert res['inserted'] == self.num_rows
+    
+    def setUp(self):
+        
+        if self.conn is None:
+            self.conn = r.connect(host=serverHost, port=serverPort)
+            self.setupTable()
 
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), "cursor.py"), str(serverPort), str(num_rows)]))
+        # - supply a cursor to the full table
+        
+        self.cur = r.db(dbName).table(tableName).run(self.conn)
+
+    def test_type(self):
+        self.assertEqual(type(self.cur), r.Cursor)
+
+    def test_count(self):
+        i = 0
+        for _ in self.cur:
+            i += 1
+
+        self.assertEqual(i, self.num_rows)
+
+    def test_close(self):
+        # This excercises a code path at the root of #650
+        self.conn.close()
+
+if __name__ == '__main__':
+    print("Testing cursor for %d rows" % TestCursor.num_rows)
+    suite = unittest.TestSuite()
+    loader = unittest.TestLoader()
+    suite.addTest(loader.loadTestsFromTestCase(TestCursor))
+    suite.addTest(loader.loadTestsFromTestCase(TestRangeCursor))
+    
+    if not unittest.TextTestRunner(verbosity=2).run(suite):
+        sys.exit(1)

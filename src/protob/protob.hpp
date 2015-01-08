@@ -11,6 +11,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -44,7 +45,8 @@ public:
         explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor) {
+            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor),
+            counter(&rdb_ctx->stats.client_connections) {
         }
 
         client_context_t *get_ctx() {
@@ -78,6 +80,7 @@ public:
         cond_t interruptor;
         time_t last_accessed;
         client_context_t client_ctx;
+        scoped_perfmon_counter_t counter;
         DISABLE_COPYING(http_conn_t);
     };
 
@@ -131,7 +134,8 @@ public:
 
     virtual MUST_USE bool run_query(const ql::protob_t<Query> &query,
                                     Response *response_out,
-                                    client_context_t *client_ctx) = 0;
+                                    client_context_t *client_ctx,
+                                    ip_and_port_t const &peer) = 0;
 
     virtual void unparseable_query(int64_t token,
                                    Response *response_out,

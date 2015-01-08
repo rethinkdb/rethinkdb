@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "clustering/administration/logger.hpp"
+#include "clustering/administration/log_writer.hpp"
 #include "clustering/generic/resource.hpp"
 
 class log_server_business_card_t {

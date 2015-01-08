@@ -19,6 +19,7 @@
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
@@ -66,7 +67,8 @@ store_t::store_t(serializer_t *serializer,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 outdated_index_report_t *_index_report)
+                 outdated_index_report_t *_index_report,
+                 namespace_id_t _table_id)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -75,7 +77,8 @@ store_t::store_t(serializer_t *serializer,
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
                         : new ql::changefeed::server_t(ctx->manager)),
-      index_report(_index_report)
+      index_report(_index_report),
+      table_id(_table_id)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -366,12 +369,10 @@ void store_t::reset_data(
     maybe_drop_all_sindexes(zero_metainfo, durability, interruptor);
 
     // Erase the data in small chunks
-    rdb_value_sizer_t sizer(cache->max_block_size());
     always_true_key_tester_t key_tester;
-
-    const unsigned int max_erased_per_pass = 100;
-    store_key_t highest_erased_key_so_far = subregion.inner.left;
-    for (bool keep_erasing = true; keep_erasing;) {
+    const uint64_t max_erased_per_pass = 100;
+    for (done_traversing_t done_erasing = done_traversing_t::NO;
+         done_erasing == done_traversing_t::NO;) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
 
@@ -386,53 +387,20 @@ void store_t::reset_data(
                                      &superblock,
                                      interruptor);
 
-        key_range_t keyrange_left_to_erase = subregion.inner;
-        keyrange_left_to_erase.left = highest_erased_key_so_far;
-
-        // First we use an ordered depth-first-traversal to figure out the key range
-        // that corresponds to `max_erased_per_pass` keys. Then we use
-        // `rdb_erase_small_range()` to actually erase the keys in parallel.
-        struct counter_cb_t : public depth_first_traversal_callback_t {
-            explicit counter_cb_t(unsigned int m) :
-                max_erased_per_pass_(m), key_count_(0) { }
-            done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
-                ++key_count_;
-                if (key_count_ > max_erased_per_pass_) {
-                    end_key_ = store_key_t(keyvalue.key());
-                    return done_traversing_t::YES;
-                }
-                return done_traversing_t::NO;
-            }
-            unsigned int max_erased_per_pass_;
-            unsigned int key_count_;
-            store_key_t end_key_;
-        };
-        counter_cb_t counter_cb(max_erased_per_pass);
-        keep_erasing = !btree_depth_first_traversal(superblock.get(),
-                                                    keyrange_left_to_erase,
-                                                    &counter_cb, direction_t::FORWARD,
-                                                    release_superblock_t::KEEP);
-
-        // Erase the determined range of `max_erased_per_pass` keys
-        key_range_t keyrange_this_pass = keyrange_left_to_erase;
-        if (keep_erasing) {
-            // `right` is exclusive
-            keyrange_this_pass.right = key_range_t::right_bound_t(counter_cb.end_key_);
-            highest_erased_key_so_far = counter_cb.end_key_;
-        }
-
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
 
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        rdb_erase_small_range(&key_tester,
-                              keyrange_this_pass,
-                              superblock.get(),
-                              &deletion_context,
-                              interruptor,
-                              &mod_reports);
+        done_erasing = rdb_erase_small_range(btree.get(),
+                                             &key_tester,
+                                             subregion.inner,
+                                             superblock.get(),
+                                             &deletion_context,
+                                             interruptor,
+                                             max_erased_per_pass,
+                                             &mod_reports);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);

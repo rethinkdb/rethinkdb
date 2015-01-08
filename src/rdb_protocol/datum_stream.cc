@@ -17,7 +17,7 @@ namespace ql {
 
 // RANGE/READGEN STUFF
 rget_response_reader_t::rget_response_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : table(_table),
@@ -122,7 +122,7 @@ bool rget_response_reader_t::is_finished() const {
 
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
-    table.read_with_profile(env, read, &res, use_outdated);
+    table->read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
@@ -132,7 +132,7 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
 }
 
 rget_reader_t::rget_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
@@ -222,7 +222,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
 }
 
 intersecting_reader_t::intersecting_reader_t(
-    const real_table_t &_table,
+    const counted_t<real_table_t> &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
@@ -499,17 +499,25 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
             std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
+            // We need to truncate the skey down to the smallest *guaranteed*
+            // length of secondary index keys in the btree.
+            // This is important because the prefix of a truncated sindex key
+            // that's actually getting stored can vary for different documents
+            // even with the same key, if their primary key is of different lengths.
+            // If we didn't do that, the search range which we construct in the
+            // next step might miss some relevant keys that have been truncated
+            // differently. (the lack of this was the cause of
+            // https://github.com/rethinkdb/rethinkdb/issues/3444)
+            skey.erase(datum_t::max_trunc_size());
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum
-                // possible row with this truncated sindex but smaller than the
-                // minimum possible row with a larger sindex.
+                // possible row with this truncated sindex.
                 rng.right = key_range_t::right_bound_t(
                     store_key_t(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF)));
             } else {
                 // We construct a left bound that's smaller than the minimum
-                // possible row with this truncated sindex but larger than the
-                // maximum possible row with a smaller sindex.
+                // possible row with this truncated sindex.
                 rng.left = store_key_t(skey);
             }
             if (rng.right.unbounded || rng.left < rng.right.key) {
@@ -854,7 +862,7 @@ array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     return v;
 }
 
-bool array_datum_stream_t::is_array() {
+bool array_datum_stream_t::is_array() const {
     return !is_grouped();
 }
 
@@ -1059,7 +1067,7 @@ void union_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     }
 }
 
-bool union_datum_stream_t::is_array() {
+bool union_datum_stream_t::is_array() const {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
         if (!(*it)->is_array()) {
             return false;
@@ -1211,6 +1219,70 @@ bool map_datum_stream_t::is_exhausted() const {
         }
     }
     return false;
+}
+
+vector_datum_stream_t::vector_datum_stream_t(
+        const protob_t<const Backtrace> &bt_source,
+        std::vector<datum_t> &&_rows,
+        boost::optional<ql::changefeed::keyspec_t> &&_changespec) :
+    eager_datum_stream_t(bt_source),
+    rows(std::move(_rows)),
+    index(0),
+    changespec(std::move(_changespec)) { }
+
+datum_t vector_datum_stream_t::next(
+        env_t *env, const batchspec_t &bs) {
+    if (ops_to_do()) {
+        return datum_stream_t::next(env, bs);
+    }
+    return next_impl(env);
+}
+
+datum_t vector_datum_stream_t::next_impl(env_t *) {
+    if (index < rows.size()) {
+        return std::move(rows[index++]);
+    } else {
+        return datum_t();
+    }
+}
+
+std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
+        env_t *env, const batchspec_t &bs) {
+    std::vector<datum_t> v;
+    batcher_t batcher = bs.to_batcher();
+    datum_t d;
+    while (d = next_impl(env), d.has()) {
+        batcher.note_el(d);
+        v.push_back(std::move(d));
+        if (batcher.should_send_batch()) {
+            break;
+        }
+    }
+    return v;
+}
+
+bool vector_datum_stream_t::is_exhausted() const {
+    return index == rows.size();
+}
+
+bool vector_datum_stream_t::is_cfeed() const {
+    return false;
+}
+
+bool vector_datum_stream_t::is_array() const {
+    return false;
+}
+
+bool vector_datum_stream_t::is_infinite() const {
+    return false;
+}
+
+changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
+    if (static_cast<bool>(changespec)) {
+        return *changespec;
+    } else {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
+    }
 }
 
 } // namespace ql

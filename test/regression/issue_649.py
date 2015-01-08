@@ -5,39 +5,62 @@ from __future__ import print_function
 
 import os, sys, time
 
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver
+import driver, utils
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    print("Starting cluster...")
-    num_nodes = 2
-    files = [driver.Files(metacluster, db_path="db-%d" % i, console_output="create-output-%d" % i) for i in range(num_nodes)]
-    processes = [driver.Process(cluster, files[i], console_output="serve-output-%d" % i) for i in range(num_nodes)]
-    time.sleep(10)
+try:
+    xrange
+except NameError:
+    xrange = range
+
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+numNodes = 2
+numShards = 2
+numReplicas = 2
+numRecords = 500
+
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True) as cluster:
     
-    print("Creating table...")
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
-    dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_table(primary=dc)
-    time.sleep(10)
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Adding data to table (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).table(tableName).insert(r.range(numRecords).map(lambda x: {})).run(conn)
+
+    print("Splitting into %d shards (%.2fs)" % (numShards, time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=numShards, replicas=1).run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
-    print("Splitting into two shards...")
-    http.add_table_shard(ns, "t")
-    time.sleep(10)
+    print("Setting replication factor to %d (%.2fs)" % (numReplicas, time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=numShards, replicas=numReplicas).run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
 
-    print("Increasing replication factor...")
-    http.set_table_affinities(ns, {dc: 1})
-    time.sleep(10)
+    print("Merging shards together again (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
+    r.db(dbName).wait().run(conn)
     cluster.check()
+    
+    print("Checking that table has the expected number of items (%.2fs)" % (time.time() - startTime))
+    assert numRecords == r.db(dbName).table(tableName).count().run(conn)
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
 
-    print("Merging shards together again...")
-    http.remove_table_shard(ns, "t")
-    time.sleep(10)
-    cluster.check()
-
-    cluster.check_and_stop()
+print("Done. (%.2fs)" % (time.time() - startTime))

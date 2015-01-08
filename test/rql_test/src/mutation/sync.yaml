@@ -3,15 +3,15 @@ tests:
 
     # Set up our test tables
     - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-    - py: r.db('test').table_create('test1soft', durability='soft')
-      js: r.db('test').table_create('test1soft', {durability:'soft'})
-      rb: r.db('test').table_create('test1soft', {:durability => 'soft'})
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
+    - cd: r.db('test').table_create('test1soft')
+      ot: partial({'tables_created':1})
+    - cd: r.db('test').table('test1soft').config().update({'durability':'soft'})
+      ot: ({'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':1, 'inserted':0})
     - def: tbl = r.db('test').table('test1')
     - def: tbl_soft = r.db('test').table('test1soft')
     - cd: tbl.index_create('x')
-      ot: ({'created':1})
+      ot: partial({'created':1})
     - cd: tbl.index_wait('x').pluck('index', 'ready')
       ot: ([{'ready':True, 'index':'x'}])
 
@@ -45,7 +45,7 @@ tests:
 
     # clean up
     - cd: r.db('test').table_drop('test1')
-      ot: "({'dropped':1})"
+      ot: "partial({'tables_dropped':1})"
     - cd: r.db('test').table_drop('test1soft')
-      ot: "({'dropped':1})"
+      ot: "partial({'tables_dropped':1})"
 

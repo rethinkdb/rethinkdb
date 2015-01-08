@@ -186,14 +186,12 @@ public:
     }
 
     unsigned int num_live_blocks() const {
-        rassert(compute_num_live_blocks() == num_live_blocks_stat);
         return num_live_blocks_stat;
     }
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
     uint32_t garbage_bytes() const {
-        rassert(compute_garbage_bytes() == garbage_bytes_stat);
         return garbage_bytes_stat;
     }
 
@@ -306,27 +304,6 @@ private:
     std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
         return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
     }
-
-#ifndef NDEBUG
-    uint32_t compute_garbage_bytes() const {
-        uint32_t b = parent->static_config->extent_size();
-        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                b -= aligned_value(it->block_size);
-            }
-        }
-        return b;
-    }
-    unsigned int compute_num_live_blocks() const {
-        unsigned int count = 0;
-        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                ++count;
-            }
-        }
-        return count;
-    }
-#endif
 
     // old_block can be NULL if a block_info was freshly added
     void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
@@ -598,7 +575,8 @@ public:
                                    const int64_t off_in,
                                    const uint32_t ser_block_size_in,
                                    void *const buf_out,
-                                   file_account_t *const io_account) {
+                                   file_account_t *const io_account,
+                                   log_serializer_stats_t *const stats) {
         const std::vector<uint32_t> boundaries = get_boundaries(parent, off_in);
 
         int64_t read_ahead_offset;
@@ -618,6 +596,8 @@ public:
         // Do the disk read!
         co_read(parent->dbfile, read_ahead_offset, read_ahead_size,
                 read_ahead_buf.get(), io_account);
+
+        stats->bytes_read(read_ahead_size);
 
         // Walk over the read ahead buffer and copy stuff...
         int64_t extent_offset = floor_aligned(read_ahead_offset,
@@ -699,7 +679,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
     if (should_perform_read_ahead(off_in)) {
         buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
         dbm_read_ahead_t::perform_read_ahead(this, off_in, block_size.ser_value(),
-                                             ret.ser_buffer(), io_account);
+                                             ret.ser_buffer(), io_account, stats);
         // We have to fill the padding with zero, since only the first part of the
         // buf got memcpy'd into.
         ret.fill_padding_zero();
@@ -709,6 +689,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
             co_read(dbfile, off_in, ret.aligned_block_size(),
                     ret.ser_buffer(), io_account);
+            stats->bytes_read(ret.aligned_block_size());
             // Blocks are written DEVICE_BLOCK_SIZE-aligned -- so the block on disk
             // should have been written with zero padding.
             ret.assert_padding_zero();
@@ -725,6 +706,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
             memcpy(ret.ser_buffer(), buf.get() + (off_in - floor_off_in),
                    block_size.ser_value());
+            stats->bytes_read(ret.aligned_block_size());
             // We have to fill the padding to zero, in this case.
             ret.fill_padding_zero();
             return ret;
@@ -779,12 +761,14 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         scoped_array_t<iovec> iovecs(token_groups[i].size());
 
         int64_t last_written_offset = front_offset;
+        size_t total_aligned_size = 0;
 
         for (size_t j = 0; j < token_groups[i].size(); ++j) {
             const int64_t j_offset = token_groups[i][j]->offset();
             const block_size_t j_block_size = token_groups[i][j]->block_size();
             guarantee(j_offset == last_written_offset);
             const size_t j_aligned_size = gc_entry_t::aligned_value(j_block_size);
+            total_aligned_size += j_aligned_size;
 
             // The behavior of gimme_some_new_offsets is supposed to retain order, so
             // we expect writes[write_number] to have the currently-relevant write.
@@ -801,6 +785,8 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
         dbfile->writev_async(front_offset, write_size,
                              std::move(iovecs), io_account, intermediate_cb);
+
+        stats->bytes_written(total_aligned_size);
     }
 
     // Call on_io_complete for degenerate case (we added 1 to ops_remaining
@@ -1030,6 +1016,7 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
 void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
     // A buffer for blocks we're transferring.
     scoped_malloc_t<char> gc_blocks;
+    size_t total_bytes_read = 0;
 
     // A helper for waiting for all reads to finish
     struct gc_read_cb_t : public cond_t, public iocallback_t {
@@ -1105,6 +1092,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
                                 gc_blocks.get() + current_interval_begin,
                                 choose_gc_io_account(),
                                 &read_cb);
+                        total_bytes_read += current_interval_end - current_interval_end;
                     }
 
                     current_interval_begin = beg;
@@ -1122,6 +1110,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
                 gc_blocks.get() + current_interval_begin,
                 choose_gc_io_account(),
                 &read_cb);
+        total_bytes_read += current_interval_end - current_interval_end;
 
         // Ok, all reads have been issued. Call `on_io_complete()` once to allow
         // `read_cb` to be pulsed (see comment above).
@@ -1130,6 +1119,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
 
     /* Wait for the reads to finish */
     read_cb.wait_lazily_unordered();
+    stats->bytes_read(total_bytes_read);
 
     /* If other forces cause all of the blocks in the extent to become
     garbage before we even finish GCing it, they will set current_entry
@@ -1400,6 +1390,10 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     }
 
     return ret;
+}
+
+bool data_block_manager_t::is_gc_active() const {
+    return !active_gcs.empty();
 }
 
 // Looks at young_extent_queue and pops things off the queue that are

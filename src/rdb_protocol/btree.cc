@@ -12,7 +12,6 @@
 
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -33,6 +32,7 @@
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rdb_protocol/table_common.hpp"
 
 #include "debug.hpp"
 
@@ -208,19 +208,6 @@ kv_location_set(keyvalue_location_t *kv_location,
     return ql::serialization_result_t::SUCCESS;
 }
 
-MUST_USE ql::datum_t
-make_replacement_pair(ql::datum_t old_val, ql::datum_t new_val) {
-    // in this context, we know the array will have one element.
-    // stats_merge later can impose user preferences.
-    ql::datum_array_builder_t values(ql::configured_limits_t::unlimited);
-    ql::datum_object_builder_t value_pair;
-    bool conflict = value_pair.add("old_val", old_val)
-        || value_pair.add("new_val", new_val);
-    guarantee(!conflict);
-    values.add(std::move(value_pair).to_datum());
-    return std::move(values).to_datum();
-}
-
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
@@ -232,7 +219,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const return_changes_t return_changes = replacer->should_return_changes();
     const datum_string_t &primary_key = info.btree->primary_key;
     const store_key_t &key = *info.key;
-    ql::datum_object_builder_t resp;
+
     try {
         keyvalue_location_t kv_location;
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
@@ -244,107 +231,45 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                                          trace,
                                          superblock_promise);
 
-        bool started_empty, ended_empty;
         ql::datum_t old_val;
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
-            started_empty = true;
             old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
-            started_empty = false;
             old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
             guarantee(old_val.get_field(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
-        if (return_changes == return_changes_t::YES) {
-            // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
-            bool conflict = resp.add("changes", make_replacement_pair(old_val, old_val));
-            guarantee(!conflict);
-        }
 
-        ql::datum_t new_val = replacer->replace(old_val);
-        if (return_changes == return_changes_t::YES) {
-            resp.overwrite("changes", make_replacement_pair(old_val, new_val));
-        }
-        if (new_val.get_type() == ql::datum_t::R_NULL) {
-            ended_empty = true;
-        } else if (new_val.get_type() == ql::datum_t::R_OBJECT) {
-            ended_empty = false;
-            new_val.rcheck_valid_replace(
-                old_val, ql::datum_t(), primary_key);
-            ql::datum_t pk = new_val.get_field(primary_key, ql::NOTHROW);
-            rcheck_target(&new_val,
-                          key.compare(store_key_t(pk.print_primary())) == 0,
-                          ql::base_exc_t::GENERIC,
-                          (started_empty
-                           ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                                       primary_key.to_std().c_str(),
-                                       new_val.print().c_str())
-                           : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
-                                       primary_key.to_std().c_str(),
-                                       old_val.print().c_str(),
-                                       new_val.print().c_str())));
-        } else {
-            rfail_typed_target(
-                &new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                new_val.get_type_name().c_str(), new_val.print().c_str());
-        }
+        try {
+            /* Compute the replacement value for the row */
+            ql::datum_t new_val = replacer->replace(old_val);
 
-        // We use `conflict` below to store whether or not there was a key
-        // conflict when constructing the stats object.  It defaults to `true`
-        // so that we fail an assertion if we never update the stats object.
-        bool conflict = true;
+            /* Validate the replacement value and generate a stats object to return to
+            the user, but don't return it yet if we need to make changes. The reason for
+            this odd order is that we need to validate the change before we write the
+            change. */
+            rcheck_row_replacement(primary_key, key, old_val, new_val);
+            bool was_changed;
+            ql::datum_t resp = make_row_replacement_stats(
+                primary_key, key, old_val, new_val, return_changes, &was_changed);
+            if (!was_changed) {
+                return resp;
+            }
 
-        // Figure out what operation we're doing (based on started_empty,
-        // ended_empty, and the result of the function call) and then do it.
-        if (started_empty) {
-            if (ended_empty) {
-                conflict = resp.add("skipped", ql::datum_t(1.0));
+            /* Now that the change has passed validation, write it to disk */
+            if (new_val.get_type() == ql::datum_t::R_NULL) {
+                kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
+                                   deletion_context, mod_info_out);
             } else {
-                conflict = resp.add("inserted", ql::datum_t(1.0));
                 r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
                 ql::serialization_result_t res =
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
                                     mod_info_out);
                 switch (res) {
-                case ql::serialization_result_t::ARRAY_TOO_BIG:
-                    rfail_typed_target(&new_val, "Array too large for disk writes"
-                                       " (limit 100,000 elements)");
-                    unreachable();
-                case ql::serialization_result_t::SUCCESS:
-                    break;
-                default:
-                    unreachable();
-                }
-                guarantee(mod_info_out->deleted.second.empty());
-                guarantee(!mod_info_out->added.second.empty());
-                mod_info_out->added.first = new_val;
-            }
-        } else {
-            if (ended_empty) {
-                conflict = resp.add("deleted", ql::datum_t(1.0));
-                kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   deletion_context, mod_info_out);
-                guarantee(!mod_info_out->deleted.second.empty());
-                guarantee(mod_info_out->added.second.empty());
-                mod_info_out->deleted.first = old_val;
-            } else {
-                r_sanity_check(
-                    old_val.get_field(primary_key) == new_val.get_field(primary_key));
-                if (old_val == new_val) {
-                    conflict = resp.add("unchanged",
-                                         ql::datum_t(1.0));
-                } else {
-                    conflict = resp.add("replaced", ql::datum_t(1.0));
-                    r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
-                    ql::serialization_result_t res =
-                        kv_location_set(&kv_location, *info.key, new_val,
-                                        info.btree->timestamp, deletion_context,
-                                        mod_info_out);
-                    switch (res) {
                     case ql::serialization_result_t::ARRAY_TOO_BIG:
                         rfail_typed_target(&new_val, "Array too large for disk writes"
                                            " (limit 100,000 elements)");
@@ -353,26 +278,38 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                         break;
                     default:
                         unreachable();
-                    }
-                    guarantee(!mod_info_out->deleted.second.empty());
-                    guarantee(!mod_info_out->added.second.empty());
-                    mod_info_out->added.first = new_val;
-                    mod_info_out->deleted.first = old_val;
                 }
             }
+
+            /* Report the changes for sindex and change-feed purposes */
+            if (old_val.get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->deleted.second.empty());
+                mod_info_out->deleted.first = old_val;
+            } else {
+                guarantee(mod_info_out->deleted.second.empty());
+            }
+            if (new_val.get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->added.second.empty());
+                mod_info_out->added.first = new_val;
+            } else {
+                guarantee(mod_info_out->added.second.empty());
+            }
+
+            return resp;
+
+        } catch (const ql::base_exc_t &e) {
+            return make_row_replacement_error_stats(old_val, return_changes, e.what());
         }
-        guarantee(!conflict); // message never added twice
-    } catch (const ql::base_exc_t &e) {
-        resp.add_error(e.what());
     } catch (const interrupted_exc_t &e) {
+        ql::datum_object_builder_t object_builder;
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        resp.add_error(msg.c_str());
+        object_builder.add_error(msg.c_str());
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
+        return std::move(object_builder).to_datum();
     }
-    return std::move(resp).to_datum();
 }
 
 
@@ -655,141 +592,6 @@ void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) c
 void rdb_value_detacher_t::delete_value(buf_parent_t parent, const void *value) const {
     detach_rdb_value(parent, value);
 }
-
-class sindex_key_range_tester_t : public key_tester_t {
-public:
-    explicit sindex_key_range_tester_t(const key_range_t &key_range)
-        : key_range_(key_range) { }
-
-    bool key_should_be_erased(const btree_key_t *key) {
-        std::string pk = ql::datum_t::extract_primary(
-            key_to_unescaped_str(store_key_t(key)));
-
-        return key_range_.contains_key(store_key_t(pk));
-    }
-private:
-    key_range_t key_range_;
-    DISABLE_COPYING(sindex_key_range_tester_t);
-};
-
-void sindex_erase_range(
-        const key_range_t &key_range, superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, release_superblock_t release_superblock,
-        const value_deleter_t *deleter) THROWS_NOTHING {
-
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    sindex_key_range_tester_t tester(key_range);
-
-    try {
-        btree_erase_range_generic(&sizer, &tester,
-                                  deleter, NULL, NULL,
-                                  superblock, interruptor,
-                                  release_superblock);
-    } catch (const interrupted_exc_t &) {
-        // We were interrupted. That's fine nothing to be done about it.
-    }
-}
-
-/* Spawns a coro to carry out the erase range for each sindex. */
-void spawn_sindex_erase_ranges(
-        const store_t::sindex_access_vector_t *sindex_access,
-        const key_range_t &key_range,
-        auto_drainer_t *drainer,
-        auto_drainer_t::lock_t,
-        release_superblock_t release_superblock,
-        signal_t *interruptor,
-        const value_deleter_t *deleter) {
-    for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
-        coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range,
-                    key_range, (*it)->superblock.get(),
-                    auto_drainer_t::lock_t(drainer), interruptor,
-                    release_superblock, deleter));
-    }
-}
-
-/* Helper function for rdb_erase_*_range() */
-void rdb_erase_range_convert_keys(const key_range_t &key_range,
-                                  bool *left_key_supplied_out,
-                                  bool *right_key_supplied_out,
-                                  store_key_t *left_key_exclusive_out,
-                                  store_key_t *right_key_inclusive_out) {
-    /* This is guaranteed because the way the keys are calculated below would
-     * lead to a single key being deleted even if the range was empty. */
-    guarantee(!key_range.is_empty());
-
-    rassert(left_key_supplied_out != NULL);
-    rassert(right_key_supplied_out != NULL);
-    rassert(left_key_exclusive_out != NULL);
-    rassert(right_key_inclusive_out != NULL);
-
-    /* Twiddle some keys to get the in the form we want. Notice these are keys
-     * which will be made  exclusive and inclusive as their names suggest
-     * below. At the point of construction they aren't. */
-    *left_key_exclusive_out = store_key_t(key_range.left);
-    *right_key_inclusive_out = store_key_t(key_range.right.key);
-
-    *left_key_supplied_out = left_key_exclusive_out->decrement();
-    *right_key_supplied_out = !key_range.right.unbounded;
-    if (*right_key_supplied_out) {
-        right_key_inclusive_out->decrement();
-    }
-
-    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
-     * names. */
-}
-
-void rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &key_range,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           std::vector<rdb_modification_report_t> *mod_reports_out) {
-    rassert(mod_reports_out != NULL);
-    mod_reports_out->clear();
-
-    bool left_key_supplied, right_key_supplied;
-    store_key_t left_key_exclusive, right_key_inclusive;
-    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
-             &left_key_exclusive, &right_key_inclusive);
-
-    /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    struct on_erase_cb_t {
-        static void on_erase(
-                const store_key_t &key,
-                const char *data,
-                const buf_parent_t &parent,
-                std::vector<rdb_modification_report_t> *_mod_reports_out) {
-            const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
-
-            // The mod_report we generate is a simple delete. While there is generally
-            // a difference between an erase and a delete (deletes get backfilled,
-            // while an erase is as if the value had never existed), that
-            // difference is irrelevant in the case of secondary indexes.
-            rdb_modification_report_t mod_report;
-            mod_report.primary_key = key;
-            // Get the full data
-            mod_report.info.deleted.first = get_data(value, parent);
-            // Get the inline value
-            max_block_size_t block_size = parent.cache()->max_block_size();
-            mod_report.info.deleted.second.assign(value->value_ref(),
-                value->value_ref() + value->inline_size(block_size));
-
-            _mod_reports_out->push_back(mod_report);
-        }
-    };
-
-    btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
-        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
-        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor, release_superblock_t::RELEASE,
-        std::bind(&on_erase_cb_t::on_erase,
-                  ph::_1, ph::_2, ph::_3, mod_reports_out));
-}
-
 
 typedef ql::transform_variant_t transform_variant_t;
 typedef ql::terminal_variant_t terminal_variant_t;

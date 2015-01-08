@@ -311,8 +311,8 @@ void semilattice_manager_t<metadata_t>::on_message(
     }
 
     peer_id_t sender = connection->get_peer_id();
-
     auto_drainer_t::lock_t this_keepalive(drainers.get());
+    threadnum_t original_thread = get_thread_id();
 
     switch (code) {
         /* Another peer sent us a newer version of the metadata */
@@ -363,18 +363,17 @@ void semilattice_manager_t<metadata_t>::on_message(
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,
-                    query_id]() {
-                metadata_version_t local_version;
+                    query_id, original_thread]() {
                 {
                     on_thread_t thread_switcher(home_thread());
-                    local_version = metadata_version;
-                }
-                sync_from_reply_writer_t writer(query_id, local_version);
-                {
+                    sync_from_reply_writer_t writer(query_id, metadata_version);
                     new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
-                    get_connectivity_cluster()->send_message(connection,
-                        connection_keepalive, get_message_tag(), &writer);
+                    {
+                        on_thread_t thread_switcher_2(original_thread);
+                        get_connectivity_cluster()->send_message(connection,
+                            connection_keepalive, get_message_tag(), &writer);
+                    }
                 }
             });
             break;
@@ -420,7 +419,7 @@ void semilattice_manager_t<metadata_t>::on_message(
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,
-                    query_id, version]() {
+                    query_id, version, original_thread]() {
                 wait_any_t interruptor(this_keepalive.get_drain_signal(),
                                        connection_keepalive.get_drain_signal());
                 cross_thread_signal_t interruptor2(&interruptor, home_thread());
@@ -434,13 +433,14 @@ void semilattice_manager_t<metadata_t>::on_message(
                     } catch (const sync_failed_exc_t &) {
                         return;
                     }
-                }
-                sync_to_reply_writer_t writer(query_id);
-                {
+                    sync_to_reply_writer_t writer(query_id);
                     new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
-                    get_connectivity_cluster()->send_message(connection,
-                        connection_keepalive, get_message_tag(), &writer);
+                    {
+                        on_thread_t thread_switcher_2(original_thread);
+                        get_connectivity_cluster()->send_message(connection,
+                            connection_keepalive, get_message_tag(), &writer);
+                    }
                 }
             });
             break;

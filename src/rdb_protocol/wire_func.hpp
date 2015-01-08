@@ -39,9 +39,9 @@ public:
     protob_t<const Backtrace> get_bt() const;
 
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const;
+    friend void serialize(write_message_t *wm, const wire_func_t &);
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    friend archive_result_t deserialize(read_stream_t *s, wire_func_t *);
 
 private:
     friend class maybe_wire_func_t;  // for has().
@@ -50,8 +50,6 @@ private:
     counted_t<const func_t> func;
 };
 
-RDB_SERIALIZE_OUTSIDE(wire_func_t);
-
 class maybe_wire_func_t {
 protected:
     template<class... Args>
@@ -59,17 +57,16 @@ protected:
 
 public:
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const;
+    friend void serialize(write_message_t *wm, const maybe_wire_func_t &);
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    friend archive_result_t deserialize(read_stream_t *s, maybe_wire_func_t *);
 
     counted_t<const func_t> compile_wire_func_or_null() const;
 
 private:
+    bool has() const { return wrapped.has(); }
     wire_func_t wrapped;
 };
-
-RDB_SERIALIZE_OUTSIDE(maybe_wire_func_t);
 
 class map_wire_func_t : public wire_func_t {
 public:
@@ -130,14 +127,12 @@ public:
     protob_t<const Backtrace> get_bt() const { return bt; }
 
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const;
+    friend void serialize(write_message_t *wm, const bt_wire_func_t &);
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    friend archive_result_t deserialize(read_stream_t *s, bt_wire_func_t *);
 private:
     protob_t<const Backtrace> bt;
 };
-
-RDB_SERIALIZE_OUTSIDE(bt_wire_func_t);
 
 class group_wire_func_t {
 public:
@@ -148,14 +143,12 @@ public:
     bool should_append_index() const;
     bool is_multi() const;
     protob_t<const Backtrace> get_bt() const;
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(group_wire_func_t);
 private:
     std::vector<wire_func_t> funcs;
     bool append_index, multi;
     bt_wire_func_t bt;
 };
-
-RDB_SERIALIZE_OUTSIDE(group_wire_func_t);
 
 class distinct_wire_func_t {
 public:

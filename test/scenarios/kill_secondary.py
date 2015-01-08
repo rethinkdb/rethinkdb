@@ -1,51 +1,89 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-import sys, os, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+from __future__ import print_function
 
-op = OptParser()
+import os, sys, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, utils, vcoptparse, workload_runner
+
+op = vcoptparse.OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    print "Starting cluster..."
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    primary_files = driver.Files(metacluster, db_path="db-primary", console_output="create-db-primary-output", command_prefix=command_prefix)
-    primary = driver.Process(cluster, primary_files, console_output="serve-output-primary", command_prefix=command_prefix, extra_options=serve_options)
-    secondary_files = driver.Files(metacluster, db_path="db-secondary", console_output="create-secondary-output", command_prefix=command_prefix)
-    secondary = driver.Process(cluster, secondary_files, console_output="serve-output-secondary", command_prefix=command_prefix, extra_options=serve_options)
-    secondary.wait_until_started_up()
+numNodes = 2
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", primary.http_port)])
-    primary_dc = http.add_datacenter()
-    http.move_server_to_datacenter(primary.files.machine_name, primary_dc)
-    secondary_dc = http.add_datacenter()
-    http.move_server_to_datacenter(secondary.files.machine_name, secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary=primary_dc, affinities={primary_dc: 0, secondary_dc: 1})
-    http.wait_until_blueprint_satisfied(ns)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+    
+    print("Establishing ReQL Connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    secondary = cluster[1]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Reconfiguring table to have 1 shard but %d replicas (%.2fs)" % (numNodes, time.time() - startTime))
+    
+    r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numNodes).run(conn)
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':server.name, 'replicas':r.row['shards'][0]['replicas']}
+        ]}).run(conn)['errors'] == 0
+    r.db(dbName).wait().run(conn)
+    
     cluster.check()
-    http.check_no_issues()
+    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+    
+    print("Starting workload (%.2fs)" % (time.time() - startTime))
 
-    workload_ports = scenario_common.get_workload_ports(ns, [primary])
+    workload_ports = workload_runner.RDBPorts(host=server.host, http_port=server.http_port, rdb_port=server.driver_port, db_name=dbName, table_name=tableName)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
-        http.check_no_issues()
-        print "Killing the secondary..."
-        secondary.close()
-        time.sleep(30)   # Wait for the other node to notice it's dead
-        http.declare_machine_dead(secondary.files.machine_name)
-        http.set_table_affinities(ns, {secondary_dc: 0})
-        http.wait_until_blueprint_satisfied(ns)
-        cluster.check()
-        http.check_no_issues()
+        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+        
+        print("Killing the secondary (%.2fs)" % (time.time() - startTime))
+        
+        secondary.kill()
+        
+        time.sleep(.5)
+        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        assert len(issues) > 0, 'The dead server issue is not listed:'
+        assert len(issues) < 2, 'There are too many issues in the list: %s' % repr(issues)
+        
+        print("Declaring the server dead (%.2fs)" % (time.time() - startTime))
+        
+        assert r.db('rethinkdb').table('server_config').get(secondary.uuid).delete().run(conn)['errors'] == 0
+        time.sleep(.1)
+        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+        
+        print("Running after workload (%.2fs)" % (time.time() - startTime))
+        
         workload.run_after()
-
-    http.check_no_issues()
-    cluster.check_and_stop()
+    
+    cluster.check()
+    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done (%.2fs)" % (time.time() - startTime))

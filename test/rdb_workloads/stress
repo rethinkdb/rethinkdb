@@ -273,7 +273,7 @@ def stress_controller(options):
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--seed", dest="seed", metavar="FLOAT", default=None, type="float")
-    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default='test.stress', type="string")
+    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=100, type="float")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=0, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
@@ -312,10 +312,10 @@ if __name__ == "__main__":
 
     # Get table name, and make sure it exists on the server
     if parsed_options.db_table is None:
-        print "no table specified"
-        exit(1)
-
-    (options["db"], options["table"]) = parsed_options.db_table.split(".")
+        options["db"] = os.environ.get('DB_NAME', 'test')
+        options["table"] = os.environ.get('TABLE_NAME', 'stress')
+    else:
+        options["db"], options["table"] = parsed_options.db_table.split(".")
 
     with r.connect(options["hosts"][0][0], options["hosts"][0][1]) as connection:
         if options["db"] not in r.db_list().run(connection):

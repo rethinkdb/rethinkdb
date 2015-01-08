@@ -1,0 +1,14 @@
+
+    {{#if namespace_exists}}
+        <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s
+    {{else}}
+        [table no longer exists]
+    {{/if}} 
+    {{attribute}} to:
+    {{#if value}}{{value}}{{/if}}
+    {{#if datacenter_id}}
+        for <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
+    {{/if}}
+    <br/>
+
+

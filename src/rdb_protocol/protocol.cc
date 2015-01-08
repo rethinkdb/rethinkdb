@@ -57,7 +57,7 @@ namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
@@ -105,7 +105,7 @@ void bring_sindexes_up_to_date(
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
-    std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
+    std::map<uuid_u, std::string> sindexes_to_bring_up_to_date_uuid_name;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
@@ -113,13 +113,14 @@ void bring_sindexes_up_to_date(
                                       "being deleted");
         auto sindexes_it = sindexes.find(*it);
         guarantee(sindexes_it != sindexes.end());
-        sindexes_to_bring_up_to_date_uuid.insert(sindexes_it->second.id);
+        sindexes_to_bring_up_to_date_uuid_name.insert(
+            std::make_pair(sindexes_it->second.id, sindexes_it->first.name));
     }
 
     coro_t::spawn_sometime(std::bind(
                 &post_construct_and_drain_queue,
                 store_drainer_acq,
-                sindexes_to_bring_up_to_date_uuid,
+                sindexes_to_bring_up_to_date_uuid_name,
                 store,
                 mod_queue.release()));
 }
@@ -130,11 +131,22 @@ void bring_sindexes_up_to_date(
  */
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
         store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
+    std::set<uuid_u> sindexes_to_bring_up_to_date;
+    std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
+        sindex_sentries;
+    for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
+        sindexes_to_bring_up_to_date.insert(sindex.first);
+        sindex_sentries.emplace_back(
+            store->get_sindex_jobs(),
+            sindex.first,
+            std::make_pair(current_microtime(), sindex.second));
+    }
+
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
 
     rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);
@@ -385,6 +397,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
+
+    region_t operator()(const dummy_read_t &d) const {
+        return d.region;
+    }
 };
 
 region_t read_t::get_region() const THROWS_NOTHING {
@@ -470,6 +486,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(ss);
     }
 
+    bool operator()(const dummy_read_t &d) const {
+        return rangey_read(d);
+    }
+
     const hash_region_t<key_range_t> *region;
     read_t::variant_t *payload_out;
 };
@@ -537,6 +557,7 @@ public:
     void operator()(const changefeed_limit_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
     void operator()(const changefeed_point_stamp_t &);
+    void operator()(const dummy_read_t &);
 
 private:
     // Shared by rget_read_t and intersecting_geo_read_t operators
@@ -812,6 +833,10 @@ void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
     }
 }
 
+void rdb_r_unshard_visitor_t::operator()(const dummy_read_t &) {
+    *response_out = responses[0];
+}
+
 void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, rdb_context_t *ctx,
                      signal_t *interruptor) const
@@ -840,6 +865,7 @@ void read_t::unshard(read_response_t *responses, size_t count,
 
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
+    bool operator()(const dummy_read_t &) const {                 return false; }
     bool operator()(const rget_read_t &) const {                  return true;  }
     bool operator()(const intersecting_geo_read_t &) const {      return true;  }
     bool operator()(const nearest_geo_read_t &) const {           return true;  }
@@ -947,6 +973,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const sync_t &s) const {
         return s.region;
     }
+
+    region_t operator()(const dummy_write_t &d) const {
+        return d.region;
+    }
 };
 
 #ifndef NDEBUG
@@ -1045,6 +1075,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(s);
     }
 
+    bool operator()(const dummy_write_t &d) const {
+        return rangey_write(d);
+    }
+
     const region_t *region;
     write_t::variant_t *payload_out;
 };
@@ -1105,6 +1139,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const dummy_write_t &) const {
         *response_out = responses[0];
     }
 
@@ -1176,11 +1214,13 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_limit_subscribe_response_t, shards, limit_addrs);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
-RDB_IMPL_ME_SERIALIZABLE_2_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_point_stamp_response_t, stamp, initial_val);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -1214,6 +1254,7 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_delete_response_t, result);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_create_response_t, success);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_drop_response_t, success);
 RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(sync_response_t);
+RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_write_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_rename_response_t, result);
 
@@ -1231,6 +1272,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(sindex_create_t, id, mapping, region, multi, geo);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_write_t, region);
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rename_t, region,
                                     old_name, new_name, overwrite);

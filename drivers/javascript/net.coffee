@@ -276,6 +276,9 @@ class Connection extends events.EventEmitter
         query.query = term.build()
         query.token = token
         # Set global options
+        for own key, value of opts
+            query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
+
         if @db?
             query.global_optargs['db'] = r.db(@db).build()
 
@@ -287,27 +290,6 @@ class Connection extends events.EventEmitter
 
         if opts.profile?
             query.global_optargs['profile'] = r.expr(!!opts.profile).build()
-
-        if opts.durability?
-            query.global_optargs['durability'] = r.expr(opts.durability).build()
-
-        if opts.minBatchRows?
-            query.global_optargs['min_batch_rows'] = r.expr(opts.minBatchRows).build()
-
-        if opts.maxBatchRows?
-            query.global_optargs['max_batch_rows'] = r.expr(opts.maxBatchRows).build()
-
-        if opts.minBatchBytes?
-            query.global_optargs['min_batch_bytes'] = r.expr(opts.minBatchBytes).build()
-
-        if opts.maxBatchSeconds?
-            query.global_optargs['max_batch_seconds'] = r.expr(opts.maxBatchSeconds).build()
-
-        if opts.firstBatchScaledownFactor?
-            query.global_optargs['first_batch_scaledown_factor'] = r.expr(opts.firstBatchScaledownFactor).build()
-
-        if opts.arrayLimit?
-            query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply
@@ -493,13 +475,19 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        @xhr.abort()
-        xhr = new XMLHttpRequest
-        xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
-        xhr.send()
-        @_url = null
-        @_connId = null
-        super()
+        if @_connId? # @connId is null if the connection was previously closed/cancel
+            @xhr.abort()
+            xhr = new XMLHttpRequest
+            xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+
+            # We ignore the result, but Firefox doesn't. Without this line it complains
+            # about "No element found" when trying to parse the response as xml.
+            xhr.responseType = "arraybuffer"
+
+            xhr.send()
+            @_url = null
+            @_connId = null
+            super()
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
@@ -524,9 +512,9 @@ class HttpConnection extends Connection
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
         buf.write(data, 8)
-        @write buf
+        @write buf, token
 
-    write: (chunk) ->
+    write: (chunk, token) ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
         xhr.responseType = "arraybuffer"
@@ -538,15 +526,17 @@ class HttpConnection extends Connection
                 buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
                 @_data(buf)
 
-        # Convert the chunk from node buffer to ArrayBuffer
-        array = new ArrayBuffer(chunk.length)
-        view = new Uint8Array(array)
+        xhr.onerror = (e) =>
+            @outstandingCallbacks[token].cb(new Error("This HTTP connection is not open"))
+
+        # Convert the chunk from node buffer to an ArrayBufferView (Uint8Array)
+        # Passing an ArrayBuffer in xhr.send is deprecated
+        view = new Uint8Array(chunk.length)
         i = 0
         while i < chunk.length
             view[i] = chunk[i]
             i++
-
-        xhr.send array
+        xhr.send view
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
 module.exports.isConnection = (connection) ->

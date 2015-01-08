@@ -343,7 +343,7 @@ private:
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", datum_t(datum_string_t(v->as_db()->name)));
+            b |= info.add("name", datum_t(datum_string_t(v->as_db()->name.str())));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
@@ -352,6 +352,22 @@ private:
                           datum_t(datum_string_t(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
+            {
+                name_string_t name;
+                bool ok = name.assign_value(table->name);
+                guarantee(ok, "table->name should have been a valid name");
+                std::string error;
+                std::vector<int64_t> doc_counts;
+                if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
+                        table->db, name, env->env, &doc_counts, &error)) {
+                    rfail(base_exc_t::GENERIC, "%s", error.c_str());
+                }
+                datum_array_builder_t arr(configured_limits_t::unlimited);
+                for (int64_t i : doc_counts) {
+                    arr.add(datum_t(static_cast<double>(i)));
+                }
+                b |= info.add("doc_count_estimates", std::move(arr).to_datum());
+            }
         } break;
         case SELECTION_TYPE: {
             b |= info.add("table",

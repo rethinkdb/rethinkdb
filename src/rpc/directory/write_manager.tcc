@@ -27,10 +27,11 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
     typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
         connections_freeze(connectivity_cluster->get_connections());
-    guarantee(connectivity_cluster->get_connections()->get().empty());
     value_change_subscription.reset(value, &value_freeze);
     connections_change_subscription.reset(connectivity_cluster->get_connections(),
                                           &connections_freeze);
+    /* This will take care of sending initial messages if necessary. */
+    on_connections_change();
 }
 
 template<class metadata_t>

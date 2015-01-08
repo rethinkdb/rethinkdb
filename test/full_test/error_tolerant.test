@@ -1,8 +1,7 @@
-error_tolerant_workloads = ["$RETHINKDB/test/rdb_workloads/stress --host=$HOST:$PORT -w simple_insert --quiet"]
+error_tolerant_workloads = ["$RETHINKDB/test/rdb_workloads/stress --host=$HOST:$PORT -w simple_insert --quiet --table $DB_NAME.$TABLE_NAME"]
 
 scenarios = {
-    'rebalance': "$RETHINKDB/test/scenarios/rebalance.py --workload-during '%(workload)s' --sequence 2,++,--,+-,+-,+++,--+,----",
-    'relocate': "$RETHINKDB/test/scenarios/relocate_namespace.py --workload-during '%(workload)s'",
+    'rebalance': "$RETHINKDB/test/scenarios/rebalance.py --workload-during '%(workload)s' --sequence 2,++,--,+,-,+++,++,----",
     'change-primary': "$RETHINKDB/test/scenarios/change_primary.py --workload-during '%(workload)s'",
     'failover': "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-during '%(workload)s'",
     'kill-secondary': "$RETHINKDB/test/scenarios/kill_secondary.py --workload-during '%(workload)s'",

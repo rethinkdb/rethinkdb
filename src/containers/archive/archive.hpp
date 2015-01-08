@@ -137,53 +137,6 @@ T *deserialize_deref(T &val) {  // NOLINT(runtime/references)
 }
 
 template <class T>
-class empty_ok_t;
-
-template <class T>
-class empty_ok_ref_t {
-public:
-    T *get() const { return ptr_; }
-
-private:
-    template <class U>
-    friend empty_ok_ref_t<U> deserialize_deref(const empty_ok_t<U> &val);
-
-    explicit empty_ok_ref_t(T *ptr) : ptr_(ptr) { }
-
-    T *ptr_;
-};
-
-// Used by empty_ok.
-template <class T>
-class empty_ok_t {
-public:
-    T *get() const { return ptr_; }
-
-private:
-    template <class U>
-    friend empty_ok_t<U> empty_ok(U &field);  // NOLINT(runtime/references)
-
-    explicit empty_ok_t(T *ptr) : ptr_(ptr) { }
-
-    T *ptr_;
-};
-
-template <class T>
-empty_ok_ref_t<T> deserialize_deref(const empty_ok_t<T> &val) {
-    return empty_ok_ref_t<T>(val.get());
-}
-
-// A convenient wrapper for marking fields (of smart pointer types, typically) as being
-// allowed to be serialized empty.  For example, datum_t typically
-// must be non-empty when serialized, but a special implementation for type
-// empty_ok_t<datum_t> is made that lets you serialize empty datum's.
-// Simply wrap the name with empty_ok(...) in the serialization macro.
-template <class T>
-empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
-    return empty_ok_t<T>(&field);
-}
-
-template <class T>
 struct serialized_size_t;
 template <class T>
 struct serialize_universal_size_t;
@@ -198,6 +151,7 @@ struct serialize_universal_size_t;
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
         u.v = static_cast<typ2>(x);                                     \
+        rassert(u.v >= typ2(lo) && u.v <= typ2(hi));                    \
         wm->append(u.buf, sizeof(typ2));                                \
     }                                                                   \
                                                                         \

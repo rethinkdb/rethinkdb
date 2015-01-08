@@ -17,7 +17,6 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
-#include "region/region_json_adapter.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "serializer/config.hpp"
@@ -80,7 +79,7 @@ void run_with_namespace_interface(
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t("."),
-                        static_cast<outdated_index_report_t *>(NULL)));
+                        static_cast<outdated_index_report_t *>(NULL), generate_uuid()));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;
@@ -759,52 +758,59 @@ TEST(RDBProtocol, OvershardedMissingAttr) {
 }
 
 TPTEST(RDBProtocol, ArtificialChangefeeds) {
-    using namespace ql;
-    using namespace changefeed;
-    artificial_t artificial_cfeed;
+    using ql::changefeed::artificial_t;
+    using ql::changefeed::keyspec_t;
+    using ql::changefeed::msg_t;
+    class dummy_artificial_t : public artificial_t {
+    public:
+        /* This gets a notification when the last changefeed disconnects, but we don't
+        care about that. */
+        void maybe_remove() { }
+    };
+    dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
-        cfeed_bundle_t(changefeed::artificial_t *a)
-            : bt(make_counted_backtrace()),
+        explicit cfeed_bundle_t(artificial_t *a)
+            : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
                           keyspec_t::point_t{
-                              store_key_t(datum_t(0.0).print_primary())},
+                              store_key_t(ql::datum_t(0.0).print_primary())},
                           bt)),
               point_10(a->subscribe(
                            keyspec_t::point_t{
-                               store_key_t(datum_t(10.0).print_primary())},
+                               store_key_t(ql::datum_t(10.0).print_primary())},
                            bt)),
               range(a->subscribe(
                         keyspec_t::range_t{
-                          std::vector<transform_variant_t>(),
+                          std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
                           sorting_t::UNORDERED,
-                          datum_range_t(
-                              datum_t(0.0),
+                          ql::datum_range_t(
+                              ql::datum_t(0.0),
                               key_range_t::closed,
-                              datum_t(10.0),
+                              ql::datum_t(10.0),
                               key_range_t::open)},
                         bt)) { }
-        protob_t<const Backtrace> bt;
-        counted_t<datum_stream_t> point_0, point_10, range;
+        ql::protob_t<const Backtrace> bt;
+        counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
     std::map<size_t, cfeed_bundle_t> bundles;
     for (size_t i = 0; i <= 20; ++i) {
         bundles.insert(std::make_pair(i, cfeed_bundle_t(&artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
-                    std::map<std::string, std::vector<datum_t> >(),
-                    std::map<std::string, std::vector<datum_t> >(),
-                    store_key_t(datum_t(static_cast<double>(i)).print_primary()),
-                    datum_t(-static_cast<double>(i)),
-                    datum_t(static_cast<double>(i))}));
+                    std::map<std::string, std::vector<ql::datum_t> >(),
+                    std::map<std::string, std::vector<ql::datum_t> >(),
+                    store_key_t(ql::datum_t(static_cast<double>(i)).print_primary()),
+                    ql::datum_t(-static_cast<double>(i)),
+                    ql::datum_t(static_cast<double>(i))}));
     }
     cond_t interruptor;
-    env_t env(&interruptor, reql_version_t::LATEST);
+    ql::env_t env(&interruptor, reql_version_t::LATEST);
     for (const auto &pair : bundles) {
-        batchspec_t bs(batchspec_t::all()
-                       .with_new_batch_type(batch_type_t::NORMAL)
-                       .with_max_dur(1000));
+        ql::batchspec_t bs(ql::batchspec_t::all()
+                           .with_new_batch_type(ql::batch_type_t::NORMAL)
+                           .with_max_dur(1000));
         size_t i = pair.first;
-        std::vector<datum_t> p0, p10, rng;
+        std::vector<ql::datum_t> p0, p10, rng;
         p0 = pair.second.point_0->next_batch(&env, bs);
         p10 = pair.second.point_10->next_batch(&env, bs);
         rng = pair.second.range->next_batch(&env, bs);

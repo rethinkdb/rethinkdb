@@ -62,7 +62,7 @@ bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == OR
 bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORDER_IGNORE; }
 
 #ifndef NDEBUG
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(order_token_t, bucket_, read_mode_, value_, tag_);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(order_token_t, bucket_, read_mode_, value_, tag_);
 #endif
 
 

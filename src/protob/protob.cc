@@ -15,9 +15,9 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/auth_key.hpp"
+#include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
 
@@ -220,7 +220,7 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
     // This must be read here because of home threads and stuff
-    const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
+    auth_key_t auth_key = auth_metadata->get().auth_key.get_ref();
 
     threadnum_t chosen_thread = threadnum_t(next_thread);
     next_thread = (next_thread + 1) % get_num_db_threads();
@@ -244,25 +244,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     std::string init_error;
 
     try {
-        if (auth_vclock.in_conflict()) {
-            throw protob_server_exc_t(
-                "Authorization key is in conflict, "
-                "resolve it through the admin UI before connecting clients.");
-        }
-
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
         // With version 0_2 and up, the client drivers specifies the authorization key
         if (client_magic_number == VersionDummy::V0_1) {
-            if (!auth_vclock.get().str().empty()) {
+            if (!auth_key.str().empty()) {
                 throw protob_server_exc_t(
                     "Authorization required but client does not support it.");
             }
         } else if (client_magic_number == VersionDummy::V0_2 ||
                    client_magic_number == VersionDummy::V0_3) {
             auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
-            if (!timing_sensitive_equals(provided_auth, auth_vclock.get())) {
+            if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
             }
             const char *success_msg = "SUCCESS";
@@ -309,13 +303,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
-    for (;;) {
-        ql::protob_t<Query> query(ql::make_counted_query());
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
-        if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
-            Response response;
-            if (handler->run_query(query, &response, client_ctx)) {
-                protocol_t::send_response(response, handler, conn, client_ctx->interruptor);
+    ip_and_port_t peer;
+    if (conn->getpeername(&peer)) {
+        for (;;) {
+            ql::protob_t<Query> query(ql::make_counted_query());
+
+            if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
+                Response response;
+                if (handler->run_query(query, &response, client_ctx, peer)) {
+                    protocol_t::send_response(
+                        response, handler, conn, client_ctx->interruptor);
+                }
             }
         }
     }
@@ -449,7 +449,8 @@ void query_server_t::handle(const http_req_t &req,
 
             client_context_t *client_ctx = conn->get_ctx();
             interruptor_mixer_t interruptor_mixer(client_ctx, interruptor);
-            response_needed = handler->run_query(query, &response, client_ctx);
+            response_needed = handler->run_query(
+                query, &response, client_ctx, req.peer);
             rassert(response_needed);
         }
     }

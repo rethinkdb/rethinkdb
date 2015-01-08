@@ -138,9 +138,9 @@ public:
     don't call it again. */
     write_callback_t *callback;
 
-    /* This is the set of peers that have acknowledged the write so far. When it satisfies
-    the ack checker, then `callback->on_success()` will be called. */
-    std::set<peer_id_t> ack_set;
+    /* This is the set of listeners that have acknowledged the write so far. When it
+    satisfies the ack checker, then `callback->on_success()` will be called. */
+    std::set<server_id_t> ack_set;
 
 private:
     friend class incomplete_write_ref_t;
@@ -203,7 +203,7 @@ private:
 class broadcaster_t::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t d) THROWS_NOTHING :
-        write_mailbox(d.write_mailbox), is_readable(false),
+        write_mailbox(d.write_mailbox), is_readable(false), server_id(d.server_id),
         local_listener(NULL), listener_id(generate_uuid()),
         queue_count(),
         queue_count_membership(&c->broadcaster_collection, &queue_count,
@@ -256,8 +256,8 @@ public:
         controller->assert_thread();
     }
 
-    peer_id_t get_peer() {
-        return write_mailbox.get_peer();
+    bool is_local() {
+        return local_listener != nullptr;
     }
 
 private:
@@ -310,6 +310,7 @@ public:
     bool is_readable;
     listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
     listener_business_card_t::read_mailbox_t::address_t read_mailbox;
+    server_id_t server_id;
 
     /* `local_listener` can be non-NULL if the dispatchee is local on this node
     (and on the same thread). */
@@ -317,7 +318,7 @@ public:
     auto_drainer_t::lock_t local_listener_keepalive;
 
     /* This is used to enforce that operations are performed on the
-       destination machine in the same order that we send them, even if the
+       destination server in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
 
@@ -458,6 +459,21 @@ void broadcaster_t::spawn_write(const write_t &write,
         return;
     }
 
+    write_durability_t durability;
+    switch (write.durability()) {
+        case DURABILITY_REQUIREMENT_DEFAULT:
+            durability = ack_checker->get_write_durability();
+            break;
+        case DURABILITY_REQUIREMENT_SOFT:
+            durability = write_durability_t::SOFT;
+            break;
+        case DURABILITY_REQUIREMENT_HARD:
+            durability = write_durability_t::HARD;
+            break;
+        default:
+            unreachable();
+    }
+
     state_timestamp_t timestamp = current_timestamp.next();
     current_timestamp = timestamp;
     order_token = order_checkpoint.check_through(order_token);
@@ -485,22 +501,6 @@ void broadcaster_t::spawn_write(const write_t &write,
         to every dispatchee. */
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
-            durability_requirement_t durability_requirement = write.durability();
-            write_durability_t durability;
-            switch (durability_requirement) {
-            case DURABILITY_REQUIREMENT_DEFAULT:
-                durability = ack_checker->get_write_durability(it->first->get_peer());
-                break;
-            case DURABILITY_REQUIREMENT_SOFT:
-                durability = write_durability_t::SOFT;
-                break;
-            case DURABILITY_REQUIREMENT_HARD:
-                durability = write_durability_t::HARD;
-                break;
-            default:
-                unreachable();
-            }
-
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
@@ -519,7 +519,7 @@ void broadcaster_t::pick_a_readable_dispatchee(
 
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary mirror should be always readable.");
+            "the primary replica mirror should be always readable.");
     }
 
     /* Prefer a local dispatchee (at the moment there always should be exactly one) */
@@ -527,9 +527,7 @@ void broadcaster_t::pick_a_readable_dispatchee(
     for (dispatchee_t *d = readable_dispatchees.head();
          d != NULL;
          d = readable_dispatchees.next(d)) {
-        const bool is_local =
-            d->get_peer() == mailbox_manager->get_connectivity_cluster()->get_me();
-        if (is_local) {
+        if (d->is_local()) {
             selected_dispatchee = d;
             break;
         }
@@ -551,7 +549,7 @@ void broadcaster_t::get_all_readable_dispatchees(
     proof->assert_is_holding(&mutex);
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary mirror should be always readable.");
+            "the primary replica mirror should be always readable.");
     }
 
     dispatchee_t *dispatchee = readable_dispatchees.head();
@@ -603,7 +601,7 @@ void broadcaster_t::background_writeread(
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
 
-        write_ref.get()->ack_set.insert(mirror->get_peer());
+        write_ref.get()->ack_set.insert(mirror->server_id);
         if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
             /* We might get here multiple times, if `is_acceptable_ack_set()`
             returns `true` before all of the acks have come back. To avoid
@@ -765,7 +763,7 @@ void broadcaster_t::refresh_readable_dispatchees_as_set() {
     readable_dispatchees_as_set.clear();
     dispatchee_t *dispatchee = readable_dispatchees.head();
     while (dispatchee != NULL) {
-        readable_dispatchees_as_set.insert(dispatchee->get_peer());
+        readable_dispatchees_as_set.insert(dispatchee->server_id);
         dispatchee = readable_dispatchees.next(dispatchee);
     }
 }

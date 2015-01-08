@@ -58,7 +58,7 @@ _complete_rethinkdb() {
     local directory_args=("-d" "--directory" "-l" "--log-file")
     local numb_args=("-c" "--cores" "--client-port" "--cluster-port" "--driver-port" "-o" "--port-offset" "--http-port" "--clients")
     local help_tokens=("create" "serve" "admin" "proxy" "export" "import" "dump" "restore")
-    local create_tokens=("-d" "--directory" "-n" "--machine-name" "--io-backend")
+    local create_tokens=("-d" "--directory" "-n" "--server-name" "--io-backend")
     local serve_tokens=("-d" "--directory" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "-c" "--cores" "--pid-file" "--io-backend")
     local proxy_tokens=("--log-file" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "--pid-file" "--io-backend")
     local export_tokens=("-c" "--connect" "-a" "--auth" "-d" "--directory" "-e" "--export" "--format" "--fields")

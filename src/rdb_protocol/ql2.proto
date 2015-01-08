@@ -288,7 +288,8 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
+        TABLE = 15; // Database, STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
+                    // STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
@@ -365,7 +366,7 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-                        // The arity of the function should be 
+                        // The arity of the function should be
                         // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
@@ -445,28 +446,53 @@ message Term {
 
         // * Administrative OPs
         // Creates a database with a particular name.
-        DB_CREATE    = 57; // STRING -> OBJECT
+        DB_CREATE     = 57; // STRING -> OBJECT
         // Drops a database with a particular name.
-        DB_DROP      = 58; // STRING -> OBJECT
+        DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
-        DB_LIST      = 59; // -> ARRAY
-        // Creates a table with a particular name in a particular
-        // database.  (You may omit the first argument to use the
-        // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+        DB_LIST       = 59; // -> ARRAY
+        // With no arguments, returns the contents of the `rethinkdb.db_config` system
+        // table. With string arguments, returns only the rows corresponding to the DBs
+        // with the given names.
+        TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_DROP   = 61; // Database, STRING -> OBJECT
-                           // STRING -> OBJECT
+        TABLE_DROP    = 61; // Database, STRING -> OBJECT
+                                // STRING -> OBJECT
         // Lists all the tables in a particular database.  (You may
         // omit the first argument to use the default database.)
-        TABLE_LIST   = 62; // Database -> ARRAY
-                           //  -> ARRAY
+        TABLE_LIST    = 62; // Database -> ARRAY
+                            //  -> ARRAY
+        // Returns the row in the `rethinkdb.table_config` or `rethinkdb.db_config` table
+        // that corresponds to the given database or table.
+        CONFIG  = 174; // Database -> SingleSelection
+                       // Table -> SingleSelection
+        // Returns the row in the `rethinkdb.table_status` table that corresponds to the
+        // given table.
+        STATUS  = 175; // Table -> SingleSelection
+        // Called on a table, waits for that table to be ready for read/write operations.
+        // Called on a database, waits for all of the tables in the database to be ready.
+        // Returns the corresponding row or rows from the `rethinkdb.table_status` table.
+        WAIT    = 177; // Table -> OBJECT
+                       // Database -> OBJECT
+        // Generates a new config for the given table, or all tables in the given database
+        // The `shards` and `replicas` arguments are required
+        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Table, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+                             // Table, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+        // Balances the table's shards but leaves everything else the same. Can also be
+        // applied to an entire database at once.
+        REBALANCE     = 179; // Table -> OBJECT
+                             // Database -> OBJECT
+
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
-        SYNC     = 138; // Table -> OBJECT
+        SYNC          = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.

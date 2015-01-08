@@ -117,6 +117,9 @@ public:
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;
 
+    /* Return true if the garbage collector is active */
+    virtual bool is_gc_active() const = 0;
+
 private:
     DISABLE_COPYING(serializer_t);
 };

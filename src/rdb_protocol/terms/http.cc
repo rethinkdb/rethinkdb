@@ -145,7 +145,7 @@ public:
         depaginate_limit(_depaginate_limit),
         more(depaginate_limit != 0) { }
 
-    bool is_array() { return false; }
+    bool is_array() const { return false; }
     bool is_exhausted() const { return !more && batch_cache_exhausted(); }
     bool is_cfeed() const { return false; }
     bool is_infinite() const { return false; }
@@ -191,8 +191,12 @@ void check_error_result(const http_result_t &res,
         // Any error coming back from the extproc may be due to the fragility of
         // interfacing with external servers.  Provide a non-existence error so that
         // users may call `r.default` for more robustness.
-        rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                     "%s", error_string.c_str());
+        if (parent == nullptr) {
+            rfail_toplevel(base_exc_t::NON_EXISTENCE, "%s", error_string.c_str());
+        } else {
+            rfail_target(parent, base_exc_t::NON_EXISTENCE,
+                         "%s", error_string.c_str());
+        }
     }
 }
 
@@ -308,6 +312,9 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     rassert(opts.url_params.has());
     rassert(res.header.has());
     rassert(res.body.has());
+
+    // Carry over the cookies from the previous request
+    opts.cookies = std::move(res.cookies);
 
     datum_t empty
         = datum_t(std::map<datum_string_t, datum_t>());

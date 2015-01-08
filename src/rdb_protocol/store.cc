@@ -11,8 +11,10 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
@@ -561,6 +563,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
     }
 
+    void operator()(const dummy_read_t &) {
+        response->response = dummy_read_response_t();
+    }
+
     rdb_read_visitor_t(btree_slice_t *_btree,
                        store_t *_store,
                        superblock_t *_superblock,
@@ -638,19 +644,7 @@ public:
     ql::datum_t replace(const ql::datum_t &d, size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        if (d.get_type() == ql::datum_t::R_NULL) {
-            return newd;
-        } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
-            return newd;
-        } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
-            return d.merge(newd);
-        } else {
-            rfail_target(&d, ql::base_exc_t::GENERIC,
-                         "Duplicate primary key `%s`:\n%s\n%s",
-                         pkey.c_str(), d.print().c_str(),
-                         newd.print().c_str());
-        }
-        unreachable();
+        return resolve_insert_conflict(pkey, d, newd, conflict_behavior);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
@@ -804,6 +798,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         // the superblock.)
     }
 
+    void operator()(const dummy_write_t &) {
+        response->response = dummy_write_response_t();
+    }
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         store_t *_store,
@@ -1010,9 +1007,13 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_protocol::range_key_tester_t tester(&delete_range.range);
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        rdb_erase_small_range(&tester, delete_range.range.inner,
-                              superblock.get(), &deletion_context, interruptor,
-                              &mod_reports);
+        done_traversing_t res = rdb_erase_small_range(btree,
+                                                      &tester, delete_range.range.inner,
+                                                      superblock.get(), &deletion_context,
+                                                      interruptor, 0, &mod_reports);
+        /* Since we passed 0 as `max_keys_to_erase`, which means unlimited, we
+           should always get done_traversing_t::YES here.*/
+        guarantee(res == done_traversing_t::YES);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(mod_reports);
@@ -1134,4 +1135,12 @@ void store_t::delayed_clear_sindex(
         /* Ignore. The sindex deletion will continue when the store
         is next started up. */
     }
+}
+
+namespace_id_t const &store_t::get_table_id() const {
+    return table_id;
+}
+
+store_t::sindex_jobs_t *store_t::get_sindex_jobs() {
+    return &sindex_jobs;
 }

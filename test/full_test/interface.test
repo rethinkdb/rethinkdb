@@ -1,6 +1,26 @@
 for interface_test_name in [
-        'detect_dead', 'distribution', 'log', 'progress',
-        'dead_machine_issues', 'unsatisfiable_goals_issue', 'name_conflict_issue',
-        'net_corruption', 'resources', 'large_branch_history',
-        'metadata_persistence', 'stat', 'specific_table']:
+        'artificial_table',
+        'cache_size',
+        'cluster_config',
+        'db_config',
+        'detect_netsplit',
+        'log',
+        'log_write_issue',
+        'metadata_persistence',
+        'net_corruption',
+        'permanently_remove',
+        'progress',
+        'resources',
+        'server_config',
+        'server_status',
+        'shard_balancing',
+        'stat',
+        'system_changefeeds',
+        'table_acks_durability',
+        'table_config',
+        'table_doc_count_estimates',
+        'table_wait',
+        'table_reconfigure',
+        'unsatisfiable_goals_issue']:
     generate_test("$RETHINKDB/test/interface/%s.py" % interface_test_name, name=interface_test_name)
+

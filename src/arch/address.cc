@@ -109,16 +109,10 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
     return ips;
 }
 
-std::set<ip_address_t> get_local_ips(std::set<ip_address_t> filter,
-                                     bool get_all) {
+std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
+                                     local_ip_filter_t filter_type) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
-
-    // If nothing is specified, default to 127.0.0.1 and ::1
-    if (filter.empty() && !get_all) {
-        filter.insert(ip_address_t("127.0.0.1"));
-        filter.insert(ip_address_t("::1"));
-    }
 
     try {
         all_ips = hostname_to_ips(str_gethostname());
@@ -155,7 +149,10 @@ std::set<ip_address_t> get_local_ips(std::set<ip_address_t> filter,
 
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
-        if (get_all || filter.find(ip) != filter.end()) {
+        if (filter_type == local_ip_filter_t::ALL ||
+            filter.find(ip) != filter.end() ||
+            (filter_type == local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK &&
+             ip.is_loopback())) {
             filtered_ips.insert(ip);
         }
     }
@@ -371,20 +368,42 @@ bool ip_address_t::is_any() const {
     return false;
 }
 
-port_t::port_t(int _value) : value_(_value) {
-    guarantee(value_ <= MAX_PORT);
+port_t::port_t(int _value)
+    : value_(_value) {
+    guarantee(value_ <= port_t::max_port);
+}
+
+port_t::port_t(sockaddr const *sa) {
+    switch (sa->sa_family) {
+    case AF_INET:
+        value_ = ntohs(reinterpret_cast<sockaddr_in const *>(sa)->sin_port);
+        break;
+    case AF_INET6:
+        value_ = ntohs(reinterpret_cast<sockaddr_in6 const *>(sa)->sin6_port);
+        break;
+    default:
+        crash("port_t constructed with unexpected address family: %d", sa->sa_family);
+    }
 }
 
 int port_t::value() const {
     return value_;
 }
 
-ip_and_port_t::ip_and_port_t() :
-    port_(0)
+std::string port_t::to_string() const {
+    return std::to_string(value_);
+}
+
+ip_and_port_t::ip_and_port_t()
+    : port_(0)
 { }
 
-ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, port_t _port) :
-    ip_(_ip), port_(_port)
+ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, port_t _port)
+    : ip_(_ip), port_(_port)
+{ }
+
+ip_and_port_t::ip_and_port_t(sockaddr const *sa)
+    : ip_(sa), port_(sa)
 { }
 
 bool ip_and_port_t::operator < (const ip_and_port_t &other) const {
@@ -404,6 +423,14 @@ const ip_address_t & ip_and_port_t::ip() const {
 
 port_t ip_and_port_t::port() const {
     return port_;
+}
+
+std::string ip_and_port_t::to_string() const {
+    if (ip_.is_ipv6()) {
+        return strprintf("[%s]:%u", ip_.to_string().c_str(), port_.value());
+    } else {
+        return strprintf("%s:%u", ip_.to_string().c_str(), port_.value());
+    }
 }
 
 bool is_similar_ip_address(const ip_and_port_t &left,

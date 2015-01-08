@@ -29,7 +29,8 @@ enum class datum_serialized_type_t {
     INT_POSITIVE = 8,
     R_BINARY = 9,
     BUF_R_ARRAY = 10,
-    BUF_R_OBJECT = 11
+    BUF_R_OBJECT = 11,
+    UNINITIALIZED = 12
 };
 
 // Objects and arrays use different word sizes for storing offsets,
@@ -443,7 +444,6 @@ size_t datum_serialized_size(const datum_t &datum,
                              check_datum_serialization_errors_t check_errors,
                              std::vector<size_tree_node_t> *child_sizes_out) {
     rassert(child_sizes_out == NULL || child_sizes_out->empty());
-    r_sanity_check(datum.has());
     // Update datum_object_serialize() and datum_array_serialize() if the size of
     // the type prefix should ever change.
     size_t sz = 1; // 1 byte for the type
@@ -473,7 +473,7 @@ size_t datum_serialized_size(const datum_t &datum,
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum.as_str());
     } break;
-    case datum_t::UNINITIALIZED: // fallthru
+    case datum_t::UNINITIALIZED: break;
     default:
         unreachable();
     }
@@ -490,7 +490,6 @@ serialization_result_t datum_serialize(
 #endif
     serialization_result_t res = serialization_result_t::SUCCESS;
 
-    r_sanity_check(datum.has());
     switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
@@ -540,7 +539,9 @@ serialization_result_t datum_serialize(
         const datum_string_t &value = datum.as_str();
         res = res | datum_serialize(wm, value);
     } break;
-    case datum_t::UNINITIALIZED: // fallthru
+    case datum_t::UNINITIALIZED: {
+        res = res | datum_serialize(wm, datum_serialized_type_t::UNINITIALIZED);
+    } break;
     default:
         unreachable();
     }
@@ -710,6 +711,9 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
+    case datum_serialized_type_t::UNINITIALIZED: {
+        *datum = datum_t();
+    } break;
     default:
         return archive_result_t::RANGE_ERROR;
     }
@@ -753,7 +757,8 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
     case datum_serialized_type_t::DOUBLE: // fallthru
     case datum_serialized_type_t::R_OBJECT: // fallthru
     case datum_serialized_type_t::INT_NEGATIVE: // fallthru
-    case datum_serialized_type_t::INT_POSITIVE: {
+    case datum_serialized_type_t::INT_POSITIVE: // fallthru
+    case datum_serialized_type_t::UNINITIALIZED: {
         buffer_read_stream_t data_read_stream(buf.get() + at_offset,
                                               buf.get_safety_boundary() - at_offset);
         datum_t res;
@@ -918,55 +923,5 @@ MUST_USE archive_result_t datum_deserialize(
 
     return archive_result_t::SUCCESS;
 }
-
-
-template <cluster_version_t W>
-void serialize(write_message_t *wm,
-               const empty_ok_t<const datum_t> &datum) {
-    const datum_t *pointer = datum.get();
-    const bool has = pointer->has();
-    serialize<W>(wm, has);
-    if (has) {
-        serialize<W>(wm, *pointer);
-    }
-}
-
-INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(empty_ok_t<const datum_t>);
-
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s,
-                             empty_ok_ref_t<datum_t> datum) {
-    bool has;
-    archive_result_t res = deserialize<W>(s, &has);
-    if (bad(res)) {
-        return res;
-    }
-
-    datum_t *pointer = datum.get();
-
-    if (!has) {
-        pointer->reset();
-        return archive_result_t::SUCCESS;
-    } else {
-        return deserialize<W>(s, pointer);
-    }
-}
-
-template archive_result_t deserialize<cluster_version_t::v1_13>(
-        read_stream_t *s,
-        empty_ok_ref_t<datum_t> datum);
-template archive_result_t deserialize<cluster_version_t::v1_13_2>(
-        read_stream_t *s,
-        empty_ok_ref_t<datum_t> datum);
-template archive_result_t deserialize<cluster_version_t::v1_14>(
-        read_stream_t *s,
-        empty_ok_ref_t<datum_t> datum);
-template archive_result_t deserialize<cluster_version_t::v1_15>(
-        read_stream_t *s,
-        empty_ok_ref_t<datum_t> datum);
-template archive_result_t deserialize<cluster_version_t::v1_16_is_latest>(
-        read_stream_t *s,
-        empty_ok_ref_t<datum_t> datum);
-
 
 }  // namespace ql

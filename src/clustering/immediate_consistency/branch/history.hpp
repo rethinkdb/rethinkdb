@@ -112,8 +112,8 @@ meta-info of the store.
 
 Thus, the branches form a directed acyclic graph. The branch created by the
 first primary "descends" from `version_t::zero()`. When a primary is created as
-a replacement for a dead primary, its branch descends from the branch of the
-dead primary. When shards are split or merged, the newly-created branches may
+a replacement for an unavailable primary, its branch descends from the branch of the
+unavailable primary. When shards are split or merged, the newly-created branches may
 descend from part of a single existing branch or from part of several existing
 branches.
 
@@ -175,9 +175,9 @@ public:
     record for this branch. */
     virtual branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING = 0;
 
-    /* Rrturns which branchs this branch history manager knows about. This can
-     * be used with get branch to prevent failures. */
-    virtual std::set<branch_id_t> known_branches() THROWS_NOTHING = 0;
+    /* Checks whether a given branch id is known. This can be used with get_branch
+    to prevent failures. */
+    virtual bool is_branch_known(branch_id_t branch) THROWS_NOTHING = 0;
 
     /* Adds a new branch to the database. Blocks until it is safely on disk.
     Blocks to avoid a race condition where we write the branch ID to a B-tree's
@@ -222,7 +222,7 @@ bool version_is_ancestor(
 
 /* `version_is_divergent()` returns true if neither `v1` nor `v2` is an ancestor
 of the other. Because the reactor doesn't allow new `broadcaster_t`s to be
-created unless we can access every living machine, this should never happen, but
+created unless we can access every living server, this should never happen, but
 the ICL still checks for it and correctly handles this case. */
 
 bool version_is_divergent(

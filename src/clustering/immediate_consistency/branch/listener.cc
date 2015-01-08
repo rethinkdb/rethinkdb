@@ -24,7 +24,7 @@
 when draining the write queue after completing a backfill. */
 #define WRITE_QUEUE_CORO_POOL_SIZE 64
 
-/* When we have caught up to the master to within
+/* When we have caught up to the primary replica to within
 `WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves
 to be up-to-date. */
 #define WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY 5
@@ -62,18 +62,20 @@ private:
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        backfill_throttler_t *backfill_throttler,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        store_view_t *svs,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
-                       backfill_session_id_t backfill_session_id,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
-                       order_source_t *order_source)
+                       order_source_t *order_source,
+                       double *backfill_progress_out)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -176,8 +178,8 @@ listener_t::listener_t(const base_path_t &base_path,
                        svs_,
                        svs_->get_region(),
                        replier->subview(&listener_t::get_backfiller_from_replier_bcard),
-                       backfill_session_id,
-                       interruptor);
+                       interruptor,
+                       backfill_progress_out);
         } // Release throttler_lock
     } catch (const resource_lost_exc_t &) {
         throw backfiller_lost_exc_t();
@@ -212,7 +214,7 @@ listener_t::listener_t(const base_path_t &base_path,
     there. That's why it's OK to just take the maximum of all the timestamps
     that we see.
     TODO: If we change the way we shard such that each listener_t maps to a
-    single B-tree on the same machine, then replace this loop with a strict
+    single B-tree on the same server, then replace this loop with a strict
     assertion that requires everything to be at the same timestamp. */
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
     for (region_map_t<version_range_t>::const_iterator it = backfill_end_point.begin();
@@ -243,6 +245,7 @@ listener_t::listener_t(const base_path_t &base_path,
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       const server_id_t &server_id,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        broadcaster_t *broadcaster,
@@ -250,6 +253,7 @@ listener_t::listener_t(const base_path_t &base_path,
                        signal_t *interruptor,
                        DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
+    server_id_(server_id),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
@@ -378,10 +382,12 @@ void listener_t::try_start_receiving_writes(
             });
 
     try {
+        listener_business_card_t our_bcard(
+            intro_mailbox.get_address(), write_mailbox_.get_address(), server_id_);
         registrant_.init(new registrant_t<listener_business_card_t>(
             mailbox_manager_,
             broadcaster->subview(&listener_t::get_registrar_from_broadcaster_bcard),
-            listener_business_card_t(intro_mailbox.get_address(), write_mailbox_.get_address())));
+            our_bcard));
     } catch (const resource_lost_exc_t &) {
         throw broadcaster_lost_exc_t();
     }

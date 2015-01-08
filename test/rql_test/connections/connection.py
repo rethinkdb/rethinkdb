@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-import datetime, os, random, re, socket, sys, tempfile, threading, time, unittest
+import datetime, os, random, re, socket, sys, tempfile, threading, time, traceback, unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
@@ -95,7 +95,7 @@ class TestCaseCompatible(unittest.TestCase):
         try:
             callable_func(*args, **kwds)
         except Exception as e:
-            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e)))
+            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s\n%s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e), traceback.format_exc()))
             self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
         else:
             self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))            
@@ -194,6 +194,8 @@ class TestPrivateServer(TestCaseCompatible):
     useDefaultPort = False
     port = None
     
+    authKey = None
+    
     @classmethod
     def setUp(cls):
         if cls.server is not None:
@@ -207,8 +209,11 @@ class TestPrivateServer(TestCaseCompatible):
             cls.server = driver.Process(executable_path=rethinkdb_exe, console_output=cls.serverConsoleOutput, wait_until_ready=True, extra_options=['--driver-port', port])
             cls.port = cls.server.driver_port
             
-            if cls.server.set_auth("hunter2") != 0:
-                raise RuntimeError("Could not set up authorization key")
+            if cls.authKey is not None:
+                conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
+                result = r.db('rethinkdb').table('cluster_config').update({'auth_key':cls.authKey}).run(conn)
+                if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
+                    raise Exception('Unable to set authkey, got: %s' % str(result))
     
     @classmethod
     def tearDown(cls):
@@ -266,31 +271,17 @@ class TestConnectionDefaultPort(TestPrivateServer):
 
 class TestAuthConnection(TestPrivateServer):
     
-    def setUp(self):
-        finishSetup = self.server is None
-        super(TestAuthConnection, self).setUp()
-        
-        if finishSetup and self.server.set_auth("hunter2") != 0:
-            raise RuntimeError("Could not set up authorization key")
+    incorrectAuthMessage = 'Server dropped connection with message: "ERROR: Incorrect authorization key."'
+    authKey = 'hunter2'
 
     def test_connect_no_auth(self):
-        self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, port=self.port)
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port)
 
     def test_connect_wrong_auth(self):
-        self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, port=self.port, auth_key="")
-
-        self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, port=self.port, auth_key="hunter3")
-
-        self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, port=self.port, auth_key="hunter22")
-
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="")
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter3")
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter22")
+    
     def test_connect_long_auth(self):
         long_key = str("k") * 2049
         not_long_key = str("k") * 2048
@@ -299,9 +290,7 @@ class TestAuthConnection(TestPrivateServer):
             r.RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
             r.connect, port=self.port, auth_key=long_key)
 
-        self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, port=self.port, auth_key=not_long_key)
+        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
         conn = r.connect(port=self.port, auth_key="hunter2")
@@ -385,15 +374,11 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         r.table('t2').run(c)
-        self.assertRaisesRegexp(
-            r.RqlRuntimeError, "Table `db2.t1` does not exist.",
-            r.table('t1').run, c)
+        self.assertRaisesRegexp(r.RqlRuntimeError, "Table `db2.t1` does not exist.", r.table('t1').run, c)
 
         c.use('test')
         r.table('t1').run(c)
-        self.assertRaisesRegexp(
-            r.RqlRuntimeError, "Table `test.t2` does not exist.",
-            r.table('t2').run, c)
+        self.assertRaisesRegexp( r.RqlRuntimeError, "Table `test.t2` does not exist.", r.table('t2').run, c)
 
         c.close()
 

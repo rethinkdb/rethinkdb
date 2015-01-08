@@ -191,7 +191,8 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     } else {
         // Otherwise we need to use the local addresses with the cluster port
         if (local_addresses.empty()) {
-            local_addresses = get_local_ips(std::set<ip_address_t>(), true);
+            local_addresses = get_local_ips(std::set<ip_address_t>(),
+                                            local_ip_filter_t::ALL);
         }
         for (auto it = local_addresses.begin();
              it != local_addresses.end(); ++it) {
@@ -253,9 +254,9 @@ connectivity_cluster_t::run_t::~run_t() {
     */
 }
 
-std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
+std::set<host_and_port_t> connectivity_cluster_t::run_t::get_canonical_addresses() {
     parent->assert_thread();
-    return routing_table.at(parent->me).ips();
+    return routing_table.at(parent->me).hosts();
 }
 
 int connectivity_cluster_t::run_t::get_port() {
@@ -463,7 +464,7 @@ public:
     }
     void write(write_stream_t *) {
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
-        attached, which will trigger `keepalive_read()` on the remote machine. */
+        attached, which will trigger `keepalive_read()` on the remote server. */
     }
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
@@ -756,7 +757,7 @@ void connectivity_cluster_t::run_t::handle(
     `conn_closer_2`. */
 
     // Get the name of our peer, for error reporting.
-    ip_address_t peer_addr;
+    ip_and_port_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
         peerstr = peer_addr.to_string();
@@ -937,7 +938,7 @@ void connectivity_cluster_t::run_t::handle(
     }
     if (expected_id && other_id != *expected_id) {
         // This is only a problem if we're not using a loopback address
-        if (!peer_addr.is_loopback()) {
+        if (!peer_addr.ip().is_loopback()) {
             logERR("Received inconsistent routing information (wrong ID) from %s, "
                    "closing connection.", peername);
         }
@@ -961,8 +962,8 @@ void connectivity_cluster_t::run_t::handle(
     parent->assert_thread();
 
     /* The trickiest case is when there are two or more parallel connections
-    that are trying to be established between the same two machines. We can get
-    this when e.g. machine A and machine B try to connect to each other at the
+    that are trying to be established between the same two servers. We can get
+    this when e.g. server A and server B try to connect to each other at the
     same time. It's important that exactly one of the connections actually gets
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
@@ -1093,7 +1094,7 @@ void connectivity_cluster_t::run_t::handle(
         connection_t conn_structure(this, other_id, conn, *other_peer_addr.get());
 
         /* `heartbeat_manager` will periodically send a heartbeat message to
-        other machines, and it will also close the connection if we don't
+        other servers, and it will also close the connection if we don't
         receive anything for a while. */
         heartbeat_manager_t heartbeat_manager(
             &conn_structure,

@@ -7,7 +7,6 @@ void print_version_message();
 int main_rethinkdb_create(int argc, char *argv[]);
 int main_rethinkdb_serve(int argc, char *argv[]);
 int main_rethinkdb_proxy(int argc, char *argv[]);
-int main_rethinkdb_admin(int argc, char *argv[]);
 int main_rethinkdb_porcelain(int argc, char *argv[]);
 int main_rethinkdb_export(int argc, char *argv[]);
 int main_rethinkdb_import(int argc, char *argv[]);

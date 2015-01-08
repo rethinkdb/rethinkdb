@@ -36,7 +36,7 @@ public:
 };
 
 /* `connectivity_cluster_t` is responsible for establishing connections with other
-machines and communicating with them. It's the foundation of the entire clustering
+servers and communicating with them. It's the foundation of the entire clustering
 system. However, it's very low-level; most code will instead use the directory or mailbox
 mechanisms, which are built on top of `connectivity_cluster_t`.
 
@@ -63,7 +63,7 @@ public:
     static const std::string cluster_build_mode;
 
     /* Every clustering message has a "tag", which determines what message handler on the
-    destination machine will deal with it. Tags are a low-level concept, and there are
+    destination server will deal with it. Tags are a low-level concept, and there are
     only a few of them; for example, all directory-related messages have one tag, and all
     mailbox-related messages have another. Higher-level code uses the mailbox system for
     routing messages. */
@@ -75,8 +75,8 @@ public:
 
     class run_t;
 
-    /* `connection_t` represents an open connection to another machine. If we lose
-    contact with another machine and then regain it, then a new `connection_t` will be
+    /* `connection_t` represents an open connection to another server. If we lose
+    contact with another server and then regain it, then a new `connection_t` will be
     created. Generally, any code that handles a `connection_t *` will also carry around a
     `auto_drainer_t::lock_t` that ensures the connection object isn't destroyed while in
     use. This doubles as a mechanism for finding out when the connection has been lost;
@@ -88,13 +88,13 @@ public:
     thread and call the methods on any thread. */
     class connection_t : public home_thread_mixin_debug_only_t {
     public:
-        /* Returns the peer ID of the other machine. Peer IDs change when a node
+        /* Returns the peer ID of the other server. Peer IDs change when a node
         restarts, but not when it loses and then regains contact. */
         peer_id_t get_peer_id() {
             return peer_id;
         }
 
-        /* Returns the address of the other machine. */
+        /* Returns the address of the other server. */
         peer_address_t get_peer_address() {
             return peer_address;
         }
@@ -159,7 +159,7 @@ public:
         its work in the background). */
         void join(const peer_address_t &address) THROWS_NOTHING;
 
-        std::set<ip_and_port_t> get_ips() const;
+        std::set<host_and_port_t> get_canonical_addresses();
         int get_port();
 
     private:
@@ -278,8 +278,8 @@ public:
     connection_t *get_connection(peer_id_t peer,
             auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING;
 
-    /* Sends a message to the other machine. The message is associated with a "tag",
-    which determines which message handler on the other machine will receive the message.
+    /* Sends a message to the other server. The message is associated with a "tag",
+    which determines which message handler on the other server will receive the message.
     */
     void send_message(connection_t *connection,
                       auto_drainer_t::lock_t connection_keepalive,

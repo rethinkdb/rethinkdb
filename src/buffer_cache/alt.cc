@@ -85,9 +85,9 @@ void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
 cache_t::cache_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
                  perfmon_collection_t *perfmon_collection)
-    : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
-      throttler_(MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT),
-      page_cache_(serializer, balancer, &throttler_) { }
+    : throttler_(MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT),
+      page_cache_(serializer, balancer, &throttler_),
+      stats_(make_scoped<alt_cache_stats_t>(&page_cache_, perfmon_collection)) { }
 
 cache_t::~cache_t() {
     guarantee(snapshot_nodes_by_block_id_.empty());

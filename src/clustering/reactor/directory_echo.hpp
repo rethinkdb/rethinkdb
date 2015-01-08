@@ -4,7 +4,9 @@
 
 #include <map>
 
-#include "concurrency/watchable.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "concurrency/watchable_map.hpp"
+#include "concurrency/watchable_transform.hpp"
 #include "containers/scoped.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -28,12 +30,10 @@ private:
     directory_echo_version_t version;
     mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
 public:
-    RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_3(directory_echo_wrapper_t, internal, version, ack_mailbox);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(directory_echo_wrapper_t<internal_t>,
         internal, version, ack_mailbox);
 };
-
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(directory_echo_wrapper_t);
 
 template<class internal_t>
 class directory_echo_writer_t {
@@ -90,35 +90,49 @@ private:
 };
 
 template<class internal_t>
-class directory_echo_mirror_t {
+class directory_echo_mirror_t :
+    private watchable_map_transform_t<
+        peer_id_t, directory_echo_wrapper_t<internal_t>, peer_id_t, internal_t> {
 public:
     directory_echo_mirror_t(
             mailbox_manager_t *mm,
-            const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &peers);
+            watchable_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > *peers);
 
     /* Returns a view to the watchable with the `directory_echo_wrapper_t`s
     stripped away. As an added benefit, if the outer watchable publishes a
     spurious event that doesn't change the value, this won't publish an event.
     We can do that by checking the version numbers to see if they have changed
     and thereby detect the spurious event. */
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, internal_t> > > get_internal() {
-        return subview.get_watchable();
+    watchable_map_t<peer_id_t, internal_t> *get_internal() {
+        return this;
     }
 
 private:
-    void on_change();
+    bool key_1_to_2(const peer_id_t &in, peer_id_t *out) {
+        *out = in;
+        return true;
+    }
+    bool key_2_to_1(const peer_id_t &in, peer_id_t *out) {
+        *out = in;
+        return true;
+    }
+    void value_1_to_2(const directory_echo_wrapper_t<internal_t> *in,
+                      const internal_t **out) {
+        *out = &in->internal;
+    }
+
+    void on_change(const peer_id_t &peer,
+                   const directory_echo_wrapper_t<internal_t> *wrapper);
     void ack_version(
             mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t peer,
             directory_echo_version_t version, auto_drainer_t::lock_t);
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > > > peers;
+    watchable_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > *peers;
     std::map<peer_id_t, directory_echo_version_t> last_seen;
 
-    change_tracking_map_t<peer_id_t, internal_t> subview_value;
-    watchable_variable_t<change_tracking_map_t<peer_id_t, internal_t> > subview;
-
     auto_drainer_t drainer;
-    typename watchable_t<change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > >::subscription_t sub;
+    typename watchable_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> >
+        ::all_subs_t subs;
 
     DISABLE_COPYING(directory_echo_mirror_t);
 };

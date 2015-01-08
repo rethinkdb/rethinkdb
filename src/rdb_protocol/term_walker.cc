@@ -108,6 +108,9 @@ private:
         case Term::DB_DROP:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
+        case Term::WAIT:
+        case Term::RECONFIGURE:
+        case Term::REBALANCE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
@@ -250,6 +253,8 @@ private:
         case Term::DECEMBER:
         case Term::DB_LIST:
         case Term::TABLE_LIST:
+        case Term::CONFIG:
+        case Term::STATUS:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
@@ -372,6 +377,11 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::CONFIG:
+        case Term::STATUS:
+        case Term::WAIT:
+        case Term::RECONFIGURE:
+        case Term::REBALANCE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:

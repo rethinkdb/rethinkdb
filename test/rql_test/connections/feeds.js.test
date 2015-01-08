@@ -16,7 +16,7 @@ os.environ['RDB_EXE_PATH'] = str(executable_path)
 
 # get a group of 4 connected servers
 
-with driver.Cluster.create_cluster(4, executable_path=executable_path) as cluster:
+with driver.Cluster(initial_servers=4, executable_path=executable_path) as cluster:
 	
 	server = list(cluster.processes)[0]
 	conn = r.connect(server.host, server.driver_port)

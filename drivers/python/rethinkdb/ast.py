@@ -257,8 +257,8 @@ class RqlQuery(object):
     def keys(self, *args):
         return Keys(self, *args)
 
-    def changes(self, *args):
-        return Changes(self, *args)
+    def changes(self, *args, **kwargs):
+        return Changes(self, *args, **kwargs)
 
     # Polymorphic object/sequence operations
     def pluck(self, *args):
@@ -945,6 +945,18 @@ class DB(RqlTopLevelQuery):
     def table_list(self, *args):
         return TableList(self, *args)
 
+    def config(self, *args):
+        return Config(self, *args)
+
+    def wait(self, *args, **kwargs):
+        return Wait(self, *args, **kwargs)
+
+    def reconfigure(self, *args, **kwargs):
+        return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
+
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
 
@@ -1008,6 +1020,21 @@ class Table(RqlQuery):
 
     def index_wait(self, *args):
         return IndexWait(self, *args)
+
+    def status(self, *args):
+        return Status(self, *args)
+
+    def config(self, *args):
+        return Config(self, *args)
+
+    def wait(self, *args, **kwargs):
+        return Wait(self, *args, **kwargs)
+
+    def reconfigure(self, *args, **kwargs):
+        return Reconfigure(self, *args, **kwargs)
+
+    def rebalance(self, *args, **kwargs):
+        return Rebalance(self, *args, **kwargs)
 
     def sync(self, *args):
         return Sync(self, *args)
@@ -1234,6 +1261,38 @@ class IndexStatus(RqlMethodQuery):
 class IndexWait(RqlMethodQuery):
     tt = pTerm.INDEX_WAIT
     st = 'index_wait'
+
+class Config(RqlMethodQuery):
+    tt = pTerm.CONFIG
+    st = "config"
+
+class Status(RqlMethodQuery):
+    tt = pTerm.STATUS
+    st = "status"
+
+class Wait(RqlMethodQuery):
+    tt = pTerm.WAIT
+    st = "wait"
+
+class WaitTL(RqlTopLevelQuery):
+    tt = pTerm.WAIT
+    st = "wait"
+
+class Reconfigure(RqlMethodQuery):
+    tt = pTerm.RECONFIGURE
+    st = 'reconfigure'
+
+class ReconfigureTL(RqlTopLevelQuery):
+    tt = pTerm.RECONFIGURE
+    st = 'reconfigure'
+
+class Rebalance(RqlMethodQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
+
+class RebalanceTL(RqlTopLevelQuery):
+    tt = pTerm.REBALANCE
+    st = 'rebalance'
 
 class Sync(RqlMethodQuery):
     tt = pTerm.SYNC

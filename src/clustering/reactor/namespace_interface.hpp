@@ -13,7 +13,7 @@
 #include "arch/timing.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -34,21 +34,22 @@ class cluster_namespace_interface_t : public namespace_interface_t {
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+            const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
                 *region_to_primary_maps_,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > dv,
+            watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
 
-
-    /* Returns a signal that will be pulsed when we have either successfully
-    connected or tried and failed to connect to every master that was present
-    at the time that the constructor was called. This is to avoid the case where
-    we get errors like "lost contact with master" when really we just haven't
-    finished connecting yet. */
+    /* Returns a signal that will be pulsed when we have either successfully connected
+    or tried and failed to connect to every primary replica that was present at the time
+    that the constructor was called. This is to avoid the case where we get errors like
+    "lost contact with primary replica" when really we just haven't finished connecting
+    yet. */
     signal_t *get_initial_ready_signal() {
         return &start_cond;
     }
+
+    bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
@@ -128,22 +129,31 @@ private:
             signal_t *interruptor)
         THROWS_NOTHING;
 
-    void update_registrants(bool is_start);
+    void update_registrant(const peer_id_t &peer,
+                           const namespace_directory_metadata_t *bcard);
 
-    static boost::optional<boost::optional<master_business_card_t> > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t> > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<master_business_card_t> >
+    extract_master_business_card(
+        const boost::optional<namespace_directory_metadata_t> &bcard,
+        const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t> > 
+    extract_direct_reader_business_card_from_primary(
+        const boost::optional<namespace_directory_metadata_t> &bcard,
+        const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t> > extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-
+    static boost::optional<boost::optional<direct_reader_business_card_t> > 
+    extract_direct_reader_business_card_from_secondary(
+        const boost::optional<namespace_directory_metadata_t> &bcard,
+        const reactor_activity_id_t &activity_id);
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
                                 bool is_start, bool is_primary, const region_t &region,
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+    const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
         *region_to_primary_maps;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > directory_view;
+    watchable_map_t<peer_id_t, namespace_directory_metadata_t> *directory_view;
     namespace_id_t namespace_id;
     rdb_context_t *ctx;
 
@@ -154,13 +164,16 @@ private:
 
     /* `start_cond` will be pulsed when we have either successfully connected to
     or tried and failed to connect to every peer present when the constructor
-    was called. `start_count` is the number of peers we're still waiting for. */
-    int start_count;
+    was called. `start_count` is the number of peers we're still waiting for.
+    `starting_up` is true during the constructor so `update_registrants()` knows to
+    increment `start_count` when it finds a peer. */
     cond_t start_cond;
+    int start_count;
+    bool starting_up;
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    scoped_ptr_t<watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > watcher_subscription;
+    watchable_map_t<peer_id_t, namespace_directory_metadata_t>::all_subs_t subs;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

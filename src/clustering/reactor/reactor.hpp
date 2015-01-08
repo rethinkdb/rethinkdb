@@ -11,6 +11,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/cow_ptr.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -18,15 +19,36 @@ class io_backender_t;
 class multistore_ptr_t;
 class backfill_throttler_t;
 
+/* `reactor_t::get_progress()` will return a map with one `reactor_progress_report_t` for
+each primary or secondary shard that is currently backfilling or has completed a
+backfill. */
+class reactor_progress_report_t {
+public:
+    /* `is_ready` is true if the shard is completely ready. */
+    bool is_ready;
+
+    /* `start_time` is the moment the `reactor_progress_report_t` was constructed. */
+    microtime_t start_time;
+
+    /* `backfills` contains the peer ID and progress fraction (from 0 to 1) for each
+    backfill that this server is receiving for that shard. The backfills will stay even
+    after `is_ready` becomes `true`, but all the progress fractions will be 1.  */
+    std::vector<std::pair<peer_id_t, double> > backfills;
+};
+
 class reactor_t : public home_thread_mixin_t {
 public:
     reactor_t(
             const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
+            const server_id_t &server_id,
             backfill_throttler_t *backfill_throttler,
             ack_checker_t *ack_checker,
-            clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > reactor_directory,
+            watchable_map_t<
+                peer_id_t,
+                directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >
+                > *reactor_directory,
             branch_history_manager_t *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t> > blueprint_watchable,
             multistore_ptr_t *_underlying_svs,
@@ -34,6 +56,10 @@ public:
             rdb_context_t *) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > get_reactor_directory();
+
+    /* This might block */
+    std::map<region_t, reactor_progress_report_t> get_progress();
+
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
      * into the directory for a role that we are performing (a role that we
@@ -117,25 +143,52 @@ private:
                                 const backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out);
 
-    bool is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory, const blueprint_t &blueprint,
-                                      const region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t *branch_history_to_merge_out, bool *should_merge_metadata);
+    bool is_safe_for_us_to_be_primary(
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        const blueprint_t &blueprint,
+        const region_t &region,
+        best_backfiller_map_t *best_backfiller_out,
+        branch_history_t *branch_history_to_merge_out,
+        bool *should_merge_metadata);
+
+    void is_safe_for_us_to_be_primary_helper(
+        const peer_id_t &peer,
+        const reactor_business_card_t &bcard,
+        const region_t &region,
+        best_backfiller_map_t *best_backfiller_out,
+        branch_history_t *branch_history_to_merge_out,
+        bool *merge_branch_history_out,
+        bool *its_not_safe_out);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
-    bool find_broadcaster_in_directory(const region_t &region, const blueprint_t &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory,
-                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > *broadcaster_out);
+    bool find_broadcaster_in_directory(
+        const region_t &region,
+        const blueprint_t &bp,
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+            broadcaster_business_card_t> > > > *broadcaster_out);
 
-    bool find_replier_in_directory(const region_t &region, const branch_id_t &b_id, const blueprint_t &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory,
-                                      clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
+    bool find_replier_in_directory(
+        const region_t &region,
+        const branch_id_t &b_id,
+        const blueprint_t &bp,
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+            replier_business_card_t> > > > *replier_out,
+        peer_id_t *peer_id_out,
+        reactor_activity_id_t *activity_out);
 
     void be_secondary(region_t region, store_view_t *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
     /* Implemented in clustering/reactor/reactor_be_nothing.tcc */
-    bool is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory, const blueprint_t &blueprint,
-                                      const region_t &region);
+    bool is_safe_for_us_to_be_nothing(
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        const blueprint_t &blueprint,
+        const region_t &region);
 
     void be_nothing(region_t region, store_view_t *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
             signal_t *interruptor) THROWS_NOTHING;
@@ -147,7 +200,15 @@ private:
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const region_t &region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    bool attempt_backfill_from_peers(
+        directory_entry_t *directory_entry,
+        reactor_progress_report_t *progress_tracker_on_svs_thread,
+        order_source_t *order_source,
+        const region_t &region,
+        store_view_t *svs,
+        const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
@@ -161,11 +222,15 @@ private:
 
     mailbox_manager_t *mailbox_manager;
 
+    server_id_t server_id;
+
     backfill_throttler_t *backfill_throttler;
 
     ack_checker_t *ack_checker;
 
     directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> > directory_echo_writer;
+    watchable_buffer_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
+        directory_buffer;
     directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> > directory_echo_mirror;
     branch_history_manager_t *branch_history_manager;
 
@@ -175,6 +240,13 @@ private:
 
     std::map<region_t, current_role_t *> current_roles;
 
+    /* `reactor_be_primary()` and `reactor_be_secondary()` automatically maintain their
+    own entries in this map. Using `one_per_thread_t` is kind of overkill here because
+    it automatically switches threads to do the construction and destruction, but the
+    additional overhead from the thread switches isn't a big enough cost to justify
+    changing it. */
+    one_per_thread_t<std::map<region_t, reactor_progress_report_t> > progress_map;
+
     auto_drainer_t drainer;
 
     watchable_t<blueprint_t>::subscription_t blueprint_subscription;
@@ -183,33 +255,80 @@ private:
     DISABLE_COPYING(reactor_t);
 };
 
-
-// TODO: This could easily be an incremental lens. It doesn't seem overly critical for
-// performance though, so let's belay that until it turns out to be necessary.
-template<class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = bcards.get_inner().find(p_id);
-    if (it == bcards.get_inner().end()) {
-        return boost::optional<boost::optional<activity_t> >();
-    }
-    reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(ra_id);
-    if (jt == it->second->activities.end()) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    try {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.activity)));
-    } catch (const boost::bad_get &) {
-        crash("Tried to get an activity of an unexpected type! It is assumed "
-            "the person calling this function knows the type of the activity "
-            "they will be getting back.\n");
-    }
-}
-
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return directory_echo_mirror.get_internal()->subview(std::bind(&extract_activity_from_reactor_bcard<activity_t>, ph::_1, p_id, ra_id));
+    return get_watchable_for_key(directory_echo_mirror.get_internal(), p_id)->subview(
+        [this, p_id, ra_id]
+        (const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard)
+        -> boost::optional<boost::optional<activity_t> > {
+            if (!static_cast<bool>(bcard)) {
+                return boost::optional<boost::optional<activity_t> >();
+            }
+            reactor_business_card_t::activity_map_t::const_iterator jt =
+                (*bcard)->activities.find(ra_id);
+            if (jt == (*bcard)->activities.end()) {
+                return boost::optional<boost::optional<activity_t> >(
+                    boost::optional<activity_t>());
+            }
+            try {
+                return boost::optional<boost::optional<activity_t> >(
+                    boost::optional<activity_t>(
+                        boost::get<activity_t>(jt->second.activity)));
+            } catch (const boost::bad_get &) {
+                crash("Tried to get an activity of an unexpected type! It is assumed "
+                    "the person calling this function knows the type of the activity "
+                    "they will be getting back.\n");
+            }
+        });
 }
 
+/* `run_until_satisfied_2` repeatedly calls the given function on the contents of the
+given `watchable_map_t` and `watchable_t` until the function returns `true` or the
+interruptor is pulsed. It's efficient because it only calls the function when the values
+of the watchables change. */
+template<class key_t, class value_t, class value2_t, class callable_t>
+void run_until_satisfied_2(
+        watchable_map_t<key_t, value_t> *input1,
+        clone_ptr_t<watchable_t<value2_t> > input2,
+        const callable_t &fun,
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms = 0) {
+    cond_t *notify = nullptr;
+    typename watchable_map_t<key_t, value_t>::all_subs_t all_subs(
+        input1,
+        [&notify](const key_t &, const value_t *) {
+            if (notify != nullptr) {
+                notify->pulse_if_not_already_pulsed();
+            }
+        },
+        false);
+    typename watchable_t<value2_t>::subscription_t subs(
+        [&notify]() {
+            if (notify != nullptr) {
+                notify->pulse_if_not_already_pulsed();
+            }
+        });
+    {
+        typename watchable_t<value2_t>::freeze_t freeze(input2);
+        subs.reset(input2, &freeze);
+    }
+    while (true) {
+        cond_t cond;
+        assignment_sentry_t<cond_t *> sentry(&notify, &cond);
+        bool ok;
+        input2->apply_read(
+            [&](const value2_t *value2) {
+                ok = fun(input1, *value2);
+            });
+        if (ok) {
+            return;
+        }
+        signal_timer_t timeout;
+        timeout.start(nap_before_retry_ms);
+        wait_interruptible(&timeout, interruptor);
+        wait_interruptible(&cond, interruptor);
+    }
+}
 
 #endif /* CLUSTERING_REACTOR_REACTOR_HPP_ */
 

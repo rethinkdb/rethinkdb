@@ -15,20 +15,20 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "rdb_protocol/configured_limits.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
-#include "rdb_protocol/geo/ellipsoid.hpp"
-#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/erase_range.hpp"
+#include "rdb_protocol/geo/ellipsoid.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rdb_protocol/shards.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class store_t;
@@ -246,9 +246,10 @@ struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
-    // machines and don't synchronize with each other.)
+    // servers and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
 struct changefeed_limit_subscribe_response_t {
@@ -266,12 +267,18 @@ struct changefeed_point_stamp_response_t {
     changefeed_point_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
-    // machines and don't synchronize with each other.)
+    // servers and don't synchronize with each other.)
     std::pair<uuid_u, uint64_t> stamp;
     ql::datum_t initial_val;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
-RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
+
+RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
+
+struct dummy_read_response_t {
+    // dummy read always succeeds
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_read_response_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
@@ -283,7 +290,8 @@ struct read_response_t {
                            changefeed_point_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
-                           sindex_status_response_t> variant_t;
+                           sindex_status_response_t,
+                           dummy_read_response_t> variant_t;
     variant_t response;
     profile::event_log_t event_log;
     size_t n_shards;
@@ -302,6 +310,16 @@ public:
     store_key_t key;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
+
+// `dummy_read_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.
+class dummy_read_t {
+public:
+    dummy_read_t() : region(region_t::universe()) { }
+    region_t region;
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_read_t);
 
 struct sindex_rangespec_t {
     sindex_rangespec_t() { }
@@ -516,7 +534,8 @@ struct read_t {
                            changefeed_point_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
-                           sindex_status_t> variant_t;
+                           sindex_status_t,
+                           dummy_read_t> variant_t;
     variant_t read;
     profile_bool_t profile;
 
@@ -587,6 +606,12 @@ struct sync_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
+struct dummy_write_response_t {
+    // dummy write always succeeds
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_write_response_t);
+
 typedef ql::datum_t batched_replace_response_t;
 
 struct write_response_t {
@@ -597,7 +622,8 @@ struct write_response_t {
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sindex_rename_response_t,
-                   sync_response_t> response;
+                   sync_response_t,
+                   dummy_write_response_t> response;
 
     profile::event_log_t event_log;
     size_t n_shards;
@@ -746,6 +772,15 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
+// `dummy_write_t` can be used to poll for table readiness - it will go through all
+// the clustering and reactor layers, but is a no-op in the protocol layer.
+class dummy_write_t {
+public:
+    dummy_write_t() : region(region_t::universe()) { }
+    region_t region;
+};
+RDB_DECLARE_SERIALIZABLE(dummy_write_t);
+
 struct write_t {
     typedef boost::variant<batched_replace_t,
                            batched_insert_t,
@@ -754,7 +789,8 @@ struct write_t {
                            sindex_create_t,
                            sindex_drop_t,
                            sindex_rename_t,
-                           sync_t> variant_t;
+                           sync_t,
+                           dummy_write_t> variant_t;
     variant_t write;
 
     durability_requirement_t durability_requirement;
@@ -873,7 +909,7 @@ region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 namespace rdb_protocol {
 /* TODO: This might be redundant. I thought that `key_tester_t` was only
 originally necessary because in v1.1.x the hashing scheme might be different
-between the source and destination machines. */
+between the source and destination servers. */
 struct range_key_tester_t : public key_tester_t {
     explicit range_key_tester_t(const region_t *_delete_range) : delete_range(_delete_range) { }
     virtual ~range_key_tester_t() { }

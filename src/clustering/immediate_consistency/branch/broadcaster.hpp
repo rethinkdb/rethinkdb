@@ -25,8 +25,8 @@ class uuid_u;
 
 class ack_checker_t : public home_thread_mixin_t {
 public:
-    virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const = 0;
-    virtual write_durability_t get_write_durability(const peer_id_t &peer) const = 0;
+    virtual bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const = 0;
+    virtual write_durability_t get_write_durability() const = 0;
 
     ack_checker_t() { }
 protected:
@@ -36,10 +36,10 @@ private:
     DISABLE_COPYING(ack_checker_t);
 };
 
-/* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
+/* Each shard has a `broadcaster_t` on its primary replica. Each server sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
-on the primary machine, which forwards the queries to the `broadcaster_t`. From
-there, the `broadcaster_t` distributes them to one or more `listener_t`s.
+on the primary replica server, which forwards the queries to the `broadcaster_t`.
+From there, the `broadcaster_t` distributes them to one or more `listener_t`s.
 
 When the `broadcaster_t` is first created, it generates a new unique branch ID.
 The `broadcaster_t` is the authority on what sequence of operations is performed
@@ -125,7 +125,7 @@ private:
     `pick_a_readable_dispatchee()` to do the picking. You must hold
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
     dispatchee is "readable" if a `replier_t` exists for it on the remote
-    machine.) */
+    server.) */
     void pick_a_readable_dispatchee(
         dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
         auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
@@ -221,7 +221,7 @@ private:
     `readable_dispatchees`. We keep it as a `std::set` because we need to pass it to
     `ack_checker->is_acceptable_ack_set()` for every single write operation, and this
     avoids the overhead of recreating the `std::set` each time. */
-    std::set<peer_id_t> readable_dispatchees_as_set;
+    std::set<server_id_t> readable_dispatchees_as_set;
 
     registrar_t<listener_business_card_t, broadcaster_t *, dispatchee_t>
         registrar;
