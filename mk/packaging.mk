@@ -100,7 +100,7 @@ build-deb: deb-src-dir
 	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
-install-osx: install-binaries
+install-osx: install-binaries install-web
 
 ifneq (Darwin,$(OS))
   OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)
