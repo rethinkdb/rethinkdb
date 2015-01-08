@@ -1,5 +1,7 @@
 #### The Ruby Client
 
+For more information about this driver see the [Ruby API](http://www.rethinkdb.com/api/ruby/) page.
+
 If you're here to hack on the Ruby client, I apologize in advance.
 The code was never the cleanest, and it's been through several messy
 overhauls since it was first written.
