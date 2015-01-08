@@ -90,10 +90,13 @@ stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
 
     if (stores_.has()) {
         for (size_t i = 0; i < stores_.size(); ++i) {
-            for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
-                sindex_jobs.insert(std::make_pair(
-                    std::make_pair(stores_[i]->get_table_id(), job.second.second),  // `uuid_u`, `std::string`
-                    job.second.first));
+            if (stores_[i].has()) {
+                for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
+                    sindex_jobs.insert(std::make_pair(
+                        //             `uuid_u`,                   `std::string`
+                        std::make_pair(stores_[i]->get_table_id(), job.second.second),
+                        job.second.first));
+                }
             }
         }
     }
