@@ -44,7 +44,7 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.old_key).c_str(),
                      print(change.new_val).c_str());
 }
-}  // namespace debug
+} // namespace debug
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
