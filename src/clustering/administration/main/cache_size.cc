@@ -166,6 +166,8 @@ uint64_t get_avail_mem_size() {
     // of vm_stat, in Darwin.
     uint64_t ret = (vmstat.free_count + vmstat.external_page_count) * page_size;
 #endif // __MAC_OS_X_VERSION_MIN_REQUIRED < 1090
+#else
+#error "We don't support Mach kernels other than OS X, sorry."
 #endif // __MAC_OS_X_VERSION_MIN_REQUIRED
     return ret;
 #else
