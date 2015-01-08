@@ -33,6 +33,9 @@ job_report_t::job_report_t(
       duration(_duration),
       client_addr_port(_client_addr_port),
       table(nil_uuid()),
+      is_ready(false),
+      progress_numerator(0.0),
+      progress_denominator(0.0),
       destination_server(nil_uuid()) { }
 
 job_report_t::job_report_t(
@@ -65,6 +68,9 @@ job_report_t::job_report_t(
       duration(_duration),
       table(_table),
       index(_index),
+      is_ready(false),
+      progress_numerator(0.0),
+      progress_denominator(0.0),
       destination_server(nil_uuid()) { }
 
 bool job_report_t::to_datum(
