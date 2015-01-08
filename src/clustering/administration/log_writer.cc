@@ -382,7 +382,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         }
 
         int fsync_res = fsync(fileno);
-        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL
+                              || get_errno() == ENOTSUP)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
