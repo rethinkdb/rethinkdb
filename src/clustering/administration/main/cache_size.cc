@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <unistd.h>
 
+#if defined(__MACH__)
+#include <availability.h>
+#include <mach/mach.h>
+#endif
+
 #include <limits>
 #include <string>
 
@@ -11,11 +16,6 @@
 #include "arch/types.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
-
-#if defined(__MACH__)
-#include <availability.h>
-#include <mach/mach.h>
-#endif
 
 #ifndef __MACH__
 
