@@ -570,16 +570,8 @@ public:
         return it->second;
     }
 
-    std::set<branch_id_t> known_branches() THROWS_NOTHING {
-        std::set<branch_id_t> res;
-
-        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator it = bh.branches.begin();
-             it != bh.branches.end();
-             ++it) {
-            res.insert(it->first);
-        }
-
-        return res;
+    bool is_branch_known(branch_id_t branch) THROWS_NOTHING {
+        return bh.branches.count(branch) > 0;
     }
 
     void create_branch(branch_id_t branch_id,
