@@ -75,11 +75,11 @@ html, body {
     color: lighten(black, 30%);
     position: relative;
     padding: 0px;
-    
+
     p {
         margin: 10px 10px 10px @icon-size + 15 !important;
     }
-    
+
     &::before {
         content: @icon;
         font-family: @ionicons;
@@ -3476,7 +3476,7 @@ TODO: retire this
         margin: 0px;
         top: auto;
         left: auto;
-        
+
     }
 }
 
@@ -3504,9 +3504,13 @@ TODO: retire this
     }
     .reconfigure-diff {
         @border-color: #d8d8d8;
-        @background-color: #fbfbfb;
+        @background-color: #fcfcfc;
         padding: 0px 6px;
-        background: top right no-repeat url('images/thinker_watermark.png');
+        background-image: url('images/thinker_on_hill.svg');
+        background-repeat: no-repeat;
+        background-position: calc(50% ~"+" 173px) calc(50% ~"+" 105px);
+        background-size: auto 336px;
+        background-attachment: fixed;
         border: 1px solid #fff;
         border-radius: 3px;
         background-color: @background-color;
@@ -3514,6 +3518,15 @@ TODO: retire this
         transition:
         border-color @transition-speed,
         height @transition-speed @ease-in-circ;
+        &.expanded {
+            border-color: @border-color;
+            @media (min-height: @expanded-height) {
+                height: @diff-height - 12px;
+            }
+            @media (max-height: @expanded-height) {
+                height: @diff-height / 2 - 12px;
+            }
+        }
         &:first-child {
             // We can't put the padding in the box, otherwise it will
             // have a height when collapsed. So we put a top margin on
@@ -3525,15 +3538,6 @@ TODO: retire this
         &:last-child {
             // similar reasoning to :first-child above
             margin-bottom: 6px;
-        }
-        &.expanded {
-            border-color: @border-color;
-            @media (min-height: @expanded-height) {
-                height: @diff-height - 12px;
-            }
-            @media (max-height: @expanded-height) {
-                height: @diff-height / 2 - 12px;
-            }
         }
     }
     .flex();
@@ -3663,6 +3667,7 @@ TODO: retire this
             margin-left: 30px;
             padding-left: 25px;
             background-size: 20px 15px !important;
+            border-bottom: 0px;
         }
         li {
             &.deleted {
