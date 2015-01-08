@@ -36,9 +36,6 @@ op["sequence"] = vcoptparse.ValueFlag("--sequence", converter=sequence_from_stri
 opts = op.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-alphanum = "0123456789abcdefghijklmnopqrstuvwxyz"
-candidate_shard_boundaries = set(alphanum).union([x + "9" for x in alphanum]).union([x + "i" for x in alphanum]).union([x + "r" for x in alphanum])
-
 numNodes = opts["num-nodes"]
 
 r = utils.import_python_driver()
@@ -61,14 +58,14 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
     
+    print("Inserting data (%.2fs)" % (time.time() - startTime))
+    
+    rdb_workload_common.insert_many(host=server.host, port=server.driver_port, database=dbName, table=tableName, count=10000, conn=conn)
+    
     print("Sharding table (%.2fs)" % (time.time() - startTime))
     
     r.db(dbName).reconfigure(shards=numNodes, replicas=numNodes).run(conn)
     r.db(dbName).wait().run(conn)
-    
-    print("Inserting data (%.2fs)" % (time.time() - startTime))
-    
-    rdb_workload_common.insert_many(host=server.host, port=server.driver_port, database=dbName, table=tableName, count=10000, conn=conn)
     
     print("Starting workload (%.2fs)" % (time.time() - startTime))
     

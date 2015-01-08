@@ -644,18 +644,6 @@ class _Process(object):
             self.cluster.processes.remove(self)
             self.cluster = None
     
-    def shard_table(self, table_name):
-        
-        blackHole = tempfile.NamedTemporaryFile(mode='w+')
-        commandPrefix = [self.executable_path, 'admin', '--join', '%s:%d' % (self.host, self.cluster_port), 'split', 'shard', str(table_name)]
-        
-        for splitPoint in ('Nc040800000000000\2333', 'Nc048800000000000\2349', 'Nc04f000000000000\2362'):
-            returnCode = subprocess.call(commandPrefix + [splitPoint], stdout=blackHole, stderr=blackHole)
-            if returnCode != 0:
-                return returnCode
-        time.sleep(3)
-        return 0
-
 class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
