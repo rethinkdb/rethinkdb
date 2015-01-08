@@ -727,8 +727,8 @@ class Test(object):
     testProcess = None
     
     setupStartTime = None
-    setupDurration = None
-    testDurration = None
+    setupDuration = None
+    testDuration = None
     
     envVariables = None
     
@@ -787,8 +787,8 @@ class Test(object):
         self.__result = value
     
     @property
-    def durration(self):
-        return (self.setupDurration or 0) + (self.testDurration or 0)
+    def duration(self):
+        return (self.setupDuration or 0) + (self.testDuration or 0)
     
     @property
     def console_output(self):
@@ -805,8 +805,8 @@ class Test(object):
         
         self.__status = 'queued'
         self.setupStartTime = None
-        self.setupDurration = None
-        self.testDurration = None
+        self.setupDuration = None
+        self.testDuration = None
     
     def setupTest(self):
         '''Do any pre-run setup that needs to be done for this test'''
@@ -817,7 +817,7 @@ class Test(object):
         self.__status = 'setting up'
         self.setupStartTime = time.time()
         
-        # note: in subclasses where this could fail this should set the status to 'ended' and set the setupDurration correctly
+        # note: in subclasses where this could fail this should set the status to 'ended' and set the setupDuration correctly
     
     def startTest(self, server=None):
         '''Run the test'''
@@ -829,7 +829,7 @@ class Test(object):
             raise RuntimeError('startTest requires a server instance, got: %s' % str(server))
         
         self.__status = 'running'
-        self.setupDurration = time.time() - self.setupStartTime
+        self.setupDuration = time.time() - self.setupStartTime
         
         # -- collect ENV variables
         
@@ -880,7 +880,7 @@ class Test(object):
         
         # -- set the end markers
         
-        self.testDurration = time.time() - self.setupStartTime - self.setupDurration
+        self.testDuration = time.time() - self.setupStartTime - self.setupDuration
         self.__status = 'ended'
         
         # -- return True to signal it has ended
@@ -904,10 +904,10 @@ class Test(object):
         # -- set the end markers
         
         if self.__status == 'setting up':
-            self.setupDurration = time.time() - self.setupStartTime
+            self.setupDuration = time.time() - self.setupStartTime
             self.result = result or 'failed setup'
         elif self.__status == 'running':
-            self.testDurration = time.time() - self.setupStartTime - self.setupDurration
+            self.testDuration = time.time() - self.setupStartTime - self.setupDuration
             self.result = result or 'failed'
         
         if result == 'timed out':
@@ -1531,18 +1531,18 @@ def main():
             elif message == 'ended':
                 runningTests -= 1
                 
-                durrationString = '%.1f sec' % (test.durration)
+                durationString = '%.1f sec' % (test.duration)
                                 
                 if test.result is None:
                     raise Warning('Got None for test.result, this should not happen')
                     continue
                 
                 if test.result == 'suceeded':
-                    sys.stdout.write('== Passed: %s in %s (%s)\n' % (test.name, durrationString, timeString))
+                    sys.stdout.write('== Passed: %s in %s (%s)\n' % (test.name, durationString, timeString))
                     passedTests += 1
                 
                 elif test.result == 'canceled':
-                    sys.stdout.write('== Canceled: %s after %s (%s)\n' % (test.name, durrationString, timeString))
+                    sys.stdout.write('== Canceled: %s after %s (%s)\n' % (test.name, durationString, timeString))
                     canceledTests += 1
                 
                 else:
@@ -1554,12 +1554,12 @@ def main():
                     elif test.result == 'crashed':
                         extraMessage = ' with signal %s' % abs(test.returncode)
                     elif test.result == 'timed out':
-                        extraMessage = ' after %d seconds' % test.durration
+                        extraMessage = ' after %d seconds' % test.duration
                     
                     if options.verbose is True:
-                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durrationString, timeString))
+                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
                     else:
-                        sys.stderr.write('>>> %s %s%s after %s (%s)\n\n' % (test.result.capitalize(), test.name, extraMessage, durrationString, timeString))
+                        sys.stderr.write('>>> %s %s%s after %s (%s)\n\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
                         sys.stderr.write(test.console_output)
                         sys.stderr.write('\n<<< end %s: %s\n' % (test.result.capitalize(), test.name))
         
