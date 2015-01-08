@@ -312,10 +312,12 @@ public:
     backfill_progress_t get_backfill_progress() const {
         backfill_progress_t backfill_progress;
 
-        for (auto const &backfill : reactor_->get_progress()) {
-            backfill_progress.insert(
-                std::make_pair(std::make_pair(namespace_id_, backfill.first),
-                               backfill.second));
+        if (reactor_.has()) {
+            for (auto const &backfill : reactor_->get_progress()) {
+                backfill_progress.insert(
+                    std::make_pair(std::make_pair(namespace_id_, backfill.first),
+                                   backfill.second));
+            }
         }
 
         return backfill_progress;
@@ -453,9 +455,11 @@ reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
     reactor_driver_t::sindex_jobs_t sindex_jobs;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
-        sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
-                           std::make_move_iterator(reactor_sindex_jobs.end()));
+        if (reactor.second.has()) {
+            auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
+            sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
+                               std::make_move_iterator(reactor_sindex_jobs.end()));
+        }
     }
 
     return sindex_jobs;
@@ -465,10 +469,12 @@ reactor_driver_t::backfill_progress_t reactor_driver_t::get_backfill_progress() 
     reactor_driver_t::backfill_progress_t backfill_progress;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_backfill_progress = reactor.second->get_backfill_progress();
-        backfill_progress.insert(
-            std::make_move_iterator(reactor_backfill_progress.begin()),
-            std::make_move_iterator(reactor_backfill_progress.end()));
+        if (reactor.second.has()) {
+            auto reactor_backfill_progress = reactor.second->get_backfill_progress();
+            backfill_progress.insert(
+                std::make_move_iterator(reactor_backfill_progress.begin()),
+                std::make_move_iterator(reactor_backfill_progress.end()));
+        }
     }
 
     return backfill_progress;
