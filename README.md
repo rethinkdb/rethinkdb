@@ -26,6 +26,6 @@ Check out [src/README](src/README.md)
 
 The drivers are located in this repository, for more information see one of the following:
 
-- [JavaScript](drivers/javascript/README.md)
-- [Python](drivers/python/README.md)
-- [Ruby](drivers/ruby/README.md)
+- [JavaScript](drivers/javascript/)
+- [Python](drivers/python/)
+- [Ruby](drivers/ruby/)
