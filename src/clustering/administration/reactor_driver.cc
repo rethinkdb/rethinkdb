@@ -77,6 +77,14 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
+bool stores_lifetimer_t::is_gc_active() const {
+    if (serializer_.has()) {
+        return serializer_->is_gc_active();
+    } else {
+        return false;
+    }
+}
+
 stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
     stores_lifetimer_t::sindex_jobs_t sindex_jobs;
 

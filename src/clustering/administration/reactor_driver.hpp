@@ -64,9 +64,7 @@ public:
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
     scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
-    bool is_gc_active() const {
-        return serializer_->is_gc_active();
-    }
+    bool is_gc_active() const;
 
     typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
