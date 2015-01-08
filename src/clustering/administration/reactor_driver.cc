@@ -77,15 +77,26 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
+bool stores_lifetimer_t::is_gc_active() const {
+    if (serializer_.has()) {
+        return serializer_->is_gc_active();
+    } else {
+        return false;
+    }
+}
+
 stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
     stores_lifetimer_t::sindex_jobs_t sindex_jobs;
 
     if (stores_.has()) {
         for (size_t i = 0; i < stores_.size(); ++i) {
-            for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
-                sindex_jobs.insert(std::make_pair(
-                    std::make_pair(stores_[i]->get_table_id(), job.second.second),  // `uuid_u`, `std::string`
-                    job.second.first));
+            if (stores_[i].has()) {
+                for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
+                    sindex_jobs.insert(std::make_pair(
+                        //             `uuid_u`,                   `std::string`
+                        std::make_pair(stores_[i]->get_table_id(), job.second.second),
+                        job.second.first));
+                }
             }
         }
     }
@@ -301,10 +312,12 @@ public:
     backfill_progress_t get_backfill_progress() const {
         backfill_progress_t backfill_progress;
 
-        for (auto const &backfill : reactor_->get_progress()) {
-            backfill_progress.insert(
-                std::make_pair(std::make_pair(namespace_id_, backfill.first),
-                               backfill.second));
+        if (reactor_.has()) {
+            for (auto const &backfill : reactor_->get_progress()) {
+                backfill_progress.insert(
+                    std::make_pair(std::make_pair(namespace_id_, backfill.first),
+                                   backfill.second));
+            }
         }
 
         return backfill_progress;
@@ -442,9 +455,11 @@ reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
     reactor_driver_t::sindex_jobs_t sindex_jobs;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
-        sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
-                           std::make_move_iterator(reactor_sindex_jobs.end()));
+        if (reactor.second.has()) {
+            auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
+            sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
+                               std::make_move_iterator(reactor_sindex_jobs.end()));
+        }
     }
 
     return sindex_jobs;
@@ -454,10 +469,12 @@ reactor_driver_t::backfill_progress_t reactor_driver_t::get_backfill_progress() 
     reactor_driver_t::backfill_progress_t backfill_progress;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_backfill_progress = reactor.second->get_backfill_progress();
-        backfill_progress.insert(
-            std::make_move_iterator(reactor_backfill_progress.begin()),
-            std::make_move_iterator(reactor_backfill_progress.end()));
+        if (reactor.second.has()) {
+            auto reactor_backfill_progress = reactor.second->get_backfill_progress();
+            backfill_progress.insert(
+                std::make_move_iterator(reactor_backfill_progress.begin()),
+                std::make_move_iterator(reactor_backfill_progress.end()));
+        }
     }
 
     return backfill_progress;
