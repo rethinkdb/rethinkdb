@@ -1,4 +1,4 @@
-# RethinkDB JavaScript driver
+# JavaScript Driver
 
 This package provides first party support for driving a RethinkDB database from a
 JavaScript application. It is designed to be run in node.js but will also run in
