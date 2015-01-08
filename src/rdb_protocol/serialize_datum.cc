@@ -53,7 +53,7 @@ struct size_tree_node_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
-                                      datum_serialized_type_t::BUF_R_OBJECT);
+                                      datum_serialized_type_t::UNINITIALIZED);
 
 serialization_result_t datum_serialize(write_message_t *wm,
                                        datum_serialized_type_t type) {
