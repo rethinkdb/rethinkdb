@@ -35,7 +35,6 @@ private:
     }
     void process_result(const http_result_t &);
     double cook(double);
-    void report_weird(const std::string &msg);
 
     rdb_context_t *rdb_ctx;
     datum_string_t seen_version;
