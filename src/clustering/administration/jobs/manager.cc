@@ -58,9 +58,17 @@ void jobs_manager_t::unset_rdb_context_and_reactor_driver() {
 void jobs_manager_t::on_get_job_reports(
         UNUSED signal_t *interruptor,
         const business_card_t::return_mailbox_t::address_t &reply_address) {
-    auto lock = drainer.lock();
-
     std::vector<job_report_t> job_reports;
+
+    if (drainer.is_draining()) {
+        // We're shutting down, send an empty reponse since we can't acquire a `drainer`
+        // lock any more. Note the `mailbox_manager` is destructed after we are, thus
+        // the pointer remains valid.
+        send(mailbox_manager, reply_address, job_reports);
+        return;
+    }
+
+    auto lock = drainer.lock();
 
     // Note, as `time` is retrieved here a job may actually report to be started after
     // fetching the time, leading to a negative duration which we round to zero.
@@ -141,6 +149,11 @@ void jobs_manager_t::on_get_job_reports(
 
 void jobs_manager_t::on_job_interrupt(
         UNUSED signal_t *interruptor, uuid_u const &id) {
+    if (drainer.is_draining()) {
+        // We're shutting down, the query job will be interrupted regardless.
+        return;
+    }
+
     auto lock = drainer.lock();
 
     pmap(get_num_threads(), [&](int32_t threadnum) {

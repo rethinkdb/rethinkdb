@@ -497,9 +497,11 @@ void reactor_driver_t::delete_reactor_data(
 }
 
 void reactor_driver_t::on_change() {
+    auto_drainer_t::lock_t drainer_lock = drainer.lock();
+
     // This can't block but must acquire a write lock thus it's done through a coroutine.
-    coro_t::spawn_sometime([this](){
-        rwlock_acq_t lock(&reactor_data_rwlock, access_t::write);
+    coro_t::spawn_sometime([this, drainer_lock](){
+        rwlock_acq_t rwlock(&reactor_data_rwlock, access_t::write);
 
         cluster_semilattice_metadata_t md = semilattice_view->get();
 
