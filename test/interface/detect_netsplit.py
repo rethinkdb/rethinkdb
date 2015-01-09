@@ -69,8 +69,8 @@ with driver.Metacluster() as metacluster:
                 issues = list(r.db('rethinkdb').table('issues').run(conn))
                 assert len(issues) == 1, 'There was not exactly one issue visible to server%s: %s' % (name, repr(issues))
                 assert issues[0]['type'] == 'server_disconnected', 'The issue for server%s did not have type "server_disconnected": %s' % (name, repr(issues))
-                assert issues[0]['info']['server'] == him.name, 'The issue for server%s had the wrong info in "info.server": %s' % (name, repr(issues))
-                assert issues[0]['info']['affected_servers'] == [me.name], 'The issue for server%s had the wrong info in "info.affected_servers": %s' % (name, repr(issues))
+                assert issues[0]['info']['disconnected_server'] == him.name, 'The issue for server%s had the wrong info in "info.disconnected_server": %s' % (name, repr(issues))
+                assert issues[0]['info']['reporting_servers'] == [me.name], 'The issue for server%s had the wrong info in "info.reporting_servers": %s' % (name, repr(issues))
                 break
             except AssertionError as e:
                 lastAssertion = e

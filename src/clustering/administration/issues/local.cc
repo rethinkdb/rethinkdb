@@ -13,6 +13,6 @@ local_issue_t::local_issue_t(const issue_id_t &id) :
 local_issue_t::~local_issue_t() { }
 
 void local_issue_t::add_server(const server_id_t &server) {
-    affected_server_ids.push_back(server);
+    reporting_server_ids.push_back(server);
 }
 
