@@ -36,7 +36,8 @@ ql::datum_t proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(v
     struct timespec now = clock_monotonic();
 
     builder.overwrite("uptime", ql::datum_t(static_cast<double>(now.tv_sec - start_time)));
-    builder.overwrite("timestamp", ql::datum_t(format_time(now).c_str()));
+    builder.overwrite("timestamp",
+        ql::datum_t(format_time(now, local_or_utc_time_t::local).c_str()));
 
     builder.overwrite("version", ql::datum_t(RETHINKDB_VERSION));
     builder.overwrite("pid", ql::datum_t(static_cast<double>(getpid())));

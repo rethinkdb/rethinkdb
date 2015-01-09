@@ -20,6 +20,9 @@
 
 #include <google/protobuf/stubs/common.h>
 
+#include "errors.hpp"
+#include <boost/date_time.hpp>
+
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -137,10 +140,16 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, printf_buffer_t *buf) {
+void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {
     struct tm t;
-    struct tm *res1 = localtime_r(&time.tv_sec, &t);
-    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    if (zone == local_or_utc_time_t::utc) {
+        boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
+        t = boost::posix_time::to_tm(as_ptime);
+    } else {
+        struct tm *res1;
+        res1 = localtime_r(&time.tv_sec, &t);
+        guarantee_err(res1 == &t, "localtime_r() failed.");
+    }
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
@@ -152,13 +161,14 @@ void format_time(struct timespec time, printf_buffer_t *buf) {
         time.tv_nsec);
 }
 
-std::string format_time(struct timespec time) {
+std::string format_time(struct timespec time, local_or_utc_time_t zone) {
     printf_buffer_t buf;
-    format_time(time, &buf);
+    format_time(time, &buf, zone);
     return std::string(buf.c_str());
 }
 
-bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out) {
+bool parse_time(const std::string &str, local_or_utc_time_t zone,
+        struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -177,10 +187,20 @@ bool parse_time(const std::string &str, struct timespec *out, std::string *errms
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
-    time.tv_sec = mktime(&t);
-    if (time.tv_sec == -1) {
-        *errmsg_out = "invalid time";
-        return false;
+    if (zone == local_or_utc_time_t::utc) {
+        boost::posix_time::ptime as_ptime = boost::posix_time::ptime_from_tm(t);
+        boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+        /* Apparently `(x-y).total_seconds()` is returning the numeric difference in the
+        POSIX timestamps, which approximates the difference in solar time. This is weird
+        (I'd expect it to return the difference in atomic time) but it turns out to give
+        the correct behavior in this case. */
+        time.tv_sec = (as_ptime - epoch).total_seconds();
+    } else {
+        time.tv_sec = mktime(&t);
+        if (time.tv_sec == -1) {
+            *errmsg_out = "invalid time";
+            return false;
+        }
     }
     *out = time;
     return true;

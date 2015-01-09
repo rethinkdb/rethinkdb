@@ -1,67 +1,50 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-
-from __future__ import print_function
-
-import sys, os, time
-
-startTime = time.time()
-
+# Copyright 2010-2012 RethinkDB, all rights reserved.
+import sys, os, time, pprint, datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils, vcoptparse
-
-op = vcoptparse.OptParser()
-scenario_common.prepare_option_parser_mode_flags(op)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
-
-print("Spinning up a process (%.2fs)" % (time.time() - startTime))
-files = driver.Files(db_path="db", console_output="create-output", command_prefix=command_prefix)
-server = driver.Process(files=files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
-server.wait_until_started_up()
-
-# open a log file iterator and flush out the existing lines
-logFile = utils.nonblocking_readline(server.logfile_path)
-while next(logFile) is not None:
-    pass
-
-print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+import driver, http_admin, scenario_common, utils
+from vcoptparse import *
 r = utils.import_python_driver()
-conn = r.connect(host=server.host, port=server.driver_port)
 
-num_entries = 100
-print("Generating %d of log entries (%.2fs)" % (num_entries, time.time() - startTime))
-for i in xrange(1, num_entries + 1):
-    if i % 10 == 0 or i == 1:
-        print(i, end='.. ')
-        sys.stdout.flush()
-    r.db('rethinkdb').table('server_config').get(server.uuid).update({'name':str(i)}).run(conn)
-print()
+op = OptParser()
+scenario_common.prepare_option_parser_mode_flags(op)
+opts = op.parse(sys.argv)
 
-# == Actual tests
+with driver.Metacluster() as metacluster:
+    cluster = driver.Cluster(metacluster)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-deadline = time.time() + 20
+    print "Spinning up a process..."
+    files = driver.Files(metacluster, db_path="db", console_output="create-output",
+        server_name="the_server", command_prefix=command_prefix)
+    proc = driver.Process(cluster, files, console_output="serve-output", command_prefix=command_prefix, extra_options=serve_options)
+    proc.wait_until_started_up()
+    cluster.check()
+    conn = r.connect(proc.host, proc.driver_port)
 
-# = ReQL admin
+    print "Making a log entry..."
+    res = r.db("rethinkdb").table("server_config").update({"tags": ["xyz"]}).run(conn)
+    assert res["errors"] == 0 and res["replaced"] == 1, res
 
-# ToDo: add in tests for ReQL admin solution for logs
-raise NotImplementedError('Wating for new logs solution: https://github.com/rethinkdb/rethinkdb/issues/2884')
+    print "Verifying the log entry..."
+    log = list(r.db("rethinkdb").table("logs").order_by("timestamp").run(conn))
+    assert len(log) > 5
 
-# = Log file
+    entry = log[-1]
+    pprint.pprint(entry)
+    assert "xyz" in entry["message"]
+    assert entry["level"] == "info"
+    assert 0 < entry["uptime"] < 120
+    assert entry["server"] == "the_server"
+    now = datetime.datetime.now(entry["timestamp"].tzinfo)
+    assert entry["timestamp"] <= now
+    assert entry["timestamp"] >= now - datetime.timedelta(minutes = 1)
 
-print("Testing that log file got the entries (%.2fs)" % (time.time() - startTime))
-log_file_entries = 0
-while time.time() < deadline:
-    thisEntry = next(logFile)
-    while thisEntry is not None:
-        if "Changed server's name from" in thisEntry:
-            log_file_entries += 1
-        thisEntry = next(logFile)
-    if log_file_entries == num_entries:
-        break
-    time.sleep(0.05)
-assert log_file_entries == num_entries, 'Did not get the correct number of name change entries: %d vs %d' % (log_file_entries, num_entries)
+    print "Verifying that point gets work..."
+    for e in log:
+        # Point gets use a separate code path, so we want to test them specifically
+        e2 = r.db("rethinkdb").table("logs").get(e["id"]).run(conn)
+        assert e == e2, (e, e2)
 
-# == close off the server
-
-server.check_and_stop()
-print("Done. (%.2fs)" % (time.time() - startTime))
+    cluster.check_and_stop()
+print "Done."

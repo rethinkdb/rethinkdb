@@ -1,11 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
-#define CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_
+#define CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_
 
 #include <string>
 #include <vector>
 
-#include "clustering/administration/log_writer.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/generic/resource.hpp"
 
 class log_server_business_card_t {
@@ -40,10 +40,18 @@ private:
     DISABLE_COPYING(log_server_t);
 };
 
+/* Fetches a block of entries from another server's log file. It examines the last
+`max_entries` entries from the server's log, and filters out those whose timestamps are
+not between `min_timestamp` and `max_timestamp`, inclusive. It returns the results in
+reverse chronological order. Throws `resource_lost_exc_t` if the server disconnected or
+`std::runtime_error` if there's a problem with reading the log file. */
 std::vector<log_message_t> fetch_log_file(
     mailbox_manager_t *mailbox_manager,
     const log_server_business_card_t &server_bcard,
-    int max_entries, struct timespec min_timestamp, struct timespec max_timestamp,
-    signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
+    int max_entries,
+    struct timespec min_timestamp,
+    struct timespec max_timestamp,
+    signal_t *interruptor)
+    THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_ */

@@ -12,7 +12,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
-#include "clustering/administration/log_writer.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"

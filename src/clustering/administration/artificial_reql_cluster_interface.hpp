@@ -17,6 +17,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
+#include "clustering/administration/logs/logs_backend.hpp"
 #include "clustering/administration/jobs/backend.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
@@ -181,6 +182,7 @@ public:
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
+    scoped_ptr_t<logs_artificial_table_backend_t> logs_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
