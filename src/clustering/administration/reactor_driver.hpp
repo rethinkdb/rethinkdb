@@ -15,6 +15,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
+
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
@@ -117,14 +118,14 @@ public:
         return &watchable_var;
     }
 
-    bool is_gc_active() const;
+    bool is_gc_active();
 
     typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
-    sindex_jobs_t get_sindex_jobs() const;
+    sindex_jobs_t get_sindex_jobs();
 
     typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>
         backfill_progress_t;
-    backfill_progress_t get_backfill_progress() const;
+    backfill_progress_t get_backfill_progress();
 
 private:
     friend class watchable_and_reactor_t;
@@ -159,6 +160,7 @@ private:
     watchable_map_var_t<namespace_id_t, namespace_directory_metadata_t> watchable_var;
 
     reactor_map_t reactor_data;
+    rwlock_t reactor_data_rwlock;
 
     auto_drainer_t drainer;
 

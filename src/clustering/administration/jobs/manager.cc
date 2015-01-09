@@ -48,9 +48,18 @@ void jobs_manager_t::set_reactor_driver(reactor_driver_t *_reactor_driver) {
     reactor_driver = _reactor_driver;
 }
 
+void jobs_manager_t::unset_rdb_context_and_reactor_driver() {
+    drainer.drain();
+
+    rdb_context = nullptr;
+    reactor_driver = nullptr;
+}
+
 void jobs_manager_t::on_get_job_reports(
         UNUSED signal_t *interruptor,
         const business_card_t::return_mailbox_t::address_t &reply_address) {
+    auto lock = drainer.lock();
+
     std::vector<job_report_t> job_reports;
 
     // Note, as `time` is retrieved here a job may actually report to be started after
@@ -132,6 +141,8 @@ void jobs_manager_t::on_get_job_reports(
 
 void jobs_manager_t::on_job_interrupt(
         UNUSED signal_t *interruptor, uuid_u const &id) {
+    auto lock = drainer.lock();
+
     pmap(get_num_threads(), [&](int32_t threadnum) {
         on_thread_t thread((threadnum_t(threadnum)));
 
