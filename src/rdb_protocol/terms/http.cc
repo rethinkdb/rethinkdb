@@ -224,6 +224,7 @@ scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                            eval_flags_t) const {
     http_opts_t opts;
     opts.limits = env->env->limits();
+    opts.version = env->env->reql_version();
     opts.url.assign(args->arg(env, 0)->as_str().to_std());
     opts.proxy.assign(env->env->get_reql_http_proxy());
     get_optargs(env, args, &opts);

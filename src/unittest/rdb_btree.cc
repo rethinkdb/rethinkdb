@@ -50,7 +50,8 @@ void insert_rows(int start, int finish, store_t *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
-                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits),
+                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits,
+                             reql_version_t::LATEST),
                 false, store->btree.get(), repli_timestamp_t::distant_past,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
@@ -260,7 +261,8 @@ void _check_keys_are_present(store_t *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(ql::to_datum(expected_value.get(), limits), stream->front().data);
+        ASSERT_EQ(ql::to_datum(expected_value.get(), limits, reql_version_t::LATEST),
+                  stream->front().data);
     }
 }
 
