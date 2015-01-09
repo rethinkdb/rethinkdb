@@ -57,8 +57,6 @@ private:
     void on_job_interrupt(UNUSED signal_t *interruptor, uuid_u const &id);
 
     mailbox_manager_t *mailbox_manager;
-    business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
-    business_card_t::job_interrupt_mailbox_t job_interrupt_mailbox;
 
     server_id_t server_id;
 
@@ -66,6 +64,9 @@ private:
     reactor_driver_t *reactor_driver;
 
     auto_drainer_t drainer;
+
+    business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
+    business_card_t::job_interrupt_mailbox_t job_interrupt_mailbox;
 
     DISABLE_COPYING(jobs_manager_t);
 };

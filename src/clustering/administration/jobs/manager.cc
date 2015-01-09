@@ -24,13 +24,15 @@ const uuid_u jobs_manager_t::base_backfill_id =
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id) :
     mailbox_manager(_mailbox_manager),
+    server_id(_server_id),
+    rdb_context(nullptr),
+    reactor_driver(nullptr),
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
                                       this, ph::_1, ph::_2)),
     job_interrupt_mailbox(_mailbox_manager,
                           std::bind(&jobs_manager_t::on_job_interrupt,
-                                    this, ph::_1, ph::_2)),
-    server_id(_server_id) { }
+                                    this, ph::_1, ph::_2)) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
