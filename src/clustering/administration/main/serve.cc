@@ -22,13 +22,14 @@
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/stats/proc_stats.hpp"
-#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
+#include "clustering/table_manager/table_meta_manager.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -82,7 +83,7 @@ bool service_address_ports_t::is_bind_all() const {
 // safe to run in general.
 std::string run_uname(const std::string &flags);
 
-bool do_serve(io_backender_t *io_backender,
+bool do_serve(UNUSED io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
               const base_path_t &base_path,
@@ -128,8 +129,8 @@ bool do_serve(io_backender_t *io_backender,
         directory_read_manager_t<cluster_directory_metadata_t>
             directory_read_manager(&connectivity_cluster, 'D');
 
-        directory_map_read_manager_t<namespace_id_t, namespace_directory_metadata_t>
-            reactor_directory_read_manager(&connectivity_cluster, 'R');
+        directory_map_read_manager_t<namespace_id_t, table_meta_business_card_t>
+            table_directory_read_manager(&connectivity_cluster, 'T');
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -149,6 +150,32 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(
                 &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
+
+        /* Extract a subview of the directory with all the table meta manager business
+        cards. */
+        watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
+                table_meta_manager_business_card_t>
+            table_meta_manager_directory(
+                directory_read_manager.get_root_map_view(),
+                [](const cluster_directory_metadata_t *cluster_md) {
+                    return cluster_md->table_meta_manager_business_card.get_ptr();
+                });
+
+        metadata_persistence::dummy_table_meta_persistence_interface_t dummy_persistence;
+        scoped_ptr_t<table_meta_manager_t> table_meta_manager;
+        if (i_am_a_server) {
+            table_meta_manager.init(new table_meta_manager_t(
+                server_id,
+                &mailbox_manager,
+                &table_meta_manager_directory,
+                table_directory_read_manager.get_root_view(),
+                &dummy_persistence));
+        }
+
+        table_meta_client_t table_meta_client(
+            &mailbox_manager,
+            &table_meta_manager_directory,
+            table_directory_read_manager.get_root_view());
 
         // Initialize the stat and jobs manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
@@ -195,7 +222,6 @@ bool do_serve(io_backender_t *io_backender,
                     server_config_server->get_actual_cache_size_bytes(),
                     &our_root_directory_variable));
         }
-
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -301,9 +327,9 @@ bool do_serve(io_backender_t *io_backender,
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
-                reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
-                &server_config_client);
+                &server_config_client,
+                &table_meta_client);
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
@@ -311,7 +337,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
-                reactor_directory_read_manager.get_root_view(),
+                &table_meta_client,
                 &server_config_client,
                 &mailbox_manager);
 
@@ -337,40 +363,6 @@ bool do_serve(io_backender_t *io_backender,
                 // Proxies do not have caches to balance
                 cache_balancer.init(new alt_cache_balancer_t(
                     server_config_server->get_actual_cache_size_bytes()));
-            }
-
-            // Reactor drivers
-
-            // RDB
-            scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
-            scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
-            scoped_ptr_t<directory_map_write_manager_t<
-                namespace_id_t, namespace_directory_metadata_t> >
-                reactor_directory_write_manager;
-
-            if (i_am_a_server) {
-                rdb_svs_source.init(new file_based_svs_by_namespace_t(
-                    io_backender, cache_balancer.get(), base_path,
-                    &local_issue_aggregator));
-                rdb_reactor_driver.init(new reactor_driver_t(
-                        base_path,
-                        io_backender,
-                        &mailbox_manager,
-                        server_id,
-                        reactor_directory_read_manager.get_root_view(),
-                        cluster_metadata_file->get_rdb_branch_history_manager(),
-                        semilattice_manager_cluster.get_root_view(),
-                        &server_config_client,
-                        server_config_server->get_permanently_removed_signal(),
-                        rdb_svs_source.get(),
-                        &perfmon_repo,
-                        &rdb_ctx));
-                jobs_manager.set_reactor_driver(rdb_reactor_driver.get());
-                reactor_directory_write_manager.init(
-                    new directory_map_write_manager_t<
-                            namespace_id_t, namespace_directory_metadata_t>(
-                        &connectivity_cluster, 'R', rdb_reactor_driver->get_watchable()
-                    ));
             }
 
             {

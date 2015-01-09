@@ -15,6 +15,7 @@
 #include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
+#include "clustering/table_manager/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
@@ -140,6 +141,7 @@ public:
     std::vector<std::string> argv;
     uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
+    boost::optional<table_meta_manager_business_card_t> table_meta_manager_business_card;
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;

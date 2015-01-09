@@ -10,6 +10,7 @@
 
 class real_reql_cluster_interface_t;
 class server_config_client_t;
+class table_meta_client_t;
 
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
@@ -20,8 +21,7 @@ bool table_generate_config(
         namespace_id_t table_id,
         /* This is used to determine where the table's data is currently stored and
         prioritize keeping it there. If `table_id` is `nil_uuid()`, this can be NULL. */
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory_view,
+        table_meta_client_t *table_meta_client,
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
         const std::map<server_id_t, int> &server_usage,

@@ -23,14 +23,13 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *_directory_root_view,
         rdb_context_t *_rdb_context,
-        server_config_client_t *_server_config_client
+        server_config_client_t *_server_config_client,
+        table_meta_client_t *_table_meta_client
         ) :
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
-    directory_root_view(_directory_root_view),
+    table_meta_client(_table_meta_client),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     rdb_context(_rdb_context),
@@ -38,7 +37,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager,
         metadata_field(
             &cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view),
-        directory_root_view,
+        _table_meta_client,
         rdb_context),
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
@@ -538,10 +537,9 @@ bool real_reql_cluster_interface_t::wait_internal(
     while (true) {
         /* First we wait until all the `table_status_backend` checks succeed in a row */ 
         {
-            threadnum_t new_thread = directory_root_view->home_thread();
+            threadnum_t new_thread = status_backend->home_thread();
             cross_thread_signal_t ct_interruptor(interruptor, new_thread);
             on_thread_t thread_switcher(new_thread);
-            rassert(new_thread == status_backend->home_thread());
 
             // Loop until all tables are ready - we have to check all tables again
             // if a table was not immediately ready, because we're supposed to
@@ -722,7 +720,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     if (!table_generate_config(
             server_config_client,
             table_id,
-            directory_root_view,
+            table_meta_client,
             server_usage,
             params,
             new_repli_info.shard_scheme,

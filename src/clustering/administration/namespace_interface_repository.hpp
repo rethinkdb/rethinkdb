@@ -22,6 +22,7 @@ class namespaces_directory_metadata_t;
 class peer_id_t;
 class rdb_context_t;
 class signal_t;
+class table_meta_client_t;
 class uuid_u;
 template <class> class watchable_t;
 
@@ -31,8 +32,7 @@ public:
         mailbox_manager_t *,
         const boost::shared_ptr<semilattice_read_view_t<
             cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory,
+        table_meta_client_t *,
         rdb_context_t *);
     ~namespace_repo_t();
 
@@ -53,8 +53,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<
         cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                    namespace_directory_metadata_t> *directory;
+    table_meta_client_t *table_meta_client;
     rdb_context_t *ctx;
 
     one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > >

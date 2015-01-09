@@ -6,6 +6,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/table_manager/table_meta_manager.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
@@ -124,6 +125,37 @@ private:
     typename semilattice_read_view_t<metadata_t>::subscription_t subs;
 
     DISABLE_COPYING(semilattice_watching_persister_t);
+};
+
+class dummy_table_meta_persistence_interface_t :
+    public table_meta_persistence_interface_t {
+public:
+    void read_all_tables(
+            UNUSED const std::function<void(
+                const namespace_id_t &table_id,
+                const table_meta_persistent_state_t &state,
+                scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+            UNUSED signal_t *interruptor) {
+        /* do nothing */
+    }
+    void add_table(
+            UNUSED const namespace_id_t &table,
+            UNUSED const table_meta_persistent_state_t &state,
+            UNUSED scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
+            UNUSED signal_t *interruptor) {
+        /* do nothing */
+    }
+    void update_table(
+            UNUSED const namespace_id_t &table,
+            UNUSED const table_meta_persistent_state_t &state,
+            UNUSED signal_t *interruptor) {
+        /* do nothing */
+    }
+    void remove_table(
+            UNUSED const namespace_id_t &table,
+            UNUSED signal_t *interruptor) {
+        /* do nothing */
+    }
 };
 
 }   /* namespace metadata_persistence */

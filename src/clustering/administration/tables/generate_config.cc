@@ -4,6 +4,8 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "containers/counted.hpp"
 
+#if 0
+
 /* `long_calculation_yielder_t` is used in a long-running calculation to periodically
 yield control of the CPU, thereby preventing locking up the server. Construct one at the
 beginning of the calculation and call `maybe_yield()` regularly during the calculation.
@@ -29,6 +31,8 @@ private:
     ticks_t t;
 };
 
+#endif
+
 // Because being the primary replica for a shard usually comes with a higher cost than
 // being a secondary replica, we want to consider that difference in the replica
 // assignment. The concrete value of these doesn't matter, only their ratio
@@ -48,6 +52,8 @@ void calculate_server_usage(
         (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
     }
 }
+
+#if 0
 
 /* `validate_params()` checks if `params` are legal. */
 static bool validate_params(
@@ -239,19 +245,22 @@ void pick_best_pairings(
     }
 }
 
+#endif
+
 bool table_generate_config(
-        server_config_client_t *server_config_client,
-        namespace_id_t table_id,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory_view,
-        const std::map<server_id_t, int> &server_usage,
-        const table_generate_config_params_t &params,
-        const table_shard_scheme_t &shard_scheme,
-
-        signal_t *interruptor,
-        table_config_t *config_out,
-        std::string *error_out) {
-
+        UNUSED server_config_client_t *server_config_client,
+        UNUSED namespace_id_t table_id,
+        UNUSED table_meta_client_t *table_meta_client,
+        UNUSED const std::map<server_id_t, int> &server_usage,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED const table_shard_scheme_t &shard_scheme,
+        UNUSED signal_t *interruptor,
+        UNUSED table_config_t *config_out,
+        UNUSED std::string *error_out) {
+    // RSI(raft): Reimplement this when table IO works.
+    not_implemented();
+    return false;
+#if 0
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
@@ -450,6 +459,7 @@ bool table_generate_config(
     }
 
     return true;
+#endif
 }
 
 

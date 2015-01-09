@@ -51,12 +51,11 @@ namespace_repo_t::namespace_repo_t(
         mailbox_manager_t *_mailbox_manager,
         const boost::shared_ptr<semilattice_read_view_t<
             cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *_directory,
+        table_meta_client_t *_table_meta_client,
         rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_view(semilattice_view),
-      directory(_directory),
+      table_meta_client(_table_meta_client),
       ctx(_ctx),
       namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
 {
@@ -100,10 +99,16 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
 }
 
 void namespace_repo_t::create_and_destroy_namespace_interface(
-            namespace_cache_t *cache,
-            const uuid_u &namespace_id,
-            auto_drainer_t::lock_t keepalive)
-            THROWS_NOTHING{
+            UNUSED namespace_cache_t *cache,
+            UNUSED const uuid_u &namespace_id,
+            UNUSED auto_drainer_t::lock_t keepalive)
+            THROWS_NOTHING {
+    /* RSI(raft): Re-implement this after Raft is ready to support table IO again. */
+    not_implemented();
+    (void)mailbox_manager;
+    (void)table_meta_client;
+    (void)ctx;
+#if 0
     keepalive.assert_is_holding(&cache->drainer);
     threadnum_t thread = get_thread_id();
 
@@ -169,6 +174,7 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
 
     ASSERT_NO_CORO_WAITING;
     cache->entries.erase(namespace_id);
+#endif
 }
 
 namespace_interface_access_t namespace_repo_t::get_namespace_interface(

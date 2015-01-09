@@ -49,8 +49,9 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
         if (value1 != nullptr) {
             const value2_t *value2;
             this->value_1_to_2(value1, &value2);
-            guarantee(value2 != nullptr);
-            res = boost::optional<value2_t>(*value2);
+            if (value2 != nullptr) {
+                res = boost::optional<value2_t>(*value2);
+            }
         }
     });
     return res;
@@ -64,7 +65,9 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_all(
         if (this->key_1_to_2(key1, &key2)) {
             const value2_t *value2;
             this->value_1_to_2(value1, &value2);
-            cb(key2, value2);
+            if (value2 != nullptr) {
+                cb(key2, value2);
+            }
         }
     });
 }
@@ -81,7 +84,6 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_key(
         if (value1 != nullptr) {
             const value2_t *value2;
             this->value_1_to_2(value1, &value2);
-            guarantee(value2 != nullptr);
             cb(value2);
         } else {
             cb(nullptr);

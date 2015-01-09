@@ -27,7 +27,8 @@ public:
     /* `value_1_to_2` converts a value in the input watchable into the corresponding
     value for the output watchable. The output value must be a sub-field of the input
     value; i.e. `*value2_out` should point to memory owned by `*value1`. It must be
-    deterministic. */
+    deterministic. It's also OK to set `*value2_out` to `nullptr`, in which case it will
+    not appear in the output map. */
     virtual void value_1_to_2(
         const value1_t *value1,
         const value2_t **value2_out) = 0;
@@ -57,6 +58,32 @@ private:
     watchable_map_t<key1_t, value1_t> *inner;
     typename watchable_map_t<key1_t, value1_t>::all_subs_t all_subs;
     rwi_lock_assertion_t rwi_lock;
+};
+
+/* `watchable_map_value_transform_t` is a specialized form of `watchable_map_transform_t`
+that doesn't alter the keys, just the values. This can save some typing. */
+template<class key_t, class value1_t, class value2_t>
+class watchable_map_value_transform_t :
+    public watchable_map_transform_t<key_t, value1_t, key_t, value2_t> {
+public:
+    watchable_map_value_transform_t(
+            watchable_map_t<key_t, value1_t> *_input,
+            const std::function<const value2_t *(const value1_t *)> &_fun) :
+        watchable_map_transform_t<key_t, value1_t, key_t, value2_t>(_input),
+        fun(_fun) { }
+private:
+    bool key_1_to_2(const key_t &key1, key_t *key2_out) {
+        *key2_out = key1;
+        return true;
+    }
+    bool key_2_to_1(const key_t &key2, key_t *key1_out) {
+        *key1_out = key2;
+        return true;
+    }
+    void value_1_to_2(const value1_t *value1, const value2_t **value2_out) {
+        *value2_out = fun(value1);
+    }
+    std::function<const value2_t *(const value1_t *)> fun;
 };
 
 /* `get_watchable_for_key()` returns a `watchable_t` that represents the value of a

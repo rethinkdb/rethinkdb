@@ -28,10 +28,9 @@ public:
             mailbox_manager_t *mailbox_manager,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
-            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                namespace_directory_metadata_t> *directory_root_view,
             rdb_context_t *rdb_context,
-            server_config_client_t *server_config_client
+            server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client
             );
 
     bool db_create(const name_string_t &name,
@@ -141,8 +140,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_root_view;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                    namespace_directory_metadata_t> *directory_root_view;
+    table_meta_client_t *table_meta_client;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
