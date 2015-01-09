@@ -209,3 +209,11 @@ void validate_optargs(const Query &q) {
                       q.global_optargs(i).key().c_str()));
     }
 }
+
+void validate_optarg(const std::string &potential_argument) {
+    rcheck_toplevel(
+        acceptable_keys.find(potential_argument) != acceptable_keys.end(),
+        ql::base_exc_t::GENERIC,
+        strprintf("Unrecognized optional argument `%s`.",
+                  potential_argument.c_str()));
+}
