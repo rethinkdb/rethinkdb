@@ -27,19 +27,15 @@ public:
                               <cluster_semilattice_metadata_t> > metadata_ptr_t;
     version_checker_t(rdb_context_t *, version_checker_t::metadata_ptr_t,
                       const std::string &);
-    void start_initial_check() {
-        coro_t::spawn_sometime(std::bind(&version_checker_t::initial_check,
-                                         this, drainer.lock()));
-    }
 private:
-    void initial_check(auto_drainer_t::lock_t keepalive);
-    void periodic_checkin(auto_drainer_t::lock_t keepalive);
+    void do_check(bool is_initial, auto_drainer_t::lock_t keepalive);
     virtual void on_ring() {
-        coro_t::spawn_sometime(std::bind(&version_checker_t::periodic_checkin,
-                                         this, drainer.lock()));
+        coro_t::spawn_sometime(std::bind(&version_checker_t::do_check,
+                                         this, false, drainer.lock()));
     }
     void process_result(const http_result_t &);
     double cook(double);
+    void report_weird(const std::string &msg);
 
     rdb_context_t *rdb_ctx;
     datum_string_t seen_version;

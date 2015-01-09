@@ -466,9 +466,7 @@ bool do_serve(io_backender_t *io_backender,
                     if (i_am_a_server
                         && serve_info.do_version_checking == update_check_t::perform) {
                         checker.init(new version_checker_t(&rdb_ctx,
-                                                           semilattice_manager_cluster.get_root_view(),
-                                                           uname));
-                        checker->start_initial_check();
+                            semilattice_manager_cluster.get_root_view(), uname));
                     }
 
                     stop_cond->wait_lazily_unordered();
