@@ -112,7 +112,7 @@ ql::datum_t generate_document(size_t value_padding_length, const std::string &va
     return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
                                                              value.c_str(),
                                                              std::string(value_padding_length, 'a').c_str()).c_str())).get(),
-                        limits);
+                        limits, reql_version_t::LATEST);
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -334,7 +334,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = ql::to_datum(sindex_key_json.get(),
-                                               ql::configured_limits_t());
+                                               ql::configured_limits_t(),
+                                               reql_version_t::LATEST);
         read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());

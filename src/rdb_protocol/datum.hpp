@@ -420,8 +420,8 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-datum_t to_datum(const Datum *d, const configured_limits_t &);
-datum_t to_datum(cJSON *json, const configured_limits_t &);
+datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
+datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,

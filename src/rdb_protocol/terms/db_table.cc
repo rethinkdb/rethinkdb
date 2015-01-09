@@ -373,10 +373,10 @@ public:
     wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         table_or_db_meta_term_t(env, term, optargspec_t({"timeout", "wait_for"})) { }
 private:
-    static constexpr const char * const wait_outdated_str = "ready_for_outdated_reads";
-    static constexpr const char * const wait_reads_str = "ready_for_reads";
-    static constexpr const char * const wait_writes_str = "ready_for_writes";
-    static constexpr const char * const wait_all_str = "all_replicas_ready";
+    static char const * const wait_outdated_str;
+    static char const * const wait_reads_str;
+    static char const * const wait_writes_str;
+    static char const * const wait_all_str;
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
@@ -437,6 +437,11 @@ private:
     }
     virtual const char *name() const { return "wait"; }
 };
+
+char const * const wait_term_t::wait_outdated_str = "ready_for_outdated_reads";
+char const * const wait_term_t::wait_reads_str = "ready_for_reads";
+char const * const wait_term_t::wait_writes_str = "ready_for_writes";
+char const * const wait_term_t::wait_all_str = "all_replicas_ready";
 
 class reconfigure_term_t : public table_or_db_meta_term_t {
 public:

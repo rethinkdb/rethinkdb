@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/log_writer.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 
 #include <math.h>
 #include <fcntl.h>
@@ -14,7 +14,6 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk.hpp"
-#include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
@@ -58,7 +57,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
     std::string prepend;
     if (!for_console) {
         prepend = strprintf("%s %ld.%06llds %s: ",
-                            format_time(m.timestamp).c_str(),
+                            format_time(m.timestamp, local_or_utc_time_t::local).c_str(),
                             m.uptime.tv_sec,
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
@@ -98,9 +97,9 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
             }
         } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have tabs or other special characters in log "
-                "messages because then it would be difficult to parse the log "
-                "file. Message: %s", message.c_str());
+            crash("We can't have special characters in log messages because then it "
+                "would be difficult to parse the log file. Message: %s",
+                message.c_str());
 #else
             message_reformatted.push_back('?');
 #endif
@@ -151,7 +150,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     {
         std::string errmsg;
         if (!parse_time(std::string(start_timestamp, end_timestamp - start_timestamp),
-                        &timestamp, &errmsg)) {
+                        local_or_utc_time_t::local, &timestamp, &errmsg)) {
             throw std::runtime_error(errmsg);
         }
     }
@@ -178,19 +177,6 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
     std::string message = std::string(start_message, end_message - start_message);
-
-    return log_message_t(timestamp, uptime, level, message);
-}
-
-log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime_reference) {
-    struct timespec timestamp = clock_realtime();
-    struct timespec uptime = clock_monotonic();
-    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
-        uptime.tv_nsec += BILLION;
-        uptime.tv_sec -= 1;
-    }
-    uptime.tv_nsec -= uptime_reference.tv_nsec;
-    uptime.tv_sec -= uptime_reference.tv_sec;
 
     return log_message_t(timestamp, uptime, level, message);
 }
@@ -281,6 +267,8 @@ public:
     void install(const std::string &logfile_name);
     friend class thread_pool_log_writer_t;
 
+    log_message_t assemble_log_message(log_level_t level, const std::string &m);
+
 private:
     friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
@@ -290,6 +278,8 @@ private:
     void initiate_write(log_level_t level, const std::string &message);
     base_path_t filename;
     struct timespec uptime_reference;
+    struct timespec last_msg_timestamp;
+    spinlock_t last_msg_timestamp_lock;
     struct flock filelock, fileunlock;
     scoped_fd_t fd;
 
@@ -299,6 +289,7 @@ private:
 fallback_log_writer_t::fallback_log_writer_t() :
     filename("-") {
     uptime_reference = clock_monotonic();
+    last_msg_timestamp = clock_realtime();
 
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;
@@ -347,6 +338,32 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     }
 }
 
+log_message_t fallback_log_writer_t::assemble_log_message(
+        log_level_t level, const std::string &m) {
+    struct timespec timestamp = clock_realtime();
+
+    {
+        /* Make sure timestamps on log messages are unique. */
+
+        /* We grab the spinlock to avoid races if multiple threads get here at once.
+        There's usually no possibility of lock contention because log messages
+        originating from within the thread pool will all get sent to thread 0 before
+        being written; but the `log*()` functions are supposed to work even outside of
+        the thread pool, including in the blocker pool. */
+        spinlock_acq_t lock_acq(&last_msg_timestamp_lock);
+        struct timespec last_plus = last_msg_timestamp;
+        add_to_timespec(&last_plus, 1);
+        if (last_plus > timestamp) {
+            timestamp = last_plus;
+        }
+        last_msg_timestamp = timestamp;
+    }
+
+    struct timespec uptime = subtract_timespecs(clock_monotonic(), uptime_reference);
+
+    return log_message_t(timestamp, uptime, level, m);
+}
+
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg);
 
@@ -382,7 +399,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         }
 
         int fsync_res = fsync(fileno);
-        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL ||
+                get_errno() == ENOTSUP)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
@@ -417,7 +435,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 }
 
 void fallback_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
-    log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
+    log_message_t log_msg = assemble_log_message(level, message);
     std::string error_message;
     if (!write(log_msg, &error_message)) {
         fprintf(stderr, "Previous message may not have been written to the log file (%s).\n", error_message.c_str());
@@ -500,33 +518,17 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
     return;
 }
 
-bool operator<(const struct timespec &t1, const struct timespec &t2) {
-    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec < t2.tv_nsec);
-}
-
-bool operator>(const struct timespec &t1, const struct timespec &t2) {
-    return t2 < t1;
-}
-
-bool operator<=(const struct timespec &t1, const struct timespec &t2) {
-    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec <= t2.tv_nsec);
-}
-
-bool operator>=(const struct timespec &t1, const struct timespec &t2) {
-    return t2 <= t1;
-}
-
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         file_reverse_reader_t reader(fallback_log_writer.filename.path());
         std::string line;
-        while (messages_out->size() < static_cast<size_t>(max_lines) && reader.get_next(&line) && !*cancel) {
+        while (max_lines-- > 0 && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {
                 continue;
             }
             log_message_t lm = parse_log_message(line);
-            if (lm.timestamp >= max_timestamp) continue;
-            if (lm.timestamp <= min_timestamp) break;
+            if (lm.timestamp > max_timestamp) continue;
+            if (lm.timestamp < min_timestamp) break;
             messages_out->push_back(lm);
         }
         *ok_out = true;
@@ -541,11 +543,11 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
 void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    log_message_t log_msg = assemble_log_message(level, message, fallback_log_writer.uptime_reference);
+    log_message_t log_msg = fallback_log_writer.assemble_log_message(level, message);
     writer->write(log_msg);
 }
 
-/* Declared in `logger.hpp`, not `clustering/administration/log_writer.hpp` like the
+/* Declared in `logger.hpp`, not `clustering/administration/logs/logger.hpp` like the
 other things in this file. */
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
     va_list args;
