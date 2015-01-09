@@ -28,6 +28,7 @@ module 'ServersView', ->
         fetch_servers: =>
             query = r.db(system_db).table('server_status').merge( (server) ->
                 id: server("id")
+                tags: r.db(system_db).table('server_config').get(server('id'))('tags')
                 primary_count:
                     r.db(system_db).table('table_config')
                     .concatMap( (table) -> table("shards") )
@@ -65,6 +66,7 @@ module 'ServersView', ->
 
     class @ServersListView extends Backbone.View
         className: 'servers_view'
+        tagName: 'tbody'
         initialize: =>
             @servers_view = []
 
@@ -118,6 +120,7 @@ module 'ServersView', ->
 
     class @ServerView extends Backbone.View
         className: 'server_container'
+        tagName: 'tr'
         template: Handlebars.templates['server-template']
         initialize: =>
             @listenTo @model, 'change', @render
