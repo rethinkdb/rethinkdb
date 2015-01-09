@@ -17,19 +17,22 @@ void dispatch_http(ql::env_t *env,
                    const ql::pb_rcheckable_t *parent);
 };
 
-version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx, signal_t *_interruptor,
+static const int64_t day_in_ms = 24 * 60 * 60 * 1000;
+
+version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx,
                                      version_checker_t::metadata_ptr_t _metadata,
                                      const std::string &_uname) :
     rdb_ctx(_rdb_ctx),
-    interruptor(_interruptor),
     seen_version(),
     metadata(_metadata),
-    uname(_uname) {
+    uname(_uname),
+    timer(day_in_ms, this) {
     rassert(rdb_ctx != NULL);
 }
 
-void version_checker_t::initial_check() {
-    ql::env_t env(rdb_ctx, interruptor, std::map<std::string, ql::wire_func_t>(), nullptr);
+void version_checker_t::initial_check(auto_drainer_t::lock_t keepalive) {
+    ql::env_t env(rdb_ctx, keepalive.get_drain_signal(),
+        std::map<std::string, ql::wire_func_t>(), nullptr);
     http_opts_t opts;
     opts.limits = env.limits();
     opts.result_format = http_result_format_t::JSON;
@@ -52,9 +55,10 @@ void version_checker_t::initial_check() {
     }
 }
 
-void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
+void version_checker_t::periodic_checkin(auto_drainer_t::lock_t keepalive) {
     const cluster_semilattice_metadata_t snapshot = metadata->get();
-    ql::env_t env(rdb_ctx, interruptor, std::map<std::string, ql::wire_func_t>(), nullptr);
+    ql::env_t env(rdb_ctx, keepalive.get_drain_signal(),
+        std::map<std::string, ql::wire_func_t>(), nullptr);
     http_opts_t opts;
     opts.method = http_method_t::POST;
     opts.limits = env.limits();

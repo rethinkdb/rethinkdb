@@ -463,20 +463,15 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     scoped_ptr_t<version_checker_t> checker;
-                    scoped_ptr_t<repeating_timer_t> timer;
-
                     if (i_am_a_server
                         && serve_info.do_version_checking == update_check_t::perform) {
-                        checker.init(new version_checker_t(&rdb_ctx, stop_cond,
+                        checker.init(new version_checker_t(&rdb_ctx,
                                                            semilattice_manager_cluster.get_root_view(),
                                                            uname));
-                        checker->initial_check();
-                        const int64_t day_in_ms = 24 * 60 * 60 * 1000;
-                        timer.init(new repeating_timer_t(day_in_ms, checker.get()));
+                        checker->start_initial_check();
                     }
 
                     stop_cond->wait_lazily_unordered();
-
 
                     if (stop_cond->get_source_signo() == SIGINT) {
                         logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",

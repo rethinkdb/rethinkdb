@@ -21,28 +21,32 @@ enum class update_check_t {
     perform,
 };
 
-class version_checker_t : public repeating_timer_callback_t {
+class version_checker_t : private repeating_timer_callback_t {
 public:
     typedef boost::shared_ptr<semilattice_readwrite_view_t
                               <cluster_semilattice_metadata_t> > metadata_ptr_t;
-    version_checker_t(rdb_context_t *, signal_t *, version_checker_t::metadata_ptr_t,
+    version_checker_t(rdb_context_t *, version_checker_t::metadata_ptr_t,
                       const std::string &);
-    void initial_check();
-    void periodic_checkin(auto_drainer_t::lock_t lock);
+    void start_initial_check() {
+        coro_t::spawn_sometime(std::bind(&version_checker_t::initial_check,
+                                         this, drainer.lock()));
+    }
+private:
+    void initial_check(auto_drainer_t::lock_t keepalive);
+    void periodic_checkin(auto_drainer_t::lock_t keepalive);
     virtual void on_ring() {
         coro_t::spawn_sometime(std::bind(&version_checker_t::periodic_checkin,
                                          this, drainer.lock()));
     }
-private:
     void process_result(const http_result_t &);
     double cook(double);
 
     rdb_context_t *rdb_ctx;
-    signal_t *interruptor;
     datum_string_t seen_version;
     version_checker_t::metadata_ptr_t metadata;
     std::string uname;
     auto_drainer_t drainer;
+    repeating_timer_t timer;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_VERSION_CHECK_HPP_ */
