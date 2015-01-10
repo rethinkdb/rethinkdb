@@ -24,7 +24,7 @@
 
 from __future__ import print_function
 
-import sys, os, time, re, multiprocessing, random
+import sys, os, time, re, multiprocessing, random, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse, workload_runner
 
@@ -291,7 +291,7 @@ with driver.Metacluster() as metacluster:
                          .get(servers[0]["id"]).run(conn)
         debug_stats_1 = r.db('rethinkdb').table('_debug_stats') \
                          .get(servers[1]["id"]).run(conn)
-        assert debug_stats_0["stats"]["proc"]["pid"] == servers[0]['process'].process.pid
+        assert debug_stats_0["stats"]["eventloop"]["total"] > 0
         assert "error" in debug_stats_1
 
         # Restart server

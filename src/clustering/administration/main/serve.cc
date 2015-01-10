@@ -21,14 +21,12 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
-#include "clustering/administration/sys_stats.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -256,24 +254,6 @@ bool do_serve(io_backender_t *io_backender,
             &cluster_directory_metadata_t::local_issues,
             local_issue_aggregator.get_issues_watchable(),
             &our_root_directory_variable);
-
-        perfmon_collection_t proc_stats_collection;
-        perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
-
-        proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
-
-        scoped_ptr_t<perfmon_collection_t> sys_stats_collection;
-        scoped_ptr_t<perfmon_membership_t> sys_stats_membership;
-        scoped_ptr_t<sys_stats_collector_t> sys_stats_collector;
-        if (i_am_a_server) {
-            sys_stats_collection.init(new perfmon_collection_t);
-            sys_stats_membership.init(new perfmon_membership_t(
-                &get_global_perfmon_collection(),
-                sys_stats_collection.get(),
-                "sys"));
-            sys_stats_collector.init(new sys_stats_collector_t(
-                base_path, sys_stats_collection.get()));
-        }
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
