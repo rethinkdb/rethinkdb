@@ -28,8 +28,9 @@ bool argspec_t::contains(int n) const {
 
 optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
     init(args.size(), args.begin());
-    for (auto i = legal_args.begin(); i!= legal_args.end(); ++i)
-        validate_optarg(*i);
+    for (auto i = legal_args.cbegin(); i != legal_args.cend(); ++i) {
+        r_sanity_check(validate_optarg(*i));
+    }
 }
 
 
