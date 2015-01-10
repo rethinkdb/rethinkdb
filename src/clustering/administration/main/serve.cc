@@ -414,12 +414,14 @@ bool do_serve(io_backender_t *io_backender,
                            addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logNTC("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logNTC("by adding `bind=all' to the config file (%s).",
-                                   (*serve_info.config_file).c_str());
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by adding `bind=all' to the config "
+                                   "file (%s).", (*serve_info.config_file).c_str());
                         } else {
-                            logNTC("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by running rethinkdb with the `--bind "
+                                   "all` command line option.");
                         }
                     }
 
