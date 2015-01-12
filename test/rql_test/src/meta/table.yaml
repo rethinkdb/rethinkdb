@@ -6,6 +6,14 @@ tests:
     - cd: db.table_list()
       ot: []
 
+    - cd: r.db('rethinkdb').info()
+      ot: ({'type':'DB','name':'rethinkdb','id':null})
+
+    - cd: r.db('rethinkdb').table('stats').info()
+      ot: partial({'db':{'type':'DB','name':'rethinkdb','id':null},
+                   'type':'TABLE','id':null,'name':'stats',
+                   'indexes':[],'primary_key':'id'})
+
     # Table create
     - cd: db.table_create('a')
       ot: partial({'tables_created':1})
