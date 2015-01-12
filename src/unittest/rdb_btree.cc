@@ -457,7 +457,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
                                 access_t::write);
 
         rdb_live_deletion_context_t deletion_context;
-        std::vector<rdb_modification_report_t> mod_reports_out;
+        std::vector<rdb_modification_report_t> mod_reports;
+        key_range_t deleted_range;
         rdb_erase_small_range(store.btree.get(),
                               &tester,
                               key_range_t::universe(),
@@ -465,7 +466,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
                               &deletion_context,
                               &dummy_interruptor,
                               0,
-                              &mod_reports_out);
+                              &mod_reports,
+                              &deleted_range);
     }
 
     check_keys_are_NOT_present(&store, sindex_name);

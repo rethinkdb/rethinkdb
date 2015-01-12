@@ -184,9 +184,12 @@ done_traversing_t rdb_erase_small_range(
         const deletion_context_t *deletion_context,
         signal_t *interruptor,
         uint64_t max_keys_to_erase,
-        std::vector<rdb_modification_report_t> *mod_reports_out) {
-    rassert(mod_reports_out != NULL);
+        std::vector<rdb_modification_report_t> *mod_reports_out,
+        key_range_t *deleted_out) {
+    rassert(mod_reports_out != nullptr);
+    rassert(deleted_out != nullptr);
     mod_reports_out->clear();
+    *deleted_out = key_range_t::empty();
 
     bool left_key_supplied, right_key_supplied;
     store_key_t left_key_exclusive, right_key_inclusive;
@@ -252,6 +255,18 @@ done_traversing_t rdb_erase_small_range(
           // pass_back_superblock_promise isn't pulsed before the kv_location
           // gets deleted.
         guarantee(pass_back_superblock_promise.wait() == superblock);
+
+        if (key > deleted_out->right.key) {
+            *deleted_out = key_range_t(key_range_t::closed, key_range.left,
+                                       key_range_t::closed, key);
+        }
+    }
+
+    /* If we're done, then set `*deleted_out` to be exactly the same as the range we were
+    supposed to delete. This isn't redundant because there may be a gap between the last
+    key we actually deleted and the true right-hand side of `key_range`. */
+    if (key_collector.get_done_traversing() == done_traversing_t::YES) {
+        *deleted_out = key_range;
     }
 
     return key_collector.get_done_traversing();
