@@ -1,32 +1,30 @@
-
-    {{#if operation_active}}
-        <div class="progress-status">
-            <div class="stages">
-                {{#if starting}}
-                    <p>Started</p>
-                {{/if}}
-                {{#if processing}}
-                    <p class="completed">Started</p>
-                    <p>Table reconfiguring</p>
-                {{/if}}
-                {{#if finished}}
-                    <p class="completed">Started</p>
-                    <p class="completed">Table reconfigured</p>
-                {{/if}}
-            </div>
-            {{#if starting}}
-                <p>0/{{new_value}} replicas completed</p>
-                {{else}}
-            <p>
-            {{current_value}}/{{max_value}} {{pluralize_noun "replica" num_replicas}}{{#if total_blocks}}, 
-            {{! Keep the if above so we do not have an extra space before the comma}}
-            {{replicated_blocks}}/{{total_blocks}} blocks copied
-            {{else}}
-            up to date
-            {{/if}}
-            </p>
-            {{/if}}
-            <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
-        </div>
+{{#if operation_active}}
+<div class="progress-status">
+  <div class="stages">
+    {{#if starting}}
+    <p>Started</p>
     {{/if}}
-
+    {{#if processing}}
+    <p>Started</p>
+    <p>Table reconfiguring</p>
+    {{/if}}
+    {{#if finished}}
+    <p>Started</p>
+    <p class="completed">Table reconfigured</p>
+    {{/if}}
+  </div>
+  {{#if starting}}
+  <p>0/{{new_value}} replicas completed</p>
+  {{else}}
+  <p>
+    {{current_value}}/{{max_value}} {{pluralize_noun "replica" num_replicas}}{{#if total_blocks}},
+    {{! Keep the if above so we do not have an extra space before the comma}}
+    {{replicated_blocks}}/{{total_blocks}} blocks copied
+    {{else}}
+    up to date
+    {{/if}}
+  </p>
+  {{/if}}
+  <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+</div>
+{{/if}}
