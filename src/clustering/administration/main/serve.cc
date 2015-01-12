@@ -150,7 +150,7 @@ bool do_serve(io_backender_t *io_backender,
 
         // Initialize the stat and jobs manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
-        // jobs_manager and stat_manager mailbox address
+        // jobs_manager and stat_manager mailbox addresses
         jobs_manager_t jobs_manager(&mailbox_manager, server_id);
         stat_manager_t stat_manager(&mailbox_manager, server_id);
 
@@ -475,6 +475,8 @@ bool do_serve(io_backender_t *io_backender,
                 logNTC("Shutting down client connections...\n");
             }
             logNTC("All client connections closed.\n");
+
+            jobs_manager.unset_rdb_context_and_reactor_driver();
 
             logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
