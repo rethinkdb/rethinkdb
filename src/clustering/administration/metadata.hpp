@@ -14,7 +14,6 @@
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
-#include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
@@ -26,8 +25,6 @@
 class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
-
-    cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
     servers_semilattice_metadata_t servers;
     databases_semilattice_metadata_t databases;

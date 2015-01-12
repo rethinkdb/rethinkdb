@@ -30,13 +30,10 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
     table_meta_client(_table_meta_client),
-    cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     rdb_context(_rdb_context),
     namespace_repo(
         mailbox_manager,
-        metadata_field(
-            &cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view),
         _table_meta_client,
         rdb_context),
     changefeed_client(mailbox_manager,
@@ -46,12 +43,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     server_config_client(_server_config_client)
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
-        cross_thread_namespace_watchables[thr].init(
-            new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-                    (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view))), threadnum_t(thr)));
-
         cross_thread_database_watchables[thr].init(
             new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                 clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
@@ -120,6 +111,9 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         metadata.databases.databases.at(db_id).mark_deleted();
 
         /* Delete all of the tables in the database */
+        // RSI(raft): Reimplement this once table meta operations work.
+        not_implemented();
+#if 0
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
         tables_dropped = 0;
@@ -130,6 +124,7 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
                 ++tables_dropped;
             }
         }
+#endif
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
@@ -205,6 +200,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
+        // RSI(raft): Reimplement this once table meta operations work
+        not_implemented();
+#if 0
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
 
@@ -274,6 +272,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         new_config = convert_table_config_to_datum(table_id, name,
             convert_name_to_datum(db->name), primary_key, repli_info.config,
             admin_identifier_format_t::name, server_config_client);
+#endif
     }
 
     // This could hang because of a node disconnecting or the user deleting the table.
@@ -312,6 +311,9 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
+        // RSI(raft): Reimplement this once table meta operations work
+        not_implemented();
+#if 0
         /* Find the specified table */
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
                 &metadata.rdb_namespaces);
@@ -333,6 +335,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
+#endif
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
@@ -403,6 +406,9 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         semilattice_root_view->home_thread());
     on_thread_t thread_switcher(semilattice_root_view->home_thread());
 
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+#if 0
     /* Find the specified table in the semilattice metadata */
     cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
     namespace_id_t table_id;
@@ -454,6 +460,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
             doc_counts_out->at(shard) += it->second / (right_shard - left_shard + 1);
         }
     }
+#endif
     return true;
 }
 
@@ -464,6 +471,9 @@ bool real_reql_cluster_interface_t::table_config(
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+#if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
             name, &table_id, error_out)) {
@@ -475,6 +485,7 @@ bool real_reql_cluster_interface_t::table_config(
         name_string_t::guarantee_valid("table_config"), table_id, bt,
         strprintf("Table `%s.%s` does not exist.", db->name.c_str(), name.c_str()),
         env, selection_out, error_out);
+#endif
 }
 
 bool real_reql_cluster_interface_t::table_status(
@@ -484,6 +495,9 @@ bool real_reql_cluster_interface_t::table_status(
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+#if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
             name, &table_id, error_out)) {
@@ -495,6 +509,7 @@ bool real_reql_cluster_interface_t::table_status(
         name_string_t::guarantee_valid("table_status"), table_id, bt,
         strprintf("Table `%s.%s` does not exist.", db->name.c_str(), name.c_str()),
         env, selection_out, error_out);
+#endif
 }
 
 /* Waits until all of the tables listed in `tables` are ready to the given level of
@@ -506,6 +521,9 @@ bool real_reql_cluster_interface_t::wait_internal(
         ql::datum_t *result_out,
         int *count_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this oncee table meta operations work
+    not_implemented();
+#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -598,7 +616,7 @@ bool real_reql_cluster_interface_t::wait_internal(
         std::move(status_changes_builder).to_datum());
     *result_out = std::move(result_builder).to_datum();
     *count_out = tables.size();
-
+#endif
     return true;
 }
 
@@ -609,6 +627,9 @@ bool real_reql_cluster_interface_t::table_wait(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+#if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
             name, &table_id, error_out)) {
@@ -631,7 +652,7 @@ bool real_reql_cluster_interface_t::table_wait(
             db->name.c_str(), name.c_str());
         return false;
     }
-
+#endif
     return true;
 }
 
@@ -641,6 +662,10 @@ bool real_reql_cluster_interface_t::db_wait(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
@@ -656,6 +681,7 @@ bool real_reql_cluster_interface_t::db_wait(
     int dummy_num_waited;
     return wait_internal(table_ids, readiness, interruptor,
         result_out, &dummy_num_waited, error_out);
+#endif
 }
 
 bool real_reql_cluster_interface_t::reconfigure_internal(
@@ -668,6 +694,10 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     rassert(get_thread_id() == server_config_client->home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &cluster_md->rdb_namespaces);
@@ -763,6 +793,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     }
     *result_out = std::move(result_builder).to_datum();
     return true;
+#endif
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
@@ -773,6 +804,10 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
@@ -786,6 +821,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
     return reconfigure_internal(&cluster_md, db, table_id, name, params, dry_run,
                                 &ct_interruptor, result_out, error_out);
+#endif
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
@@ -795,6 +831,10 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
@@ -821,6 +861,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     }
     *result_out = combined_stats;
     return true;
+#endif
 }
 
 bool real_reql_cluster_interface_t::rebalance_internal(
@@ -831,6 +872,10 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         signal_t *interruptor,
         ql::datum_t *results_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     /* Store old status */
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
@@ -879,6 +924,7 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     *results_out = std::move(builder).to_datum();
 
     return true;
+#endif
 }
 
 bool real_reql_cluster_interface_t::table_rebalance(
@@ -887,6 +933,10 @@ bool real_reql_cluster_interface_t::table_rebalance(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
@@ -900,6 +950,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
     }
     return rebalance_internal(&cluster_md, db, table_id, name, &ct_interruptor,
                               result_out, error_out);
+#endif
 }
 
 bool real_reql_cluster_interface_t::db_rebalance(
@@ -907,6 +958,10 @@ bool real_reql_cluster_interface_t::db_rebalance(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
@@ -933,6 +988,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
     }
     *result_out = combined_stats;
     return true;
+#endif
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */
@@ -948,12 +1004,6 @@ void real_reql_cluster_interface_t::wait_for_metadata_to_propagate(
         const cluster_semilattice_metadata_t &metadata, signal_t *interruptor) {
     int threadnum = get_thread_id().threadnum;
 
-    guarantee(cross_thread_namespace_watchables[threadnum].has());
-    cross_thread_namespace_watchables[threadnum]->get_watchable()->run_until_satisfied(
-            [&] (const cow_ptr_t<namespaces_semilattice_metadata_t> &md) -> bool
-                { return is_joined(md, metadata.rdb_namespaces); },
-            interruptor);
-
     guarantee(cross_thread_database_watchables[threadnum].has());
     cross_thread_database_watchables[threadnum]->get_watchable()->run_until_satisfied(
             [&] (const databases_semilattice_metadata_t &md) -> bool
@@ -964,17 +1014,6 @@ void real_reql_cluster_interface_t::wait_for_metadata_to_propagate(
 template <class T>
 void copy_value(const T *in, T *out) {
     *out = *in;
-}
-
-cow_ptr_t<namespaces_semilattice_metadata_t>
-real_reql_cluster_interface_t::get_namespaces_metadata() {
-    int threadnum = get_thread_id().threadnum;
-    r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
-    cow_ptr_t<namespaces_semilattice_metadata_t> ret;
-    cross_thread_namespace_watchables[threadnum]->apply_read(
-            std::bind(&copy_value< cow_ptr_t<namespaces_semilattice_metadata_t> >,
-                      ph::_1, &ret));
-    return ret;
 }
 
 void real_reql_cluster_interface_t::get_databases_metadata(

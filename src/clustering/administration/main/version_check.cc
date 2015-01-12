@@ -64,9 +64,12 @@ void version_checker_t::periodic_checkin(auto_drainer_t::lock_t) {
     opts.form_data["Version"] = RETHINKDB_VERSION;
     opts.form_data["Number-Of-Servers"] = snapshot.servers.servers.size();
     opts.form_data["Uname"] = uname;
+    // RSI(raft): Reimplement this once table metadata operations are implemented.
+#if 0
     opts.form_data["Cooked-Number-Of-Tables"]
         = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
                     cook(snapshot.rdb_namespaces->namespaces.size()));
+#endif
     //opts.form_data["Cooked-Size-Of-Shards"]
     //    = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
 

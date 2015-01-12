@@ -453,6 +453,9 @@ table_wait_result_t wait_for_table_readiness(
             name_string_t table_name;
             std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
                 ::const_iterator it;
+            // RSI(raft): Reimplement this once table meta operations work
+            not_implemented();
+#if 0
             bool ok1 = convert_table_id_to_datums(table_id, backend->identifier_format,
                 md, nullptr, &table_name, &db_name_or_uuid, nullptr);
             bool ok2 = search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
@@ -463,6 +466,7 @@ table_wait_result_t wait_for_table_readiness(
                 deleted = true;
                 return true;
             }
+#endif
 
             table_readiness_t readiness;
             ql::datum_t row = convert_table_status_to_datum(table_name, db_name_or_uuid,

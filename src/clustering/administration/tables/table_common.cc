@@ -24,6 +24,10 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
@@ -47,6 +51,7 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         rows_out->push_back(row);
     }
     return true;
+#endif
 }
 
 bool common_table_artificial_table_backend_t::read_row(
@@ -54,6 +59,10 @@ bool common_table_artificial_table_backend_t::read_row(
         signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t md = semilattice_view->get();
@@ -75,5 +84,6 @@ bool common_table_artificial_table_backend_t::read_row(
     guarantee(it != md.rdb_namespaces->namespaces.end() && !it->second.is_deleted());
     return format_row(table_id, table_name, db_name_or_uuid, it->second.get_ref(),
                       &interruptor2, row_out, error_out);
+#endif
 }
 

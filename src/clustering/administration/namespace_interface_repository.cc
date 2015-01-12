@@ -49,12 +49,9 @@ public:
 
 namespace_repo_t::namespace_repo_t(
         mailbox_manager_t *_mailbox_manager,
-        const boost::shared_ptr<semilattice_read_view_t<
-            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
         table_meta_client_t *_table_meta_client,
         rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
-      namespaces_view(semilattice_view),
       table_meta_client(_table_meta_client),
       ctx(_ctx),
       namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))

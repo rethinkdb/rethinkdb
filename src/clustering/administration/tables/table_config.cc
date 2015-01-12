@@ -396,6 +396,9 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         std::map<server_id_t, int> server_usage;
+        // RSI(raft): Reimplement this once table meta operations work
+        not_implemented();
+#if 0
         for (const auto &pair : all_metadata.rdb_namespaces->namespaces) {
             if (pair.second.is_deleted()) {
                 continue;
@@ -403,6 +406,7 @@ bool convert_table_config_and_name_from_datum(
             calculate_server_usage(
                 pair.second.get_ref().replication_info.get_ref().config, &server_usage);
         }
+#endif
         if (!table_generate_config(
                 server_config_client, nil_uuid(), nullptr, server_usage,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
@@ -468,6 +472,10 @@ bool table_config_artificial_table_backend_t::write_row(
         ql::datum_t *new_value_inout,
         signal_t *interruptor,
         std::string *error_out) {
+    // RSI(raft): Reimplement this once table meta operations work
+    not_implemented();
+    return false;
+#if 0
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -637,6 +645,7 @@ bool table_config_artificial_table_backend_t::write_row(
     semilattice_view->join(md);
 
     return true;
+#endif
 }
 
 

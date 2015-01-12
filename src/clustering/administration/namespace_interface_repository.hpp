@@ -30,8 +30,6 @@ class namespace_repo_t : public home_thread_mixin_t {
 public:
     namespace_repo_t(
         mailbox_manager_t *,
-        const boost::shared_ptr<semilattice_read_view_t<
-            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
         table_meta_client_t *,
         rdb_context_t *);
     ~namespace_repo_t();
@@ -51,8 +49,6 @@ private:
     void on_namespaces_change(auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<
-        cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     table_meta_client_t *table_meta_client;
     rdb_context_t *ctx;
 

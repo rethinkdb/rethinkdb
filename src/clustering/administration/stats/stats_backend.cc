@@ -120,6 +120,8 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
             metadata, server_config_client, admin_format, rows_out);
     }
 
+    // RSI(raft): Reimplement this once table metadata operations are implemented.
+#if 0
     for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
         if (table_pair.second.is_deleted()) {
             continue;
@@ -141,6 +143,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
                 parsed_stats, metadata, server_config_client, admin_format, rows_out);
         }
     }
+#endif
 
     return true;
 }
