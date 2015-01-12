@@ -250,6 +250,6 @@ void validate_optargs(const Query &q) {
     }
 }
 
-bool validate_optarg(const std::string &potential_argument) {
+bool optarg_is_valid(const std::string &potential_argument) {
     return acceptable_keys.find(potential_argument) != acceptable_keys.end();
 }
