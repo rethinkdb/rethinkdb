@@ -79,7 +79,8 @@ enum class admin_identifier_format_t {
 
 class base_table_t : public slow_atomic_countable_t<base_table_t> {
 public:
-    virtual const std::string &get_pkey() = 0;
+    virtual ql::datum_t get_id() const = 0;
+    virtual const std::string &get_pkey() const = 0;
 
     virtual ql::datum_t read_row(ql::env_t *env,
         ql::datum_t pval, bool use_outdated) = 0;
