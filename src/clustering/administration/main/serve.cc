@@ -476,6 +476,8 @@ bool do_serve(io_backender_t *io_backender,
             }
             logNTC("All client connections closed.\n");
 
+            jobs_manager.unset_rdb_context_and_reactor_driver();
+
             logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
         logNTC("Storage engine shut down.\n");
