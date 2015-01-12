@@ -644,9 +644,7 @@ message Term {
 
         // Construct a time from a date and optional timezone or a
         // date+time and optional timezone.
-        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+        TIME = 136; // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
                     // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
 
         // Constants for ISO 8601 days of the week.
