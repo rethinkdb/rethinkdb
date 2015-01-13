@@ -5,21 +5,21 @@
 #include "containers/archive/stl_types.hpp"
 
 RDB_IMPL_SERIALIZABLE_3(log_write_issue_t,
-                        issue_id, affected_server_ids, message);
+                        issue_id, reporting_server_ids, message);
 RDB_IMPL_EQUALITY_COMPARABLE_3(log_write_issue_t,
-                               issue_id, affected_server_ids, message);
+                               issue_id, reporting_server_ids, message);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(log_write_issue_t);
 
 RDB_IMPL_SERIALIZABLE_3(outdated_index_issue_t,
-                        issue_id, affected_server_ids, indexes);
+                        issue_id, reporting_server_ids, indexes);
 RDB_IMPL_EQUALITY_COMPARABLE_3(outdated_index_issue_t,
-                               issue_id, affected_server_ids, indexes);
+                               issue_id, reporting_server_ids, indexes);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(outdated_index_issue_t);
 
 RDB_IMPL_SERIALIZABLE_3(server_disconnected_issue_t,
-                        issue_id, affected_server_ids, disconnected_server_id);
+                        issue_id, reporting_server_ids, disconnected_server_id);
 RDB_IMPL_EQUALITY_COMPARABLE_3(server_disconnected_issue_t,
-                               issue_id, affected_server_ids, disconnected_server_id);
+                               issue_id, reporting_server_ids, disconnected_server_id);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_disconnected_issue_t);
 
 RDB_IMPL_SERIALIZABLE_4(server_ghost_issue_t,

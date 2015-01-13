@@ -15,34 +15,38 @@ module 'ServerView', ->
             @fetch_server()
 
         fetch_server: =>
-            query = r.db(system_db).table('server_status').get(@id).do( (server) ->
-                r.branch(
-                    server.eq(null),
-                    null,
-                    server.merge( (server) ->
-                        responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
-                            table.merge( (table) ->
-                                shards: table("shards").map(r.range(), (shard, index) ->
-                                    shard.merge(
-                                        num_keys: r.db(table('db')) \
-                                            .table(table('name')) \
-                                            .info()('doc_count_estimates')(index)
-                                        index: index.add(1)
-                                        num_shards: table('shards').count()
-                                        role: r.branch(server('name').eq(shard('primary_replica')),
-                                            'primary', 'secondary')
-                                        )
-                                ).filter((shard) ->
-                                    shard('replicas')('server').contains(server('name'))
-                                ).coerceTo('array')
-                            )
-                        ).filter( (table) ->
-                            table("shards").isEmpty().not()
-                        ).merge( (table) ->
-                            id: table("id")
-                        ).coerceTo("ARRAY")
+            query = r.do(
+                r.db(system_db).table('server_config').get(@id),
+                r.db(system_db).table('server_status').get(@id),
+                (server_config, server_status) ->
+                    r.branch(
+                        server_status.eq(null),
+                        null,
+                        server_status.merge( (server_status) ->
+                            tags: server_config('tags')
+                            responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
+                                table.merge( (table) ->
+                                    shards: table("shards").map(r.range(), (shard, index) ->
+                                        shard.merge(
+                                            num_keys: r.db(table('db')) \
+                                                .table(table('name')) \
+                                                .info()('doc_count_estimates')(index)
+                                            index: index.add(1)
+                                            num_shards: table('shards').count()
+                                            role: r.branch(server_status('name').eq(shard('primary_replica')),
+                                                'primary', 'secondary')
+                                            )
+                                    ).filter((shard) ->
+                                        shard('replicas')('server').contains(server_status('name'))
+                                    ).coerceTo('array')
+                                )
+                            ).filter( (table) ->
+                                table("shards").isEmpty().not()
+                            ).merge( (table) ->
+                                id: table("id")
+                            ).coerceTo("ARRAY")
+                        )
                     )
-                )
             ).merge
                 id: r.row 'id'
 
@@ -235,11 +239,17 @@ module 'ServerView', ->
 
             @$el.html @template
                 main_ip: @model.get('network').hostname
+                tags: @model.get('tags')
                 uptime: uptime
                 version: version
                 num_shards: @collection.length
                 status: @model.get('status')
                 last_seen: last_seen
+                system_db: system_db
+            @$('.tag-row .tags, .tag-row .admonition').tooltip
+                for_dataexplorer: false
+                trigger: 'hover'
+                placement: 'bottom'
             @
 
         remove: =>

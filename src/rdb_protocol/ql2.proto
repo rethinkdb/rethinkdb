@@ -451,9 +451,9 @@ message Term {
         DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
         DB_LIST       = 59; // -> ARRAY
-        // With no arguments, returns the contents of the `rethinkdb.db_config` system
-        // table. With string arguments, returns only the rows corresponding to the DBs
-        // with the given names.
+        // Creates a table with a particular name in a particular
+        // database.  (You may omit the first argument to use the
+        // default database.)
         TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
                             // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
                             // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
@@ -644,9 +644,7 @@ message Term {
 
         // Construct a time from a date and optional timezone or a
         // date+time and optional timezone.
-        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+        TIME = 136; // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
                     // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
 
         // Constants for ISO 8601 days of the week.

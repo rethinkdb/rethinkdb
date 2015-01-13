@@ -385,22 +385,36 @@ void store_t::reset_data(
                                      &token,
                                      &txn,
                                      &superblock,
-                                     interruptor);
+                                     interruptor);        
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
 
+        /* Note we don't allow interruption during this step; it's too easy to end up in
+        an inconsistent state. */
+        cond_t non_interruptor;
+
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
+        key_range_t deleted_range;
         done_erasing = rdb_erase_small_range(btree.get(),
                                              &key_tester,
                                              subregion.inner,
                                              superblock.get(),
                                              &deletion_context,
-                                             interruptor,
+                                             &non_interruptor,
                                              max_erased_per_pass,
-                                             &mod_reports);
+                                             &mod_reports,
+                                             &deleted_range);
+
+        region_map_t<binary_blob_t> old_metainfo;
+        get_metainfo_internal(superblock->get(), &old_metainfo);
+        region_map_t<binary_blob_t> new_metainfo = old_metainfo;
+        region_t deleted_region(subregion.beg, subregion.end, deleted_range);
+        new_metainfo.set(deleted_region, zero_metainfo);
+        update_metainfo(old_metainfo, new_metainfo, superblock.get());
+
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);

@@ -107,7 +107,8 @@ public:
     virtual void throttle_backfill_chunk(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Deletes every key in the region.
+    /* Deletes every key in the region, and sets the metainfo for that region to
+    `zero_version`.
     [Precondition] region_is_superset(region, subregion)
     [May block]
      */

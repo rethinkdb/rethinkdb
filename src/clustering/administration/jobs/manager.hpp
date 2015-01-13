@@ -7,6 +7,7 @@
 #include <set>
 
 #include "clustering/administration/jobs/report.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
@@ -41,6 +42,9 @@ public:
     void set_rdb_context(rdb_context_t *);
     void set_reactor_driver(reactor_driver_t *);
 
+    // Similarly we must unset them as they'll be destructed before we will be.
+    void unset_rdb_context_and_reactor_driver();
+
 private:
     static const uuid_u base_sindex_id;
     static const uuid_u base_disk_compaction_id;
@@ -53,13 +57,16 @@ private:
     void on_job_interrupt(UNUSED signal_t *interruptor, uuid_u const &id);
 
     mailbox_manager_t *mailbox_manager;
-    business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
-    business_card_t::job_interrupt_mailbox_t job_interrupt_mailbox;
 
     server_id_t server_id;
 
     rdb_context_t *rdb_context;
     reactor_driver_t *reactor_driver;
+
+    auto_drainer_t drainer;
+
+    business_card_t::get_job_reports_mailbox_t get_job_reports_mailbox;
+    business_card_t::job_interrupt_mailbox_t job_interrupt_mailbox;
 
     DISABLE_COPYING(jobs_manager_t);
 };

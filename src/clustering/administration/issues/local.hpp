@@ -22,7 +22,7 @@ public:
 
     void add_server(const server_id_t &server);
 
-    std::vector<server_id_t> affected_server_ids;
+    std::vector<server_id_t> reporting_server_ids;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */

@@ -3,6 +3,7 @@
 
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/validate.hpp"
 
 #include "debug.hpp"
 
@@ -27,6 +28,9 @@ bool argspec_t::contains(int n) const {
 
 optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
     init(args.size(), args.begin());
+    for (auto i = legal_args.cbegin(); i != legal_args.cend(); ++i) {
+        r_sanity_check(optarg_is_valid(*i));
+    }
 }
 
 

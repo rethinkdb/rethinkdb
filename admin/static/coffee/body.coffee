@@ -58,9 +58,9 @@ module 'MainView', ->
                     r.branch(issue('type').ne('server_disconnected'),
                         issue,
                         info:
-                            id: issue('info')('server')
-                            server: get_name(issue('info')('server'))
-                            affected_servers: issue('info')('affected_servers')
+                            id: issue('info')('disconnected_server')
+                            name: get_name(issue('info')('disconnected_server'))
+                            reporting_servers: issue('info')('reporting_servers')
                                 .map(get_name)
                     )
                 ).coerceTo('array')

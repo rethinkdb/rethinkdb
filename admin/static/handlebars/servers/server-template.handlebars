@@ -1,10 +1,12 @@
-<div class="checkbox-container">
-    <input type="checkbox" id="checkbox_server_list_{{id}}"></input><label for="checkbox_server_list_{{id}}"></label>
-</div>
-<div class="server-details">
-    <p class="name"><a href="#servers/{{id}}">{{name}}</a></p>
-    <p class="quick_info">
-        {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}}
-    </p>
-    <div class="status">{{humanize_server_reachability status}}</div>
-</div>
+<td class="name">
+  <a href="#servers/{{id}}">{{name}}</a>
+  <span class="tags" title="{{comma_separated_simple tags}}">
+    {{comma_separated_simple tags}}
+  </span>
+</td>
+<td class="quick_info">
+{{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}}
+</td>
+<td class="status">
+  {{humanize_server_reachability status}}
+</td>
