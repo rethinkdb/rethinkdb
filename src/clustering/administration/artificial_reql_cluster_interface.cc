@@ -315,6 +315,16 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("issues")] =
         std::make_pair(issues_backend[0].get(), issues_backend[1].get());
 
+    for (int i = 0; i < 2; ++i) {
+        logs_backend[i].init(new logs_artificial_table_backend_t(
+            _mailbox_manager,
+            _directory_map_view,
+            _server_config_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
+    backends[name_string_t::guarantee_valid("logs")] =
+        std::make_pair(logs_backend[0].get(), logs_backend[1].get());
+
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),

@@ -22,6 +22,7 @@
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "parsing/utf8.hpp"
 #include "stl_utils.hpp"
 
 namespace ql {
@@ -375,7 +376,54 @@ datum_t datum_t::binary(datum_string_t &&_data) {
     return datum_t(construct_binary_t(), std::move(_data));
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
+// two versions of these, because std::string is not necessarily null
+// terminated.
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
+{
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
+                rfail_datum(base_exc_t::GENERIC,
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
+                            "%s at position %zu.",
+                            truncation_length, string.c_str(), reason.explanation,
+                            reason.position);
+            }
+            break;
+        default:
+            unreachable();
+    }
+}
+
+inline void fail_if_invalid(reql_version_t reql_version, const char *string)
+{
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
+                rfail_datum(base_exc_t::GENERIC,
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
+                            "%s at position %zu.",
+                            truncation_length, string, reason.explanation,
+                            reason.position);
+            }
+            break;
+        default:
+            unreachable();
+    }
+}
+
+datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (json->type) {
     case cJSON_False: {
         return datum_t::boolean(false);
@@ -390,13 +438,14 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(json->valuedouble);
     } break;
     case cJSON_String: {
+        fail_if_invalid(reql_version, json->valuestring);
         return datum_t(json->valuestring);
     } break;
     case cJSON_Array: {
         std::vector<datum_t> array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits));
+            array.push_back(to_datum(item, limits, reql_version));
         }
         return datum_t(std::move(array), limits);
     } break;
@@ -404,7 +453,8 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         datum_object_builder_t builder;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            bool dup = builder.add(item->string, to_datum(item, limits));
+            fail_if_invalid(reql_version, item->string);
+            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -852,11 +902,17 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
-    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
-            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size());
+    // We add 1 for the extra NULL byte.
+    uint8_t tag_offset = static_cast<uint8_t>(primary.size() + 1) + pk_offset;
 
-    std::string res = secondary + primary + tag +
-           std::string(1, pk_offset) + std::string(1, tag_offset);
+    std::string res
+        = secondary
+        + primary
+        + std::string(1, 0) // NULL byte
+        + tag
+        + std::string(1, pk_offset)
+        + std::string(1, tag_offset);
     guarantee(res.size() <= MAX_KEY_SIZE);
     return res;
 }
@@ -870,10 +926,12 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
 }
 
-std::string datum_t::compose_secondary(const std::string &secondary_key,
-        const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
-    std::string primary_key_string = key_to_unescaped_str(primary_key);
+std::string datum_t::compose_secondary(
+    const std::string &secondary_key,
+    const store_key_t &primary_key,
+    boost::optional<uint64_t> tag_num) {
 
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         throw exc_t(base_exc_t::GENERIC,
             strprintf(
@@ -937,13 +995,15 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
 
 void parse_secondary(const std::string &key,
                      components_t *components) THROWS_NOTHING {
-    uint8_t start_of_tag = key[key.size() - 1],
-            start_of_primary = key[key.size() - 2];
+    uint8_t start_of_primary = key[key.size() - 2];
+    uint8_t start_of_tag = key[key.size() - 1];
+    uint8_t end_of_primary = start_of_tag - 1; // extra NULL byte
 
     guarantee(start_of_primary < start_of_tag);
 
     components->secondary = key.substr(0, start_of_primary);
-    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+    components->primary = key.substr(start_of_primary,
+                                     end_of_primary - start_of_primary);
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
     if (tag_str.size() != 0) {
@@ -1473,7 +1533,8 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
+datum_t to_datum(const Datum *d, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (d->type()) {
     case Datum::R_NULL: {
         return datum_t::null();
@@ -1485,17 +1546,19 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return datum_t(d->r_num());
     } break;
     case Datum::R_STR: {
+        fail_if_invalid(reql_version, d->r_str());
         return datum_t(datum_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
+        fail_if_invalid(reql_version, d->r_str());
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits);
+        return to_datum(cjson.get(), limits, reql_version);
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
         out.reserve(d->r_array_size());
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
-            out.add(to_datum(&d->r_array(i), limits));
+            out.add(to_datum(&d->r_array(i), limits, reql_version));
         }
         return std::move(out).to_datum();
     } break;
@@ -1506,8 +1569,10 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
             datum_t::check_str_validity(key);
+            fail_if_invalid(reql_version, ap->key());
             auto res = map.insert(std::make_pair(key,
-                                                 to_datum(&ap->val(), limits)));
+                                                 to_datum(&ap->val(), limits,
+                                                          reql_version)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key %s in object.", key.to_std().c_str()));
         }
@@ -1523,10 +1588,10 @@ size_t datum_t::max_trunc_size() {
 }
 
 size_t datum_t::trunc_size(size_t primary_key_size) {
-    //The 2 in this function is necessary because of the offsets which are
-    //included at the end of the key so that we can extract the primary key and
-    //the tag num from secondary keys.
-    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
+    // We subtract three bytes because of the NULL byte we pad on the end of the
+    // primary key and the two 1-byte offsets at the end of the key (which are
+    // used to extract the primary key and tag num).
+    return MAX_KEY_SIZE - primary_key_size - tag_size - 3;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {

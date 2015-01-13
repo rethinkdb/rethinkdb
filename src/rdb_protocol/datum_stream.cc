@@ -457,9 +457,15 @@ public:
         // secondary index key ordering that existed in v1.13.  It was different in
         // v1.13 itself.  For that, we use the last_key value in the
         // rget_read_response_t.
-        return reversed(sorting)
-            ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
-            : l.sindex_key.compare_lt(reql_version_t::LATEST, r.sindex_key);
+        if (l.sindex_key == r.sindex_key) {
+            return reversed(sorting)
+                ? datum_t::extract_primary(l.key) > datum_t::extract_primary(r.key)
+                : datum_t::extract_primary(l.key) < datum_t::extract_primary(r.key);
+        } else {
+            return reversed(sorting)
+                ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
+                : l.sindex_key.compare_lt(reql_version_t::LATEST, r.sindex_key);
+        }
     }
 private:
     sorting_t sorting;

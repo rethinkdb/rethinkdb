@@ -67,7 +67,8 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
     if (data->find(get.key) != data->end()) {
-        res.data = ql::to_datum(data->at(get.key)->get(), limits);
+        res.data = ql::to_datum(data->at(get.key)->get(), limits,
+                                reql_version_t::LATEST);
     } else {
         res.data = ql::datum_t::null();
     }
@@ -143,7 +144,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         ql::datum_object_builder_t resp;
         ql::datum_t old_val;
         if (data->find(*it) != data->end()) {
-            old_val = ql::to_datum(data->at(*it)->get(), limits);
+            old_val = ql::to_datum(data->at(*it)->get(), limits, reql_version_t::LATEST);
         } else {
             old_val = ql::datum_t::null();
         }
@@ -193,7 +194,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         ql::datum_object_builder_t resp;
         ql::datum_t old_val;
         if (data->find(key) != data->end()) {
-            old_val = ql::to_datum(data->at(key)->get(), limits);
+            old_val = ql::to_datum(data->at(key)->get(), limits, reql_version_t::LATEST);
         } else {
             old_val = ql::datum_t::null();
         }
@@ -554,4 +555,3 @@ bool test_rdb_env_t::instance_t::db_rebalance(
 }
 
 }  // namespace unittest
-
