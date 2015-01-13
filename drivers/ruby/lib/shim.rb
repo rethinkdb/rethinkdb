@@ -59,13 +59,14 @@ module RethinkDB
       rt = Response::ResponseType
       begin
         case r['t']
-        when rt::SUCCESS_ATOM     then r['r'][0]
-        when rt::SUCCESS_FEED     then r['r']
-        when rt::SUCCESS_PARTIAL  then r['r']
-        when rt::SUCCESS_SEQUENCE then r['r']
-        when rt::RUNTIME_ERROR    then raise RqlRuntimeError, r['r'][0]
-        when rt::COMPILE_ERROR    then raise RqlCompileError, r['r'][0]
-        when rt::CLIENT_ERROR     then raise RqlDriverError,  r['r'][0]
+        when rt::SUCCESS_ATOM      then r['r'][0]
+        when rt::SUCCESS_FEED      then r['r']
+        when rt::SUCCESS_ATOM_FEED then r['r']
+        when rt::SUCCESS_PARTIAL   then r['r']
+        when rt::SUCCESS_SEQUENCE  then r['r']
+        when rt::RUNTIME_ERROR     then raise RqlRuntimeError, r['r'][0]
+        when rt::COMPILE_ERROR     then raise RqlCompileError, r['r'][0]
+        when rt::CLIENT_ERROR      then raise RqlDriverError,  r['r'][0]
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e

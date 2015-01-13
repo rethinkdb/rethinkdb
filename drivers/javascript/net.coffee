@@ -139,6 +139,13 @@ class Connection extends events.EventEmitter
                             cb null, {profile: profile, value: feed._addResponse(response)}
                         else
                             cb null, feed._addResponse(response)
+                    when protoResponseType.SUCCESS_ATOM_FEED
+                        feed = new cursors.AtomFeed @, token, opts, root
+                        @outstandingCallbacks[token].feed = feed
+                        if profile?
+                            cb null, {profile: profile, value: feed._addResponse(response)}
+                        else
+                            cb null, feed._addResponse(response)
                     when protoResponseType.WAIT_COMPLETE
                         @_delQuery(token)
                         cb null, null
