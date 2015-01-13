@@ -138,7 +138,7 @@ public:
     std::vector<std::string> argv;
     uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
-    boost::optional<table_meta_manager_business_card_t> table_meta_manager_business_card;
+    boost::optional<table_meta_manager_bcard_t> table_meta_manager_bcard;
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;

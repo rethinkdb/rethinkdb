@@ -7,9 +7,9 @@
 table_meta_manager_t::table_meta_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
-        watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
+        watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
             *_table_meta_manager_directory,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             *_table_meta_directory,
         table_meta_persistence_interface_t *_persistence_interface) :
     server_id(_server_id),
@@ -20,7 +20,7 @@ table_meta_manager_t::table_meta_manager_t(
     /* Whenever a server connects, we need to sync all of our tables to it. */
     table_meta_manager_directory_subs(
         table_meta_manager_directory,
-        [this](const peer_id_t &peer, const table_meta_manager_business_card_t *bcard) {
+        [this](const peer_id_t &peer, const table_meta_manager_bcard_t *bcard) {
             if (peer != mailbox_manager->get_me() && bcard != nullptr) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
                 for (auto &&pair : tables) {
@@ -33,7 +33,7 @@ table_meta_manager_t::table_meta_manager_t(
     table_meta_directory_subs(
         table_meta_directory,
         [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_meta_business_card_t *) {
+                const table_meta_bcard_t *) {
             if (key.first != mailbox_manager->get_me()) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
                 auto it = tables.find(key.second);
@@ -79,7 +79,7 @@ table_meta_manager_t::table_meta_manager_t(
             any other servers when `table_meta_manager_t` is created; but just in case,
             sync to any other servers that are connected. */
             table_meta_manager_directory->read_all(
-                [&](const peer_id_t &peer, const table_meta_manager_business_card_t *) {
+                [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
                     if (peer != mailbox_manager->get_me()) {
                         schedule_sync(table_id, table, peer);
                     }
@@ -91,7 +91,7 @@ table_meta_manager_t::table_meta_manager_t(
 table_meta_manager_t::active_table_t::active_table_t(
         table_meta_manager_t *_parent,
         const namespace_id_t &_table_id,
-        const table_meta_manager_business_card_t::action_timestamp_t::epoch_t &_epoch,
+        const table_meta_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         UNUSED multistore_ptr_t *multistore_ptr) :
@@ -118,16 +118,16 @@ table_meta_manager_t::active_table_t::active_table_t(
         raft_readiness_subs.reset(raft.get_raft()->get_readiness_for_change(), &freeze);
     }
 
-    table_meta_business_card_t bcard;
+    table_meta_bcard_t bcard;
     bcard.epoch = _epoch;
     bcard.raft_member_id = member_id;
     bcard.raft_business_card = raft.get_business_card();
     bcard.server_id = parent->server_id;
-    parent->table_meta_business_cards.set_key_no_equals(table_id, bcard);
+    parent->table_meta_bcards.set_key_no_equals(table_id, bcard);
 }
 
 table_meta_manager_t::active_table_t::~active_table_t() {
-    parent->table_meta_business_cards.delete_key(table_id);
+    parent->table_meta_bcards.delete_key(table_id);
 }
 
 void table_meta_manager_t::active_table_t::write_persistent_state(
@@ -142,7 +142,7 @@ void table_meta_manager_t::active_table_t::write_persistent_state(
 
 void table_meta_manager_t::active_table_t::on_table_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_meta_business_card_t *bcard) {
+        const table_meta_bcard_t *bcard) {
     /* We monitor the directory for updates related to this table, then extract the
     `raft_business_card_t`s and pass them on to the `raft_networked_member_t`. */
     if (key.second == table_id) {
@@ -175,7 +175,7 @@ void table_meta_manager_t::active_table_t::on_raft_committed_change() {
     auto it = parent->tables.find(table_id);
     guarantee(it != parent->tables.end());
     parent->table_meta_manager_directory->read_all(
-    [&](const peer_id_t &peer, const table_meta_manager_business_card_t *) {
+    [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
         if (peer != parent->mailbox_manager->get_me()) {
             parent->schedule_sync(table_id, it->second.get(), peer);
         }
@@ -185,8 +185,8 @@ void table_meta_manager_t::active_table_t::on_raft_committed_change() {
 void table_meta_manager_t::active_table_t::on_raft_readiness_change() {
     /* If we become the Raft cluster leader, publish this news in the directory so that
     clients know to route config changes to us. */
-    parent->table_meta_business_cards.change_key(table_id,
-        [&](bool *exists, table_meta_business_card_t *bcard) -> bool {
+    parent->table_meta_bcards.change_key(table_id,
+        [&](bool *exists, table_meta_bcard_t *bcard) -> bool {
             if (!*exists) {
                 /* The key was removed from the map because our destructor was called */
                 return false;
@@ -204,7 +204,7 @@ void table_meta_manager_t::active_table_t::on_raft_readiness_change() {
 void table_meta_manager_t::on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_meta_manager_business_card_t::action_timestamp_t &timestamp,
+        const table_meta_manager_bcard_t::timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
@@ -286,7 +286,7 @@ void table_meta_manager_t::on_action(
     C and D are lost. This code path will cause B to forward the messages to C and D
     instead of being stuck in a limbo state. */
     table_meta_manager_directory->read_all(
-    [&](const peer_id_t &peer, const table_meta_manager_business_card_t *) {
+    [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
         if (peer != mailbox_manager->get_me()) {
             schedule_sync(table_id, table, peer);
         }
@@ -350,8 +350,8 @@ void table_meta_manager_t::do_sync(
         const namespace_id_t &table_id,
         const table_t &table,
         const server_id_t &other_server_id,
-        const boost::optional<table_meta_business_card_t> &table_bcard,
-        const table_meta_manager_business_card_t &table_manager_bcard) {
+        const boost::optional<table_meta_bcard_t> &table_bcard,
+        const table_meta_manager_bcard_t &table_manager_bcard) {
     if (table.is_deleted && static_cast<bool>(table_bcard)) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id, table.timestamp, true, boost::optional<raft_member_id_t>(),
@@ -376,7 +376,7 @@ void table_meta_manager_t::do_sync(
             if (static_cast<bool>(member_id)) {
                 initial_state = table.active->raft.get_raft()->get_state_for_init();
             }
-            table_meta_manager_business_card_t::action_timestamp_t timestamp;
+            table_meta_manager_bcard_t::timestamp_t timestamp;
             timestamp.epoch = table.timestamp.epoch;
             timestamp.log_index = log_index;
             send(mailbox_manager, table_manager_bcard.action_mailbox,
@@ -421,7 +421,7 @@ void table_meta_manager_t::schedule_sync(
                     /* Removing `peer` from `table->to_sync_set` isn't strictly
                     necessary, but it sometimes reduces redundant traffic */
                     table->to_sync_set.erase(peer);
-                    boost::optional<table_meta_manager_business_card_t>
+                    boost::optional<table_meta_manager_bcard_t>
                         table_meta_manager_bcard =
                             table_meta_manager_directory->get_key(peer);
                     if (!static_cast<bool>(table_meta_manager_bcard)) {

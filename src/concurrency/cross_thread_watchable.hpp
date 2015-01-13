@@ -143,6 +143,11 @@ public:
         return &output_var;
     }
 
+    /* Block until changes visible on this end at the moment `flush()` is called are
+    visible on the other end. Caller is responsible for making sure that the
+    `cross_thread_watchable_map_var_t` is not destroyed until after `flush()` returns. */
+    void flush();
+
 private:
     void on_change(const key_t &key, const value_t *value);
     void ferry_changes(auto_drainer_t::lock_t);
@@ -150,6 +155,7 @@ private:
     threadnum_t input_thread, output_thread;
     bool coro_running;
     std::map<key_t, boost::optional<value_t> > queued_changes;
+    std::set<cond_t *> queued_flushes;
     mutex_assertion_t lock;
 
     /* This object's constructor rethreads our internal components to our other
@@ -170,6 +176,24 @@ private:
 
     auto_drainer_t drainer;
     typename watchable_map_t<key_t, value_t>::all_subs_t subs;
+};
+
+/* `all_thread_watchable_map_var_t` is like a `cross_thread_watchable_map_var_t` except
+that `get_watchable()` works on every thread, not just a specified thread. Internally it
+constructs one `cross_thread_watchable_map_var_t` for each thread, so it's a pretty
+heavy-weight object. */
+
+template<class key_t, class value_t>
+class all_thread_watchable_map_var_t {
+public:
+    all_thread_watchable_map_var_t(
+        watchable_map_t<key_t, value_t> *input);
+    watchable_map_t<key_t, value_t> get_watchable() const {
+        return vars[get_thread_id().threadnum]->get_watchable();
+    }
+    void flush();
+private:
+    std::vector<scoped_ptr_t<cross_thread_watchable_map_var_t<value_t> > > vars;
 };
 
 #include "concurrency/cross_thread_watchable.tcc"

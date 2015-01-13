@@ -7,11 +7,11 @@
 #include "clustering/table_manager/table_raft_state.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class table_meta_manager_business_card_t {
+class table_meta_manager_bcard_t {
 public:
-    /* Every message to the `action_mailbox` has an `action_timestamp_t` attached. This
-    is used to filter out outdated instructions. */
-    class action_timestamp_t {
+    /* Every message to the `action_mailbox` has an `timestamp_t` attached. This is used
+    to filter out outdated instructions. */
+    class timestamp_t {
     public:
         class epoch_t {
         public:
@@ -52,7 +52,7 @@ public:
         */
         raft_log_index_t log_index;
 
-        bool supersedes(const action_timestamp_t &other) const {
+        bool supersedes(const timestamp_t &other) const {
             if (epoch.supersedes(other.epoch)) {
                 return true;
             } else if (other.epoch.supersedes(epoch)) {
@@ -66,7 +66,7 @@ public:
     from the table, and manually overriding the table's configuration. */
     typedef mailbox_t<void(
         namespace_id_t table_id,
-        action_timestamp_t timestamp,
+        timestamp_t timestamp,
         bool is_deletion,
         boost::optional<raft_member_id_t> member_id,
         boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state,
@@ -74,25 +74,30 @@ public:
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
-    /* `get_config_mailbox` handles fetching the current value of the `table_config_t`.
-    If the receiver is not hosting the given table, it will return an empty
-    `boost::optional`. */
+    /* `get_config_mailbox` handles fetching the current value of the `table_config_t`
+    for a specific table or all tables. If `table_id` is non-empty, the receiver will
+    reply with a map with zero or one entries, depending on if it is hosting the given
+    table or not. If `table_id` is empty, the receiver will reply with an entry for every
+    table it is hosting. */
     typedef mailbox_t<void(
-        namespace_id_t table_id,
-        mailbox_t<void(boost::optional<table_config_t>)>::address_t reply_addr
+        boost::optional<namespace_id_t> table_id,
+        mailbox_t<void(std::map<namespace_id_t, table_config_t>)>::address_t reply_addr
         )> get_config_mailbox_t;
     get_config_mailbox_t::address_t get_config_mailbox;
 
     /* `set_config_mailbox` handles changing the `table_config_t`. These changes may or
     may not involve adding and removing servers; if they do, then the initial config
     change message will trigger subsequent action messages to add and remove the servers.
-    It returns `true` if the change was committed and `false` if something went wrong.
-    Only the Raft leader can commit changes; find the server whose `is_leader` field is 
-    `true` in the `table_meta_business_card_t` before sending a message. */
+    If the change was committed, it returns the action timestamp for the commit; the
+    client can use this to determine which servers have seen the commit. If something
+    goes wrong, it returns an empty `boost::optional`, in which case the change may or
+    may not eventually be committed. Only the Raft leader can commit changes; find the
+    server whose `is_leader` field is `true` in the `table_meta_bcard_t` before sending a
+    message. */
     typedef mailbox_t<void(
         namespace_id_t table_id,
         table_config_t new_config,
-        mailbox_t<void(bool)>::address_t reply_addr
+        mailbox_t<void(boost::optional<timestamp_t>)>::address_t reply_addr
         )> set_config_mailbox_t;
 
     set_config_mailbox_t::address_t set_config_mailbox;
@@ -102,15 +107,24 @@ public:
     server_id_t server_id;
 };
 RDB_DECLARE_SERIALIZABLE(
-    table_meta_manager_business_card_t::action_timestamp_t::epoch_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_business_card_t::action_timestamp_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_business_card_t);
+    table_meta_manager_bcard_t::timestamp_t::epoch_t);
+RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t::timestamp_t);
+RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t);
 
-class table_meta_business_card_t {
+class table_meta_bcard_t {
 public:
-    /* This is exposed so that other servers can check if they need to send a control
-    message to bring this server into a newer epoch */
-    table_meta_manager_business_card_t::action_timestamp_t::epoch_t epoch;
+    /* This timestamp contains a `raft_log_index_t`. It would be expensive to update the
+    directory every time a Raft commit happened. Therefore, this timestamp is only
+    guaranteed to be updated when:
+    - The server has entered a new epoch for the table, or;
+    - The server has entered or left the Raft cluster, or;
+    - The table's name or database have changed. */
+    table_meta_manager_bcard_t::timestamp_t timestamp;
+
+    /* `database` and `name` are the table's database and name. They are distributed in
+    the directory so that every server can efficiently look up tables by name. */
+    database_id_t database;
+    name_string_t name;
 
     /* The other members of the Raft cluster send Raft RPCs through
     `raft_business_card`. */
@@ -125,7 +139,7 @@ public:
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
-RDB_DECLARE_SERIALIZABLE(table_meta_business_card_t);
+RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t);
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
 

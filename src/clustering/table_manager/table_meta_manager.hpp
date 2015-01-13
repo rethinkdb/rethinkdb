@@ -63,7 +63,7 @@ action mailbox. */
 
 class table_meta_persistent_state_t {
 public:
-    table_meta_manager_business_card_t::action_timestamp_t::epoch_t epoch;
+    table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
     raft_member_id_t member_id;
     raft_persistent_state_t<table_raft_state_t> raft_state;
 };
@@ -98,22 +98,22 @@ public:
     table_meta_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
-        watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
+        watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
             *_table_meta_manager_directory,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             *_table_meta_directory,
         table_meta_persistence_interface_t *_persistence_interface);
 
-    table_meta_manager_business_card_t get_table_meta_manager_business_card() {
-        table_meta_manager_business_card_t bcard;
+    table_meta_manager_bcard_t get_table_meta_manager_bcard() {
+        table_meta_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox.get_address();
         bcard.server_id = server_id;
         return bcard;
     }
 
-    watchable_map_t<namespace_id_t, table_meta_business_card_t> *
-            get_table_meta_business_cards() {
-        return &table_meta_business_cards;
+    watchable_map_t<namespace_id_t, table_meta_bcard_t> *
+            get_table_meta_bcards() {
+        return &table_meta_bcards;
     }
 
 private:
@@ -127,7 +127,7 @@ private:
         active_table_t(
             table_meta_manager_t *_parent,
             const namespace_id_t &_table_id,
-            const table_meta_manager_business_card_t::action_timestamp_t::epoch_t
+            const table_meta_manager_bcard_t::timestamp_t::epoch_t
                 &_epoch,
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
@@ -143,7 +143,7 @@ private:
         /* This is the callback for `table_directory_subs` */
         void on_table_directory_change(
             const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_meta_business_card_t *bcard);
+            const table_meta_bcard_t *bcard);
 
         /* This is the callback for `raft_committed_subs` */
         void on_raft_committed_change();
@@ -153,11 +153,11 @@ private:
 
         table_meta_manager_t * const parent;
         const namespace_id_t table_id;
-        const table_meta_manager_business_card_t::action_timestamp_t::epoch_t epoch;
+        const table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
         const raft_member_id_t member_id;
 
         /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
-        `table_meta_business_card_t`s and putting them into a map for the
+        `table_meta_bcard_t`s and putting them into a map for the
         `raft_networked_member_t` to use. */
         std::map<peer_id_t, raft_member_id_t> old_peer_member_ids;
         watchable_map_var_t<raft_member_id_t, raft_business_card_t<table_raft_state_t> >
@@ -165,7 +165,7 @@ private:
 
         raft_networked_member_t<table_raft_state_t> raft;
 
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             ::all_subs_t table_directory_subs;
         watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
             raft_committed_subs;
@@ -190,7 +190,7 @@ private:
 
         /* `timestamp` is the timestamp of the latest action message we've received for
         this table. */
-        table_meta_manager_business_card_t::action_timestamp_t timestamp;
+        table_meta_manager_bcard_t::timestamp_t timestamp;
 
         /* `is_deleted` is `true` if this table has been dropped. */
         bool is_deleted;
@@ -207,14 +207,14 @@ private:
 
     void on_table_meta_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_meta_business_card_t &value);
+        const table_meta_bcard_t &value);
 
     /* `on_action()`, `on_get_config()`, and `on_set_config()` are mailbox callbacks */
 
     void on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_meta_manager_business_card_t::action_timestamp_t &timestamp,
+        const table_meta_manager_bcard_t::timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
@@ -236,8 +236,8 @@ private:
     server regarding the given table, and sends one if so. It is called in the following
     situations:
       - Whenever another server connects, it is called for that server and every table
-      - Whenever a server changes its `table_meta_business_card_t` in the directory for a
-        table, it is called for that server and that table
+      - Whenever a server changes its `table_meta_bcard_t` in the directory for a table,
+        it is called for that server and that table
       - Whenever a Raft transaction is committed for a table that we are a member of, it
         is called for every server and that table
     This results in a lot of redundant calls. This is OK because every action message has
@@ -249,10 +249,10 @@ private:
         const server_id_t &server_id,
         /* This is the other server's directory entry for this table, or an empty
         optional if there is no entry. */
-        const boost::optional<table_meta_business_card_t> &table_bcard,
+        const boost::optional<table_meta_bcard_t> &table_bcard,
         /* This is the other server's global directory entry. If the other server is not
         connected, don't call `do_sync()`. */
-        const table_meta_manager_business_card_t &table_manager_bcard);
+        const table_meta_manager_bcard_t &table_manager_bcard);
 
     /* `schedule_sync()` arranges for `do_sync()` to eventually be called with the given
     table and server. The caller must hold `table_meta_manager_t::mutex`.
@@ -264,9 +264,9 @@ private:
 
     const server_id_t server_id;
     mailbox_manager_t * const mailbox_manager;
-    watchable_map_t<peer_id_t, table_meta_manager_business_card_t>
+    watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
         * const table_meta_manager_directory;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
         * const table_meta_directory;
     table_meta_persistence_interface_t * const persistence_interface;
 
@@ -283,19 +283,19 @@ private:
 
     /* This map describes the table business cards that we show to other servers via the
     directory. `active_table_t` creates and deletes entries in this map. */
-    watchable_map_var_t<namespace_id_t, table_meta_business_card_t>
-        table_meta_business_cards;
+    watchable_map_var_t<namespace_id_t, table_meta_bcard_t>
+        table_meta_bcards;
 
     auto_drainer_t drainer;
 
-    watchable_map_t<peer_id_t, table_meta_manager_business_card_t>::all_subs_t
+    watchable_map_t<peer_id_t, table_meta_manager_bcard_t>::all_subs_t
         table_meta_manager_directory_subs;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_business_card_t>
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
         ::all_subs_t table_meta_directory_subs;
 
-    table_meta_manager_business_card_t::action_mailbox_t action_mailbox;
-    table_meta_manager_business_card_t::get_config_mailbox_t get_config_mailbox;
-    table_meta_manager_business_card_t::set_config_mailbox_t set_config_mailbox;
+    table_meta_manager_bcard_t::action_mailbox_t action_mailbox;
+    table_meta_manager_bcard_t::get_config_mailbox_t get_config_mailbox;
+    table_meta_manager_bcard_t::set_config_mailbox_t set_config_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_ */

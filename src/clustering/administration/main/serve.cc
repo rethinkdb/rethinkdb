@@ -129,7 +129,7 @@ bool do_serve(UNUSED io_backender_t *io_backender,
         directory_read_manager_t<cluster_directory_metadata_t>
             directory_read_manager(&connectivity_cluster, 'D');
 
-        directory_map_read_manager_t<namespace_id_t, table_meta_business_card_t>
+        directory_map_read_manager_t<namespace_id_t, table_meta_bcard_t>
             table_directory_read_manager(&connectivity_cluster, 'T');
 
         log_server_t log_server(&mailbox_manager, &log_writer);
@@ -154,11 +154,11 @@ bool do_serve(UNUSED io_backender_t *io_backender,
         /* Extract a subview of the directory with all the table meta manager business
         cards. */
         watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
-                table_meta_manager_business_card_t>
+                table_meta_manager_bcard_t>
             table_meta_manager_directory(
                 directory_read_manager.get_root_map_view(),
                 [](const cluster_directory_metadata_t *cluster_md) {
-                    return cluster_md->table_meta_manager_business_card.get_ptr();
+                    return cluster_md->table_meta_manager_bcard.get_ptr();
                 });
 
         metadata_persistence::dummy_table_meta_persistence_interface_t dummy_persistence;
