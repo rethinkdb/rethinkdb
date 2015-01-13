@@ -902,11 +902,17 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
-    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
-            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size());
+    // We add 1 for the extra NULL byte.
+    uint8_t tag_offset = static_cast<uint8_t>(primary.size() + 1) + pk_offset;
 
-    std::string res = secondary + primary + tag +
-           std::string(1, pk_offset) + std::string(1, tag_offset);
+    std::string res
+        = secondary
+        + primary
+        + std::string(1, 0) // NULL byte
+        + tag
+        + std::string(1, pk_offset)
+        + std::string(1, tag_offset);
     guarantee(res.size() <= MAX_KEY_SIZE);
     return res;
 }
@@ -920,10 +926,12 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
 }
 
-std::string datum_t::compose_secondary(const std::string &secondary_key,
-        const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
-    std::string primary_key_string = key_to_unescaped_str(primary_key);
+std::string datum_t::compose_secondary(
+    const std::string &secondary_key,
+    const store_key_t &primary_key,
+    boost::optional<uint64_t> tag_num) {
 
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         throw exc_t(base_exc_t::GENERIC,
             strprintf(
@@ -987,13 +995,15 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
 
 void parse_secondary(const std::string &key,
                      components_t *components) THROWS_NOTHING {
-    uint8_t start_of_tag = key[key.size() - 1],
-            start_of_primary = key[key.size() - 2];
+    uint8_t start_of_primary = key[key.size() - 2];
+    uint8_t start_of_tag = key[key.size() - 1];
+    uint8_t end_of_primary = start_of_tag - 1; // extra NULL byte
 
     guarantee(start_of_primary < start_of_tag);
 
     components->secondary = key.substr(0, start_of_primary);
-    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+    components->primary = key.substr(start_of_primary,
+                                     end_of_primary - start_of_primary);
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
     if (tag_str.size() != 0) {
@@ -1578,10 +1588,10 @@ size_t datum_t::max_trunc_size() {
 }
 
 size_t datum_t::trunc_size(size_t primary_key_size) {
-    //The 2 in this function is necessary because of the offsets which are
-    //included at the end of the key so that we can extract the primary key and
-    //the tag num from secondary keys.
-    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
+    // We subtract three bytes because of the NULL byte we pad on the end of the
+    // primary key and the two 1-byte offsets at the end of the key (which are
+    // used to extract the primary key and tag num).
+    return MAX_KEY_SIZE - primary_key_size - tag_size - 3;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
