@@ -458,14 +458,9 @@ public:
         // v1.13 itself.  For that, we use the last_key value in the
         // rget_read_response_t.
         if (l.sindex_key == r.sindex_key) {
-            debugf("Tie breaker:\n  %s\n  %s\n",
-                   key_to_debug_str(datum_t::extract_primary(l.key)).c_str(),
-                   key_to_debug_str(datum_t::extract_primary(r.key)).c_str());
-            bool ret = reversed(sorting)
+            return reversed(sorting)
                 ? datum_t::extract_primary(l.key) > datum_t::extract_primary(r.key)
                 : datum_t::extract_primary(l.key) < datum_t::extract_primary(r.key);
-            debugf("RET: %d\n", ret);
-            return ret;
         } else {
             return reversed(sorting)
                 ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
@@ -482,17 +477,6 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
     }
     if (sorting != sorting_t::UNORDERED) {
         std::stable_sort(vec->begin(), vec->end(), sindex_compare_t(sorting));
-        debugf("%zu\n", vec->size());
-        {
-            printf_buffer_t buf;
-            debug_print(&buf, (*vec)[0]);
-            debugf("1st: %s\n", buf.c_str());
-        }
-        if ((*vec).size() > 1) {
-            printf_buffer_t buf;
-            debug_print(&buf, (*vec)[1]);
-            debugf("2nd: %s\n", buf.c_str());
-        }
     }
 }
 
