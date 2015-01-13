@@ -1146,12 +1146,7 @@ class WorkerThread(threading.Thread):
             if 'test' not in r.db_list().run(self.reqlConnection):
                 r.db_create('test').run(self.reqlConnection)
             else:
-                for tableName in r.db('test').table_list().run(self.reqlConnection):
-                    r.db('test').table_drop(tableName).run(self.reqlConnection)
-            
-            # -- drop any tables in test
-            
-            r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
+                r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
             
             # -- remove any other connected servers
             
@@ -1179,7 +1174,8 @@ class WorkerThread(threading.Thread):
                 
                 # -- make sure it is clean and setup
                 
-                self.clean_server()
+                if self.existingServer is None:
+                    self.clean_server()
                 
                 # -- get a test
                 
