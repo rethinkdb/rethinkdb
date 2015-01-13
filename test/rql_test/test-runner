@@ -1094,10 +1094,6 @@ class WorkerThread(threading.Thread):
         
         if not self.check_server():
             raise Exception ('Server could not be started!') # ToDo: figure out how to report this properly
-        
-        # -- ensure that it is clean
-        
-        self.clean_server()
     
     def check_server(self):
         '''Check that the server is up, an responds to a basic query'''
@@ -1180,6 +1176,10 @@ class WorkerThread(threading.Thread):
                     self.check_server()
                 else:
                     self.run_server()
+                
+                # -- make sure it is clean and setup
+                
+                self.clean_server()
                 
                 # -- get a test
                 
