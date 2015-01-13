@@ -15,7 +15,8 @@ end
 $port_offset = 32700
 $c = r.connect(:host => 'localhost', :port => $port_offset + 28015,
                :db => 'test').repl.auto_reconnect
-
+# RSI: %032x
+# RSI: keys of different lengths
 def frac2uuid frac
   val = ("%030x" % (0xffffffffffffffffffffffffffffffff * frac).to_i).chars
   "00000000-0000-0000-0000-000000000000".chars.map{|c|
@@ -134,12 +135,15 @@ end
 
 $fields = ['id', 'a', 'b', 'c', 'd', 'm']
 
+# RSI: batch size
 $shards.each {|name, nshards|
-  # TODO: shard here
-  $limit_sizes.each {|limit_size|
+  # RSI: shard here
+  $limit_sizes.each_with_index {|limit_size, limit_size_index|
+    next if limit_size_index < 1
+    PP.pp [:limit_size, limit_size]
     pop_sizes = [0, limit_size - 1, limit_size, $max_pop_size].uniq
     pop_sizes.each_with_index {|pop_size, pop_size_index|
-      next if pop_size_index < 2
+      # next if pop_size_index < 1
       PP.pp [:pop_size, pop_size]
       begin
         sub_pop = (0...pop_size).map{|i| pop(i, pop_size)}
@@ -150,20 +154,24 @@ $shards.each {|name, nshards|
            $t.orderby(index: r.desc(field)).limit(limit_size)]
         }
         queries.each_with_index {|raw_query, query_index|
-          next if query_index < 7
-          q = Query.new(pop_size, limit_size, raw_query)
+          $rqlast = raw_query
+          $qlast = q = Query.new(pop_size, limit_size, raw_query)
           em = Emulator.new(q.init)
           PP.pp [:query, q]
           $fields.each_with_index {|field, field_index|
-            next if field_index < 5
-            PP.pp [:field, field]
+            # PP.pp [:field, field]
             forward = $t.orderby(index: field)
             backward = $t.orderby(index: r.desc(field))
             [forward, backward].each {|dir|
+              PP.pp [:dir, dir]
               orig_state = q.current_val
+              # PP.pp [:orig_state, orig_state]
               first = dir[0].default(nil).run_safe
+              # PP.pp [:first, first]
               dir.limit(1).delete.run_safe; em.sync(q)
+              # PP.pp [:synced, 1]
               if first; $t.insert(first).run_safe; em.sync(q); end
+              # PP.pp [:synced, 2]
               em.assert_state(orig_state)
             }
             PP.pp [[pop_size_index, query_index, field_index],
