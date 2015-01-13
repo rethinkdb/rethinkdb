@@ -391,6 +391,10 @@ void store_t::reset_data(
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
 
+        /* Note we don't allow interruption during this step; it's too easy to end up in
+        an inconsistent state. */
+        cond_t non_interruptor;
+
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
         key_range_t deleted_range;
@@ -399,7 +403,7 @@ void store_t::reset_data(
                                              subregion.inner,
                                              superblock.get(),
                                              &deletion_context,
-                                             interruptor,
+                                             &non_interruptor,
                                              max_erased_per_pass,
                                              &mod_reports,
                                              &deleted_range);

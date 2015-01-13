@@ -13,165 +13,56 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/store.hpp"
 
-/* Helper function for rdb_erase_small_range() */
-void rdb_erase_range_convert_keys(const key_range_t &key_range,
-                                  bool *left_key_supplied_out,
-                                  bool *right_key_supplied_out,
-                                  store_key_t *left_key_exclusive_out,
-                                  store_key_t *right_key_inclusive_out) {
-    /* This is guaranteed because the way the keys are calculated below would
-     * lead to a single key being deleted even if the range was empty. */
-    guarantee(!key_range.is_empty());
-
-    rassert(left_key_supplied_out != NULL);
-    rassert(right_key_supplied_out != NULL);
-    rassert(left_key_exclusive_out != NULL);
-    rassert(right_key_inclusive_out != NULL);
-
-    /* Twiddle some keys to get the in the form we want. Notice these are keys
-     * which will be made  exclusive and inclusive as their names suggest
-     * below. At the point of construction they aren't. */
-    *left_key_exclusive_out = store_key_t(key_range.left);
-    *right_key_inclusive_out = store_key_t(key_range.right.key);
-
-    *left_key_supplied_out = left_key_exclusive_out->decrement();
-    *right_key_supplied_out = !key_range.right.unbounded;
-    if (*right_key_supplied_out) {
-        right_key_inclusive_out->decrement();
-    }
-
-    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
-     * names. */
-}
-
-class collect_keys_helper_t : public btree_traversal_helper_t {
+class collect_keys_helper_t : public depth_first_traversal_callback_t {
 public:
     collect_keys_helper_t(key_tester_t *tester,
-                          const btree_key_t *left_exclusive_or_null,
-                          const btree_key_t *right_inclusive_or_null,
-                          uint64_t max_keys_to_collect /* 0 = unlimited */)
-        : tester_(tester),
-          left_exclusive_or_null_(left_exclusive_or_null),
-          right_inclusive_or_null_(right_inclusive_or_null),
-          max_keys_to_collect_(max_keys_to_collect) {
+                          const key_range_t &key_range,
+                          uint64_t max_keys_to_collect, /* 0 = unlimited */
+                          signal_t *interruptor)
+        : aborted_(false),
+          tester_(tester),
+          key_range_(key_range),
+          max_keys_to_collect_(max_keys_to_collect),
+          interruptor_(interruptor) {
         if (max_keys_to_collect_ != 0) {
             collected_keys_.reserve(max_keys_to_collect_);
         }
-        // Will be set to NO later if we abort prematurely.
-        done_traversing_ = done_traversing_t::YES;
     }
 
-    void process_a_leaf(buf_lock_t *leaf_node_buf,
-                        const btree_key_t *l_excl,
-                        const btree_key_t *r_incl,
-                        signal_t *,
-                        int *) THROWS_ONLY(interrupted_exc_t) {
-        buf_read_t read(leaf_node_buf);
-        const leaf_node_t *node = static_cast<const leaf_node_t *>(read.get_data_read());
-
-        for (auto it = leaf::begin(*node); it != leaf::end(*node); ++it) {
-            if (max_keys_to_collect_ != 0
-                && collected_keys_.size() >= max_keys_to_collect_) {
-
-                rassert(collected_keys_.size() == max_keys_to_collect_);
-                // There might be more overlapping key/value pairs, but we're
-                // aborting now. Set done_traversing_ to NO.
-                done_traversing_ = done_traversing_t::NO;
-                break;
-            }
-
-            const btree_key_t *k = (*it).first;
-            if (!k) {
-                break;
-            }
-
-            // k's in the leaf node so it should be in the range of
-            // keys allowed for the leaf node.
-            assert_key_in_range(k, l_excl, r_incl);
-
-            if (key_in_range(k, left_exclusive_or_null_, right_inclusive_or_null_)
-                && tester_->key_should_be_erased(k)) {
-                collected_keys_.push_back(store_key_t(k));
-            }
+    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+        guarantee(!aborted_);
+        guarantee(key_range_.contains_key(
+            keyvalue.key()->contents, keyvalue.key()->size));
+        if (!tester_->key_should_be_erased(keyvalue.key())) {
+            return done_traversing_t::NO;
+        }
+        store_key_t key(keyvalue.key());
+        collected_keys_.push_back(key);
+        if (collected_keys_.size() == max_keys_to_collect_ ||
+                interruptor_->is_pulsed()) {
+            aborted_ = true;
+            return done_traversing_t::YES;
+        } else {
+            return done_traversing_t::NO;
         }
     }
-
-    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
-        // We don't want to do anything here.
-    }
-
-    void filter_interesting_children(buf_parent_t,
-                                     ranged_block_ids_t *ids_source,
-                                     interesting_children_callback_t *cb) {
-        for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
-            if (max_keys_to_collect_ != 0
-                && collected_keys_.size() >= max_keys_to_collect_) {
-
-                rassert(collected_keys_.size() == max_keys_to_collect_);
-                // There might be more overlapping children, but we're aborting
-                // now. Set done_traversing_ to NO.
-                done_traversing_ = done_traversing_t::NO;
-                break;
-            }
-
-            block_id_t block_id;
-            const btree_key_t *left, *right;
-            ids_source->get_block_id_and_bounding_interval(i, &block_id, &left, &right);
-
-            if (overlaps(left, right, left_exclusive_or_null_, right_inclusive_or_null_)) {
-                cb->receive_interesting_child(i);
-            }
-        }
-
-        cb->no_more_interesting_children();
-    }
-
-    access_t btree_superblock_mode() { return access_t::read; }
-    access_t btree_node_mode() { return access_t::read; }
 
     const std::vector<store_key_t> &get_collected_keys() const {
         return collected_keys_;
     }
 
-    done_traversing_t get_done_traversing() const {
-        return done_traversing_;
+    bool get_aborted() const {
+        return aborted_;
     }
 
 private:
-    static bool key_in_range(const btree_key_t *k,
-                             const btree_key_t *left_excl,
-                             const btree_key_t *right_incl) {
-        if (left_excl != NULL && btree_key_cmp(k, left_excl) <= 0) {
-            return false;
-        }
-        if (right_incl != NULL && btree_key_cmp(right_incl, k) < 0) {
-            return false;
-        }
-        return true;
-    }
-
-    static void assert_key_in_range(DEBUG_VAR const btree_key_t *k,
-                                    DEBUG_VAR const btree_key_t *left_excl,
-                                    DEBUG_VAR const btree_key_t *right_incl) {
-        rassert(key_in_range(k, left_excl, right_incl));
-    }
-
-    // Checks if (x_l_excl, x_r_incl] intersects (y_l_excl, y_r_incl].
-    static bool overlaps(const btree_key_t *x_l_excl, const btree_key_t *x_r_incl,
-                         const btree_key_t *y_l_excl, const btree_key_t *y_r_incl) {
-        return (x_l_excl == NULL || y_r_incl == NULL
-                || btree_key_cmp(x_l_excl, y_r_incl) < 0)
-            && (x_r_incl == NULL || y_l_excl == NULL
-                || btree_key_cmp(y_l_excl, x_r_incl) < 0);
-    }
-
     std::vector<store_key_t> collected_keys_;
-    done_traversing_t done_traversing_;
+    bool aborted_;
 
     key_tester_t *tester_;
-    const btree_key_t *left_exclusive_or_null_;
-    const btree_key_t *right_inclusive_or_null_;
+    key_range_t key_range_;
     uint64_t max_keys_to_collect_;
+    signal_t *interruptor_;
 
     DISABLE_COPYING(collect_keys_helper_t);
 };
@@ -191,19 +82,17 @@ done_traversing_t rdb_erase_small_range(
     mod_reports_out->clear();
     *deleted_out = key_range_t::empty();
 
-    bool left_key_supplied, right_key_supplied;
-    store_key_t left_key_exclusive, right_key_inclusive;
-    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
-             &left_key_exclusive, &right_key_inclusive);
-
-    /* Step 1: Collect all keys that we want to erase using a parallel traversal. */
-    collect_keys_helper_t key_collector(
-        tester,
-        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
-        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        max_keys_to_erase);
-    btree_parallel_traversal(superblock, &key_collector, interruptor,
-                             release_superblock_t::KEEP);
+    /* Step 1: Collect all keys that we want to erase using a depth-first traversal. */
+    collect_keys_helper_t key_collector(tester, key_range, max_keys_to_erase,
+        interruptor);
+    btree_depth_first_traversal(superblock, key_range, &key_collector,
+                                direction_t::FORWARD, release_superblock_t::KEEP);
+    if (interruptor->is_pulsed()) {
+        /* If the interruptor is pulsed during the depth-first traversal, then the
+        traversal will stop early but not throw an exception. So we have to throw it
+        here. */
+        throw interrupted_exc_t();
+    }
 
     /* Step 2: Erase each key individually and create the corresponding
        modification reports. */
@@ -256,19 +145,26 @@ done_traversing_t rdb_erase_small_range(
           // gets deleted.
         guarantee(pass_back_superblock_promise.wait() == superblock);
 
-        if (key > deleted_out->right.key) {
-            *deleted_out = key_range_t(key_range_t::closed, key_range.left,
-                                       key_range_t::closed, key);
+        guarantee(key >= deleted_out->right.key);
+        *deleted_out = key_range_t(key_range_t::closed, key_range.left,
+                                   key_range_t::closed, key);
+
+        if (interruptor->is_pulsed()) {
+            /* Note: We have to check the interruptor at the beginning or the end of the
+            loop. If we check it in the middle, we might leave the B-tree in a half-
+            consistent state, or we might leave `*deleted_out` in a state not consistent
+            with what we actually deleted. */
+            throw interrupted_exc_t();
         }
     }
 
     /* If we're done, then set `*deleted_out` to be exactly the same as the range we were
     supposed to delete. This isn't redundant because there may be a gap between the last
     key we actually deleted and the true right-hand side of `key_range`. */
-    if (key_collector.get_done_traversing() == done_traversing_t::YES) {
+    if (!key_collector.get_aborted()) {
         *deleted_out = key_range;
     }
 
-    return key_collector.get_done_traversing();
+    return key_collector.get_aborted() ? done_traversing_t::NO : done_traversing_t::YES;
 }
 
