@@ -12,6 +12,12 @@
             {{else}}
                 <img src="images/loading-feed.gif" />
                 Waiting for events on changefeed.
+                Showing {{feed.shown}} of {{feed.total}}.
+                {{#if feed.paused}}
+                    {{feed.upcoming}} more available. <a href="#" class="unpause_changefeed">Unpause</a>
+                {{else}}
+                    <a href="#" class="pause_changefeed">Pause</a>
+                {{/if}}
             {{/if}}
         {{else}}
             {{#if query_has_changed}}Results from the previous query:{{/if}}
@@ -28,7 +34,11 @@
 </div>
 <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
 <div class="tab-content"></div>
-{{#unless feed}}
+{{#if feed}}
+    {{#if feed.overflow}}
+        Older results have been discarded.
+    {{/if}}
+{{else}}
     {{#if show_more_data}}
     <div class="info more_results">
         <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
@@ -38,4 +48,4 @@
             <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
         {{/if}}
     {{/if}}
-{{/unless}}
+{{/if}}

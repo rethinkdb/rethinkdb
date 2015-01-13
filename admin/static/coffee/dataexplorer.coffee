@@ -1,12 +1,13 @@
 # TODO ATN
-# add pause/unpause button
 # the indexes in the table view should be reversed.
+# metadata info should stay visible when scrolling down
 # views should not completely redraw every added row
 # rate limit events to avoid freezing the browser when there are too many
 # new events should flash
 # many of the fields of the parent view don't get updated when they change
 # table view shows "no results" when it means "no more results" or "no results yet"
 # bottom of display for changefeeds should show "older events were discarded" if that is the case
+# It says "older results ahve been discarded" but they are just hidden and take up memory
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -2602,6 +2603,7 @@ module 'DataExplorerView', ->
                                 error: (query_result, err) =>
                                     @results_view_wrapper.render_error(@query, err)
                                 ready: (query_result) =>
+                                    @state.pause_at = null
                                     if query_result.is_feed
                                         # ATN @toggle_executing true
                                         @disable_toggle_executing = true
@@ -2929,10 +2931,11 @@ module 'DataExplorerView', ->
             @parent.set_scrollbar()
 
         pause_feed: =>
-            @pause_at = @query_result.results.length
+            @parent.container.state.pause_at = @query_result.results.length
 
         unpause_feed: =>
-            delete @pause_at
+            @parent.container.state.pause_at = null
+            @render()
 
         current_batch: =>
             switch @query_result.type
@@ -2940,11 +2943,13 @@ module 'DataExplorerView', ->
                     return @query_result.value
                 when 'cursor'
                     if @query_result.is_feed
-                        if @pause_at?
-                            latest = @query_result.results[@pause_at - @parent.container.limit .. @pause_at]
+                        pause_at = @parent.container.state.pause_at
+                        if pause_at?
+                            latest = @query_result.results[Math.min(0, pause_at - @parent.container.limit) .. pause_at - 1]
                         else
-                            latest = @query_result.results[@parent.container.limit ..]
+                            latest = @query_result.results[-@parent.container.limit ..]
                         latest.reverse()
+
                         return latest
                     else
                         return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
@@ -2967,7 +2972,9 @@ module 'DataExplorerView', ->
             @fetch_batch_rows()
 
         add_row: =>
-            @render()
+            @parent.render()
+            if not @parent.container.state.pause_at?
+                @render()
 
     class TreeView extends ResultView
         className: 'results tree_view_container'
@@ -3355,9 +3362,6 @@ module 'DataExplorerView', ->
             @$el.html @template JSON.stringify @current_batch()
             return @
 
-        add_row: (row) =>
-            @render()
-
     class ProfileView extends ResultView
         className: 'results profile_view_container'
 
@@ -3437,11 +3441,23 @@ module 'DataExplorerView', ->
             'click .link_to_raw_view': 'show_raw'
             'click .activate_profiler': 'activate_profiler'
             'click .more_results_link': 'show_next_batch'
+            'click .pause_changefeed': 'pause_feed'
+            'click .unpause_changefeed': 'unpause_feed'
 
         initialize: (args) =>
             @container = args.container
             @view = args.view
             @view_object = null
+
+        pause_feed: (event) =>
+            event.preventDefault()
+            @view_object?.pause_feed()
+            @render()
+
+        unpause_feed: (event) =>
+            event.preventDefault()
+            @view_object?.unpause_feed()
+            @render()
 
         show_tree: (event) =>
             event.preventDefault()
@@ -3576,8 +3592,13 @@ module 'DataExplorerView', ->
                     num_results: @query_result.size()
                     feed:
                         if @query_result.is_feed
+                            total = @container.state.pause_at ? @query_result.size()
                             ended: @query_result.ended
-                            # HERE
+                            overflow: @container.limit < total
+                            paused: @container.state.pause_at?
+                            shown: Math.min total, @container.limit
+                            total: total
+                            upcoming: @query_result.size() - total
                 @$('.execution_time').tooltip
                     for_dataexplorer: true
                     trigger: 'hover'
@@ -3773,7 +3794,7 @@ module 'DataExplorerView', ->
         constructor: (options) ->
             @container = options.container
             @concurrent = 0
-            @total_duration = 0 
+            @total_duration = 0
 
         _begin: =>
             if @concurrent == 0
