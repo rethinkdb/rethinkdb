@@ -1,6 +1,6 @@
 # TODO ATN
-# the indexes in the table view should be reversed.
 # metadata info should stay visible when scrolling down
+# the indexes in the table view should be reversed.
 # views should not completely redraw every added row
 # rate limit events to avoid freezing the browser when there are too many
 # new events should flash
@@ -8,6 +8,7 @@
 # table view shows "no results" when it means "no more results" or "no results yet"
 # bottom of display for changefeeds should show "older events were discarded" if that is the case
 # It says "older results ahve been discarded" but they are just hidden and take up memory
+# disabled horizontal scrollbar shows up sometimes
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -3448,9 +3449,31 @@ module 'DataExplorerView', ->
             @container = args.container
             @view = args.view
             @view_object = null
+            @scroll_handler = => @handle_scroll()
+            @floating_metadata = false
+            $(window).on('scroll', @scroll_handler)
+            @handle_scroll()
+
+        remove: =>
+            $(window).off('scroll', @scroll_handler)
+            super()
+
+        handle_scroll: =>
+            scroll = $(window).scrollTop()
+            pos = @$('.results_header').offset()?.top
+            if not pos?
+                return
+            if @floating_metadata and pos > scroll
+                @floating_metadata = false
+                @$('metadata').removeClass('floating_metadata')
+            if not @floating_metadata and pos < scroll
+                @floating_metadata = true
+                @$('metadata').addClass('floating_metadata')
+                if not @container.state.pause_at?
+                    @pause_feed()
 
         pause_feed: (event) =>
-            event.preventDefault()
+            event?.preventDefault()
             @view_object?.pause_feed()
             @render()
 
@@ -3500,7 +3523,8 @@ module 'DataExplorerView', ->
             if width_value < @$(content_container).width()
                 # If there is no need for scrollbar, we hide the one on the top
                 @$('.wrapper_scrollbar').hide()
-                $(window).unbind 'scroll'
+                if @set_scrollbar_scroll_handler?
+                    $(window).unbind 'scroll', @set_scrollbar_scroll_handler
             else
                 # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
                 @$('.wrapper_scrollbar').show()
@@ -3528,8 +3552,8 @@ module 'DataExplorerView', ->
 
                 that = @
                 position_scrollbar()
-                $(window).scroll ->
-                    position_scrollbar()
+                @set_scrollbar_scroll_handler = position_scrollbar
+                $(window).scroll @set_scrollbar_scroll_handler
                 $(window).resize ->
                     position_scrollbar()
 
@@ -3590,6 +3614,7 @@ module 'DataExplorerView', ->
                     execution_time_pretty: Utils.prettify_duration @container.driver_handler.total_duration
                     no_results: @query_result.ended and @query_result.size() == 0
                     num_results: @query_result.size()
+                    floating_metadata: @floating_metadata
                     feed:
                         if @query_result.is_feed
                             total = @container.state.pause_at ? @query_result.size()

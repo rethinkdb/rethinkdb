@@ -5,7 +5,7 @@
         <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
         <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
     </ul>
-    <p class="metadata">
+    <p class="metadata {{#if floating_metadata}} floating_metadata {{/if}}"> 
         {{#if feed}}
             {{#if feed.ended}}
                 The changefeed is closed.
