@@ -43,7 +43,7 @@ void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
 void runtime_sanity_check_failed(
-    const char *file, int line, const char *test) NORETURN;
+    const char *file, int line, const char *test, const std::string &msg) NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -169,13 +169,14 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 // guarantee will almost always fail due to an error in the query logic rather
 // than memory corruption.
 #ifndef NDEBUG
-#define r_sanity_check(test) guarantee(test)
+#define r_sanity_check(test, msg...) guarantee(test, ##msg)
 #else
-#define r_sanity_check(test) do {                       \
-        if (!(test)) {                                  \
-            ::ql::runtime_sanity_check_failed(          \
-                __FILE__, __LINE__, stringify(test));   \
-        }                                               \
+#define r_sanity_check(test, msg...) do {                      \
+        if (!(test)) {                                         \
+            ::ql::runtime_sanity_check_failed(                 \
+                __FILE__, __LINE__, stringify(test),           \
+                strprintf("" msg));                            \
+        }                                                      \
     } while (0)
 #endif // NDEBUG
 
