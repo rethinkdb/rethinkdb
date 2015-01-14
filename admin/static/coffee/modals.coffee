@@ -98,10 +98,10 @@ module 'Modals', ->
                 if (err)
                     @on_error(err)
                 else
-                    if result?.dropped is 1
+                    if result?.dbs_dropped is 1
                         @on_success()
                     else
-                        @on_error(new Error("The return result was not `{dropped: 1}`"))
+                        @on_error(new Error("The return result was not `{dbs_dropped: 1}`"))
 
         on_success: (response) =>
             super()
