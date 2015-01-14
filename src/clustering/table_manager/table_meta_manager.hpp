@@ -140,6 +140,8 @@ private:
             const raft_persistent_state_t<table_raft_state_t> &persistent_state,
             signal_t *interruptor);
 
+        void update_bcard(bool expect_exists);
+
         /* This is the callback for `table_directory_subs` */
         void on_table_directory_change(
             const std::pair<peer_id_t, namespace_id_t> &key,
@@ -223,13 +225,14 @@ private:
 
     void on_get_config(
         signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const mailbox_t<void(boost::optional<table_config_t>)>::address_t &reply_addr);
+        const boost::optional<namespace_id_t> &table_id,
+        const mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
+            address_t &reply_addr);
 
     void on_set_config(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_config_t &new_config,
+        const table_config_and_shards_t &new_config_and_shards,
         const mailbox_t<void(bool)>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given

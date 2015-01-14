@@ -58,6 +58,9 @@ public:
         std::set<server_id_t> replicas;
         server_id_t primary_replica;
     };
+    database_id_t database;
+    name_string_t name;
+    std::string primary_key;
     std::vector<shard_t> shards;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
@@ -106,47 +109,17 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_scheme_t);
 
-/* `table_replication_info_t` exists because the `table_config_t` needs to be under the
-same `versioned_t` as `table_shard_scheme_t`. */
+/* `table_config_and_shards_t` exists because the `table_config_t` needs to be changed in
+sync with the `table_shard_scheme_t`. */
 
-class table_replication_info_t {
+class table_config_and_shards_t {
 public:
     table_config_t config;
-
     table_shard_scheme_t shard_scheme;
 };
 
-RDB_DECLARE_SERIALIZABLE(table_replication_info_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(table_replication_info_t);
-
-class namespace_semilattice_metadata_t {
-public:
-    namespace_semilattice_metadata_t() { }
-
-    versioned_t<name_string_t> name;   // TODO maybe this belongs on table_config_t
-    versioned_t<database_id_t> database;   // TODO this should never actually change
-    versioned_t<std::string> primary_key;   // TODO: This should never actually change
-
-    versioned_t<table_replication_info_t> replication_info;
-};
-
-RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
-RDB_DECLARE_SEMILATTICE_JOINABLE(namespace_semilattice_metadata_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(namespace_semilattice_metadata_t);
-
-/* This is the metadata for all of the tables. */
-class namespaces_semilattice_metadata_t {
-public:
-    typedef std::map<namespace_id_t,
-        deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
-    namespace_map_t namespaces;
-};
-
-RDB_DECLARE_SERIALIZABLE(namespaces_semilattice_metadata_t);
-RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
-
-typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > namespace_directory_metadata_t;
+RDB_DECLARE_SERIALIZABLE(table_config_and_shards_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_config_and_shards_t);
 
 /* `write_ack_config_checker_t` is used for checking if a set of acks satisfies the
 requirements in the given `table_config_t`. The reason it needs the `table_config_t` and

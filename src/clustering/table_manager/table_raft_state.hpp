@@ -11,7 +11,7 @@ public:
     public:
         class set_table_config_t {
         public:
-            table_config_t new_config;
+            table_config_and_shards_t new_config_and_shards;
         };
 
         change_t() { }
@@ -26,7 +26,7 @@ public:
         return config == other.config && member_ids == other.member_ids;
     }
 
-    table_config_t config;
+    table_config_and_shards_t config_and_shards;
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 

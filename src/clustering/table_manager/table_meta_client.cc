@@ -11,7 +11,10 @@ table_meta_client_t::table_meta_client_t(
             *_table_meta_directory) :
     mailbox_manager(_mailbox_manager),
     table_meta_manager_directory(_table_meta_manager_directory),
-    table_meta_directory(_table_meta_directory)
+    table_meta_directory(_table_meta_directory),
+    table_meta_directory_subs(table_meta_directory,
+        std::bind(&table_meta_client_t::on_directory_change, this, ph::_1, ph::_2),
+        true)
     { }
 
 bool table_meta_client_t::find(
@@ -19,15 +22,12 @@ bool table_meta_client_t::find(
         const name_string_t &name,
         namespace_id_t *table_id_out,
         size_t *count_out) {
-    table_ids_by_name->read_key(std::make_pair(database, name),
-        [&](const std::set<namespace_id_t> *table_ids) {
-            if (table_ids == nullptr) {
-                *count_out = 0;
-            } else {
-                *count_out = table_ids.size();
-                if (table_ids.size() == 1) {
-                    *table_id_out = *table_ids.begin();
-                }
+    *count_out = 0;
+    table_metadata_by_id.get_watchable()->read_all(
+        [&](const namespace_id_t &key, const table_metadata_t *value) {
+            if (value->database == database && value->name == name) {
+                ++*count_out;
+                *table_id_out = key;
             }
         });
     return (*count_out == 1);
@@ -38,7 +38,7 @@ bool table_meta_client_t::get_name(
         database_id_t *db_out,
         name_string_t *name_out) {
     bool ok;
-    table_metadata_by_id->read_key(table_id,
+    table_metadata_by_id.get_watchable()->read_key(table_id,
         [&](const table_metadata_t *metadata) {
             if (pair == nullptr) {
                 ok = false;
@@ -195,10 +195,9 @@ bool table_meta_client_t::create(
     pmap(bcards.begin(), bcards.end(),
     [&](const std::pair<server_id_t, table_meta_manager_bcard_t> &pair) {
         try {
+            /* Send the message for the server and wait for a reply */
             disconnect_watcher_t dw(mailbox_manager,
                 pair.second.action_mailbox.get_peer());
-
-            /* Send the message for the server and wait for a reply */
             cond_t got_ack;
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
@@ -217,6 +216,9 @@ bool table_meta_client_t::create(
             /* do nothing */
         }
     });
+    if (interruptor.is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 
     if (num_acked > 0) {
         /* Wait until the table appears in the directory. It may never appear in the
@@ -237,7 +239,6 @@ bool table_meta_client_t::create(
             }
         }
         table_metadata_by_id.flush();
-        table_ids_by_name.flush();
         return result_t::success;
     } else if (!bcards.empty()) {
         return result_t::maybe;
@@ -296,6 +297,9 @@ bool table_meta_client_t::drop(
             /* do nothing */
         }
     });
+    if (interruptor.is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 
     if (num_acked > 0) {
         /* Wait until the table disappears from the directory. */
@@ -314,7 +318,6 @@ bool table_meta_client_t::drop(
             }
         }
         table_metadata_by_id.flush();
-        table_ids_by_name.flush();
         return result_t::success;
     } else if (!bcards.empty()) {
         return result_t::maybe;
@@ -398,7 +401,37 @@ bool table_meta_client_t::set_config(
     }
 
     table_metadata_by_id.flush();
-    table_ids_by_name.flush();
     return result_t::success;
+}
+
+void table_meta_client_t::on_directory_change(
+        const std::pair<peer_id_t, namespace_id_t> &key,
+        const table_meta_bcard_t *dir_value) {
+    table_metadata_by_id_var.change_key(key.second,
+    [&](bool *md_exists, table_metadata_t *md_value) -> bool {
+        if (dir_value != nullptr && !*md_exists) {
+            *md_exists = true;
+            md_value->witnesses = std::set<peer_id_t>(key.first);
+            md_value->database = dir_value->database;
+            md_value->name = dir_value->name;
+            md_value->primary_key = dir_value->primary_key;
+            md_value->timestamp = dir_value->timestamp;
+        } else if (dir_value != nullptr && *md_exists) {
+            md_value->witnesses.insert(key.first);
+            if (dir_value->timestamp.supersedes(md_value->timestamp)) {
+                md_value->database = dir_value->database;
+                md_value->name = dir_value->name;
+                md_value->timestamp = dir_value->timestamp;
+            }
+        } else {
+            if (*md_exists) {
+                md_value->witnesses.erase(key.first);
+                if (md_value->witnesses.empty()) {
+                    *exists = false;
+                }
+            }
+        }
+        return true;
+    });
 }
 

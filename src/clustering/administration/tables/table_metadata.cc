@@ -9,6 +9,9 @@
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+// RSI(raft): Some of these should be `SINCE_v1_N`, where `N` is the version number at
+// which Raft is released.
+
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(write_ack_config_t::req_t, replicas, mode);
 RDB_IMPL_EQUALITY_COMPARABLE_2(write_ack_config_t::req_t, replicas, mode);
 
@@ -27,24 +30,10 @@ RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_t, shards, write_ack_config, durabil
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_shard_scheme_t, split_points);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_replication_info_t,
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_and_shards_t,
                                     config, shard_scheme);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_replication_info_t,
+RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_and_shards_t,
                                config, shard_scheme);
-
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(namespace_semilattice_metadata_t,
-                                    name, database, primary_key, replication_info);
-
-RDB_IMPL_SEMILATTICE_JOINABLE_4(
-        namespace_semilattice_metadata_t,
-        name, database, primary_key, replication_info);
-RDB_IMPL_EQUALITY_COMPARABLE_4(
-        namespace_semilattice_metadata_t,
-        name, database, primary_key, replication_info);
-
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(namespaces_semilattice_metadata_t, namespaces);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
-RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);

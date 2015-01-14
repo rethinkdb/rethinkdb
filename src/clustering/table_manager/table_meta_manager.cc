@@ -107,27 +107,48 @@ table_meta_manager_t::active_table_t::active_table_t(
     raft_committed_subs(std::bind(&active_table_t::on_raft_committed_change, this)),
     raft_readiness_subs(std::bind(&active_table_t::on_raft_readiness_change, this))
 {
+    update_bcard(false);
     {
         watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
             freeze(raft.get_raft()->get_committed_state());
         raft_committed_subs.reset(raft.get_raft()->get_committed_state(), &freeze);
     }
-
     {
         watchable_t<bool>::freeze_t freeze(raft.get_raft()->get_readiness_for_change());
         raft_readiness_subs.reset(raft.get_raft()->get_readiness_for_change(), &freeze);
     }
-
-    table_meta_bcard_t bcard;
-    bcard.epoch = _epoch;
-    bcard.raft_member_id = member_id;
-    bcard.raft_business_card = raft.get_business_card();
-    bcard.server_id = parent->server_id;
-    parent->table_meta_bcards.set_key_no_equals(table_id, bcard);
 }
 
 table_meta_manager_t::active_table_t::~active_table_t() {
+    /* Stop `raft_readiness_subs` before deleting the bcard so that `update_bcard()`
+    doesn't get called and accidentally re-create the bcard */
+    raft_readiness_subs.reset();
     parent->table_meta_bcards.delete_key(table_id);
+}
+
+void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
+    ASSERT_FINITE_CORO_WAITING;
+
+    /* Make sure that the bcard already exists or doesn't already exist (depending on the
+    value of `expect_exists`) */
+    parent->table_meta_bcards.read_key(table_id,
+        [&](const table_meta_bcard_t *bcard) {
+            guarantee((bcard != nullptr) == expect_exists);
+        });
+
+    /* Update the bcard */
+    table_meta_bcard_t bcard;
+    bcard.timestamp.epoch = _epoch;
+    raft.get_raft()->get_committed_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t &sc) {
+            bcard.timestamp.log_index = sc.log_index;
+            bcard.database = sc.config_and_shards.config.database;
+            bcard.name = sc.config_and_shards.config.name;
+    bcard.raft_member_id = member_id;
+    bcard.raft_business_card = raft.get_business_card();
+    bcard.is_leader = raft.get_raft()->get_readiness_for_change()->get();
+    bcard.server_id = parent->server_id;
+    parent->table_meta_bcards.set_key_no_equals(table_id, bcard);
 }
 
 void table_meta_manager_t::active_table_t::write_persistent_state(
@@ -185,20 +206,7 @@ void table_meta_manager_t::active_table_t::on_raft_committed_change() {
 void table_meta_manager_t::active_table_t::on_raft_readiness_change() {
     /* If we become the Raft cluster leader, publish this news in the directory so that
     clients know to route config changes to us. */
-    parent->table_meta_bcards.change_key(table_id,
-        [&](bool *exists, table_meta_bcard_t *bcard) -> bool {
-            if (!*exists) {
-                /* The key was removed from the map because our destructor was called */
-                return false;
-            }
-            bool ready = raft.get_raft()->get_readiness_for_change()->get();
-            if (ready != bcard->is_leader) {
-                bcard->is_leader = ready;
-                return true;
-            } else {
-                return false;
-            }
-        });
+    update_bcard(true);
 }
 
 void table_meta_manager_t::on_action(
@@ -299,20 +307,47 @@ void table_meta_manager_t::on_action(
 
 void table_meta_manager_t::on_get_config(
         signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const mailbox_t<void(boost::optional<table_config_t>)>::address_t &reply_addr) {
-    boost::optional<table_config_t> result;
-    mutex_assertion_t::acq_t global_mutex_acq(&mutex);
-    auto it = tables.find(table_id);
-    if (it != tables.end()) {
-        new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
+        const boost::optional<namespace_id_t> &table_id,
+        const mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
+            address_t &reply_addr) {
+    std::map<namespace_id_t, table_config_and_shards_t> result;
+    if (static_cast<bool>(table_id)) {
+        /* Fetch information for a specific table. */
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        auto it = tables.find(*table_id);
+        if (it != tables.end()) {
+            new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
+            global_mutex_acq.reset();
+            wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
+            if (it->second->active.has()) {
+                it->second->active->raft.get_raft()->get_committed_state()->apply_read(
+                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                        result[*table_id] = s->state.config_and_shards;
+                    });
+            }
+        }
+    } else {
+        /* Fetch information for all tables that we know about. First we get in line for
+        each mutex, then we release the global mutex assertion, then we wait for each
+        mutex to be ready and copy out its data. */
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
+            table_mutex_in_lines;
+        for (auto &&pair : tables) {
+            table_mutex_in_lines[pair.first] =
+                make_scoped<new_mutex_in_line_t>(&pair.second.mutex);
+        }
         global_mutex_acq.reset();
-        wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
-        if (it->second->active.has()) {
-            it->second->active->raft.get_raft()->get_committed_state()->apply_read(
-                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-                    result = sc->state.config;
-                });
+        for (auto &&pair : table_mutex_in_lines) {
+            wait_interruptible(pair.second->acq_signal(), interruptor);
+            auto it = tables.find(pair.first);
+            guarantee(it != tables.end());
+            if (it->second->active.has()) {
+                it->second->active->raft.get_raft()->get_committed_state()->apply_read(
+                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                        result[pair.first] = s->state.config_and_shards;
+                    });
+            }
         }
     }
     send(mailbox_manager, reply_addr, result);
@@ -321,9 +356,11 @@ void table_meta_manager_t::on_get_config(
 void table_meta_manager_t::on_set_config(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_config_t &new_config,
-        const mailbox_t<void(bool)>::address_t &reply_addr) {
-    bool result = false;
+        const table_config_and_shards_t &new_config,
+        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
+            address_t &reply_addr) {
+    /* Find the table in question and see if we're hosting it */
+    boost::optional<table_meta_manager_bcard_t::timestamp_t> result;
     mutex_assertion_t::acq_t global_mutex_acq(&mutex);
     auto it = tables.find(table_id);
     if (it != tables.end()) {
@@ -331,16 +368,50 @@ void table_meta_manager_t::on_set_config(
         global_mutex_acq.reset();
         wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
         if (it->second->active.has()) {
-            table_raft_state_t::change_t::set_table_config_t c;
-            c.new_config = new_config;
-            table_raft_state_t::change_t change(c);
-            raft_member_t<table_raft_state_t>::change_lock_t change_lock(
-                it->second->active->raft.get_raft(), interruptor);
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> token =
-                it->second->active->raft.get_raft()->propose_change(
-                    &change_lock, change, interruptor);
-            wait_interruptible(token->get_ready_signal(), interruptor);
-            result = token->wait();
+            /* OK, so we are hosting the table. Time to attempt the change. */
+            raft_member_t<table_raft_state_t> *raft =
+                it->second->active->raft.get_raft();
+
+            table_config_and_shards_t old_config;
+            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
+            raft_log_index_t log_index;
+
+            /* We need to make sure that `change_lock` goes out of scope before we wait
+            on the token, so we construct a nested scope */
+            {
+                raft_member_t<table_raft_state_t>::change_lock_t change_lock(
+                    raft, interruptor);
+
+                /* Record the previous value. We'll compare it to the new value to see if
+                we need to update the directory. */
+                old_config = raft->get_latest_state()->get().state.config_and_shards;
+
+                /* Here's where we actually apply the change. */
+                table_raft_state_t::change_t::set_table_config_t c;
+                c.new_config_and_shards = new_config;
+                table_raft_state_t::change_t change(c);
+                change_token = raft->propose_change(&change_lock, change, interruptor);
+
+                /* Record the new log index, which we'll return to the caller */
+                log_index = raft->get_latest_state()->get().log_index;
+            }
+
+            wait_interruptible(change_token->get_ready_signal(), interruptor);
+            if (change_token->wait()) {
+                /* The change succeeded. */
+
+                /* If the name or database changed, update the directory */
+                if (old_config.config.database != new_config.config.database ||
+                        old_config.config.name != new_config.config.name) {
+                    it->second->active->update_bcard(true);
+                }
+
+                /* Send the timestamp back to the caller */
+                table_meta_manager_bcard_t::timestamp_t timestamp;
+                timestamp.epoch = it->second->active->epoch;
+                timestamp.log_index = log_index;
+                result = boost::make_optional(timestamp);
+            }
         }
     }
     send(mailbox_manager, reply_addr, result);

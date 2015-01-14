@@ -88,31 +88,44 @@ public:
         signal_t *interruptor);
 
 private:
+    /* We have one `table_metadata_t` for each table we know to exist. */
     class table_metadata_t {
     public:
-        table_meta_manager_bcard_t::timestamp_t timestamp;
         database_id_t database;
         name_string_t name;
+        std::string primary_key;
+
+        /* `timestamp` is the timestamp as of which `database` and `name` are up to date.
+        It's used to break ties if two different peers report different information. */
+        table_meta_manager_bcard_t::timestamp_t timestamp;
+
+        /* `witnesses` is the set of all visible peers that claim to be hosting this
+        table. If it ever becomes empty, we'll delete the `table_metadata_t`. */
+        std::set<peer_id_t> witnesses;
     };
 
-    mailbox_manager_t *mailbox_manager;
-    watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
-        *table_meta_manager_directory;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
-        *table_meta_directory;
+    void on_directory_change(
+        const std::pair<peer_id_t, namespace_id_t> &key,
+        const table_meta_bcard_t *value);
 
+    mailbox_manager_t *const mailbox_manager;
+    watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
+        *const table_meta_manager_directory;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
+        *const table_meta_directory;
+
+    /* `table_metadata_by_id_var` is a summary of everything we know about the tables in
+    the cluster. `on_directory_change()` will always keep it up to date with respect to
+    `table_meta_directory`. `table_metadata_by_id` distributes `table_metadata_by_id_var`
+    to each thread, so that `find()`, `get_name()`, and `list_names()` can run without
+    blocking. */
     watchable_map_var_t<namespace_id_t, table_metadata_t>
         table_metadata_by_id_var;
     all_thread_watchable_map_var_t<namespace_id_t, table_metadata_t>
         table_metadata_by_id;
 
-    watchable_map_var_t<std::pair<database_id_t, name_string_t>,
-                        std::set<namespace_id_t> >
-        table_ids_by_name_var;
-    all_thread_watchable_map_var_t<std::pair<database_id_t, name_string_t>,
-                                   std::set<namespace_id_t> >
-        table_ids_by_name;
-    
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>::all_subs_t
+        table_meta_directory_subs;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_ */

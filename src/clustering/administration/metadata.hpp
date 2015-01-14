@@ -183,12 +183,4 @@ bool search_db_metadata_by_name(
         database_id_t *id_out,
         std::string *error_out);
 
-bool search_table_metadata_by_name(
-        const namespaces_semilattice_metadata_t &metadata,
-        const database_id_t &db_id,
-        const name_string_t &db_name,
-        const name_string_t &name,
-        namespace_id_t *id_out,
-        std::string *error_out);
-
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

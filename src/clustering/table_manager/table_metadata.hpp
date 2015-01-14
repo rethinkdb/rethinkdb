@@ -74,29 +74,30 @@ public:
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
-    /* `get_config_mailbox` handles fetching the current value of the `table_config_t`
-    for a specific table or all tables. If `table_id` is non-empty, the receiver will
-    reply with a map with zero or one entries, depending on if it is hosting the given
-    table or not. If `table_id` is empty, the receiver will reply with an entry for every
-    table it is hosting. */
+    /* `get_config_mailbox` handles fetching the current value of the
+    `table_config_and_shards_t` for a specific table or all tables. If `table_id` is
+    non-empty, the receiver will reply with a map with zero or one entries, depending on
+    if it is hosting the given table or not. If `table_id` is empty, the receiver will
+    reply with an entry for every table it is hosting. */
     typedef mailbox_t<void(
         boost::optional<namespace_id_t> table_id,
-        mailbox_t<void(std::map<namespace_id_t, table_config_t>)>::address_t reply_addr
+        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
+            address_t reply_addr
         )> get_config_mailbox_t;
     get_config_mailbox_t::address_t get_config_mailbox;
 
-    /* `set_config_mailbox` handles changing the `table_config_t`. These changes may or
-    may not involve adding and removing servers; if they do, then the initial config
-    change message will trigger subsequent action messages to add and remove the servers.
-    If the change was committed, it returns the action timestamp for the commit; the
-    client can use this to determine which servers have seen the commit. If something
-    goes wrong, it returns an empty `boost::optional`, in which case the change may or
-    may not eventually be committed. Only the Raft leader can commit changes; find the
-    server whose `is_leader` field is `true` in the `table_meta_bcard_t` before sending a
-    message. */
+    /* `set_config_mailbox` handles changing the `table_config_and_shards_t`. These
+    changes may or may not involve adding and removing servers; if they do, then the
+    initial config change message will trigger subsequent action messages to add and
+    remove the servers. If the change was committed, it returns the action timestamp for
+    the commit; the client can use this to determine which servers have seen the commit.
+    If something goes wrong, it returns an empty `boost::optional`, in which case the
+    change may or may not eventually be committed. Only the Raft leader can commit
+    changes; find the server whose `is_leader` field is `true` in the
+    `table_meta_bcard_t` before sending a message. */
     typedef mailbox_t<void(
         namespace_id_t table_id,
-        table_config_t new_config,
+        table_config_and_shards_t new_config_and_shards,
         mailbox_t<void(boost::optional<timestamp_t>)>::address_t reply_addr
         )> set_config_mailbox_t;
 
@@ -125,6 +126,10 @@ public:
     the directory so that every server can efficiently look up tables by name. */
     database_id_t database;
     name_string_t name;
+
+    /* The table's primary key. This is distributed in the directory so that every server
+    can efficiently run queries that require knowing the primary key. */
+    std::string primary_key;
 
     /* The other members of the Raft cluster send Raft RPCs through
     `raft_business_card`. */

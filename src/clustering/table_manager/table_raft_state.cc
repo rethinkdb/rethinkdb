@@ -16,7 +16,7 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &c) {
 /* RSI(raft): This should be `SINCE_v1_N`, where `N` is the version number at which Raft
 is released */
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
-    table_raft_state_t::change_t::set_table_config_t, new_config);
+    table_raft_state_t::change_t::set_table_config_t, new_config_and_shards);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_raft_state_t::change_t, v);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_raft_state_t, config, member_ids);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_raft_state_t, config_and_shards, member_ids);
 
