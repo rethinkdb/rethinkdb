@@ -152,7 +152,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
         }
     }
     /* Send notification if it actually changed */
-    if (new_val != old_val) {
+    if (new_val.has() != old_val.has() || (new_val.has() && new_val != old_val)) {
         send_all_change(store_key_t(key.print_primary()), old_val, new_val);
     }
     return true;
