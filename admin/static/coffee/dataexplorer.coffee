@@ -4,6 +4,7 @@
 # It says "older results ahve been discarded" but they are just hidden and take up memory
 # disabled horizontal scrollbar shows up sometimes
 # rate limit events to avoid freezing the browser when there are too many
+# when switching back tot he dataexplorer, the table view shows "undefined" if the changefeed is closed.
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -84,7 +85,7 @@ module 'DataExplorerView', ->
             delete @profile
             delete @value
             delete @results
-            @cursor?.close().catch(() -> null)
+            @cursor?.close().catch?(() -> null)
             delete @cursor
 
         # Gets the next result from the cursor
@@ -2868,6 +2869,10 @@ module 'DataExplorerView', ->
                         @listenTo @query_result, event, handler
             @fetch_batch_rows()
 
+        remove: =>
+            @removed_self = true
+            super()
+
         max_datum_threshold: 1000
 
         # Return whether there are too many datums
@@ -2955,6 +2960,8 @@ module 'DataExplorerView', ->
                 return
             if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
                 @query_result.once 'add', (query_result, row) =>
+                    if @removed_self
+                        return
                     if not @parent.container.state.pause_at?
                         @add_row row
                     @parent.update_feed_metadata()
@@ -3287,6 +3294,8 @@ module 'DataExplorerView', ->
             doc.record = @query_result.position + i
 
         render: =>
+            console.log('render table')
+
             previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
             results = @current_batch()
             if Object::toString.call(results) is '[object Array]'
@@ -3632,9 +3641,12 @@ module 'DataExplorerView', ->
 
         update_feed_metadata: =>
             info = @feed_info()
+            if not info?
+                return
             $('.feed_shown').text(info.shown)
             $('.feed_total').text(info.total)
             $('.feed_upcoming').text(info.upcoming)
+            $('.feed_overflow').toggleClass('hidden', not info.overflow)
 
         feed_info: =>
             if @query_result.is_feed

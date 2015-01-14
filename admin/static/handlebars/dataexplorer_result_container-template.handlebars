@@ -35,9 +35,7 @@
 <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
 <div class="tab-content"></div>
 {{#if feed}}
-    {{#if feed.overflow}}
-        Older results have been discarded.
-    {{/if}}
+    <span class="feed_overflow {{#unless feed.overflow}}hidden{{/unless}}">Older results have been discarded.</span>
 {{else}}
     {{#if show_more_data}}
     <div class="info more_results">
