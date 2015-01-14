@@ -45,7 +45,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         }).run(conn)['errors'] == 0
     r.db(dbName).wait().run(conn)
     cluster.check()
-    assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+    assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
 
     sys.stderr.write('before workoad: %s\n' % (repr(list(r.db(dbName).table(tableName).config().run(conn)))))
 
@@ -58,12 +58,12 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         print("Running workload for 10 seconds (%.2fs)" % (time.time() - startTime))
         time.sleep(10)
         cluster.check()
-        assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+        assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
 
         print("Killing the access server (%.2fs)" % (time.time() - startTime))
         access_server.kill()
 
-        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        issues = list(r.db('rethinkdb').table('current_issues').run(conn))
         time.sleep(.5)
         assert len(issues) > 0, 'Issue was not raised when the server stopped'
         assert len(issues) == 1, 'There were extra cluster issues when server stopped: %s' % repr(issues)
@@ -79,7 +79,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
 
     sys.stderr.write('after kill: %s\n' % repr(list(r.db(dbName).table(tableName).config().run(conn))))
 
-    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     database_server.check()
 

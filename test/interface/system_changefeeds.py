@@ -57,7 +57,7 @@ with driver.Metacluster() as metacluster:
     time.sleep(5.0)
 
     conn = r.connect(proc1.host, proc1.driver_port)
-    tables = ["cluster_config", "db_config", "issues", "logs", "server_config",
+    tables = ["cluster_config", "db_config", "current_issues", "logs", "server_config",
         "server_status", "table_config", "table_status"]
     feeds = { }
     for name in tables:
@@ -121,14 +121,14 @@ with driver.Metacluster() as metacluster:
 
     print("Killing one server...")
     proc2.check_and_stop()
-    check(["logs", "server_status", "table_status", "issues",
+    check(["logs", "server_status", "table_status", "current_issues",
         "test_status", "test2_status"], 1.0)
 
     print("Declaring it dead...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "c"}).delete() \
            .run(conn)
     assert res["deleted"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status", "issues",
+    check(["server_config", "server_status", "table_config", "table_status", "current_issues",
         "test_config", "test_status", "test2_config", "test2_status"], 1.0)
 
     print("Shutting everything down...")
