@@ -312,7 +312,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _server_config_client,
             static_cast<admin_identifier_format_t>(i)));
     }
-    backends[name_string_t::guarantee_valid("issues")] =
+    backends[name_string_t::guarantee_valid("current_issues")] =
         std::make_pair(issues_backend[0].get(), issues_backend[1].get());
 
     for (int i = 0; i < 2; ++i) {

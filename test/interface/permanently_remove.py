@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import pprint, os, socket, sys, time
+import os, socket, sys, time
 
 startTime = time.time()
 
@@ -89,19 +89,18 @@ with driver.Cluster(output_folder='.') as cluster:
     cluster.check()
 
     print("Checking that the other shows an issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
-    pprint.pprint(issues)
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_disconnected"
     assert issues[0]["critical"]
     assert "KingHamlet" in issues[0]["description"]
-    assert issues[0]["info"]["server"] == "KingHamlet"
-    assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
+    assert issues[0]["info"]["disconnected_server"] == "KingHamlet"
+    assert issues[0]["info"]["reporting_servers"] == ["PrinceHamlet"]
     
     # identifier_format='uuid'
-    issues = list(r.db("rethinkdb").table("issues", identifier_format='uuid').run(conn))
-    assert issues[0]["info"]["server"] == king_hamlet.uuid
-    assert issues[0]["info"]["affected_servers"] == [prince_hamlet.uuid]
+    issues = list(r.db("rethinkdb").table("current_issues", identifier_format='uuid').run(conn))
+    assert issues[0]["info"]["disconnected_server"] == king_hamlet.uuid
+    assert issues[0]["info"]["reporting_servers"] == [prince_hamlet.uuid]
 
     test_status = r.db(dbName).table("test").status().run(conn)
     test2_status = r.db(dbName).table("test2").status().run(conn)
@@ -118,7 +117,7 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 0
 
     print("Checking the issues that were generated (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 2, issues
     if issues[0]["type"] == "data_lost":
         dl_issue, np_issue = issues
@@ -179,8 +178,7 @@ with driver.Cluster(output_folder='.') as cluster:
     cluster.check()
 
     print("Checking that there is an issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
-    pprint.pprint(issues)
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_ghost"
     assert not issues[0]["critical"]

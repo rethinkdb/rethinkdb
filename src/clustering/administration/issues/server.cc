@@ -37,9 +37,9 @@ bool server_disconnected_issue_t::build_info_and_description(
                                     &disconnected_server_name)) {
         /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
         brief window of time before the `server_disconnected_issue_t` is destroyed.
-        During that time, if the user reads from `rethinkdb.issues`, we don't want to
-        show them an issue saying "__deleted_server__ is still connected". So we return
-        `false` in this case. */
+        During that time, if the user reads from `rethinkdb.current_issues`, we don't
+        want to show them an issue saying "__deleted_server__ is still connected". So we
+        return `false` in this case. */
         return false;
     }
     ql::datum_array_builder_t reporting_servers_builder(

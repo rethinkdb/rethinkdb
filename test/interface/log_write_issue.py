@@ -53,7 +53,7 @@ with driver.Cluster(output_folder='.') as cluster:
     make_server_write_to_log()
 
     print("Checking for an issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     pprint.pprint(issues)
     assert len(issues) == 1
     assert issues[0]["type"] == "log_write_error"
@@ -62,7 +62,7 @@ with driver.Cluster(output_folder='.') as cluster:
     assert "File too large" in issues[0]["info"]["message"]
 
     print("Checking issue with identifier_format='uuid' (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues", identifier_format="uuid").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues", identifier_format="uuid").run(conn))
     pprint.pprint(issues)
     assert len(issues) == 1
     assert issues[0]["info"]["servers"] == [server_uuid]
@@ -74,7 +74,7 @@ with driver.Cluster(output_folder='.') as cluster:
     make_server_write_to_log()
 
     print("Checking that issue is gone (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     pprint.pprint(issues)
     assert len(issues) == 0
     

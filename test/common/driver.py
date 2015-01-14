@@ -573,7 +573,7 @@ class _Process(object):
         """Throws an exception if the process has crashed or stopped. """
         assert self.process is not None
         if self.process.poll() is not None:
-            raise RuntimeError("Process stopped unexpectedly with return code %d" % self.process.poll())
+            raise RuntimeError("Process %s stopped unexpectedly with return code %d" % (self._name, self.process.poll()))
 
     def check_and_stop(self):
         """Asserts that the process is still running, and then shuts it down by
@@ -596,9 +596,9 @@ class _Process(object):
                     break
                 time.sleep(1)
             else:
-                raise RuntimeError("Process failed to stop within %d seconds after SIGINT" % grace_period)
+                raise RuntimeError("Process %s failed to stop within %d seconds after SIGINT" % (self._name, grace_period))
             if self.process.poll() != 0:
-                raise RuntimeError("Process stopped unexpectedly with return code %d after SIGINT" % self.process.poll())
+                raise RuntimeError("Process %s stopped unexpectedly with return code %d after SIGINT" % (self._name, self.process.poll()))
         finally:
             if self in runningServers:
                 runningServers.remove(self)
@@ -611,31 +611,28 @@ class _Process(object):
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
         utils.kill_process_group(self.process_group_id, shutdown_grace=0)
-        
-        self.close()
+        self.process = None
+        self.running = False
     
     def close(self):
         """Gracefully terminates the process (if possible), removes it from the cluster, and invalidates the `Process` object."""
         
         global runningServers
         
-        if self.running is False:
-            return
-        
-        if self.process.poll() is None:
-            utils.kill_process_group(self.process_group_id)
-        
-        if self in runningServers:
-            runningServers.remove(self)
-        
-        if self._close_console_output:
-            self.console_file.close()
+        if self.running is True:
+            if self.process.poll() is None:
+                utils.kill_process_group(self.process_group_id)
+            
+            if self in runningServers:
+                runningServers.remove(self)
+            
+            if self._close_console_output:
+                self.console_file.close()
         
         self.process = None
         self.running = False
         
-        # `self.cluster` might be `None` if we crash in the middle of
-        # `move_processes()`.
+        # `self.cluster` might be `None` if we crash in the middle of `move_processes()`
         if self.cluster is not None:
             for other_cluster in self.cluster.metacluster.clusters:
                 if other_cluster is not self.cluster:

@@ -107,7 +107,7 @@ bool issues_artificial_table_backend_t::write_row(UNUSED ql::datum_t primary_key
                                                   UNUSED ql::datum_t *new_value_inout,
                                                   UNUSED signal_t *interruptor,
                                                   std::string *error_out) {
-    error_out->assign("It's illegal to write to the `rethinkdb.issues` table.");
+    error_out->assign("It's illegal to write to the `rethinkdb.current_issues` table.");
     return false;
 }
 

@@ -5,11 +5,11 @@
     <div class="stat-row">
       <p class="documents">
         <span class="big">
-          {{#if total_keys}}
+          {{#if_defined total_keys}}
           About {{total_keys}}
           {{else}}
           Unknown
-          {{/if}}
+          {{/if_defined}}
         </span>documents</p>
     </div>
     <div class="stat-row">

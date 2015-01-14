@@ -125,6 +125,10 @@ Handlebars.registerHelper 'inc', (num) -> num + 1
 Handlebars.registerPartial 'backfill_progress_summary', $('#backfill_progress_summary-partial').html()
 Handlebars.registerPartial 'backfill_progress_details', $('#backfill_progress_details-partial').html()
 
+# if-like block to check whether a value is defined (i.e. not undefined).
+Handlebars.registerHelper 'if_defined', (condition, options) ->
+    if typeof condition != 'undefined' then return options.fn(this) else return options.inverse(this)
+
 # Extract form data as an object
 form_data_as_object = (form) ->
     formarray = form.serializeArray()

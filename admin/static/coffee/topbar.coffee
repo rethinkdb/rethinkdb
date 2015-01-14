@@ -145,7 +145,7 @@ module 'TopBar', ->
 
             @collection.on 'change:fixed', =>
                 # an issue was fixed, so re-fetch the issues list from the server
-                query = r.db(system_db).table('issues').coerceTo('ARRAY')
+                query = r.db(system_db).table('current_issues').coerceTo('ARRAY')
                 driver.run_once query, (err, result) =>
                     # if we get an error here, we don't really care
                     # because this will be re-queried in 5000ms
