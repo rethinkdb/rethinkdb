@@ -559,7 +559,8 @@ private:
         scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
 
-        boost::optional<admin_identifier_format_t> identifier_format;
+        auto identifier_format =
+            boost::make_optional<admin_identifier_format_t>(false, admin_identifier_format_t());
         if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
             const datum_string_t &str = v->as_str();
             if (str == "name") {

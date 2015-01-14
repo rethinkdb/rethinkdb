@@ -1301,7 +1301,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
-        boost::optional<uint64_t> total_cache_size;
+        auto total_cache_size = boost::make_optional<uint64_t>(false, 0);
         if (boost::optional<boost::optional<uint64_t> > x =
                 parse_total_cache_size_option(opts)) {
             total_cache_size = *x;
