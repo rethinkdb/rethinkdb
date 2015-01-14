@@ -1,12 +1,10 @@
 # TODO ATN
-# views should not completely redraw every added row
 # rate limit events to avoid freezing the browser when there are too many
-# new events should flash
 # many of the fields of the parent view don't get updated when they change
 # table view shows "no results" when it means "no more results" or "no results yet"
-# bottom of display for changefeeds should show "older events were discarded" if that is the case
 # It says "older results ahve been discarded" but they are just hidden and take up memory
 # disabled horizontal scrollbar shows up sometimes
+# the table view should not completely redraw every added row
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -2958,7 +2956,9 @@ module 'DataExplorerView', ->
                 return
             if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
                 @query_result.once 'add', (query_result, row) =>
-                    @add_row row
+                    @parent.render()
+                    if not @parent.container.state.pause_at?
+                        @add_row row
                     @fetch_batch_rows()
                 @query_result.fetch_next()
             else
@@ -2970,24 +2970,32 @@ module 'DataExplorerView', ->
             @parent.render()
             @fetch_batch_rows()
 
-        add_row: =>
-            @parent.render()
-            if not @parent.container.state.pause_at?
-                @render()
+        add_row: (row) =>
+            @render()
 
     class TreeView extends ResultView
         className: 'results tree_view_container'
         template: Handlebars.templates['dataexplorer_result_tree-template']
 
         render: =>
-            @$el.html @template
-                tree: @json_to_tree @current_batch()
-            # ATN TODO
-            if @query_result.is_feed
-                first_event = @$('.jt_array:first li:first')
-                first_event.css 'background-color': '#eeeeff'
-                first_event.animate 'background-color': '#fbfbfb'
+            switch @query_result.type
+                when 'value'
+                    @$el.html @template tree: @json_to_tree @query_result.value
+                when 'cursor'
+                    @$el.html @template tree: []
+                    for row in @current_batch()
+                        @add_row row, true
             return @
+
+        add_row: (row, noflash) =>
+            tree_container = @$('.json_tree_container')
+            node = $(@json_to_tree(row)).prependTo(tree_container)
+            if not noflash
+                node.css 'background-color': '#eeeeff'
+                node.animate 'background-color': '#fbfbfb'
+            children = tree_container.children()
+            if children.length > @parent.container.limit
+                children.last().remove()
 
     class TableView extends ResultView
         className: 'results table_view_container'
