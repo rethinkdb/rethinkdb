@@ -1,6 +1,4 @@
 # TODO ATN
-# metadata info should stay visible when scrolling down
-# the indexes in the table view should be reversed.
 # views should not completely redraw every added row
 # rate limit events to avoid freezing the browser when there are too many
 # new events should flash
@@ -3167,7 +3165,8 @@ module 'DataExplorerView', ->
                         else
                             value = undefined
                     new_document.cells.push @json_to_table_get_td_value value, col
-                @tag_record new_document, i
+                index = if @query_result.is_feed then @query_result.size() - i else i + 1
+                @tag_record new_document, index
                 document_list.push new_document
             return @templates.tr_value
                 document: document_list
