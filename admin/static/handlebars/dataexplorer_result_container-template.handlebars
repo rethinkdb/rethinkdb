@@ -5,18 +5,18 @@
         <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
         <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
     </ul>
-    <p class="metadata {{#if floating_metadata}} floating_metadata {{/if}}"> 
+    <p class="metadata {{#if floating_metadata}} floating_metadata {{/if}}">
         {{#if feed}}
             {{#if feed.ended}}
                 The changefeed is closed.
             {{else}}
                 <img src="images/loading-feed.gif" />
                 Waiting for events on changefeed.
-                Showing {{feed.shown}} of {{feed.total}}.
+                Showing <span class="feed_shown">{{feed.shown}}</span> of <span class="feed_total">{{feed.total}}</span>.
                 {{#if feed.paused}}
-                    {{feed.upcoming}} more available. <a href="#" class="unpause_changefeed">Unpause</a>
+                    <a href="#" class="unpause_feed">Unpause</a> (<span class="feed_upcoming">{{feed.upcoming}}</span> more available).
                 {{else}}
-                    <a href="#" class="pause_changefeed">Pause</a>
+                    <a href="#" class="pause_feed">Pause</a>
                 {{/if}}
             {{/if}}
         {{else}}

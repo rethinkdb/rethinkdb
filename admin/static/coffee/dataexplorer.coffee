@@ -1,10 +1,9 @@
 # TODO ATN
-# rate limit events to avoid freezing the browser when there are too many
-# many of the fields of the parent view don't get updated when they change
+# the table view should not completely redraw every added row
 # table view shows "no results" when it means "no more results" or "no results yet"
 # It says "older results ahve been discarded" but they are just hidden and take up memory
 # disabled horizontal scrollbar shows up sometimes
-# the table view should not completely redraw every added row
+# rate limit events to avoid freezing the browser when there are too many
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -2956,9 +2955,9 @@ module 'DataExplorerView', ->
                 return
             if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
                 @query_result.once 'add', (query_result, row) =>
-                    @parent.render()
                     if not @parent.container.state.pause_at?
                         @add_row row
+                    @parent.update_feed_metadata()
                     @fetch_batch_rows()
                 @query_result.fetch_next()
             else
@@ -3449,8 +3448,8 @@ module 'DataExplorerView', ->
             'click .link_to_raw_view': 'show_raw'
             'click .activate_profiler': 'activate_profiler'
             'click .more_results_link': 'show_next_batch'
-            'click .pause_changefeed': 'pause_feed'
-            'click .unpause_changefeed': 'unpause_feed'
+            'click .pause_feed': 'pause_feed'
+            'click .unpause_feed': 'unpause_feed'
 
         initialize: (args) =>
             @container = args.container
@@ -3472,10 +3471,10 @@ module 'DataExplorerView', ->
                 return
             if @floating_metadata and pos > scroll
                 @floating_metadata = false
-                @$('metadata').removeClass('floating_metadata')
+                @$('.metadata').removeClass('floating_metadata')
             if not @floating_metadata and pos < scroll
                 @floating_metadata = true
-                @$('metadata').addClass('floating_metadata')
+                @$('.metadata').addClass('floating_metadata')
                 if not @container.state.pause_at?
                     @pause_feed()
 
@@ -3622,15 +3621,7 @@ module 'DataExplorerView', ->
                     no_results: @query_result.ended and @query_result.size() == 0
                     num_results: @query_result.size()
                     floating_metadata: @floating_metadata
-                    feed:
-                        if @query_result.is_feed
-                            total = @container.state.pause_at ? @query_result.size()
-                            ended: @query_result.ended
-                            overflow: @container.limit < total
-                            paused: @container.state.pause_at?
-                            shown: Math.min total, @container.limit
-                            total: total
-                            upcoming: @query_result.size() - total
+                    feed: @feed_info()
                 @$('.execution_time').tooltip
                     for_dataexplorer: true
                     trigger: 'hover'
@@ -3638,6 +3629,22 @@ module 'DataExplorerView', ->
                 @$('.tab-content').html @view_object?.$el
                 @$(".link_to_#{@view}_view").parent().addClass 'active'
             return @
+
+        update_feed_metadata: =>
+            info = @feed_info()
+            $('.feed_shown').text(info.shown)
+            $('.feed_total').text(info.total)
+            $('.feed_upcoming').text(info.upcoming)
+
+        feed_info: =>
+            if @query_result.is_feed
+                total = @container.state.pause_at ? @query_result.size()
+                ended: @query_result.ended
+                overflow: @container.limit < total
+                paused: @container.state.pause_at?
+                shown: Math.min total, @container.limit
+                total: total
+                upcoming: @query_result.size() - total
 
         new_view: () =>
             @view_object?.remove()
