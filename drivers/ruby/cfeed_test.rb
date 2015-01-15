@@ -53,7 +53,7 @@ $t.delete.run_safe
 
 $machines = 2
 $shards = {unsharded: 1, sharded: $machines, oversharded: $machines*2}
-$limit_sizes = [1, 10]
+$limit_sizes = [512, 1, 10]
 $max_pop_size = 1024
 
 $synclog = []
