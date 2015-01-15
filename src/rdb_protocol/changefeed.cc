@@ -1311,14 +1311,13 @@ public:
             &read_resp.response);
         guarantee(resp != NULL);
         uint64_t start_stamp = resp->stamp.second;
-        // It's OK to check `el.has()` because we never return the subscription
-        // to anything that calls `get_els` unless the subscription has been
-        // started.  We use `>` because a normal stamp that's equal to the start
-        // stamp wins (the semantics are that the start stamp is the first
-        // "legal" stamp).
-        if (!el.has() || start_stamp > stamp) {
+        // We use `>` because a normal stamp that's equal to the start stamp
+        // wins (the semantics are that the start stamp is the first "legal"
+        // stamp).
+        if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
-            el = std::move(resp->initial_val);
+            queue->clear(); // Remove the premature values.
+            queue->add(key, resp->initial_val, resp->initial_val);
         }
         started = true;
     }
@@ -1335,7 +1334,6 @@ private:
 
     store_key_t key;
     uint64_t stamp;
-    datum_t el;
     bool started;
 };
 
