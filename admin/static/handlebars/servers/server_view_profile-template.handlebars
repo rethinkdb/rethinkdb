@@ -12,7 +12,13 @@
     </p>
   </div>
   <div class="stat-row">
-    <p class="uptime"><span class="big">{{uptime}} </span>uptime</p>
+    <p class="uptime">
+    {{#if uptime}}
+      <span class="big">{{uptime}} </span>uptime
+    {{else}}
+      <span class="big">{{last_seen}} ago </span>last seen
+    {{/if}}
+    </p>
   </div>
   <div class="stat-row">
     <p class="ips"><span class="big">{{#if main_ip}}{{main_ip}}{{else}}N/A{{/if}} </span>hostname</p>
