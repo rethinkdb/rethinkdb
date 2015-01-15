@@ -274,6 +274,13 @@ private:
         * const table_meta_directory;
     table_meta_persistence_interface_t * const persistence_interface;
 
+    /* This map describes the table business cards that we show to other servers via the
+    directory. `active_table_t` creates and deletes entries in this map. */
+    watchable_map_var_t<namespace_id_t, table_meta_bcard_t>
+        table_meta_bcards;
+
+    /* Note: `tables` must be destroyed before `table_meta_bcards` or any of the const
+    member variables. */
     std::map<namespace_id_t, scoped_ptr_t<table_t> > tables;
 
     /* You must hold this mutex whenever you:
@@ -284,11 +291,6 @@ private:
          you can freely access the fields of `table_t` that it protects.)
     */
     mutex_assertion_t mutex;
-
-    /* This map describes the table business cards that we show to other servers via the
-    directory. `active_table_t` creates and deletes entries in this map. */
-    watchable_map_var_t<namespace_id_t, table_meta_bcard_t>
-        table_meta_bcards;
 
     auto_drainer_t drainer;
 
