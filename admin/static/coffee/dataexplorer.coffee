@@ -529,12 +529,15 @@ module 'DataExplorerView', ->
             @fetch_data()
 
         fetch_data: =>
+            # We fetch all "proper" tables from `table_config`. In addition, we need
+            # to fetch the list of system tables separately.
             query = r.db(system_db).table('table_config')
                 .pluck('db', 'name')
                 .group('db')
                 .ungroup()
                 .map((group) -> [group("group"), group("reduction")("name").orderBy( (x) -> x )])
                 .coerceTo "OBJECT"
+                .merge(r.object(system_db, r.db(system_db).tableList().coerceTo("ARRAY")))
             @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     # Nothing bad, we'll try again, let's just log the error
