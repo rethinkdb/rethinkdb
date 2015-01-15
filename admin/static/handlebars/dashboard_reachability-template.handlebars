@@ -1,38 +1,34 @@
+{{#if status_is_ok}}
+<div class="status no-problems-detected">
+  <h3>Reachability</h3>
+  <p class="message"><span class="good">0</span> issues detected</p>
+  <p class="details"><span class="good">{{num_servers}}/{{num_servers}}</span> servers reachable</p>
+</div>
+{{else}}
+<div class="status problems-detected">
+  <h3>Reachability</h3>
+  <p class="message"><span class="bad">{{num_servers_unavailable}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_servers_unavailable}}</a> detected</p>
+  <p class="details"><span class="bad">{{num_servers_unavailable}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are unavailable</p>
 
-    {{#if status_is_ok}}
-        <div class="status no-problems-detected">
-            <h3>Reachability</h3>
-            <p class="message"><span class="good">0</span> issues detected</p>
-            <p class="details"><span class="good">{{num_servers}}/{{num_servers}}</span> servers reachable</p>
-        </div>
-    {{else}}
-        <div class="status problems-detected">
-            <h3>Reachability</h3>
-            <p class="message"><span class="bad">{{num_servers_non_available}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_servers_non_available}}</a> detected</p>
-            <p class="details"><span class="bad">{{num_servers_non_available}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are down</p>
-
-        </div>
-    {{/if}}
-    <div class="popup_container">
-        <a class="close" href="#">&times;</a>
-        <div class="arrow_left"></div>
-        <div class="arrow_left_overlay"></div>
-        <div class="inner_content">
-            <h4>List of servers not available</h4>
-            <ul class="ul_first_level">
-                {{#each servers_non_available}}
-                <li class="li_first_level">
-                    Server <a href="#servers/{{id}}">{{name}}</a>
-                    <ul class="ul_second_level">
-                        <li class="li_second_level">
-                            Last seen: {{time_disconnected}}
-                        </li>
-                    </ul>
-                </li>
-                {{/each}}
-            </ul>
-        </div>
-    </div>
-
-
-
+</div>
+{{/if}}
+<div class="popup_container">
+  <a class="close" href="#">&times;</a>
+  <div class="arrow_left"></div>
+  <div class="arrow_left_overlay"></div>
+  <div class="inner_content">
+    <h4>List of servers unavailable</h4>
+    <ul class="ul_first_level">
+      {{#each unavailable_servers}}
+      <li class="li_first_level">
+        Server <a href="#servers/{{id}}">{{name}}</a>
+        <ul class="ul_second_level">
+          <li class="li_second_level">
+            Last seen: {{time_disconnected}}
+          </li>
+        </ul>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+</div>
