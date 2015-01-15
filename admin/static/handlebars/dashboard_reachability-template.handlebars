@@ -7,8 +7,8 @@
 {{else}}
 <div class="status problems-detected">
   <h3>Reachability</h3>
-  <p class="message"><span class="bad">{{num_servers_unavailable}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_servers_unavailable}}</a> detected</p>
-  <p class="details"><span class="bad">{{num_servers_unavailable}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are unavailable</p>
+  <p class="message"><span class="bad">{{num_disconnected_servers}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_disconnected_servers}}</a> detected</p>
+  <p class="details"><span class="bad">{{num_disconnected_servers}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are disconnected</p>
 
 </div>
 {{/if}}
@@ -17,9 +17,9 @@
   <div class="arrow_left"></div>
   <div class="arrow_left_overlay"></div>
   <div class="inner_content">
-    <h4>List of servers unavailable</h4>
+    <h4>List of disconnected servers</h4>
     <ul class="ul_first_level">
-      {{#each unavailable_servers}}
+      {{#each disconnected_servers}}
       <li class="li_first_level">
         Server <a href="#servers/{{id}}">{{name}}</a>
         <ul class="ul_second_level">

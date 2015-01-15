@@ -7,8 +7,8 @@
 {{else}}
 <div class="status problems-detected">
   <h3>Availability</h3>
-  <p class="message"><span class="bad">{{num_unavailable_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-  <p class="details"><span class="bad">{{num_unavailable_primaries}}/{{num_primaries}}</span> <a href="#" class="show_details">primary replicas</a> not available</p>
+  <p class="message"><span class="bad">{{num_disconnected_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+  <p class="details"><span class="bad">{{num_disconnected_primaries}}/{{num_primaries}}</span> <a href="#" class="show_details">primary replicas</a> are disconnected</p>
 </div>
 {{/if}}
 <div class="popup_container">
@@ -16,7 +16,7 @@
   <div class="arrow_left"></div>
   <div class="arrow_left_overlay"></div>
   <div class="inner_content">
-    <h4>List of primary replicas not available</h4>
+    <h4>List of disconnected primary replicas</h4>
     <ul class="ul_first_level">
       {{#each tables_with_primaries_not_ready}}
       <li class="li_first_level">Table <a href="#tables/{{id}}">{{db}}.{{name}}</a>:

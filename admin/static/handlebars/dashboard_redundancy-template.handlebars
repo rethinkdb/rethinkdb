@@ -7,8 +7,8 @@
 {{else}}
 <div class="status problems-detected">
   <h3>Redundancy</h3>
-  <p class="message"><span class="bad">{{num_unavailable_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-  <p class="details"><span class="bad">{{num_unavailable_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are not ready</p>
+  <p class="message"><span class="bad">{{num_disconnected_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+  <p class="details"><span class="bad">{{num_disconnected_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are not ready</p>
 </div>
 {{/if}}
 <div class="popup_container">
@@ -16,7 +16,7 @@
   <div class="arrow_left"></div>
   <div class="arrow_left_overlay"></div>
   <div class="inner_content">
-    <h4>List of replicas not available</h4>
+    <h4>List of disconnected replicas</h4>
     <ul class="ul_first_level">
       {{#each tables_with_replicas_not_ready}}
       <li class="li_first_level">Table <a href="#tables/{{id}}">{{db}}.{{name}}</a>:
