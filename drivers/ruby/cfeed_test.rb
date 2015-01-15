@@ -151,11 +151,9 @@ $fields = ['id', 'a', 'b', 'c', 'd', 'm']
 $shards.each {|name, nshards|
   # RSI: shard here
   $limit_sizes.each_with_index {|limit_size, limit_size_index|
-    next if limit_size_index < 1
     PP.pp [:limit_size, limit_size]
     pop_sizes = [0, limit_size - 1, limit_size, $max_pop_size].uniq
     pop_sizes.each_with_index {|pop_size, pop_size_index|
-      next if pop_size_index < 1
       PP.pp [:pop_size, pop_size]
       begin
         sub_pop = (0...pop_size).map{|i| pop(i, pop_size)}
@@ -166,14 +164,12 @@ $shards.each {|name, nshards|
            $t.orderby(index: r.desc(field)).limit(limit_size)]
         }
         queries.each_with_index {|raw_query, query_index|
-          next if query_index < 9
           # next if query_index < 1
           $rqlast = raw_query
           $qlast = q = Query.new(pop_size, limit_size, raw_query)
           em = Emulator.new(q.init)
           PP.pp [:query, q]
           $fields.each_with_index {|field, field_index|
-            next if field_index < 5
             PP.pp [:field, field]
             forward = $t.orderby(index: field)
             backward = $t.orderby(index: r.desc(field))
