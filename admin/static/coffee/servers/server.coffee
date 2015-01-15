@@ -227,12 +227,8 @@ module 'ServerView', ->
 
         render: =>
             if @model.get('status') != 'connected'
-                if @model.get('connection').time_disconnected?
-                    last_seen = $.timeago(
-                        @model.get('connection').time_disconnected).slice(0, -4)
-                else
-                    last_seen = "unknown time"
-
+                last_seen = $.timeago(
+                    @model.get('connection').time_disconnected).slice(0, -4)
                 uptime = null
                 version = "unknown"
             else
