@@ -4,7 +4,6 @@ module 'ServersView', ->
         id: 'servers_container'
         template:
             main: Handlebars.templates['servers_container-template']
-            loading: Handlebars.templates['loading-template']
 
         initialize: =>
             @servers = new Servers
@@ -13,15 +12,9 @@ module 'ServersView', ->
 
             @fetch_servers()
 
-            @loading = true # TODO Render that
-
         render: =>
-            if @loading is true
-                @$el.html @template.loading
-                    page: "servers"
-            else
-                @$el.html @template.main({})
-                @$('.servers_list').html @servers_list.render().$el
+            @$el.html @template.main({})
+            @$('.servers_list').html @servers_list.render().$el
             @
 
 
@@ -56,7 +49,6 @@ module 'ServersView', ->
                 for server in toDestroy
                     server.destroy()
 
-                @loading = false
                 @render()
 
         remove: =>

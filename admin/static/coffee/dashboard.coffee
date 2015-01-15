@@ -13,7 +13,6 @@ module 'DashboardView', ->
             @dashboard = new Dashboard {}
             @dashboard_view = new DashboardView.DashboardMainView
                 model: @dashboard
-            @render()
 
             @fetch_data()
 

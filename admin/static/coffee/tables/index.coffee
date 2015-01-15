@@ -5,7 +5,6 @@ module 'TablesView', ->
         id: 'databases_container'
         template:
             main: Handlebars.templates['databases_container-template']
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
             alert_message: Handlebars.templates['alert_message-template']
 
@@ -25,9 +24,6 @@ module 'TablesView', ->
                         error: error.message
             else
                 @databases.set _.map(_.sortBy(result, (db) -> db.name), (database) -> new Database(database)), {merge: true}
-                if @loading is true
-                    @loading = false
-                    @render()
 
 
 
@@ -94,8 +90,6 @@ module 'TablesView', ->
 
             @fetch_data()
 
-            @loading = true # TODO Render that
-
             @add_database_dialog = new Modals.AddDatabaseModal @databases
             @add_table_dialog = new Modals.AddTableModal
                 databases: @databases
@@ -104,12 +98,8 @@ module 'TablesView', ->
                 collection: @databases
 
         render: =>
-            if @loading is true
-                @$el.html @template.loading
-                    page: "tables"
-            else
-                @$el.html @template.main({})
-                @$('.databases_list').html @databases_list.render().$el
+            @$el.html @template.main({})
+            @$('.databases_list').html @databases_list.render().$el
             @
 
         render_message: (message) =>

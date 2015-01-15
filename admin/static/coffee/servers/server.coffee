@@ -3,14 +3,18 @@
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
         template:
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
             not_found: Handlebars.templates['element_view-not_found-template']
 
         initialize: (id) =>
             @id = id
-            @loading = true
-            @server = null
+
+            # Initialize with dummy data so we can start rendering the page
+            @server = new Server {id: id}
+            @responsibilities = new Responsibilities []
+            @server_view = new ServerView.ServerMainView
+                model: @server
+                collection: @responsibilities
 
             @fetch_server()
 
@@ -58,15 +62,11 @@ module 'ServerView', ->
                 else
                     @error = null
                     if result is null
-                        if @loading is true
-                            @loading = false
-                            @render()
-                        else if @model isnt null
+                        if @server_view isnt null
                             #TODO Test
-                            @server = null
+                            @server_view = null
                             @render()
                     else
-                        @loading = false
 
                         responsibilities = []
                         for table in result.responsibilities
@@ -95,24 +95,18 @@ module 'ServerView', ->
                             @responsibilities.set responsibilities
                         delete result.responsibilities
 
-                        if not @server?
-                            @server = new Server result
+                        @server.set result
+                        if not @server_view?
                             @server_view = new ServerView.ServerMainView
                                 model: @server
                                 collection: @responsibilities
-
                             @render()
-                        else
-                            @server.set result
 
         render: =>
             if @error?
                 @$el.html @template.error
                     error: @error?.message
                     url: '#servers/'+@id
-            else if @loading is true
-                @$el.html @template.loading
-                    page: "server"
             else
                 if @server_view?
                     @$el.html @server_view.render().$el
@@ -227,7 +221,7 @@ module 'ServerView', ->
 
         render: =>
             if @model.get('status') != 'connected'
-                if @model.get('connection').time_disconnected?
+                if @model.get('connection')? and @model.get('connection').time_disconnected?
                     last_seen = $.timeago(
                         @model.get('connection').time_disconnected).slice(0, -4)
                 else
@@ -241,8 +235,13 @@ module 'ServerView', ->
                     @model.get('connection').time_connected).slice(0, -4)
                 version = @model.get('process').version?.split(' ')[1].split('-')[0]
 
+            if @model.get('network')?
+                main_ip = @model.get('network').hostname
+            else
+                main_ip = ""
+
             @$el.html @template
-                main_ip: @model.get('network').hostname
+                main_ip: main_ip
                 tags: @model.get('tags')
                 uptime: uptime
                 version: version

@@ -25,8 +25,6 @@ module 'TableView', ->
                 distribution: @distribution
                 shards_assignments: @shards_assignments
 
-            @render()
-
             @fetch_data()
 
         fetch_data: =>
