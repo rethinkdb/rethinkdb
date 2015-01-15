@@ -52,6 +52,8 @@ table_meta_manager_t::table_meta_manager_t(
         std::bind(&table_meta_manager_t::on_set_config, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
+    guarantee(!server_id.is_unset());
+
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
     persistence_interface->read_all_tables(
@@ -107,6 +109,8 @@ table_meta_manager_t::active_table_t::active_table_t(
     raft_committed_subs(std::bind(&active_table_t::on_raft_committed_change, this)),
     raft_readiness_subs(std::bind(&active_table_t::on_raft_readiness_change, this))
 {
+    guarantee(!member_id.is_unset());
+    guarantee(!epoch.id.is_unset());
     update_bcard(false);
     {
         watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
@@ -263,7 +267,10 @@ void table_meta_manager_t::on_action(
         persistence_interface->add_table(
             table_id, st, &table->multistore_ptr, interruptor);
         table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
-            *member_id, *initial_state, table->multistore_ptr.get());
+            *member_id, *initial_state,
+            // RSI(raft): This should be `table->multistore_ptr.get()`, but the current
+            // dummy implementation of `persistence_interface` makes that not work
+            nullptr);
     } else if (!static_cast<bool>(member_id) && table->active.has()) {
         /* The table is being dropped, or we are leaving it */
         table->active.reset();
