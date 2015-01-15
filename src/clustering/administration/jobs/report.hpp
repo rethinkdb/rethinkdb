@@ -49,7 +49,9 @@ public:
             std::string const &type,
             double duration,
             namespace_id_t const &table = nil_uuid(),
-            std::string const &index = "");
+            std::string const &index = "",
+            bool is_ready = false,
+            double progress_numerator = 0);
 
     bool to_datum(
             admin_identifier_format_t identifier_format,
@@ -84,6 +86,20 @@ public:
     microtime_t start_time;
     ip_and_port_t client_addr_port;
     cond_t *interruptor;
+};
+
+class parallel_traversal_progress_t;
+
+class sindex_job_t {
+public:
+    sindex_job_t(
+            microtime_t start_time,
+            bool is_ready,
+            double progress);
+
+    microtime_t start_time;
+    bool is_ready;
+    double progress;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

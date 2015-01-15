@@ -91,11 +91,30 @@ stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
     if (stores_.has()) {
         for (size_t i = 0; i < stores_.size(); ++i) {
             if (stores_[i].has()) {
-                for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
+                on_thread_t on_thread(stores_[i]->home_thread());
+
+                std::map<sindex_name_t, secondary_index_t> sindexes =
+                    stores_[i]->get_sindexes();
+                namespace_id_t table_id = stores_[i]->get_table_id();
+                for (auto const &sindex : sindexes) {
+                    if (sindex.second.being_deleted) {
+                        continue;
+                    }
+
+                    bool is_ready = sindex.second.is_ready();
+
+                    double progress = 1.0;
+                    microtime_t start_time = 0;
+                    if (is_ready == false) {
+                        progress = stores_[i]->get_sindex_progress(
+                            sindex.second.id).as_double();
+                        start_time = stores_[i]->get_sindex_start_time(
+                            sindex.second.id);
+                    }
+
                     sindex_jobs.insert(std::make_pair(
-                        //             `uuid_u`,                   `std::string`
-                        std::make_pair(stores_[i]->get_table_id(), job.second.second),
-                        job.second.first));
+                        std::make_pair(table_id, sindex.first.name),
+                        sindex_job_t(start_time, is_ready, progress)));
                 }
             }
         }

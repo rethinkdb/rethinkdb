@@ -552,18 +552,21 @@ void store_t::sindex_queue_push(
     }
 }
 
-void store_t::add_progress_tracker(
-        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
-        uuid_u id, const parallel_traversal_progress_t *p) {
-    assert_thread();
-    sentry->reset(&progress_trackers, id, p);
-}
-
-progress_completion_fraction_t store_t::get_progress(uuid_u id) {
-    if (!std_contains(progress_trackers, id)) {
+progress_completion_fraction_t store_t::get_sindex_progress(uuid_u const &id) {
+    auto iterator = sindex_context.find(id);
+    if (iterator == sindex_context.end()) {
         return progress_completion_fraction_t();
     } else {
-        return progress_trackers[id]->guess_completion();
+        return iterator->second.second->guess_completion();
+    }
+}
+
+microtime_t store_t::get_sindex_start_time(uuid_u const &id) {
+    auto iterator = sindex_context.find(id);
+    if (iterator == sindex_context.end()) {
+        return -1;
+    } else {
+        return iterator->second.first;
     }
 }
 
@@ -828,6 +831,23 @@ bool secondary_indexes_are_equivalent(const std::vector<char> &left,
     }
 
     return false;
+}
+
+std::map<sindex_name_t, secondary_index_t> store_t::get_sindexes() const {
+    assert_thread();
+
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    get_btree_superblock_and_txn_for_reading(
+        general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &superblock, &txn);
+
+    buf_lock_t sindex_block(
+        superblock->expose_buf(), superblock->get_sindex_block_id(), access_t::read);
+
+    std::map<sindex_name_t, secondary_index_t> sindexes;
+    get_secondary_indexes(&sindex_block, &sindexes);
+
+    return sindexes;
 }
 
 void store_t::set_sindexes(

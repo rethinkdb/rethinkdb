@@ -8,6 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "clustering/administration/servers/config_client.hpp"
@@ -67,7 +68,7 @@ public:
 
     bool is_gc_active() const;
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    typedef std::multimap<std::pair<uuid_u, std::string>, sindex_job_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
 
 private:
@@ -120,7 +121,7 @@ public:
 
     bool is_gc_active();
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    typedef std::multimap<std::pair<uuid_u, std::string>, sindex_job_t> sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs();
 
     typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>
