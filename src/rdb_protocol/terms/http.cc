@@ -147,7 +147,7 @@ public:
 
     bool is_array() const { return false; }
     bool is_exhausted() const { return !more && batch_cache_exhausted(); }
-    bool is_cfeed() const { return false; }
+    stream_type_t cfeed_type() const { return stream_type_t::not_stream; }
     bool is_infinite() const { return false; }
 
 private:

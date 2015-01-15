@@ -1880,7 +1880,7 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    virtual bool is_cfeed() const { return true; }
+    virtual stream_type_t cfeed_type() const { return stream_type_t::stream; }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {

@@ -177,7 +177,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_all(
                     (new_it != new_values.end() && new_it->first < old_it->first)) {
                 send_all_change(new_it->first, ql::datum_t(), new_it->second);
                 ++new_it;
-            } else if (new_it == new_values.end() || 
+            } else if (new_it == new_values.end() ||
                     (old_it != old_values.end() && old_it->first < new_it->first)) {
                 send_all_change(old_it->first, old_it->second, ql::datum_t());
                 ++old_it;
@@ -211,7 +211,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
             &error)) {
         return false;
     }
-    guarantee(!stream->is_cfeed());
+    guarantee(stream->cfeed_type() == ql::stream_type_t::not_stream);
     ql::env_t env(interruptor, reql_version_t::LATEST);
     std::vector<ql::datum_t> datums;
     try {
@@ -252,4 +252,3 @@ void timer_cfeed_artificial_table_backend_t::set_notifications(bool notify) {
         timer.reset();
     }
 }
-
