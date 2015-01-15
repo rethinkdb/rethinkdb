@@ -1,10 +1,13 @@
 # TODO ATN
 # the table view should not completely redraw every added row
 # table view shows "no results" when it means "no more results" or "no results yet"
-# It says "older results ahve been discarded" but they are just hidden and take up memory
 # disabled horizontal scrollbar shows up sometimes
 # rate limit events to avoid freezing the browser when there are too many
 # when switching back tot he dataexplorer, the table view shows "undefined" if the changefeed is closed.
+# for regular cursors, the count is wrong: " 48 rows returned , 40 displayed, 40 skipped,"
+# vexocide: stop button + pause -> a real button
+# vexocide: bouncing while paused is weird
+# danielmewes: perhaps (run -> abort) instead of adding stop button
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -65,6 +68,7 @@ module 'DataExplorerView', ->
                 if typeof value._next is 'function' # if it's a cursor
                     @type = 'cursor'
                     @results = []
+                    @results_offset = 0
                     @cursor = value
                     @is_feed = @cursor.toString() == '[object Feed]'
                     @missing = 0
@@ -85,6 +89,7 @@ module 'DataExplorerView', ->
             delete @profile
             delete @value
             delete @results
+            delete @results_offset
             @cursor?.close().catch?(() -> null)
             delete @cursor
 
@@ -122,13 +127,34 @@ module 'DataExplorerView', ->
                     else
                         return 1
                 when 'cursor'
-                    return @results.length
+                    return @results.length + @results_offset
 
         force_end_gracefully: =>
             if @is_feed
                 @ended = true
                 @cursor?.close().catch(() -> null)
                 @trigger 'end', @
+
+        drop_before: (n) =>
+            if n > @results_offset
+                @results = @results[n - @results_offset ..]
+                @results_offset = n
+
+        slice: (from, to) =>
+            if from < 0
+                from = @results.length + from
+            else
+                from = from - @results_offset
+            from = Math.max 0, from
+            if to?
+                if to < 0
+                    to = @results.length + to
+                else
+                    to = to - @results_offset
+                to = Math.min @results.length, to
+                return @results[from .. to]
+            else
+                return @results[from ..]
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -2932,7 +2958,7 @@ module 'DataExplorerView', ->
             @parent.set_scrollbar()
 
         pause_feed: =>
-            @parent.container.state.pause_at = @query_result.results.length
+            @parent.container.state.pause_at = @query_result.size()
 
         unpause_feed: =>
             @parent.container.state.pause_at = null
@@ -2946,14 +2972,14 @@ module 'DataExplorerView', ->
                     if @query_result.is_feed
                         pause_at = @parent.container.state.pause_at
                         if pause_at?
-                            latest = @query_result.results[Math.min(0, pause_at - @parent.container.limit) .. pause_at - 1]
+                            latest = @query_result.slice(Math.min(0, pause_at - @parent.container.limit), pause_at - 1)
                         else
-                            latest = @query_result.results[-@parent.container.limit ..]
+                            latest = @query_result.slice(-@parent.container.limit)
                         latest.reverse()
 
                         return latest
                     else
-                        return @query_result.results[@query_result.position .. @query_result.position + @parent.container.limit]
+                        return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
 
         fetch_batch_rows:  =>
             if @query_result.type is not 'cursor'
@@ -2963,6 +2989,8 @@ module 'DataExplorerView', ->
                     if @removed_self
                         return
                     if not @parent.container.state.pause_at?
+                        if not @paused_at?
+                            @query_result.drop_before(@query_result.size() - @parent.container.limit)
                         @add_row row
                     @parent.update_feed_metadata()
                     @fetch_batch_rows()
@@ -2972,6 +3000,7 @@ module 'DataExplorerView', ->
 
         show_next_batch: =>
             @query_result.position += @parent.container.limit
+            @query_result.drop_before @parent.container.limit
             @render()
             @parent.render()
             @fetch_batch_rows()
@@ -3294,8 +3323,6 @@ module 'DataExplorerView', ->
             doc.record = @query_result.position + i
 
         render: =>
-            console.log('render table')
-
             previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
             results = @current_batch()
             if Object::toString.call(results) is '[object Array]'

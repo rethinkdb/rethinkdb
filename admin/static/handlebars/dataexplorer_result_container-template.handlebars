@@ -1,6 +1,8 @@
 <div class="results_header">
     <ul class="nav nav-tabs change_view_container">
-        <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
+        {{#unless feed}}
+            <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
+        {{/unless}}
         <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
         <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
         <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
