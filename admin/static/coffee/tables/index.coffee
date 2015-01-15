@@ -65,10 +65,14 @@ module 'TablesView', ->
             else
                 @$('.remove-tables').prop 'disabled', true
 
-        initialize: =>
-            @loading = true
-        
-            @databases = new Databases
+        initialize: =>        
+            if not window.view_data_backup.tables_view_databases?
+                window.view_data_backup.tables_view_databases = new Databases
+                @loading = true
+            else
+                @loading = false
+            @databases = window.view_data_backup.tables_view_databases
+
             @databases_list = new TablesView.DatabasesListView
                 collection: @databases
                 container: @

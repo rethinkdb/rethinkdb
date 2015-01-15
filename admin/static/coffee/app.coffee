@@ -10,6 +10,10 @@ $ ->
     # Create a driver - providing sugar on top of the raw driver
     window.driver = new Driver
 
+    # Some views backup their data here so that when you return to them
+    # the latest data can be retrieved quickly.
+    window.view_data_backup = {}
+
     window.main_view = new MainView.MainContainer()
     $('body').html main_view.render().$el
 

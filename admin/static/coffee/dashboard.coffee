@@ -9,8 +9,10 @@ module 'DashboardView', ->
             error: Handlebars.templates['error-query-template']
 
         initialize: =>
-            # Initialize with empty dummy data so we can render the page right away
-            @dashboard = new Dashboard {}
+            if not window.view_data_backup.dashboard_view_dashboard?
+                window.view_data_backup.dashboard_view_dashboard = new Dashboard
+            @dashboard = window.view_data_backup.dashboard_view_dashboard
+            
             @dashboard_view = new DashboardView.DashboardMainView
                 model: @dashboard
 
@@ -90,14 +92,12 @@ module 'DashboardView', ->
                     #TODO
                     console.log error
                     @error = error
-                    @dashboard_view = null
                     @render()
                 else
+                    rerender = @error?
                     @error = null
                     @dashboard.set result
-                    if !@dashboard_view
-                        @dashboard_view = new DashboardView.DashboardMainView
-                            model: @dashboard
+                    if rerender
                         @render()
 
         render: =>

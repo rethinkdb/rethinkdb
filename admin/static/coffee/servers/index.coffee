@@ -6,7 +6,13 @@ module 'ServersView', ->
             main: Handlebars.templates['servers_container-template']
 
         initialize: =>
-            @servers = new Servers
+            if not window.view_data_backup.servers_view_servers?
+                window.view_data_backup.servers_view_servers = new Servers
+                @loading = true
+            else
+                @loading = false
+            @servers = window.view_data_backup.servers_view_servers
+        
             @servers_list = new ServersView.ServersListView
                 collection: @servers
 

@@ -84,7 +84,7 @@ Handlebars.registerHelper 'humanize_server_reachability', (status) ->
     return new Handlebars.SafeString(reachability)
 
 humanize_table_status = (status) ->
-    if !status
+    if not status
         ""
     else if status.all_replicas_ready or status.ready_for_writes
         "Ready"

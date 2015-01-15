@@ -8,10 +8,11 @@ module 'ServerView', ->
 
         initialize: (id) =>
             @id = id
+            @server_found = true
 
             # Initialize with dummy data so we can start rendering the page
-            @server = new Server {id: id}
-            @responsibilities = new Responsibilities []
+            @server = new Server(id: id)
+            @responsibilities = new Responsibilities
             @server_view = new ServerView.ServerMainView
                 model: @server
                 collection: @responsibilities
@@ -49,10 +50,10 @@ module 'ServerView', ->
                             ).merge( (table) ->
                                 id: table("id")
                             ).coerceTo("ARRAY")
-                        )
+                        ).merge
+                            id: server_status 'id'
                     )
-            ).merge
-                id: r.row 'id'
+            )
 
             @timer = driver.run query, 5000, (error, result) =>
                 # We should call render only once to avoid blowing all the sub views
@@ -60,13 +61,14 @@ module 'ServerView', ->
                     @error = error
                     @render()
                 else
+                    rerender = @error?
                     @error = null
                     if result is null
-                        if @server_view isnt null
-                            #TODO Test
-                            @server_view = null
-                            @render()
+                        rerender = rerender or @server_found
+                        @server_found = false
                     else
+                        rerender = rerender or @server_found
+                        @server_found = true
 
                         responsibilities = []
                         for table in result.responsibilities
@@ -96,11 +98,9 @@ module 'ServerView', ->
                         delete result.responsibilities
 
                         @server.set result
-                        if not @server_view?
-                            @server_view = new ServerView.ServerMainView
-                                model: @server
-                                collection: @responsibilities
-                            @render()
+
+                    if rerender
+                        @render()
 
         render: =>
             if @error?
@@ -108,9 +108,9 @@ module 'ServerView', ->
                     error: @error?.message
                     url: '#servers/'+@id
             else
-                if @server_view?
+                if @server_found
                     @$el.html @server_view.render().$el
-                else # In this case, the query returned null, so the server
+                else # The server wasn't found
                     @$el.html @template.not_found
                         id: @id
                         type: 'server'
