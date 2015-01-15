@@ -99,6 +99,8 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
     ql::datum_t old_config;
     size_t tables_dropped;
     {
+        cross_thread_signal_t interruptor2(interruptor,
+            semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
         database_id_t db_id;
@@ -110,27 +112,23 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
 
         metadata.databases.databases.at(db_id).mark_deleted();
 
-        /* Delete all of the tables in the database */
-        // RSI(raft): Reimplement this once table meta operations work.
-        not_implemented();
-        (void)table_meta_client;
-        (void)server_config_client;
-        tables_dropped = 0;
-#if 0
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
-            &metadata.rdb_namespaces);
-        tables_dropped = 0;
-        for (auto &&pair : ns_change.get()->namespaces) {
-            if (!pair.second.is_deleted() &&
-                    pair.second.get_ref().database.get_ref() == db_id) {
-                pair.second.mark_deleted();
-                ++tables_dropped;
-            }
-        }
-#endif
-
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
+
+        /* Delete all of the tables in the database */
+        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+        table_meta_client->list_names(&tables);
+        tables_dropped = 0;
+        for (const auto &pair : tables) {
+            if (pair.second.first == db_id) {
+                /* Note that we silently ignore failures in this function. This is
+                consistent with our behavior if we cannot "see" the table at all. */
+                if (table_meta_client->drop(pair.first, &interruptor2) ==
+                        table_meta_client_t::result_t::success) {
+                    ++tables_dropped;
+                }
+            }
+        }
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
@@ -239,7 +237,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         config.config.durability = write_durability_t::HARD;
 
         table_meta_client_t::result_t result = table_meta_client->create(
-            config, interruptor, &table_id);
+            config, &interruptor2, &table_id);
         if (result == table_meta_client_t::result_t::failure) {
             *error_out = "Lost contact with the server(s) that were supposed to host "
                 "the newly-created table. The table was not created.";
@@ -382,7 +380,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         semilattice_root_view->home_thread());
     on_thread_t thread_switcher(semilattice_root_view->home_thread());
 
-    // RSI(raft): Reimplement this once table meta operations work
+    // RSI(raft): Reimplement this once table IO works
     not_implemented();
     (void)db;
     (void)name;
