@@ -664,11 +664,6 @@ module 'Modals', ->
             # repetition made the function much more difficult to
             # understand(and debug), so I left it in.
             shard_diffs = []
-            if @model.get('total_keys') < new_shards.length
-                @model.set
-                    error:
-                        "This table doesn't have enough documents for this many shards"
-                return []
             # first handle shards that are in old (and possibly in new)
             for old_shard, i in old_shards
                 if i >= new_shards.length
