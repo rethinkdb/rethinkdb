@@ -1,5 +1,4 @@
-# TODO ATN
-# for regular cursors, the count is wrong: " 48 rows returned , 40 displayed, 40 skipped,"
+# TODO changefeeds
 # vexocide: stop button + pause -> a real button
 # vexocide: bouncing while paused is weird
 # danielmewes: perhaps (run -> abort) instead of adding stop button
@@ -2976,6 +2975,9 @@ module 'DataExplorerView', ->
                     else
                         return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
 
+        current_batch_size: =>
+            return @current_batch().length
+
         # TODO: rate limit events to avoid freezing the browser when there are too many
         fetch_batch_rows:  =>
             if @query_result.type is not 'cursor'
@@ -3054,9 +3056,7 @@ module 'DataExplorerView', ->
             @last_keys = @parent.container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @parent.container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
             @listenTo @query_result, 'end', =>
-                console.log 'REACHED END'
-                if @current_batch().length == 0
-                    console.log 'EMPTY BATCH'
+                if @current_batch_size() == 0
                     @render()
 
         handle_mousedown: (event) =>
@@ -3654,7 +3654,7 @@ module 'DataExplorerView', ->
                 @view_object?.$el.detach()
                 has_more_data = not @query_result.ended and @query_result.position + @container.limit <= @query_result.size()
                 @$el.html @template
-                    limit_value: @container.limit
+                    limit_value: @view_object?.current_batch_size()
                     skip_value: @query_result.position
                     query_has_changed: args?.query_has_changed
                     show_more_data: has_more_data and not @container.state.cursor_timed_out
