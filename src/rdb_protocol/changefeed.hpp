@@ -52,10 +52,8 @@ namespace changefeed {
 // primary or secondary value we're sorting by, and `Val` is the actual row.
 typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
-// RSI: kill this typedef, it's dumb.
-typedef std::vector<item_t> item_vec_t;
 
-item_vec_t mangle_sort_truncate_stream(
+std::vector<item_t> mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 boost::optional<datum_t> apply_ops(
@@ -67,7 +65,7 @@ boost::optional<datum_t> apply_ops(
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        item_vec_t start_data;
+        std::vector<item_t> start_data;
         limit_start_t() { }
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
@@ -363,7 +361,7 @@ public:
         client_t::addr_t _parent_client,
         keyspec_t::limit_t _spec,
         limit_order_t _lt,
-        item_vec_t &&item_vec);
+        std::vector<item_t> &&item_vec);
 
     void add(rwlock_in_line_t *spot,
              store_key_t sk,
@@ -385,7 +383,7 @@ public:
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
-    item_vec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+    std::vector<item_t> read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
                          sorting_t sorting,
                          const boost::optional<item_queue_t::iterator> &start,
                          size_t n);
@@ -431,7 +429,7 @@ public:
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        item_vec_t &&start_data);
+        std::vector<item_t> &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();

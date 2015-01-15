@@ -271,7 +271,7 @@ void server_t::add_limit_client(
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
     limit_order_t lt,
-    item_vec_t &&item_vec) {
+    std::vector<item_t> &&item_vec) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -574,9 +574,9 @@ sorting_t flip(sorting_t sorting) {
     unreachable();
 }
 
-item_vec_t mangle_sort_truncate_stream(
+std::vector<item_t> mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n) {
-    item_vec_t vec;
+    std::vector<item_t> vec;
     vec.reserve(stream.size());
     for (auto &&item : stream) {
         guarantee(is_primary ==
@@ -665,7 +665,7 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     keyspec_t::limit_t _spec,
     limit_order_t _gt,
-    item_vec_t &&item_vec)
+    std::vector<item_t> &&item_vec)
     : region(std::move(_region)),
       table(std::move(_table)),
       uuid(std::move(_uuid)),
@@ -723,7 +723,7 @@ void limit_manager_t::del(
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
 
-class ref_visitor_t : public boost::static_visitor<item_vec_t> {
+class ref_visitor_t : public boost::static_visitor<std::vector<item_t>> {
 public:
     ref_visitor_t(env_t *_env,
                   std::vector<scoped_ptr_t<op_t> > *_ops,
@@ -740,7 +740,7 @@ public:
           start(std::move(_start)),
           n(_n) { }
 
-    item_vec_t operator()(const primary_ref_t &ref) {
+    std::vector<item_t> operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
         key_range_t range = *pk_range;
         switch (sorting) {
@@ -782,12 +782,12 @@ public:
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
         guarantee(stream.size() <= n);
-        item_vec_t item_vec = mangle_sort_truncate_stream(
+        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::YES, sorting, n);
         return item_vec;
     }
 
-    item_vec_t operator()(const sindex_ref_t &ref) {
+    std::vector<item_t> operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
         guarantee(spec->range.sindex);
         datum_range_t srange = spec->range.range;
@@ -827,7 +827,7 @@ public:
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-        item_vec_t item_vec = mangle_sort_truncate_stream(
+        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::NO, sorting, n);
         return item_vec;
     }
@@ -842,7 +842,7 @@ private:
     size_t n;
 };
 
-item_vec_t limit_manager_t::read_more(
+std::vector<item_t> limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
@@ -895,14 +895,14 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
-    // RSI: should we try to avoid this read if we know that we only added rows?
+    // TODO: we should try to avoid this read if we know we only added rows.
     if (item_queue.size() < spec.limit) {
         auto data_it = item_queue.begin();
         boost::optional<item_queue_t::iterator> start;
         if (data_it != item_queue.end()) {
             start = data_it;
         }
-        item_vec_t s;
+        std::vector<item_t> s;
         boost::optional<exc_t> exc;
         try {
             s = read_more(
