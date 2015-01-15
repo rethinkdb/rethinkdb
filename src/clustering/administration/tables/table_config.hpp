@@ -55,7 +55,7 @@ private:
             namespace_id_t table_id,
             name_string_t table_name,
             const ql::datum_t &db_name_or_uuid,
-            const namespace_semilattice_metadata_t &metadata,
+            const table_config_and_shards_t &config,
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out);

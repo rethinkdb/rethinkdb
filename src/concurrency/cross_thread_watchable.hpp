@@ -188,12 +188,12 @@ class all_thread_watchable_map_var_t {
 public:
     all_thread_watchable_map_var_t(
         watchable_map_t<key_t, value_t> *input);
-    watchable_map_t<key_t, value_t> get_watchable() const {
+    watchable_map_t<key_t, value_t> *get_watchable() const {
         return vars[get_thread_id().threadnum]->get_watchable();
     }
     void flush();
 private:
-    std::vector<scoped_ptr_t<cross_thread_watchable_map_var_t<value_t> > > vars;
+    std::vector<scoped_ptr_t<cross_thread_watchable_map_var_t<key_t, value_t> > > vars;
 };
 
 #include "concurrency/cross_thread_watchable.tcc"

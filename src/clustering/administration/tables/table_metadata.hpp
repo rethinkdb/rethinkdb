@@ -8,12 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "buffer_cache/types.hpp"   // for `write_durability_t`
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
-#include "clustering/reactor/blueprint.hpp"
-#include "clustering/reactor/directory_echo.hpp"
-#include "clustering/reactor/metadata.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"

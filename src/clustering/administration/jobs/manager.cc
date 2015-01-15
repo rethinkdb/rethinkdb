@@ -4,7 +4,6 @@
 #include <functional>
 #include <iterator>
 
-#include "clustering/administration/reactor_driver.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/context.hpp"
 
@@ -44,9 +43,12 @@ void jobs_manager_t::set_rdb_context(rdb_context_t *_rdb_context) {
     rdb_context = _rdb_context;
 }
 
+// RSI(raft): Reimplement this once Raft supports table IO
+#if 0
 void jobs_manager_t::set_reactor_driver(reactor_driver_t *_reactor_driver) {
     reactor_driver = _reactor_driver;
 }
+#endif
 
 void jobs_manager_t::on_get_job_reports(
         UNUSED signal_t *interruptor,
@@ -80,6 +82,8 @@ void jobs_manager_t::on_get_job_reports(
                            std::make_move_iterator(job_reports_inner.end()));
     });
 
+    // RSI(raft): Reimplement this once Raft supports table IO
+#if 0
     if (reactor_driver != nullptr) {
         for (auto const &sindex_job : reactor_driver->get_sindex_jobs()) {
             uuid_u id = uuid_u::from_hash(
@@ -126,6 +130,7 @@ void jobs_manager_t::on_get_job_reports(
             }
         }
     }
+#endif
 
     send(mailbox_manager, reply_address, job_reports);
 }

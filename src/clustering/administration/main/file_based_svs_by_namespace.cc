@@ -1,6 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
+// RSI(raft): Recycle this into part of a concrete implementation of
+// `table_meta_persistence_interface_t`
+#if 0
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -241,3 +245,5 @@ threadnum_t file_based_svs_by_namespace_t::next_thread(int num_db_threads) {
     thread_counter_ = (thread_counter_ + 1) % num_db_threads;
     return threadnum_t(thread_counter_);
 }
+#endif
+

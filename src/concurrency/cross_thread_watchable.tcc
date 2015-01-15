@@ -135,6 +135,6 @@ all_thread_watchable_map_var_t<key_t, value_t>::all_thread_watchable_map_var_t(
 template <class key_t, class value_t>
 void all_thread_watchable_map_var_t<key_t, value_t>::flush() {
     for (int i = 0; i < get_num_threads(); ++i) {
-        vars[i].flush();
+        vars[i]->flush();
     }
 }

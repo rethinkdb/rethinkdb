@@ -248,8 +248,7 @@ void run_until_satisfied_2(
         }
         // Nap a little so changes to the watchables can accumulate.
         // This is purely a performance optimization to save CPU cycles,
-        // in case that applying `fun` is expensive (which it is in our
-        // applications in the reactors as of 12/10/2013).
+        // in case that applying `fun` is expensive.
         if (nap_before_retry_ms > 0) {
             nap(nap_before_retry_ms, interruptor);
         }

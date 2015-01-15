@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include "btree/keys.hpp"
-#include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/counted.hpp"
 #include "debug.hpp"

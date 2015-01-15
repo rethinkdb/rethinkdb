@@ -106,10 +106,9 @@ public:
         const key_t &key,
         clone_ptr_t<watchable_t<value_t> > value,
         /* If `remove_when_done` is `true`, the `watchable_map_entry_copier_t` will
-        remove the entry in its destructor.
-        TODO: Remove this parameter; it should always be `true`. Right now it exists to
-        support one use case in `reactor_driver.cc`, and that use case should be changed
-        to not use this behavior after we implement Raft. */
+        remove the entry in its destructor. */
+        // RSI(raft): Get rid of this parameter. Any code that sets it to `false` is
+        // probably badly designed.
         bool remove_when_done = true);
     ~watchable_map_entry_copier_t();
 

@@ -39,7 +39,11 @@ public:
     // `reactor_driver_t` is constructed in `main/serve.cc`, thus the pointers to the
     // respective objects are set once they are constructed.
     void set_rdb_context(rdb_context_t *);
+
+    // RSI(raft): Reimplement this once Raft supports table IO
+#if 0
     void set_reactor_driver(reactor_driver_t *);
+#endif
 
 private:
     static const uuid_u base_sindex_id;
@@ -59,7 +63,11 @@ private:
     server_id_t server_id;
 
     rdb_context_t *rdb_context;
+
+    // RSI(raft): Reimplement this once Raft supports table IO
+#if 0
     reactor_driver_t *reactor_driver;
+#endif
 
     DISABLE_COPYING(jobs_manager_t);
 };

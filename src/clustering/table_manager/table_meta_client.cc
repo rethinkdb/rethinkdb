@@ -2,6 +2,7 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "concurrency/cross_thread_signal.hpp"
 
 table_meta_client_t::table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
@@ -12,6 +13,7 @@ table_meta_client_t::table_meta_client_t(
     mailbox_manager(_mailbox_manager),
     table_meta_manager_directory(_table_meta_manager_directory),
     table_meta_directory(_table_meta_directory),
+    table_metadata_by_id(&table_metadata_by_id_var),
     table_meta_directory_subs(table_meta_directory,
         std::bind(&table_meta_client_t::on_directory_change, this, ph::_1, ph::_2),
         true)
@@ -40,7 +42,7 @@ bool table_meta_client_t::get_name(
     bool ok;
     table_metadata_by_id.get_watchable()->read_key(table_id,
         [&](const table_metadata_t *metadata) {
-            if (pair == nullptr) {
+            if (metadata == nullptr) {
                 ok = false;
             } else {
                 ok = true;
@@ -55,14 +57,14 @@ void table_meta_client_t::list_names(
         std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out) {
     table_metadata_by_id.get_watchable()->read_all(
         [&](const namespace_id_t &table_id, const table_metadata_t *metadata) {
-            names_out[table_id] = std::make_pair(metadata->database, metadata->name);
+            (*names_out)[table_id] = std::make_pair(metadata->database, metadata->name);
         });
 }
 
 bool table_meta_client_t::get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
-        table_config_t *config_out) {
+        table_config_and_shards_t *config_out) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -91,17 +93,18 @@ bool table_meta_client_t::get_config(
 
     /* Send a request to the server we found */
     disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-    promise_t<std::map<namespace_id_t, table_config_t> > promise;
-    mailbox_t<void(std::map<namespace_id_t, table_config_t>)> ack_mailbox(
+    promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
+    mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
         mailbox_manager,
-        [&](signal_t *, const std::map<namespace_id_t, table_config_t> &configs) {
+        [&](signal_t *,
+                const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
             promise.pulse(configs);
         });
     send(mailbox_manager, best_mailbox,
         boost::make_optional(table_id), ack_mailbox.get_address());
     wait_any_t done_cond(promise.get_ready_signal(), &dw);
     wait_interruptible(&done_cond, &interruptor);
-    std::map<namespace_id_t, table_config_t> maybe_result = promise.wait();
+    std::map<namespace_id_t, table_config_and_shards_t> maybe_result = promise.wait();
     if (maybe_result.empty()) {
         return false;
     }
@@ -112,7 +115,7 @@ bool table_meta_client_t::get_config(
 
 void table_meta_client_t::list_configs(
         signal_t *interruptor_on_caller,
-        std::map<namespace_id_t, table_config_t> *configs_out) {
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     configs_out->clear();
@@ -129,31 +132,33 @@ void table_meta_client_t::list_configs(
     pmap(addresses.begin(), addresses.end(),
     [&](const table_meta_manager_bcard_t::get_config_mailbox_t::address_t &a) {
         disconnect_watcher_t dw(mailbox_manager, a.get_peer());
-        promise_t<std::map<namespace_id_t, table_config_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, table_config_t>)> ack_mailbox(
+        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
+        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
         mailbox_manager,
-        [&](signal_t *, const std::map<namespace_id_t, table_config_t> &configs) {
+        [&](signal_t *,
+                const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
             promise.pulse(configs);
         });
-        send(mailbox_manager, best_mailbox,
+        send(mailbox_manager, a,
             boost::optional<namespace_id_t>(), ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(), &dw, &interruptor);
         done_cond.wait_lazily_unordered();
         if (promise.get_ready_signal()->is_pulsed()) {
-            std::map<namespace_id_t, table_config_t> maybe_result = promise.wait();
+            std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
+                promise.wait();
             configs_out->insert(maybe_result.begin(), maybe_result.end());
         }
     });
 
     /* The `pmap()` above will abort early without throwing anything if the interruptor
     is pulsed, so we have to throw the exception here */
-    if (interruptor_on_home.is_pulsed()) {
+    if (interruptor.is_pulsed()) {
         throw interrupted_exc_t();
     }
 }
 
-bool table_meta_client_t::create(
-        const table_config_t &initial_config,
+table_meta_client_t::result_t table_meta_client_t::create(
+        const table_config_and_shards_t &initial_config,
         signal_t *interruptor_on_caller,
         namespace_id_t *table_id_out) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
@@ -167,7 +172,7 @@ bool table_meta_client_t::create(
     timestamp.epoch.id = generate_uuid();
     timestamp.log_index = 0;
     std::set<server_id_t> servers;
-    for (const table_config_t::shard_t &shard : initial_config.shards) {
+    for (const table_config_t::shard_t &shard : initial_config.config.shards) {
         servers.insert(shard.replicas.begin(), shard.replicas.end());
     }
     table_raft_state_t raft_state;
@@ -228,7 +233,7 @@ bool table_meta_client_t::create(
         timeout.start(10*1000);
         wait_any_t interruptor_combined(&interruptor, &timeout);
         try {
-            table_metadata_by_id->run_key_until_satisfied(*table_id_out,
+            table_metadata_by_id_var.run_key_until_satisfied(*table_id_out,
                 [](const table_metadata_t *m) { return m != nullptr; },
                 &interruptor_combined);
         } catch (const interrupted_exc_t &) {
@@ -247,7 +252,7 @@ bool table_meta_client_t::create(
     }
 }
 
-bool table_meta_client_t::drop(
+table_meta_client_t::result_t table_meta_client_t::drop(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
@@ -307,8 +312,8 @@ bool table_meta_client_t::drop(
         timeout.start(10*1000);
         wait_any_t interruptor_combined(&interruptor, &timeout);
         try {
-            table_metadata_by_id->run_key_until_satisfied(table_id,
-                [](const table_metadata_t *m) { return pair == nullptr; },
+            table_metadata_by_id_var.run_key_until_satisfied(table_id,
+                [](const table_metadata_t *m) { return m == nullptr; },
                 &interruptor_combined);
         } catch (const interrupted_exc_t &) {
             if (interruptor.is_pulsed()) {
@@ -326,16 +331,16 @@ bool table_meta_client_t::drop(
     }
 }
 
-bool table_meta_client_t::set_config(
+table_meta_client_t::result_t table_meta_client_t::set_config(
         const namespace_id_t &table_id,
-        const table_config_t &new_config,
-        signal_t *interruptor) {
+        const table_config_and_shards_t &new_config,
+        signal_t *interruptor_on_caller) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
     /* Find the server (if any) which is acting as leader for the table */
     table_meta_manager_bcard_t::set_config_mailbox_t::address_t best_mailbox;
-    table_meta_manager_bcard_t::timestamp_t::epoch_t best_epoch;
+    table_meta_manager_bcard_t::timestamp_t best_timestamp;
     table_meta_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
             const table_meta_bcard_t *table_bcard) {
@@ -344,9 +349,9 @@ bool table_meta_client_t::set_config(
             [&](const table_meta_manager_bcard_t *server_bcard) {
                 if (server_bcard != nullptr && table_bcard->is_leader) {
                     if (best_mailbox.is_nil() ||
-                            table_bcard->epoch.supersedes(best_epoch)) {
+                            table_bcard->timestamp.supersedes(best_timestamp)) {
                         best_mailbox = server_bcard->set_config_mailbox;
-                        best_epoch = table_bcard->epoch;
+                        best_timestamp = table_bcard->timestamp;
                     }
                 }
             });
@@ -388,11 +393,12 @@ bool table_meta_client_t::set_config(
     timeout.start(10*1000);
     wait_any_t interruptor_combined(&interruptor, &timeout);
     try {
-        table_metadata_by_id->run_key_until_satisfied(table_id,
+        table_metadata_by_id_var.run_key_until_satisfied(table_id,
             [&](const table_metadata_t *m) {
                 return m == nullptr || m->timestamp.supersedes(*timestamp) ||
-                    (m->name == new_config.name && m->database == new_config.database);
-            };
+                    (m->name == new_config.config.name &&
+                        m->database == new_config.config.database);
+            },
             &interruptor_combined);
     } catch (const interrupted_exc_t &) {
         if (interruptor.is_pulsed()) {
@@ -411,7 +417,7 @@ void table_meta_client_t::on_directory_change(
     [&](bool *md_exists, table_metadata_t *md_value) -> bool {
         if (dir_value != nullptr && !*md_exists) {
             *md_exists = true;
-            md_value->witnesses = std::set<peer_id_t>(key.first);
+            md_value->witnesses = std::set<peer_id_t>({key.first});
             md_value->database = dir_value->database;
             md_value->name = dir_value->name;
             md_value->primary_key = dir_value->primary_key;
@@ -427,7 +433,7 @@ void table_meta_client_t::on_directory_change(
             if (*md_exists) {
                 md_value->witnesses.erase(key.first);
                 if (md_value->witnesses.empty()) {
-                    *exists = false;
+                    *md_exists = false;
                 }
             }
         }

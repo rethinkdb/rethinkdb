@@ -5,8 +5,6 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/reactor_driver.hpp"
-#include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
@@ -53,10 +51,12 @@ namespace_repo_t::namespace_repo_t(
         rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       table_meta_client(_table_meta_client),
-      ctx(_ctx),
-      namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
+      ctx(_ctx)
+      // RSI(raft): Reimplement this once table IO works
+      // namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
 {
-    namespaces_subscription.reset(namespaces_view);
+    // RSI(raft): Reimplement this once table IO works
+    // namespaces_subscription.reset(namespaces_view);
 }
 
 namespace_repo_t::~namespace_repo_t() { }
@@ -69,6 +69,8 @@ void copy_region_maps_to_thread(
     *to->get() = from;
 }
 
+// RSI(raft): Reimplement once table IO works
+#if 0
 void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
     ASSERT_NO_CORO_WAITING;
     std::map<namespace_id_t, std::map<key_range_t, server_id_t> > new_reg_to_pri_maps;
@@ -94,6 +96,7 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
                                         keepalive));
     }
 }
+#endif
 
 void namespace_repo_t::create_and_destroy_namespace_interface(
             UNUSED namespace_cache_t *cache,

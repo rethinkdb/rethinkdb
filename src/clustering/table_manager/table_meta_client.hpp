@@ -3,6 +3,7 @@
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_
 
 #include "clustering/table_manager/table_metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable_map.hpp"
 
 /* `table_meta_client_t` is responsible for submitting client requests over the network
@@ -56,19 +57,19 @@ public:
     bool get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor,
-        table_config_t *config_out);
+        table_config_and_shards_t *config_out);
 
     /* `list_configs()` fetches the configurations of every visible table at once. It may
     block. */
     void list_configs(
         signal_t *interruptor,
-        std::map<namespace_id_t, table_config_t> *configs_out);
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
     to the ID of the newly generated table. It may block. If it returns `success`, the
     change will be visible in `find()`, etc. */
     result_t create(
-        const table_config_t &new_config,
+        const table_config_and_shards_t &new_config,
         signal_t *interruptor,
         namespace_id_t *table_id_out);
 
@@ -84,7 +85,7 @@ public:
     `success`, the change will be visible in `find()`, etc. */
     result_t set_config(
         const namespace_id_t &table_id,
-        const table_config_t &new_config,
+        const table_config_and_shards_t &new_config,
         signal_t *interruptor);
 
 private:

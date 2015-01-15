@@ -50,11 +50,9 @@ Memory page/block eviction, replacement and flush policies, txn and snapshots, e
 Rethink cluster logic, node roles, blueprint implementation, command-line / web backends, etc..
 
 #### clustering/administration
-Implementation of reactor driver/manager, loggers and metadata definitions for namespace,
-database, server, etc..
-
-##### clustering/administration/cli
-Helper functions to parse commands from command-line interface.
+Implementation of "main"-like function for the server. Glue code to hold together all the
+different components. Logger. Metadata definitions for table, database, server, etc...
+Administrative tools like the system tables.
 
 ##### clustering/administration/http
 HTTP user applications for system log, backfilling progress, etc.
@@ -91,8 +89,8 @@ receive (up-to-date) read requests.
 Query processing for each shard.
 A primary server of a shard has a master_t receiving queries from other nodes.
 
-#### clustering/reactor
-Cluster node functions to match the blueprint. A node role can be primary, secondary or nothing/sleep.
+#### clustering/table_manager
+Uses Raft to coordinate creating/deleting/reconfiguring tables.
 
 
 

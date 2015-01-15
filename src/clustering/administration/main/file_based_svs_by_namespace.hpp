@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_FILE_BASED_SVS_BY_NAMESPACE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_FILE_BASED_SVS_BY_NAMESPACE_HPP_
 
+// RSI(raft): Recycle this into part of a concrete implementation of
+// `table_meta_persistence_interface_t`
+#if 0
 #include <string>
 
 #include "clustering/administration/reactor_driver.hpp"
@@ -42,5 +45,6 @@ private:
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);
 };
+#endif
 
 #endif  // CLUSTERING_ADMINISTRATION_MAIN_FILE_BASED_SVS_BY_NAMESPACE_HPP_

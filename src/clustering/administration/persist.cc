@@ -15,7 +15,6 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "concurrency/throttled_committer.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
-#include "clustering/administration/pre_v1_16_metadata.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
 
@@ -167,27 +166,7 @@ void read_metadata_blob(buf_parent_t sb_buf,
     cluster_version_t v = cluster_superblock_version(sb);
     if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
             v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
-        pre_v1_16::cluster_semilattice_metadata_t old_metadata;
-        read_blob(
-            sb_buf,
-            sb->metadata_blob,
-            cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16_is_latest:
-                    default:
-                        unreachable();
-                }
-            });
-        *out = migrate_cluster_metadata_to_v1_16(old_metadata);
+        crash("Metadata is too old. We can't migrate from versions earlier than 1.16.");
     } else {
         read_blob(
             sb_buf,
@@ -396,27 +375,7 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     cluster_version_t v = auth_superblock_version(sb);
     if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
             v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
-        pre_v1_16::auth_semilattice_metadata_t old_metadata;
-        read_blob(
-            buf_parent_t(&superblock),
-            sb->metadata_blob,
-            auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16_is_latest:
-                    default:
-                        unreachable();
-                }
-            });
-        metadata = migrate_auth_metadata_to_v1_16(old_metadata);
+        crash("Metadata is too old. We can't migrate from versions earlier than 1.16.");
     } else {
         read_blob(
             buf_parent_t(&superblock),

@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 
+// RSI(raft): Reimplement this once table IO works
+#if 0
+
 #include <string>
 #include <vector>
 
@@ -72,6 +75,8 @@ private:
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
         namespace_directory_metadata_t>::all_subs_t directory_subs;
 };
+
+#endif
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */
 

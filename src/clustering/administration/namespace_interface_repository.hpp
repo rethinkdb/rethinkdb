@@ -46,7 +46,11 @@ private:
             const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
+
+    // RSI(raft): Reimplement once table IO works
+#if 0
     void on_namespaces_change(auto_drainer_t::lock_t keepalive);
+#endif
 
     mailbox_manager_t *mailbox_manager;
     table_meta_client_t *table_meta_client;
@@ -60,9 +64,6 @@ private:
     DISABLE_COPYING(namespace_repo_t);
 
     auto_drainer_t drainer;
-
-    // We must destroy the subscription before the drainer
-    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */

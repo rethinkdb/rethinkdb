@@ -221,9 +221,7 @@ bool version_is_ancestor(
         region_t relevant_region);
 
 /* `version_is_divergent()` returns true if neither `v1` nor `v2` is an ancestor
-of the other. Because the reactor doesn't allow new `broadcaster_t`s to be
-created unless we can access every living server, this should never happen, but
-the ICL still checks for it and correctly handles this case. */
+of the other. */
 
 bool version_is_divergent(
         branch_history_manager_t *branch_history_manager,

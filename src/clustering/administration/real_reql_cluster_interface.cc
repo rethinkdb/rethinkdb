@@ -4,7 +4,6 @@
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
@@ -113,6 +112,9 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         /* Delete all of the tables in the database */
         // RSI(raft): Reimplement this once table meta operations work.
         not_implemented();
+        (void)table_meta_client;
+        (void)server_config_client;
+        tables_dropped = 0;
 #if 0
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
@@ -202,6 +204,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         // RSI(raft): Reimplement this once table meta operations work
         not_implemented();
+        (void)name;
+        (void)db;
+        (void)config_params;
+        (void)primary_key;
+        (void)interruptor;
+        (void)result_out;
+        (void)error_out;
 #if 0
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
@@ -313,6 +322,11 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         // RSI(raft): Reimplement this once table meta operations work
         not_implemented();
+        (void)name;
+        (void)db;
+        (void)interruptor;
+        (void)result_out;
+        (void)error_out;
 #if 0
         /* Find the specified table */
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
@@ -353,6 +367,11 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
         UNUSED std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+    not_implemented();
+    (void)db;
+    (void)names_out;
+    // RSI(raft): Reimplement once table meta operations work
+#if 0
     cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
     for (const auto &pair : ns_metadata->namespaces) {
         if (!pair.second.is_deleted() &&
@@ -360,6 +379,7 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
             names_out->insert(pair.second.get_ref().name.get_ref());
         }
     }
+#endif
     return true;
 }
 
@@ -371,6 +391,14 @@ bool real_reql_cluster_interface_t::table_find(
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     /* Find the specified table in the semilattice metadata */
+    // RSI(raft): Reimplement once table IO works
+    not_implemented();
+    (void)name;
+    (void)db;
+    (void)interruptor;
+    (void)table_out;
+    (void)error_out;
+#if 0
     cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
         = get_namespaces_metadata();
     namespace_id_t table_id;
@@ -390,6 +418,7 @@ bool real_reql_cluster_interface_t::table_find(
         namespace_repo.get_namespace_interface(table_id, interruptor),
         namespaces_metadata->namespaces.at(table_id).get_ref().primary_key.get_ref(),
         &changefeed_client));
+#endif
 
     return true;
 }
@@ -408,6 +437,11 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)env;
+    (void)doc_counts_out;
+    (void)error_out;
 #if 0
     /* Find the specified table in the semilattice metadata */
     cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
@@ -473,6 +507,13 @@ bool real_reql_cluster_interface_t::table_config(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)bt;
+    (void)env;
+    (void)selection_out;
+    (void)error_out;
+    return false;
 #if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
@@ -497,6 +538,13 @@ bool real_reql_cluster_interface_t::table_status(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)bt;
+    (void)env;
+    (void)selection_out;
+    (void)error_out;
+    return false;
 #if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
@@ -523,6 +571,12 @@ bool real_reql_cluster_interface_t::wait_internal(
         std::string *error_out) {
     // RSI(raft): Reimplement this oncee table meta operations work
     not_implemented();
+    (void)tables;
+    (void)readiness;
+    (void)interruptor;
+    (void)result_out;
+    (void)count_out;
+    (void)error_out;
 #if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
@@ -629,6 +683,12 @@ bool real_reql_cluster_interface_t::table_wait(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)readiness;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
 #if 0
     namespace_id_t table_id;
     if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
@@ -664,6 +724,11 @@ bool real_reql_cluster_interface_t::db_wait(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)readiness;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -696,6 +761,15 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)cluster_md;
+    (void)db;
+    (void)table_id;
+    (void)table_name;
+    (void)params;
+    (void)dry_run;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     rassert(get_thread_id() == server_config_client->home_thread());
@@ -806,6 +880,13 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)params;
+    (void)dry_run;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -833,6 +914,12 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)params;
+    (void)dry_run;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -874,6 +961,13 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)cluster_md;
+    (void)db;
+    (void)table_id;
+    (void)table_name;
+    (void)interruptor;
+    (void)results_out;
+    (void)error_out;
     return false;
 #if 0
     /* Store old status */
@@ -935,6 +1029,11 @@ bool real_reql_cluster_interface_t::table_rebalance(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)name;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -960,6 +1059,10 @@ bool real_reql_cluster_interface_t::db_rebalance(
         std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
+    (void)db;
+    (void)interruptor;
+    (void)result_out;
+    (void)error_out;
     return false;
 #if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),

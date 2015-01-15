@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/tables/debug_table_status.hpp"
 
+// RSI(raft): Reimplement this once table IO works
+#if 0
+
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 
@@ -227,4 +230,6 @@ bool debug_table_status_artificial_table_backend_t::write_row(
     *error_out = "It's illegal to write to the `rethinkdb._debug_table_status` table.";
     return false;
 }
+
+#endif
 

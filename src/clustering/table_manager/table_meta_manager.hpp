@@ -233,7 +233,8 @@ private:
         signal_t *interruptor,
         const namespace_id_t &table_id,
         const table_config_and_shards_t &new_config_and_shards,
-        const mailbox_t<void(bool)>::address_t &reply_addr);
+        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
+            address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following

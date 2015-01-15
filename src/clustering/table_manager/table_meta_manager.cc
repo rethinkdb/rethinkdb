@@ -138,12 +138,13 @@ void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
 
     /* Update the bcard */
     table_meta_bcard_t bcard;
-    bcard.timestamp.epoch = _epoch;
+    bcard.timestamp.epoch = epoch;
     raft.get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::state_and_config_t &sc) {
-            bcard.timestamp.log_index = sc.log_index;
-            bcard.database = sc.config_and_shards.config.database;
-            bcard.name = sc.config_and_shards.config.name;
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+            bcard.timestamp.log_index = sc->log_index;
+            bcard.database = sc->state.config.config.database;
+            bcard.name = sc->state.config.config.name;
+        });
     bcard.raft_member_id = member_id;
     bcard.raft_business_card = raft.get_business_card();
     bcard.is_leader = raft.get_raft()->get_readiness_for_change()->get();
@@ -170,7 +171,7 @@ void table_meta_manager_t::active_table_t::on_table_directory_change(
         boost::optional<raft_member_id_t> new_member_id;
         /* Note that if another server is in a different epoch from us, then we
         don't put the Raft members into contact with each other. */
-        if (bcard != nullptr && bcard->epoch == epoch) {
+        if (bcard != nullptr && bcard->timestamp.epoch == epoch) {
             new_member_id = bcard->raft_member_id;
         }
         auto it = old_peer_member_ids.find(key.first);
@@ -322,7 +323,7 @@ void table_meta_manager_t::on_get_config(
             if (it->second->active.has()) {
                 it->second->active->raft.get_raft()->get_committed_state()->apply_read(
                     [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[*table_id] = s->state.config_and_shards;
+                        result[*table_id] = s->state.config;
                     });
             }
         }
@@ -335,7 +336,7 @@ void table_meta_manager_t::on_get_config(
             table_mutex_in_lines;
         for (auto &&pair : tables) {
             table_mutex_in_lines[pair.first] =
-                make_scoped<new_mutex_in_line_t>(&pair.second.mutex);
+                make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
         }
         global_mutex_acq.reset();
         for (auto &&pair : table_mutex_in_lines) {
@@ -345,7 +346,7 @@ void table_meta_manager_t::on_get_config(
             if (it->second->active.has()) {
                 it->second->active->raft.get_raft()->get_committed_state()->apply_read(
                     [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[pair.first] = s->state.config_and_shards;
+                        result[pair.first] = s->state.config;
                     });
             }
         }
@@ -384,11 +385,13 @@ void table_meta_manager_t::on_set_config(
 
                 /* Record the previous value. We'll compare it to the new value to see if
                 we need to update the directory. */
-                old_config = raft->get_latest_state()->get().state.config_and_shards;
+                old_config = raft->get_latest_state()->get().state.config;
+                guarantee(new_config.config.primary_key ==
+                    old_config.config.primary_key);
 
                 /* Here's where we actually apply the change. */
                 table_raft_state_t::change_t::set_table_config_t c;
-                c.new_config_and_shards = new_config;
+                c.new_config = new_config;
                 table_raft_state_t::change_t change(c);
                 change_token = raft->propose_change(&change_lock, change, interruptor);
 
@@ -441,7 +444,7 @@ void table_meta_manager_t::do_sync(
             });
         if (static_cast<bool>(member_id) != static_cast<bool>(table_bcard) ||
                 (static_cast<bool>(member_id) && static_cast<bool>(table_bcard) &&
-                    (table.timestamp.epoch.supersedes(table_bcard->epoch) ||
+                    (table.timestamp.epoch.supersedes(table_bcard->timestamp.epoch) ||
                         *member_id != table_bcard->raft_member_id))) {
             boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state;
             if (static_cast<bool>(member_id)) {

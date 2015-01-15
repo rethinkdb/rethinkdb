@@ -21,9 +21,9 @@ std::string common_table_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
-        signal_t *interruptor,
-        std::vector<ql::datum_t> *rows_out,
-        std::string *error_out) {
+        UNUSED signal_t *interruptor,
+        UNUSED std::vector<ql::datum_t> *rows_out,
+        UNUSED std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
     return false;
@@ -55,10 +55,10 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
 }
 
 bool common_table_artificial_table_backend_t::read_row(
-        ql::datum_t primary_key,
-        signal_t *interruptor,
-        ql::datum_t *row_out,
-        std::string *error_out) {
+        UNUSED ql::datum_t primary_key,
+        UNUSED signal_t *interruptor,
+        UNUSED ql::datum_t *row_out,
+        UNUSED std::string *error_out) {
     // RSI(raft): Reimplement this once table meta operations work
     not_implemented();
     return false;
