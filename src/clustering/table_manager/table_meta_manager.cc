@@ -246,7 +246,11 @@ void table_meta_manager_t::on_action(
     if (!is_new) {
         guarantee(!(table->is_deleted && !is_deletion), "Can't un-delete a table");
         guarantee(table->is_deleted == table->timestamp.epoch.id.is_nil());
+        // RSI(raft): Reinstate this guarantee once we have a non-trivial implementation
+        // of `table_meta_manager_persistence_interface_t`
+#if 0
         guarantee(table->multistore_ptr.has() == table->active.has());
+#endif
     }
 
     /* Reject outdated or redundant messages */

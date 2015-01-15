@@ -149,6 +149,13 @@ private:
     ql::changefeed::client_t changefeed_client;
     server_config_client_t *server_config_client;
 
+    /* Thin wrapper around `table_meta_client_t::find()` that also formats error messages
+    for you */
+    bool find_table(const counted_t<const ql::db_t> &db,
+                    const name_string_t &name,
+                    namespace_id_t *table_id_out,
+                    std::string *error_out);
+
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);
 

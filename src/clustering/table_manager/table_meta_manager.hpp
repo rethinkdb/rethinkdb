@@ -107,6 +107,8 @@ public:
     table_meta_manager_bcard_t get_table_meta_manager_bcard() {
         table_meta_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox.get_address();
+        bcard.get_config_mailbox = get_config_mailbox.get_address();
+        bcard.set_config_mailbox = set_config_mailbox.get_address();
         bcard.server_id = server_id;
         return bcard;
     }

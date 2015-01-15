@@ -277,38 +277,34 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
-        // RSI(raft): Reimplement this once table meta operations work
-        not_implemented();
-        (void)name;
-        (void)db;
-        (void)interruptor;
-        (void)result_out;
-        (void)error_out;
-#if 0
-        /* Find the specified table */
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
-                &metadata.rdb_namespaces);
         namespace_id_t table_id;
-        if (!search_table_metadata_by_name(*ns_change.get(), db->id, db->name, name,
-                &table_id, error_out)) {
+        if (!find_table(db, name, &table_id, error_out)) {
             return false;
         }
 
-        const namespace_semilattice_metadata_t &table_md =
-            ns_change.get()->namespaces.at(table_id).get_ref();
+        table_config_and_shards_t config;
+        if (!table_meta_client->get_config(table_id, interruptor, &config)) {
+            *error_out = strprintf("Lost contact with the server(s) hosting table "
+                "`%s.%s`. The table was not deleted.", db->name.c_str(), name.c_str());
+            return false;
+        }
         old_config = convert_table_config_to_datum(table_id, name,
-            convert_name_to_datum(db->name), table_md.primary_key.get_ref(),
-            table_md.replication_info.get_ref().config,
+            convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
 
-        /* Delete the table. */
-        ns_change.get()->namespaces.at(table_id).mark_deleted();
-
-        semilattice_root_view->join(metadata);
-        metadata = semilattice_root_view->get();
-#endif
+        table_meta_client_t::result_t res =
+            table_meta_client->drop(table_id, interruptor);
+        if (res == table_meta_client_t::result_t::failure) {
+            *error_out = strprintf("Lost contact with the server(s) hosting table "
+                "`%s.%s`. The table was not deleted.", db->name.c_str(), name.c_str());
+            return false;
+        } else if (res == table_meta_client_t::result_t::maybe) {
+            *error_out = strprintf("Lost contact with the server(s) hosting table "
+                "`%s.%s`. The table may or may not have been deleted.", db->name.c_str(),
+                name.c_str());
+            return false;
+        }
     }
-    wait_for_metadata_to_propagate(metadata, interruptor);
 
     ql::datum_object_builder_t result_builder;
     result_builder.overwrite("tables_dropped", ql::datum_t(1.0));
@@ -1043,6 +1039,25 @@ bool real_reql_cluster_interface_t::db_rebalance(
     *result_out = combined_stats;
     return true;
 #endif
+}
+
+bool real_reql_cluster_interface_t::find_table(
+        const counted_t<const ql::db_t> &db,
+        const name_string_t &name,
+        namespace_id_t *table_id_out,
+        std::string *error_out) {
+    size_t count;
+    if (!table_meta_client->find(db->id, name, table_id_out, &count)) {
+        if (count == 0) {
+            *error_out = strprintf("Table `%s.%s` does not exist.", db->name.c_str(),
+                name.c_str());
+        } else {
+            *error_out = strprintf("Table `%s.%s` is ambiguous; there are multiple "
+                "tables with that name.", db->name.c_str(), name.c_str());
+        }
+        return false;
+    }
+    return true;
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */
