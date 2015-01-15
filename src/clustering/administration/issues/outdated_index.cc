@@ -33,6 +33,7 @@ outdated_index_issue_t::outdated_index_issue_t(
 bool outdated_index_issue_t::build_info_and_description(
         const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -45,7 +46,8 @@ bool outdated_index_issue_t::build_info_and_description(
         ql::datum_t db_name_or_uuid;
         name_string_t db_name;
         if (!convert_table_id_to_datums(pair.first, identifier_format, metadata,
-                &table_name_or_uuid, &table_name, &db_name_or_uuid, &db_name)) {
+                table_meta_client, &table_name_or_uuid, &table_name, &db_name_or_uuid,
+                &db_name)) {
             /* No point in showing an outdated_index issue for a deleted table. */
             continue;
         }

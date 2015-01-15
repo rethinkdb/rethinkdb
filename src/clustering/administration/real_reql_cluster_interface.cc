@@ -8,6 +8,7 @@
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/env.hpp"
@@ -193,112 +194,68 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    namespace_id_t table_id = generate_uuid();
+    namespace_id_t table_id;
     cluster_semilattice_metadata_t metadata;
     ql::datum_t new_config;
     {
         cross_thread_signal_t interruptor2(interruptor,
             semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
-        metadata = semilattice_root_view->get();
-
-        // RSI(raft): Reimplement this once table meta operations work
-        not_implemented();
-        (void)name;
-        (void)db;
-        (void)config_params;
-        (void)primary_key;
-        (void)interruptor;
-        (void)result_out;
-        (void)error_out;
-#if 0
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
-            &metadata.rdb_namespaces);
 
         /* Make sure there isn't an existing table with the same name */
-        for (const auto &pair : ns_change.get()->namespaces) {
-            if (!pair.second.is_deleted() &&
-                    pair.second.get_ref().database.get_ref() == db->id &&
-                    pair.second.get_ref().name.get_ref() == name) {
-                *error_out = strprintf("Table `%s.%s` already exists.",
-                    db->name.c_str(), name.c_str());
+        {
+            namespace_id_t dummy_table_id;
+            size_t count;
+            table_meta_client->find(db->id, name, &dummy_table_id, &count);
+            if (count != 0) {
+                *error_out = strprintf("Table `%s.%s` already exists.", db->name.c_str(),
+                    name.c_str());
                 return false;
             }
         }
 
-        table_replication_info_t repli_info;
+        table_config_and_shards_t config;
+
+        config.config.name = name;
+        config.config.database = db->id;
+        config.config.primary_key = primary_key;
 
         /* We don't have any data to generate split points based on, so assume UUIDs */
         calculate_split_points_for_uuids(
-            config_params.num_shards, &repli_info.shard_scheme);
+            config_params.num_shards, &config.shard_scheme);
 
-        /* Construct a configuration for the new namespace */
+        /* Pick which servers to host the data */
         std::map<server_id_t, int> server_usage;
-        for (auto it = ns_change.get()->namespaces.begin();
-                  it != ns_change.get()->namespaces.end();
-                ++it) {
-            if (it->second.is_deleted()) {
-                continue;
-            }
-            calculate_server_usage(
-                it->second.get_ref().replication_info.get_ref().config, &server_usage);
-        }
+        // RSI(raft): Fill in `server_usage` so we make smarter choices
         if (!table_generate_config(
                 server_config_client, nil_uuid(), nullptr, server_usage,
-                config_params, table_shard_scheme_t(), &interruptor2,
-                &repli_info.config, error_out)) {
+                config_params, config.shard_scheme, &interruptor2,
+                &config.config.shards, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
             return false;
         }
 
-        repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
-        repli_info.config.durability = write_durability_t::HARD;
+        config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
+        config.config.durability = write_durability_t::HARD;
 
-        namespace_semilattice_metadata_t table_metadata;
-        table_metadata.name = versioned_t<name_string_t>(name);
-        table_metadata.database = versioned_t<database_id_t>(db->id);
-        table_metadata.primary_key = versioned_t<std::string>(primary_key);
-        table_metadata.replication_info =
-            versioned_t<table_replication_info_t>(repli_info);
-
-        ns_change.get()->namespaces.insert(
-            std::make_pair(table_id, make_deletable(table_metadata)));
-
-        semilattice_root_view->join(metadata);
-        metadata = semilattice_root_view->get();
-
-        table_status_artificial_table_backend_t *status_backend =
-            admin_tables->table_status_backend[
-                static_cast<int>(admin_identifier_format_t::name)].get();
-
-        wait_for_table_readiness(
-            table_id,
-            table_readiness_t::finished,
-            status_backend,
-            &interruptor2,
-            nullptr);
+        table_meta_client_t::result_t result = table_meta_client->create(
+            config, interruptor, &table_id);
+        if (result == table_meta_client_t::result_t::failure) {
+            *error_out = "Lost contact with the server(s) that were supposed to host "
+                "the newly-created table. The table was not created.";
+            return false;
+        } else if (result == table_meta_client_t::result_t::maybe) {
+            *error_out = "Lost contact with the server(s) that were supposed to host "
+                "the newly-created table. The table may or may not have been created.";
+            return false;
+        }
 
         new_config = convert_table_config_to_datum(table_id, name,
-            convert_name_to_datum(db->name), primary_key, repli_info.config,
+            convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
-#endif
     }
 
-    // This could hang because of a node disconnecting or the user deleting the table.
-    // In that case, timeout after 10 seconds and pretend everything's alright.
-    signal_timer_t timer_interruptor;
-    wait_any_t combined_interruptor(interruptor, &timer_interruptor);
-    timer_interruptor.start(10000);
-    try {
-        namespace_interface_access_t ns_if =
-            namespace_repo.get_namespace_interface(table_id, &combined_interruptor);
-        while (!ns_if.get()->check_readiness(table_readiness_t::writes,
-                                             &combined_interruptor)) {
-            nap(100, &combined_interruptor);
-        }
-    } catch (const interrupted_exc_t &) {
-        // Do nothing
-    }
+    // RSI(raft): Wait for table to become available to handle queries
 
     ql::datum_object_builder_t result_builder;
     result_builder.overwrite("tables_created", ql::datum_t(1.0));

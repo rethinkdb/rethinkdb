@@ -24,6 +24,7 @@ public:
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         server_config_client_t *_server_config_client,
+        table_meta_client_t *_table_meta_client,
         mailbox_manager_t *_mailbox_manager,
         admin_identifier_format_t _admin_format);
     ~stats_artificial_table_backend_t();
@@ -61,6 +62,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
     server_config_client_t *server_config_client;
+    table_meta_client_t *table_meta_client;
     mailbox_manager_t *mailbox_manager;
     admin_identifier_format_t admin_format;
 };

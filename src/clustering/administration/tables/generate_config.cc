@@ -4,8 +4,6 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "containers/counted.hpp"
 
-#if 0
-
 /* `long_calculation_yielder_t` is used in a long-running calculation to periodically
 yield control of the CPU, thereby preventing locking up the server. Construct one at the
 beginning of the calculation and call `maybe_yield()` regularly during the calculation.
@@ -31,8 +29,6 @@ private:
     ticks_t t;
 };
 
-#endif
-
 // Because being the primary replica for a shard usually comes with a higher cost than
 // being a secondary replica, we want to consider that difference in the replica
 // assignment. The concrete value of these doesn't matter, only their ratio
@@ -52,8 +48,6 @@ void calculate_server_usage(
         (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
     }
 }
-
-#if 0
 
 /* `validate_params()` checks if `params` are legal. */
 static bool validate_params(
@@ -106,57 +100,6 @@ static bool validate_params(
         }
     }
     return true;
-}
-
-/* `estimate_cost_to_get_up_to_date()` returns a number that describes how much trouble
-we expect it to be to get the given server into an up-to-date state.
-
-This takes O(shards) time, since `business_card` probably contains O(shards) activities.
-*/
-static double estimate_cost_to_get_up_to_date(
-        const reactor_business_card_t &business_card,
-        region_t shard) {
-    typedef reactor_business_card_t rb_t;
-    region_map_t<double> costs(shard, 3);
-    for (rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
-            it != business_card.activities.end(); it++) {
-        region_t intersection = region_intersection(it->second.region, shard);
-        if (!region_is_empty(intersection)) {
-            int cost;
-            if (boost::get<rb_t::primary_when_safe_t>(&it->second.activity)) {
-                cost = 0;
-            } else if (boost::get<rb_t::primary_t>(&it->second.activity)) {
-                cost = 0;
-            } else if (boost::get<rb_t::secondary_up_to_date_t>(&it->second.activity)) {
-                cost = 1;
-            } else if (boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
-                cost = 2;
-            } else if (boost::get<rb_t::secondary_backfilling_t>(&it->second.activity)) {
-                cost = 2;
-            } else if (boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
-                cost = 3;
-            } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
-                cost = 3;
-            } else if (boost::get<rb_t::nothing_t>(&it->second.activity)) {
-                cost = 3;
-            } else {
-                // I don't know if this is unreachable, but cost would be uninitialized otherwise  - Sam
-                // TODO: Is this really unreachable?
-                unreachable();
-            }
-            /* It's ok to just call `set()` instead of trying to find the minimum
-            because activities should never overlap. */
-            costs.set(intersection, cost);
-        }
-    }
-    double sum = 0;
-    int count = 0;
-    for (region_map_t<double>::iterator it = costs.begin(); it != costs.end(); it++) {
-        /* TODO: Scale by how much data is in `it->first` */
-        sum += it->second;
-        count++;
-    }
-    return sum / count;
 }
 
 /* A `pairing_t` represents the possibility of using the given server as a replica for
@@ -245,22 +188,18 @@ void pick_best_pairings(
     }
 }
 
-#endif
-
 bool table_generate_config(
-        UNUSED server_config_client_t *server_config_client,
-        UNUSED namespace_id_t table_id,
+        server_config_client_t *server_config_client,
+        namespace_id_t table_id,
+        // RSI(raft): This will eventually be used
         UNUSED table_meta_client_t *table_meta_client,
-        UNUSED const std::map<server_id_t, int> &server_usage,
-        UNUSED const table_generate_config_params_t &params,
+        const std::map<server_id_t, int> &server_usage,
+        const table_generate_config_params_t &params,
+        // RSI(raft): This will eventually be used
         UNUSED const table_shard_scheme_t &shard_scheme,
-        UNUSED signal_t *interruptor,
-        UNUSED table_config_t *config_out,
-        UNUSED std::string *error_out) {
-    // RSI(raft): Reimplement this when table IO works.
-    not_implemented();
-    return false;
-#if 0
+        signal_t *interruptor,
+        std::vector<table_config_t::shard_t> *config_shards_out,
+        std::string *error_out) {
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
@@ -289,45 +228,9 @@ bool table_generate_config(
         return false;
     }
 
-    /* Fetch reactor information for all of the servers */
-    std::map<server_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
-    if (table_id != nil_uuid()) {
-        std::set<server_id_t> disconnected;
-        for (auto it = servers_with_tags.begin();
-                  it != servers_with_tags.end();
-                ++it) {
-            for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                server_id_t server_id = *jt;
-                boost::optional<peer_id_t> peer_id =
-                    server_config_client->get_peer_id_for_server_id(server_id);
-                if (!static_cast<bool>(peer_id)) {
-                    disconnected.insert(server_id);
-                    continue;
-                }
-                directory_view->read_key(std::make_pair(*peer_id, table_id),
-                    [&](const namespace_directory_metadata_t *metadata) {
-                        /* If this is `nullptr`, that means that the server is connected
-                        but it doesn't have a reactor entry for this table. This is
-                        usually because the table was just created or the server just
-                        reconnected. In this case, we don't put an entry in the map, and
-                        this is equivalent to assuming the server has no data for the
-                        shard. */
-                        if (metadata != nullptr) {
-                            directory_metadata[server_id] = metadata->internal;
-                        }
-                    });
-            }
-        }
-        if (!disconnected.empty()) {
-            *error_out = strprintf("Can't configure table because server `%s` is "
-                "disconnected", server_names.at(*disconnected.begin()).c_str());
-            return false;
-        }
-    }
-
     yielder.maybe_yield(interruptor);
 
-    config_out->shards.resize(params.num_shards);
+    config_shards_out->resize(params.num_shards);
 
     size_t total_replicas = 0;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
@@ -360,15 +263,9 @@ bool table_generate_config(
                 pairing_t p;
                 p.shard = shard;
                 if (table_id != nil_uuid()) {
-                    auto dir_it = directory_metadata.find(server);
-                    if (dir_it == directory_metadata.end()) {
-                        p.backfill_cost = 3.0;
-                    } else {
-                        p.backfill_cost = estimate_cost_to_get_up_to_date(
-                            *dir_it->second,
-                            hash_region_t<key_range_t>(
-                                shard_scheme.get_shard_range(shard)));
-                    }
+                    // RSI(raft): When table IO works, make this be a function of whether
+                    // data is already present on the server or not
+                    p.backfill_cost = 1.0;
                 } else {
                     /* We're creating a new table, so we won't have to backfill no matter
                     where we put the servers */
@@ -415,9 +312,9 @@ bool table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
-                    guarantee(config_out->shards[shard].primary_replica.is_unset());
-                    config_out->shards[shard].replicas.insert(server);
-                    config_out->shards[shard].primary_replica = server;
+                    guarantee((*config_shards_out)[shard].primary_replica.is_unset());
+                    (*config_shards_out)[shard].replicas.insert(server);
+                    (*config_shards_out)[shard].primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
                     that our second call to `pick_best_pairings()` will take into account
                     the choices made in this round. */
@@ -449,17 +346,15 @@ bool table_generate_config(
             &yielder,
             interruptor,
             [&](size_t shard, const server_id_t &server) {
-                config_out->shards[shard].replicas.insert(server);
+                (*config_shards_out)[shard].replicas.insert(server);
             });
     }
 
     for (size_t shard = 0; shard < params.num_shards; ++shard) {
-        guarantee(!config_out->shards[shard].primary_replica.is_unset());
-        guarantee(config_out->shards[shard].replicas.size() == total_replicas);
+        guarantee(!(*config_shards_out)[shard].primary_replica.is_unset());
+        guarantee((*config_shards_out)[shard].replicas.size() == total_replicas);
     }
 
     return true;
-#endif
 }
-
 

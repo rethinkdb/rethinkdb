@@ -40,7 +40,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_18_FOR_CLUSTER(cluster_directory_metadata_t,
+RDB_IMPL_SERIALIZABLE_19_FOR_CLUSTER(cluster_directory_metadata_t,
      server_id,
      peer_id,
      version,
@@ -53,6 +53,7 @@ RDB_IMPL_SERIALIZABLE_18_FOR_CLUSTER(cluster_directory_metadata_t,
      canonical_addresses,
      argv,
      actual_cache_size_bytes,
+     table_meta_manager_bcard,
      jobs_mailbox,
      get_stats_mailbox_address,
      log_mailbox,

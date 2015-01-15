@@ -408,7 +408,7 @@ bool convert_table_config_and_name_from_datum(
         if (!table_generate_config(
                 server_config_client, nil_uuid(), nullptr, server_usage,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
-                interruptor, config_out, error_out)) {
+                interruptor, &config_out->shards, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
             return false;
         }

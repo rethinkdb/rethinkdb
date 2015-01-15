@@ -25,6 +25,7 @@ public:
         const clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
         server_config_client_t *_server_config_client,
+        table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format);
     ~jobs_artificial_table_backend_t();
 
@@ -59,6 +60,7 @@ private:
         cluster_directory_metadata_t> > > directory_view;
 
     server_config_client_t *server_config_client;
+    table_meta_client_t *table_meta_client;
 
     admin_identifier_format_t identifier_format;
 };

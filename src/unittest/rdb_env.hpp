@@ -24,7 +24,6 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/test_cluster_group.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {

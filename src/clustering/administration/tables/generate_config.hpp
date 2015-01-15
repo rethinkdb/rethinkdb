@@ -31,9 +31,8 @@ bool table_generate_config(
         /* What the new sharding scheme for the table will be. If `table_id` is
         `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
-
         signal_t *interruptor,
-        table_config_t *config_out,
+        std::vector<table_config_t::shard_t> *config_shards_out,
         std::string *error_out);
 
 /* `calculate_server_usage()` adds usage statistics for the configuration described in

@@ -65,6 +65,7 @@ server_name_collision_issue_t::server_name_collision_issue_t(
 bool server_name_collision_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -84,6 +85,7 @@ db_name_collision_issue_t::db_name_collision_issue_t(
 bool db_name_collision_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         UNUSED admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -105,6 +107,7 @@ table_name_collision_issue_t::table_name_collision_issue_t(
 bool table_name_collision_issue_t::build_info_and_description(
         const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -152,37 +155,14 @@ void find_duplicates(const map_t &data,
     }
 }
 
-void find_table_duplicates(
-        const namespaces_semilattice_metadata_t::namespace_map_t &data,
-        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
-    std::map<std::pair<database_id_t, name_string_t>, std::vector<namespace_id_t> >
-        name_counts;
-    for (auto const &it : data) {
-        if (!it.second.is_deleted()) {
-            std::pair<database_id_t, name_string_t> info =
-                std::make_pair(it.second.get_ref().database.get_ref(),
-                               it.second.get_ref().name.get_ref());
-            name_counts[info].push_back(it.first);
-        }
-    }
-
-    for (auto const &it : name_counts) {
-        if (it.second.size() > 1) {
-            issues_out->push_back(scoped_ptr_t<issue_t>(
-                new table_name_collision_issue_t(it.first.second, // Table name
-                                                 it.first.first,  // Database
-                                                 it.second)));    // IDs of tables
-        }
-    }
-}
-
 std::vector<scoped_ptr_t<issue_t> > name_collision_issue_tracker_t::get_issues() const {
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     std::vector<scoped_ptr_t<issue_t> > issues;
 
     find_duplicates<server_name_collision_issue_t>(metadata.servers.servers, &issues);
     find_duplicates<db_name_collision_issue_t>(metadata.databases.databases, &issues);
-    find_table_duplicates(metadata.rdb_namespaces->namespaces, &issues);
+
+    // RSI(raft): Look for table name conflicts
 
     return issues;
 }

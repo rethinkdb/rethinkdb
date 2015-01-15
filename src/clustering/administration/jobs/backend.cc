@@ -16,11 +16,13 @@ jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
         const clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
         server_config_client_t *_server_config_client,
+        table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format)
     : mailbox_manager(_mailbox_manager),
       semilattice_view(_semilattice_view),
       directory_view(_directory_view),
       server_config_client(_server_config_client),
+      table_meta_client(_table_meta_client),
       identifier_format(_identifier_format) {
 }
 
@@ -94,8 +96,8 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     for (auto const &job_report : job_reports) {
         ql::datum_t row;
-        if (job_report.second.to_datum(
-                identifier_format, server_config_client, metadata, &row)) {
+        if (job_report.second.to_datum(identifier_format, server_config_client,
+                table_meta_client, metadata, &row)) {
             rows_out->push_back(row);
         }
     }
@@ -124,8 +126,8 @@ bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
         if (iterator != job_reports.end() && iterator->second.type == job_report_type) {
             cluster_semilattice_metadata_t metadata = semilattice_view->get();
             ql::datum_t row;
-            if (iterator->second.to_datum(
-                   identifier_format, server_config_client, metadata, &row)) {
+            if (iterator->second.to_datum(identifier_format, server_config_client,
+                    table_meta_client, metadata, &row)) {
                 *row_out = std::move(row);
             }
         }

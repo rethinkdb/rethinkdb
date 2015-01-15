@@ -3,6 +3,7 @@
 
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
 ql::datum_t convert_string_to_datum(
@@ -148,22 +149,22 @@ bool convert_table_id_to_datums(
         const namespace_id_t &table_id,
         admin_identifier_format_t identifier_format,
         const cluster_semilattice_metadata_t &metadata,
+        table_meta_client_t *table_meta_client,
         /* Any of these can be `nullptr` if they are not needed */
         ql::datum_t *table_name_or_uuid_out,
         name_string_t *table_name_out,
         ql::datum_t *db_name_or_uuid_out,
         name_string_t *db_name_out) {
-    auto it = metadata.rdb_namespaces->namespaces.find(table_id);
-    if (it == metadata.rdb_namespaces->namespaces.end() || it->second.is_deleted()) {
+    database_id_t db_id;
+    name_string_t table_name;
+    if (!table_meta_client->get_name(table_id, &db_id, &table_name)) {
         return false;
     }
-    name_string_t table_name = it->second.get_ref().name.get_ref();
     if (table_name_or_uuid_out != nullptr) {
         *table_name_or_uuid_out = convert_name_or_uuid_to_datum(
             table_name, table_id, identifier_format);
     }
     if (table_name_out != nullptr) *table_name_out = table_name;
-    database_id_t db_id = it->second.get_ref().database.get_ref();
     name_string_t db_name;
     auto jt = metadata.databases.databases.find(db_id);
     if (jt == metadata.databases.databases.end() || jt->second.is_deleted()) {

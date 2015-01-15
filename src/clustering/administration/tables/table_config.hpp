@@ -22,7 +22,6 @@ ql::datum_t convert_table_config_to_datum(
         namespace_id_t table_id,
         name_string_t table_name,
         const ql::datum_t &db_name_or_uuid,
-        const std::string &primary_key,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client);

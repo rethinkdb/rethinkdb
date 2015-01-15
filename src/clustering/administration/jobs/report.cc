@@ -70,6 +70,7 @@ job_report_t::job_report_t(
 bool job_report_t::to_datum(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
     if (type == "backfill" && is_ready) {
@@ -98,6 +99,7 @@ bool job_report_t::to_datum(
                 table,
                 identifier_format,
                 metadata,
+                table_meta_client,
                 &table_name_or_uuid,
                 nullptr,
                 &db_name_or_uuid,

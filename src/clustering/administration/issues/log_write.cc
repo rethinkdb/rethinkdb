@@ -16,6 +16,7 @@ log_write_issue_t::log_write_issue_t(const std::string &_message) :
 bool log_write_issue_t::build_info_and_description(
         UNUSED const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {

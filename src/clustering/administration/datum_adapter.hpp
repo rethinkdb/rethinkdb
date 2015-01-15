@@ -13,6 +13,7 @@
 
 class cluster_semilattice_metadata_t;
 class server_config_client_t;
+class table_meta_client_t;
 
 /* Note that we generally use `ql::configured_limits_t::unlimited` when converting
 things to datum, rather than using a user-specified limit. This is mostly for consistency
@@ -73,6 +74,7 @@ bool convert_table_id_to_datums(
         const namespace_id_t &table_id,
         admin_identifier_format_t identifier_format,
         const cluster_semilattice_metadata_t &metadata,
+        table_meta_client_t *table_meta_client,
         /* Any of these can be `nullptr` if they are not needed */
         ql::datum_t *table_name_or_uuid_out,
         name_string_t *table_name_out,

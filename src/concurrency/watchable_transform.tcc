@@ -16,7 +16,6 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
                 if (value1 != nullptr) {
                     const value2_t *value2;
                     this->value_1_to_2(value1, &value2);
-                    guarantee(value2 != nullptr);
                     this->do_notify_change(key2, value2, &write_acq);
                 } else {
                     this->do_notify_change(key2, nullptr, &write_acq);

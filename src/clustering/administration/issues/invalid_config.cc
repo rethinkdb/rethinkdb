@@ -24,6 +24,7 @@ invalid_config_issue_t::invalid_config_issue_t(
 bool invalid_config_issue_t::build_info_and_description(
         const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -32,7 +33,8 @@ bool invalid_config_issue_t::build_info_and_description(
     ql::datum_t db_name_or_uuid;
     name_string_t db_name;
     if (!convert_table_id_to_datums(table_id, identifier_format, metadata,
-            &table_name_or_uuid, &table_name, &db_name_or_uuid, &db_name)) {
+            table_meta_client, &table_name_or_uuid, &table_name, &db_name_or_uuid,
+            &db_name)) {
         /* There's no point in showing an issue for a deleted table */
         return false;
     }
@@ -96,40 +98,7 @@ invalid_config_issue_tracker_t::~invalid_config_issue_tracker_t() { }
 
 std::vector<scoped_ptr_t<issue_t> > invalid_config_issue_tracker_t::get_issues() const {
     std::vector<scoped_ptr_t<issue_t> > issues;
-    cluster_semilattice_metadata_t md = cluster_sl_view->get();
-    for (const auto &pair : md.rdb_namespaces->namespaces) {
-        if (pair.second.is_deleted()) {
-            continue;
-        }
-        const table_config_t &config =
-            pair.second.get_ref().replication_info.get_ref().config;
-        write_ack_config_checker_t ack_checker(config, md.servers);
-        bool need_primary = false, data_loss = false, write_acks = false;
-        for (const table_config_t::shard_t &shard : config.shards) {
-            if (md.servers.servers.at(shard.primary_replica).is_deleted()) {
-                need_primary = true;
-            }
-            std::set<server_id_t> replicas;
-            for (const server_id_t &sid : shard.replicas) {
-                if (!md.servers.servers.at(sid).is_deleted()) {
-                    replicas.insert(sid);
-                }
-            }
-            if (replicas.empty()) {
-                data_loss = true;
-            }
-            if (!ack_checker.check_acks(replicas)) {
-                write_acks = true;
-            }
-        }
-        if (data_loss) {
-            issues.push_back(make_scoped<data_loss_issue_t>(pair.first));
-        } else if (need_primary) {
-            issues.push_back(make_scoped<need_primary_issue_t>(pair.first));
-        } else if (write_acks) {
-            issues.push_back(make_scoped<write_acks_issue_t>(pair.first));
-        }
-    }
+    // RSI(raft): Check for invalid config issues
     return issues;
 }
 

@@ -54,6 +54,7 @@ public:
     bool to_datum(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_t *row_out) const;
 

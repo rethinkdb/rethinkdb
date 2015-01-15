@@ -230,13 +230,13 @@ double parsed_stats_t::accumulate_server(const server_id_t &server_id,
 
 bool add_table_fields(const namespace_id_t &table_id,
                       const cluster_semilattice_metadata_t &metadata,
+                      table_meta_client_t *table_meta_client,
                       admin_identifier_format_t admin_format,
                       ql::datum_object_builder_t *builder) {
     ql::datum_t db_identifier;
     ql::datum_t table_identifier;
-    if (!convert_table_id_to_datums(table_id, admin_format, metadata,
-                                    &table_identifier, nullptr,
-                                    &db_identifier, nullptr)) {
+    if (!convert_table_id_to_datums(table_id, admin_format, metadata, table_meta_client,
+            &table_identifier, nullptr, &db_identifier, nullptr)) {
         return false; // The table was deleted or does not exist
     }
     builder->overwrite("db", db_identifier);
@@ -300,6 +300,7 @@ bool cluster_stats_request_t::check_existence(const metadata_t &) const {
 bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
                                        const metadata_t &,
                                        server_config_client_t *,
+                                       table_meta_client_t *,
                                        admin_identifier_format_t,
                                        ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -370,6 +371,7 @@ bool table_stats_request_t::check_existence(UNUSED const metadata_t &metadata) c
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
                                      const metadata_t &metadata,
                                      server_config_client_t *,
+                                     table_meta_client_t *table_meta_client,
                                      admin_identifier_format_t admin_format,
                                      ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -378,7 +380,8 @@ bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
     id_builder.add(convert_uuid_to_datum(table_id));
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
-    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+    if (!add_table_fields(table_id, metadata, table_meta_client, admin_format,
+            &row_builder)) {
         return false;
     }
 
@@ -440,6 +443,7 @@ bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                       const metadata_t &,
                                       server_config_client_t *server_config_client,
+                                      UNUSED table_meta_client_t *table_meta_client,
                                       admin_identifier_format_t admin_format,
                                       ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -542,6 +546,7 @@ bool table_server_stats_request_t::check_existence(const metadata_t &metadata) c
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
                                             const metadata_t &metadata,
                                             server_config_client_t *server_config_client,
+                                            table_meta_client_t *table_meta_client,
                                             admin_identifier_format_t admin_format,
                                             ql::datum_t *result_out) const {
     ql::datum_object_builder_t row_builder;
@@ -558,7 +563,8 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     }
     row_builder.overwrite("server", server_identifier);
     
-    if (!add_table_fields(table_id, metadata, admin_format, &row_builder)) {
+    if (!add_table_fields(table_id, metadata, table_meta_client, admin_format,
+            &row_builder)) {
         return false;
     }
 

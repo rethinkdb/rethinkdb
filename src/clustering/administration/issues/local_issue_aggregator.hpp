@@ -33,6 +33,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -58,6 +59,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -82,6 +84,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -111,6 +114,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;

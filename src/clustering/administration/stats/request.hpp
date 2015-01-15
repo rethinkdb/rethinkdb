@@ -12,6 +12,7 @@
 #include "rdb_protocol/datum.hpp"
 
 class server_config_client_t;
+class table_meta_client_t;
 
 // A `parsed_stats_t` represents all the values that have been gathered from other
 // servers in the cluster.  At construction, it parses the given responses to create
@@ -130,6 +131,7 @@ public:
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
+                          table_meta_client_t *table_meta_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const = 0;
 };
@@ -154,6 +156,7 @@ public:
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
+                          table_meta_client_t *table_meta_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -180,6 +183,7 @@ public:
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
+                          table_meta_client_t *table_meta_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -205,6 +209,7 @@ public:
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
+                          table_meta_client_t *table_meta_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };
@@ -232,6 +237,7 @@ public:
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
+                          table_meta_client_t *table_meta_client,
                           admin_identifier_format_t admin_format,
                           ql::datum_t *result_out) const;
 };

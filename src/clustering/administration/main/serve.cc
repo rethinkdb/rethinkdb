@@ -200,6 +200,10 @@ bool do_serve(UNUSED io_backender_t *io_backender,
             serve_info.ports.canonical_addresses.hosts(),
             serve_info.argv,
             0,   /* we'll fill `actual_cache_size_bytes` in later */
+            i_am_a_server
+                ? boost::make_optional(
+                    table_meta_manager->get_table_meta_manager_bcard())
+                : boost::optional<table_meta_manager_bcard_t>(),
             jobs_manager.get_business_card(),
             stat_manager.get_address(),
             log_server.get_business_card(),
@@ -225,6 +229,16 @@ bool do_serve(UNUSED io_backender_t *io_backender,
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+
+        scoped_ptr_t<directory_map_write_manager_t<
+                namespace_id_t, table_meta_bcard_t> >
+            table_directory_write_manager;
+        if (i_am_a_server) {
+            table_directory_write_manager.init(
+                new directory_map_write_manager_t<namespace_id_t, table_meta_bcard_t>(
+                    &connectivity_cluster, 'T',
+                    table_meta_manager->get_table_meta_bcards()));
+        }
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),

@@ -287,7 +287,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
-        UNUSED table_meta_client_t *_table_meta_client,
+        table_meta_client_t *_table_meta_client,
         server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
@@ -309,6 +309,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _directory_view,
             _server_config_client,
+            _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("issues")] =
@@ -331,7 +332,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     for (int i = 0; i < 2; ++i) {
         stats_backend[i].init(new stats_artificial_table_backend_t(
-            _directory_view, _semilattice_view, _server_config_client, _mailbox_manager,
+            _directory_view, _semilattice_view, _server_config_client,
+            _table_meta_client, _mailbox_manager,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("stats")] =
@@ -366,6 +368,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _directory_view,
             _server_config_client,
+            _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("jobs")] =
