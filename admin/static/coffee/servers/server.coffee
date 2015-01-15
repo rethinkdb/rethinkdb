@@ -24,7 +24,7 @@ module 'ServerView', ->
                         null,
                         server_status.merge( (server_status) ->
                             tags: server_config('tags')
-                            responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
+                            responsibilities: r.db(system_db).table('table_status').map( (table) ->
                                 table.merge( (table) ->
                                     shards: table("shards").map(r.range(), (shard, index) ->
                                         shard.merge(

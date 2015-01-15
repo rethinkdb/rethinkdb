@@ -52,7 +52,7 @@ module 'MainView', ->
 
         fetch_data: (server_uuid) =>
             get_name = (id) ->
-                r.db('rethinkdb').table('server_config').get(id)('name')
+                r.db(system_db).table('server_config').get(id)('name')
             issues_query = r.db(system_db).table('current_issues', identifierFormat: 'uuid')
                 .merge((issue) ->
                     r.branch(issue('type').ne('server_disconnected'),
