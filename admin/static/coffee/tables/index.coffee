@@ -16,6 +16,7 @@ module 'TablesView', ->
             'click .close': 'remove_parent_alert'
 
         query_callback: (error, result) =>
+            @loading = false
             if error?
                 if @error?.msg isnt error.msg
                     @error = error
@@ -65,6 +66,8 @@ module 'TablesView', ->
                 @$('.remove-tables').prop 'disabled', true
 
         initialize: =>
+            @loading = true
+        
             @databases = new Databases
             @databases_list = new TablesView.DatabasesListView
                 collection: @databases
@@ -124,6 +127,7 @@ module 'TablesView', ->
         className: 'database_list'
         template:
             no_databases: Handlebars.templates['no_databases-template']
+            loading_databases: Handlebars.templates['loading_databases-template']
 
         initialize: (data) =>
             @container = data.container
@@ -136,7 +140,10 @@ module 'TablesView', ->
                 @databases_view.push view
                 @$el.append view.render().$el
 
-            if @collection.length is 0
+            if @container.loading
+                @$el.html @template.loading_databases()
+                @container.display_add_table_button false
+            else if @collection.length is 0
                 @$el.html @template.no_databases()
                 @container.display_add_table_button false
 

@@ -59,6 +59,8 @@ module 'ServersView', ->
     class @ServersListView extends Backbone.View
         className: 'servers_view'
         tagName: 'tbody'
+        template:
+            loading_servers: Handlebars.templates['loading_servers-template']
         initialize: =>
             @servers_view = []
 
@@ -100,8 +102,12 @@ module 'ServersView', ->
                         break
 
         render: =>
-            for server_view in @servers_view
-                @$el.append server_view.render().$el
+            if @servers_view.length is 0
+                # No servers means we are probably loading
+                @$el.append @template.loading_servers()
+            else
+                for server_view in @servers_view
+                    @$el.append server_view.render().$el
             @
 
         remove: =>
