@@ -1,9 +1,4 @@
 # TODO ATN
-# the table view should not completely redraw every added row
-# table view shows "no results" when it means "no more results" or "no results yet"
-# disabled horizontal scrollbar shows up sometimes
-# rate limit events to avoid freezing the browser when there are too many
-# when switching back tot he dataexplorer, the table view shows "undefined" if the changefeed is closed.
 # for regular cursors, the count is wrong: " 48 rows returned , 40 displayed, 40 skipped,"
 # vexocide: stop button + pause -> a real button
 # vexocide: bouncing while paused is weird
@@ -22,7 +17,7 @@ module 'DataExplorerView', ->
         options_state: 'hidden'
         options:
             suggestions: true
-            electric_punctuation: false # False by default
+            electric_punctuation: false
             profiler: false
         history: []
         focus_on_codemirror: true
@@ -2981,6 +2976,7 @@ module 'DataExplorerView', ->
                     else
                         return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
 
+        # TODO: rate limit events to avoid freezing the browser when there are too many
         fetch_batch_rows:  =>
             if @query_result.type is not 'cursor'
                 return
@@ -3006,6 +3002,7 @@ module 'DataExplorerView', ->
             @fetch_batch_rows()
 
         add_row: (row) =>
+            # TODO: Don't render the whole view on every change
             @render()
 
     class TreeView extends ResultView
@@ -3056,6 +3053,11 @@ module 'DataExplorerView', ->
             super args
             @last_keys = @parent.container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @parent.container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+            @listenTo @query_result, 'end', =>
+                console.log 'REACHED END'
+                if @current_batch().length == 0
+                    console.log 'EMPTY BATCH'
+                    @render()
 
         handle_mousedown: (event) =>
             if event?.target?.className is 'click_detector'
@@ -3327,11 +3329,15 @@ module 'DataExplorerView', ->
             results = @current_batch()
             if Object::toString.call(results) is '[object Array]'
                 if results.length is 0
-                    @$el.html @templates.wrapper content: @templates.no_result()
+                    @$el.html @templates.wrapper content: @templates.no_result
+                        ended: @query_result.ended
                 else
                     @$el.html @templates.wrapper content: @json_to_table results
             else
-                @$el.html @templates.wrapper content: @json_to_table [results]
+                if results is undefined
+                    @$el.html ''
+                else
+                    @$el.html @templates.wrapper content: @json_to_table [results]
 
             # ATN TODO
             if @query_result.is_feed
@@ -3545,6 +3551,7 @@ module 'DataExplorerView', ->
             if @query_result?.ready
                 @new_view()
 
+        # TODO: The scrollbar sometime shows up when it is not needed
         set_scrollbar: =>
             if @view is 'table'
                 content_name = '.json_table'
