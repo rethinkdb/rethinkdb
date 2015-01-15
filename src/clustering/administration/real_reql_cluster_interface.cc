@@ -324,19 +324,13 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
         UNUSED std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    not_implemented();
-    (void)db;
-    (void)names_out;
-    // RSI(raft): Reimplement once table meta operations work
-#if 0
-    cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
-    for (const auto &pair : ns_metadata->namespaces) {
-        if (!pair.second.is_deleted() &&
-                pair.second.get_ref().database.get_ref() == db->id) {
-            names_out->insert(pair.second.get_ref().name.get_ref());
+    std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+    table_meta_client->list_names(&tables);
+    for (const auto &pair : tables) {
+        if (pair.second.first == db->id) {
+            names_out->insert(pair.second.second);
         }
     }
-#endif
     return true;
 }
 
