@@ -1,7 +1,6 @@
 # TODO changefeeds
-# vexocide: stop button + pause -> a real button
-# vexocide: bouncing while paused is weird
-# danielmewes: perhaps (run -> abort) instead of adding stop button
+# Turn pause/unpause links into pause/play icons?
+# Should there be a loading animation while paused?
 
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
@@ -2622,7 +2621,7 @@ module 'DataExplorerView', ->
                                 ready: (query_result) =>
                                     @state.pause_at = null
                                     if query_result.is_feed
-                                        # ATN @toggle_executing true
+                                        @toggle_executing true
                                         @disable_toggle_executing = true
                                         for event in ['end', 'discard', 'error']
                                             query_result.on event, () =>
@@ -2800,7 +2799,7 @@ module 'DataExplorerView', ->
 
         # Called if there is any on the connection
         error_on_connect: (error) =>
-            if /^(Unexpected token)/.test(error.message) # ATN: test that this is handled correctly
+            if /^(Unexpected token)/.test(error.message)
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
                 @results_view_wrapper.render_error(null, error)
@@ -2810,7 +2809,7 @@ module 'DataExplorerView', ->
                     query: @raw_query
                     broken_query: true
 
-            else # ATN: test that this is handled correctly
+            else
                 @results_view_wrapper.cursor_timed_out()
                 # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
                 # So if the user fails to reconnect after a failure, the alert will still flash
@@ -2897,7 +2896,7 @@ module 'DataExplorerView', ->
 
         # Return whether there are too many datums
         # If there are too many, we will disable syntax highlighting to avoid freezing the page
-        has_too_many_datums: (result) -> # ATN
+        has_too_many_datums: (result) ->
             if @has_too_many_datums_helper(result) > @max_datum_threshold
                 return true
             return false
@@ -2976,7 +2975,7 @@ module 'DataExplorerView', ->
                         return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
 
         current_batch_size: =>
-            return @current_batch().length
+            return @current_batch()?.length ? 0
 
         # TODO: rate limit events to avoid freezing the browser when there are too many
         fetch_batch_rows:  =>
@@ -3339,8 +3338,8 @@ module 'DataExplorerView', ->
                 else
                     @$el.html @templates.wrapper content: @json_to_table [results]
 
-            # ATN TODO
             if @query_result.is_feed
+                # TODO: highlight all new rows, not just the latest one
                 first_row = @$('.jta_tr').eq(1).find('td:not(:first)')
                 first_row.css 'background-color': '#eeeeff'
                 first_row.animate 'background-color': '#fbfbfb'
@@ -3637,7 +3636,6 @@ module 'DataExplorerView', ->
         set_query_result: ({query_result}) =>
             @query_result?.discard()
             @query_result = query_result
-            # ATN disable "next" button
             if query_result.ready
                 @render()
                 @new_view()
@@ -3649,7 +3647,6 @@ module 'DataExplorerView', ->
                 @render()
 
         render: (args) =>
-            # ATN many of these fields don't get updated when their value changes
             if @query_result?.ready
                 @view_object?.$el.detach()
                 has_more_data = not @query_result.ended and @query_result.position + @container.limit <= @query_result.size()
