@@ -67,7 +67,7 @@ module 'ServerView', ->
                         rerender = rerender or @server_found
                         @server_found = false
                     else
-                        rerender = rerender or @server_found
+                        rerender = rerender or not @server_found
                         @server_found = true
 
                         responsibilities = []

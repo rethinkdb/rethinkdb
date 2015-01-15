@@ -9,10 +9,10 @@ module 'TableView', ->
         className: 'table-view'
         initialize: (id) =>
             @id = id
+            @table_found = true
 
             @indexes = null
             @distribution = null
-            @table_view = null
 
             @guaranteed_timer = null
             @failable_timer = null
@@ -188,22 +188,21 @@ module 'TableView', ->
                     @error = error
                     @render()
                 else
+                    rerender = @error?
                     @error = null
                     if result is null
+                        rerender = rerender or @table_found
+                        @table_found = false
                         # Reset the data
-                        # TODO: Test this
                         @indexes = null
-                        @table_view = null
                         @render()
                     else
+                        rerender = rerender or not @table_found
+                        @table_found = true
                         @model.set result
-                        if !@table_view?
-                            @table_view = new TableView.TableMainView
-                                model: @model
-                                indexes: @indexes
-                                distribution: @distribution
-                                shards_assignments: @shards_assignments
-                            @render()
+
+                    if rerender
+                        @render()
 
         render: =>
             if @error?
@@ -211,7 +210,7 @@ module 'TableView', ->
                     error: @error?.message
                     url: '#tables/'+@id
             else
-                if @table_view?
+                if @table_found
                     @$el.html @table_view.render().$el
                 else # In this case, the query returned null, so the table was not found
                     @$el.html @template.not_found
