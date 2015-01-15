@@ -6,11 +6,14 @@ module 'DashboardView', ->
     class @DashboardContainer extends Backbone.View
         id: 'dashboard_container'
         template:
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
 
         initialize: =>
-            @loading = true
+            # Initialize with empty dummy data so we can render the page right away
+            @dashboard = new Dashboard {}
+            @dashboard_view = new DashboardView.DashboardMainView
+                model: @dashboard
+            @render()
 
             @fetch_data()
 
@@ -88,14 +91,12 @@ module 'DashboardView', ->
                     #TODO
                     console.log error
                     @error = error
+                    @dashboard_view = null
                     @render()
                 else
                     @error = null
-                    @loading = false
-                    if @dashboard?
-                        @dashboard.set result
-                    else
-                        @dashboard = new Dashboard result
+                    @dashboard.set result
+                    if !@dashboard_view
                         @dashboard_view = new DashboardView.DashboardMainView
                             model: @dashboard
                         @render()
@@ -105,9 +106,6 @@ module 'DashboardView', ->
                 @$el.html @template.error
                     error: @error?.message
                     url: '#'
-            else if @loading is true
-                @$el.html @template.loading
-                    page: "dashboard"
             else
                 @$el.html @dashboard_view.render().$el
             @

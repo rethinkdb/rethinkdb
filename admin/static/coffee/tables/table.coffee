@@ -5,20 +5,27 @@ module 'TableView', ->
     class @TableContainer extends Backbone.View
         template:
             not_found: Handlebars.templates['element_view-not_found-template']
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
         className: 'table-view'
         initialize: (id) =>
-            @loading = true
             @id = id
 
-            @model = null
             @indexes = null
             @distribution = null
             @table_view = null
 
             @guaranteed_timer = null
             @failable_timer = null
+            
+            # Initialize the model with mostly empty dummy data so we can render it right away
+            @model = new Table {id: id}
+            @table_view = new TableView.TableMainView
+                model: @model
+                indexes: @indexes
+                distribution: @distribution
+                shards_assignments: @shards_assignments
+
+            @render()
 
             @fetch_data()
 
@@ -162,10 +169,9 @@ module 'TableView', ->
                             (shard) -> new ShardAssignment shard
                     )
                     @table_view?.set_assignments @shards_assignments
-                if @model?
-                    @model.set result
-                else
-                    @model = new Table result
+
+                @model.set result
+                if !@table_view?
                     @table_view = new TableView.TableMainView
                         model: @model
                         indexes: @indexes
@@ -186,21 +192,14 @@ module 'TableView', ->
                 else
                     @error = null
                     if result is null
-                        if @loading is true
-                            @loading = false
-                            @render()
-                        else if @model isnt null
-                            #TODO Test
-                            @model = null
-                            @indexes = null
-                            @table_view = null
-                            @render()
+                        # Reset the data
+                        # TODO: Test this
+                        @indexes = null
+                        @table_view = null
+                        @render()
                     else
-                        @loading = false
-                        if @model?
-                            @model.set result
-                        else
-                            @model = new Table result
+                        @model.set result
+                        if !@table_view?
                             @table_view = new TableView.TableMainView
                                 model: @model
                                 indexes: @indexes
@@ -213,9 +212,6 @@ module 'TableView', ->
                 @$el.html @template.error
                     error: @error?.message
                     url: '#tables/'+@id
-            else if @loading is true
-                @$el.html @template.loading
-                    page: "table"
             else
                 if @table_view?
                     @$el.html @table_view.render().$el
