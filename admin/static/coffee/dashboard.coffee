@@ -12,7 +12,7 @@ module 'DashboardView', ->
             if not window.view_data_backup.dashboard_view_dashboard?
                 window.view_data_backup.dashboard_view_dashboard = new Dashboard
             @dashboard = window.view_data_backup.dashboard_view_dashboard
-            
+
             @dashboard_view = new DashboardView.DashboardMainView
                 model: @dashboard
 
