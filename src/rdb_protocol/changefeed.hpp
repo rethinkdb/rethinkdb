@@ -52,6 +52,7 @@ namespace changefeed {
 // primary or secondary value we're sorting by, and `Val` is the actual row.
 typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
+// RSI: kill this typedef, it's dumb.
 typedef std::vector<item_t> item_vec_t;
 
 item_vec_t mangle_sort_truncate_stream(

@@ -545,6 +545,27 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
     return s;
 }
 
+store_key_t mangled_primary_to_pkey(const std::string &s) {
+    guarantee(s.size() > 0);
+    guarantee(s[s.size() - 1] == 1);
+    std::string pkey;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == 2) {
+            guarantee(i != s.size() - 1);
+            pkey.push_back(s[++i]-2);
+        } else if (s[i] == 1) {
+            // Because we're unmangling a pkey, we know there's no tag.
+            guarantee(i == s.size() - 1);
+        } else {
+            guarantee(i != s.size() - 1);
+            pkey.push_back(s[i]);
+        }
+    }
+    debugf("s: %s\n", s.c_str());
+    debugf("pkey: %s\n", pkey.c_str());
+    return store_key_t(pkey);
+}
+
 sorting_t flip(sorting_t sorting) {
     switch (sorting) {
     case sorting_t::ASCENDING: return sorting_t::DESCENDING;
@@ -722,25 +743,30 @@ public:
           n(_n) { }
 
     item_vec_t operator()(const primary_ref_t &ref) {
+        debugf("PRIMARY\n");
         rget_read_response_t resp;
         key_range_t range = *pk_range;
         switch (sorting) {
         case sorting_t::ASCENDING: {
+            debugf("ASCENDING\n");
             if (start) {
-                store_key_t new_start((**start)->first);
-                new_start.increment(); // open bound
-                range.left = new_start;
+                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                start_key.increment(); // open bound
+                range.left = std::move(start_key);
             }
         } break;
         case sorting_t::DESCENDING: {
+            debugf("DESCENDING\n");
             if (start) {
-                range.right = key_range_t::right_bound_t(
-                    store_key_t((**start)->first)); // right bound is open by default
+                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                // right bound is open by default
+                range.right = key_range_t::right_bound_t(std::move(start_key));
             }
         } break;
         case sorting_t::UNORDERED: // fallthru
         default: unreachable();
         }
+        debugf_print("range: ", range);
         rdb_rget_slice(
             ref.btree,
             range,
@@ -770,20 +796,25 @@ public:
     item_vec_t operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
         guarantee(spec->range.sindex);
+        debugf("sindex: %s\n", (*spec->range.sindex).c_str());
         datum_range_t srange = spec->range.range;
         if (start) {
             datum_t dstart = (**start)->second.first;
+            debugf("dstart: %s\n", dstart.print().c_str());
             switch (sorting) {
             case sorting_t::ASCENDING:
+                debugf("ASCENDING\n");
                 srange = srange.with_left_bound(dstart, key_range_t::bound_t::open);
                 break;
             case sorting_t::DESCENDING:
+                debugf("DESCENDING\n");
                 srange = srange.with_right_bound(dstart, key_range_t::bound_t::open);
                 break;
             case sorting_t::UNORDERED: // fallthru
             default: unreachable();
             }
         }
+        debugf("srange: %s\n", srange.print().c_str());
         rdb_rget_secondary_slice(
             ref.btree,
             srange,
@@ -799,6 +830,19 @@ public:
             *ref.sindex_info,
             &resp,
             release_superblock_t::KEEP);
+        {
+            auto *gstream = boost::get<grouped_t<stream_t> >(&resp.result);
+            guarantee(gstream);
+            debugf("gstream: %zu\n", gstream->size());
+            if (gstream->size() > 0) {
+                auto *stream = &gstream->begin(grouped::order_doesnt_matter_t())->second;
+                guarantee(stream);
+                debugf("stream: %zu\n", stream->size());
+                if (stream->size() > 0) {
+                    debugf("res1 skey: %s\n", (*stream)[0].sindex_key.print().c_str());
+                }
+            }
+        }
         auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -840,15 +884,21 @@ void limit_manager_t::commit(
     }
     item_queue_t real_added(gt);
     std::set<std::string> real_deleted;
+    debugf("Item Queue: %zu\n", item_queue.size());
+    debugf("Deleting: %zu\n", deleted.size());
     for (auto &&id : deleted) {
+        debugf("id: %s\n", id.c_str());
         bool data_deleted = item_queue.del_id(id);
+        debugf("data_deleted: %d\n", data_deleted);
         if (data_deleted) {
             bool inserted = real_deleted.insert(std::move(id)).second;
             guarantee(inserted);
         }
     }
     deleted.clear();
+    debugf("Adding: %zu\n", added.size());
     for (auto &&pair : added) {
+        debugf("Key: %s\n", pair.first.c_str());
         auto it = item_queue.find_id(pair.first);
         if (it != item_queue.end()) {
             // We can enter this branch if we're doing a batched update and the
@@ -875,13 +925,12 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
+    // RSI: should we try to avoid this read if we know that we only added rows?
     if (item_queue.size() < spec.limit) {
         auto data_it = item_queue.begin();
-        datum_t begin = (data_it == item_queue.end())
-            ? datum_t()
-            : (*data_it)->second.first;
         boost::optional<item_queue_t::iterator> start;
         if (data_it != item_queue.end()) {
+            debugf("start: %s\n", debug::print(**data_it).c_str());
             start = data_it;
         }
         item_vec_t s;
@@ -902,8 +951,19 @@ void limit_manager_t::commit(
             return;
         }
         guarantee(s.size() <= spec.limit - item_queue.size());
+        debugf("\nINS start\n");
         for (auto &&pair : s) {
+            debugf("%s\n", debug::print(pair).c_str());
             bool ins = item_queue.insert(pair).second;
+            if (!ins) {
+                debugf("FAILURE\n");
+            }
+            // if (!ins) {
+            //     int i = 0;
+            //     for (const auto &item : item_queue) {
+            //         debugf("%d: %s\n", i++, debug::print(*item).c_str());
+            //     }
+            // }
             guarantee(ins);
             size_t erased = real_deleted.erase(pair.first);
             if (erased == 0) {
