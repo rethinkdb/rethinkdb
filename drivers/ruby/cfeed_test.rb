@@ -52,7 +52,7 @@ $t.delete.run_safe
 #
 
 $machines = 2
-$shards = {unsharded: 1, sharded: $machines, oversharded: $machines*2}
+$shards = {sharded: $machines, unsharded: 1, oversharded: $machines*2}
 $limit_sizes = [512, 1, 10]
 $max_pop_size = 1024
 
@@ -149,6 +149,8 @@ $fields = ['id', 'a', 'b', 'c', 'd', 'm']
 
 # RSI: batch size
 $shards.each {|name, nshards|
+  PP.pp [:nshards, nshards]
+  $t.reconfigure(shards: nshards, replicas: 1)
   # RSI: shard here
   $limit_sizes.each_with_index {|limit_size, limit_size_index|
     PP.pp [:limit_size, limit_size]
