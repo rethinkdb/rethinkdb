@@ -311,6 +311,15 @@ with driver.Metacluster() as metacluster:
         for table in tables:
             table['workload'].join()
 
+    print("Checking that stats table is not writable...")
+    length = r.db("rethinkdb").table("stats").count().run(conn)
+    res = r.db("rethinkdb").table("stats").delete().run(conn)
+    assert res["errors"] == length, res
+    res = r.db("rethinkdb").table("stats").update({"foo": "bar"}).run(conn)
+    assert res["errors"] == length, res
+    res = r.db("rethinkdb").table("stats").insert({}).run(conn)
+    assert res["errors"] == 1, res
+
     cluster.check_and_stop()
 
 print('Done.')

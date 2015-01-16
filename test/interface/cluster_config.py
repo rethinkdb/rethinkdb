@@ -66,6 +66,19 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": {"hidden": True}}).run(conn)
     assert res["errors"] == 1
 
+    print("Inserting nonsense to make sure it's not accepted" %
+        (time.time() - startTime))
+    res = r.db("rethinkdb").table("cluster_config").insert({"id": "foobar"}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("auth").delete().run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("auth") \
+           .update({"foo": "bar"}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("auth") \
+           .update({"auth_key": {"is_this_nonsense": "yes"}}).run(conn)
+    assert res["errors"] == 1, res
+
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
 

@@ -67,6 +67,14 @@ with driver.Cluster(output_folder='.') as cluster:
     assert len(issues) == 1
     assert issues[0]["info"]["servers"] == [server_uuid]
 
+    print("Making sure issues table is not writable (%.2fs)" % (time.time() - startTime))
+    res = r.db("rethinkdb").table("current_issues").delete().run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("current_issues").update({"critical": True}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("current_issues").insert({}).run(conn)
+    assert res["errors"] == 1, res
+
     print("Emptying log file (%.2fs)" % (time.time() - startTime))
     open(os.path.join(files.db_path, "log_file"), "w").close()
 
