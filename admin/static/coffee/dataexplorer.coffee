@@ -3255,7 +3255,7 @@ module 'DataExplorerView', ->
             else if value_type is 'string'
                 if /^(http|https):\/\/[^\s]+$/i.test(value)
                     data['classname'] = 'jta_url'
-                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't haendle .museum extension and special characters
+                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
                     data['classname'] = 'jta_email'
                 else
                     data['classname'] = 'jta_string'
