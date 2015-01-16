@@ -157,14 +157,18 @@ void table_meta_client_t::list_configs(
     }
 }
 
-table_meta_client_t::result_t table_meta_client_t::create(
+bool table_meta_client_t::create(
+        namespace_id_t table_id,
         const table_config_and_shards_t &initial_config,
-        signal_t *interruptor_on_caller,
-        namespace_id_t *table_id_out) {
+        signal_t *interruptor_on_caller) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    *table_id_out = generate_uuid();
+    /* Sanity-check that `table_id` is unique */
+    table_metadata_by_id_var.read_key(table_id,
+        [&](const table_metadata_t *metadata) {
+            guarantee(metadata == nullptr);
+        });
 
     /* Prepare the message that we'll be sending to each server */
     table_meta_manager_bcard_t::timestamp_t timestamp;
@@ -207,7 +211,7 @@ table_meta_client_t::result_t table_meta_client_t::create(
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                *table_id_out,
+                table_id,
                 timestamp,
                 false,
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
@@ -225,34 +229,32 @@ table_meta_client_t::result_t table_meta_client_t::create(
         throw interrupted_exc_t();
     }
 
-    if (num_acked > 0) {
-        /* Wait until the table appears in the directory. It may never appear in the
-        directory if it's deleted or we lose contact immediately after the table is
-        created; this is why we have a timeout. */
-        signal_timer_t timeout;
-        timeout.start(10*1000);
-        wait_any_t interruptor_combined(&interruptor, &timeout);
-        try {
-            table_metadata_by_id_var.run_key_until_satisfied(*table_id_out,
-                [](const table_metadata_t *m) { return m != nullptr; },
-                &interruptor_combined);
-        } catch (const interrupted_exc_t &) {
-            if (interruptor.is_pulsed()) {
-                throw;
-            } else {
-                return result_t::maybe;
-            }
-        }
-        table_metadata_by_id.flush();
-        return result_t::success;
-    } else if (!bcards.empty()) {
-        return result_t::maybe;
-    } else {
-        return result_t::failure;
+    if (num_acked == 0) {
+        return false;
     }
+
+    /* Wait until the table appears in the directory. It may never appear in the
+    directory if it's deleted or we lose contact immediately after the table is
+    created; this is why we have a timeout. */
+    signal_timer_t timeout;
+    timeout.start(10*1000);
+    wait_any_t interruptor_combined(&interruptor, &timeout);
+    try {
+        table_metadata_by_id_var.run_key_until_satisfied(table_id,
+            [](const table_metadata_t *m) { return m != nullptr; },
+            &interruptor_combined);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor.is_pulsed()) {
+            throw;
+        } else {
+            return false;
+        }
+    }
+    table_metadata_by_id.flush();
+    return true;
 }
 
-table_meta_client_t::result_t table_meta_client_t::drop(
+bool table_meta_client_t::drop(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
@@ -306,32 +308,30 @@ table_meta_client_t::result_t table_meta_client_t::drop(
         throw interrupted_exc_t();
     }
 
-    if (num_acked > 0) {
-        /* Wait until the table disappears from the directory. */
-        signal_timer_t timeout;
-        timeout.start(10*1000);
-        wait_any_t interruptor_combined(&interruptor, &timeout);
-        try {
-            table_metadata_by_id_var.run_key_until_satisfied(table_id,
-                [](const table_metadata_t *m) { return m == nullptr; },
-                &interruptor_combined);
-        } catch (const interrupted_exc_t &) {
-            if (interruptor.is_pulsed()) {
-                throw;
-            } else {
-                return result_t::maybe;
-            }
-        }
-        table_metadata_by_id.flush();
-        return result_t::success;
-    } else if (!bcards.empty()) {
-        return result_t::maybe;
-    } else {
-        return result_t::failure;
+    if (num_acked == 0) {
+        return false;
     }
+
+    /* Wait until the table disappears from the directory. */
+    signal_timer_t timeout;
+    timeout.start(10*1000);
+    wait_any_t interruptor_combined(&interruptor, &timeout);
+    try {
+        table_metadata_by_id_var.run_key_until_satisfied(table_id,
+            [](const table_metadata_t *m) { return m == nullptr; },
+            &interruptor_combined);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor.is_pulsed()) {
+            throw;
+        } else {
+            return false;
+        }
+    }
+    table_metadata_by_id.flush();
+    return true;
 }
 
-table_meta_client_t::result_t table_meta_client_t::set_config(
+bool table_meta_client_t::set_config(
         const namespace_id_t &table_id,
         const table_config_and_shards_t &new_config,
         signal_t *interruptor_on_caller) {
@@ -358,7 +358,7 @@ table_meta_client_t::result_t table_meta_client_t::set_config(
         }
     });
     if (best_mailbox.is_nil()) {
-        return result_t::failure;
+        return false;
     }
 
     /* Send a message to the server and wait for a reply */
@@ -375,13 +375,13 @@ table_meta_client_t::result_t table_meta_client_t::set_config(
     wait_any_t done_cond(promise.get_ready_signal(), &dw);
     wait_interruptible(&done_cond, &interruptor);
     if (dw.is_pulsed()) {
-        return result_t::maybe;
+        return false;
     }
 
     /* Sometimes the server will reply by indicating that something went wrong */
     boost::optional<table_meta_manager_bcard_t::timestamp_t> timestamp = promise.wait();
     if (!static_cast<bool>(timestamp)) {
-        return result_t::maybe;
+        return false;
     }
 
     /* We know for sure that the change has been applied; now we just need to wait until
@@ -403,11 +403,15 @@ table_meta_client_t::result_t table_meta_client_t::set_config(
     } catch (const interrupted_exc_t &) {
         if (interruptor.is_pulsed()) {
             throw;
+        } else {
+            /* We know the change was applied, but it isn't visible in the directory, so
+            we return `false` anyway. */
+            return false;
         }
     }
 
     table_metadata_by_id.flush();
-    return result_t::success;
+    return true;
 }
 
 void table_meta_client_t::on_directory_change(

@@ -13,12 +13,6 @@ a client request. */
 class table_meta_client_t :
     public home_thread_mixin_t {
 public:
-    enum class result_t {
-        success,
-        maybe,
-        failure
-    };
-
     table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
@@ -66,24 +60,25 @@ public:
         std::map<namespace_id_t, table_config_and_shards_t> *configs_out);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
-    to the ID of the newly generated table. It may block. If it returns `success`, the
-    change will be visible in `find()`, etc. */
-    result_t create(
+    to the ID of the newly generated table. It may block. If it returns `false`, the
+    table may or may not have been created. If it returns `true`, the change will be
+    visible in `find()`, etc. */
+    bool create(
+        namespace_id_t new_table_id,
         const table_config_and_shards_t &new_config,
-        signal_t *interruptor,
-        namespace_id_t *table_id_out);
+        signal_t *interruptor);
 
     /* `drop()` drops the table with the given ID. It may block. If it returns `false`,
-    the change may or may not have succeeded. If it returns `success`, the change will be
+    the change may or may not have succeeded. If it returns `true`, the change will be
     visible in `find()`, etc. */
-    result_t drop(
+    bool drop(
         const namespace_id_t &table_id,
         signal_t *interruptor);
 
     /* `set_config()` changes the configuration of the table with the given ID. It may
     block. If it returns `false`, the change may or may not have succeeded. If it returns
-    `success`, the change will be visible in `find()`, etc. */
-    result_t set_config(
+    `true`, the change will be visible in `find()`, etc. */
+    bool set_config(
         const namespace_id_t &table_id,
         const table_config_and_shards_t &new_config,
         signal_t *interruptor);

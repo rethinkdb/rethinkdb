@@ -20,7 +20,6 @@ class real_reql_cluster_interface_t;
 `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
         namespace_id_t table_id,
-        name_string_t table_name,
         const ql::datum_t &db_name_or_uuid,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
@@ -35,8 +34,10 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             real_reql_cluster_interface_t *_reql_cluster_interface,
             admin_identifier_format_t _identifier_format,
-            server_config_client_t *_server_config_client) :
-        common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
+            server_config_client_t *_server_config_client,
+            table_meta_client_t *_table_meta_client) :
+        common_table_artificial_table_backend_t(
+            _semilattice_view, _table_meta_client, _identifier_format),
         reql_cluster_interface(_reql_cluster_interface),
         server_config_client(_server_config_client)
         { }
@@ -52,7 +53,6 @@ public:
 private:
     bool format_row(
             namespace_id_t table_id,
-            name_string_t table_name,
             const ql::datum_t &db_name_or_uuid,
             const table_config_and_shards_t &config,
             signal_t *interruptor,

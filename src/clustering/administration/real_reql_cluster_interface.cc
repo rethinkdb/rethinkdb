@@ -123,8 +123,7 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
             if (pair.second.first == db_id) {
                 /* Note that we silently ignore failures in this function. This is
                 consistent with our behavior if we cannot "see" the table at all. */
-                if (table_meta_client->drop(pair.first, &interruptor2) ==
-                        table_meta_client_t::result_t::success) {
+                if (table_meta_client->drop(pair.first, &interruptor2)) {
                     ++tables_dropped;
                 }
             }
@@ -236,19 +235,14 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
         config.config.durability = write_durability_t::HARD;
 
-        table_meta_client_t::result_t result = table_meta_client->create(
-            config, &interruptor2, &table_id);
-        if (result == table_meta_client_t::result_t::failure) {
-            *error_out = "Lost contact with the server(s) that were supposed to host "
-                "the newly-created table. The table was not created.";
-            return false;
-        } else if (result == table_meta_client_t::result_t::maybe) {
+        table_id = generate_uuid();
+        if (!table_meta_client->create(table_id, config, &interruptor2)) {
             *error_out = "Lost contact with the server(s) that were supposed to host "
                 "the newly-created table. The table may or may not have been created.";
             return false;
         }
 
-        new_config = convert_table_config_to_datum(table_id, name,
+        new_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
     }
@@ -282,21 +276,18 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         table_config_and_shards_t config;
         if (!table_meta_client->get_config(table_id, interruptor, &config)) {
+            /* In this situation we actually know for sure that we did not delete the
+            table. But we show the same message as below for consistency. */
             *error_out = strprintf("Lost contact with the server(s) hosting table "
-                "`%s.%s`. The table was not deleted.", db->name.c_str(), name.c_str());
+                "`%s.%s`. The table may or may not have been deleted.", db->name.c_str(),
+                name.c_str());
             return false;
         }
-        old_config = convert_table_config_to_datum(table_id, name,
+        old_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
 
-        table_meta_client_t::result_t res =
-            table_meta_client->drop(table_id, interruptor);
-        if (res == table_meta_client_t::result_t::failure) {
-            *error_out = strprintf("Lost contact with the server(s) hosting table "
-                "`%s.%s`. The table was not deleted.", db->name.c_str(), name.c_str());
-            return false;
-        } else if (res == table_meta_client_t::result_t::maybe) {
+        if (!table_meta_client->drop(table_id, interruptor)) {
             *error_out = strprintf("Lost contact with the server(s) hosting table "
                 "`%s.%s`. The table may or may not have been deleted.", db->name.c_str(),
                 name.c_str());
@@ -450,19 +441,8 @@ bool real_reql_cluster_interface_t::table_config(
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)bt;
-    (void)env;
-    (void)selection_out;
-    (void)error_out;
-    return false;
-#if 0
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
-            name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, error_out)) {
         return false;
     }
     return make_single_selection(
@@ -471,7 +451,6 @@ bool real_reql_cluster_interface_t::table_config(
         name_string_t::guarantee_valid("table_config"), table_id, bt,
         strprintf("Table `%s.%s` does not exist.", db->name.c_str(), name.c_str()),
         env, selection_out, error_out);
-#endif
 }
 
 bool real_reql_cluster_interface_t::table_status(

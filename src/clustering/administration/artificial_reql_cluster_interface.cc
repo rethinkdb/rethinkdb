@@ -344,7 +344,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _next_reql_cluster_interface,
             static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            _server_config_client,
+            _table_meta_client));
     }
     backends[name_string_t::guarantee_valid("table_config")] =
         std::make_pair(table_config_backend[0].get(), table_config_backend[1].get());
