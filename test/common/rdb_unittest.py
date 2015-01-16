@@ -9,6 +9,7 @@ class RdbTestCase(unittest.TestCase):
     
     # -- settings
     
+    servers = None # defaults to shards * replicas
     shards = 1
     replicas = 1
     recordsToGenerate = 100
@@ -97,7 +98,10 @@ class RdbTestCase(unittest.TestCase):
         # note: we start up enough servers to make sure they only have only one role
         
         if self.cluster is None:
-            self.__class__.cluster = driver.Cluster(initial_servers=self.shards * self.replicas)
+            initalServers = max(self.shards * self.replicas, self.servers)
+            if self.servers is not None and initalServers > self.servers:
+                raise ValueError('servers must always be >= shards * replicas. If you need another configureation you must set it up manually')
+            self.__class__.cluster = driver.Cluster(initial_servers=initalServers)
         if self.conn is None:
             server = self.cluster[0]
             self.__class__.conn = self.r.connect(host=server.host, port=server.driver_port)
