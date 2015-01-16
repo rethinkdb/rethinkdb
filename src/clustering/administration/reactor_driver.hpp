@@ -68,7 +68,9 @@ public:
 
     bool is_gc_active() const;
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, sindex_job_t> sindex_jobs_t;
+    // The `multimap` key is the pair of table id and sindex name
+    typedef std::multimap<std::pair<namespace_id_t, std::string>, sindex_job_t>
+        sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
 
 private:
@@ -121,7 +123,9 @@ public:
 
     bool is_gc_active();
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, sindex_job_t> sindex_jobs_t;
+    // As above, the `multimap` key is the pair of table id and sindex name
+    typedef std::multimap<std::pair<namespace_id_t, std::string>, sindex_job_t>
+        sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs();
 
     typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>

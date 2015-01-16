@@ -43,7 +43,8 @@ public:
             peer_id_t const &source_peer,
             server_id_t const &destination_server);
 
-    // For `"disk_compation"` and `"index_construction"` jobs
+    // For `"disk_compation"` and `"index_construction"` jobs, the former only uses
+    // `id`, `type`, and `duration`.
     job_report_t(
             uuid_u const &id,
             std::string const &type,
@@ -90,6 +91,8 @@ public:
 
 class parallel_traversal_progress_t;
 
+// TODO, as part of the `report_t` cleanup this should be moved to `reactor_driver.hpp`
+// to reduce the circular dependency between the jobs logic and the reactor driver.
 class sindex_job_t {
 public:
     sindex_job_t(
