@@ -85,6 +85,14 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
     assert res["errors"] == 0
     assert res["deleted"] == 1
     assert "baz" not in r.db_list().run(conn)
-    
+
+    print("Inserting nonsense to make sure it's not accepted (%.2fs)" %
+        (time.time() - startTime))
+    res = r.db("rethinkdb").table("db_config").insert({}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("db_config") \
+           .insert({"name": "hi", "nonsense": "yes"}).run(conn)
+    assert res["errors"] == 1, res
+
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
