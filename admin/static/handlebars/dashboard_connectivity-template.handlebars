@@ -1,12 +1,12 @@
 {{#if status_is_ok}}
 <div class="status no-problems-detected">
-  <h3>Reachability</h3>
+  <h3>Connectivity</h3>
   <p class="message"><span class="good">0</span> issues detected</p>
-  <p class="details"><span class="good">{{num_servers}}/{{num_servers}}</span> servers reachable</p>
+  <p class="details"><span class="good">{{num_servers}}/{{num_servers}}</span> servers connected</p>
 </div>
 {{else}}
 <div class="status problems-detected">
-  <h3>Reachability</h3>
+  <h3>Connectivity</h3>
   <p class="message"><span class="bad">{{num_disconnected_servers}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_disconnected_servers}}</a> detected</p>
   <p class="details"><span class="bad">{{num_disconnected_servers}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are disconnected</p>
 

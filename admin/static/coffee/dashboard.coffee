@@ -47,7 +47,8 @@ module 'DashboardView', ->
                                 server: primary_name
                             )('state')(0)
                     ).filter((shard) ->
-                        shard('primary_state').eq('disconnected')
+                        r.expr(['ready', 'looking_for_primary_replica'])
+                            .contains(shard('primary_state')).not()
                     ).coerceTo('array')
                 ).filter((table) -> table('shards').isEmpty().not())
                 .coerceTo('array')
@@ -61,8 +62,12 @@ module 'DashboardView', ->
                             position: pos.add(1)
                             num_shards: status('shards').count(),
                             replicas: shard('replicas')
-                                .filter(state: 'disconnected')
-                                .map(conf_shard('replicas'), (replica, replica_id) ->
+                                .filter((replica) ->
+                                    r.expr(['ready',
+                                        'looking_for_primary_replica',
+                                        'offloading_data'])
+                                        .contains(replica('state')).not()
+                                ).map(conf_shard('replicas'), (replica, replica_id) ->
                                     replica_id: replica_id
                                     replica_name: replica('server')
                                 ).coerceTo('array')
@@ -80,7 +85,8 @@ module 'DashboardView', ->
             num_connected_replicas = table_status('shards')
                 .concatMap((shard) ->
                     shard('replicas').concatMap((replica) -> replica('state')))
-                .count((replica) -> replica.ne('disconnected'))
+                .count((replica) ->
+                    r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
             disconnected_servers = server_status.filter((server) ->
                     server("status").ne("connected")
             ).map((server) ->
@@ -92,9 +98,7 @@ module 'DashboardView', ->
                 table('shards').map(shard_is_down).contains(true)
             )
             num_tables_w_missing_replicas = table_status.count((table) ->
-                has_missing_replica = (shard) ->
-                    shard('replicas')('state').contains('disconnected')
-                table('shards').map(has_missing_replica).contains(true)
+                table('status')('all_replicas_ready').not()
             )
             num_connected_servers = server_status.count((server) ->
                 server('status').eq("connected")
@@ -156,7 +160,7 @@ module 'DashboardView', ->
                 model: @model
             @cluster_status_redundancy = new DashboardView.ClusterStatusRedundancy
                 model: @model
-            @cluster_status_reachability = new DashboardView.ClusterStatusReachability
+            @cluster_status_connectivity = new DashboardView.ClusterStatusConnectivity
                 model: @model
 
             @stats = new Stats
@@ -187,7 +191,7 @@ module 'DashboardView', ->
             @$el.html @template({})
             @$('.availability').html @cluster_status_availability.render().$el
             @$('.redundancy').html @cluster_status_redundancy.render().$el
-            @$('.reachability').html @cluster_status_reachability.render().$el
+            @$('.connectivity').html @cluster_status_connectivity.render().$el
 
             @$('#cluster_performance_container').html @cluster_performance.render().$el
             #@$('.recent-log-entries-container').html @logs.render().$el
@@ -199,7 +203,7 @@ module 'DashboardView', ->
 
             @cluster_status_availability.remove()
             @cluster_status_redundancy.remove()
-            @cluster_status_reachability.remove()
+            @cluster_status_connectivity.remove()
             @cluster_performance.remove()
             #@logs.remove()
             super()
@@ -332,10 +336,10 @@ module 'DashboardView', ->
             $(window).off 'mouseup', @remove_popup
             super()
 
-    class @ClusterStatusReachability extends Backbone.View
-        className: 'cluster-status-reachability '
+    class @ClusterStatusConnectivity extends Backbone.View
+        className: 'cluster-status-connectivity '
 
-        template: Handlebars.templates['dashboard_reachability-template']
+        template: Handlebars.templates['dashboard_connectivity-template']
 
         events:
             'click .show_details': 'show_popup'
