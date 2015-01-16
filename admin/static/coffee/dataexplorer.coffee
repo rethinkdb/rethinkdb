@@ -2527,7 +2527,7 @@ module 'DataExplorerView', ->
             # We don't let people execute more than one query at a time on the same connection
             # While we remove the button run, `execute_query` could still be called with Shift+Enter
             if @executing is true
-                return
+                @abort_query
 
             # Hide the option, if already hidden, nothing happens.
             @$('.profiler_enabled').slideUp 'fast'
@@ -2880,12 +2880,9 @@ module 'DataExplorerView', ->
             @parent = args.parent
             @query_result = args.query_result
             @render()
-            if @query_events?
-                for own event, handler of @query_events()
-                    if event is 'ready'
-                        handler @query_result
-                    else
-                        @listenTo @query_result, event, handler
+            @listenTo @query_result, 'end', =>
+                if not @query_result.is_feed
+                    @render()
             @fetch_batch_rows()
 
         remove: =>
@@ -2985,15 +2982,17 @@ module 'DataExplorerView', ->
                 @query_result.once 'add', (query_result, row) =>
                     if @removed_self
                         return
-                    if not @parent.container.state.pause_at?
-                        if not @paused_at?
-                            @query_result.drop_before(@query_result.size() - @parent.container.limit)
-                        @add_row row
-                    @parent.update_feed_metadata()
+                    if @query_result.is_feed
+                        if not @parent.container.state.pause_at?
+                            if not @paused_at?
+                                @query_result.drop_before(@query_result.size() - @parent.container.limit)
+                            @add_row row
+                        @parent.update_feed_metadata()
                     @fetch_batch_rows()
                 @query_result.fetch_next()
             else
                 @parent.render()
+                @render()
 
         show_next_batch: =>
             @query_result.position += @parent.container.limit
@@ -3677,7 +3676,7 @@ module 'DataExplorerView', ->
             $('.feed_shown').text(info.shown)
             $('.feed_total').text(info.total)
             $('.feed_upcoming').text(info.upcoming)
-            $('.feed_overflow').toggleClass('hidden', not info.overflow)
+            $('.feed_overflow').parent().toggleClass('hidden', not info.overflow)
 
         feed_info: =>
             if @query_result.is_feed
@@ -3720,7 +3719,7 @@ module 'DataExplorerView', ->
 
         show_next_batch: (event) =>
             event.preventDefault()
-            $(window).scrollTop(@$('.tab-content').offset().top)
+            $(window).scrollTop($('.results_container').offset().top)
             @view_object?.show_next_batch()
 
     class OptionsView extends Backbone.View

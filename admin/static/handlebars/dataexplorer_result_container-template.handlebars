@@ -27,7 +27,8 @@
             {{#if no_results}}No results returned.{{/if}}
             {{#if num_results}}
                 {{num_results}} {{pluralize_noun 'row' num_results}} returned
-                {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
+                {{~#if limit_value}}, {{limit_value}} displayed{{/if}}
+                {{~#if skip_value}}, {{skip_value}} skipped{{/if}},
             {{else}}
                 {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
             {{/if}}
@@ -38,7 +39,9 @@
 <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
 <div class="tab-content"></div>
 {{#if feed}}
-    <span class="feed_overflow {{#unless feed.overflow}}hidden{{/unless}}">Older results have been discarded.</span>
+    <div class="info more_results {{#unless feed.overflow}}hidden{{/unless}}">
+         <span class="feed_overflow">Older results have been discarded.</span>
+    </div>
 {{else}}
     {{#if show_more_data}}
     <div class="info more_results">
