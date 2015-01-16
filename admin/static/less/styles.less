@@ -1952,6 +1952,7 @@ TODO: retire this
                 &.feed_unpaused .only_if_paused { display: none !important }
                 &.feed_paused .only_if_unpaused { display: none !important }
                 .pause_feed{
+                    opacity: 0.5;
                     position: relative;
                     top: 1px;
                     display: inline-block;
@@ -1959,8 +1960,10 @@ TODO: retire this
                     height: 12px;
                     background-size: 12px 12px;
                     background-image: url(images/ion-play.png);
+                    margin-right: 6px;
                 }
                 .unpause_feed{
+                    opacity: 0.5;
                     position: relative;
                     top: 1px;
                     display: inline-block;
@@ -1968,6 +1971,10 @@ TODO: retire this
                     height: 12px;
                     background-size: 12px 12px;
                     background-image: url(images/ion-pause.png);
+                    margin-right: 6px;
+                }
+                .animated-ellipsis{
+                    margin-right: 6px;
                 }
                 &.floating_metadata {
                     background-color: #f0f0f0;
@@ -3353,6 +3360,56 @@ TODO: retire this
   from  { background-position: 40px 0; }
   to    { background-position: 0 0; }
 }
+
+// Animated ellipsis
+
+.animate-ellipsis-keyframes-1 {
+    0% { opacity: 0.2 }
+    20% { opacity: 1 }
+    40% { opacity: 1 }
+    60% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-2 {
+    0% { opacity: 0.2 }
+    20% { opacity: 0.2 }
+    40% { opacity: 1 }
+    60% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-3 {
+    0% { opacity: 0.2 }
+    20% { opacity: 0.2 }
+    40% { opacity: 0.2 }
+    60% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+@-webkit-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-moz-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-o-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-webkit-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-moz-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-o-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-webkit-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-moz-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-o-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+
+.animate-ellipsis (@n) {
+    .animated-ellipsis span:nth-child(@n) {
+        .animation(~"animate-ellipsis-@{n}" 5s infinite);
+    }
+}
+
+
+.animate-ellipsis(1);
+.animate-ellipsis(2);
+.animate-ellipsis(3);
 
 // THE BARS
 // --------
