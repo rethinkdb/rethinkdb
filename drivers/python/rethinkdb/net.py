@@ -295,9 +295,9 @@ class Connection(object):
         cursor._extend(response)
         cursor.outstanding_requests -= 1
 
-        if response.type not in [pResponse.SUCCESS_PARTIAL,
-                            pResponse.SUCCESS_FEED]:
-           cursor.outstanding_requests == 0:
+        if (response.type not in [pResponse.SUCCESS_PARTIAL,
+                             pResponse.SUCCESS_FEED] and
+            cursor.outstanding_requests == 0):
             del self.cursor_cache[response.token]
 
     def _continue_cursor(self, cursor):
