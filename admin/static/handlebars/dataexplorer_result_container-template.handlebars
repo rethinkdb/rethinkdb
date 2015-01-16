@@ -7,19 +7,15 @@
         <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
         <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
     </ul>
-    <p class="metadata {{#if floating_metadata}} floating_metadata {{/if}}">
+    <p class="metadata {{#if floating_metadata}}floating_metadata{{/if}} {{#if feed.paused}}feed_paused{{else}}feed_unpaused{{/if}}">
         {{#if feed}}
             {{#if feed.ended}}
                 The changefeed is closed.
             {{else}}
-                <img src="images/loading-feed.gif" />
-                Waiting for events on changefeed.
-                Showing <span class="feed_shown">{{feed.shown}}</span> of <span class="feed_total">{{feed.total}}</span>.
-                {{#if feed.paused}}
-                    <a href="#" class="unpause_feed">Unpause</a> (<span class="feed_upcoming">{{feed.upcoming}}</span> more available).
-                {{else}}
-                    <a href="#" class="pause_feed">Pause</a>
-                {{/if}}
+                <a href="#" class="unpause_feed only_if_paused"></a>
+                <a href="#" class="pause_feed only_if_unpaused"></a>
+                Listening for events<span class="animated-ellipsis"><span>.</span><span>.</span><span>.</span></span>
+                <span class="only_if_paused">(paused: <span class="feed_upcoming">{{feed.upcoming}}</span> more available).</span>
             {{/if}}
         {{else}}
             {{#if query_has_changed}}Results from the previous query:{{/if}}

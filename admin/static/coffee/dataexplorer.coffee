@@ -3506,27 +3506,37 @@ module 'DataExplorerView', ->
 
         handle_scroll: =>
             scroll = $(window).scrollTop()
-            pos = @$('.results_header').offset()?.top
+            pos = @$('.results_header').offset()?.top + 2
             if not pos?
                 return
             if @floating_metadata and pos > scroll
                 @floating_metadata = false
                 @$('.metadata').removeClass('floating_metadata')
+                if @container.state.pause_at?
+                    @unpause_feed 'automatic'
             if not @floating_metadata and pos < scroll
                 @floating_metadata = true
                 @$('.metadata').addClass('floating_metadata')
                 if not @container.state.pause_at?
-                    @pause_feed()
+                    @pause_feed 'automatic'
 
         pause_feed: (event) =>
-            event?.preventDefault()
+           if event is 'automatic'
+                @auto_unpause = true
+            else
+                @auto_unpause = false
+                event?.preventDefault()
             @view_object?.pause_feed()
-            @render()
+            @$('.metadata').addClass('feed_paused').removeClass('feed_unpaused')
 
         unpause_feed: (event) =>
-            event.preventDefault()
+            if event is 'automatic'
+                if not @auto_unpause
+                    return
+            else
+                event.preventDefault()
             @view_object?.unpause_feed()
-            @render()
+            @$('.metadata').removeClass('feed_paused').addClass('feed_unpaused')
 
         show_tree: (event) =>
             event.preventDefault()
@@ -3673,8 +3683,6 @@ module 'DataExplorerView', ->
             info = @feed_info()
             if not info?
                 return
-            $('.feed_shown').text(info.shown)
-            $('.feed_total').text(info.total)
             $('.feed_upcoming').text(info.upcoming)
             $('.feed_overflow').parent().toggleClass('hidden', not info.overflow)
 
@@ -3684,8 +3692,6 @@ module 'DataExplorerView', ->
                 ended: @query_result.ended
                 overflow: @container.limit < total
                 paused: @container.state.pause_at?
-                shown: Math.min total, @container.limit
-                total: total
                 upcoming: @query_result.size() - total
 
         new_view: () =>

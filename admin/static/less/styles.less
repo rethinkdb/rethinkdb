@@ -1949,16 +1949,37 @@ TODO: retire this
                     border-bottom: 1px dotted #444;
                     cursor: help;
                 }
-            }
-            .floating_metadata {
-                position: fixed;
-                display: block;
-                top: -5px;
-                margin: 0px;
-                padding: 5px;
-                background-color: white;
-                border: 2px solid black;
-                border-radius: 5px;
+                &.feed_unpaused .only_if_paused { display: none !important }
+                &.feed_paused .only_if_unpaused { display: none !important }
+                .pause_feed{
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-play.png);
+                }
+                .unpause_feed{
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-pause.png);
+                }
+                &.floating_metadata {
+                    background-color: #f0f0f0;
+                    border: 1px solid #cfcfcf;
+                    position: fixed;
+                    display: block;
+                    top: -5px;
+                    margin: 0 0 0 -9px;
+                    padding: 10px 8px 5px 8px;
+                    background-color: white;
+                    border-radius: 5px;
+                }
             }
         }
         .more_results{
