@@ -223,7 +223,7 @@ module 'DatabaseView', ->
             @$el.html @template
                 num_tables: @model.get 'num_tables'
                 num_available_tables: @model.get 'num_available_tables'
-                reachability: @model.get 'completely_ready'      # Status of the table
+                connectivity: @model.get 'completely_ready'      # Status of the table
                 num_shards: @model.get 'num_shards'
                 num_replicas: @model.get 'num_replicas'
                 num_servers: @model.get 'num_servers'
