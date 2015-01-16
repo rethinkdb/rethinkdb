@@ -380,7 +380,7 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
-        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
+        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
