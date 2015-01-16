@@ -55,9 +55,10 @@ public:
     virtual void clear() = 0;
     virtual datum_t pop() {
         std::pair<datum_t, datum_t> pair = pop_impl();
-        return datum_t(std::map<datum_string_t, datum_t>{
-            {datum_string_t("old_val"), pair.first},
-            {datum_string_t("new_val"), pair.second}});
+        std::map<datum_string_t, datum_t> ret;
+        if (pair.first.has()) ret[datum_string_t("old_val")] = pair.first;
+        if (pair.second.has()) ret[datum_string_t("new_val")] = pair.second;
+        return datum_t(std::move(ret));
     }
 private:
     virtual std::pair<datum_t, datum_t> pop_impl() = 0;
@@ -65,15 +66,16 @@ private:
 
 class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
+        guarantee(old_val.has() || new_val.has());
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
         auto it = queue.find(key);
         if (it == queue.end()) {
             auto pair = std::make_pair(std::move(key),
                                        std::make_pair(std::move(old_val),
                                                       std::move(new_val)));
             it = queue.insert(std::move(pair)).first;
-            // `add` should never be called with `old_val == new_val`, or else
-            // `nonsquashing_queue_t` is incorrect.
-            guarantee(it->second.first != it->second.second);
         } else {
             if (!it->second.first.has()) {
                 it->second.first = std::move(old_val);
@@ -102,6 +104,10 @@ class squashing_queue_t : public maybe_squashing_queue_t {
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
+        guarantee(old_val.has() || new_val.has());
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
         queue.emplace_back(std::move(old_val), std::move(new_val));
     }
     virtual size_t size() const {
@@ -1314,7 +1320,7 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(key, resp->initial_val, resp->initial_val);
+            queue->add(key, datum_t(), resp->initial_val);
         }
         started = true;
     }
@@ -1453,7 +1459,6 @@ public:
             for (auto &&it : active_data) {
                 els.push_back(
                     datum_t(std::map<datum_string_t, datum_t> {
-                            { datum_string_t("old_val"), (*it)->second.second },
                             { datum_string_t("new_val"), (*it)->second.second } }));
             }
             decltype(queued_changes) changes;
