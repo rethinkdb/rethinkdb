@@ -53,15 +53,11 @@ public:
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) = 0;
     virtual size_t size() const = 0;
     virtual void clear() = 0;
-    virtual datum_t pop(pop_type_t pop_type) {
+    virtual datum_t pop() {
         std::pair<datum_t, datum_t> pair = pop_impl();
-        switch (pop_type) {
-        case pop_type_t::RANGE: return datum_t(std::map<datum_string_t, datum_t>{
+        return datum_t(std::map<datum_string_t, datum_t>{
             {datum_string_t("old_val"), pair.first},
             {datum_string_t("new_val"), pair.second}});
-        case pop_type_t::POINT: return pair.second;
-        default: unreachable();
-        }
     }
 private:
     virtual std::pair<datum_t, datum_t> pop_impl() = 0;
@@ -1053,6 +1049,7 @@ protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
+    virtual datum_t pop_el() { return queue->pop(); }
     virtual bool has_el() { return queue->size() != 0; }
     virtual void note_data_wait() { }
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
@@ -1329,7 +1326,6 @@ public:
         return false;
     }
 private:
-    virtual datum_t pop_el() { return queue->pop(pop_type_t::POINT); }
     virtual bool active() { return started; }
 
     store_key_t key;
@@ -1420,8 +1416,6 @@ public:
         return new_stamp >= it->second;
     }
 private:
-    virtual datum_t pop_el() { return queue->pop(pop_type_t::RANGE); }
-
     scoped_ptr_t<env_t> env;
     std::vector<scoped_ptr_t<op_t> > ops;
 

@@ -8,9 +8,11 @@ tests:
       ot: ({'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':0, 'inserted':6})
 
     # Test that point changefeeds support return-initial
-    - cd: tbl.get(0).changes().limit(1)
+    - cd: tbl.get(0).changes().limit(1)['new_val']
+      js: tbl.get(0).changes().limit(1)("new"+"_"+"val")
       ot: ([null])
-    - cd: tbl.get(1).changes().limit(1)
+    - cd: tbl.get(1).changes().limit(1)['new_val']
+      js: tbl.get(1).changes().limit(1)("new"+"_"+"val")
       ot: [{'id':1}]
 
     # Start changefeed watchers
