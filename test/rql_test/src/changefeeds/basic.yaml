@@ -16,6 +16,7 @@ tests:
       ot: [{'id':1}]
 
     # Start changefeed watchers
+    - rb: point_changes = tbl.get(7).changes(squash:false).limit(3)
     - py: all_changes = tbl.changes(squash=False).limit(4)
       rb: all_changes = tbl.changes(squash:false).limit(4)
       js: all_changes = tbl.changes({squash:false}).limit(4)
@@ -50,6 +51,17 @@ tests:
             rowfilter: return input['new' + '_' + 'val'].id
             # note: the underscore causes our re-writer to kick in
             arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+
+    # Check that our point watcher works correctly
+    - rb: tbl.get(7).update({a:1})['replaced']
+      ot: 1
+    - rb: point_changes.to_a
+      ot: ([{"new_val"=>nil},
+            {"new_val"=>{"id"=>7}, "old_val"=>nil},
+            {"new_val"=>{"a"=>1, "id"=>7}, "old_val"=>{"id"=>7}}])
       testopts:
         reql-query: False
 
