@@ -47,7 +47,7 @@ class Changefeeds_Destructive(rdb_unittest.RdbTestCase):
     shards = 2
     replicas = 2
     
-    destructiveTest = False
+    destructiveTest = True
     
     def test_primary_falure(self):
         '''Test that we get the expected error when the primary replica for a shard fails for a range'''
