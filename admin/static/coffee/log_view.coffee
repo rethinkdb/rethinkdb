@@ -7,36 +7,49 @@ module 'LogView', ->
             error: Handlebars.templates['error-query-template']
             alert_message: Handlebars.templates['alert_message-template']
 
-        initialize: =>
+        events:
+            'click .next-log-entries': 'increase_limit'
+
+        initialize: (obj = {}) =>
+            @limit = obj.limit or 20
+            @current_limit = @limit
+            @server_id = obj.server_id
+            @container_rendered = false
+            @query = obj.query or driver.queries.all_logs
             @logs = new Logs()
             @logs_list = new LogView.LogsListView
                 collection: @logs
+            @fetch_data()
 
+        increase_limit: (e) =>
+            e.preventDefault()
+            @current_limit += @limit
+            driver.stop_timer(@timer)
             @fetch_data()
 
         fetch_data: =>
-            query = r.expr([]) # TODO Replace with the logs table
 
-            @timer = driver.run query, 5000, (error, result) =>
-                if error?
-                    if @error?.msg isnt error.msg
-                        @error = error
-                        @$el.html @template.error
-                            url: '#tables'
-                            error: error.message
-                else
-                    @loading = false # TODO Move that outside the `if` statement?
-                    @render()
-
-                    for log, index in result
-                        @logs.add new Log(log), {merge: true}
+            @timer = driver.run(@query(@current_limit, @server_id),
+                5000, (error, result) =>
+                    if error?
+                        if @error?.msg isnt error.msg
+                            @error = error
+                            @$el.html @template.error
+                                url: '#logs'
+                                error: error.message
+                    else
+                        for log, index in result
+                            @logs.add(new Log(log), merge: true, index: index)
+                        @render()
+            )
 
         render: =>
-            @$el.html @template.main
-                loading: @loading
-                adding_index: @adding_index
-
-            @$('.logs_list').html @logs_list.render().$el
+            if not @container_rendered
+                @$el.html @template.main
+                @$('.log-entries-wrapper').html(@logs_list.render().$el)
+                @container_rendered = true
+            else
+                @logs_list.render()
             @
 
         remove: =>
@@ -44,55 +57,55 @@ module 'LogView', ->
             super()
 
     class @LogsListView extends Backbone.View
+        tagName: 'ul'
+        className: 'log-entries'
         initialize: =>
-            @logs_view = []
-
-            @collection.each (log) =>
-                view = new LogView.LogView
-                    model: log
-
-                # The first time, the collection is sorted
-                @logs_view.push view
-                @$('.logs_list').append view.render().$el
+            @log_view_cache = {}
 
             if @collection.length is 0
-                @$('.no_logs').show()
+                @$('.no-logs').show()
             else
-                @$('.no_logs').hide()
+                @$('.no-logs').hide()
 
             @listenTo @collection, 'add', (log) =>
-                view = new LogView.LogView
-                    model: log
-                @logs_view.push view
+                view = @log_view_cache[log.get('id')]
+                if not view?
+                    view = new LogView.LogView
+                        model: log
+                    @log_view_cache[log.get('id')]
 
                 position = @collection.indexOf log
                 if @collection.length is 1
-                    @$('.logs_list').html view.render().$el
+                    @$el.html(view.render().$el)
                 else if position is 0
-                    @$('.logs_list').prepend view.render().$el
+                    @$('.log-entry').prepend(view.render().$el)
                 else
-                    @$('.log_container').eq(position-1).after view.render().$el
+                    @$('.log-entry').eq(position-1).after(view.render().$el)
 
-                @$('.no_logs').hide()
+                @$('.no-logs').hide()
 
             @listenTo @collection, 'remove', (log) =>
-                for view in @logs_view
-                    if view.model is log
-                        log.destroy()
-                        ((view) ->
-                            view.$el.slideUp 'fast', =>
-                                view.remove()
-                        )(view)
-                        break
+                log_view = log_view_cache[log.get('id')]
+                log_view.$el.slideUp 'fast', =>
+                    log_view.remove()
+                delete log_view[log.get('id')]
                 if @collection.length is 0
-                    @$('.no_log').show()
+                    @$('.no-logs').show()
+        render: =>
+            @
 
     class @LogView extends Backbone.View
+        tagName: 'li'
+        className: 'log-entry'
+        template: Handlebars.templates['log-entry']
         initialize: =>
             @model.on 'change', @render
 
         render: =>
-            @$el.html @template @model.toJSON()
+            template_model = @model.toJSON()
+            template_model['iso'] = template_model.timestamp.toISOString()
+            @$el.html @template template_model
+            @$('time.timeago').timeago()
             @
 
         remove: =>

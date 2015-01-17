@@ -1,25 +1,22 @@
-
-    Set table 
-    {{#if namespace_exists}}
-        <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s
+Set table
+{{#if namespace_exists}}
+<a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s
+{{else}}
+[table no longer exists]
+{{/if}}
+{{attribute}} to:
+<ul class="pretty_logs_ul">
+  {{#each shards}}
+  {{#if is_null}}
+  <li class="pretty_logs_li">{{shard}}: <span class="fake-link">null</span></li>
+  {{else}}
+  <li class="pretty_logs_li">{{shard}}:
+    {{#if server_exists}}
+    <a href="#servers/{{server_id}}">{{server_name}}</a>
     {{else}}
-        [table no longer exists]
-    {{/if}} 
-    {{attribute}} to:
-    <ul class="pretty_logs_ul">
-        {{#each shards}}
-            {{#if is_null}}
-                <li class="pretty_logs_li">{{shard}}: <span class="fake-link">null</span></li>
-            {{else}}
-                <li class="pretty_logs_li">{{shard}}: 
-                {{#if server_exists}}
-                    <a href="#servers/{{server_id}}">{{server_name}}</a>
-                {{else}}
-                    [server no longer exists]
-                {{/if}}
-                </li>
-            {{/if}}
-        {{/each}}
-    </ul>
-
-
+    [server no longer exists]
+    {{/if}}
+  </li>
+  {{/if}}
+  {{/each}}
+</ul>
