@@ -29,13 +29,17 @@ module 'ServerView', ->
                         null,
                         server_status.merge( (server_status) ->
                             tags: server_config('tags')
-                            responsibilities: r.db(system_db).table('table_status').map( (table) ->
+                            responsibilities: r.db(system_db).table('table_status'
+                            ).orderBy( (table) -> table('db').add('.').add(table('name')) ).map( (table) ->
                                 table.merge( (table) ->
                                     shards: table("shards").map(r.range(), (shard, index) ->
                                         shard.merge(
-                                            num_keys: r.db(table('db')) \
-                                                .table(table('name')) \
-                                                .info()('doc_count_estimates')(index)
+                                            # TODO: Add this functionality back in later. It
+                                            # needs to run in its own query though, since it
+                                            # can fail if a table is down.
+                                            #num_keys: r.db(table('db')) \
+                                            #    .table(table('name')) \
+                                            #    .info()('doc_count_estimates')(index)
                                             index: index.add(1)
                                             num_shards: table('shards').count()
                                             role: r.branch(server_status('name').eq(shard('primary_replica')),
@@ -47,8 +51,6 @@ module 'ServerView', ->
                                 )
                             ).filter( (table) ->
                                 table("shards").isEmpty().not()
-                            ).merge( (table) ->
-                                id: table("id")
                             ).coerceTo("ARRAY")
                         ).merge
                             id: server_status 'id'
@@ -88,7 +90,8 @@ module 'ServerView', ->
                                     index: shard.index
                                     num_shards: shard.num_shards
                                     role: shard.role
-                                    num_keys: shard.num_keys
+                                    # TODO: Add this back
+                                    #num_keys: shard.num_keys
                                     id: table.db+"."+table.name+"."+shard.index
 
                         if not @responsibilities?
@@ -330,6 +333,7 @@ module 'ServerView', ->
 
 
     class @ResponsibilityView extends Backbone.View
+        className: 'responsibility_container'
         template: Handlebars.templates['responsibility-template']
 
         initialize: =>
