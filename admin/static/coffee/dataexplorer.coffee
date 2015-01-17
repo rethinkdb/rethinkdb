@@ -3023,8 +3023,7 @@ module 'DataExplorerView', ->
             tree_container = @$('.json_tree_container')
             node = $(@json_to_tree(row)).prependTo(tree_container)
             if not noflash
-                node.css 'background-color': '#eeeeff'
-                node.animate 'background-color': '#fbfbfb'
+                node.addClass 'flash'
             children = tree_container.children()
             if children.length > @parent.container.limit
                 children.last().remove()

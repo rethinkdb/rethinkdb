@@ -1960,7 +1960,7 @@ TODO: retire this
                     height: 12px;
                     background-size: 12px 12px;
                     background-image: url(images/ion-play.png);
-                    margin-right: 6px;
+                    margin-right: 5px;
                 }
                 .unpause_feed{
                     opacity: 0.5;
@@ -1971,12 +1971,13 @@ TODO: retire this
                     height: 12px;
                     background-size: 12px 12px;
                     background-image: url(images/ion-pause.png);
-                    margin-right: 6px;
+                    margin-right: 5px;
                 }
                 .animated-ellipsis{
                     margin-right: 6px;
                 }
                 &.floating_metadata {
+                    z-index: 2000;
                     background-color: #f0f0f0;
                     border: 1px solid #cfcfcf;
                     position: fixed;
@@ -1986,6 +1987,7 @@ TODO: retire this
                     padding: 10px 8px 5px 8px;
                     background-color: white;
                     border-radius: 5px;
+                    .box-shadow(~"2px 2px 10px -5px rgba(0,0,0,0.2)");
                 }
             }
         }
@@ -2125,6 +2127,11 @@ TODO: retire this
             width: 888px;
             & > .json_tree{
                 clear: both;
+                margin-bottom: 6px;
+                padding: 2px 45px 5px 0px;
+                &.flash{
+                    .animation(~"add_row 500ms 1");
+                }
             }
         }
         .json_tree{ // Used in json_tree_container AND json_table_container
@@ -3365,25 +3372,25 @@ TODO: retire this
 
 .animate-ellipsis-keyframes-1 {
     0% { opacity: 0.2 }
-    20% { opacity: 1 }
-    40% { opacity: 1 }
-    60% { opacity: 1 }
+    25% { opacity: 1 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
     100% { opacity: 0.2 }
 }
 
 .animate-ellipsis-keyframes-2 {
     0% { opacity: 0.2 }
-    20% { opacity: 0.2 }
-    40% { opacity: 1 }
-    60% { opacity: 1 }
+    25% { opacity: 0.2 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
     100% { opacity: 0.2 }
 }
 
 .animate-ellipsis-keyframes-3 {
     0% { opacity: 0.2 }
-    20% { opacity: 0.2 }
-    40% { opacity: 0.2 }
-    60% { opacity: 1 }
+    25% { opacity: 0.2 }
+    50% { opacity: 0.2 }
+    75% { opacity: 1 }
     100% { opacity: 0.2 }
 }
 
@@ -3402,14 +3409,25 @@ TODO: retire this
 
 .animate-ellipsis (@n) {
     .animated-ellipsis span:nth-child(@n) {
-        .animation(~"animate-ellipsis-@{n}" 5s infinite);
+        .animation(~"animate-ellipsis-@{n} 3s infinite cubic-bezier(0,1,0,1)");
     }
 }
-
 
 .animate-ellipsis(1);
 .animate-ellipsis(2);
 .animate-ellipsis(3);
+
+// Adding rows to changefeeds
+
+.add-row-keyframes () {
+    from { background-color: #fbf5ff }
+    to   { background-color: #fbfbfb }
+}
+
+@-webkit-keyframes add_row { .add-row-keyframes }
+@-moz-keyframes add_row { .add-row-keyframes }
+@-o-keyframes add_row { .add-row-keyframes }
+@keyframes add_row { .add-row-keyframes }
 
 // THE BARS
 // --------
