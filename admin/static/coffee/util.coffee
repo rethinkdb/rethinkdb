@@ -75,13 +75,13 @@ Handlebars.registerHelper 'humanize_uuid', (str) ->
     else
         "NULL"
 
-# Helpers for printing reachability
-Handlebars.registerHelper 'humanize_server_reachability', (status) ->
+# Helpers for printing connectivity
+Handlebars.registerHelper 'humanize_server_connectivity', (status) ->
     if not status?
         status = 'N/A'
     success = if status == 'connected' then 'success' else 'failure'
-    reachability = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
-    return new Handlebars.SafeString(reachability)
+    connectivity = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
+    return new Handlebars.SafeString(connectivity)
 
 humanize_table_status = (status) ->
     if not status

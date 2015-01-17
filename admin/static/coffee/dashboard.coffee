@@ -23,69 +23,102 @@ module 'DashboardView', ->
             # So we store the function here to make the code a bit shorter
             identity = (a) -> a
 
-            query = r.do(
-                r.db(system_db).table('table_config').coerceTo("ARRAY"),
-                r.db(system_db).table('table_status').coerceTo("ARRAY"),
-                r.db(system_db).table('server_status').coerceTo("ARRAY"),
-                (table_config, table_status, server_status) ->
-                    num_primaries: table_config('shards').concatMap(identity)("primary_replica").count()
-                    num_available_primaries: table_status.concatMap((table) ->
-                        table('shards').concatMap((shard) ->
-                            shard('replicas').filter((replica) ->
-                                replica('server').eq(shard('primary_replica'))
-                                    .and(replica('state').eq('ready'))
-                            )
-                        )
-                    ).count()
-                    num_replicas: table_config('shards').concatMap(identity)("replicas").concatMap(identity).count()
-                    num_available_replicas: table_status('shards')
-                        .concatMap((shard) -> shard('replicas'))
-                        .concatMap(identity)
-                        .filter( (assignment) -> assignment("state").eq("ready"))
-                        .count()
-                    tables_with_primaries_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(), (doc, position) ->
-                            doc.merge
-                                id: r.add(
-                                    table("db"),
-                                    ".",
-                                    table("name"),
-                                    ".",
-                                    position.add(1).coerceTo("STRING")
-                                )
-                                position: position.add(1)
-                                num_shards: table("shards").count()
-                        ).map( (shard) ->
-                            shard('replicas').filter (replica) ->
-                                replica("server").eq(shard('primary_replica')).and(replica("state").ne("ready"))
-                        ).concatMap(identity).coerceTo('array')
-                    ).filter (table) ->
-                        table("shards").isEmpty().not()
-                    tables_with_replicas_not_ready: table_status.merge( (table) ->
-                        shards: table("shards").map(r.range(), (doc, position) ->
-                            doc.merge
-                                id: r.add(
-                                    table("db"),
-                                    ".",
-                                    table("name"),
-                                    ".",
-                                    position.add(1).coerceTo("STRING")
-                                )
-                                position: position.add(1)
-                                num_shards: table("shards").count()
-                        ).map( (shard) ->
-                            shard('replicas').filter (assignment) -> assignment("state").ne("ready")
-                        ).concatMap(identity).coerceTo('array')
-                    ).filter (table) ->
-                        table("shards").isEmpty().not()
+            system_table = (name) -> r.db(system_db).table(name)
+            table_status = system_table('table_status')
+            table_config_id = r.db(system_db).table(
+                'table_config', identifierFormat: 'uuid')
+            server_config = system_table('server_config')
+            server_status = system_table('server_status')
 
-                    num_tables: table_config.count()
-                    num_servers: server_status.count()
-                    num_available_servers: server_status.filter({status: "connected"}).count()
-                    servers_non_available: server_status.filter (server) ->
-                        server("status").ne("connected")
-            ).merge
-                num_non_available_tables: r.row("tables_with_primaries_not_ready").count()
+            tables_with_primaries_not_ready = table_status.map(
+                table_config_id, (status, config) ->
+                    id: status('id')
+                    name: status('name')
+                    db: status('db')
+                    shards: status('shards').map(
+                        r.range(), config('shards'), (shard, pos, conf_shard) ->
+                            primary_id = conf_shard('primary_replica')
+                            primary_name = server_config.get(primary_id)('name')
+                            position: pos.add(1)
+                            num_shards: status('shards').count()
+                            primary_id: primary_id
+                            primary_name: primary_name
+                            primary_state: shard('replicas').filter(
+                                server: primary_name
+                            )('state')(0)
+                    ).filter((shard) ->
+                        r.expr(['ready', 'looking_for_primary_replica'])
+                            .contains(shard('primary_state')).not()
+                    ).coerceTo('array')
+                ).filter((table) -> table('shards').isEmpty().not())
+                .coerceTo('array')
+            tables_with_replicas_not_ready = table_status.map(
+                table_config_id, (status, config) ->
+                    id: status('id')
+                    name: status('name')
+                    db: status('db')
+                    shards: status('shards').map(
+                        r.range(), config('shards'), (shard, pos, conf_shard) ->
+                            position: pos.add(1)
+                            num_shards: status('shards').count(),
+                            replicas: shard('replicas')
+                                .filter((replica) ->
+                                    r.expr(['ready',
+                                        'looking_for_primary_replica',
+                                        'offloading_data'])
+                                        .contains(replica('state')).not()
+                                ).map(conf_shard('replicas'), (replica, replica_id) ->
+                                    replica_id: replica_id
+                                    replica_name: replica('server')
+                                ).coerceTo('array')
+                    ).coerceTo('array')
+            ).filter((table) -> table('shards')(0)('replicas').isEmpty().not())
+            .coerceTo('array')
+            num_primaries = table_config_id('shards')
+                .concatMap(identity)('primary_replica').count()
+            num_connected_primaries = table_status.concatMap((table) ->
+                table('shards')('primary_replica')
+            ).count((primary) -> primary.ne(null))
+            num_replicas = table_config_id('shards')
+                .concatMap((shard) -> shard("replicas"))
+                .concatMap(identity).count()
+            num_connected_replicas = table_status('shards')
+                .concatMap((shard) ->
+                    shard('replicas').concatMap((replica) -> replica('state')))
+                .count((replica) ->
+                    r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
+            disconnected_servers = server_status.filter((server) ->
+                    server("status").ne("connected")
+            ).map((server) ->
+                time_disconnected: server('connection')('time_disconnected')
+                name: server('name')
+            ).coerceTo('array')
+            num_disconnected_tables = table_status.count((table) ->
+                shard_is_down = (shard) -> shard('primary_replica').eq(null)
+                table('shards').map(shard_is_down).contains(true)
+            )
+            num_tables_w_missing_replicas = table_status.count((table) ->
+                table('status')('all_replicas_ready').not()
+            )
+            num_connected_servers = server_status.count((server) ->
+                server('status').eq("connected")
+            )
+
+
+            query = r.expr(
+                num_primaries: num_primaries
+                num_connected_primaries: num_connected_primaries
+                num_replicas: num_replicas
+                num_connected_replicas: num_connected_replicas
+                tables_with_primaries_not_ready: tables_with_primaries_not_ready
+                tables_with_replicas_not_ready: tables_with_replicas_not_ready
+                num_tables: table_config_id.count()
+                num_servers: server_status.count()
+                num_connected_servers: num_connected_servers
+                disconnected_servers: disconnected_servers
+                num_disconnected_tables: num_disconnected_tables
+                num_tables_w_missing_replicas: num_tables_w_missing_replicas
+            )
 
             @timer = driver.run query, 5000, (error, result) =>
                 if error?
@@ -127,7 +160,7 @@ module 'DashboardView', ->
                 model: @model
             @cluster_status_redundancy = new DashboardView.ClusterStatusRedundancy
                 model: @model
-            @cluster_status_reachability = new DashboardView.ClusterStatusReachability
+            @cluster_status_connectivity = new DashboardView.ClusterStatusConnectivity
                 model: @model
 
             @stats = new Stats
@@ -158,7 +191,7 @@ module 'DashboardView', ->
             @$el.html @template({})
             @$('.availability').html @cluster_status_availability.render().$el
             @$('.redundancy').html @cluster_status_redundancy.render().$el
-            @$('.reachability').html @cluster_status_reachability.render().$el
+            @$('.connectivity').html @cluster_status_connectivity.render().$el
 
             @$('#cluster_performance_container').html @cluster_performance.render().$el
             #@$('.recent-log-entries-container').html @logs.render().$el
@@ -170,7 +203,7 @@ module 'DashboardView', ->
 
             @cluster_status_availability.remove()
             @cluster_status_redundancy.remove()
-            @cluster_status_reachability.remove()
+            @cluster_status_connectivity.remove()
             @cluster_performance.remove()
             #@logs.remove()
             super()
@@ -189,7 +222,7 @@ module 'DashboardView', ->
             # But this is probably not worth the effort for now.
 
             @listenTo @model, 'change:num_primaries', @render
-            @listenTo @model, 'change:num_available_primaries', @render
+            @listenTo @model, 'change:num_connected_primaries', @render
 
             $(window).on 'mouseup', @hide_popup
             @$el.on 'click', @stop_propagation
@@ -218,16 +251,17 @@ module 'DashboardView', ->
             @$('.popup_container').hide()
 
         render: =>
-            @$el.html @template
-                status_is_ok: @model.get('num_available_primaries') is @model.get('num_primaries')
+            template_model =
+                status_is_ok: @model.get('num_connected_primaries') is @model.get('num_primaries')
                 num_primaries: @model.get 'num_primaries'
-                num_available_primaries: @model.get 'num_available_primaries'
-                num_non_available_primaries: @model.get('num_primaries')-@model.get('num_available_primaries')
-                num_non_available_tables: @model.get 'num_non_available_tables'
+                num_connected_primaries: @model.get 'num_connected_primaries'
+                num_disconnected_primaries: @model.get('num_primaries')-@model.get('num_connected_primaries')
+                num_disconnected_tables: @model.get 'num_disconnected_tables'
                 num_tables: @model.get 'num_tables'
                 tables_with_primaries_not_ready: @model.get('tables_with_primaries_not_ready')
+            @$el.html @template template_model
 
-            if @display_popup is true and @model.get('num_available_primaries') isnt @model.get('num_primaries')
+            if @display_popup is true and @model.get('num_connected_primaries') isnt @model.get('num_primaries')
                 # We re-display the pop up only if there are still issues
                 @show_popup()
 
@@ -252,7 +286,7 @@ module 'DashboardView', ->
             # But this is probably not worth the effort for now.
 
             @listenTo @model, 'change:num_replicas', @render
-            @listenTo @model, 'change:num_available_replicas', @render
+            @listenTo @model, 'change:num_connected_replicas', @render
 
             $(window).on 'mouseup', @hide_popup
             @$el.on 'click', @stop_propagation
@@ -283,15 +317,15 @@ module 'DashboardView', ->
         render: =>
             #TODO: Do we have to handle unsatisfiable goals here?
             @$el.html @template
-                status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
+                status_is_ok: @model.get('num_connected_replicas') is @model.get('num_replicas')
                 num_replicas: @model.get 'num_replicas'
-                num_available_replicas: @model.get 'num_available_replicas'
-                num_non_available_replicas: @model.get('num_replicas')-@model.get('num_available_replicas')
-                num_non_available_tables: @model.get 'num_non_available_tables'
+                num_connected_replicas: @model.get 'num_available_replicas'
+                num_disconnected_replicas: @model.get('num_replicas')-@model.get('num_connected_replicas')
+                num_disconnected_tables: @model.get 'num_disconnected_tables'
                 num_tables: @model.get 'num_tables'
                 tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
 
-            if @display_popup is true and @model.get('num_available_replicas') isnt @model.get('num_replicas')
+            if @display_popup is true and @model.get('num_connected_replicas') isnt @model.get('num_replicas')
                 # We re-display the pop up only if there are still issues
                 @show_popup()
 
@@ -302,10 +336,10 @@ module 'DashboardView', ->
             $(window).off 'mouseup', @remove_popup
             super()
 
-    class @ClusterStatusReachability extends Backbone.View
-        className: 'cluster-status-reachability '
+    class @ClusterStatusConnectivity extends Backbone.View
+        className: 'cluster-status-connectivity '
 
-        template: Handlebars.templates['dashboard_reachability-template']
+        template: Handlebars.templates['dashboard_connectivity-template']
 
         events:
             'click .show_details': 'show_popup'
@@ -316,7 +350,7 @@ module 'DashboardView', ->
             # But this is probably not worth the effort for now.
 
             @listenTo @model, 'change:num_servers', @render
-            @listenTo @model, 'change:num_available_servers', @render
+            @listenTo @model, 'change:num_connected_servers', @render
 
             $(window).on 'mouseup', @hide_popup
             @$el.on 'click', @stop_propagation
@@ -345,14 +379,15 @@ module 'DashboardView', ->
             @$('.popup_container').hide()
 
         render: =>
-            @$el.html @template
-                status_is_ok: @model.get('num_available_servers') is @model.get('num_servers')
+            template_model =
+                status_is_ok: @model.get('num_connected_servers') is @model.get('num_servers')
                 num_servers: @model.get 'num_servers'
-                num_servers_non_available: @model.get('num_servers')-@model.get('num_available_servers')
-                num_available_servers: @model.get 'num_available_servers'
-                servers_non_available: @model.get 'servers_non_available'
+                num_disconnected_servers: @model.get('num_servers')-@model.get('num_connected_servers')
+                num_connected_servers: @model.get 'num_connected_servers'
+                disconnected_servers: @model.get 'disconnected_servers'
+            @$el.html @template template_model
 
-            if @display_popup is true and @model.get('num_available_servers') isnt @model.get('num_servers')
+            if @display_popup is true and @model.get('num_connected_servers') isnt @model.get('num_servers')
                 # We re-display the pop up only if there are still issues
                 @show_popup()
 

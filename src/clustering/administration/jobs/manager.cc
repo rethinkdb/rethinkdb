@@ -108,9 +108,11 @@ void jobs_manager_t::on_get_job_reports(
             job_reports.emplace_back(
                 id,
                 "index_construction",
-                time - std::min(sindex_job.second, time),
+                time - std::min(sindex_job.second.start_time, time),
                 sindex_job.first.first,
-                sindex_job.first.second);
+                sindex_job.first.second,
+                sindex_job.second.is_ready,
+                sindex_job.second.progress);
         }
 
         if (reactor_driver->is_gc_active()) {

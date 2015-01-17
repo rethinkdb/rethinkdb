@@ -53,5 +53,11 @@ with driver.Process(files="the_server", output_folder='.') as server:
         e2 = r.db("rethinkdb").table("logs").get(e["id"]).run(conn)
         assert e == e2, (e, e2)
 
+    print("Verifying that the table is not writable (%.2fs)" % (time.time() - startTime))
+    res = r.db("rethinkdb").table("logs").limit(1).delete().run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("logs").insert({}).run(conn)
+    assert res["errors"] == 1, res
+
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done (%.2fs)" % (time.time() - startTime))
