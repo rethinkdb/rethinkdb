@@ -179,12 +179,13 @@ module 'DashboardView', ->
                 type: 'cluster'
             )
 
-            ###
-            @logs = new DashboardView.Logs()
-            ###
+            @logs = new LogView.LogsContainer
+                limit: 5
+                query: driver.queries.all_logs
+
 
         show_all_logs: ->
-            window.router.navigate '#logs',
+            main_view.router.navigate '#logs',
                 trigger: true
 
         render: =>
@@ -194,7 +195,7 @@ module 'DashboardView', ->
             @$('.connectivity').html @cluster_status_connectivity.render().$el
 
             @$('#cluster_performance_container').html @cluster_performance.render().$el
-            #@$('.recent-log-entries-container').html @logs.render().$el
+            @$('.recent-log-entries-container').html @logs.render().$el
 
             return @
 
@@ -205,7 +206,7 @@ module 'DashboardView', ->
             @cluster_status_redundancy.remove()
             @cluster_status_connectivity.remove()
             @cluster_performance.remove()
-            #@logs.remove()
+            @logs.remove()
             super()
 
     class @ClusterStatusAvailability extends Backbone.View
@@ -396,62 +397,4 @@ module 'DashboardView', ->
         remove: =>
             @stopListening()
             $(window).off 'mouseup', @remove_popup
-            super()
-
-    class @Logs extends Backbone.View
-        className: 'log-entries'
-        tagName: 'ul'
-        min_timestamp: 0
-        max_entry_logs: 5
-        interval_update_log: 10000
-        compact_entries: true
-
-        initialize: ->
-            @fetch_log()
-            @interval = setInterval @fetch_log, @interval_update_log
-            @log_entries = []
-
-        fetch_log: =>
-            $.ajax({
-                contentType: 'application/json'
-                url: 'ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
-                dataType: 'json'
-                success: @set_log_entries
-            })
-
-        set_log_entries: (response) =>
-            need_render = false
-            for server_id, data of response
-                for new_log_entry in data
-                    for old_log_entry, i in @log_entries
-                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
-                            entry = new LogEntry new_log_entry
-                            entry.set('server_id', server_id)
-                            @log_entries.splice i, 0, entry
-                            need_render = true
-                            break
-
-                    if @log_entries.length < @max_entry_logs
-                        entry = new LogEntry new_log_entry
-                        entry.set('server_id', server_id)
-                        @log_entries.push entry
-                        need_render = true
-                    else if @log_entries.length > @max_entry_logs
-                        @log_entries.pop()
-
-            if need_render
-                @render()
-
-            if @log_entries[0]? and _.isNaN(parseFloat(@log_entries[0].get('timestamp'))) is false
-                @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
-
-        render: =>
-            @$el.html ''
-            for log in @log_entries
-                view = new LogView.LogEntry model: log
-                @$el.append view.render(@compact_entries).$el
-            return @
-
-        remove: =>
-            clearInterval @interval
             super()

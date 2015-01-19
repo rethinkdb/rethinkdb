@@ -175,12 +175,11 @@ module 'ServerView', ->
             @$('.profile').html @profile.render().$el
             @$('.performance-graph').html @performance_graph.render().$el
             @$('.responsibilities').html @responsibilities.render().$el
-
-            # TODO: Implement when logs will be available
-            #@logs = new LogView.Container
-            #    route: "ajax/log/"+@model.get('id')+"?"
-            #    type: 'server'
-            #@$('.recent-log-entries').html @logs.render().$el
+            @logs = new LogView.LogsContainer
+                server_id: @model.get('id')
+                limit: 5
+                query: driver.queries.server_logs
+            @$('.recent-log-entries').html @logs.render().$el
             @
 
         remove: =>
@@ -190,6 +189,7 @@ module 'ServerView', ->
             @responsibilities.remove()
             if @rename_modal?
                 @rename_modal.remove()
+            @logs.remove()
 
     class @Title extends Backbone.View
         className: 'server-info-view'

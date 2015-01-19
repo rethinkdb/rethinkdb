@@ -149,3 +149,29 @@ class @Driver
         clearTimeout @timers[timer]?.timeout
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
+
+    # common queries used in multiple places in the ui
+    queries:
+        all_logs: (limit) =>
+            server_conf = r.db(system_db).table('server_config')
+            r.db(system_db)
+                .table('logs', identifierFormat: 'uuid')
+                .orderBy(index: r.desc('id'))
+                .limit(limit)
+                .map((log) ->
+                    log.merge
+                        server: server_conf.get(log('server'))('name')
+                        server_id: log('server')
+                )
+        server_logs: (limit, server_id) =>
+            server_conf = r.db(system_db).table('server_config')
+            r.db(system_db)
+                .table('logs', identifierFormat: 'uuid')
+                .orderBy(index: r.desc('id'))
+                .filter(server: server_id)
+                .limit(limit)
+                .map((log) ->
+                    log.merge
+                        server: server_conf.get(log('server'))('name')
+                        server_id: log('server')
+                )
