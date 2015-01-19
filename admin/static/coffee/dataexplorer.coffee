@@ -2887,6 +2887,8 @@ module 'DataExplorerView', ->
 
         remove: =>
             @removed_self = true
+            if @query_result.is_feed
+                @query_result.ended = true
             super()
 
         max_datum_threshold: 1000
@@ -3499,10 +3501,6 @@ module 'DataExplorerView', ->
             $(window).on('scroll', @scroll_handler)
             @handle_scroll()
 
-        remove: =>
-            $(window).off('scroll', @scroll_handler)
-            super()
-
         handle_scroll: =>
             scroll = $(window).scrollTop()
             pos = @$('.results_header').offset()?.top + 2
@@ -3712,8 +3710,11 @@ module 'DataExplorerView', ->
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         remove: =>
-            $(window).unbind 'scroll'
+            @view_object?.remove()
+            if @set_scrollbar_scroll_handler?
+                $(window).unbind 'scroll', @set_scrollbar_scroll_handler
             $(window).unbind 'resize'
+            $(window).off('scroll', @scroll_handler)
             super()
 
         handle_mouseup: (event) =>
