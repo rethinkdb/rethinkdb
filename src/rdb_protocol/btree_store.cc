@@ -67,7 +67,7 @@ store_t::store_t(serializer_t *serializer,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 outdated_index_report_t *_index_report,
+                 scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
@@ -77,7 +77,7 @@ store_t::store_t(serializer_t *serializer,
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
                         : new ql::changefeed::server_t(ctx->manager)),
-      index_report(_index_report),
+      index_report(std::move(_index_report)),
       table_id(_table_id)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
@@ -157,10 +157,6 @@ store_t::store_t(serializer_t *serializer,
 store_t::~store_t() {
     assert_thread();
     drainer.drain();
-
-    if (index_report != NULL) {
-        index_report->destroy();
-    }
 }
 
 void store_t::read(
@@ -943,7 +939,7 @@ void store_t::rename_sindex(
     slice_it->second->stats.rename(&perfmon_collection, new_name.name,
                                    index_type_t::SECONDARY);
 
-    if (index_report != NULL) {
+    if (index_report.has()) {
         index_report->index_renamed(old_name.name, new_name.name);
     }
 }
@@ -970,7 +966,7 @@ MUST_USE bool store_t::drop_sindex(
                                          drainer.lock()));
     }
 
-    if (index_report != NULL) {
+    if (index_report.has()) {
         index_report->index_dropped(name.name);
     }
 

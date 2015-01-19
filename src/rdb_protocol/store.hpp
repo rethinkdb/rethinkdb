@@ -78,9 +78,6 @@ public:
     virtual void index_dropped(const std::string &index_name) = 0;
     virtual void index_renamed(const std::string &old_name,
                                const std::string &new_name) = 0;
-
-    // Called when the store_t is destroyed and the reporter is no longer needed
-    virtual void destroy() = 0;
 };
 
 class store_t final : public store_view_t {
@@ -95,7 +92,7 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            outdated_index_report_t *_index_report,
+            scoped_ptr_t<outdated_index_report_t> &&_index_report,
             namespace_id_t table_id);
     ~store_t();
 
@@ -421,7 +418,7 @@ public:
 
     // This report is used by the outdated index issue tracker, and should be updated
     // any time the set of outdated indexes for this table changes
-    outdated_index_report_t *index_report;
+    scoped_ptr_t<outdated_index_report_t> index_report;
 
 private:
     namespace_id_t table_id;

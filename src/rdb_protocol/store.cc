@@ -53,7 +53,7 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
 }
 
 void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (index_report != NULL) {
+    if (index_report.has()) {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(sindex_block, &sindexes);
 
