@@ -2875,6 +2875,7 @@ module 'DataExplorerView', ->
         events: ->
             'click .jt_arrow': 'toggle_collapse'
             'click .jta_arrow_h': 'expand_tree_in_table'
+            'mousedown': 'parent_pause_feed'
 
         initialize: (args) =>
             @parent = args.parent
@@ -2948,6 +2949,9 @@ module 'DataExplorerView', ->
             $('.'+classname_to_change).css 'max-width', 'none'
             dom_element.css 'max-width', 'none'
             @parent.set_scrollbar()
+
+        parent_pause_feed: (event) =>
+            @parent.pause_feed()
 
         pause_feed: =>
             @parent.container.state.pause_at = @query_result.size()
