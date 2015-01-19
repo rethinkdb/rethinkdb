@@ -1881,8 +1881,8 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    virtual stream_type_t cfeed_type() const {
-        return is_point ? stream_type_t::point : stream_type_t::stream;
+    virtual feed_type_t cfeed_type() const {
+        return is_point ? feed_type_t::point : feed_type_t::stream;
     }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>

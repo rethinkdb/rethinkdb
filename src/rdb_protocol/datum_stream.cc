@@ -822,8 +822,8 @@ lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
 bool lazy_datum_stream_t::is_exhausted() const {
     return reader->is_finished() && batch_cache_exhausted();
 }
-stream_type_t lazy_datum_stream_t::cfeed_type() const {
-    return stream_type_t::not_stream;
+feed_type_t lazy_datum_stream_t::cfeed_type() const {
+    return feed_type_t::not_feed;
 }
 bool lazy_datum_stream_t::is_infinite() const {
     return false;
@@ -843,8 +843,8 @@ datum_t array_datum_stream_t::next_arr_el() {
 bool array_datum_stream_t::is_exhausted() const {
     return index >= arr.arr_size();
 }
-stream_type_t array_datum_stream_t::cfeed_type() const {
-    return stream_type_t::not_stream;
+feed_type_t array_datum_stream_t::cfeed_type() const {
+    return feed_type_t::not_feed;
 }
 bool array_datum_stream_t::is_infinite() const {
     return false;
@@ -1044,7 +1044,7 @@ bool slice_datum_stream_t::is_exhausted() const {
     return (left >= right || index >= right || source->is_exhausted())
         && batch_cache_exhausted();
 }
-stream_type_t slice_datum_stream_t::cfeed_type() const {
+feed_type_t slice_datum_stream_t::cfeed_type() const {
     return source->cfeed_type();
 }
 bool slice_datum_stream_t::is_infinite() const {
@@ -1107,7 +1107,7 @@ bool union_datum_stream_t::is_exhausted() const {
     }
     return batch_cache_exhausted();
 }
-stream_type_t union_datum_stream_t::cfeed_type() const {
+feed_type_t union_datum_stream_t::cfeed_type() const {
     return union_type;
 }
 bool union_datum_stream_t::is_infinite() const {
@@ -1120,7 +1120,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
         std::vector<datum_t> batch
             = streams[streams_index]->next_batch(env, batchspec);
         if (batch.size() != 0 ||
-            streams[streams_index]->cfeed_type() != stream_type_t::not_stream) {
+            streams[streams_index]->cfeed_type() != feed_type_t::not_feed) {
             return batch;
         }
     }
@@ -1178,7 +1178,7 @@ map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &
                                        counted_t<const func_t> &&_func,
                                        const protob_t<const Backtrace> &bt_src)
     : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
-      union_type(stream_type_t::not_stream), is_array_map(true), is_infinite_map(true) {
+      union_type(feed_type_t::not_feed), is_array_map(true), is_infinite_map(true) {
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
         union_type = std::max(union_type, stream->cfeed_type());
@@ -1272,8 +1272,8 @@ bool vector_datum_stream_t::is_exhausted() const {
     return index == rows.size();
 }
 
-stream_type_t vector_datum_stream_t::cfeed_type() const {
-    return stream_type_t::not_stream;
+feed_type_t vector_datum_stream_t::cfeed_type() const {
+    return feed_type_t::not_feed;
 }
 
 bool vector_datum_stream_t::is_array() const {

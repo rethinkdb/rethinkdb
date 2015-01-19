@@ -28,8 +28,8 @@ class env_t;
 class scope_env_t;
 class func_t;
 
-enum class stream_type_t {
-    not_stream,
+enum class feed_type_t {
+    not_feed,
     point,
     stream,
 };
@@ -67,7 +67,7 @@ public:
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
     virtual datum_t next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
-    virtual stream_type_t cfeed_type() const = 0;
+    virtual feed_type_t cfeed_type() const = 0;
     virtual bool is_infinite() const = 0;
 
     virtual void accumulate(
@@ -134,7 +134,7 @@ private:
     virtual bool is_exhausted() const {
         return source->is_exhausted() && batch_cache_exhausted();
     }
-    virtual stream_type_t cfeed_type() const {
+    virtual feed_type_t cfeed_type() const {
         return source->cfeed_type();
     }
     virtual bool is_infinite() const {
@@ -171,7 +171,7 @@ public:
     array_datum_stream_t(datum_t _arr,
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -198,7 +198,7 @@ private:
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
     uint64_t index, left, right;
 };
@@ -228,7 +228,7 @@ public:
     union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src), streams(_streams), streams_index(0),
-          union_type(stream_type_t::not_stream),
+          union_type(feed_type_t::not_feed),
           is_infinite_union(false) {
         for (auto const &stream : streams) {
             union_type = std::max(union_type, stream->cfeed_type());
@@ -244,7 +244,7 @@ public:
     virtual bool is_array() const;
     virtual datum_t as_array(env_t *env);
     virtual bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -256,7 +256,7 @@ private:
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
-    stream_type_t union_type;
+    feed_type_t union_type;
     bool is_infinite_union;
 };
 
@@ -274,8 +274,8 @@ public:
         return false;
     }
     virtual bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const {
-        return stream_type_t::not_stream;
+    virtual feed_type_t cfeed_type() const {
+        return feed_type_t::not_feed;
     }
     virtual bool is_infinite() const {
         return is_infinite_range;
@@ -299,7 +299,7 @@ public:
         return is_array_map;
     }
     virtual bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const {
+    virtual feed_type_t cfeed_type() const {
         return union_type;
     }
     virtual bool is_infinite() const {
@@ -309,7 +309,7 @@ public:
 private:
     std::vector<counted_t<datum_stream_t> > streams;
     counted_t<const func_t> func;
-    stream_type_t union_type;
+    feed_type_t union_type;
     bool is_array_map, is_infinite_map;
 };
 
@@ -617,7 +617,7 @@ public:
     }
 
     bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -655,7 +655,7 @@ private:
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
 
     bool is_exhausted() const;
-    virtual stream_type_t cfeed_type() const;
+    virtual feed_type_t cfeed_type() const;
     bool is_array() const;
     bool is_infinite() const;
 

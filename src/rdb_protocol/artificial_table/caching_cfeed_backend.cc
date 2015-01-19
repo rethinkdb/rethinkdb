@@ -211,7 +211,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
             &error)) {
         return false;
     }
-    guarantee(stream->cfeed_type() == ql::stream_type_t::not_stream);
+    guarantee(stream->cfeed_type() == ql::feed_type_t::not_feed);
     ql::env_t env(interruptor, reql_version_t::LATEST);
     std::vector<ql::datum_t> datums;
     try {
