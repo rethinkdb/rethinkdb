@@ -175,7 +175,7 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
         if (!(test)) {                                         \
             ::ql::runtime_sanity_check_failed(                 \
                 __FILE__, __LINE__, stringify(test),           \
-                strprintf("" msg));                            \
+                strprintf(" " msg).substr(1));                 \
         }                                                      \
     } while (0)
 #endif // NDEBUG
