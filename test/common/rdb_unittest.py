@@ -12,6 +12,7 @@ class RdbTestCase(unittest.TestCase):
     servers = None # defaults to shards * replicas
     shards = 1
     replicas = 1
+    fieldName = 'id'
     recordsToGenerate = 100
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
@@ -22,7 +23,7 @@ class RdbTestCase(unittest.TestCase):
     
     dbName = None
     tableName = None
-    
+
     table = None
     
     cluster = None
@@ -140,15 +141,17 @@ class RdbTestCase(unittest.TestCase):
             assert (self.r.db(self.dbName).table(self.tableName).config().update({'shards':shardPlan}).run(self.conn))['errors'] == 0
             self.r.db(self.dbName).table(self.tableName).wait().run(self.conn)
     
-    def populateTable(self, recordsToGenerate=None, tableName=None, dbName=None):
+    def populateTable(self, recordsToGenerate=None, tableName=None, dbName=None, fieldName=None):
         if recordsToGenerate is None:
             recordsToGenerate = self.recordsToGenerate
         if tableName is None:
             tableName = self.tableName
         if dbName is None:
             dbName = self.dbName
+        if fieldName is None:
+            fieldName = self.fieldName
         
-        self.r.db(dbName).table(tableName).insert(self.r.range(1, recordsToGenerate + 1).map({'id':self.r.row})).run(self.conn)
+        self.r.db(dbName).table(tableName).insert(self.r.range(1, recordsToGenerate + 1).map({fieldName: self.r.row})).run(self.conn)
     
     def tearDown(self):
         
