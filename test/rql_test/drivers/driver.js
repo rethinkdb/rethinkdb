@@ -1,15 +1,33 @@
-var path = require('path');
+var Path = require('path');
+var Promise = require(Path.resolve(__dirname, '..', '..', '..', 'build', 'packages', 'js', 'node_modules', 'bluebird'));
 
 // -- load rethinkdb from the proper location
 
-var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var r = require(Path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
-
-// --
+// -- input validation
 
 // all argument numbers are +1 because the script is #1
-var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT
-var DB_AND_TABLE_NAME = process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME || 'no_table_specified'
+var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT;
+var required_external_tables = [];
+if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
+    rawValues = (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME).split(',');
+    for (i in rawValues) {
+        rawValue = rawValues[i].trim;
+        if (rawValue == '') {
+            continue;
+        }
+        splitValue = rawValue.split('.')
+        if (splitValue.length == 1) {
+            required_external_tables.push(['test', splitValue[0]]);
+        } else if (splitValue.length == 2) {
+            required_external_tables.push([splitValue[0], splitValue[1]]);
+        } else {
+            throw 'Unusable value for external tables:' + JSON.stringify(rawValue);
+        }
+    }
+}
+required_external_tables.reverse()
 
 var TRACE_ENABLED = process.env.VERBOSE || false;
 
@@ -54,7 +72,7 @@ function eq_test(expected, result, compOpts, partial) {
 
     } else if (Array.isArray(expected)) {
         if (partial) {
-            // short circut on length
+            // short circuit on length
             if (expected.length > result.length) return false;
 
             // Recurse on each element of expected
@@ -72,7 +90,7 @@ function eq_test(expected, result, compOpts, partial) {
                 }
             }
         } else {
-            // short circut on length
+            // short circuit on length
             if (expected.length !== result.length) return false;
 
             // Recurse on each element of expected
@@ -91,7 +109,7 @@ function eq_test(expected, result, compOpts, partial) {
         return true;
 
     } else if (expected instanceof Object) {
-        // short circut on keys
+        // short circuit on keys
         if (!eq_test(Object.keys(expected).sort(), Object.keys(result).sort(), compOpts, partial)) return false;
 
         // Recurse on each property of object
@@ -176,15 +194,84 @@ function TRACE(){
     }
 }
 
-// `doExit` will later get set to something that performs cleanup
-var doExit = process.exit
-process.on('SIGINT', function(){ doExit(128+2); })
-process.on(
-    'unexpectedException',
+// -- Setup atexit handler for cleanup
+
+var connection = null; // set as testing begins
+
+var tables_to_cleanup = [] // pre-existing tables
+var tables_to_delete = [] // created by this script
+
+function atexitCleanup(exitCode) {
+    
+    promisesToKeep = [];
+    
+    if (connection) {
+        
+        console.log('Cleaning up')
+        
+        // - cleanup tables
+        
+        cleanTable = function(dbName, tableName, fullName) {
+            return r.db(dbName).tableList().count(tableName).eq(1).run(connection, function(err, value) {
+                if (err) { throw 'In cleanup there was no table "' + fullName + '" to clean'; }
+            }).then(function() {
+                return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(connection, function(err, value) {
+                    throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
+                });
+            }).then(function() {
+                return r.db(dbName).table(tableName).delete().run(connection, function(err, value) {
+                    throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
+                });
+            }).error(function (e) {
+                if (exitCode == 0) { exitCode = 1; }
+                console.error(e);
+            })
+        }
+        
+        for (i in tables_to_cleanup) {
+            dbName = tables_to_cleanup[i][0];
+            tableName = tables_to_cleanup[i][1];
+            fullName = dbName + '.' + tableName;
+            
+            promisesToKeep.push(cleanTable(dbName, tableName, fullName));
+        }
+        
+        // - remove tables
+        
+        deleteTable = function(dbName, tableName, fullName) {
+            return r.db(dbName).tableDrop(tableName).run(connection, function(err, value) {
+                if (err) {
+                    if (exitCode == 0) { exitCode = 1; }
+                    console.error('In cleanup there was no table "' + fullName + '" to delete: ' + err);
+                }
+            });
+        }
+        
+        for (i in tables_to_delete) {
+            dbName = tables_to_delete[i][0];
+            tableName = tables_to_delete[i][1];
+            fullName = dbName + '.' + tableName;
+            
+            promisesToKeep.push(deleteTable(dbName, tableName, fullName));
+        }
+    }
+    
+    if(promisesToKeep.length > 0) {
+        Promise.all(promisesToKeep).then(function () {
+            process.exit(exitCode);
+        });
+    } else {
+        process.exit(exitCode);
+    }
+}
+
+process.on('SIGINT', function(){ atexitCleanup(128+2); })
+process.on('beforeExit', function(){ atexitCleanup(failure_count != 0); })
+process.on('unexpectedException',
     function(err) {
         console.log("Unexpected exception: " + String(err))
         console.log("Stack is: " + String(err.stack))
-        doExit(1);
+        atexitCleanup(1);
     }
 )
 
@@ -192,9 +279,10 @@ process.on(
 r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
 
     if(cpp_conn_err){
-        console.log("Failed to connect to server:", cpp_conn_err);
+        console.error("Failed to connect to server:", cpp_conn_err);
         process.exit(1);
     }
+    connection = cpp_conn;
 
     // Pull a test off the queue and run it
     function runTest() { try {
@@ -304,7 +392,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 }
 
                 function afterArray(cpp_err, cpp_res) { try {
-                    TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " exected function: " + exp_fun.toString());
+                    TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " expected function: " + exp_fun.toString());
                     if (cpp_err) {
                         if (exp_fun.isErr) {
                             if (!exp_fun(cpp_err)) {
@@ -405,10 +493,10 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
             // We've hit the end of our test list
             if(failure_count != 0){
                 console.log("Failed " + failure_count + " tests");
-                doExit(1);
+                atexitCleanup(1);
             } else {
                 console.log("Passed all tests")
-                doExit(0);
+                atexitCleanup(0);
             }
         }
     } catch (err) {
@@ -423,7 +511,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
 function unexpectedException(){
     console.log("Oops, this shouldn't have happened:");
     console.log.apply(console, arguments);
-    doExit(1)
+    atexitCleanup(1)
 }
 
 // Invoked by generated code to add test and expected result
@@ -432,65 +520,20 @@ function test(testSrc, resSrc, name, runopts, testopts) {
     tests.push([testSrc, resSrc, name, runopts, testopts])
 }
 
-// Generated code must call either `setup_table()` or `check_no_table_specified()`
-function setup_table(table_variable_name, table_name) {
+function setup_table(table_variable_name, table_name, db_name) {
     tests.push(function(next, cpp_conn) {
         try {
-            doExit = function (exit_code) {
-                console.log("cleaning up table...");
-                // Unregister handler to prevent recursive insanity if something fails
-                // while cleaning up
-                doExit = process.exit
-                if (DB_AND_TABLE_NAME === "no_table_specified") {
-                    try {
-                        r.db("test").tableDrop(table_name).run(cpp_conn, {}, function (err, res) {
-                            if (err) {
-                                unexpectedException("teardown_table", err);
-                            }
-                            if (res.tables_dropped != 1) {
-                                unexpectedException("teardown_table", "table not dropped", res);
-                            }
-                            process.exit(exit_code);
-                        });
-                    } catch (err) {
-                        console.log("stack: " + String(err.stack));
-                        unexpectedException("teardown_table");
-                    }
-                } else {
-                    var parts = DB_AND_TABLE_NAME.split(".");
-                    try {
-                        r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
-                            if (err) {
-                                unexpectedException("teardown_table", err);
-                            }
-                            if (res.errors !== 0) {
-                                unexpectedException("teardown_table", "error when deleting", res);
-                            }
-                            try {
-                                r.db(parts[0]).table(parts[1]).indexList().forEach(
-                                        r.db(parts[0]).table(parts[1]).indexDrop(r.row))
-                                    .run(cpp_conn, {}, function(err, res) {
-                                        if (err) {
-                                            unexpectedException("teardown_table", err);
-                                        }
-                                        if (res.errors !== undefined && res.errors !== 0) {
-                                            unexpectedException("teardown_table", "error dropping indexes", res);
-                                        }
-                                        process.exit(exit_code);
-                                });
-                            } catch (err) {
-                                console.log("stack: " + String(err.stack));
-                                unexpectedException("teardown_table");
-                            }
-                        });
-                    } catch (err) {
-                        console.log("stack: " + String(err.stack));
-                        unexpectedException("teardown_table");
-                    }
-                }
-            }
-            if (DB_AND_TABLE_NAME === "no_table_specified") {
-                r.db("test").tableCreate(table_name).run(cpp_conn, {}, function (err, res) {
+            if (required_external_tables.length > 0) {
+                // use an external table
+                
+                table = required_external_tables.pop();
+                defines[table_variable_name] = r.db(table[0]).table(table[1]);
+                tables_to_cleanup.push([table[0], table[1]])
+                next();
+            } else {
+                // create the table as provided
+                
+                r.db(db_name).tableCreate(table_name).run(cpp_conn, {}, function (err, res) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
@@ -498,24 +541,15 @@ function setup_table(table_variable_name, table_name) {
                         unexpectedException("setup_table", "table not created", res);
                     }
                     defines[table_variable_name] = r.db("test").table(table_name);
+                    tables_to_delete.push([db_name, table_name])
                     next();
                 });
-            } else {
-                var parts = DB_AND_TABLE_NAME.split(".");
-                defines[table_variable_name] = r.db(parts[0]).table(parts[1]);
-                next();
             }
         } catch (err) {
             console.log("stack: " + String(err.stack));
             unexpectedException("setup_table");
         }
     });
-}
-
-function check_no_table_specified() {
-    if (DB_AND_TABLE_NAME !== "no_table_specified") {
-        unexpectedException("This test isn't meant to be run against a specific table")
-    }
 }
 
 // Invoked by generated code to define variables to used within
@@ -633,3 +667,13 @@ function the_end(){ }
 
 True = true;
 False = false;
+
+// REPLACE WITH TABLE CREATION LINES
+
+if (required_external_tables.length > 0) {
+    tableNames = []
+    for (i in required_external_tables) {
+        tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
+    }
+    throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
+}
