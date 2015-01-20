@@ -3866,8 +3866,9 @@ module 'DataExplorerView', ->
             if @$('.no_history').length > 0
                 @$('.no_history').slideUp 'fast', ->
                     $(@).remove()
-                    that.container.adjust_collapsible_panel_height
-                        is_at_bottom: is_at_bottom
+                    if that.state is 'visible'
+                        that.container.adjust_collapsible_panel_height
+                            is_at_bottom: is_at_bottom
             else if @state is 'visible'
                 @container.adjust_collapsible_panel_height
                     delay_scroll: true
