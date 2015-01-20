@@ -170,7 +170,7 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
-        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
+        delay_toggle_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -2569,23 +2569,29 @@ module 'DataExplorerView', ->
 
         toggle_executing: (executing) =>
             if executing == @executing
+                if executing and @state.query_result?.is_feed
+                    @$('.loading_query_img').hide()
                 return
             if @disable_toggle_executing
                 return
-            if executing is true
-                @executing = true
-                @timeout_show_abort = setTimeout =>
+            @executing = executing
+            if @timeout_toggle_abort?
+                clearTimeout @timeout_toggle_abort
+            if executing
+                @timeout_toggle_abort = setTimeout =>
+                    @timeout_toggle_abort = null
                     if not @state.query_result?.is_feed
                         @$('.loading_query_img').show()
                     @$('.execute_query').hide()
                     @$('.abort_query').show()
-                , @delay_show_abort
-            else if executing is false
-                clearTimeout @timeout_show_abort
-                @executing = false
-                @$('.loading_query_img').hide()
-                @$('.execute_query').show()
-                @$('.abort_query').hide()
+                , @delay_toggle_abort
+            else
+                @timeout_toggle_abort = setTimeout =>
+                    @timeout_toggle_abort = null
+                    @$('.loading_query_img').hide()
+                    @$('.execute_query').show()
+                    @$('.abort_query').hide()
+                , @delay_toggle_abort
 
         # A portion is one query of the whole input.
         execute_portion: =>
