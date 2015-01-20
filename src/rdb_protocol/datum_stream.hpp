@@ -34,6 +34,25 @@ enum class feed_type_t {
     stream,
 };
 
+// Handle unions of changefeeds; the union of a stream and a point
+// changefeed is defined to be a stream here.
+inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
+    switch (a) {
+    case feed_type_t::stream:
+        return feed_type_t::stream;
+    case feed_type_t::point:
+        switch (b) {
+        case feed_type_t::stream:
+            return feed_type_t::stream;
+        case feed_type_t::point:
+        case feed_type_t::not_feed:
+            return feed_type_t::point;
+        }
+    case feed_type_t::not_feed:
+        return b;
+    }
+}
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -231,7 +250,7 @@ public:
           union_type(feed_type_t::not_feed),
           is_infinite_union(false) {
         for (auto const &stream : streams) {
-            union_type = std::max(union_type, stream->cfeed_type());
+            union_type = union_of(union_type, stream->cfeed_type());
             is_infinite_union |= stream->is_infinite();
         }
     }

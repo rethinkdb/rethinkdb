@@ -1181,7 +1181,7 @@ map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &
       union_type(feed_type_t::not_feed), is_array_map(true), is_infinite_map(true) {
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
-        union_type = std::max(union_type, stream->cfeed_type());
+        union_type = union_of(union_type, stream->cfeed_type());
         is_infinite_map &= stream->is_infinite();
     }
 }
