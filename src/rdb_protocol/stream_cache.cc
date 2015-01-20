@@ -73,13 +73,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     }
 
     const ql::feed_type_t cfeed = entry->stream->cfeed_type();
-    if (cfeed != ql::feed_type_t::not_feed &&
-        reject_cfeeds == reject_cfeeds_t::YES) {
-        erase(key);
-        rfail_toplevel(base_exc_t::GENERIC,
-                       "Changefeeds not allowed on this connection.");
-    } else if (entry->stream->is_exhausted() || (res->response_size() == 0
-                                              && cfeed == feed_type_t::not_feed)) {
+    if (entry->stream->is_exhausted() || (res->response_size() == 0
+                                          && cfeed == feed_type_t::not_feed)) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else if (cfeed == feed_type_t::stream) {

@@ -1930,10 +1930,6 @@ TODO: retire this
             background: #eee;
         }
         .results_header{
-            .show_query_warning{
-                padding: 0px;
-                margin: 0px;
-            }
             .metadata{
                 font-family: @sans;
                 width: 530px;
@@ -1943,6 +1939,46 @@ TODO: retire this
                     border-bottom: 1px dotted #444;
                     cursor: help;
                 }
+                &.feed_unpaused .only_if_paused { display: none !important }
+                &.feed_paused .only_if_unpaused { display: none !important }
+                .pause_feed{
+                    opacity: 0.5;
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-pause.png);
+                    margin-right: 5px;
+                }
+                .unpause_feed{
+                    opacity: 0.5;
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-play.png);
+                    margin-right: 5px;
+                }
+                .animated-ellipsis{
+                    margin-right: 6px;
+                }
+                &.floating_metadata {
+                    z-index: 2000;
+                    background-color: #f0f0f0;
+                    border: 1px solid #cfcfcf;
+                    position: fixed;
+                    display: block;
+                    top: -5px;
+                    margin: 0 0 0 -9px;
+                    padding: 10px 8px 5px 8px;
+                    background-color: white;
+                    border-radius: 5px;
+                    .box-shadow(~"2px 2px 10px -5px rgba(0,0,0,0.2)");
+                }
             }
         }
         .more_results{
@@ -1950,6 +1986,9 @@ TODO: retire this
             .more_results_paragraph{
                 margin: 0px;
                 padding: 0px;
+            }
+            &.hidden{
+                display: none;
             }
         }
         .info{
@@ -2076,6 +2115,14 @@ TODO: retire this
         }
         .json_tree_container{
             width: 888px;
+            & > .json_tree{
+                clear: both;
+                margin-bottom: 6px;
+                padding: 2px 45px 5px 0px;
+                &.flash{
+                    .animation(~"add_row 500ms 1");
+                }
+            }
         }
         .json_tree{ // Used in json_tree_container AND json_table_container
             padding: 0px 20px;
@@ -2256,7 +2303,7 @@ TODO: retire this
             padding: 5px;
             .raw_view_textarea{
                 width: 100%;
-                height: auto;
+                height: 300px;
                 padding: 4px;
                 margin: 0px 0px 0px -5px;
             }
@@ -3306,6 +3353,67 @@ TODO: retire this
   from  { background-position: 40px 0; }
   to    { background-position: 0 0; }
 }
+
+// Animated ellipsis
+
+.animate-ellipsis-keyframes-1 {
+    0% { opacity: 0.2 }
+    25% { opacity: 1 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-2 {
+    0% { opacity: 0.2 }
+    25% { opacity: 0.2 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-3 {
+    0% { opacity: 0.2 }
+    25% { opacity: 0.2 }
+    50% { opacity: 0.2 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+@-webkit-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-moz-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-o-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-webkit-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-moz-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-o-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-webkit-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-moz-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-o-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+
+.animate-ellipsis (@n) {
+    .animated-ellipsis span:nth-child(@{n}) {
+        .animation(~"animate-ellipsis-@{n} 3s infinite cubic-bezier(0,1,0,1)");
+    }
+}
+
+.animate-ellipsis(1);
+.animate-ellipsis(2);
+.animate-ellipsis(3);
+
+// Adding rows to changefeeds
+
+.add-row-keyframes () {
+    from { background-color: #fbf5ff }
+    to   { background-color: #fbfbfb }
+}
+
+@-webkit-keyframes add_row { .add-row-keyframes }
+@-moz-keyframes add_row { .add-row-keyframes }
+@-o-keyframes add_row { .add-row-keyframes }
+@keyframes add_row { .add-row-keyframes }
 
 // THE BARS
 // --------

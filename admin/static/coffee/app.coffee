@@ -64,7 +64,7 @@ class @Driver
 
     # Close a connection
     close: (conn) ->
-        conn.close()
+        conn.close noreplyWait: false
 
     # Run a query once
     run_once: (query, callback) =>

@@ -1,12 +1,12 @@
+# TODO changefeeds
+# Turn pause/unpause links into pause/play icons?
+# Should there be a loading animation while paused?
+
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
     @state =
         current_query: null
-        query: null
-        results: null
-        profile: null
-        cursor: null
-        metadata: null
+        query_result: null
         cursor_timed_out: true
         view: 'tree'
         history_state: 'hidden'
@@ -15,13 +15,139 @@ module 'DataExplorerView', ->
         options_state: 'hidden'
         options:
             suggestions: true
-            electric_punctuation: false # False by default
+            electric_punctuation: false
             profiler: false
         history: []
         focus_on_codemirror: true
-        last_query_has_profile: true
-        #saved_data: {}
 
+    # This class represents the results of a query.
+    #
+    # If there is a profile, `profile` is set. After a 'ready' event,
+    # one of `error`, `value` or `cursor` is always set, `type`
+    # indicates which. `ended` indicates whether there are any more
+    # results to read.
+    #
+    # It triggers the following events:
+    #  * ready: The first response has been received
+    #  * add: Another row has been received from a cursor
+    #  * error: An error has occured
+    #  * end: There are no more documents to fetch
+    #  * discard: The results have been discarded
+    class QueryResult
+        _.extend @::, Backbone.Events
+
+        constructor: (options) ->
+            @has_profile = options.has_profile
+            @current_query = options.current_query
+            @raw_query = options.raw_query
+            @driver_handler = options.driver_handler
+            @ready = false
+            @position = 0
+            if options.events?
+                for own event, handler of options.events
+                    @on event, handler
+
+        # Can be used as a callback to run
+        set: (error, result) =>
+            if error?
+                @set_error error
+            else if not @discard_results
+                if @has_profile
+                    @profile = result.profile
+                    value = result.value
+                else
+                    @profile = null
+                    value = result
+                if typeof value._next is 'function' # if it's a cursor
+                    @type = 'cursor'
+                    @results = []
+                    @results_offset = 0
+                    @cursor = value
+                    @is_feed = @cursor.toString() == '[object Feed]'
+                    @missing = 0
+                    @ended = false
+                else
+                    @type = 'value'
+                    @value = value
+                    @ended = true
+                @ready = true
+                @trigger 'ready', @
+
+        # Discard the results
+        discard: =>
+            @trigger 'discard', @
+            @off()
+            @type = 'discarded'
+            @discard_results = true
+            delete @profile
+            delete @value
+            delete @results
+            delete @results_offset
+            @cursor?.close().catch?(() -> null)
+            delete @cursor
+
+        # Gets the next result from the cursor
+        fetch_next: =>
+            if not @ended
+                try
+                    @driver_handler.cursor_next @cursor,
+                        end: () =>
+                            @ended = true
+                            @trigger 'end', @
+                        error: (error) =>
+                            if not @ended
+                                @set_error error
+                        row: (row) =>
+                            if @discard_results
+                                return
+                            @results.push row
+                            @trigger 'add', @, row
+                catch error
+                    @set_error error
+
+        set_error: (error) =>
+            @type = 'error'
+            @error = error
+            @trigger 'error', @, error
+            @discard_results = true
+            @ended = true
+
+        size: =>
+            switch @type
+                when 'value'
+                    if @value instanceof Array
+                        return @value.length
+                    else
+                        return 1
+                when 'cursor'
+                    return @results.length + @results_offset
+
+        force_end_gracefully: =>
+            if @is_feed
+                @ended = true
+                @cursor?.close().catch(() -> null)
+                @trigger 'end', @
+
+        drop_before: (n) =>
+            if n > @results_offset
+                @results = @results[n - @results_offset ..]
+                @results_offset = n
+
+        slice: (from, to) =>
+            if from < 0
+                from = @results.length + from
+            else
+                from = from - @results_offset
+            from = Math.max 0, from
+            if to?
+                if to < 0
+                    to = @results.length + to
+                else
+                    to = to - @results_offset
+                to = Math.min @results.length, to
+                return @results[from .. to]
+            else
+                return @results[from ..]
 
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -40,7 +166,7 @@ module 'DataExplorerView', ->
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         size_history: 50
-        
+
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
@@ -55,8 +181,7 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .abort_query': 'abort_query'
             'click .change_size': 'toggle_size'
-            'click #reconnect': 'execute_query'
-            'click .more_results': 'show_more_results'
+            'click #rerun_query': 'execute_query'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
@@ -237,7 +362,7 @@ module 'DataExplorerView', ->
         #   size: size of the collapsible panel we want // If not specified, we are going to try to figure it out ourselves
         #   no_animation: boolean (do we need to animate things or just to show it)
         #   is_at_bottom: boolean (if we were at the bottom, we want to scroll down once we have added elements in)
-        #   delay_scroll: boolean, true if we just added a query - It speficied if we adjust the height then scroll or do both at the same time 
+        #   delay_scroll: boolean, true if we just added a query - It speficied if we adjust the height then scroll or do both at the same time
         adjust_collapsible_panel_height: (args) =>
             that = @
             if args?.size?
@@ -369,7 +494,7 @@ module 'DataExplorerView', ->
                 returns = returns.concat return_values
                 for parent_value in parent_values
                     parents[parent_value] = true
-                
+
             if full_tag isnt '('
                 for parent_value of parents
                     if not suggestions[parent_value]?
@@ -475,9 +600,7 @@ module 'DataExplorerView', ->
                 catch err
                     window.localStorage.removeItem 'rethinkdb_history'
 
-            @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
-            @current_results = @state.results
-            @profile = @state.profile
+            @query_has_changed = @state.query_result?.current_query isnt @state.current_query
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -500,30 +623,28 @@ module 'DataExplorerView', ->
                 [/\[/g, '\\[']
             ]
 
-            @results_view = new DataExplorerView.ResultView
+            @results_view_wrapper = new ResultViewWrapper
                 container: @
-                limit: @limit
                 view: @state.view
 
-            @options_view = new DataExplorerView.OptionsView
+            @options_view = new OptionsView
                 container: @
                 options: @state.options
 
-            @history_view = new DataExplorerView.HistoryView
+            @history_view = new HistoryView
                 container: @
                 history: @state.history
 
-            @driver_handler = new DataExplorerView.DriverHandler
+            @driver_handler = new DriverHandler
                 container: @
 
-            # One callback to rule them all
+            # These events were caught here to avoid being bound and unbound every time
+            # The results changed. It should ideally be caught in the individual result views
+            # that actually need it.
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
             $(window).mousedown @handle_mousedown
-            @id_execution = 0
             @keep_suggestions_on_blur = false
-
-            @render()
 
             @databases_available = {}
             @fetch_data()
@@ -547,11 +668,11 @@ module 'DataExplorerView', ->
                     @databases_available = result
 
         handle_mousemove: (event) =>
-            @results_view.handle_mousemove event
+            @results_view_wrapper.handle_mousemove event
             @history_view.handle_mousemove event
 
         handle_mouseup: (event) =>
-            @results_view.handle_mouseup event
+            @results_view_wrapper.handle_mouseup event
             @history_view.handle_mouseup event
 
         handle_mousedown: (event) =>
@@ -563,7 +684,7 @@ module 'DataExplorerView', ->
         render: =>
             @$el.html @template()
             @$('.input_query_full_container').html @input_query_template()
-            
+
             # Check if the browser supports the JavaScript driver
             # We do not support internet explorer (even IE 10) and old browsers.
             if navigator?.appName is 'Microsoft Internet Explorer'
@@ -582,21 +703,14 @@ module 'DataExplorerView', ->
                 @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @state?.query? and @state?.results? and @state?.metadata?
-                @$('.results_container').html @results_view.render_result({
-                    show_query_warning: @show_query_warning
-                    results: @state.results
-                    metadata: @state.metadata
-                    profile: @state.profile
-                }).$el
-                # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
-            else
-                @$('.results_container').html @results_view.render_default().$el
+            if @state?.query_result?
+                @results_view_wrapper.set_query_result
+                    query_result: @state.query_result
 
-            # If driver not conneced
-            if @driver_connected is false
-                @error_on_connect()
-    
+            @$('.results_container').html @results_view_wrapper.render(query_has_changed: @query_has_changed).$el
+
+            # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
+
             return @
 
         # This method has to be called AFTER the el element has been inserted in the DOM tree, mostly for codemirror
@@ -617,7 +731,7 @@ module 'DataExplorerView', ->
             if @state.current_query?
                 @codemirror.setValue @state.current_query
             @codemirror.focus() # Give focus
-            
+
             # Track if the focus is on codemirror
             # We use it to refresh the docs once the reql_docs.json is loaded
             @state.focus_on_codemirror = true
@@ -625,7 +739,7 @@ module 'DataExplorerView', ->
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
                 @handle_keypress()
-            @results_view.expand_raw_textarea()
+            @results_view_wrapper.init_after_dom_rendered()
 
             @draft = @codemirror.getValue()
 
@@ -664,7 +778,7 @@ module 'DataExplorerView', ->
             ',': true
             ';': true
             ']': true
-            
+
         handle_click: (event) =>
             @handle_keypress null, event
 
@@ -720,7 +834,7 @@ module 'DataExplorerView', ->
                         next_char = @get_next_char()
                         if next_char is char_to_insert # Next char is a single quote
                             if num_quote%2 is 0
-                                if last_element_incomplete_type is 'string' or last_element_incomplete_type is 'object_key' # We are at the end of a string and the user just wrote a quote 
+                                if last_element_incomplete_type is 'string' or last_element_incomplete_type is 'object_key' # We are at the end of a string and the user just wrote a quote
                                     @move_cursor 1
                                     event.preventDefault()
                                     return true
@@ -731,7 +845,7 @@ module 'DataExplorerView', ->
                                 # Let's add the closing/opening quote missing
                                 return true
                         else
-                            if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes. 
+                            if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes.
                                 # Let's keep a number of quote even, so we add one extra quote
                                 last_key = @get_last_key(stack)
                                 if last_element_incomplete_type is 'string'
@@ -825,7 +939,7 @@ module 'DataExplorerView', ->
                         is_parsing_string = true
                         string_delimiter = char
                         continue
-                    
+
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
@@ -875,7 +989,7 @@ module 'DataExplorerView', ->
                         is_parsing_string = true
                         string_delimiter = char
                         continue
-                    
+
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
@@ -950,7 +1064,7 @@ module 'DataExplorerView', ->
                         # create_suggestion is going to fill to_complete and to_describe
                         #to_complete: undefined
                         #to_describe: undefined
-                        
+
                     # Create the suggestion/description
                     @create_suggestion
                         stack: stack
@@ -1105,7 +1219,7 @@ module 'DataExplorerView', ->
                                         @current_highlighted_extra_suggestion--
                                     else
                                         @current_highlighted_extra_suggestion++
-                                        
+
                                     if @current_highlighted_extra_suggestion >= @extra_suggestions.length
                                         @current_highlighted_extra_suggestion = -1
                                     else if @current_highlighted_extra_suggestion < -1
@@ -1130,7 +1244,7 @@ module 'DataExplorerView', ->
                                             string_delimiter = "'"
                                             move_outside = true
                                         suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
-                                    
+
                                     @write_suggestion
                                         move_outside: move_outside
                                         suggestion_to_write: suggestion
@@ -1203,7 +1317,7 @@ module 'DataExplorerView', ->
 
             # We are scrolling in history
             if @history_displayed_id isnt 0 and event?
-                # We catch ctrl, shift, alt and command 
+                # We catch ctrl, shift, alt and command
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or (event.which is 91 and event.type isnt 'keypress') or event.which is 92 or event.type of @mouse_type_event
                     return false
 
@@ -1289,7 +1403,7 @@ module 'DataExplorerView', ->
                 # create_suggestion is going to fill to_complete and to_describe
                 #to_complete: undefined
                 #to_describe: undefined
-                
+
             # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers or a comment), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
 
@@ -1500,7 +1614,7 @@ module 'DataExplorerView', ->
                                 stack_stop_char = ['{']
                                 continue
 
-                            # Check for a for loop 
+                            # Check for a for loop
                             result_regex = @regex.loop.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'loop'
@@ -1509,7 +1623,7 @@ module 'DataExplorerView', ->
                                 body_start = i+result_regex[0].length
                                 stack_stop_char = ['{']
                                 continue
-                                                       
+
                             # Check for return
                             result_regex = @regex.return.exec query.slice i
                             if result_regex isnt null
@@ -2049,7 +2163,6 @@ module 'DataExplorerView', ->
             count_group: count_group
             parse_level: parse_level
 
-
         # Decide if we have to show a suggestion or a description
         # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
@@ -2207,7 +2320,7 @@ module 'DataExplorerView', ->
 
             @$('.suggestion_name_list').show()
             @$('.arrow').show()
-        
+
         # If want to show suggestion without moving the arrow
         show_suggestion_without_moving: =>
             @$('.arrow').show()
@@ -2268,7 +2381,7 @@ module 'DataExplorerView', ->
             @remove_highlight_suggestion()
             @$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
             @$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
-            
+
             @$('.suggestion_description').show()
 
         remove_highlight_suggestion: =>
@@ -2406,57 +2519,33 @@ module 'DataExplorerView', ->
                         error: true
                     }
 
-        # Function triggered when the user click on 'more results'
-        show_more_results: (event) =>
-            event.preventDefault()
-            @skip_value += @current_results.length
-            try
-                @current_results = []
-
-                # If there are more results to show, we had to buffer one row, so we add that one extra row to the current results
-                @current_results.push @extra_row
-                @extra_row = undefined
-
-                @start_time = new Date()
-
-                @id_execution++
-                get_result_callback = @generate_get_result_callback @id_execution
-                @state.cursor.next get_result_callback
-                $(window).scrollTop(@$('.results_container').offset().top)
-            catch err
-                @toggle_executing false
-                # We print the query here (the user just hit `more data`)
-                @results_view.render_error(@query, err)
-
         abort_query: =>
-            if @state.cursor?
-                @state.cursor.close()
-            @driver_handler.close_connection()
-            @id_execution++
+            @disable_toggle_executing = false
             @toggle_executing false
+            @state.query_result?.force_end_gracefully()
+            @driver_handler.close_connection()
 
         # Function that execute the queries in a synchronous way.
         execute_query: =>
             # We don't let people execute more than one query at a time on the same connection
             # While we remove the button run, `execute_query` could still be called with Shift+Enter
             if @executing is true
-                return
+                @abort_query
 
             # Hide the option, if already hidden, nothing happens.
             @$('.profiler_enabled').slideUp 'fast'
 
             # The user just executed a query, so we reset cursor_timed_out to false
             @state.cursor_timed_out = false
-            @state.show_query_warning = false
+            @state.query_has_changed = false
 
             @raw_query = @codemirror.getValue()
 
             @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
-            
+
             # Execute the query
             try
-                if @state.cursor?
-                    @state.cursor.close()
+                @state.query_result?.discard()
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
@@ -2467,25 +2556,27 @@ module 'DataExplorerView', ->
                 if @queries.length is 0
                     error = @query_error_template
                         no_query: true
-                    @results_view.render_error(null, error, true)
+                    @results_view_wrapper.render_error(null, error, true)
                 else
-                    @toggle_executing true
                     @execute_portion()
 
             catch err
-                @toggle_executing false
                 # Missing brackets, so we display everything (we don't know if we properly splitted the query)
-                @results_view.render_error(@query, err, true)
+                @results_view_wrapper.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
 
         toggle_executing: (executing) =>
+            if executing == @executing
+                return
+            if @disable_toggle_executing
+                return
             if executing is true
                 @executing = true
                 @timeout_show_abort = setTimeout =>
-                    #TODO Delay a few ms
-                    @$('.loading_query_img').show()
+                    if not @state.query_result?.is_feed
+                        @$('.loading_query_img').show()
                     @$('.execute_query').hide()
                     @$('.abort_query').show()
                 , @delay_show_abort
@@ -2498,7 +2589,7 @@ module 'DataExplorerView', ->
 
         # A portion is one query of the whole input.
         execute_portion: =>
-            @state.cursor = null
+            @state.query_result = null
             while @queries[@index]?
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
@@ -2506,11 +2597,10 @@ module 'DataExplorerView', ->
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
-                    @toggle_executing false
                     if @queries.length > 1
-                        @results_view.render_error(@raw_queries[@index], err, true)
+                        @results_view_wrapper.render_error(@raw_queries[@index], err, true)
                     else
-                        @results_view.render_error(null, err, true)
+                        @results_view_wrapper.render_error(null, err, true)
 
                     @save_query
                         query: @raw_query
@@ -2519,146 +2609,69 @@ module 'DataExplorerView', ->
 
                 @index++
                 if rdb_query instanceof @TermBaseConstructor
-                    @skip_value = 0
+                    final_query = @index is @queries.length
                     @start_time = new Date()
-                    @current_results = []
 
-                    @id_execution++ # Update the id_execution and use it to tag the callbacks
-                    rdb_global_callback = @generate_rdb_global_callback @id_execution
-                    # Date are displayed in their raw format for now.
-                    @state.last_query_has_profile = @state.options.profiler
-                    @driver_handler.create_connection (error, connection) =>
-                        if (error)
+                    if final_query
+                        query_result = new QueryResult
+                            has_profile: @state.options.profiler
+                            current_query: @raw_query
+                            raw_query: @raw_queries[@index]
+                            driver_handler: @driver_handler
+                            events:
+                                error: (query_result, err) =>
+                                    @results_view_wrapper.render_error(@query, err)
+                                ready: (query_result) =>
+                                    @state.pause_at = null
+                                    if query_result.is_feed
+                                        @toggle_executing true
+                                        @disable_toggle_executing = true
+                                        for event in ['end', 'discard', 'error']
+                                            query_result.on event, () =>
+                                                @disable_toggle_executing = false
+                                                @toggle_executing false
+
+                        @state.query_result = query_result
+
+                        @results_view_wrapper.set_query_result
+                            query_result: @state.query_result
+
+                    @disable_toggle_executing = false
+                    @driver_handler.run_with_new_connection rdb_query,
+                        optargs:
+                            binaryFormat: "raw"
+                            timeFormat: "raw"
+                            profile: @state.options.profiler
+                        connection_error: (error) =>
+                            @save_query
+                                query: @raw_query
+                                broken_query: true
                             @error_on_connect error
-                        else
-                            rdb_query.private_run connection,
-                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler},
-                                rdb_global_callback # @rdb_global_callback can be fired more than once
-                    , @id_execution, @error_on_connect
+                        callback: (error, result) =>
+                            if final_query
+                                @save_query
+                                    query: @raw_query
+                                    broken_query: false
+                                query_result.set error, result
+                            else if error
+                                @save_query
+                                    query: @raw_query
+                                    broken_query: true
+                                @results_view_wrapper.render_error(@query, err)
+                            else
+                                @execute_portion()
 
-                    return true
-                else if rdb_query instanceof DataExplorerView.DriverHandler
-                    # Nothing to do
                     return true
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        @toggle_executing false
                         error = @query_error_template
                             last_non_query: true
-                        @results_view.render_error(@raw_queries[@index-1], error, true)
+                        @results_view_wrapper.render_error(@raw_queries[@index-1], error, true)
 
                         @save_query
                             query: @raw_query
                             broken_query: true
-
-        
-        # Create a callback for when a query returns
-        # We tag the callback to make sure that we display the results only of the last query executed by the user
-        generate_rdb_global_callback: (id_execution) =>
-            rdb_global_callback = (error, results) =>
-                if @id_execution is id_execution # We execute the query only if it is the last one
-                    get_result_callback = @generate_get_result_callback id_execution
-
-                    if error?
-                        @toggle_executing false
-                        error.message = error.message.replace('Changefeeds not allowed on this connection', 'Changefeeds are not available in the data explorer')
-                        if @queries.length > 1
-                            @results_view.render_error(@raw_queries[@index-1], error)
-                        else
-                            @results_view.render_error(null, error)
-                        @save_query
-                            query: @raw_query
-                            broken_query: true
-                        return false
-
-                    if results?.profile? and @state.last_query_has_profile is true
-                        cursor = results.value
-                        @profile = results.profile
-                        @state.profile = @profile
-                    else
-                        cursor = results
-                        @profile = null # @profile is null if the user deactivated the profiler
-                        @state.profile = @profile
-
-                    
-                    if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor? and typeof cursor._next is 'function' # If the result is a cursor
-                            @state.cursor = cursor
-                            @state.cursor.next get_result_callback
-                        else
-                            @toggle_executing false
-
-                            # Save the last executed query and the last displayed results
-                            @current_results = cursor
-
-                            @state.query = @query
-                            @state.results = @current_results
-                            @state.metadata =
-                                limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
-                                skip_value: @skip_value
-                                execution_time: new Date() - @start_time
-                                query: @query
-                                has_more_data: false
-
-                            @results_view.render_result
-                                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                                metadata: @state.metadata
-                                profile: @profile
-
-                            # Successful query, let's save it in the history
-                            @save_query
-                                query: @raw_query
-                                broken_query: false
-                    else
-                        @execute_portion()
-
-            return rdb_global_callback
-
-        # Create a callback used in cursor.next()
-        # We tag the callback to make sure that we display the results only of the last query executed by the user
-        generate_get_result_callback: (id_execution) =>
-            get_result_callback = (error, data) =>
-                if @id_execution is id_execution
-                    if error?
-                        if error.message isnt 'No more rows in the cursor.'
-                            if @queries.length > 1
-                                @results_view.render_error(@query, error)
-                            else
-                                @results_view.render_error(null, error)
-                            return false
-
-                    if data isnt undefined
-                        if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
-                            @current_results.push data
-                            @extra_row = undefined # We don't know if there's an extra row yet, reset its value to undefined
-                            @state.cursor.next get_result_callback
-                        else if @current_results.length is @limit # If we've reached the limit of results we can show, we still want to know if there are more results available
-                            @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
-                            get_result_callback() # Display results
-                        return true
-
-                    @toggle_executing false
-
-                    # if data is undefined or @current_results.length is @limit
-                    @state.query = @query
-                    @state.results = @current_results
-                    @state.metadata =
-                        limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
-                        skip_value: @skip_value
-                        execution_time: new Date() - @start_time
-                        query: @query
-                        has_more_data: @extra_row isnt undefined # If we could buffer one more row, it means that there are more results available
-
-                    @results_view.render_result
-                        results: @current_results # The first parameter is null ( = query, so we don't display it)
-                        metadata: @state.metadata
-                        profile: @profile
-
-                    # Successful query, let's save it in the history
-                    @save_query
-                        query: @raw_query
-                        broken_query: false
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2724,7 +2737,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             stack = []
             start = 0
-            
+
             position =
                 char: 0
                 line: 1
@@ -2758,7 +2771,7 @@ module 'DataExplorerView', ->
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
                         continue
-                    
+
 
                     if char of @stop_char.opening
                         stack.push char
@@ -2787,13 +2800,12 @@ module 'DataExplorerView', ->
             @codemirror.setValue ''
             @codemirror.focus()
 
-        # Called if the driver could not connect
+        # Called if there is any on the connection
         error_on_connect: (error) =>
             if /^(Unexpected token)/.test(error.message)
                 # Unexpected token, the server couldn't parse the protobuf message
                 # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
-                @toggle_executing false
-                @results_view.render_error(null, error)
+                @results_view_wrapper.render_error(null, error)
 
                 # We save the query since the callback will never be called.
                 @save_query
@@ -2801,20 +2813,12 @@ module 'DataExplorerView', ->
                     broken_query: true
 
             else
-                @results_view.cursor_timed_out()
+                @results_view_wrapper.cursor_timed_out()
                 # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
                 # So if the user fails to reconnect after a failure, the alert will still flash
                 @$('#user-alert-space').hide()
                 @$('#user-alert-space').html @alert_connection_fail_template({})
                 @$('#user-alert-space').slideDown 'fast'
-                @reconnecting = false
-                @driver_connected = 'error'
-
-        # Reconnect, function triggered if the user click on reconnect
-        reconnect: (event) =>
-            @reconnecting = true
-            event.preventDefault()
-            @driver_handler.connect()
 
         handle_gutter_click: (editor, line) =>
             start =
@@ -2835,7 +2839,7 @@ module 'DataExplorerView', ->
                 @display_full()
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
-            @results_view.set_scrollbar()
+            @results_view_wrapper.set_scrollbar()
 
         display_normal: =>
             $('#cluster').addClass 'container'
@@ -2852,7 +2856,7 @@ module 'DataExplorerView', ->
             @$('.option_icon').addClass 'fullscreen_exit'
 
         remove: =>
-            @results_view.remove()
+            @results_view_wrapper.remove()
             @history_view.remove()
             @driver_handler.remove()
 
@@ -2865,53 +2869,200 @@ module 'DataExplorerView', ->
             driver.stop_timer @timer
             # We do not destroy the cursor, because the user might come back and use it.
             super()
-    
-    class @SharedResultView extends Backbone.View
-        template_json_tree:
-            'large_container' : Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
-            'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
-            'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
-            'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
-            'url': Handlebars.templates['dataexplorer_result_json_tree_url-template']
-            'email': Handlebars.templates['dataexplorer_result_json_tree_email-template']
-            'object': Handlebars.templates['dataexplorer_result_json_tree_object-template']
-            'array': Handlebars.templates['dataexplorer_result_json_tree_array-template']
 
-        template_json_table:
-            'container' : Handlebars.templates['dataexplorer_result_json_table_container-template']
-            'tr_attr': Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
-            'td_attr': Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
-            'tr_value': Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
-            'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
-            'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
-            'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
-
-        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
-        mouse_down: false
+    # An abstract base class
+    class ResultView extends Backbone.View
+        tree_large_container_template: Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
+        tree_container_template: Handlebars.templates['dataexplorer_result_json_tree_container-template']
 
         events: ->
-            'click .link_to_profile_view': 'show_profile'
-            'click .link_to_tree_view': 'show_tree'
-            'click .link_to_table_view': 'show_table'
-            'click .link_to_raw_view': 'show_raw'
-            # For Tree view
             'click .jt_arrow': 'toggle_collapse'
-            # For Table view
-            'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
+            'mousedown': 'parent_pause_feed'
 
-        expand_raw_textarea: =>
-            if $('.raw_view_textarea').length > 0
-                height = $('.raw_view_textarea')[0].scrollHeight
-                $('.raw_view_textarea').height(height)
+        initialize: (args) =>
+            @parent = args.parent
+            @query_result = args.query_result
+            @render()
+            @listenTo @query_result, 'end', =>
+                if not @query_result.is_feed
+                    @render()
+            @fetch_batch_rows()
 
+        remove: =>
+            @removed_self = true
+            super()
+
+        max_datum_threshold: 1000
+
+        # Return whether there are too many datums
+        # If there are too many, we will disable syntax highlighting to avoid freezing the page
+        has_too_many_datums: (result) ->
+            if @has_too_many_datums_helper(result) > @max_datum_threshold
+                return true
+            return false
+
+        json_to_tree: (result) =>
+            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
+            if @has_too_many_datums(result)
+                return @tree_large_container_template
+                    json_data: JSON.stringify(result, null, 4)
+            else
+                return @tree_container_template
+                    tree: Utils.json_to_node(result)
+
+        # Return the number of datums if there are less than @max_datum_threshold
+        # Or return a number greater than @max_datum_threshold
+        has_too_many_datums_helper: (result) ->
+            if Object::toString.call(result) is '[object Object]'
+                count = 0
+                for key of result
+                    count += @has_too_many_datums_helper result[key]
+                    if count > @max_datum_threshold
+                        return count
+                return count
+            else if Array.isArray(result)
+                count = 0
+                for element in result
+                    count += @has_too_many_datums_helper element
+                    if count > @max_datum_threshold
+                        return count
+                return count
+
+            return 1
 
         toggle_collapse: (event) =>
             @$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
             @$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
             @$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @$(event.target).toggleClass('jt_arrow_hidden')
-            @set_scrollbar()
+            @parent.set_scrollbar()
+
+        expand_tree_in_table: (event) =>
+            dom_element = @$(event.target).parent()
+            @$(event.target).remove()
+            data = dom_element.data('json_data')
+            result = @json_to_tree data
+            dom_element.html result
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
+            $('.'+classname_to_change).css 'max-width', 'none'
+            classname_to_change = dom_element.parent().parent().attr('class')
+            $('.'+classname_to_change).css 'max-width', 'none'
+            dom_element.css 'max-width', 'none'
+            @parent.set_scrollbar()
+
+        parent_pause_feed: (event) =>
+            @parent.pause_feed()
+
+        pause_feed: =>
+            @parent.container.state.pause_at = @query_result.size()
+
+        unpause_feed: =>
+            @parent.container.state.pause_at = null
+            @render()
+
+        current_batch: =>
+            switch @query_result.type
+                when 'value'
+                    return @query_result.value
+                when 'cursor'
+                    if @query_result.is_feed
+                        pause_at = @parent.container.state.pause_at
+                        if pause_at?
+                            latest = @query_result.slice(Math.min(0, pause_at - @parent.container.limit), pause_at - 1)
+                        else
+                            latest = @query_result.slice(-@parent.container.limit)
+                        latest.reverse()
+
+                        return latest
+                    else
+                        return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
+
+        current_batch_size: =>
+            return @current_batch()?.length ? 0
+
+        # TODO: rate limit events to avoid freezing the browser when there are too many
+        fetch_batch_rows:  =>
+            if @query_result.type is not 'cursor'
+                return
+            if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
+                @query_result.once 'add', (query_result, row) =>
+                    if @removed_self
+                        return
+                    if @query_result.is_feed
+                        if not @parent.container.state.pause_at?
+                            if not @paused_at?
+                                @query_result.drop_before(@query_result.size() - @parent.container.limit)
+                            @add_row row
+                        @parent.update_feed_metadata()
+                    @fetch_batch_rows()
+                @query_result.fetch_next()
+            else
+                @parent.render()
+                @render()
+
+        show_next_batch: =>
+            @query_result.position += @parent.container.limit
+            @query_result.drop_before @parent.container.limit
+            @render()
+            @parent.render()
+            @fetch_batch_rows()
+
+        add_row: (row) =>
+            # TODO: Don't render the whole view on every change
+            @render()
+
+    class TreeView extends ResultView
+        className: 'results tree_view_container'
+        template: Handlebars.templates['dataexplorer_result_tree-template']
+
+        render: =>
+            switch @query_result.type
+                when 'value'
+                    @$el.html @template tree: @json_to_tree @query_result.value
+                when 'cursor'
+                    @$el.html @template tree: []
+                    tree_container = @$('.json_tree_container')
+                    for row in @current_batch()
+                        tree_container.append @json_to_tree row
+            return @
+
+        add_row: (row, noflash) =>
+            tree_container = @$('.json_tree_container')
+            node = $(@json_to_tree(row)).prependTo(tree_container)
+            if not noflash
+                node.addClass 'flash'
+            children = tree_container.children()
+            if children.length > @parent.container.limit
+                children.last().remove()
+
+    class TableView extends ResultView
+        className: 'results table_view_container'
+
+        templates:
+            wrapper: Handlebars.templates['dataexplorer_result_table-template']
+            container: Handlebars.templates['dataexplorer_result_json_table_container-template']
+            tr_attr: Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
+            td_attr: Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
+            tr_value: Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
+            td_value: Handlebars.templates['dataexplorer_result_json_table_td_value-template']
+            td_value_content: Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
+            data_inline: Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+            no_result: Handlebars.templates['dataexplorer_result_empty-template']
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+        mouse_down: false
+
+        events: -> _.extend super(),
+            'mousedown .click_detector': 'handle_mousedown'
+
+        initialize: (args) =>
+            super args
+            @last_keys = @parent.container.state.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @parent.container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+            @listenTo @query_result, 'end', =>
+                if @current_batch_size() == 0
+                    @render()
 
         handle_mousedown: (event) =>
             if event?.target?.className is 'click_detector'
@@ -2923,8 +3074,8 @@ module 'DataExplorerView', ->
 
         handle_mousemove: (event) =>
             if @mouse_down
-                @container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
-                @resize_column @col_resizing, @container.state.last_columns_size[@col_resizing] # Resize
+                @parent.container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @parent.container.state.last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
             @$('.col-'+col).css 'max-width', size
@@ -2942,126 +3093,8 @@ module 'DataExplorerView', ->
             if @mouse_down is true
                 @mouse_down = false
                 $('body').toggleClass('resizing', false)
-                @set_scrollbar()
+                @parent.set_scrollbar()
 
-
-
-        # Expand a JSON object in a table. We just call the @json_to_tree
-        expand_tree_in_table: (event) =>
-            dom_element = @$(event.target).parent()
-            @$(event.target).remove()
-            data = dom_element.data('json_data')
-            result = @json_to_tree data
-            dom_element.html result
-            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
-            $('.'+classname_to_change).css 'max-width', 'none'
-            classname_to_change = dom_element.parent().parent().attr('class')
-            $('.'+classname_to_change).css 'max-width', 'none'
-            dom_element.css 'max-width', 'none'
-            @set_scrollbar()
-
-
-
-        show_tree: (event) =>
-            event.preventDefault()
-            @set_view 'tree'
-        show_profile: (event) =>
-            event.preventDefault()
-            @set_view 'profile'
-        show_table: (event) =>
-            event.preventDefault()
-            @set_view 'table'
-        show_raw: (event) =>
-            event.preventDefault()
-            @set_view 'raw'
-
-        set_view: (view) =>
-            @view = view
-            @container.state.view = view
-            @render_result()
-
-
-
-        # We build the tree in a recursive way
-        json_to_node: (value) =>
-            value_type = typeof value
-            
-            output = ''
-            if value is null
-                return @template_json_tree.span
-                    classname: 'jt_null'
-                    value: 'null'
-            else if Object::toString.call(value) is '[object Array]'
-                if value.length is 0
-                    return '[ ]'
-                else
-                    sub_values = []
-                    for element in value
-                        sub_values.push
-                            value: @json_to_node element
-                        if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
-                            sub_values[sub_values.length-1]['no_comma'] = true
-
-
-                    sub_values[sub_values.length-1]['no_comma'] = true
-                    return @template_json_tree.array
-                        values: sub_values
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-                return @template_json_tree.span
-                    classname: 'jt_date'
-                    value: @date_to_string(value)
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-                return @template_json_tree.span
-                    classname: 'jt_bin'
-                    value: @binary_to_string(value)
-
-            else if value_type is 'object'
-                sub_keys = []
-                for key of value
-                    sub_keys.push key
-                sub_keys.sort()
-
-                sub_values = []
-                for key in sub_keys
-                    last_key = key
-                    sub_values.push
-                        key: key
-                        value: @json_to_node value[key]
-                    # We don't add a coma for url and emails, because we put it in value (value = url, >>)
-                    if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
-                        sub_values[sub_values.length-1]['no_comma'] = true
-
-                if sub_values.length isnt 0
-                    sub_values[sub_values.length-1]['no_comma'] = true
-
-                data =
-                    no_values: false
-                    values: sub_values
-
-                if sub_values.length is 0
-                    data.no_value = true
-
-                return @template_json_tree.object data
-            else if value_type is 'number'
-                return @template_json_tree.span
-                    classname: 'jt_num'
-                    value: value
-            else if value_type is 'string'
-                if /^(http|https):\/\/[^\s]+$/i.test(value)
-                    return @template_json_tree.url
-                        url: value
-                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
-                    return @template_json_tree.email
-                        email: value
-                else
-                    return @template_json_tree.span_with_quotes
-                        classname: 'jt_string'
-                        value: value
-            else if value_type is 'boolean'
-                return @template_json_tree.span
-                    classname: 'jt_bool'
-                    value: if value then 'true' else 'false'
- 
         ###
         keys =
             primitive_value_count: <int>
@@ -3128,39 +3161,6 @@ module 'DataExplorerView', ->
             if keys.primitive_value_count > 0
                 keys.sorted_keys.unshift @primitive_key
 
-        # Build the table
-        # We order by the most frequent keys then by alphabetic order
-        json_to_table: (result) =>
-            # While an Array type is never returned by the driver, we still build an Array in the data explorer
-            # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or result.constructor isnt Array
-                result = [result]
-
-            keys_count =
-                primitive_value_count: 0
-
-            for result_entry in result
-                @build_map_keys
-                    keys_count: keys_count
-                    result: result_entry
-            @compute_occurrence keys_count
-
-            @order_keys keys_count
-
-            flatten_attr = []
-
-            @get_all_attr # fill attr[]
-                keys_count: keys_count
-                attr: flatten_attr
-                prefix: []
-                prefix_str: ''
-            for value, index in flatten_attr
-                value.col = index
-
-            flatten_attr: flatten_attr
-            result: result
-
-
         # Flatten the object returns by build_map_keys().
         # We get back an array of keys
         get_all_attr: (args) =>
@@ -3192,48 +3192,8 @@ module 'DataExplorerView', ->
                             prefix_str: prefix_str
                             key: key
 
-
-        # Return whether there are too many datums
-        # If there are too many, we will disable syntax highlighting to avoid freezing the page
-        has_too_many_datums: (result) ->
-            if @has_too_many_datums_helper(result) > @max_datum_threshold
-                return true
-            return false
-
-
-        # Return the number of datums if there are less than @max_datum_threshold
-        # Or return a number greater than @max_datum_threshold
-        has_too_many_datums_helper: (result) ->
-            if Object::toString.call(result) is '[object Object]'
-                count = 0
-                for key of result
-                    count += @has_too_many_datums_helper result[key]
-                    if count > @max_datum_threshold
-                        return count
-                return count
-            else if Array.isArray(result)
-                count = 0
-                for element in result
-                    count += @has_too_many_datums_helper element
-                    if count > @max_datum_threshold
-                        return count
-                return count
-
-            return 1
-
-
-        json_to_tree: (result) =>
-            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
-            if @has_too_many_datums(result)
-                return @template_json_tree.large_container
-                    too_many_datums: true
-                    json_data: JSON.stringify(result, null, 4)
-            else
-                return @template_json_tree.container
-                    tree: @json_to_node(result)
-
         json_to_table_get_attr: (flatten_attr) =>
-            return @template_json_table.tr_attr
+            return @templates.tr_attr
                 attr: flatten_attr
 
         json_to_table_get_values: (args) =>
@@ -3255,18 +3215,19 @@ module 'DataExplorerView', ->
                         else
                             value = undefined
                     new_document.cells.push @json_to_table_get_td_value value, col
-                @tag_record new_document, i
+                index = if @query_result.is_feed then @query_result.size() - i else i + 1
+                @tag_record new_document, index
                 document_list.push new_document
-            return @template_json_table.tr_value
+            return @templates.tr_value
                 document: document_list
 
         json_to_table_get_td_value: (value, col) =>
             data = @compute_data_for_type(value, col)
 
-            return @template_json_table.td_value
+            return @templates.td_value
                 col: col
-                cell_content: @template_json_table.td_value_content data
-            
+                cell_content: @templates.td_value_content data
+
         compute_data_for_type: (value,  col) =>
             data =
                 value: value
@@ -3287,10 +3248,10 @@ module 'DataExplorerView', ->
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
             else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-                data['value'] = @date_to_string(value)
+                data['value'] = Utils.date_to_string(value)
                 data['classname'] = 'jta_date'
             else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-                data['value'] = @binary_to_string value
+                data['value'] = Utils.binary_to_string value
                 data['classname'] = 'jta_bin'
             else if Object::toString.call(value) is '[object Object]'
                 data['value'] = '{ ... }'
@@ -3319,10 +3280,289 @@ module 'DataExplorerView', ->
                 if i isnt data.length-1
                     data_cell['need_comma'] = true
 
-                result += @template_json_table.data_inline data_cell
-                 
+                result += @templates.data_inline data_cell
+
             return result
 
+        # Build the table
+        # We order by the most frequent keys then by alphabetic order
+        json_to_table: (result) =>
+            # While an Array type is never returned by the driver, we still build an Array in the data explorer
+            # when a cursor is returned (since we just print @limit results)
+            if not result.constructor? or result.constructor isnt Array
+                result = [result]
+
+            keys_count =
+                primitive_value_count: 0
+
+            for result_entry in result
+                @build_map_keys
+                    keys_count: keys_count
+                    result: result_entry
+            @compute_occurrence keys_count
+
+            @order_keys keys_count
+
+            flatten_attr = []
+
+            @get_all_attr # fill attr[]
+                keys_count: keys_count
+                attr: flatten_attr
+                prefix: []
+                prefix_str: ''
+            for value, index in flatten_attr
+                value.col = index
+
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @parent.container.state.last_keys = @last_keys
+
+
+            return @templates.container
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
+
+        tag_record: (doc, i) =>
+            doc.record = @query_result.position + i
+
+        render: =>
+            previous_keys = @parent.container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+            results = @current_batch()
+            if Object::toString.call(results) is '[object Array]'
+                if results.length is 0
+                    @$el.html @templates.wrapper content: @templates.no_result
+                        ended: @query_result.ended
+                else
+                    @$el.html @templates.wrapper content: @json_to_table results
+            else
+                if results is undefined
+                    @$el.html ''
+                else
+                    @$el.html @templates.wrapper content: @json_to_table [results]
+
+            if @query_result.is_feed
+                # TODO: highlight all new rows, not just the latest one
+                first_row = @$('.jta_tr').eq(1).find('td:not(:first)')
+                first_row.css 'background-color': '#eeeeff'
+                first_row.animate 'background-color': '#fbfbfb'
+
+            # Check if the keys are the same
+            if @parent.container.state.last_keys.length isnt previous_keys.length
+                same_keys = false
+            else
+                same_keys = true
+                for keys, index in @parent.container.state.last_keys
+                    if @parent.container.state.last_keys[index] isnt previous_keys[index]
+                        same_keys = false
+
+            # TODO we should just check if previous_keys is included in last_keys
+            # If the keys are the same, we are going to resize the columns as they were before
+            if same_keys is true
+                for col, value of @parent.container.state.last_columns_size
+                    @resize_column col, value
+            else
+                # Reinitialize @last_columns_size
+                @last_column_size = {}
+
+            # Let's try to expand as much as we can
+            extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
+            if extra_size_table > 0 # The table doesn't take the full width
+                expandable_columns = []
+                for index in [0..@last_keys.length-1] # We skip the column record
+                    real_size = 0
+                    @$('.col-'+index).children().children().children().each((i, bloc) ->
+                        $bloc = $(bloc)
+                        if real_size<$bloc.width()
+                            real_size = $bloc.width()
+                    )
+                    if real_size? and real_size is real_size and real_size > @default_size_column
+                        expandable_columns.push
+                            col: index
+                            size: real_size+20 # 20 for padding
+                while expandable_columns.length > 0
+                    expandable_columns.sort (a, b) ->
+                        return a.size-b.size
+                    if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
+                        extra_size_table = extra_size_table-(expandable_columns[0]['size']-@$('.col-'+expandable_columns[0].col).width())
+
+                        @$('.col-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']
+                        @$('.value-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']-20
+                        expandable_columns.shift()
+                    else
+                        max_size = extra_size_table/expandable_columns.length
+                        for column in expandable_columns
+                            current_size = @$('.col-'+expandable_columns[0].col).width()
+                            @$('.col-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size
+                            @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
+                        expandable_columns = []
+
+            return @
+
+    class RawView extends ResultView
+        className: 'results raw_view_container'
+
+        template: Handlebars.templates['dataexplorer_result_raw-template']
+
+        init_after_dom_rendered: =>
+            height = @$('.raw_view_textarea')[0].scrollHeight
+            if height > 0
+                @$('.raw_view_textarea').height(height)
+
+        render: =>
+            @$el.html @template JSON.stringify @current_batch()
+            return @
+
+    class ProfileView extends ResultView
+        className: 'results profile_view_container'
+
+        template:
+            Handlebars.templates['dataexplorer_result_profile-template']
+
+
+        initialize: (args) =>
+            ZeroClipboard.setDefaults
+                moviePath: 'js/ZeroClipboard.swf'
+                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
+            @clip = new ZeroClipboard()
+            super args
+
+        compute_total_duration: (profile) ->
+            total_duration = 0
+            for task in profile
+                if task['duration(ms)']?
+                    total_duration += task['duration(ms)']
+                else if task['mean_duration(ms)']?
+                    total_duration += task['mean_duration(ms)']
+
+            total_duration
+
+        compute_num_shard_accesses: (profile) ->
+            num_shard_accesses = 0
+            for task in profile
+                if task['description'] is 'Perform read on shard.'
+                    num_shard_accesses += 1
+                if Object::toString.call(task['sub_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
+                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
+
+                # In parallel tasks, we get arrays of tasks instead of a super task
+                if Object::toString.call(task) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task
+
+            return num_shard_accesses
+
+        render: =>
+            if not @query_result.profile?
+                @$el.html @template {}
+            else
+                profile = @query_result.profile
+                @$el.html @template
+                    profile:
+                        clipboard_text: JSON.stringify profile, null, 2
+                        tree: @json_to_tree profile
+                        total_duration: Utils.prettify_duration @parent.container.driver_handler.total_duration
+                        server_duration: Utils.prettify_duration @compute_total_duration profile
+                        num_shard_accesses: @compute_num_shard_accesses profile
+
+                @clip.glue(@$('button.copy_profile'))
+                @delegateEvents()
+            @
+
+    class ResultViewWrapper extends Backbone.View
+        className: 'result_view'
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
+
+        views:
+            tree: TreeView
+            table: TableView
+            profile: ProfileView
+            raw: RawView
+
+        events: ->
+            'click .link_to_profile_view': 'show_profile'
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
+            'click .activate_profiler': 'activate_profiler'
+            'click .more_results_link': 'show_next_batch'
+            'click .pause_feed': 'pause_feed'
+            'click .unpause_feed': 'unpause_feed'
+
+        initialize: (args) =>
+            @container = args.container
+            @view = args.view
+            @view_object = null
+            @scroll_handler = => @handle_scroll()
+            @floating_metadata = false
+            $(window).on('scroll', @scroll_handler)
+            @handle_scroll()
+
+        handle_scroll: =>
+            scroll = $(window).scrollTop()
+            pos = @$('.results_header').offset()?.top + 2
+            if not pos?
+                return
+            if @floating_metadata and pos > scroll
+                @floating_metadata = false
+                @$('.metadata').removeClass('floating_metadata')
+                if @container.state.pause_at?
+                    @unpause_feed 'automatic'
+            if not @floating_metadata and pos < scroll
+                @floating_metadata = true
+                @$('.metadata').addClass('floating_metadata')
+                if not @container.state.pause_at?
+                    @pause_feed 'automatic'
+
+        pause_feed: (event) =>
+           if event is 'automatic'
+                @auto_unpause = true
+            else
+                @auto_unpause = false
+                event?.preventDefault()
+            @view_object?.pause_feed()
+            @$('.metadata').addClass('feed_paused').removeClass('feed_unpaused')
+
+        unpause_feed: (event) =>
+            if event is 'automatic'
+                if not @auto_unpause
+                    return
+            else
+                event.preventDefault()
+            @view_object?.unpause_feed()
+            @$('.metadata').removeClass('feed_paused').addClass('feed_unpaused')
+
+        show_tree: (event) =>
+            event.preventDefault()
+            @set_view 'tree'
+        show_profile: (event) =>
+            event.preventDefault()
+            @set_view 'profile'
+        show_table: (event) =>
+            event.preventDefault()
+            @set_view 'table'
+        show_raw: (event) =>
+            event.preventDefault()
+            @set_view 'raw'
+
+        set_view: (view) =>
+            @view = view
+            @container.state.view = view
+            @$(".link_to_#{@view}_view").parent().addClass 'active'
+            @$(".link_to_#{@view}_view").parent().siblings().removeClass 'active'
+            if @query_result?.ready
+                @new_view()
+
+        # TODO: The scrollbar sometime shows up when it is not needed
         set_scrollbar: =>
             if @view is 'table'
                 content_name = '.json_table'
@@ -3343,7 +3583,8 @@ module 'DataExplorerView', ->
             if width_value < @$(content_container).width()
                 # If there is no need for scrollbar, we hide the one on the top
                 @$('.wrapper_scrollbar').hide()
-                $(window).unbind 'scroll'
+                if @set_scrollbar_scroll_handler?
+                    $(window).unbind 'scroll', @set_scrollbar_scroll_handler
             else
                 # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
                 @$('.wrapper_scrollbar').show()
@@ -3371,153 +3612,10 @@ module 'DataExplorerView', ->
 
                 that = @
                 position_scrollbar()
-                $(window).scroll ->
-                    position_scrollbar()
+                @set_scrollbar_scroll_handler = position_scrollbar
+                $(window).scroll @set_scrollbar_scroll_handler
                 $(window).resize ->
                     position_scrollbar()
-
- 
-        # JavaScript doesn't let us set a timezone
-        # So we create a date shifted of the timezone difference
-        # Then replace the timezone of the JS date with the one from the ReQL object
-        date_to_string: (date) =>
-            timezone = date.timezone
-            
-            # Extract data from the timezone
-            timezone_array = date.timezone.split(':')
-            sign = timezone_array[0][0] # Keep the sign
-            timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
-
-            # Save the timezone in minutes
-            timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
-            if sign is '-'
-                timezone_int = -1*timezone_int
-
-            # d = real date with user's timezone
-            d = new Date(date.epoch_time*1000)
-
-            # Add the user local timezone
-            timezone_int += d.getTimezoneOffset()*60
-
-            # d_shifted = date shifted with the difference between the two timezones
-            # (user's one and the one in the ReQL object)
-            d_shifted = new Date((date.epoch_time+timezone_int)*1000)
-
-            # If the timezone between the two dates is not the same,
-            # it means that we changed time between (e.g because of daylight savings)
-            if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
-                # d_shifted_bis = date shifted with the timezone of d_shifted and not d
-                d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
-
-                if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
-                    # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
-                    # Let's create the date outselves...
-                    str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
-                    hours = parseInt(str_pieces[5])
-                    hours++
-                    if hours.toString().length is 1
-                        hours = "0"+hours.toString()
-                    else
-                        hours = hours.toString()
-                    #Note str_pieces[0] is the whole string
-                    raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
-                else
-                    raw_date_str = d_shifted_bis.toString()
-            else
-                raw_date_str = d_shifted.toString()
-
-            # Remove the timezone and replace it with the good one
-            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
-
-
-        binary_to_string: (bin) =>
-            # We print the size of the binary, not the size of the base 64 string
-            # We suppose something stronger than the RFC 2045:
-            # We suppose that there is ONLY one CRLF every 76 characters
-            blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
-            leftover = bin.data.length-blocks_of_76*78
-
-            base64_digits = 76*blocks_of_76+leftover
-
-            blocks_of_4 = Math.floor(base64_digits/4)
-
-            end = bin.data.slice(-2)
-            if end is '=='
-                number_of_equals = 2
-            else if end.slice(-1) is '='
-                number_of_equals = 1
-            else
-                number_of_equals = 0
-
-            size = 3*blocks_of_4-number_of_equals
-
-            if size >= 1073741824
-                sizeStr = (size/1073741824).toFixed(1)+'GB'
-            else if size >= 1048576
-                sizeStr = (size/1048576).toFixed(1)+'MB'
-            else if size >= 1024
-                sizeStr = (size/1024).toFixed(1)+'KB'
-            else if size is 1
-                sizeStr = size+' byte'
-            else
-                sizeStr = size+' bytes'
-
-
-            # Compute a snippet and return the <binary, size, snippet> result
-            if size is 0
-                return "<binary, #{sizeStr}>"
-            else
-                str = atob bin.data.slice(0, 8)
-                snippet = ''
-                for char, i  in str
-                    next = str.charCodeAt(i).toString(16)
-                    if next.length is 1
-                        next = "0" + next
-                    snippet += next
-
-                    if i isnt str.length-1
-                        snippet += " "
-                if size > str.length
-                    snippet += "..."
-
-                return "<binary, #{sizeStr}, \"#{snippet}\">"
-
-    class @ResultView extends DataExplorerView.SharedResultView
-        className: 'result_view'
-        template: Handlebars.templates['dataexplorer_result_container-template']
-        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
-        option_template: Handlebars.templates['dataexplorer-option_page-template']
-        error_template: Handlebars.templates['dataexplorer-error-template']
-        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
-        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
-        profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
-        escape_template: Handlebars.templates['escape-template']
-        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
-
-        events: ->
-            _.extend super,
-                'click .activate_profiler': 'activate_profiler'
-
-        current_result: []
-        max_datum_threshold: 1000
-
-        initialize: (args) =>
-            @container = args.container
-            @limit = args.limit
-            @skip = 0
-            if args.view?
-                @view = args.view
-            else
-                @view = 'tree'
-
-            @last_keys = @container.state.last_keys # Arrays of the last keys displayed
-            @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
-
-            ZeroClipboard.setDefaults
-                moviePath: 'js/ZeroClipboard.swf'
-                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
-            @clip = new ZeroClipboard()
 
         activate_profiler: (event) =>
             event.preventDefault()
@@ -3537,245 +3635,108 @@ module 'DataExplorerView', ->
                 @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
                 @container.options_view.$('.profiler_enabled').slideDown 'fast'
 
-
-
         render_error: (query, err, js_error) =>
+            @view_object?.remove()
+            @view_object = null
+            @query_result?.discard()
             @$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
                 js_error: js_error is true
             return @
 
-        json_to_table: (result) =>
-            {flatten_attr, result} = super result
-
-            @last_keys = flatten_attr.map (attr, i) ->
-                if attr.prefix_str isnt ''
-                    return attr.prefix_str+attr.key
-                return attr.key
-            @container.state.last_keys = @last_keys
-
-
-            return @template_json_table.container
-                table_attr: @json_to_table_get_attr flatten_attr
-                table_data: @json_to_table_get_values
-                    result: result
-                    flatten_attr: flatten_attr
-
-        tag_record: (doc, i) =>
-            doc.record = @metadata.skip_value + i
-
-        render_result: (args) =>
-            if args? and args.results isnt undefined
-                @results = args.results
-                @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
-            if args? and args.profile isnt undefined
-                @profile = args.profile
-            if args?.metadata?
-                @metadata = args.metadata
-            if args?.metadata?.skip_value?
-                # @container.state.start_record is the old value of @container.state.skip_value
-                # Here we just deal with start_record
-                # TODO May have to remove this line as we have metadata.start now
-                @container.state.start_record = args.metadata.skip_value
-
-                if args.metadata.execution_time?
-                    @metadata.execution_time_pretty = @prettify_duration args.metadata.execution_time
-
-            num_results = @metadata.skip_value
-            if @metadata.has_more_data isnt true
-                if Object::toString.call(@results) is '[object Array]'
-                    num_results += @results.length
-                else # @results can be a single value or null
-                    num_results += 1
-
-            @$el.html @template _.extend @metadata,
-                show_query_warning: args?.show_query_warning
-                show_more_data: @metadata.has_more_data is true and @container.state.cursor_timed_out is false
-                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.state.cursor_timed_out is true)
-                execution_time_pretty: @metadata.execution_time_pretty
-                no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
-                num_results: num_results
-
-
-            # Set the text to copy
-            @$('.copy_profile').attr('data-clipboard-text', JSON.stringify(@profile, null, 2))
-
-            if @view is 'profile'
-                @$('.more_results').hide()
-                @$('.profile_summary').show()
+        set_query_result: ({query_result}) =>
+            @query_result?.discard()
+            @query_result = query_result
+            if query_result.ready
+                @render()
+                @new_view()
             else
-                @$('.more_results').show()
-                @$('.profile_summary').hide()
-                @$('.copy_profile').hide()
+                @query_result.on 'ready', () =>
+                    @render()
+                    @new_view()
+            @query_result.on 'end', =>
+                @render()
 
-            switch @view
-                when 'profile'
-                    if @profile is null
-                        @$('.profile_container').html @no_profile_template()
-                        @$('.copy_profile').hide()
-                    else
-                        @$('.profile_container').html @json_to_tree @profile
-                        @$('.copy_profile').show()
-                        @$('.profile_summary_container').html @profile_header_template
-                            total_duration: @metadata.execution_time_pretty
-                            server_duration: @prettify_duration @compute_total_duration @profile
-                            num_shard_accesses: @compute_num_shard_accesses @profile
-
-                        @clip.glue($('button.copy_profile'))
-
-                    @$('.results').hide()
-                    @$('.profile_view_container').show()
-                    @$('.link_to_profile_view').addClass 'active'
-                    @$('.link_to_profile_view').parent().addClass 'active'
-                when 'tree'
-                    @$('.json_tree_container').html @json_to_tree @results
-                    @$('.results').hide()
-                    @$('.tree_view_container').show()
-                    @$('.link_to_tree_view').addClass 'active'
-                    @$('.link_to_tree_view').parent().addClass 'active'
-                when 'table'
-                    previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    if Object::toString.call(@results) is '[object Array]'
-                        if @results.length is 0
-                            @$('.table_view').html @template_no_result()
-                        else
-                            @$('.table_view').html @json_to_table @results
-                    else
-                        if not @results_array?
-                            @results_array = []
-                            @results_array.push @results
-                        @$('.table_view').html @json_to_table @results_array
-                    @$('.results').hide()
-                    @$('.table_view_container').show()
-                    @$('.link_to_table_view').addClass 'active'
-                    @$('.link_to_table_view').parent().addClass 'active'
-
-                    # Check if the keys are the same
-                    if @container.state.last_keys.length isnt previous_keys.length
-                        same_keys = false
-                    else
-                        same_keys = true
-                        for keys, index in @container.state.last_keys
-                            if @container.state.last_keys[index] isnt previous_keys[index]
-                                same_keys = false
-
-                    # TODO we should just check if previous_keys is included in last_keys
-                    # If the keys are the same, we are going to resize the columns as they were before
-                    if same_keys is true
-                        for col, value of @container.state.last_columns_size
-                            @resize_column col, value
-                    else
-                        # Reinitialize @last_columns_size
-                        @last_column_size = {}
-
-                    # Let's try to expand as much as we can
-                    extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
-                    if extra_size_table > 0 # The table doesn't take the full width
-                        expandable_columns = []
-                        for index in [0..@last_keys.length-1] # We skip the column record
-                            real_size = 0
-                            @$('.col-'+index).children().children().children().each((i, bloc) ->
-                                $bloc = $(bloc)
-                                if real_size<$bloc.width()
-                                    real_size = $bloc.width()
-                            )
-                            if real_size? and real_size is real_size and real_size > @default_size_column
-                                expandable_columns.push
-                                    col: index
-                                    size: real_size+20 # 20 for padding
-                        while expandable_columns.length > 0
-                            expandable_columns.sort (a, b) ->
-                                return a.size-b.size
-                            if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
-                                extra_size_table = extra_size_table-(expandable_columns[0]['size']-@$('.col-'+expandable_columns[0].col).width())
-
-                                @$('.col-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']
-                                @$('.value-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']-20
-                                expandable_columns.shift()
-                            else
-                                max_size = extra_size_table/expandable_columns.length
-                                for column in expandable_columns
-                                    current_size = @$('.col-'+expandable_columns[0].col).width()
-                                    @$('.col-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size
-                                    @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
-                                expandable_columns = []
-                when 'raw'
-                    @$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
-                    @$('.results').hide()
-                    @$('.raw_view_container').show()
-                    @expand_raw_textarea()
-                    @$('.link_to_raw_view').addClass 'active'
-                    @$('.link_to_raw_view').parent().addClass 'active'
-
-            @set_scrollbar()
-            @delegateEvents()
-            @$('.execution_time').tooltip
-                for_dataexplorer: true
-                trigger: 'hover'
-                placement: 'bottom'
+        render: (args) =>
+            if @query_result?.ready
+                @view_object?.$el.detach()
+                has_more_data = not @query_result.ended and @query_result.position + @container.limit <= @query_result.size()
+                @$el.html @template
+                    limit_value: @view_object?.current_batch_size()
+                    skip_value: @query_result.position
+                    query_has_changed: args?.query_has_changed
+                    show_more_data: has_more_data and not @container.state.cursor_timed_out
+                    cursor_timed_out_template: (
+                        @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
+                    execution_time_pretty: Utils.prettify_duration @container.driver_handler.total_duration
+                    no_results: @query_result.ended and @query_result.size() == 0
+                    num_results: @query_result.size()
+                    floating_metadata: @floating_metadata
+                    feed: @feed_info()
+                @$('.execution_time').tooltip
+                    for_dataexplorer: true
+                    trigger: 'hover'
+                    placement: 'bottom'
+                @$('.tab-content').html @view_object?.$el
+                @$(".link_to_#{@view}_view").parent().addClass 'active'
             return @
- 
-           
+
+        update_feed_metadata: =>
+            info = @feed_info()
+            if not info?
+                return
+            $('.feed_upcoming').text(info.upcoming)
+            $('.feed_overflow').parent().toggleClass('hidden', not info.overflow)
+
+        feed_info: =>
+            if @query_result.is_feed
+                total = @container.state.pause_at ? @query_result.size()
+                ended: @query_result.ended
+                overflow: @container.limit < total
+                paused: @container.state.pause_at?
+                upcoming: @query_result.size() - total
+
+        new_view: () =>
+            @view_object?.remove()
+            @view_object = new @views[@view]
+                parent: @
+                query_result: @query_result
+            @$('.tab-content').html @view_object.render().$el
+            @init_after_dom_rendered()
+            @set_scrollbar()
+
+        init_after_dom_rendered: =>
+            @view_object?.init_after_dom_rendered?()
+
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.state.cursor_timed_out = true
-            if @container.state.metadata?.has_more_data is true
+            if @container.state.query_result?.ended is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
-        render: =>
-            @delegateEvents()
-            return @
-
-        render_default: =>
-            return @
-
-        prettify_duration: (duration) ->
-            if duration < 1
-                return '<1ms'
-            else if duration < 1000
-                return duration.toFixed(0)+"ms"
-            else if duration < 60*1000
-                return (duration/1000).toFixed(2)+"s"
-            else # We do not expect query to last one hour.
-                minutes = Math.floor(duration/(60*1000))
-                return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
-
-        compute_total_duration: (profile) ->
-            total_duration = 0
-            for task in profile
-                if task['duration(ms)']?
-                    total_duration += task['duration(ms)']
-                else if task['mean_duration(ms)']?
-                    total_duration += task['mean_duration(ms)']
-
-            total_duration
-
-
-        compute_num_shard_accesses: (profile) ->
-            num_shard_accesses = 0
-            for task in profile
-                if task['description'] is 'Perform read on shard.'
-                    num_shard_accesses += 1
-                if Object::toString.call(task['sub_tasks']) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
-                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
-
-                # In parallel tasks, we get arrays of tasks instead of a super task
-                if Object::toString.call(task) is '[object Array]'
-                    num_shard_accesses += @compute_num_shard_accesses task
-
-            return num_shard_accesses
-
-
-
         remove: =>
-            $(window).unbind 'scroll'
+            @view_object?.remove()
+            if @query_result.is_feed
+                @query_result.force_end_gracefully()
+            if @set_scrollbar_scroll_handler?
+                $(window).unbind 'scroll', @set_scrollbar_scroll_handler
             $(window).unbind 'resize'
+            $(window).off('scroll', @scroll_handler)
             super()
 
-    class @OptionsView extends Backbone.View
+        handle_mouseup: (event) =>
+            @view_object?.handle_mouseup?(event)
+
+        handle_mousemove: (event) =>
+            @view_object?.handle_mousedown?(event)
+
+        show_next_batch: (event) =>
+            event.preventDefault()
+            $(window).scrollTop($('.results_container').offset().top)
+            @view_object?.show_next_batch()
+
+    class OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
         className: 'options_view'
 
@@ -3806,11 +3767,11 @@ module 'DataExplorerView', ->
             @delegateEvents()
             return @
 
-    class @HistoryView extends Backbone.View
+    class HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
         className: 'history_container'
-        
+
         size_history_displayed: 300
         state: 'hidden' # hidden, visible
         index_displayed: 0
@@ -3924,31 +3885,269 @@ module 'DataExplorerView', ->
                 move_arrow: 'show'
                 is_at_bottom: 'true'
 
-    class @DriverHandler
-        # This class does a little more than window.Driver
-        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
+    class DriverHandler
+        constructor: (options) ->
+            @container = options.container
+            @concurrent = 0
+            @total_duration = 0
+
+        _begin: =>
+            if @concurrent == 0
+                @container.toggle_executing true
+                @begin_time = new Date()
+            @concurrent++
+
+        _end: =>
+            if @concurrent > 0
+                @concurrent--
+                now = new Date()
+                @total_duration += now - @begin_time
+                @begin_time = now
+            if @concurrent == 0
+                @container.toggle_executing false
 
         close_connection: =>
             if @connection?.open is true
                 driver.close @connection
                 @connection = null
+                @_end()
 
-        create_connection: (cb, id_execution, connection_cb) =>
+        run_with_new_connection: (query, {callback, connection_error, optargs}) =>
             @close_connection()
+            @total_duration = 0
+            @concurrent = 0
 
-            that = @
-            @id_execution = id_execution
+            driver.connect (error, connection) =>
+                if error?
+                    connection_error error
+                connection.removeAllListeners 'error' # See issue 1347
+                connection.on 'error', (error) =>
+                    connection_error error
+                @connection = connection
+                @_begin()
+                query.private_run connection, optargs, (error, result) =>
+                    @_end()
+                    callback error, result
 
-            ((_id_execution) =>
-                driver.connect (error, connection) =>
-                    if _id_execution is @id_execution
-                        connection.removeAllListeners 'error' # See issue 1347
-                        connection.on 'error', connection_cb
-                        @connection = connection
-                        cb(error, connection)
+        cursor_next: (cursor, {error, row, end}) =>
+            if not @connection?
+                end()
+            @_begin()
+            cursor.next (err, row_) =>
+                @_end()
+                if err?
+                    if err.message is 'No more rows in the cursor.'
+                        end()
                     else
-                        driver.close connection
-            )(id_execution)
+                        error err
+                else
+                    row row_
 
         remove: =>
             @close_connection()
+
+    Utils =
+        # JavaScript doesn't let us set a timezone
+        # So we create a date shifted of the timezone difference
+        # Then replace the timezone of the JS date with the one from the ReQL object
+        date_to_string: (date) ->
+            timezone = date.timezone
+
+            # Extract data from the timezone
+            timezone_array = date.timezone.split(':')
+            sign = timezone_array[0][0] # Keep the sign
+            timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+
+            # Save the timezone in minutes
+            timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+            if sign is '-'
+                timezone_int = -1*timezone_int
+
+            # d = real date with user's timezone
+            d = new Date(date.epoch_time*1000)
+
+            # Add the user local timezone
+            timezone_int += d.getTimezoneOffset()*60
+
+            # d_shifted = date shifted with the difference between the two timezones
+            # (user's one and the one in the ReQL object)
+            d_shifted = new Date((date.epoch_time+timezone_int)*1000)
+
+            # If the timezone between the two dates is not the same,
+            # it means that we changed time between (e.g because of daylight savings)
+            if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
+                # d_shifted_bis = date shifted with the timezone of d_shifted and not d
+                d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
+
+                if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
+                    # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
+                    # Let's create the date outselves...
+                    str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
+                    hours = parseInt(str_pieces[5])
+                    hours++
+                    if hours.toString().length is 1
+                        hours = "0"+hours.toString()
+                    else
+                        hours = hours.toString()
+                    #Note str_pieces[0] is the whole string
+                    raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
+                else
+                    raw_date_str = d_shifted_bis.toString()
+            else
+                raw_date_str = d_shifted.toString()
+
+            # Remove the timezone and replace it with the good one
+            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
+
+        prettify_duration: (duration) ->
+            if duration < 1
+                return '<1ms'
+            else if duration < 1000
+                return duration.toFixed(0)+"ms"
+            else if duration < 60*1000
+                return (duration/1000).toFixed(2)+"s"
+            else # We do not expect query to last one hour.
+                minutes = Math.floor(duration/(60*1000))
+                return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
+
+        binary_to_string: (bin) ->
+            # We print the size of the binary, not the size of the base 64 string
+            # We suppose something stronger than the RFC 2045:
+            # We suppose that there is ONLY one CRLF every 76 characters
+            blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
+            leftover = bin.data.length-blocks_of_76*78
+
+            base64_digits = 76*blocks_of_76+leftover
+
+            blocks_of_4 = Math.floor(base64_digits/4)
+
+            end = bin.data.slice(-2)
+            if end is '=='
+                number_of_equals = 2
+            else if end.slice(-1) is '='
+                number_of_equals = 1
+            else
+                number_of_equals = 0
+
+            size = 3*blocks_of_4-number_of_equals
+
+            if size >= 1073741824
+                sizeStr = (size/1073741824).toFixed(1)+'GB'
+            else if size >= 1048576
+                sizeStr = (size/1048576).toFixed(1)+'MB'
+            else if size >= 1024
+                sizeStr = (size/1024).toFixed(1)+'KB'
+            else if size is 1
+                sizeStr = size+' byte'
+            else
+                sizeStr = size+' bytes'
+
+
+            # Compute a snippet and return the <binary, size, snippet> result
+            if size is 0
+                return "<binary, #{sizeStr}>"
+            else
+                str = atob bin.data.slice(0, 8)
+                snippet = ''
+                for char, i  in str
+                    next = str.charCodeAt(i).toString(16)
+                    if next.length is 1
+                        next = "0" + next
+                    snippet += next
+
+                    if i isnt str.length-1
+                        snippet += " "
+                if size > str.length
+                    snippet += "..."
+
+                return "<binary, #{sizeStr}, \"#{snippet}\">"
+
+        # Render a datum as a pretty tree
+        json_to_node: do ->
+            template =
+                span: Handlebars.templates['dataexplorer_result_json_tree_span-template']
+                span_with_quotes: Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
+                url: Handlebars.templates['dataexplorer_result_json_tree_url-template']
+                email: Handlebars.templates['dataexplorer_result_json_tree_email-template']
+                object: Handlebars.templates['dataexplorer_result_json_tree_object-template']
+                array: Handlebars.templates['dataexplorer_result_json_tree_array-template']
+
+            # We build the tree in a recursive way
+            return json_to_node = (value) ->
+                value_type = typeof value
+
+                output = ''
+                if value is null
+                    return template.span
+                        classname: 'jt_null'
+                        value: 'null'
+                else if Object::toString.call(value) is '[object Array]'
+                    if value.length is 0
+                        return '[ ]'
+                    else
+                        sub_values = []
+                        for element in value
+                            sub_values.push
+                                value: json_to_node element
+                            if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
+                                sub_values[sub_values.length-1]['no_comma'] = true
+
+
+                        sub_values[sub_values.length-1]['no_comma'] = true
+                        return template.array
+                            values: sub_values
+                else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
+                    return template.span
+                        classname: 'jt_date'
+                        value: Utils.date_to_string(value)
+                else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                    return template.span
+                        classname: 'jt_bin'
+                        value: Utils.binary_to_string(value)
+
+                else if value_type is 'object'
+                    sub_keys = []
+                    for key of value
+                        sub_keys.push key
+                    sub_keys.sort()
+
+                    sub_values = []
+                    for key in sub_keys
+                        last_key = key
+                        sub_values.push
+                            key: key
+                            value: json_to_node value[key]
+                        # We don't add a coma for url and emails, because we put it in value (value = url, >>)
+                        if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
+                            sub_values[sub_values.length-1]['no_comma'] = true
+
+                    if sub_values.length isnt 0
+                        sub_values[sub_values.length-1]['no_comma'] = true
+
+                    data =
+                        no_values: false
+                        values: sub_values
+
+                    if sub_values.length is 0
+                        data.no_value = true
+
+                    return template.object data
+                else if value_type is 'number'
+                    return template.span
+                        classname: 'jt_num'
+                        value: value
+                else if value_type is 'string'
+                    if /^(http|https):\/\/[^\s]+$/i.test(value)
+                        return template.url
+                            url: value
+                    else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                        return template.email
+                            email: value
+                    else
+                        return template.span_with_quotes
+                            classname: 'jt_string'
+                            value: value
+                else if value_type is 'boolean'
+                    return template.span
+                        classname: 'jt_bool'
+                        value: if value then 'true' else 'false'

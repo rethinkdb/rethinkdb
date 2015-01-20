@@ -1,45 +1,44 @@
-
-    <div class="results_header">
-        <ul class="nav nav-tabs change_view_container"">
+<div class="results_header">
+    <ul class="nav nav-tabs change_view_container">
+        {{#unless feed}}
             <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
-            <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
-            <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
-            <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
-        </ul>
-        <p class="metadata">
-            {{#if show_query_warning}}Results from the previous query:{{/if}}
+        {{/unless}}
+        <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
+        <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+        <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
+    </ul>
+    <p class="metadata {{#if floating_metadata}}floating_metadata{{/if}} {{#if feed.paused}}feed_paused{{else}}feed_unpaused{{/if}}">
+        {{#if feed}}
+            {{#if feed.ended}}
+                The changefeed is closed.
+            {{else}}
+                Listening for events<span class="animated-ellipsis"><span>.</span><span>.</span><span>.</span></span>
+                <a href="#" class="unpause_feed only_if_paused"></a>
+                <a href="#" class="pause_feed only_if_unpaused"></a>
+                <span class="only_if_paused">(paused: <span class="feed_upcoming">{{feed.upcoming}}</span> more available).</span>
+            {{/if}}
+        {{else}}
+            {{#if query_has_changed}}Results from the previous query:{{/if}}
             {{#if execution_time_pretty}}Executed in <span title="Queries originating from the web UI incur additional HTTP round-trip latency." class="execution_time">{{execution_time_pretty}}</span>.{{/if}}
             {{#if no_results}}No results returned.{{/if}}
-            {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
-                {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
+            {{#if num_results}}
+                {{num_results}} {{pluralize_noun 'row' num_results}} returned
+                {{~#if limit_value}}, {{limit_value}} displayed{{/if}}
+                {{~#if skip_value}}, {{skip_value}} skipped{{/if}},
             {{else}}
                 {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped{{/if}},
             {{/if}}
             {{#if show_more_data}}more available {{/if}}
-        </p>
+        {{/if}}
+    </p>
+</div>
+<div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
+<div class="tab-content"></div>
+{{#if feed}}
+    <div class="info more_results {{#unless feed.overflow}}hidden{{/unless}}">
+         <span class="feed_overflow">Older results have been discarded.</span>
     </div>
-    <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
-    <div class="tab-content">  
-        <div class="results profile_view_container">
-            <div class="results_wrap profile_view">
-                <div class="profile_summary_container"></div>
-                <button class="btn copy_profile">Copy to clipboard</button>
-                <div class="profile_container"></div>
-            </div>
-        </div>
-        <div class="results tree_view_container">
-            <div class="results_wrap tree_view"><div class="json_tree_container"></div>
-            </div>
-        </div>
-        <div class="results table_view_container">
-            <div class="results_wrap table_view"></div>
-        </div>
-        <div class="results raw_view_container">
-            <div class="raw_view_container raw_view">
-                <textarea class="raw_view_textarea"></textarea>
-            </div>
-        </div>
-    </div>
+{{else}}
     {{#if show_more_data}}
     <div class="info more_results">
         <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
@@ -49,6 +48,4 @@
             <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
         {{/if}}
     {{/if}}
-
-
-
+{{/if}}
