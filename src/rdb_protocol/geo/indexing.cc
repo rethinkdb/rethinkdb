@@ -74,8 +74,9 @@ S2CellId key_to_s2cellid(const std::string &sid) {
 
 S2CellId btree_key_to_s2cellid(const btree_key_t *key) {
     rassert(key != NULL);
-    return key_to_s2cellid(datum_t::extract_secondary(
-        std::string(reinterpret_cast<const char *>(key->contents), key->size)));
+    return key_to_s2cellid(
+        datum_t::extract_secondary(
+            std::string(reinterpret_cast<const char *>(key->contents), key->size)));
 }
 
 std::vector<std::string> compute_index_grid_keys(
@@ -83,7 +84,8 @@ std::vector<std::string> compute_index_grid_keys(
     rassert(key.has());
 
     if (!key.is_ptype(ql::pseudo::geometry_string)) {
-        throw geo_exception_t("Expected geometry but found " + key.get_type_name() + ".");
+        throw geo_exception_t(
+            "Expected geometry but found " + key.get_type_name() + ".");
     }
     if (goal_cells <= 0) {
         throw geo_exception_t("goal_cells must be positive (and should be >= 4).");
@@ -125,8 +127,9 @@ void geo_index_traversal_helper_t::init_query(
 }
 
 done_traversing_t
-geo_index_traversal_helper_t::handle_pair(scoped_key_value_t &&keyvalue,
-                                          concurrent_traversal_fifo_enforcer_signal_t waiter)
+geo_index_traversal_helper_t::handle_pair(
+    scoped_key_value_t &&keyvalue,
+    concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 

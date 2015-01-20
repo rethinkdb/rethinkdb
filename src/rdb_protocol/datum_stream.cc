@@ -159,7 +159,19 @@ std::vector<rget_item_t> rget_reader_t::do_range_read(
 
     auto rr = boost::get<rget_read_t>(&read.read);
     r_sanity_check(rr);
-    const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
+
+    key_range_t rng;
+    if (rr->sindex) {
+        if (!active_range) {
+            r_sanity_check(!rr->sindex->region);
+            active_range = rng = readgen->sindex_keyrange(res.serialization);
+        } else {
+            r_sanity_check(rr->sindex->region);
+            rng = (*rr->sindex->region).inner;
+        }
+    } else {
+        rng = rr->region.inner;
+    }
 
     // We need to do some adjustments to the last considered key so that we
     // update the range correctly in the case where we're reading a subportion
@@ -175,7 +187,8 @@ std::vector<rget_item_t> rget_reader_t::do_range_read(
         *key = rng.left;
     }
 
-    shards_exhausted = readgen->update_range(&active_range, res.last_key);
+    r_sanity_check(active_range);
+    shards_exhausted = readgen->update_range(&*active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
 
     // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
@@ -187,12 +200,15 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
+        // `active_range` is guaranteed to be full after the `do_range_read`,
+        // because `do_range_read` is responsible for updating the active range.
         items = do_range_read(
                 env, readgen->next_read(active_range, transforms, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
+        guarantee(active_range);
         while (boost::optional<read_t> read = readgen->sindex_sort_read(
-                   active_range, items, transforms, batchspec)) {
+                   *active_range, items, transforms, batchspec)) {
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -277,7 +293,15 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
 
     auto gr = boost::get<intersecting_geo_read_t>(&read.read);
     r_sanity_check(gr);
-    const key_range_t &rng = gr->sindex.region.inner;
+
+    key_range_t rng;
+    if (!active_range) {
+        r_sanity_check(!gr->sindex.region);
+        active_range = rng = readgen->sindex_keyrange(res.serialization);
+    } else {
+        r_sanity_check(gr->sindex.region);
+        rng = (*gr->sindex.region).inner;
+    }
 
     // We need to do some adjustments to the last considered key so that we
     // update the range correctly in the case where we're reading a subportion
@@ -291,7 +315,8 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
         }
     }
 
-    shards_exhausted = readgen->update_range(&active_range, res.last_key);
+    r_sanity_check(active_range);
+    shards_exhausted = readgen->update_range(&*active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
 
     // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
@@ -345,7 +370,7 @@ rget_readgen_t::rget_readgen_t(
       original_datum_range(_original_datum_range) { }
 
 read_t rget_readgen_t::next_read(
-    const key_range_t &active_range,
+    const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
     return read_t(next_read_impl(active_range, transforms, batchspec), profile);
@@ -356,7 +381,7 @@ read_t rget_readgen_t::terminal_read(
     const std::vector<transform_variant_t> &transforms,
     const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
-    rget_read_t read = next_read_impl(original_keyrange(), transforms, batchspec);
+    rget_read_t read = next_read_impl(boost::none, transforms, batchspec);
     read.terminal = _terminal;
     return read_t(read, profile);
 }
@@ -384,11 +409,12 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
-    const key_range_t &active_range,
+    const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
+    guarantee(active_range);
     return rget_read_t(
-        region_t(active_range),
+        region_t(*active_range),
         global_optargs,
         table_name,
         batchspec,
@@ -410,8 +436,12 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const 
     return;
 }
 
-key_range_t primary_readgen_t::original_keyrange() const {
+boost::optional<key_range_t> primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
+}
+
+key_range_t primary_readgen_t::sindex_keyrange(serialization_t) const {
+    crash("Cannot call `sindex_keyrange` on a primary readgen (internal server error).");
 }
 
 boost::optional<std::string> primary_readgen_t::sindex_name() const {
@@ -426,7 +456,8 @@ sindex_readgen_t::sindex_readgen_t(
     profile_bool_t profile,
     sorting_t sorting)
     : rget_readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
-      sindex(_sindex) { }
+      sindex(_sindex),
+      sent_first_read(false) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env,
@@ -481,9 +512,21 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
 }
 
 rget_read_t sindex_readgen_t::next_read_impl(
-    const key_range_t &active_range,
+    const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
+    boost::optional<region_t> region;
+    if (active_range) {
+        region = region_t(*active_range);
+    } else {
+        // We should send at most one read before we're able to calculate the
+        // active range.
+        r_sanity_check(!sent_first_read);
+        // We cheat here because we're just using this for an assert.  In terms
+        // of actual behavior, the function is const, and this assert will go
+        // away once we drop support for pre-1.16 sindex key serialization.
+        const_cast<sindex_readgen_t *>(this)->sent_first_read = true;
+    }
     return rget_read_t(
         region_t::universe(),
         global_optargs,
@@ -491,7 +534,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, region_t(active_range), original_datum_range),
+        sindex_rangespec_t(sindex, std::move(region), original_datum_range),
         sorting);
 }
 
@@ -504,7 +547,6 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
-            std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
             // We need to truncate the skey down to the smallest *guaranteed*
             // length of secondary index keys in the btree.
             // This is important because the prefix of a truncated sindex key
@@ -514,7 +556,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
             // next step might miss some relevant keys that have been truncated
             // differently. (the lack of this was the cause of
             // https://github.com/rethinkdb/rethinkdb/issues/3444)
-            skey.erase(datum_t::max_trunc_size());
+            std::string skey =
+                datum_t::extract_truncated_secondary(key_to_unescaped_str(key));
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum
@@ -547,8 +590,12 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     return boost::optional<read_t>();
 }
 
-key_range_t sindex_readgen_t::original_keyrange() const {
-    return original_datum_range.to_sindex_keyrange();
+boost::optional<key_range_t> sindex_readgen_t::original_keyrange() const {
+    return boost::none;
+}
+
+key_range_t sindex_readgen_t::sindex_keyrange(serialization_t serialization) const {
+    return original_datum_range.to_sindex_keyrange(serialization);
 }
 
 boost::optional<std::string> sindex_readgen_t::sindex_name() const {
@@ -580,7 +627,7 @@ scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
 }
 
 read_t intersecting_readgen_t::next_read(
-    const key_range_t &active_range,
+    const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
     return read_t(next_read_impl(active_range, transforms, batchspec), profile);
@@ -597,9 +644,10 @@ read_t intersecting_readgen_t::terminal_read(
 }
 
 intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
-    const key_range_t &active_range,
+    const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
+    r_sanity_check(active_range);
     return intersecting_geo_read_t(
         region_t::universe(),
         global_optargs,
@@ -607,7 +655,7 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, region_t(active_range), datum_range_t::universe()),
+        sindex_rangespec_t(sindex, region_t(*active_range), datum_range_t::universe()),
         query_geometry);
 }
 
@@ -625,10 +673,20 @@ void intersecting_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) c
     // support any specific ordering.
 }
 
-key_range_t intersecting_readgen_t::original_keyrange() const {
+boost::optional<key_range_t> intersecting_readgen_t::original_keyrange() const {
     // This is always universe for intersection reads.
     // The real query is in the query geometry.
-    return datum_range_t::universe().to_sindex_keyrange();
+
+    // We can use whatever serialization we want here because `universe`
+    // becomes the same key range anyway.
+    return datum_range_t::universe().to_sindex_keyrange(serialization_t::post_1_16);
+}
+
+key_range_t intersecting_readgen_t::sindex_keyrange(
+    serialization_t serialization) const {
+    // This is always universe for intersection reads.
+    // The real query is in the query geometry.
+    return datum_range_t::universe().to_sindex_keyrange(serialization);
 }
 
 boost::optional<std::string> intersecting_readgen_t::sindex_name() const {

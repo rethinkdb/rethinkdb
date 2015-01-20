@@ -241,9 +241,16 @@ void do_read(ql::env_t *env,
             return;
         }
 
+        ql::serialization_t serialization =
+            ql::serialization_from_reql_version(
+                sindex_info.mapping_version_info.latest_compatible_reql_version);
+        res->serialization = serialization;
+        region_t true_region = rget.sindex->region
+            ? *rget.sindex->region
+            : region_t(rget.sindex->original_range.to_sindex_keyrange(serialization));
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->original_range, rget.sindex->region,
+            rget.sindex->original_range, std::move(true_region),
             sindex_sb.get(), env, rget.batchspec, rget.transforms,
             rget.terminal, rget.region.inner, rget.sorting,
             sindex_info, res, release_superblock_t::RELEASE);
@@ -282,7 +289,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     &ops};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    region_t(s.spec.range.range.to_sindex_keyrange()),
+                    boost::none, // We just want to use whole range.
                     s.spec.range.range);
             } else {
                 rget.terminal = ql::limit_read_t{
@@ -360,7 +367,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
 
         response->response = rget_read_response_t();
-        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
+        rget_read_response_t *res =
+            boost::get<rget_read_response_t>(&response->response);
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -389,10 +397,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             return;
         }
 
+        guarantee(geo_read.sindex.region);
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
-            geo_read.sindex.region,
+            *geo_read.sindex.region,
             sindex_sb.get(),
             &ql_env,
             geo_read.batchspec,
