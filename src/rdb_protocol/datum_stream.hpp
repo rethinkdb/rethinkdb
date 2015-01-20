@@ -51,6 +51,7 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
     case feed_type_t::not_feed:
         return b;
     }
+    unreachable();
 }
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
