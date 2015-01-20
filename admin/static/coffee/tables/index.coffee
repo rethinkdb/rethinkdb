@@ -150,6 +150,8 @@ module 'TablesView', ->
             else if @collection.length is 0
                 @$el.html @template.no_databases()
                 @container.display_add_table_button false
+            else
+                @container.display_add_table_button true
 
             @listenTo @collection, 'add', (database) =>
                 new_view = new TablesView.DatabaseView
