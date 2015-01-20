@@ -2955,11 +2955,13 @@ module 'DataExplorerView', ->
             @parent.pause_feed()
 
         pause_feed: =>
-            @parent.container.state.pause_at = @query_result.size()
+            unless @parent.container.state.pause_at?
+                @parent.container.state.pause_at = @query_result.size()
 
         unpause_feed: =>
-            @parent.container.state.pause_at = null
-            @render()
+            if @parent.container.state.pause_at?
+                @parent.container.state.pause_at = null
+                @render()
 
         current_batch: =>
             switch @query_result.type
@@ -3408,12 +3410,16 @@ module 'DataExplorerView', ->
         template: Handlebars.templates['dataexplorer_result_raw-template']
 
         init_after_dom_rendered: =>
+            @adjust_height()
+
+        adjust_height: =>
             height = @$('.raw_view_textarea')[0].scrollHeight
             if height > 0
                 @$('.raw_view_textarea').height(height)
 
         render: =>
             @$el.html @template JSON.stringify @current_batch()
+            @adjust_height()
             return @
 
     class ProfileView extends ResultView
