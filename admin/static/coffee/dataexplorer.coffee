@@ -3019,8 +3019,9 @@ module 'DataExplorerView', ->
                     @$el.html @template tree: @json_to_tree @query_result.value
                 when 'cursor'
                     @$el.html @template tree: []
+                    tree_container = @$('.json_tree_container')
                     for row in @current_batch()
-                        @add_row row, true
+                        tree_container.append @json_to_tree row
             return @
 
         add_row: (row, noflash) =>
