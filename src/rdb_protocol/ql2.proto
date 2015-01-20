@@ -111,15 +111,16 @@ message Backtrace {
 message Response {
     enum ResponseType {
         // These response types indicate success.
-        SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
-        SUCCESS_SEQUENCE = 2; // Query returned a sequence of RQL datatypes.
-        SUCCESS_PARTIAL  = 3; // Query returned a partial sequence of RQL
-                              // datatypes.  If you send a [CONTINUE] query with
-                              // the same token as this response, you will get
-                              // more of the sequence.  Keep sending [CONTINUE]
-                              // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED     = 5; // Like [SUCCESS_PARTIAL] but for feeds.
-        WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
+        SUCCESS_ATOM      = 1; // Query returned a single RQL datatype.
+        SUCCESS_SEQUENCE  = 2; // Query returned a sequence of RQL datatypes.
+        SUCCESS_PARTIAL   = 3; // Query returned a partial sequence of RQL
+                               // datatypes.  If you send a [CONTINUE] query with
+                               // the same token as this response, you will get
+                               // more of the sequence.  Keep sending [CONTINUE]
+                               // queries until you get back [SUCCESS_SEQUENCE].
+        SUCCESS_FEED      = 5; // Like [SUCCESS_PARTIAL] but for feeds.
+        WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
+        SUCCESS_ATOM_FEED = 6; // Like [SUCCESS_FEED] but a singleton.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the

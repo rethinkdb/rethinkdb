@@ -97,7 +97,8 @@ module RethinkDB
         q = [Query::QueryType::STOP]
         res = @conn.run_internal(q, @opts, @token)
         if ((res['t'] != Response::ResponseType::SUCCESS_SEQUENCE &&
-             res['t'] != Response::ResponseType::SUCCESS_FEED) ||
+             res['t'] != Response::ResponseType::SUCCESS_FEED &&
+             res['t'] != Response::ResponseType::SUCCESS_ATOM_FEED) ||
             res['r'] != [])
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
@@ -181,7 +182,8 @@ module RethinkDB
       res = run_internal(q, all_opts, token)
       return res if !res
       if res['t'] == Response::ResponseType::SUCCESS_PARTIAL ||
-          res['t'] == Response::ResponseType::SUCCESS_FEED
+         res['t'] == Response::ResponseType::SUCCESS_FEED ||
+         res['t'] == Response::ResponseType::SUCCESS_ATOM_FEED
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                            msg, self, opts, token, true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
