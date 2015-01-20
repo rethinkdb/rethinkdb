@@ -636,8 +636,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
-            std::string id(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10,
-                           static_cast<char>(j));
+            std::string id = std::to_string(j)
+                + std::string(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10, ' ');
             std::string sid(j, 'a');
             auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
             std::shared_ptr<const scoped_cJSON_t> data(
