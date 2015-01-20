@@ -897,7 +897,7 @@ std::string datum_t::print_primary() const {
 }
 
 std::string datum_t::mangle_secondary(
-    serialization_t serialization,
+    skey_version_t skey_version,
     const std::string &secondary,
     const std::string &primary,
     const std::string &tag) {
@@ -914,10 +914,10 @@ std::string datum_t::mangle_secondary(
     std::string res = secondary + primary;
     guarantee(res.size() > 0);
     guarantee(!(res[0] & 0x80)); // None of our types have the top bit set.
-    switch (serialization) {
-    case serialization_t::pre_1_16: break;
-    case serialization_t::post_1_16:
-        res[0] |= 0x80; // Flip the top bit to indicate 1.16+ serialization.
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
+        res[0] |= 0x80; // Flip the top bit to indicate 1.16+ skey_version.
         res += std::string(1, 0); // NULL byte
         break;
     default: unreachable();
@@ -937,7 +937,7 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
 }
 
 std::string datum_t::compose_secondary(
-    serialization_t serialization,
+    skey_version_t skey_version,
     const std::string &secondary_key,
     const store_key_t &primary_key,
     boost::optional<uint64_t> tag_num) {
@@ -958,10 +958,10 @@ std::string datum_t::compose_secondary(
     }
 
     const std::string truncated_secondary_key =
-        secondary_key.substr(0, trunc_size(serialization, primary_key_string.length()));
+        secondary_key.substr(0, trunc_size(skey_version, primary_key_string.length()));
 
     return mangle_secondary(
-        serialization, truncated_secondary_key, primary_key_string, tag_string);
+        skey_version, truncated_secondary_key, primary_key_string, tag_string);
 }
 
 std::string datum_t::print_secondary(reql_version_t rv,
@@ -1003,17 +1003,17 @@ std::string datum_t::print_secondary(reql_version_t rv,
     }
 
     return compose_secondary(
-        serialization_from_reql_version(rv),
+        skey_version_from_reql_version(rv),
         secondary_key_string, primary_key, tag_num);
 }
 
-serialization_t serialization_from_reql_version(reql_version_t rv) {
+skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     switch (rv) {
     case reql_version_t::v1_13: // fallthru
     case reql_version_t::v1_14: // v1_15 == v1_14
-        return serialization_t::pre_1_16;
+        return skey_version_t::pre_1_16;
     case reql_version_t::v1_16_is_latest:
-        return serialization_t::post_1_16;
+        return skey_version_t::post_1_16;
     default: unreachable();
     }
 }
@@ -1025,10 +1025,10 @@ components_t parse_secondary(const std::string &key) THROWS_NOTHING {
 
     // RSI: this parses the NULL byte into secondary (and did before as well).
     // Think harder about whether that's OK, or whether we have yet another bug.
-    serialization_t serialization = serialization_t::pre_1_16;
+    skey_version_t skey_version = skey_version_t::pre_1_16;
     std::string secondary = key.substr(0, start_of_primary);
     if (secondary[0] & 0x80) {
-        serialization = serialization_t::post_1_16;
+        skey_version = skey_version_t::post_1_16;
         // To account for extra NULL byte in 1.16+.
         end_of_primary -= 1;
         secondary[0] &= ~0x80;
@@ -1046,7 +1046,7 @@ components_t parse_secondary(const std::string &key) THROWS_NOTHING {
         tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
     return components_t{
-        serialization,
+        skey_version,
         std::move(secondary),
         std::move(primary),
         std::move(tag_num)};
@@ -1074,7 +1074,7 @@ std::string datum_t::extract_truncated_secondary(
     const std::string &secondary_and_primary) {
     components_t components = parse_secondary(secondary_and_primary);
     std::string skey = std::move(components.secondary);
-    size_t mts = max_trunc_size(components.serialization);
+    size_t mts = max_trunc_size(components.skey_version);
     if (skey.length() >= mts) {
         skey.erase(mts);
     }
@@ -1095,7 +1095,7 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // but the amount truncated depends on the length of the primary key.  Since we
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
-store_key_t datum_t::truncated_secondary(serialization_t serialization) const {
+store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
@@ -1117,7 +1117,7 @@ store_key_t datum_t::truncated_secondary(serialization_t serialization) const {
     }
 
     // Truncate the key if necessary
-    size_t mts = max_trunc_size(serialization);
+    size_t mts = max_trunc_size(skey_version);
     if (s.length() >= mts) {
         s.erase(mts);
     }
@@ -1628,18 +1628,18 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
     }
 }
 
-size_t datum_t::max_trunc_size(serialization_t serialization) {
-    return trunc_size(serialization, rdb_protocol::MAX_PRIMARY_KEY_SIZE);
+size_t datum_t::max_trunc_size(skey_version_t skey_version) {
+    return trunc_size(skey_version, rdb_protocol::MAX_PRIMARY_KEY_SIZE);
 }
 
-size_t datum_t::trunc_size(serialization_t serialization, size_t primary_key_size) {
+size_t datum_t::trunc_size(skey_version_t skey_version, size_t primary_key_size) {
     // We subtract three bytes because of the NULL byte we pad on the end of the
     // primary key and the two 1-byte offsets at the end of the key (which are
     // used to extract the primary key and tag num).
     size_t terminated_primary_key_size = primary_key_size;
-    switch (serialization) {
-    case serialization_t::pre_1_16: break;
-    case serialization_t::post_1_16:
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
         terminated_primary_key_size += 1;
         break;
     default: unreachable();
@@ -2052,13 +2052,13 @@ key_range_t datum_range_t::to_primary_keyrange() const {
             : store_key_t::max());
 }
 
-key_range_t datum_range_t::to_sindex_keyrange(serialization_t serialization) const {
+key_range_t datum_range_t::to_sindex_keyrange(skey_version_t skey_version) const {
     return rdb_protocol::sindex_key_range(
         left_bound.has()
-            ? store_key_t(left_bound.truncated_secondary(serialization))
+            ? store_key_t(left_bound.truncated_secondary(skey_version))
             : store_key_t::min(),
         right_bound.has()
-            ? store_key_t(right_bound.truncated_secondary(serialization))
+            ? store_key_t(right_bound.truncated_secondary(skey_version))
             : store_key_t::max());
 }
 

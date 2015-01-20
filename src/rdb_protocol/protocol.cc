@@ -1205,10 +1205,10 @@ RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    ql::serialization_t, int8_t,
-    ql::serialization_t::pre_1_16, ql::serialization_t::post_1_16);
+    ql::skey_version_t, int8_t,
+    ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(rget_read_response_t,
-                                    result, serialization, truncated, last_key);
+                                    result, skey_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_list_response_t, sindexes);

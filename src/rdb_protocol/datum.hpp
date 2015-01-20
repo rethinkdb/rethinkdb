@@ -69,14 +69,16 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 void debug_print(printf_buffer_t *, const datum_t &);
 
-enum class serialization_t {
+// The serialization for this is defined in `protocol.cc` and needs to be
+// updated if more versions are added.
+enum class skey_version_t {
     pre_1_16,
     post_1_16
 };
-serialization_t serialization_from_reql_version(reql_version_t rv);
+skey_version_t skey_version_from_reql_version(reql_version_t rv);
 
 struct components_t {
-    serialization_t serialization;
+    skey_version_t skey_version;
     std::string secondary;
     std::string primary;
     boost::optional<uint64_t> tag_num;
@@ -197,12 +199,12 @@ public:
     std::string print_primary() const;
     /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
-    static std::string compose_secondary(serialization_t serialization,
+    static std::string compose_secondary(skey_version_t skey_version,
                                          const std::string &secondary_key,
                                          const store_key_t &primary_key,
                                          boost::optional<uint64_t> tag_num);
     static std::string mangle_secondary(
-        serialization_t serialization,
+        skey_version_t skey_version,
         const std::string &secondary,
         const std::string &primary,
         const std::string &tag);
@@ -221,7 +223,7 @@ public:
         const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     static components_t extract_all(const std::string &secondary_and_primary);
-    store_key_t truncated_secondary(serialization_t serialization) const;
+    store_key_t truncated_secondary(skey_version_t skey_version) const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
 
@@ -299,8 +301,8 @@ public:
                       const char *test, const char *file, int line,
                       std::string msg) const NORETURN;
 
-    static size_t max_trunc_size(serialization_t serialization);
-    static size_t trunc_size(serialization_t serialization, size_t primary_key_size);
+    static size_t max_trunc_size(skey_version_t skey_version);
+    static size_t trunc_size(skey_version_t skey_version, size_t primary_key_size);
     /* Note key_is_truncated returns true if the key is of max size. This gives
      * a false positive if the sum sizes of the keys is exactly the maximum but
      * not over at all. This means that a key of exactly max_trunc_size counts
@@ -316,7 +318,7 @@ public:
 
     static void check_str_validity(const datum_string_t &str);
 
-    // Used by serialization code. Returns a pointer to the buf_ref, if
+    // Used by skey_version code. Returns a pointer to the buf_ref, if
     // the datum is currently backed by one, or NULL otherwise.
     const shared_buf_ref_t<char> *get_buf_ref() const;
 
@@ -421,7 +423,7 @@ public:
     // Make sure you know what you're doing if you call these, and think about
     // truncated sindexes.
     key_range_t to_primary_keyrange() const;
-    key_range_t to_sindex_keyrange(serialization_t serialization) const;
+    key_range_t to_sindex_keyrange(skey_version_t skey_version) const;
 
     datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
     datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);

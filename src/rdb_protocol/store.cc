@@ -241,13 +241,13 @@ void do_read(ql::env_t *env,
             return;
         }
 
-        ql::serialization_t serialization =
-            ql::serialization_from_reql_version(
+        ql::skey_version_t skey_version =
+            ql::skey_version_from_reql_version(
                 sindex_info.mapping_version_info.latest_compatible_reql_version);
-        res->serialization = serialization;
+        res->skey_version = skey_version;
         region_t true_region = rget.sindex->region
             ? *rget.sindex->region
-            : region_t(rget.sindex->original_range.to_sindex_keyrange(serialization));
+            : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
             rget.sindex->original_range, std::move(true_region),

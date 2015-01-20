@@ -806,12 +806,12 @@ public:
             default: unreachable();
             }
         }
-        serialization_t serialization = serialization_from_reql_version(
+        skey_version_t skey_version = skey_version_from_reql_version(
             ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
         rdb_rget_secondary_slice(
             ref.btree,
             srange,
-            region_t(srange.to_sindex_keyrange(serialization)),
+            region_t(srange.to_sindex_keyrange(skey_version)),
             ref.superblock,
             env,
             batchspec_t::all(), // Terminal takes care of early termination

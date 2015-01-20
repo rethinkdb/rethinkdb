@@ -171,7 +171,7 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 
 struct rget_read_response_t {
     ql::result_t result;
-    ql::serialization_t serialization;
+    ql::skey_version_t skey_version;
     bool truncated;
     store_key_t last_key;
 

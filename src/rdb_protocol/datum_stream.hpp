@@ -339,7 +339,7 @@ public:
         const batchspec_t &batchspec) const = 0;
 
     virtual boost::optional<key_range_t> original_keyrange() const = 0;
-    virtual key_range_t sindex_keyrange(serialization_t serialization) const = 0;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const = 0;
     virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
@@ -416,7 +416,7 @@ private:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(serialization_t serialization) const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 };
 
@@ -436,7 +436,7 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(serialization_t serialization) const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
@@ -481,7 +481,7 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(serialization_t serialization) const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
     virtual changefeed::keyspec_t::range_t get_change_spec(

@@ -164,7 +164,7 @@ std::vector<rget_item_t> rget_reader_t::do_range_read(
     if (rr->sindex) {
         if (!active_range) {
             r_sanity_check(!rr->sindex->region);
-            active_range = rng = readgen->sindex_keyrange(res.serialization);
+            active_range = rng = readgen->sindex_keyrange(res.skey_version);
         } else {
             r_sanity_check(rr->sindex->region);
             rng = (*rr->sindex->region).inner;
@@ -297,7 +297,7 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
     key_range_t rng;
     if (!active_range) {
         r_sanity_check(!gr->sindex.region);
-        active_range = rng = readgen->sindex_keyrange(res.serialization);
+        active_range = rng = readgen->sindex_keyrange(res.skey_version);
     } else {
         r_sanity_check(gr->sindex.region);
         rng = (*gr->sindex.region).inner;
@@ -440,7 +440,7 @@ boost::optional<key_range_t> primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
 }
 
-key_range_t primary_readgen_t::sindex_keyrange(serialization_t) const {
+key_range_t primary_readgen_t::sindex_keyrange(skey_version_t) const {
     crash("Cannot call `sindex_keyrange` on a primary readgen (internal server error).");
 }
 
@@ -524,7 +524,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         r_sanity_check(!sent_first_read);
         // We cheat here because we're just using this for an assert.  In terms
         // of actual behavior, the function is const, and this assert will go
-        // away once we drop support for pre-1.16 sindex key serialization.
+        // away once we drop support for pre-1.16 sindex key skey_version.
         const_cast<sindex_readgen_t *>(this)->sent_first_read = true;
     }
     return rget_read_t(
@@ -594,8 +594,8 @@ boost::optional<key_range_t> sindex_readgen_t::original_keyrange() const {
     return boost::none;
 }
 
-key_range_t sindex_readgen_t::sindex_keyrange(serialization_t serialization) const {
-    return original_datum_range.to_sindex_keyrange(serialization);
+key_range_t sindex_readgen_t::sindex_keyrange(skey_version_t skey_version) const {
+    return original_datum_range.to_sindex_keyrange(skey_version);
 }
 
 boost::optional<std::string> sindex_readgen_t::sindex_name() const {
@@ -677,16 +677,16 @@ boost::optional<key_range_t> intersecting_readgen_t::original_keyrange() const {
     // This is always universe for intersection reads.
     // The real query is in the query geometry.
 
-    // We can use whatever serialization we want here because `universe`
+    // We can use whatever skey_version we want here because `universe`
     // becomes the same key range anyway.
-    return datum_range_t::universe().to_sindex_keyrange(serialization_t::post_1_16);
+    return datum_range_t::universe().to_sindex_keyrange(skey_version_t::post_1_16);
 }
 
 key_range_t intersecting_readgen_t::sindex_keyrange(
-    serialization_t serialization) const {
+    skey_version_t skey_version) const {
     // This is always universe for intersection reads.
     // The real query is in the query geometry.
-    return datum_range_t::universe().to_sindex_keyrange(serialization);
+    return datum_range_t::universe().to_sindex_keyrange(skey_version);
 }
 
 boost::optional<std::string> intersecting_readgen_t::sindex_name() const {

@@ -42,7 +42,7 @@ struct make_sindex_read_t {
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(
                     id,
-                    region_t(rng.to_sindex_keyrange(ql::serialization_t::post_1_16)),
+                    region_t(rng.to_sindex_keyrange(ql::skey_version_t::post_1_16)),
                     rng),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE);
