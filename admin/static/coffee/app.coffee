@@ -126,13 +126,20 @@ class @Driver
                                             result.toArray (err, result) =>
                                                 # This happens if people load the page with the back button
                                                 # In which case, we just restart the query
-                                                if err?.message is "This HTTP connection is not open"
+                                                # TODO: Why do we sometimes get an Error object
+                                                #  with message == "[...]", and other times a
+                                                #  RqlClientError with msg == "[...]."?
+                                                if err?.msg is "This HTTP connection is not open." \
+                                                        or err?.message is "This HTTP connection is not open"
+                                                    console.log "Connection lost. Retrying."
                                                     return @run query, delay, callback, index
                                                 callback(err, result)
                                                 if @timers[index]?
                                                     @timers[index].timeout = setTimeout fn, delay
                                         else
-                                            if err?.message is "This HTTP connection is not open"
+                                            if err?.msg is "This HTTP connection is not open." \
+                                                    or err?.message is "This HTTP connection is not open"
+                                                console.log "Connection lost. Retrying."
                                                 return @run query, delay, callback, index
                                             callback(err, result)
                                             if @timers[index]?
