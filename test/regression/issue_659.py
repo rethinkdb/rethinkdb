@@ -51,9 +51,13 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numReplicas).run(conn)
     
     print("Confirming that the progress meter indicates a backfill happening (%.2fs)" % (time.time() - startTime))
-    # ToDo: replace this with ReQL command once issue is done: https://github.com/rethinkdb/rethinkdb/issues/3115
-    raise NotImplementedError('Waiting for process table: https://github.com/rethinkdb/rethinkdb/issues/3115')
-    
+    time.sleep(0.5)
+    assert r.db("rethinkdb") \
+            .table("jobs") \
+            .filter({"type": "backfill", "info": {"table": tableName}}) \
+            .count() \
+            .run(conn) == 1, "No backfill job found in `rethinkdb.jobs`."
+
     cluster.check()
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
