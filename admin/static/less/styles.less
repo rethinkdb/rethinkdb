@@ -3408,7 +3408,7 @@ TODO: retire this
 @keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
 
 .animate-ellipsis (@n) {
-    .animated-ellipsis span:nth-child(@n) {
+    .animated-ellipsis span:nth-child(@{n}) {
         .animation(~"animate-ellipsis-@{n} 3s infinite cubic-bezier(0,1,0,1)");
     }
 }
