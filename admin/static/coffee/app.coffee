@@ -46,7 +46,7 @@ class @Driver
         @state = 'ok'
         @timers = {}
         @index = 0
-    
+
     # Hack the driver: remove .run() and add private_run()
     # We want run() to throw an error, in case a user write .run() in a query.
     # We'll internally run a query with the method `private_run`
@@ -157,6 +157,23 @@ class @Driver
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
 
+    # helper methods
+    helpers:
+        # Macro to create a match/switch construct in reql by
+        # nesting branches
+        # Use like: match(doc('field'),
+        #                 ['foo', some_reql],
+        #                 [r.expr('bar'), other_reql],
+        #                 [some_other_query, contingent_3_reql],
+        #                 default_reql)
+        # Throws an error if a match isn't found. The error can be absorbed
+        # by tacking on a .default() if you want
+        match: (variable, specs...) ->
+            previous = r.error("nothing matched #{variable}")
+            for [val, action] in specs.reverse()
+                previous = r.branch(r.expr(variable).eq(val), action, previous)
+            return previous
+
     # common queries used in multiple places in the ui
     queries:
         all_logs: (limit) =>
@@ -182,3 +199,46 @@ class @Driver
                         server: server_conf.get(log('server'))('name')
                         server_id: log('server')
                 )
+        issues_with_ids: =>
+            issues_id = r.db(system_db).table(
+                'current_issues', identifierFormat: 'uuid')
+            return r.db(system_db).table('current_issues')
+                .merge((issue) ->
+                    issue_id = issues_id.get(issue('id'))
+                    server_disconnected =
+                        disconnected_server_id:
+                            issue_id('info')('disconnected_server')
+                        reporting_servers:
+                            issue('info')('reporting_servers')
+                                .map(issue_id('info')('reporting_servers'),
+                                    (server, server_id) ->
+                                        server: server,
+                                        server_id: server_id
+                                    )
+                    log_write_error =
+                        servers: issue('info')('servers').map(
+                            issue_id('info')('servers'),
+                            (server, server_id) ->
+                                server: server
+                                server_id: server_id
+                        )
+                    outdated_index =
+                        tables: issue('info')('tables').map(
+                            issue_id('info')('tables'),
+                            (table, table_id) ->
+                                db_id: table_id('db')
+                                table_id: table_id('table')
+                        )
+                    invalid_config =
+                        table_id: issue_id('info')('table')
+                        db_id: issue_id('info')('db')
+                    info: driver.helpers.match(issue('type'),
+                        ['server_disconnected', server_disconnected],
+                        ['log_write_error', log_write_error],
+                        ['outdated_index', outdated_index],
+                        ['table_needs_primary', invalid_config],
+                        ['data_lost', invalid_config],
+                        ['write_acks', invalid_config],
+                        [issue('type'), issue('info')], # default
+                    )
+                ).coerceTo('array')

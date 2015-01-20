@@ -3,24 +3,31 @@
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Issue
     @templates =
+        # local issues: local_issue_aggregator.hpp
+        log_write_error: # log_write.cc
+            Handlebars.templates['issue-log_write_error']
+        outdated_index:
+            Handlebars.templates['issue-outdated_index']
         server_disconnected:
-            Handlebars.templates['resolve_issues-server_disconnected-template']
+            Handlebars.templates['issue-server_disconnected']
         server_ghost:
-            Handlebars.templates['resolve_issues-server_ghost-template']
+            Handlebars.templates['issue-server_ghost']
+        # name collision issues: name_collision.hpp
         server_name_collision:
-            Handlebars.templates['resolve_issues-name_collision-template']
+            Handlebars.templates['issue-name-collision']
         db_name_collision:
-            Handlebars.templates['resolve_issues-name_collision-template']
+            Handlebars.templates['issue-name-collision']
         table_name_collision:
-            Handlebars.templates['resolve_issues-name_collision-template']
-        outdated_index:
-            Handlebars.templates['resolve_issues-outdated_index-template']
-        no_such_server:
-            Handlebars.templates['resolve_issues-port_conflict-template']
-        log_write_error:
-            Handlebars.templates['resolve_issues-logfile_write-template']
-        outdated_index:
-            Handlebars.templates['resolve_issues-outdated_index-template']
+            Handlebars.templates['issue-name-collision']
+        
+        # invalid config issues: invalid_config.hpp
+        table_needs_primary:
+            Handlebars.templates['issue-table_needs_primary']
+        data_lost:
+            Handlebars.templates['issue-data_lost']
+        write_acks:
+            Handlebars.templates['issue-write-acks']
+        # catchall
         unknown:
             Handlebars.templates['resolve_issues-unknown-template']
 
@@ -28,7 +35,6 @@ module 'ResolveIssuesView', ->
         className: 'issue-container'
         initialize: (data) =>
             @type = data.model.get 'type'
-            @model = data.model
             @model.set('collisionType', @parseCollisionType @model.get('type'))
             @listenTo @model, 'change', @render
 
@@ -68,13 +74,10 @@ module 'ResolveIssuesView', ->
 
         remove_server: (event) =>
             modalModel = new Backbone.Model
-                name: @model.get('info').server
-                id: @model.get('info').id
+                name: @model.get('info').disconnected_server
+                id: @model.get('info').disconnected_server_id
                 parent: @model
             @modal = new Modals.RemoveServerModal
                 model: modalModel
 
             @modal.render()
-
-        #TODO
-        #On solve, we should update the model to "fixed"
