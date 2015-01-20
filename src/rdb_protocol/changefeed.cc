@@ -2384,6 +2384,13 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
     return ret;
 }
 
+class pointness_visitor_t : public boost::static_visitor<bool> {
+public:
+    bool operator()(const keyspec_t::range_t &) const { return false; }
+    bool operator()(const keyspec_t::limit_t &) const { return false; }
+    bool operator()(const keyspec_t::point_t &) const { return true; }
+};
+
 class artificial_feed_t : public feed_t {
 public:
     explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
@@ -2414,13 +2421,9 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), spec);
     sub->start_artificial(uuid);
-    bool is_point;
-    if (spec.type() == typeid(keyspec_t::point_t)) {
-        is_point = true;
-    } else {
-        is_point = false;
-    }
-    return make_counted<stream_t>(std::move(sub), is_point, bt);
+    return make_counted<stream_t>(std::move(sub),
+                                  boost::apply_visitor(pointness_visitor_t(), spec),
+                                  bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
