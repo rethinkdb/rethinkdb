@@ -582,23 +582,21 @@ class _Process(object):
         
         global runningServers
         
-        if self.running is False:
-            return
-        
-        assert self.process is not None
         try:
-            self.check()
-            self.process.send_signal(signal.SIGINT)
-            start_time = time.time()
-            grace_period = 300
-            while time.time() < start_time + grace_period:
-                if self.process.poll() is not None:
-                    break
-                time.sleep(1)
-            else:
-                raise RuntimeError("Process %s failed to stop within %d seconds after SIGINT" % (self._name, grace_period))
-            if self.process.poll() != 0:
-                raise RuntimeError("Process %s stopped unexpectedly with return code %d after SIGINT" % (self._name, self.process.poll()))
+            if self.running is True:
+                assert self.process is not None
+                self.check()
+                self.process.send_signal(signal.SIGINT)
+                start_time = time.time()
+                grace_period = 300
+                while time.time() < start_time + grace_period:
+                    if self.process.poll() is not None:
+                        break
+                    time.sleep(1)
+                else:
+                    raise RuntimeError("Process %s failed to stop within %d seconds after SIGINT" % (self._name, grace_period))
+                if self.process.poll() != 0:
+                    raise RuntimeError("Process %s stopped unexpectedly with return code %d after SIGINT" % (self._name, self.process.poll()))
         finally:
             if self in runningServers:
                 runningServers.remove(self)
