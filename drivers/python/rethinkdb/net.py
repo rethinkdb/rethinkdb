@@ -296,7 +296,8 @@ class Connection(object):
         cursor.outstanding_requests -= 1
 
         if (response.type not in [pResponse.SUCCESS_PARTIAL,
-                             pResponse.SUCCESS_FEED] and
+                             pResponse.SUCCESS_FEED,
+                             pResponse.SUCCESS_ATOM_FEED] and
             cursor.outstanding_requests == 0):
             del self.cursor_cache[response.token]
 
