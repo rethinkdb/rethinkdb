@@ -1267,6 +1267,16 @@ std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
     return v;
 }
 
+void vector_datum_stream_t::add_transformation(
+    transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+    if (changespec) {
+        if (auto *rng = boost::get<changefeed::keyspec_t::range_t>(&changespec->spec)) {
+            rng->transforms.push_back(tv);
+        }
+    }
+    eager_datum_stream_t::add_transformation(std::move(tv), bt);
+}
+
 bool vector_datum_stream_t::is_exhausted() const {
     return index == rows.size();
 }
@@ -1284,7 +1294,7 @@ bool vector_datum_stream_t::is_infinite() const {
 }
 
 changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
-    if (static_cast<bool>(changespec)) {
+    if (changespec) {
         return *changespec;
     } else {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
