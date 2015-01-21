@@ -455,14 +455,14 @@ module 'Modals', ->
             # are just hidden by default.
             errors = @model.get('errors')
             @$('.alert.error p.error').removeClass('shown')
-            @$('.alert.error p.error .server-msg').html('')
+            @$('.alert.error .server-msg').html('')
             if errors.length > 0
                 @$('.btn.btn-primary').prop disabled: true
                 @$('.alert.error').addClass('shown')
                 for error in errors
                     message = @$(".alert.error p.error.#{error}").addClass('shown')
-                    if error == 'server-msg'
-                        message('.server-message').append(@model.get('server_error'))
+                    if error == 'server-error'
+                        @$('.alert.error .server-msg').append(Handlebars.Utils.escapeExpression(@model.get('server_error')))
             else
                 @error_on_empty = false
                 @$('.btn.btn-primary').removeAttr 'disabled'
@@ -581,7 +581,7 @@ module 'Modals', ->
             @model.set errors: errors
             if errors.length > 0
                 @model.set shards: []
-            errors.length > 0 or (errors.length == 1 and @model.get('server_error')?)
+            errors.length > 0
 
 
 
