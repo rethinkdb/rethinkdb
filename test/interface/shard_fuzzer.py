@@ -112,9 +112,12 @@ def fuzz_table(cluster, table, stop_event, random_seed):
             else:
                 fuzz_non_trivial_failures += 1
                 print("Fuzz of table '%s' failed (%.2fs): %s" % (table, time.time() - startTime, str(ex)))
-                (config, status) = r.expr([r.db(db).table(table).config(), r.db(db).table(table).status()]).run(conn)
-                print("Table '%s' config:\n%s" % (table, pprint.pformat(config)))
-                print("Table '%s' status:\n%s" % (table, pprint.pformat(status)))
+                try:
+                    (config, status) = r.expr([r.db(db).table(table).config(), r.db(db).table(table).status()]).run(conn)
+                    print("Table '%s' config:\n%s" % (table, pprint.pformat(config)))
+                    print("Table '%s' status:\n%s" % (table, pprint.pformat(status)))
+                except Exception as ex:
+                    print("Could not get config or status for table '%s': %s" % (table, str(ex)))
                 print("Table '%s' history:\n%s" % (table, pprint.pformat(table_history[table])))
     print("Stopped fuzzing on table '%s', attempts: %d, successes: %d, non-trivial failures: %d (%.2fs)" %
           (table, fuzz_attempts, fuzz_successes, fuzz_non_trivial_failures, time.time() - startTime))
