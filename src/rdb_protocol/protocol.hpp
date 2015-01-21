@@ -175,7 +175,8 @@ struct rget_read_response_t {
     bool truncated;
     store_key_t last_key;
 
-    rget_read_response_t() : truncated(false) { }
+    rget_read_response_t()
+        : skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
