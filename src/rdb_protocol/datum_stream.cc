@@ -294,14 +294,9 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
     auto gr = boost::get<intersecting_geo_read_t>(&read.read);
     r_sanity_check(gr);
 
-    key_range_t rng;
-    if (!active_range) {
-        r_sanity_check(!gr->sindex.region);
-        active_range = rng = readgen->sindex_keyrange(res.skey_version);
-    } else {
-        r_sanity_check(gr->sindex.region);
-        rng = (*gr->sindex.region).inner;
-    }
+    r_sanity_check(active_range);
+    r_sanity_check(gr->sindex.region);
+    const key_range_t &rng = (*gr->sindex.region).inner;
 
     // We need to do some adjustments to the last considered key so that we
     // update the range correctly in the case where we're reading a subportion
@@ -315,7 +310,6 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
         }
     }
 
-    r_sanity_check(active_range);
     shards_exhausted = readgen->update_range(&*active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
 
