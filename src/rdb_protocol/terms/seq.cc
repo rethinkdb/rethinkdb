@@ -177,8 +177,10 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("The function passed to `map` expects %zu argument%s, "
                              "but %zu sequence%s found.",
-                             func_arity.get(), (func_arity.get() == 1 ? "" : "s"),
-                             args->num_args() - 1, (args->num_args() == 2 ? " was" : "s were")));
+                             func_arity.get(),
+                             (func_arity.get() == 1 ? "" : "s"),
+                             args->num_args() - 1,
+                             (args->num_args() == 2 ? " was" : "s were")));
         }
 
         if (args->num_args() == 2) {
@@ -380,7 +382,7 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
-        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
+        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {

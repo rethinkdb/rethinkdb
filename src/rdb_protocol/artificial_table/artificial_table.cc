@@ -86,7 +86,8 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         UNUSED const std::string &table_name) {
     counted_t<ql::datum_stream_t> stream;
     std::string error;
-    if (!backend->read_changes(bt, std::move(spec), env->interruptor, &stream, &error)) {
+    if (!backend->read_changes(
+            env, bt, std::move(spec), env->interruptor, &stream, &error)) {
         rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
     }
     return stream;

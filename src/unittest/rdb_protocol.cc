@@ -776,17 +776,20 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     };
     dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
-        explicit cfeed_bundle_t(artificial_t *a)
+        cfeed_bundle_t(ql::env_t *env, artificial_t *a)
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
+                          env,
                           keyspec_t::point_t{
                               store_key_t(ql::datum_t(0.0).print_primary())},
                           bt)),
               point_10(a->subscribe(
+                           env,
                            keyspec_t::point_t{
                                store_key_t(ql::datum_t(10.0).print_primary())},
                            bt)),
               range(a->subscribe(
+                        env,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
@@ -800,9 +803,11 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
         ql::protob_t<const Backtrace> bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
+    cond_t interruptor;
+    ql::env_t env(&interruptor, reql_version_t::LATEST);
     std::map<size_t, cfeed_bundle_t> bundles;
     for (size_t i = 0; i <= 20; ++i) {
-        bundles.insert(std::make_pair(i, cfeed_bundle_t(&artificial_cfeed)));
+        bundles.insert(std::make_pair(i, cfeed_bundle_t(&env, &artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
                     std::map<std::string, std::vector<ql::datum_t> >(),
                     std::map<std::string, std::vector<ql::datum_t> >(),
@@ -810,8 +815,6 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                     ql::datum_t(-static_cast<double>(i)),
                     ql::datum_t(static_cast<double>(i))}));
     }
-    cond_t interruptor;
-    ql::env_t env(&interruptor, reql_version_t::LATEST);
     for (const auto &pair : bundles) {
         ql::batchspec_t bs(ql::batchspec_t::all()
                            .with_new_batch_type(ql::batch_type_t::NORMAL)
