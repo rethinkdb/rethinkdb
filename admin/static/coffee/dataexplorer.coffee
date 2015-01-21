@@ -3729,7 +3729,7 @@ module 'DataExplorerView', ->
 
         remove: =>
             @view_object?.remove()
-            if @query_result.is_feed
+            if @query_result?.is_feed
                 @query_result.force_end_gracefully()
             if @set_scrollbar_scroll_handler?
                 $(window).unbind 'scroll', @set_scrollbar_scroll_handler
