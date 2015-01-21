@@ -206,7 +206,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                 env, readgen->next_read(active_range, transforms, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
-        guarantee(active_range);
+        r_sanity_check(active_range);
         while (boost::optional<read_t> read = readgen->sindex_sort_read(
                    *active_range, items, transforms, batchspec)) {
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
@@ -412,7 +412,7 @@ rget_read_t primary_readgen_t::next_read_impl(
     const boost::optional<key_range_t> &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
-    guarantee(active_range);
+    r_sanity_check(active_range);
     return rget_read_t(
         region_t(*active_range),
         global_optargs,
