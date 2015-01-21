@@ -381,7 +381,8 @@ read_t rget_readgen_t::terminal_read(
     const std::vector<transform_variant_t> &transforms,
     const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
-    rget_read_t read = next_read_impl(boost::none, transforms, batchspec);
+    rget_read_t read = next_read_impl(
+        original_keyrange(), transforms, batchspec);
     read.terminal = _terminal;
     return read_t(read, profile);
 }
