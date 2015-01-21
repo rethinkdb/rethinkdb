@@ -7,11 +7,22 @@ tests:
       rb: tbl.insert([{'id' => 1}, {'id'=>2}, {'id'=>3}, {'id'=>4}, {'id'=>5}, {'id'=>6}])
       ot: ({'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':0, 'inserted':6})
 
+    # Test that point changefeeds support return-initial
+    - cd: tbl.get(0).changes().limit(1)['new_val']
+      js: tbl.get(0).changes().limit(1)("new"+"_"+"val")
+      ot: ([null])
+    - cd: tbl.get(1).changes().limit(1)['new_val']
+      js: tbl.get(1).changes().limit(1)("new"+"_"+"val")
+      ot: [{'id':1}]
+
     # Start changefeed watchers
-    - cd: all_changes = tbl.changes().limit(4)
-    - py: even_changes = tbl.changes().filter((r.row['new_val']['id'] % 2).eq(0)).limit(2)
-      rb: even_changes = tbl.changes().filter{ |row| (row['new_val']['id'] % 2).eq(0)}.limit(2)
-      js: even_changes = tbl.changes().filter(r.row('new' + '_' + 'val')('id').mod(2).eq(0)).limit(2)
+    - rb: point_changes = tbl.get(7).changes(squash:false).limit(3)
+    - py: all_changes = tbl.changes(squash=False).limit(4)
+      rb: all_changes = tbl.changes(squash:false).limit(4)
+      js: all_changes = tbl.changes({squash:false}).limit(4)
+    - py: even_changes = tbl.changes(squash=False).filter((r.row['new_val']['id'] % 2).eq(0)).limit(2)
+      rb: even_changes = tbl.changes(squash:false).filter{ |row| (row['new_val']['id'] % 2).eq(0)}.limit(2)
+      js: even_changes = tbl.changes({squash:false}).filter(r.row('new' + '_' + 'val')('id').mod(2).eq(0)).limit(2)
 
     # Insert more than the watchers are waiting for
     - cd: tbl.insert([{'id':7}, {'id':8}, {'id':9}, {'id':10}])
@@ -40,5 +51,66 @@ tests:
             rowfilter: return input['new' + '_' + 'val'].id
             # note: the underscore causes our re-writer to kick in
             arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+
+    # Check that our point watcher works correctly
+    - rb: tbl.get(7).update({a:1})['replaced']
+      ot: 1
+    - rb: point_changes.to_a
+      ot: ([{"new_val"=>nil},
+            {"new_val"=>{"id"=>7}, "old_val"=>nil},
+            {"new_val"=>{"a"=>1, "id"=>7}, "old_val"=>{"id"=>7}}])
+      testopts:
+        reql-query: False
+
+# Squash Territory
+
+    - py: tbl.changes(squash=true).type_of()
+      rb: tbl.changes(squash:true).type_of()
+      js: tbl.changes({squash:true}).typeOf()
+      ot: ("STREAM")
+
+    - cd: normal_changes = tbl.changes().limit(1)
+
+    - py: false_squash_changes = tbl.changes(squash=False).limit(2)
+      js: false_squash_changes = tbl.changes({squash:false}).limit(2)
+      rb: false_squash_changes = tbl.changes(squash:false).limit(2)
+
+    - py: long_squash_changes = tbl.changes(squash=0.5).limit(1)
+      js: long_squash_changes = tbl.changes({squash:0.5}).limit(1)
+      rb: long_squash_changes = tbl.changes(squash:0.5).limit(1)
+
+    - py: squash_changes = tbl.changes(squash=true).limit(1)
+      js: squash_changes = tbl.changes({squash:true}).limit(1)
+      rb: squash_changes = tbl.changes(squash:true).limit(1)
+
+    - cd: tbl.insert({'id':100})['inserted']
+      js: tbl.insert({'id':100})('inserted')
+      ot: 1
+
+    - cd: tbl.get(100).update({'a':1})['replaced']
+      js: tbl.get(100).update({'a':1})('replaced')
+      ot: 1
+
+    - cd: normal_changes
+      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+
+    - cd: false_squash_changes
+      ot: ([{'new_val':{'id':100}, 'old_val':null},
+            {'new_val':{'a':1, 'id':100}, 'old_val':{'id':100}}])
+      testopts:
+        reql-query: False
+
+    - cd: long_squash_changes
+      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+
+    - cd: squash_changes
+      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
       testopts:
         reql-query: False

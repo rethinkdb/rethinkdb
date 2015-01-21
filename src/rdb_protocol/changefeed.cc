@@ -53,15 +53,12 @@ public:
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) = 0;
     virtual size_t size() const = 0;
     virtual void clear() = 0;
-    virtual datum_t pop(pop_type_t pop_type) {
+    virtual datum_t pop() {
         std::pair<datum_t, datum_t> pair = pop_impl();
-        switch (pop_type) {
-        case pop_type_t::RANGE: return datum_t(std::map<datum_string_t, datum_t>{
-            {datum_string_t("old_val"), pair.first},
-            {datum_string_t("new_val"), pair.second}});
-        case pop_type_t::POINT: return pair.second;
-        default: unreachable();
-        }
+        std::map<datum_string_t, datum_t> ret;
+        if (pair.first.has()) ret[datum_string_t("old_val")] = pair.first;
+        if (pair.second.has()) ret[datum_string_t("new_val")] = pair.second;
+        return datum_t(std::move(ret));
     }
 private:
     virtual std::pair<datum_t, datum_t> pop_impl() = 0;
@@ -69,15 +66,16 @@ private:
 
 class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
+        guarantee(old_val.has() || new_val.has());
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
         auto it = queue.find(key);
         if (it == queue.end()) {
             auto pair = std::make_pair(std::move(key),
                                        std::make_pair(std::move(old_val),
                                                       std::move(new_val)));
             it = queue.insert(std::move(pair)).first;
-            // `add` should never be called with `old_val == new_val`, or else
-            // `nonsquashing_queue_t` is incorrect.
-            guarantee(it->second.first != it->second.second);
         } else {
             if (!it->second.first.has()) {
                 it->second.first = std::move(old_val);
@@ -106,6 +104,10 @@ class squashing_queue_t : public maybe_squashing_queue_t {
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
+        guarantee(old_val.has() || new_val.has());
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
         queue.emplace_back(std::move(old_val), std::move(new_val));
     }
     virtual size_t size() const {
@@ -271,7 +273,7 @@ void server_t::add_limit_client(
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
     limit_order_t lt,
-    item_vec_t &&item_vec) {
+    std::vector<item_t> &&item_vec) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -545,6 +547,25 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
     return s;
 }
 
+store_key_t mangled_primary_to_pkey(const std::string &s) {
+    guarantee(s.size() > 0);
+    guarantee(s[s.size() - 1] == 1);
+    std::string pkey;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == 2) {
+            guarantee(i != s.size() - 1);
+            pkey.push_back(s[++i]-2);
+        } else if (s[i] == 1) {
+            // Because we're unmangling a pkey, we know there's no tag.
+            guarantee(i == s.size() - 1);
+        } else {
+            guarantee(i != s.size() - 1);
+            pkey.push_back(s[i]);
+        }
+    }
+    return store_key_t(pkey);
+}
+
 sorting_t flip(sorting_t sorting) {
     switch (sorting) {
     case sorting_t::ASCENDING: return sorting_t::DESCENDING;
@@ -555,9 +576,9 @@ sorting_t flip(sorting_t sorting) {
     unreachable();
 }
 
-item_vec_t mangle_sort_truncate_stream(
+std::vector<item_t> mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n) {
-    item_vec_t vec;
+    std::vector<item_t> vec;
     vec.reserve(stream.size());
     for (auto &&item : stream) {
         guarantee(is_primary ==
@@ -646,7 +667,7 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     keyspec_t::limit_t _spec,
     limit_order_t _gt,
-    item_vec_t &&item_vec)
+    std::vector<item_t> &&item_vec)
     : region(std::move(_region)),
       table(std::move(_table)),
       uuid(std::move(_uuid)),
@@ -704,7 +725,7 @@ void limit_manager_t::del(
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
 
-class ref_visitor_t : public boost::static_visitor<item_vec_t> {
+class ref_visitor_t : public boost::static_visitor<std::vector<item_t>> {
 public:
     ref_visitor_t(env_t *_env,
                   std::vector<scoped_ptr_t<op_t> > *_ops,
@@ -721,21 +742,22 @@ public:
           start(std::move(_start)),
           n(_n) { }
 
-    item_vec_t operator()(const primary_ref_t &ref) {
+    std::vector<item_t> operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
         key_range_t range = *pk_range;
         switch (sorting) {
         case sorting_t::ASCENDING: {
             if (start) {
-                store_key_t new_start((**start)->first);
-                new_start.increment(); // open bound
-                range.left = new_start;
+                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                start_key.increment(); // open bound
+                range.left = std::move(start_key);
             }
         } break;
         case sorting_t::DESCENDING: {
             if (start) {
-                range.right = key_range_t::right_bound_t(
-                    store_key_t((**start)->first)); // right bound is open by default
+                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                // right bound is open by default
+                range.right = key_range_t::right_bound_t(std::move(start_key));
             }
         } break;
         case sorting_t::UNORDERED: // fallthru
@@ -762,12 +784,12 @@ public:
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
         guarantee(stream.size() <= n);
-        item_vec_t item_vec = mangle_sort_truncate_stream(
+        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::YES, sorting, n);
         return item_vec;
     }
 
-    item_vec_t operator()(const sindex_ref_t &ref) {
+    std::vector<item_t> operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
         guarantee(spec->range.sindex);
         datum_range_t srange = spec->range.range;
@@ -807,7 +829,7 @@ public:
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-        item_vec_t item_vec = mangle_sort_truncate_stream(
+        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::NO, sorting, n);
         return item_vec;
     }
@@ -822,7 +844,7 @@ private:
     size_t n;
 };
 
-item_vec_t limit_manager_t::read_more(
+std::vector<item_t> limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
     sorting_t sorting,
     const boost::optional<item_queue_t::iterator> &start,
@@ -875,16 +897,14 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
+    // TODO: we should try to avoid this read if we know we only added rows.
     if (item_queue.size() < spec.limit) {
         auto data_it = item_queue.begin();
-        datum_t begin = (data_it == item_queue.end())
-            ? datum_t()
-            : (*data_it)->second.first;
         boost::optional<item_queue_t::iterator> start;
         if (data_it != item_queue.end()) {
             start = data_it;
         }
-        item_vec_t s;
+        std::vector<item_t> s;
         boost::optional<exc_t> exc;
         try {
             s = read_more(
@@ -976,7 +996,7 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void start_artificial(const uuid_u &) = 0;
+    virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
@@ -1035,6 +1055,7 @@ protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
+    virtual datum_t pop_el() { return queue->pop(); }
     virtual bool has_el() { return queue->size() != 0; }
     virtual void note_data_wait() { }
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
@@ -1275,7 +1296,7 @@ public:
         destructor_cleanup(
             std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
     }
-    virtual void start_artificial(const uuid_u &) {
+    virtual void start_artificial(env_t *, const uuid_u &) {
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1293,14 +1314,13 @@ public:
             &read_resp.response);
         guarantee(resp != NULL);
         uint64_t start_stamp = resp->stamp.second;
-        // It's OK to check `el.has()` because we never return the subscription
-        // to anything that calls `get_els` unless the subscription has been
-        // started.  We use `>` because a normal stamp that's equal to the start
-        // stamp wins (the semantics are that the start stamp is the first
-        // "legal" stamp).
-        if (!el.has() || start_stamp > stamp) {
+        // We use `>` because a normal stamp that's equal to the start stamp
+        // wins (the semantics are that the start stamp is the first "legal"
+        // stamp).
+        if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
-            el = std::move(resp->initial_val);
+            queue->clear(); // Remove the premature values.
+            queue->add(key, datum_t(), resp->initial_val);
         }
         started = true;
     }
@@ -1312,12 +1332,10 @@ public:
         return false;
     }
 private:
-    virtual datum_t pop_el() { return queue->pop(pop_type_t::POINT); }
     virtual bool active() { return started; }
 
     store_key_t key;
     uint64_t stamp;
-    datum_t el;
     bool started;
 };
 
@@ -1334,7 +1352,9 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start_artificial(const uuid_u &uuid) {
+    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid) {
+        assert_thread();
+        env = make_env(outer_env);
         start_stamps[uuid] = 0;
     }
     virtual void start_real(env_t *outer_env,
@@ -1342,12 +1362,7 @@ public:
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) {
         assert_thread();
-
-        env = make_scoped<env_t>(
-            outer_env->get_rdb_ctx(),
-            drainer.get_drain_signal(),
-            outer_env->get_all_optargs(),
-            nullptr/*don't profile*/);
+        env = make_env(outer_env);
 
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
@@ -1404,7 +1419,13 @@ public:
         return new_stamp >= it->second;
     }
 private:
-    virtual datum_t pop_el() { return queue->pop(pop_type_t::RANGE); }
+    scoped_ptr_t<env_t> make_env(env_t *outer_env) {
+        return make_scoped<env_t>(
+            outer_env->get_rdb_ctx(),
+            drainer.get_drain_signal(),
+            outer_env->get_all_optargs(),
+            nullptr/*don't profile*/);
+    }
 
     scoped_ptr_t<env_t> env;
     std::vector<scoped_ptr_t<op_t> > ops;
@@ -1443,7 +1464,6 @@ public:
             for (auto &&it : active_data) {
                 els.push_back(
                     datum_t(std::map<datum_string_t, datum_t> {
-                            { datum_string_t("old_val"), (*it)->second.second },
                             { datum_string_t("new_val"), (*it)->second.second } }));
             }
             decltype(queued_changes) changes;
@@ -1509,7 +1529,7 @@ public:
         }
     }
 
-    NORETURN virtual void start_artificial(const uuid_u &) {
+    NORETURN virtual void start_artificial(env_t *, const uuid_u &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -2410,6 +2430,7 @@ artificial_t::artificial_t()
 artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
+    env_t *env,
     const keyspec_t::spec_t &spec,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
@@ -2420,7 +2441,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), spec);
-    sub->start_artificial(uuid);
+    sub->start_artificial(env, uuid);
     return make_counted<stream_t>(std::move(sub),
                                   boost::apply_visitor(pointness_visitor_t(), spec),
                                   bt);
