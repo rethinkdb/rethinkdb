@@ -918,16 +918,14 @@ std::string datum_t::mangle_secondary(
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
     uint8_t pk_offset = static_cast<uint8_t>(secondary.size());
-    // We add 1 for the extra NULL byte.
-    uint8_t tag_offset = static_cast<uint8_t>(primary.size() + 1) + pk_offset;
-
     // Note that `secondary` should already have a NULL byte on the end unless
     // it was truncated (in which case it's fixed-width and doesn't need a
     // terminator).
     std::string res = secondary + primary;
     tag_skey_version(skey_version, &res);
-    res += tag + std::string(1, pk_offset) + std::string(1, tag_offset);
+    uint8_t tag_offset = res.size();
     guarantee(res.size() <= MAX_KEY_SIZE);
+    res += tag + std::string(1, pk_offset) + std::string(1, tag_offset);
     return res;
 }
 
