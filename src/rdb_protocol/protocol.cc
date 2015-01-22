@@ -722,6 +722,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
     out->truncated = false;
+    out->skey_version = ql::skey_version_t::pre_1_16;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -730,6 +731,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<query_response_t>(&responses[i].response);
         guarantee(resp);
+        if (i == 0) {
+            out->skey_version = resp->skey_version;
+        } else {
+            guarantee(out->skey_version == resp->skey_version);
+        }
         if (resp->truncated) {
             out->truncated = true;
             if (best == NULL || key_le.is_le(resp->last_key, *best)) {
