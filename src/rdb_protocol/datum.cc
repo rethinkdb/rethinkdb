@@ -1040,7 +1040,6 @@ components_t parse_secondary(const std::string &key) THROWS_NOTHING {
         skey_version = skey_version_t::post_1_16;
         // To account for extra NULL byte in 1.16+.
         end_of_primary -= 1;
-        secondary[0] &= ~0x80;
     }
     guarantee(start_of_primary < end_of_primary);
     std::string primary =
