@@ -56,6 +56,11 @@ public:
         return hash_region_t();
     }
 
+    std::string print() {
+        return strprintf("{beg: %zu, end: %zu, inner: %s}\n",
+                         beg, end, inner.print().c_str());
+    }
+
     // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
