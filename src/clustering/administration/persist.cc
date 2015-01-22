@@ -163,7 +163,8 @@ cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t
 
 void read_metadata_blob(buf_parent_t sb_buf,
                         const cluster_metadata_superblock_t *sb,
-                        cluster_semilattice_metadata_t *out) {
+                        cluster_semilattice_metadata_t *out,
+                        bool log_migrate) {
     cluster_version_t v = cluster_superblock_version(sb);
     if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
             v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
@@ -187,6 +188,9 @@ void read_metadata_blob(buf_parent_t sb_buf,
                         unreachable();
                 }
             });
+        if (log_migrate) {
+            logNTC("Migrating existing cluster metadata to the new RethinkDB 1.16 format...");
+        }
         *out = migrate_cluster_metadata_to_v1_16(old_metadata);
     } else {
         read_blob(
@@ -256,7 +260,7 @@ void bring_up_to_date(
     }
 
     cluster_semilattice_metadata_t metadata;
-    read_metadata_blob(sb_buf, sb, &metadata);
+    read_metadata_blob(sb_buf, sb, &metadata, false);
 
     branch_history_t branch_history;
     read_branch_history_blob(sb_buf, sb, &branch_history);
@@ -350,8 +354,9 @@ void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<txn_t> 
 auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
-
+        persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename,
+                                                       perfmon_parent, false),
+        log_migrate(true) {
     /* Force migration to happen */
     update_metadata(read_metadata());
 }
@@ -360,7 +365,9 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent,
                                                const auth_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
+        persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename,
+                                                       perfmon_parent, true),
+        log_migrate(false) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -416,6 +423,10 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
                         unreachable();
                 }
             });
+        if (log_migrate) {
+            logNTC("Migrating existing auth metadata to the new RethinkDB 1.16 format...");
+            log_migrate = false;
+        }
         metadata = migrate_auth_metadata_to_v1_16(old_metadata);
     } else {
         read_blob(
@@ -464,7 +475,9 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
 cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,
                                                      const serializer_filepath_t &filename,
                                                      perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
+        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
+                                                          perfmon_parent, false),
+        log_migrate(true) {
     construct_branch_history_managers(false);
 
     /* Force migration to happen */
@@ -476,8 +489,9 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                                                      perfmon_collection_t *perfmon_parent,
                                                      const server_id_t &server_id,
                                                      const cluster_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
-
+        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
+                                                          perfmon_parent, true),
+        log_migrate(false) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -513,7 +527,8 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
     const cluster_metadata_superblock_t *sb
         = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
     cluster_semilattice_metadata_t metadata;
-    read_metadata_blob(buf_parent_t(&superblock), sb, &metadata);
+    read_metadata_blob(buf_parent_t(&superblock), sb, &metadata, log_migrate);
+    log_migrate = false;
     return metadata;
 }
 
