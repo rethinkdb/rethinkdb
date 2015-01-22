@@ -518,6 +518,7 @@ public:
     virtual ~artificial_t();
 
     counted_t<datum_stream_t> subscribe(
+        env_t *env,
         const keyspec_t::spec_t &spec,
         const protob_t<const Backtrace> &bt);
     void send_all(const msg_t &msg);

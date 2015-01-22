@@ -94,13 +94,14 @@ protected:
     }
     std::vector<transform_variant_t> transforms;
 
+    virtual void add_transformation(transform_variant_t &&tv,
+                                    const protob_t<const Backtrace> &bt);
+
 private:
     enum class done_t { YES, NO };
 
     virtual bool is_array() const = 0;
 
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
@@ -649,6 +650,9 @@ private:
     datum_t next(env_t *env, const batchspec_t &bs);
     datum_t next_impl(env_t *);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
+
+    void add_transformation(
+        transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
 
     bool is_exhausted() const;
     bool is_cfeed() const;

@@ -177,8 +177,10 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("The function passed to `map` expects %zu argument%s, "
                              "but %zu sequence%s found.",
-                             func_arity.get(), (func_arity.get() == 1 ? "" : "s"),
-                             args->num_args() - 1, (args->num_args() == 2 ? " was" : "s were")));
+                             func_arity.get(),
+                             (func_arity.get() == 1 ? "" : "s"),
+                             args->num_args() - 1,
+                             (args->num_args() == 2 ? " was" : "s were")));
         }
 
         if (args->num_args() == 2) {

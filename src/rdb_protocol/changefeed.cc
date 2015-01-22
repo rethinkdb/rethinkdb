@@ -998,7 +998,7 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void start_artificial(const uuid_u &) = 0;
+    virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
@@ -1298,7 +1298,7 @@ public:
         destructor_cleanup(
             std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
     }
-    virtual void start_artificial(const uuid_u &) {
+    virtual void start_artificial(env_t *, const uuid_u &) {
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1354,7 +1354,9 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start_artificial(const uuid_u &uuid) {
+    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid) {
+        assert_thread();
+        env = make_env(outer_env);
         start_stamps[uuid] = 0;
     }
     virtual void start_real(env_t *outer_env,
@@ -1362,12 +1364,7 @@ public:
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) {
         assert_thread();
-
-        env = make_scoped<env_t>(
-            outer_env->get_rdb_ctx(),
-            drainer.get_drain_signal(),
-            outer_env->get_all_optargs(),
-            nullptr/*don't profile*/);
+        env = make_env(outer_env);
 
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
@@ -1424,6 +1421,14 @@ public:
         return new_stamp >= it->second;
     }
 private:
+    scoped_ptr_t<env_t> make_env(env_t *outer_env) {
+        return make_scoped<env_t>(
+            outer_env->get_rdb_ctx(),
+            drainer.get_drain_signal(),
+            outer_env->get_all_optargs(),
+            nullptr/*don't profile*/);
+    }
+
     scoped_ptr_t<env_t> env;
     std::vector<scoped_ptr_t<op_t> > ops;
 
@@ -1526,7 +1531,7 @@ public:
         }
     }
 
-    NORETURN virtual void start_artificial(const uuid_u &) {
+    NORETURN virtual void start_artificial(env_t *, const uuid_u &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -2410,6 +2415,7 @@ artificial_t::artificial_t()
 artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
+    env_t *env,
     const keyspec_t::spec_t &spec,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
@@ -2420,7 +2426,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), spec);
-    sub->start_artificial(uuid);
+    sub->start_artificial(env, uuid);
     return make_counted<stream_t>(std::move(sub), bt);
 }
 

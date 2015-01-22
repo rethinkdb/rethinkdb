@@ -16,10 +16,13 @@ tests:
       ot: [{'id':1}]
 
     # Start changefeed watchers
-    - cd: all_changes = tbl.changes().limit(4)
-    - py: even_changes = tbl.changes().filter((r.row['new_val']['id'] % 2).eq(0)).limit(2)
-      rb: even_changes = tbl.changes().filter{ |row| (row['new_val']['id'] % 2).eq(0)}.limit(2)
-      js: even_changes = tbl.changes().filter(r.row('new' + '_' + 'val')('id').mod(2).eq(0)).limit(2)
+    - rb: point_changes = tbl.get(7).changes(squash:false).limit(3)
+    - py: all_changes = tbl.changes(squash=False).limit(4)
+      rb: all_changes = tbl.changes(squash:false).limit(4)
+      js: all_changes = tbl.changes({squash:false}).limit(4)
+    - py: even_changes = tbl.changes(squash=False).filter((r.row['new_val']['id'] % 2).eq(0)).limit(2)
+      rb: even_changes = tbl.changes(squash:false).filter{ |row| (row['new_val']['id'] % 2).eq(0)}.limit(2)
+      js: even_changes = tbl.changes({squash:false}).filter(r.row('new' + '_' + 'val')('id').mod(2).eq(0)).limit(2)
 
     # Insert more than the watchers are waiting for
     - cd: tbl.insert([{'id':7}, {'id':8}, {'id':9}, {'id':10}])
@@ -51,6 +54,17 @@ tests:
       testopts:
         reql-query: False
 
+
+    # Check that our point watcher works correctly
+    - rb: tbl.get(7).update({a:1})['replaced']
+      ot: 1
+    - rb: point_changes.to_a
+      ot: ([{"new_val"=>nil},
+            {"new_val"=>{"id"=>7}, "old_val"=>nil},
+            {"new_val"=>{"a"=>1, "id"=>7}, "old_val"=>{"id"=>7}}])
+      testopts:
+        reql-query: False
+
 # Squash Territory
 
     - py: tbl.changes(squash=true).type_of()
@@ -58,7 +72,7 @@ tests:
       js: tbl.changes({squash:true}).typeOf()
       ot: ("STREAM")
 
-    - cd: normal_changes = tbl.changes().limit(2)
+    - cd: normal_changes = tbl.changes().limit(1)
 
     - py: false_squash_changes = tbl.changes(squash=False).limit(2)
       js: false_squash_changes = tbl.changes({squash:false}).limit(2)
@@ -81,8 +95,7 @@ tests:
       ot: 1
 
     - cd: normal_changes
-      ot: ([{'new_val':{'id':100}, 'old_val':null},
-            {'new_val':{'a':1, 'id':100}, 'old_val':{'id':100}}])
+      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
       testopts:
         reql-query: False
 
