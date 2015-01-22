@@ -38,14 +38,19 @@ module 'DashboardView', ->
                     shards: status('shards').map(
                         r.range(), config('shards'), (shard, pos, conf_shard) ->
                             primary_id = conf_shard('primary_replica')
-                            primary_name = server_config.get(primary_id)('name')
-                            position: pos.add(1)
-                            num_shards: status('shards').count()
-                            primary_id: primary_id
-                            primary_name: primary_name
-                            primary_state: shard('replicas').filter(
-                                server: primary_name
-                            )('state')(0)
+                            server_config.get(primary_id)('name').default(null).do((primary_name) ->
+                                position: pos.add(1)
+                                num_shards: status('shards').count()
+                                primary_id: primary_id
+                                primary_name: primary_name
+                                primary_state: r.branch(
+                                    primary_name.eq(null),
+                                    'MISSING',
+                                    shard('replicas').filter(
+                                        server: primary_name
+                                    )('state')(0)
+                                )
+                           )
                     ).filter((shard) ->
                         r.expr(['ready', 'looking_for_primary_replica'])
                             .contains(shard('primary_state')).not()
