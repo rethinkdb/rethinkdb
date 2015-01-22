@@ -232,6 +232,7 @@ static const char *parse_string(cJSON *item,const char *str)
 
                     // Fail on invalid Unicode characters, unlike normal cJSON.
                     if ((uc >= 0xDC00 && uc <= 0xDFFF) || uc == 0) {
+                        cJSON_free(out);
                         return 0;
                     }
 
