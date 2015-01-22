@@ -68,7 +68,12 @@ std::string s2cellid_to_key(S2CellId id) {
 }
 
 S2CellId key_to_s2cellid(const std::string &sid) {
-    guarantee(sid.length() >= 2 && sid[0] == 'G' && sid[1] == 'C');
+    guarantee(sid.length() >= 2
+              // We need the static cast here because `'G' | 0x80` does integer
+              // promotion and produces 199, whereas `sid[0]` produces -57
+              // because it's a signed char.  C FTW!
+              && (sid[0] == 'G' || static_cast<uint8_t>(sid[0]) == ('G' | 0x80))
+              && sid[1] == 'C');
     return S2CellId::FromToken(sid.substr(2));
 }
 
