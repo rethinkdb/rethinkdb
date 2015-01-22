@@ -183,12 +183,10 @@ class Connection(object):
                 if char == b"\0":
                     break
                 response += char
-        except socket.timeout:
+        except RqlDriverError as err:
             self.close(noreply_wait=False)
-            raise RqlDriverError("Timed out during handshake with %s:%d." % (self.host, self.port))
-        except socket.error as err:
-            self.close(noreply_wait=False)
-            raise RqlDriverError("Error during handshake with %s:%d - %s" % (self.host, self.port, err))
+            error = str(err).replace('receiving from', 'during handshake with').replace('sending to', 'during handshake with')
+            raise RqlDriverError(error)
 
         if response != b"SUCCESS":
             self.close(noreply_wait=False)
@@ -243,12 +241,15 @@ class Connection(object):
                     chunk = self.socket.recv(length - len(res))
                     break
                 except IOError as err:
-                    if err.errno != errno.EINTR:
+                    if err.errno == errno.ECONNRESET:
                         self.close(noreply_wait=False)
-                        raise RqlDriverError('Interrupted connection while receiving from %s:%s - %s' % (self.host, self.port, str(err)))
+                        raise RqlDriverError("Connection is closed.")
+                    elif err.errno != errno.EINTR:
+                        self.close(noreply_wait=False)
+                        raise RqlDriverError('Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(err)))
                 except Exception as err:
                     self.close(noreply_wait=False)
-                    raise RqlDriverError('Error recieving from %s:%s - %s' % (self.host, self.port, str(err)))
+                    raise RqlDriverError('Error receiving from %s:%s - %s' % (self.host, self.port, str(err)))
                 except:
                     self.close(noreply_wait=False)
                     raise
@@ -264,9 +265,12 @@ class Connection(object):
             try:
                 offset += self.socket.send(data[offset:])
             except IOError as err:
-                if err.errno != errno.EINTR:
+                if err.errno == errno.ECONNRESET:
                     self.close(noreply_wait=False)
-                    raise RqlDriverError('Interrupted connection while sending to %s:%s - %s' % (self.host, self.port, str(err)))
+                    raise RqlDriverError("Connection is closed.")
+                elif err.errno != errno.EINTR:
+                    self.close(noreply_wait=False)
+                    raise RqlDriverError('Connection interrupted sending to %s:%s - %s' % (self.host, self.port, str(err)))
             except Exception as err:
                 self.close(noreply_wait=False)
                 raise RqlDriverError('Error sending to %s:%s - %s' % (self.host, self.port, str(err)))
