@@ -5,20 +5,25 @@ module 'TableView', ->
     class @TableContainer extends Backbone.View
         template:
             not_found: Handlebars.templates['element_view-not_found-template']
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
         className: 'table-view'
         initialize: (id) =>
-            @loading = true
             @id = id
+            @table_found = true
 
-            @model = null
             @indexes = null
             @distribution = null
-            @table_view = null
 
             @guaranteed_timer = null
             @failable_timer = null
+            
+            # Initialize the model with mostly empty dummy data so we can render it right away
+            @model = new Table {id: id}
+            @table_view = new TableView.TableMainView
+                model: @model
+                indexes: @indexes
+                distribution: @distribution
+                shards_assignments: @shards_assignments
 
             @fetch_data()
 
@@ -162,10 +167,9 @@ module 'TableView', ->
                             (shard) -> new ShardAssignment shard
                     )
                     @table_view?.set_assignments @shards_assignments
-                if @model?
-                    @model.set result
-                else
-                    @model = new Table result
+
+                @model.set result
+                if !@table_view?
                     @table_view = new TableView.TableMainView
                         model: @model
                         indexes: @indexes
@@ -184,40 +188,29 @@ module 'TableView', ->
                     @error = error
                     @render()
                 else
+                    rerender = @error?
                     @error = null
                     if result is null
-                        if @loading is true
-                            @loading = false
-                            @render()
-                        else if @model isnt null
-                            #TODO Test
-                            @model = null
-                            @indexes = null
-                            @table_view = null
-                            @render()
+                        rerender = rerender or @table_found
+                        @table_found = false
+                        # Reset the data
+                        @indexes = null
+                        @render()
                     else
-                        @loading = false
-                        if @model?
-                            @model.set result
-                        else
-                            @model = new Table result
-                            @table_view = new TableView.TableMainView
-                                model: @model
-                                indexes: @indexes
-                                distribution: @distribution
-                                shards_assignments: @shards_assignments
-                            @render()
+                        rerender = rerender or not @table_found
+                        @table_found = true
+                        @model.set result
+
+                    if rerender
+                        @render()
 
         render: =>
             if @error?
                 @$el.html @template.error
                     error: @error?.message
                     url: '#tables/'+@id
-            else if @loading is true
-                @$el.html @template.loading
-                    page: "table"
             else
-                if @table_view?
+                if @table_found
                     @$el.html @table_view.render().$el
                 else # In this case, the query returned null, so the table was not found
                     @$el.html @template.not_found
@@ -270,7 +263,7 @@ module 'TableView', ->
 
             @stats = new Stats
             @stats_timer = driver.run(
-                r.db('rethinkdb').table('stats')
+                r.db(system_db).table('stats')
                 .get(["table", @model.get('id')])
                 .do((stat) ->
                     keys_read: stat('query_engine')('read_docs_per_sec')
@@ -657,9 +650,8 @@ module 'TableView', ->
                     if view.model is index
                         index.destroy()
                         ((view) =>
-                            view.$el.slideUp 'fast', =>
-                                view.remove()
-                                @indexes_view.splice(@indexes_view.indexOf(view), 1)
+                            view.remove()
+                            @indexes_view.splice(@indexes_view.indexOf(view), 1)
                         )(view)
                         break
                 if @collection.length is 0
@@ -667,18 +659,18 @@ module 'TableView', ->
 
         render_error: (args) =>
             @$('.alert_error_content').html @error_template args
-            @$('.main_alert_error').slideDown 'fast'
-            @$('.main_alert').slideUp 'fast'
+            @$('.main_alert_error').show()
+            @$('.main_alert').hide()
 
         render_feedback: (args) =>
             if @$('.main_alert').css('display') is 'none'
                 @$('.alert_content').html @alert_message_template args
-                @$('.main_alert').slideDown 'fast'
+                @$('.main_alert').show()
             else
                 @$('.main_alert').fadeOut 'fast', =>
                     @$('.alert_content').html @alert_message_template args
                     @$('.main_alert').fadeIn 'fast'
-            @$('.main_alert_error').slideUp 'fast'
+            @$('.main_alert_error').hide()
 
         render: =>
             return @
@@ -686,14 +678,14 @@ module 'TableView', ->
         # Show the form to add a secondary index
         show_add_index: (event) =>
             event.preventDefault()
-            @$('.add_index_li').slideDown 'fast'
-            @$('.create_container').slideUp 'fast'
+            @$('.add_index_li').show()
+            @$('.create_container').hide()
             @$('.new_index_name').focus()
 
         # Hide the form to add a secondary index
         hide_add_index: =>
-            @$('.add_index_li').slideUp 'fast'
-            @$('.create_container').slideDown 'fast'
+            @$('.add_index_li').hide()
+            @$('.create_container').show()
             @$('.new_index_name').val ''
 
         # We catch enter and esc when the user is writing a secondary index name
@@ -744,7 +736,7 @@ module 'TableView', ->
             if event? and @$(event.target)?.data('name')?
                 @deleting_secondary_index = null
             event.preventDefault()
-            $(event.target).parent().slideUp 'fast'
+            $(event.target).parent().hide()
 
         remove: =>
             @stopListening()
@@ -811,7 +803,7 @@ module 'TableView', ->
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
             event.preventDefault()
-            @$('.alert_confirm_delete').slideDown 'fast'
+            @$('.alert_confirm_delete').show()
 
         delete_index: =>
             @$('.btn').prop 'disabled', 'disabled'
@@ -834,9 +826,8 @@ module 'TableView', ->
 
         # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
         cancel_delete: ->
-            @$('.alert_confirm_delete').slideUp 'fast'
+            @$('.alert_confirm_delete').hide()
 
         remove: =>
-            if @progress_bar?
-                @progress_bar.destroy()
+            @progress_bar?.destroy()
             super()

@@ -75,11 +75,11 @@ html, body {
     color: lighten(black, 30%);
     position: relative;
     padding: 0px;
-    
+
     p {
         margin: 10px 10px 10px @icon-size + 15 !important;
     }
-    
+
     &::before {
         content: @icon;
         font-family: @ionicons;
@@ -110,6 +110,13 @@ html, body {
              @border-color,
              @background-color,
              @icon-color);
+}
+
+h1.title {
+    font-family: @serif;
+    color: #4d535c;
+    font-size: 19px;
+    margin-bottom: 25px;
 }
 
 #main_view{
@@ -865,13 +872,6 @@ TODO: retire this
     ----------------------------
 */
 #dashboard_container {
-    h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        margin-bottom: 25px;
-    }
-
     #cluster_status_container {
         padding: 0;
         width: 940px;
@@ -917,6 +917,7 @@ TODO: retire this
             &.first { border-left: none; }
 
             .popup_container{
+                font-family: @sans;
                 display: none;
                 width: 430px;
                 position: absolute;
@@ -1017,14 +1018,30 @@ TODO: retire this
             }
         }
     }
-    #log-view {
-        h2.title {
+}
+
+#dashboard_container, #server-view {
+    .recent-logs {
+        & > h2.title {
             border-bottom: thin solid #f0f0f0;
             padding-bottom: 22px;
             margin-bottom: 0;
         }
         .btn.view-logs { float: right; }
         ul.log-entries { margin-bottom: 5px; }
+        // This overrides some of the common styles used on other log pages
+        h1 { display: none; }
+        #log-view {
+            padding: 0px;
+            border: 0px;
+            box-shadow: none;
+            .log-entry {
+                padding-top: 5px;
+                padding-bottom: 5px;
+                background-position: left center;
+            }
+
+        }
     }
 }
 /*
@@ -1034,119 +1051,92 @@ TODO: retire this
 */
 #servers_container {
     padding: 0;
-    h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        margin-bottom: 25px;
-    }
-
-    .servers_list {
-        padding: 12px 13px 12px 13px;
+    table.servers_list {
+        padding: 2px 13px 2px 13px;
+        min-width: 940px;
+        max-width: 940px;
         background: #fafafa;
-        .border-radius(0px 0px 4px 4px);
+        .border-radius(4px);
+        border-collapse: separate;
+        border-spacing: 0 10px;
     }
-
-    .server_container {
+    .server-shadow {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    tr.server_container {
         @bar_height: 44px;
-        height: @bar_height;
         background: #FFF;
-        border: thin solid #cfcfcf;
-        .border-radius(3px);
-        margin-top: 12px;
 
-        .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
-
-        .checkbox-container {
-            float: left;
-
-            label {
-                display: inline;
-                margin: 14px;
+        @border_padding: 20px;
+        @outer-border-style: 1px solid #cfcfcf;
+        @cell-separator-style: 1px solid #e4e4e4;
+        @offset: 8px;
+        @line_height: @bar_height - @offset*2;
+        font-family: @sans;
+        .server-shadow;
+        td {
+            @offset: 8px;
+            border-bottom: @outer-border-style;
+            border-top: @outer-border-style;
+            border-left: @cell-separator-style;
+            margin: 0px 0px;
+            padding: 10px 0;
+            &:first-child {
+                border-radius: 3px 0px 0px 3px;
+                border-left: @outer-border-style;
             }
-            input[type="checkbox"] { display: none; }
-
-            input[type="checkbox"] + label {
-                border: thin solid #cfcfcf;
-                .border-radius(3px);
-                padding: 7px;
-                display: inline-block;
-                position: relative;
-                &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
-            }
-            input[type="checkbox"]:checked + label:after {
-                content: '\2714';
-                font-size: 15px;
-                position: absolute;
-                top: -2px;
-                left: 1px;
-                color: #7c7c7c;
+            &:last-child {
+                border-radius: 0px 3px 3px 0px;
+                border-right: @outer-border-style;
             }
         }
-
-        .server-details {
-            position: relative;
-            margin-left: 45px;
-
-            @border_padding: 20px;
-            @offset: 8px;
-            @line_height: @bar_height - @offset*2;
-
-            p {
-                margin: 0;
-                font-family: @sans;
-            }
-            .name, .quick_info, .status {
-                @offset: 8px;
-                position: absolute;
-                line-height: @line_height;
-                margin-top: @offset;
-                border-left: thin solid #e4e4e4;
-            }
-            .name {
-                background: @border_padding center no-repeat url('images/server-icon.png');
-                padding-left: 38px + @border_padding;
-                a { color: #0597d8; }
+        .name {
+            background: @border_padding center no-repeat url('images/server-icon.png');
+            padding: 0 20px 0 60px;
+            a {
+                color: #0597d8;
                 font-size: 16px;
                 font-weight: bold;
-                width: 400px;
-                height: @line_height;
-                overflow: hidden;
+            }
+            max-width: 427px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            .tags {
+                @tag-color: #989898;
+                border-left: 0px;
+                font-weight: normal;
+                font-size: 13px;
+                margin-left: 5px;
+                color: @tag-color;
                 text-overflow: ellipsis;
+                white-space: nowrap;
             }
-            .quick_info {
-                background: @border_padding center no-repeat url('images/graph-icon.png');
-                color: #626264;
-                padding-left: 30px + @border_padding;
-                left: 475px;
+        }
+        .quick_info {
+            background: @border_padding center no-repeat url('images/graph-icon.png');
+            color: #626264;
+            padding: 0px 20px 0px 55px;
+            padding-left: 55px;
+            white-space: nowrap;
+        }
+        .status {
+            padding-right: 20px;
+            color: #818181;
+            .label-success {
+                background: @border_padding center no-repeat url('images/green-light_glow.png');
+                padding-left: 23px + @border_padding;
             }
-            .status {
-                left: 725px;
-                padding-right: 20px;
-                color: #818181;
-                .label-success {
-                    background: @border_padding center no-repeat url('images/green-light_glow.png');
-                    padding-left: 23px + @border_padding;
-                }
-                .label-failure {
-                    background: @border_padding center no-repeat url('images/red-light_glow.png');
-                    padding-left: 23px + @border_padding;
-                }
+            .label-failure {
+                background: @border_padding center no-repeat url('images/red-light_glow.png');
+                padding-left: 23px + @border_padding;
             }
-
         }
     }
 }
 
 
 #databases_container {
-    h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        margin-bottom: 25px;
-    }
-
     .actions-bar { float: right; }
 
     .database_container {
@@ -1297,13 +1287,6 @@ TODO: retire this
     ----------------------------
 */
 #table-list {
-    h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        margin-bottom: 25px;
-    }
-
     .actions-bar { float: right; }
 
     .section {
@@ -1466,14 +1449,6 @@ TODO: retire this
 */
 
 #log-view {
-    h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        border-bottom: thin solid #f0f0f0;
-        padding-bottom: 25px;
-        margin-bottom: 0;
-    }
 
     ul.log-entries {
         list-style-type: none;
@@ -1505,8 +1480,12 @@ TODO: retire this
                 background: left center no-repeat url('images/clock-icon.png');
                 text-align: right;
                 color: #c4c4c4;
+                padding-left: 20px;
             }
         }
+    }
+    .no-logs {
+        display: none;
     }
     .no-more-entries{
         font-family: @sans;
@@ -1568,9 +1547,6 @@ TODO: retire this
     }
 
     h1.title{
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
         &.small_margin_bottom{
             margin-bottom: 15px;
         }
@@ -1954,10 +1930,6 @@ TODO: retire this
             background: #eee;
         }
         .results_header{
-            .show_query_warning{
-                padding: 0px;
-                margin: 0px;
-            }
             .metadata{
                 font-family: @sans;
                 width: 530px;
@@ -1967,6 +1939,46 @@ TODO: retire this
                     border-bottom: 1px dotted #444;
                     cursor: help;
                 }
+                &.feed_unpaused .only_if_paused { display: none !important }
+                &.feed_paused .only_if_unpaused { display: none !important }
+                .pause_feed{
+                    opacity: 0.5;
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-pause.png);
+                    margin-right: 5px;
+                }
+                .unpause_feed{
+                    opacity: 0.5;
+                    position: relative;
+                    top: 1px;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background-size: 12px 12px;
+                    background-image: url(images/ion-play.png);
+                    margin-right: 5px;
+                }
+                .animated-ellipsis{
+                    margin-right: 6px;
+                }
+                &.floating_metadata {
+                    z-index: 2000;
+                    background-color: #f0f0f0;
+                    border: 1px solid #cfcfcf;
+                    position: fixed;
+                    display: block;
+                    top: -5px;
+                    margin: 0 0 0 -9px;
+                    padding: 10px 8px 5px 8px;
+                    background-color: white;
+                    border-radius: 5px;
+                    .box-shadow(~"2px 2px 10px -5px rgba(0,0,0,0.2)");
+                }
             }
         }
         .more_results{
@@ -1974,6 +1986,9 @@ TODO: retire this
             .more_results_paragraph{
                 margin: 0px;
                 padding: 0px;
+            }
+            &.hidden{
+                display: none;
             }
         }
         .info{
@@ -2100,6 +2115,14 @@ TODO: retire this
         }
         .json_tree_container{
             width: 888px;
+            & > .json_tree{
+                clear: both;
+                margin-bottom: 6px;
+                padding: 2px 45px 5px 0px;
+                &.flash{
+                    .animation(~"add_row 500ms 1");
+                }
+            }
         }
         .json_tree{ // Used in json_tree_container AND json_table_container
             padding: 0px 20px;
@@ -2280,7 +2303,7 @@ TODO: retire this
             padding: 5px;
             .raw_view_textarea{
                 width: 100%;
-                height: auto;
+                height: 300px;
                 padding: 4px;
                 margin: 0px 0px 0px -5px;
             }
@@ -2413,11 +2436,7 @@ TODO: retire this
 */
 #database-view, #table-view, #datacenter-view, #server-view, .reconfigure-modal {
     h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
         line-height: 20px;
-        margin-bottom: 25px;
         width: 808px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -2437,6 +2456,36 @@ TODO: retire this
             border-bottom: thin solid #f0f0f0;
             padding-bottom: 20px;
             margin-bottom: 0;
+        }
+        .tag-row {
+            border-top: thin solid #f0f0f0;
+            position: relative;
+            p {
+                font-family: @sans;
+                color: #72bddf;
+                font-size: 15px;
+                line-height: 20px;
+                margin-left: 30px;
+                cursor: help;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                .tags, &.admonition {
+                    color: #5C6169;
+                    font-size: 16px;
+                }
+
+            }
+            &::before {
+                content: ""; // ion-pricetag
+                font-family: Ionicons;
+                font-size: 20px;
+                color: #D0D0D0;
+                padding: 0 10px 10px 0;
+                left: 0;
+                top: 50%;
+                position: absolute;
+            }
+
         }
         .stat-row {
             @height: 60px;
@@ -3305,6 +3354,67 @@ TODO: retire this
   to    { background-position: 0 0; }
 }
 
+// Animated ellipsis
+
+.animate-ellipsis-keyframes-1 {
+    0% { opacity: 0.2 }
+    25% { opacity: 1 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-2 {
+    0% { opacity: 0.2 }
+    25% { opacity: 0.2 }
+    50% { opacity: 1 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+.animate-ellipsis-keyframes-3 {
+    0% { opacity: 0.2 }
+    25% { opacity: 0.2 }
+    50% { opacity: 0.2 }
+    75% { opacity: 1 }
+    100% { opacity: 0.2 }
+}
+
+@-webkit-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-moz-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-o-keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@keyframes animate-ellipsis-1 { .animate-ellipsis-keyframes-1 }
+@-webkit-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-moz-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-o-keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@keyframes animate-ellipsis-2 { .animate-ellipsis-keyframes-2 }
+@-webkit-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-moz-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@-o-keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+@keyframes animate-ellipsis-3 { .animate-ellipsis-keyframes-3 }
+
+.animate-ellipsis (@n) {
+    .animated-ellipsis span:nth-child(@{n}) {
+        .animation(~"animate-ellipsis-@{n} 3s infinite cubic-bezier(0,1,0,1)");
+    }
+}
+
+.animate-ellipsis(1);
+.animate-ellipsis(2);
+.animate-ellipsis(3);
+
+// Adding rows to changefeeds
+
+.add-row-keyframes () {
+    from { background-color: #fbf5ff }
+    to   { background-color: #fbfbfb }
+}
+
+@-webkit-keyframes add_row { .add-row-keyframes }
+@-moz-keyframes add_row { .add-row-keyframes }
+@-o-keyframes add_row { .add-row-keyframes }
+@keyframes add_row { .add-row-keyframes }
+
 // THE BARS
 // --------
 
@@ -3476,7 +3586,7 @@ TODO: retire this
         margin: 0px;
         top: auto;
         left: auto;
-        
+
     }
 }
 
@@ -3504,9 +3614,13 @@ TODO: retire this
     }
     .reconfigure-diff {
         @border-color: #d8d8d8;
-        @background-color: #fbfbfb;
+        @background-color: #fcfcfc;
         padding: 0px 6px;
-        background: top right no-repeat url('images/thinker_watermark.png');
+        background-image: url('images/thinker_on_hill.svg');
+        background-repeat: no-repeat;
+        background-position: calc(50% ~"+" 173px) calc(50% ~"+" 105px);
+        background-size: auto 336px;
+        background-attachment: fixed;
         border: 1px solid #fff;
         border-radius: 3px;
         background-color: @background-color;
@@ -3514,6 +3628,15 @@ TODO: retire this
         transition:
         border-color @transition-speed,
         height @transition-speed @ease-in-circ;
+        &.expanded {
+            border-color: @border-color;
+            @media (min-height: @expanded-height) {
+                height: @diff-height - 12px;
+            }
+            @media (max-height: @expanded-height) {
+                height: @diff-height / 2 - 12px;
+            }
+        }
         &:first-child {
             // We can't put the padding in the box, otherwise it will
             // have a height when collapsed. So we put a top margin on
@@ -3525,15 +3648,6 @@ TODO: retire this
         &:last-child {
             // similar reasoning to :first-child above
             margin-bottom: 6px;
-        }
-        &.expanded {
-            border-color: @border-color;
-            @media (min-height: @expanded-height) {
-                height: @diff-height - 12px;
-            }
-            @media (max-height: @expanded-height) {
-                height: @diff-height / 2 - 12px;
-            }
         }
     }
     .flex();
@@ -3663,6 +3777,7 @@ TODO: retire this
             margin-left: 30px;
             padding-left: 25px;
             background-size: 20px 15px !important;
+            border-bottom: 0px;
         }
         li {
             &.deleted {

@@ -91,7 +91,7 @@ def latest_build_dir(check_executable=True, mode=None):
             raise test_exceptions.NotBuiltException(detail='no built version of the server could be found')
     
     if candidatePath is None or (check_executable is True and not os.access(os.path.join(candidatePath, 'rethinkdb'), os.X_OK)):
-        raise test_exceptions.NotBuiltException(detail='the rethinkdb server executable was not present/runable in: %s' % candidatePath)
+        raise test_exceptions.NotBuiltException(detail='the rethinkdb server executable was not present/runnable in: %s' % candidatePath)
     
     return candidatePath
 
@@ -283,24 +283,30 @@ def supportsTerminalColors():
         return False
     return True
 
-def get_test_db_table():
+def get_test_db_table(tableName=None, dbName='test', index=0):
     '''Get the standard name for the table for this test'''
     
     # - name of __main__ module or a random name
     
-    name = None
-    if hasattr(sys.modules['__main__'], '__file__'):
-        name = os.path.basename(sys.modules['__main__'].__file__).split('.')[0]
+    if tableName is None:
+        if hasattr(sys.modules['__main__'], '__file__'):
+            tableName = os.path.basename(sys.modules['__main__'].__file__).split('.')[0]
+        else:
+            tableName = 'random_' + ''.join(random.choice(string.ascii_uppercase for _ in range(4)))
+        
+        # - interpreter version
+        
+        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
+    
     else:
-        name = 'random_' + ''.join(random.choice(string.ascii_uppercase for _ in range(4)))
+        tableName = tableName.replace(".","_").replace("/","_")
     
-    # - interpreter version
-    
-    interpreter = '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
+    if index != 0:
+        tableName += '_tbl%s' % str(index)
     
     # -
     
-    return ('test', name + interpreter)
+    return (dbName, tableName)
     
 
 def get_avalible_port(interface='localhost'):
@@ -331,18 +337,6 @@ def wait_for_port(port, host='localhost', timeout=5):
             return
         time.sleep(.1)
     raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
-
-def shard_table(cluster_port, rdb_executable, table_name):
-        
-    blackHole = tempfile.NamedTemporaryFile('w+')
-    commandPrefix = [str(rdb_executable), 'admin', '--join', 'localhost:%d' % str(cluster_port), 'split', 'shard', str(table_name)]
-    
-    for splitPoint in ('Nc040800000000000\2333', 'Nc048800000000000\2349', 'Nc04f000000000000\2362'):
-        returnCode = subprocess.call(commandPrefix + [splitPoint], stdout=blackHole, stderr=blackHole)
-        if returnCode != 0:
-            return returnCode
-    time.sleep(3)
-    return 0
 
 def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
     '''make sure that the given process group id is not running'''
@@ -564,3 +558,57 @@ def getShardRanges(conn, table, db='test'):
     # -- return value
     
     return ranges
+
+class NextWithTimeout(threading.Thread):
+	'''Constantly tries to fetch the next item on an changefeed'''
+	
+	daemon = True
+	
+	feed = None
+	timeout = None
+	
+	keepRunning = True
+	latestResult = None
+	
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, exitType, value, traceback):
+		self.keepRunning = False
+	
+	def __init__(self, feed, timeout=5):
+		self.feed = iter(feed)
+		self.timeout = timeout
+		super(NextWithTimeout, self).__init__()
+		self.start()
+	
+	def __iter__(self):
+		return self
+	
+	def next(self):
+		deadline = time.time() + self.timeout
+		while time.time() < deadline:
+			if self.latestResult is not None:
+				if isinstance(self.latestResult, Exception):
+					raise self.latestResult
+				result = self.latestResult
+				self.latestResult = None
+				return result
+			time.sleep(.05)
+		else:
+			raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
+	
+	def __next__(self):
+		return self.next()
+	
+	def run(self):
+		while self.keepRunning:
+			if self.latestResult is not None:
+				time.sleep(.1)
+				continue
+			try:
+				self.latestResult = next(self.feed)
+				time.sleep(.5)
+			except Exception as e:
+				self.latestResult = e
+				self.keepRunning = False

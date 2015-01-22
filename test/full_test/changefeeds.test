@@ -1,2 +1,2 @@
-
-generate_test("$RETHINKDB/test/changefeeds/changefeeds.test", name="changefeeds")
+generate_test("$RETHINKDB/test/changefeeds/basic.test", name="basic")
+generate_test("$RETHINKDB/test/changefeeds/change_master.test", name="change_master")

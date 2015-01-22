@@ -83,7 +83,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
             r.db(dbName).reconfigure(shards=currentShards, replicas=numNodes).run(conn)
             r.db(dbName).wait().run(conn)
             cluster.check()
-            assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+            assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
         
         print("Running workload after (%.2fs)" % (time.time() - startTime))
         workload.run_after()

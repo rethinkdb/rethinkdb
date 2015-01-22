@@ -10,6 +10,10 @@ $ ->
     # Create a driver - providing sugar on top of the raw driver
     window.driver = new Driver
 
+    # Some views backup their data here so that when you return to them
+    # the latest data can be retrieved quickly.
+    window.view_data_backup = {}
+
     window.main_view = new MainView.MainContainer()
     $('body').html main_view.render().$el
 
@@ -60,7 +64,7 @@ class @Driver
 
     # Close a connection
     close: (conn) ->
-        conn.close()
+        conn.close noreplyWait: false
 
     # Run a query once
     run_once: (query, callback) =>
@@ -122,13 +126,20 @@ class @Driver
                                             result.toArray (err, result) =>
                                                 # This happens if people load the page with the back button
                                                 # In which case, we just restart the query
-                                                if err?.message is "This HTTP connection is not open"
+                                                # TODO: Why do we sometimes get an Error object
+                                                #  with message == "[...]", and other times a
+                                                #  RqlClientError with msg == "[...]."?
+                                                if err?.msg is "This HTTP connection is not open." \
+                                                        or err?.message is "This HTTP connection is not open"
+                                                    console.log "Connection lost. Retrying."
                                                     return @run query, delay, callback, index
                                                 callback(err, result)
                                                 if @timers[index]?
                                                     @timers[index].timeout = setTimeout fn, delay
                                         else
-                                            if err?.message is "This HTTP connection is not open"
+                                            if err?.msg is "This HTTP connection is not open." \
+                                                    or err?.message is "This HTTP connection is not open"
+                                                console.log "Connection lost. Retrying."
                                                 return @run query, delay, callback, index
                                             callback(err, result)
                                             if @timers[index]?
@@ -145,3 +156,29 @@ class @Driver
         clearTimeout @timers[timer]?.timeout
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
+
+    # common queries used in multiple places in the ui
+    queries:
+        all_logs: (limit) =>
+            server_conf = r.db(system_db).table('server_config')
+            r.db(system_db)
+                .table('logs', identifierFormat: 'uuid')
+                .orderBy(index: r.desc('id'))
+                .limit(limit)
+                .map((log) ->
+                    log.merge
+                        server: server_conf.get(log('server'))('name')
+                        server_id: log('server')
+                )
+        server_logs: (limit, server_id) =>
+            server_conf = r.db(system_db).table('server_config')
+            r.db(system_db)
+                .table('logs', identifierFormat: 'uuid')
+                .orderBy(index: r.desc('id'))
+                .filter(server: server_id)
+                .limit(limit)
+                .map((log) ->
+                    log.merge
+                        server: server_conf.get(log('server'))('name')
+                        server_id: log('server')
+                )

@@ -3,6 +3,7 @@
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
 #include <map>
+#include <list>
 #include <vector>
 
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -32,8 +33,11 @@ public:
 
     /* `backfills` contains the peer ID and progress fraction (from 0 to 1) for each
     backfill that this server is receiving for that shard. The backfills will stay even
-    after `is_ready` becomes `true`, but all the progress fractions will be 1.  */
-    std::vector<std::pair<peer_id_t, double> > backfills;
+    after `is_ready` becomes `true`, but all the progress fractions will be 1.
+    Warning: pointers to the members of this list are passed around, do not
+    change this from a `std::list` unless you are sure you won't be invalidating
+    these pointers. */
+    std::list<std::pair<peer_id_t, double> > backfills;
 };
 
 class reactor_t : public home_thread_mixin_t {

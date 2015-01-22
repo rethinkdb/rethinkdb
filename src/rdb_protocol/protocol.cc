@@ -137,14 +137,16 @@ void post_construct_and_drain_queue(
     THROWS_NOTHING
 {
     std::set<uuid_u> sindexes_to_bring_up_to_date;
-    std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
-        sindex_sentries;
+    parallel_traversal_progress_t progress_tracker;
+    std::vector<map_insertion_sentry_t<
+        store_t::sindex_context_map_t::key_type,
+        store_t::sindex_context_map_t::mapped_type> > sindex_context_sentries;
     for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
         sindexes_to_bring_up_to_date.insert(sindex.first);
-        sindex_sentries.emplace_back(
-            store->get_sindex_jobs(),
+        sindex_context_sentries.emplace_back(
+            store->get_sindex_context_map(),
             sindex.first,
-            std::make_pair(current_microtime(), sindex.second));
+            std::make_pair(current_microtime(), &progress_tracker));
     }
 
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
@@ -158,7 +160,11 @@ void post_construct_and_drain_queue(
     // reason).
 
     try {
-        post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
+        post_construct_secondary_indexes(
+            store,
+            sindexes_to_bring_up_to_date,
+            lock.get_drain_signal(),
+            &progress_tracker);
 
         /* Drain the queue. */
 

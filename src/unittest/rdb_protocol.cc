@@ -79,7 +79,7 @@ void run_with_namespace_interface(
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t("."),
-                        static_cast<outdated_index_report_t *>(NULL), generate_uuid()));
+                        scoped_ptr_t<outdated_index_report_t>(), generate_uuid()));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;
@@ -636,8 +636,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
-            std::string id(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10,
-                           static_cast<char>(j));
+            std::string id = std::to_string(j)
+                + std::string(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10, ' ');
             std::string sid(j, 'a');
             auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
             std::shared_ptr<const scoped_cJSON_t> data(

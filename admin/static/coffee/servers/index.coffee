@@ -4,30 +4,30 @@ module 'ServersView', ->
         id: 'servers_container'
         template:
             main: Handlebars.templates['servers_container-template']
-            loading: Handlebars.templates['loading-template']
 
         initialize: =>
-            @servers = new Servers
+            if not window.view_data_backup.servers_view_servers?
+                window.view_data_backup.servers_view_servers = new Servers
+                @loading = true
+            else
+                @loading = false
+            @servers = window.view_data_backup.servers_view_servers
+        
             @servers_list = new ServersView.ServersListView
                 collection: @servers
 
             @fetch_servers()
 
-            @loading = true # TODO Render that
-
         render: =>
-            if @loading is true
-                @$el.html @template.loading
-                    page: "servers"
-            else
-                @$el.html @template.main({})
-                @$('.servers_list').html @servers_list.render().$el
+            @$el.html @template.main({})
+            @$('.servers_list').html @servers_list.render().$el
             @
 
 
         fetch_servers: =>
             query = r.db(system_db).table('server_status').merge( (server) ->
                 id: server("id")
+                tags: r.db(system_db).table('server_config').get(server('id'))('tags')
                 primary_count:
                     r.db(system_db).table('table_config')
                     .concatMap( (table) -> table("shards") )
@@ -55,7 +55,6 @@ module 'ServersView', ->
                 for server in toDestroy
                     server.destroy()
 
-                @loading = false
                 @render()
 
         remove: =>
@@ -65,6 +64,9 @@ module 'ServersView', ->
 
     class @ServersListView extends Backbone.View
         className: 'servers_view'
+        tagName: 'tbody'
+        template:
+            loading_servers: Handlebars.templates['loading_servers-template']
         initialize: =>
             @servers_view = []
 
@@ -106,8 +108,12 @@ module 'ServersView', ->
                         break
 
         render: =>
-            for server_view in @servers_view
-                @$el.append server_view.render().$el
+            if @servers_view.length is 0
+                # No servers means we are probably loading
+                @$el.append @template.loading_servers()
+            else
+                for server_view in @servers_view
+                    @$el.append server_view.render().$el
             @
 
         remove: =>
@@ -118,6 +124,7 @@ module 'ServersView', ->
 
     class @ServerView extends Backbone.View
         className: 'server_container'
+        tagName: 'tr'
         template: Handlebars.templates['server-template']
         initialize: =>
             @listenTo @model, 'change', @render

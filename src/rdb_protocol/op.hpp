@@ -44,6 +44,9 @@ public:
 
     optargspec_t with(std::initializer_list<const char *> args) const;
 
+    std::set<std::string>::const_iterator cbegin() const { return legal_args.cbegin(); }
+    std::set<std::string>::const_iterator cend() const { return legal_args.cend(); }
+
 private:
     void init(int num_args, const char *const *args);
 

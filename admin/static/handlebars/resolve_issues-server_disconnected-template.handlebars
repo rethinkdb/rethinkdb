@@ -5,7 +5,7 @@
         </button>
         <p class="issue-type">Server disconnected</p>
         <p class="message">
-         <a class="change-route" href="#servers/{{info.server_id}}"> {{info.server}}</a>
+         <a class="change-route" href="#servers/{{info.id}}"> {{info.name}}</a>
           is disconnected</p>
         {{!-- Uncomment this when the time attribute is re-added
         <p class="datetime"><abbr class="timeago" title="{{time}}">{{time}}</abbr></p>
@@ -14,10 +14,10 @@
     <hr />
     <div class="issue-details">
       <p>
-        Server <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_name}}</a> is disconnected from:
+        Server <a class="change-route" href="#servers/{{info.id}}">{{info.name}}</a> is disconnected from:
       </p>
       <ul>
-        {{#each info.affected_servers}}
+        {{#each info.reporting_servers}}
         <li>{{this}}</li>
         {{/each}}
       </ul>

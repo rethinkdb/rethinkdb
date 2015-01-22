@@ -63,7 +63,8 @@ public:
         uuid(_uuid), namespace_access(_namespace_access), pkey(_pkey),
         changefeed_client(_changefeed_client) { }
 
-    const std::string &get_pkey();
+    ql::datum_t get_id() const;
+    const std::string &get_pkey() const;
 
     ql::datum_t read_row(ql::env_t *env,
         ql::datum_t pval, bool use_outdated);

@@ -1,22 +1,8 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl tbl2 tbl3 tbl4
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: partial({'tables_created':1})
-      def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-      def: tbl2 = r.db('test').table('test2')
-
-    - cd: r.db('test').table_create('test3')
-      ot: partial({'tables_created':1})
-      def: tbl3 = r.db('test').table('test3')
-
-    - cd: r.db('test').table_create('test4')
-      ot: partial({'tables_created':1})
-      def: tbl4 = r.db('test').table('test4')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
@@ -584,13 +570,3 @@ tests:
       rb: tbl.max(index:'a').without('b')
       js: tbl.max({index:'a'}).without('b')
       ot: ({'a':3,'id':99})
-
-    # Clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test2')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test3')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test4')
-      ot: partial({'tables_dropped':1})

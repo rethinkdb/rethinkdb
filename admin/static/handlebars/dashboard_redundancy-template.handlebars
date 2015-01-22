@@ -1,36 +1,38 @@
 {{#if status_is_ok}}
-    <div class="status no-problems-detected">
-        <h3>Redundancy</h3>
-        <p class="message"><span class="good">0</span> issues detected</p>
-        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
-    </div>
+<div class="status no-problems-detected">
+  <h3>Redundancy</h3>
+  <p class="message"><span class="good">0</span> issues detected</p>
+  <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> replicas available</p>
+</div>
 {{else}}
-    <div class="status problems-detected">
-        <h3>Redundancy</h3>
-        <p class="message"><span class="bad">{{num_non_available_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-        <p class="details"><span class="bad">{{num_non_available_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are not ready</p>
-    </div>
+<div class="status problems-detected">
+  <h3>Redundancy</h3>
+  <p class="message"><span class="bad">{{num_disconnected_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+  <p class="details"><span class="bad">{{num_disconnected_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are unavailable</p>
+</div>
 {{/if}}
 <div class="popup_container">
-    <a class="close" href="#">&times;</a>
-    <div class="arrow_left"></div>
-    <div class="arrow_left_overlay"></div>
-    <div class="inner_content">
-        <h4>List of replicas not available</h4>
-        <ul class="ul_first_level">
-            {{#each tables_with_replicas_not_ready}}
-            <li class="li_first_level">Table <a href="#tables/{{id}}">{{db}}.{{name}}</a>:
-            <ul class="ul_second_level">
-                {{#each shards}}
-                <li class="li_second_level">
-                    Shard {{position}}/{{num_shards}}<br/>
-                    Expected replica: <a href="#servers/{{server_id}}">{{server}}</a><br/>
-                    Status/Goal: {{state}} / ready
-                </li>
-                {{/each}}
-            </ul>
-            </li>
+  <a class="close" href="#">&times;</a>
+  <div class="arrow_left"></div>
+  <div class="arrow_left_overlay"></div>
+  <div class="inner_content">
+    <h4>List of unavailable replicas</h4>
+    <ul class="ul_first_level">
+      {{#each tables_with_replicas_not_ready}}
+      <li class="li_first_level">Table <a href="#tables/{{id}}">{{db}}.{{name}}</a>:
+        <ul class="ul_second_level">
+          {{#each shards}}
+          <li class="li_second_level">
+            Shard {{position}}/{{num_shards}}<br/>
+            Disconnected replicas:
+            {{#each replicas}}
+            <a href="#servers/{{replica_id}}">{{replica_name}}</a><br>
             {{/each}}
+          </li>
+          {{/each}}
         </ul>
-    </div>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
 </div>

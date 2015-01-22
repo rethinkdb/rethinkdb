@@ -36,6 +36,10 @@ r = utils.import_python_driver()
 tempfile.tempdir = tempfile.mkdtemp(prefix='.rethinkdbTestTemp-', dir=os.getcwd())
 utils.cleanupPathAtExit(tempfile.tempdir)
 
+# -- internal global variables
+
+testLock = threading.Lock()
+
 # -- signal and atexit handlers
 
 runningProcessGroupsIds = []
@@ -71,11 +75,16 @@ class SrcLang(object):
     interpreter_version = None
     interpreter_env_name = None
     
+    __polyglot_language_header = None
+    _polyglot_language_header_path = None
+    
     driver_source_path = None
     driver_build_env_name = None
     driver_build_path = None
     
     instance_setup = False
+    
+    line_comment = '#'
     
     # -- class variables
     
@@ -91,10 +100,6 @@ class SrcLang(object):
     
     def __init__(self):
         self.instance_setup = True
-    
-    # Returns the approriate line comment string
-    def comment(self):
-        return "#"
 
     # Converts input value into the appropriate string
     # representation for this language.
@@ -178,6 +183,13 @@ class SrcLang(object):
             raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was above the maximum version %s for python2' % (executablePath, targetVersion, self.maxVersion))
         
         return targetVersion
+    
+    @property
+    def polyglot_language_header(self):
+        if self.__polyglot_language_header is None:
+            with open(self._polyglot_language_header_path, 'rU') as headerFile:
+                self.__class__.__polyglot_language_header = headerFile.read().decode('utf-8')
+        return self.__polyglot_language_header
 
 class PyLang(SrcLang):
     test_types = None
@@ -192,7 +204,7 @@ class PyLang(SrcLang):
     driver_build_env_name = 'PYTHON_DRIVER_DIR'
     driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'drivers', 'python')
     
-    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
+    _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
     
     def __init__(self, version, interpreter_env_name='PYTHON'):
         if self.instance_setup is True:
@@ -262,10 +274,9 @@ class JsLang(SrcLang):
     driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
     driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'packages', 'js')
     
-    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
+    _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
-    def comment(self):
-        return "//"
+    line_comment = '//'
 
     def langrepr(self, val):
         if isinstance(val, str):
@@ -307,7 +318,7 @@ class RbLang(SrcLang):
     driver_build_env_name = 'RUBY_DRIVER_DIR'
     driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
-    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
+    _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
     
     def __init__(self, version, interpreter_env_name='RUBY'):
         if self.instance_setup is True:
@@ -440,9 +451,13 @@ class TestGroup(object):
         
         parsed_data = None
         try:
-            parsed_data = yaml.load(open(sourceFile))
+            parsed_data = yaml.safe_load(open(sourceFile))
         except Exception as e:
             raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
+        if parsed_data is None:
+            raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml' % sourceFile)
+        if not 'tests' in parsed_data or not isinstance(parsed_data['tests'], list):
+            raise ValueError('buildYamlTest got a sourceFile (%s) without any tests' % sourceFile)
         
         with open(outputPath, 'w') as outputFile:
             
@@ -452,39 +467,43 @@ class TestGroup(object):
             
             # - write in the encoding (mostly for Python2.6)
             
-            outputFile.write('%s -*- coding: utf-8 -*-\n\n' % language.comment())
+            outputFile.write('%s -*- coding: utf-8 -*-\n\n' % language.line_comment)
             
             # - mark start of the header/driver
             
-            outputFile.write('%s ========== Start of common test functions ==========\n\n' % language.comment())
+            outputFile.write('%s ========== Start of common test functions ==========\n\n' % language.line_comment)
             
             # - insert a marker telling what test this is
             
-            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (language.comment(), testName, language.display_name, parsed_data['desc'], sourceFile))
+            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (language.line_comment, testName, language.display_name, parsed_data.get('desc', ''), sourceFile))
+            
+            # - generate the table setup lines
+            
+            tableCreateLines = []
+            if "table_variable_name" in parsed_data:
+                variableNames = parsed_data['table_variable_name']
+                if hasattr(parsed_data['table_variable_name'], 'upper'):
+                    variableNames = re.findall('([a-zA-Z\d\.\_\-]+)', parsed_data['table_variable_name'])
+                
+                for index, variableName in enumerate(variableNames):
+                    db_name, table_name = utils.get_test_db_table(tableName=testName, index=index)
+                    tableCreateLines += ["setup_table(%s, %s, %s)" % (
+                        language.langrepr(variableName),
+                        language.langrepr(table_name),
+                        language.langrepr(db_name))]
+            if len(tableCreateLines) > 0:
+                tableCreateLines = '\n'.join(tableCreateLines)
+            else:
+               tableCreateLines = '%s No auto-created tabels' % language.line_comment
             
             # - add the header/driver
             
-            with open(language.polyglot_language_header) as headerFile:
-                for chunk in iter((lambda: headerFile.read(1024)), ''):
-                    outputFile.write(chunk)
-            
-            outputFile.write('\n\n')
+            tableCreationTag = '%s REPLACE WITH TABLE CREATION LINES' % language.line_comment
+            outputFile.write(language.polyglot_language_header.replace(tableCreationTag, tableCreateLines))
             
             # - mark end of the header/driver
             
-            outputFile.write('%s ========== End of common test functions ==========\n\n' % language.comment())
-            
-            # - set up table if necessary
-            
-            if "table_variable_name" in parsed_data:
-                table_name = testName.replace(".","_").replace("/","_")
-                table_name += "_"
-                table_name += language.display_name.replace(" ","_").replace(".","_")
-                outputFile.write("setup_table(%s, %s)\n\n" % (
-                    language.langrepr(parsed_data["table_variable_name"]),
-                    language.langrepr(table_name)))
-            else:
-                outputFile.write("check_no_table_specified()\n\n")
+            outputFile.write('%s ========== End of common test functions ==========\n\n' % language.line_comment)
             
             # - add the body of the tests
             
@@ -833,7 +852,7 @@ class Test(object):
         
         # -- collect ENV variables
         
-        self.envVariables = copy.copy(os.environ)
+        self.envVariables = os.environ.copy()
         self.envVariables.update({
             'RDB_DRIVER_PORT':str(server.driver_port),
             'RDB_CLUSTER_PORT':str(server.cluster_port),
@@ -849,7 +868,8 @@ class Test(object):
         if self.writeToStdout is False:
             self.__console_output = tempfile.NamedTemporaryFile()
         
-        self.testProcess = subprocess.Popen(self.command, stdout=self.__console_output, stderr=self.__console_output, preexec_fn=os.setpgrp, env=self.envVariables)
+        with testLock:
+            self.testProcess = subprocess.Popen(self.command, stdout=self.__console_output, stderr=self.__console_output, preexec_fn=os.setpgrp, env=self.envVariables)
     
     def checkTestDone(self):
         '''Check on a running test, reply with True if running, False if ended'''
@@ -1094,10 +1114,6 @@ class WorkerThread(threading.Thread):
         
         if not self.check_server():
             raise Exception ('Server could not be started!') # ToDo: figure out how to report this properly
-        
-        # -- ensure that it is clean
-        
-        self.clean_server()
     
     def check_server(self):
         '''Check that the server is up, an responds to a basic query'''
@@ -1120,11 +1136,11 @@ class WorkerThread(threading.Thread):
                 raise Exception('External server stopped responding while testing') # ToDo: make this a better error
             else:
                 warnings.warn('Server was not running or avalible, starting a new one') # ToDo: figure out how to link this back to the last test
-                self.reqlConnection = None
                 try:
                     self.server.close()
                 except Exception: pass
                 self.server = None
+                self.reqlConnection = None
                 return False
         return True
     
@@ -1139,23 +1155,14 @@ class WorkerThread(threading.Thread):
         
             # -- clean out other databases
             
-            for dbName in r.db_list().run(self.reqlConnection):
-                if dbName in ('test', 'rethinkdb'):
-                    continue
-                else:
-                    r.db_drop(dbName).run(self.reqlConnection)
+            r.db_list().set_difference(['test', 'rethinkdb']).for_each(lambda dbName: r.db_drop(dbName)).run(self.reqlConnection)
             
             # -- ensure that the test db is present and empty
             
             if 'test' not in r.db_list().run(self.reqlConnection):
                 r.db_create('test').run(self.reqlConnection)
             else:
-                for tableName in r.db('test').table_list().run(self.reqlConnection):
-                    r.db('test').table_drop(tableName).run(self.reqlConnection)
-            
-            # -- drop any tables in test
-            
-            r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
+                r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
             
             # -- remove any other connected servers
             
@@ -1164,22 +1171,15 @@ class WorkerThread(threading.Thread):
             
         except Exception as e:
             warnings.warn('Unable to clean server, starting a new one. Error message: %s' % str(e)) # ToDo: improve logging
-            self.reqlConnection = None
             try:
                 self.server.close()
             except Exception: pass
             self.server = None
+            self.reqlConnection = None
     
     def run(self):
         try:
             while cancelRun is False:
-                
-                # -- ensure we have an avalible server
-                
-                if self.existingServer:
-                    self.check_server()
-                else:
-                    self.run_server()
                 
                 # -- get a test
                 
@@ -1188,6 +1188,18 @@ class WorkerThread(threading.Thread):
                     test = self.workQueue.get_nowait()
                 except Queue.Empty:
                     break
+                
+                # -- ensure we have an avalible server
+                
+                if self.existingServer:
+                    self.check_server()
+                else:
+                    self.run_server()
+                
+                # -- make sure it is clean and setup
+                
+                if self.existingServer is None:
+                    self.clean_server()
                 
                 # -- set writeToStdout
                 
@@ -1202,8 +1214,9 @@ class WorkerThread(threading.Thread):
                     test.setupTest()
                 except Exception as e:
                     traceback.print_exc()
-                    test.endTest(errorMessage='Failed setting up' % str(test.name), errorDetails=traceback.format_exc())
+                    test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
                     self.outputQueue.put((test.status, test))
+                    continue
                 
                 # -- run the test
                 
@@ -1212,6 +1225,8 @@ class WorkerThread(threading.Thread):
                     test.startTest(server=self.server)
                 except Exception as e:
                     test.endTest(errorMessage='Failed starting test', errorDetails=traceback.format_exc())
+                    self.outputQueue.put((test.status, test))
+                    continue
                 
                 # - monitor the test running
                 
@@ -1445,10 +1460,6 @@ def main():
         sys.exit('Error: selected RethiinkDB server binary does not look valid: %s' % rethinkdb_exe_path)
     
     # -- set ENV settings for child processes
-    
-    os.environ['JAVASCRIPT_DRIVER_DIR'] = utils.driverPaths['javascript']['driverPath']
-    os.environ['PYTHON_DRIVER_DIR'] = utils.driverPaths['python']['driverPath']
-    os.environ['RUBY_DRIVER_DIR'] = utils.driverPaths['ruby']['driverPath']
     
     os.environ['RDB_EXE_PATH'] = rethinkdb_exe_path
     

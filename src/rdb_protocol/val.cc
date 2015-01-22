@@ -369,7 +369,11 @@ MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
         env, durability_requirement);
 }
 
-const std::string &table_t::get_pkey() {
+ql::datum_t table_t::get_id() const {
+    return tbl->get_id();
+}
+
+const std::string &table_t::get_pkey() const {
     return tbl->get_pkey();
 }
 

@@ -58,9 +58,22 @@ r = utils.import_python_driver()
 # -- get settings
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
-DB_AND_TABLE_NAME = (sys.argv[2] if len(sys.argv) > 2 else None) or os.environ.get('TEST_DB_AND_TABLE_NAME') or 'no_table_specified'
-CLUSTER_PORT = int(sys.argv[2] if len(sys.argv) > 2 else os.environ.get('RDB_CLUSTER_PORT'))
-RDB_EXE_PATH = sys.argv[3] if len(sys.argv) > 3 else utils.find_rethinkdb_executable()
+print('Using driver port: %d' % DRIVER_PORT)
+
+required_external_tables = []
+if len(sys.argv) > 2 or os.environ.get('TEST_DB_AND_TABLE_NAME'):
+    for rawValue in (sys.argv[2] if len(sys.argv) > 3 else os.environ.get('TEST_DB_AND_TABLE_NAME')).split(','):
+        rawValue = rawValue.stip()
+        if rawValue == '':
+            continue
+        splitValue = rawValue.split('.')
+        if len(splitValue) == 1:
+            required_external_tables += [('test', splitValue[0])]
+        elif len(splitValue) == 2:
+            required_external_tables += [(splitValue[0], splitValue[1])]
+        else:
+            raise AssertionError('Unuseable value for external tables: %s' % rawValue)
+required_external_tables.reverse() # setup for .pop()
 
 # -- utilities --
 
@@ -96,7 +109,7 @@ class Lst:
 
         for otherItem, selfItem in izip_longest(other, self.lst, fillvalue=self.__class__):
             if self.__class__ in (otherItem, selfItem):
-                return False # mistmatched lengths
+                return False # mismatched lengths
             if not eq(selfItem, **self.kwargs)(otherItem):
                 return False
 
@@ -389,27 +402,37 @@ def test(query, expected, name, runopts=None, testopts=None):
         expected = None
     driver.run(query, expected, name, runopts, testopts)
 
-# Generated code must call either `setup_table()` or `check_no_table_specified()`
-def setup_table(table_variable_name, table_name):
-    def _teardown_table():
-        if DB_AND_TABLE_NAME == "no_table_specified":
-            res = r.db("test").table_drop(table_name).run(driver.cpp_conn)
-            assert res["tables_dropped"] == 1
-        else:
-            db, table = DB_AND_TABLE_NAME.split(".")
-            res = r.db(db).table(table).delete().run(driver.cpp_conn)
-            assert res["errors"] == 0
-            res = r.db(db).table(table).index_list().for_each(
-                r.db(db).table(table).index_drop(r.row)).run(driver.cpp_conn)
-            assert "errors" not in res or res["errors"] == 0
-    atexit.register(_teardown_table)
-    if DB_AND_TABLE_NAME == "no_table_specified":
-        res = r.db("test").table_create(table_name).run(driver.cpp_conn)
-        assert res["tables_created"] == 1
-        globals()[table_variable_name] = r.db("test").table(table_name)
+def setup_table(table_variable_name, table_name, db_name='test'):
+    global required_external_tables
+    
+    def _teardown_table(table_name, db_name):
+        '''Used for tables that get created for this test'''
+        res = r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
+        assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, repr(res))
+    
+    def _clean_table(table_name, db_name):
+        '''Used for pre-existing tables'''
+        res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
+        assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, repr(res))
+        res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
+        assert res["errors"] == 0, 'Failed to remove table indexes from %s.%s: %s' % (db_name, table_name, repr(res))
+    
+    if len(required_external_tables) > 0:
+        table_name, db_name = required_external_tables.pop()
+        assert r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(driver.cpp_conn) is True, 'External table %s.%s did not exist' % (db_name, table_name)
+        atexit.register(_clean_table, tableName=table_name, dbName=db_name)
+        
+        print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     else:
-        db, table = DB_AND_TABLE_NAME.split(".")
-        globals()[table_variable_name] = r.db(db).table(table)
+        if table_name in r.db(db_name).table_list().run(driver.cpp_conn):
+            r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
+        res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
+        assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, repr(res))
+        r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
+        
+        print('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
+    
+    globals()[table_variable_name] = r.db(db_name).table(table_name)
 
 def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
@@ -427,7 +450,7 @@ def partial(expected):
     elif hasattr(expected, '__iter__'):
         return Bag(expected, partial=True)
     else:
-        raise ValueError('partial can only work on dicts or interables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
+        raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
@@ -440,9 +463,6 @@ def arrlen(length, thing=None):
 
 def uuid():
     return Uuid()
-
-def shard(table_name):
-    utils.shard_table(CLUSTER_PORT, BUILD, table_name)
 
 def int_cmp(expected_value):
     return Number(expected_value, explicit_type=(int, long))
@@ -457,3 +477,12 @@ def the_end():
 
 false = False
 true = True
+
+# -- Table Creation
+
+# REPLACE WITH TABLE CREATION LINES
+
+# -- Required External Table Enforcement
+
+if len(required_external_tables) > 0:
+    raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))

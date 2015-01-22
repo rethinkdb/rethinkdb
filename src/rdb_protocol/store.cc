@@ -53,7 +53,7 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
 }
 
 void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (index_report != NULL) {
+    if (index_report.has()) {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(sindex_block, &sindexes);
 
@@ -546,7 +546,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rdb_protocol::single_sindex_status_t *s = &res->statuses[it->first.name];
                 const std::vector<char> &vec = it->second.opaque_definition;
                 s->func = std::string(&*vec.begin(), vec.size());
-                progress_completion_fraction_t frac = store->get_progress(it->second.id);
+                progress_completion_fraction_t frac =
+                    store->get_sindex_progress(it->second.id);
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
@@ -1016,13 +1017,16 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_protocol::range_key_tester_t tester(&delete_range.range);
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
+        key_range_t deleted_range;
         done_traversing_t res = rdb_erase_small_range(btree,
                                                       &tester, delete_range.range.inner,
                                                       superblock.get(), &deletion_context,
-                                                      interruptor, 0, &mod_reports);
+                                                      interruptor, 0, &mod_reports,
+                                                      &deleted_range);
         /* Since we passed 0 as `max_keys_to_erase`, which means unlimited, we
            should always get done_traversing_t::YES here.*/
         guarantee(res == done_traversing_t::YES);
+        guarantee(deleted_range == delete_range.range.inner);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(mod_reports);
@@ -1150,6 +1154,6 @@ namespace_id_t const &store_t::get_table_id() const {
     return table_id;
 }
 
-store_t::sindex_jobs_t *store_t::get_sindex_jobs() {
-    return &sindex_jobs;
+store_t::sindex_context_map_t *store_t::get_sindex_context_map() {
+    return &sindex_context;
 }
