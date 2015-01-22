@@ -1422,11 +1422,15 @@ public:
     }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
-        return make_scoped<env_t>(
-            outer_env->get_rdb_ctx(),
-            drainer.get_drain_signal(),
-            outer_env->get_all_optargs(),
-            nullptr/*don't profile*/);
+        // This is to support fake environments from the unit tests that don't
+        // actually have a context.
+        return outer_env->get_rdb_ctx() == NULL
+            ? make_scoped<env_t>(outer_env->interruptor, outer_env->reql_version())
+            : make_scoped<env_t>(
+                outer_env->get_rdb_ctx(),
+                drainer.get_drain_signal(),
+                outer_env->get_all_optargs(),
+                nullptr/*don't profile*/);
     }
 
     scoped_ptr_t<env_t> env;
@@ -2432,6 +2436,12 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 
 void artificial_t::send_all(const msg_t &msg) {
     assert_thread();
+    if (auto *change = boost::get<msg_t::change_t>(&msg.op)) {
+        guarantee(change->old_val.has() || change->new_val.has());
+        if (change->old_val.has() && change->new_val.has()) {
+            guarantee(change->old_val != change->new_val);
+        }
+    }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();
     msg_visitor_t visitor(feed.get(), &lock, uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);

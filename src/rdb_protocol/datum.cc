@@ -896,6 +896,19 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
+void tag_skey_version(skey_version_t skey_version, std::string *s) {
+    guarantee(s->size() > 0);
+    guarantee(!((*s)[0] & 0x80)); // None of our types have the top bit set.
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
+        (*s)[0] |= 0x80; // Flip the top bit to indicate 1.16+ skey_version.
+        (*s) += std::string(1, 0); // NULL byte
+        break;
+    default: unreachable();
+    }
+}
+
 std::string datum_t::mangle_secondary(
     skey_version_t skey_version,
     const std::string &secondary,
@@ -912,16 +925,7 @@ std::string datum_t::mangle_secondary(
     // it was truncated (in which case it's fixed-width and doesn't need a
     // terminator).
     std::string res = secondary + primary;
-    guarantee(res.size() > 0);
-    guarantee(!(res[0] & 0x80)); // None of our types have the top bit set.
-    switch (skey_version) {
-    case skey_version_t::pre_1_16: break;
-    case skey_version_t::post_1_16:
-        res[0] |= 0x80; // Flip the top bit to indicate 1.16+ skey_version.
-        res += std::string(1, 0); // NULL byte
-        break;
-    default: unreachable();
-    }
+    tag_skey_version(skey_version, &res);
     res += tag + std::string(1, pk_offset) + std::string(1, tag_offset);
     guarantee(res.size() <= MAX_KEY_SIZE);
     return res;
@@ -1126,6 +1130,7 @@ store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
         s.erase(mts);
     }
 
+    tag_skey_version(skey_version, &s);
     return store_key_t(s);
 }
 
