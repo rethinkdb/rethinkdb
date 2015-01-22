@@ -179,6 +179,8 @@ scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
             &sindex_mapping_data,
             &sindex_uuid);
         if (!found) {
+            // TODO: consider adding some logic on the machine handling the
+            // query to attach a real backtrace here.
             throw ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf("Index `%s` was not found on table `%s`.",
@@ -216,6 +218,7 @@ void do_read(ql::env_t *env,
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        region_t true_region;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -225,8 +228,20 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
+            ql::skey_version_t skey_version =
+                ql::skey_version_from_reql_version(
+                    sindex_info.mapping_version_info.latest_compatible_reql_version);
+            res->skey_version = skey_version;
+            true_region = rget.sindex->region
+                ? *rget.sindex->region
+                : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
         } catch (const ql::exc_t &e) {
             res->result = e;
+            return;
+        } catch (const ql::datum_exc_t &e) {
+            // TODO: consider adding some logic on the machine handling the
+            // query to attach a real backtrace here.
+            res->result = ql::exc_t(e, NULL);
             return;
         }
 
@@ -241,13 +256,6 @@ void do_read(ql::env_t *env,
             return;
         }
 
-        ql::skey_version_t skey_version =
-            ql::skey_version_from_reql_version(
-                sindex_info.mapping_version_info.latest_compatible_reql_version);
-        res->skey_version = skey_version;
-        region_t true_region = rget.sindex->region
-            ? *rget.sindex->region
-            : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
             rget.sindex->original_range, std::move(true_region),
