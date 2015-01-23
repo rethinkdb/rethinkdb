@@ -531,6 +531,8 @@ module 'DataExplorerView', ->
 
                     # Add `getField(sttr)`
                     tag = 'getField'
+                else if tag is 'toJsonString, toJSON'
+                    tag = 'toJsonString'
                 @set_doc_description command, tag, @suggestions
 
             relations = data['types']
