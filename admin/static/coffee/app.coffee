@@ -347,8 +347,8 @@ class @Driver
 
         num_connected_replicas: (table_status=driver.admin().table_status) ->
             table_status('shards')
-                .map((shard) ->
-                    shard('replicas').map((replica) ->
+                .map((shards) ->
+                    shards('replicas').map((replica) ->
                         replica('state').count((replica) ->
                             r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
                     ).sum()
