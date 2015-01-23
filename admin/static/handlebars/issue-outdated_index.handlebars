@@ -14,7 +14,7 @@
 
     <ul>
       {{#each info.tables}}
-      <li>The table <a href="#databases/{{db_id}}">{{db}}</a>.<a href="#tables/{{table_id}}">{{table}}</a> has {{indexes.length}} outdated {{pluralize_noun "index" indexes.length}}: {{comma_separated_simple indexes}}</li>
+      <li>The table <a href="#tables/{{table_id}}">{{db}}.{{table}}</a> has {{indexes.length}} outdated {{pluralize_noun "index" indexes.length}}: {{comma_separated_simple indexes}}</li>
       {{/each}}
     </ul>
   </div>

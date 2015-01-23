@@ -61,7 +61,7 @@ module 'DashboardView', ->
                             Q.num_sindexes_constructing(jobs)
                     )
             )
-            dashboard_callback = (error, result) => 
+            dashboard_callback = (error, result) =>
                 if error?
                     console.log error
                     @error = error
@@ -378,13 +378,4 @@ module 'DashboardView', ->
                 num_sindex_issues: @model.get('num_sindex_issues')
                 num_sindexes_constructing: @model.get('num_sindexes_constructing')
             @$el.html @template template_model
-
-            if @display_popup is true and @model.get('num_connected_servers') isnt @model.get('num_servers')
-                # We re-display the pop up only if there are still issues
-                @show_popup()
-
             @
-
-        remove: =>
-            @stopListening()
-            super()
