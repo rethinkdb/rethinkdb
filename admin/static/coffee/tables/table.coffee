@@ -124,7 +124,7 @@ module 'TableView', ->
                         ).coerceTo('array')
                     })
             )            
-            
+
             # This timer keeps track of the failable index query, so we can
             # cancel it when we navigate away from the table page.
             @failable_index_timer = driver.run failable_index_query, 1000, (error, result) =>
