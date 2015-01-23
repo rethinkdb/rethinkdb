@@ -1941,27 +1941,21 @@ TODO: retire this
                 }
                 &.feed_unpaused .only_if_paused { display: none !important }
                 &.feed_paused .only_if_unpaused { display: none !important }
-                .pause_feed{
-                    opacity: 0.5;
+                .pause_feed, .unpause_feed {
+                    opacity: 0.55;
                     position: relative;
-                    top: 1px;
+                    top: 2px;
                     display: inline-block;
-                    width: 12px;
-                    height: 12px;
-                    background-size: 12px 12px;
-                    background-image: url(images/ion-pause.png);
-                    margin-right: 5px;
+                    width: 14px;
+                    height: 14px;
+                    margin-right: 4px;
+                    background-repeat: no-repeat;
+                }
+                .pause_feed{
+                    background-image: url(images/icon-pause.png);
                 }
                 .unpause_feed{
-                    opacity: 0.5;
-                    position: relative;
-                    top: 1px;
-                    display: inline-block;
-                    width: 12px;
-                    height: 12px;
-                    background-size: 12px 12px;
-                    background-image: url(images/ion-play.png);
-                    margin-right: 5px;
+                    background-image: url(images/icon-play.png);
                 }
                 .animated-ellipsis{
                     margin-right: 6px;
@@ -3406,7 +3400,7 @@ TODO: retire this
 // Adding rows to changefeeds
 
 .add-row-keyframes () {
-    from { background-color: #fbf5ff }
+    from { background-color: #f1f1fa }
     to   { background-color: #fbfbfb }
 }
 
