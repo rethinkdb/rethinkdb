@@ -170,7 +170,7 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
-        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
+        delay_toggle_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -2569,23 +2569,29 @@ module 'DataExplorerView', ->
 
         toggle_executing: (executing) =>
             if executing == @executing
+                if executing and @state.query_result?.is_feed
+                    @$('.loading_query_img').hide()
                 return
             if @disable_toggle_executing
                 return
-            if executing is true
-                @executing = true
-                @timeout_show_abort = setTimeout =>
+            @executing = executing
+            if @timeout_toggle_abort?
+                clearTimeout @timeout_toggle_abort
+            if executing
+                @timeout_toggle_abort = setTimeout =>
+                    @timeout_toggle_abort = null
                     if not @state.query_result?.is_feed
                         @$('.loading_query_img').show()
                     @$('.execute_query').hide()
                     @$('.abort_query').show()
-                , @delay_show_abort
-            else if executing is false
-                clearTimeout @timeout_show_abort
-                @executing = false
-                @$('.loading_query_img').hide()
-                @$('.execute_query').show()
-                @$('.abort_query').hide()
+                , @delay_toggle_abort
+            else
+                @timeout_toggle_abort = setTimeout =>
+                    @timeout_toggle_abort = null
+                    @$('.loading_query_img').hide()
+                    @$('.execute_query').show()
+                    @$('.abort_query').hide()
+                , @delay_toggle_abort
 
         # A portion is one query of the whole input.
         execute_portion: =>
@@ -2955,11 +2961,13 @@ module 'DataExplorerView', ->
             @parent.pause_feed()
 
         pause_feed: =>
-            @parent.container.state.pause_at = @query_result.size()
+            unless @parent.container.state.pause_at?
+                @parent.container.state.pause_at = @query_result.size()
 
         unpause_feed: =>
-            @parent.container.state.pause_at = null
-            @render()
+            if @parent.container.state.pause_at?
+                @parent.container.state.pause_at = null
+                @render()
 
         current_batch: =>
             switch @query_result.type
@@ -3408,12 +3416,16 @@ module 'DataExplorerView', ->
         template: Handlebars.templates['dataexplorer_result_raw-template']
 
         init_after_dom_rendered: =>
+            @adjust_height()
+
+        adjust_height: =>
             height = @$('.raw_view_textarea')[0].scrollHeight
             if height > 0
                 @$('.raw_view_textarea').height(height)
 
         render: =>
             @$el.html @template JSON.stringify @current_batch()
+            @adjust_height()
             return @
 
     class ProfileView extends ResultView
@@ -3717,7 +3729,7 @@ module 'DataExplorerView', ->
 
         remove: =>
             @view_object?.remove()
-            if @query_result.is_feed
+            if @query_result?.is_feed
                 @query_result.force_end_gracefully()
             if @set_scrollbar_scroll_handler?
                 $(window).unbind 'scroll', @set_scrollbar_scroll_handler
@@ -3860,8 +3872,9 @@ module 'DataExplorerView', ->
             if @$('.no_history').length > 0
                 @$('.no_history').slideUp 'fast', ->
                     $(@).remove()
-                    that.container.adjust_collapsible_panel_height
-                        is_at_bottom: is_at_bottom
+                    if that.state is 'visible'
+                        that.container.adjust_collapsible_panel_height
+                            is_at_bottom: is_at_bottom
             else if @state is 'visible'
                 @container.adjust_collapsible_panel_height
                     delay_scroll: true

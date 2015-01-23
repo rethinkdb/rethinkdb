@@ -12,9 +12,9 @@
             {{#if feed.ended}}
                 The changefeed is closed.
             {{else}}
-                Listening for events<span class="animated-ellipsis"><span>.</span><span>.</span><span>.</span></span>
                 <a href="#" class="unpause_feed only_if_paused"></a>
                 <a href="#" class="pause_feed only_if_unpaused"></a>
+                Listening for events<span class="animated-ellipsis"><span>.</span><span>.</span><span>.</span></span>
                 <span class="only_if_paused">(paused: <span class="feed_upcoming">{{feed.upcoming}}</span> more available).</span>
             {{/if}}
         {{else}}
