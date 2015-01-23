@@ -1,0 +1,25 @@
+<div class="issue {{#if critical }}critical{{/if}} name-conflict">
+  <div class="issue-header">
+    <p class="issue-type">Ghost server</p>
+    <p class="message">A server has returned from the dead!</p>
+  </div>
+  <hr />
+  <div class="issue-details">
+    <p>
+      The server process with hostname <code>{{info.hostname}}</code>
+      and process id <code>{{info.pid}}</code> was
+      deleted from the <code>rethinkdb.server_config</code> table, but
+      the process is still running. Once a server has been deleted from
+      <code>rethinkdb.server_config</code>, the data files for that RethinkDB
+      instance cannot be used any more; you must start a new RethinkDB
+      instance with an empty data directory.
+    </p>
+    <p class="description">
+      Server's id: <code>{{info.server_id}}</code>
+    </p>
+    <p>
+      Please manually remove it by killing the RethinkDB process on
+      the server and deleting the data directory it was using.
+    </p>
+  </div>
+</div>

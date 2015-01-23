@@ -25,23 +25,28 @@ module 'ServersView', ->
 
 
         fetch_servers: =>
-            query = r.db(system_db).table('server_status').merge( (server) ->
-                id: server("id")
-                tags: r.db(system_db).table('server_config').get(server('id'))('tags')
-                primary_count:
-                    r.db(system_db).table('table_config')
-                    .concatMap( (table) -> table("shards") )
-                    .filter((shard) -> shard("primary_replica").eq(server("name")))
-                    .count()
-                secondary_count:
-                    r.db(system_db).table('table_config')
-                    .concatMap((table) -> table("shards"))
-                    .filter((shard) -> shard("primary_replica").ne(server("name")))
-                    .concatMap((shard) -> shard("replicas"))
-                    .filter((replica) -> replica.eq(server("name")))
-                    .count()
+            query = r.db(system_db).table('server_config').coerceTo('array').do(
+                r.db(system_db).table('table_config').coerceTo('array'),
+                (server_config, table_config) ->
+                    r.db(system_db).table('server_status').merge( (server) ->
+                        id: server("id")
+                        tags: server_config.filter(id: server('id'))(0)('tags')
+                        primary_count:
+                            table_config.concatMap( (table) -> table("shards") )
+                            .count((shard) ->
+                                shard("primary_replica").eq(server("name")))
+                        secondary_count:
+                            table_config.concatMap((table) -> table("shards"))
+                            .filter((shard) ->
+                                shard("primary_replica").ne(server("name")))
+                            .concatMap((shard) -> shard("replicas"))
+                            .count((replica) -> replica.eq(server("name")))
+                )
             )
             @timer = driver.run query, 5000, (error, result) =>
+                if error?
+                    console.log error
+                    return
                 ids = {}
                 for server, index in result
                     @servers.add new Server(server)
