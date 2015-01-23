@@ -278,30 +278,31 @@ class @Driver
         tables_with_primaries_not_ready: (
             table_config_id=driver.admin().table_config_id,
             table_status=driver.admin().table_status) ->
-                # we need to .get on server_config, so it can't be an
-                # array and must be the real table
-                server_config = driver.admin().server_config
-                table_status.map(table_config_id, (status, config) ->
-                    id: status('id')
-                    name: status('name')
-                    db: status('db')
-                    shards: status('shards').map(
-                        r.range(), config('shards'), (shard, pos, conf_shard) ->
-                            primary_id = conf_shard('primary_replica')
-                            primary_name = server_config.get(primary_id)('name')
-                            position: pos.add(1)
-                            num_shards: status('shards').count()
-                            primary_id: primary_id
-                            primary_name: primary_name
-                            primary_state: shard('replicas').filter(
-                                server: primary_name
-                            )('state')(0)
-                    ).filter((shard) ->
-                        r.expr(['ready', 'looking_for_primary_replica'])
-                            .contains(shard('primary_state')).not()
-                    ).coerceTo('array')
-                ).filter((table) -> table('shards').isEmpty().not())
-                .coerceTo('array')
+                r.do(driver.admin().server_config
+                        .map((x) ->[x('id'), x('name')]).coerceTo('ARRAY').coerceTo('OBJECT'),
+                    (server_names) ->
+                        table_status.map(table_config_id, (status, config) ->
+                            id: status('id')
+                            name: status('name')
+                            db: status('db')
+                            shards: status('shards').map(
+                                r.range(), config('shards'), (shard, pos, conf_shard) ->
+                                    primary_id = conf_shard('primary_replica')
+                                    primary_name = server_names(primary_id)
+                                    position: pos.add(1)
+                                    num_shards: status('shards').count()
+                                    primary_id: primary_id
+                                    primary_name: primary_name
+                                    primary_state: shard('replicas').filter(
+                                        server: primary_name
+                                    )('state')(0)
+                            ).filter((shard) ->
+                                r.expr(['ready', 'looking_for_primary_replica'])
+                                    .contains(shard('primary_state')).not()
+                            ).coerceTo('array')
+                        ).filter((table) -> table('shards').isEmpty().not())
+                        .coerceTo('array')
+                )
 
         tables_with_replicas_not_ready: (
             table_config_id=driver.admin().table_config_id,
@@ -329,24 +330,29 @@ class @Driver
                 .coerceTo('array')
         num_primaries: (table_config_id=driver.admin().table_config_id) ->
             table_config_id('shards')
-                .concatMap(driver.helpers.identity)('primary_replica').count()
+                .map((x) -> x.count()).sum()
 
         num_connected_primaries: (table_status=driver.admin().table_status) ->
-            table_status.concatMap((table) ->
-                table('shards')('primary_replica')
-            ).count((primary) -> primary.ne(null))
+            table_status.map((table) ->
+                table('shards')('primary_replica').count((primary) -> primary.ne(null))
+            ).sum()
 
         num_replicas: (table_config_id=driver.admin().table_config_id) ->
             table_config_id('shards')
-                .concatMap((shard) -> shard("replicas"))
-                .concatMap(driver.helpers.identity).count()
+                .map((shards) ->
+                    shards.map((shard) ->
+                        shard("replicas").count()
+                    ).sum()
+                ).sum()
 
         num_connected_replicas: (table_status=driver.admin().table_status) ->
             table_status('shards')
-                .concatMap((shard) ->
-                    shard('replicas').concatMap((replica) -> replica('state')))
-                .count((replica) ->
-                    r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
+                .map((shard) ->
+                    shard('replicas').map((replica) ->
+                        replica('state').count((replica) ->
+                            r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
+                    ).sum()
+                ).sum()
 
         disconnected_servers: (server_status=driver.admin().server_status) ->
             server_status.filter((server) ->
