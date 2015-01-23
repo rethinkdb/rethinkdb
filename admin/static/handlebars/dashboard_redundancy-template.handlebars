@@ -7,7 +7,7 @@
 {{else}}
 <div class="status problems-detected">
   <h3>Redundancy</h3>
-  <p class="message"><span class="bad">{{num_disconnected_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+  <p class="message"><span class="bad">{{num_tables_w_missing_replicas}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
   <p class="details"><span class="bad">{{num_disconnected_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are unavailable</p>
 </div>
 {{/if}}

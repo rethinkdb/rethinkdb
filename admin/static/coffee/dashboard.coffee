@@ -206,6 +206,7 @@ module 'DashboardView', ->
                 num_connected_primaries: @model.get 'num_connected_primaries'
                 num_disconnected_primaries: @model.get('num_primaries')-@model.get('num_connected_primaries')
                 num_disconnected_tables: @model.get 'num_disconnected_tables'
+                num_tables_w_missing_replicas: @model.get 'num_tables_w_missing_replicas'
                 num_tables: @model.get 'num_tables'
                 tables_with_primaries_not_ready: @model.get('tables_with_primaries_not_ready')
             @$el.html @template template_model
@@ -271,6 +272,7 @@ module 'DashboardView', ->
                 num_connected_replicas: @model.get 'num_available_replicas'
                 num_disconnected_replicas: @model.get('num_replicas')-@model.get('num_connected_replicas')
                 num_disconnected_tables: @model.get 'num_disconnected_tables'
+                num_tables_w_missing_replicas: @model.get 'num_tables_w_missing_replicas'
                 num_tables: @model.get 'num_tables'
                 tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
 
