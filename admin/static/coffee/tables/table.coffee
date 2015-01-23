@@ -15,7 +15,8 @@ module 'TableView', ->
             @distribution = null
 
             @guaranteed_timer = null
-            @failable_timer = null
+            @failable_index_timer = null
+            @failable_misc_timer = null
             
             # Initialize the model with mostly empty dummy data so we can render it right away
             @model = new Table {id: id}
@@ -34,7 +35,7 @@ module 'TableView', ->
             # we don't get from the system tables includes things like
             # table/shard counts, or secondary index status. Those are
             # obtained from table.info() and table.indexStatus() below
-            # in `failable_query` so if they fail we still get the
+            # in `failable_*_query` so if they fail we still get the
             # data available in the system tables.
             guaranteed_query =
                 r.do(
@@ -62,26 +63,39 @@ module 'TableView', ->
                             ).without('shards')
                         )
                     )
+
+            # This query only checks the status of secondary indexes.
+            # It can throw an exception and failif the primary
+            # replica is unavailable (which happens immediately after
+            # a reconfigure).
+            failable_index_query = r.do(
+                r.db(system_db).table('table_config').get(this_id)
+                (table_config) ->
+                    r.db(table_config("db"))
+                    .table(table_config("name"), {useOutdated: true})
+                    .indexStatus()
+                    .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
+                    .merge( (index) -> {
+                        id: index("index")
+                        db: table_config("db")
+                        table: table_config("name")
+                    }) # add an id for backbone
+            )
+
+            # Query to load data distribution and shard assignments.
+            # We keep this separate from the failable_index_query because we don't want
+            # to run it as often.
             # This query can throw an exception and failif the primary
             # replica is unavailable (which happens immediately after
             # a reconfigure). Since this query makes use of
-            # table.info() and table.indexStatus(), it's separated
-            # from the guaranteed query above.
-            failable_query = r.do(
+            # table.info(), it's separated from the guaranteed query above.
+            failable_misc_query = r.do(
                 r.db(system_db).table('table_status').get(this_id),
                 r.db(system_db).table('table_config').get(this_id),
-                r.db(system_db).table('server_config').coerceTo('array'),
-                (table_status, table_config, server_config) ->
+                r.db(system_db).table('server_config')
+                    .map((x) -> [x('name'), x('id')]).coerceTo('ARRAY').coerceTo('OBJECT'),
+                (table_status, table_config, server_name_to_id) ->
                     table_status.merge({
-                        indexes: r.db(table_status("db"))
-                            .table(table_status("name"), {useOutdated: true})
-                            .indexStatus()
-                            .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
-                            .merge( (index) -> {
-                                id: index("index")
-                                db: table_status("db")
-                                table: table_status("name")
-                            }) # add an id for backbone
                         distribution: r.db(table_status('db'))
                             .table(table_status('name'), {useOutdated: true})
                             .info()('doc_count_estimates')
@@ -100,29 +114,48 @@ module 'TableView', ->
                                     .table(table_status('name'), {useOutdated: true})
                                     .info()('doc_count_estimates')(position)
                                 primary:
-                                    id: server_config.filter({name: shard("primary_replica")}).nth(0)("id")
+                                    id: server_name_to_id(shard("primary_replica"))
                                     name: shard("primary_replica")
                                 replicas: shard("replicas")
                                     .filter( (replica) -> replica.ne(shard("primary_replica")))
                                     .map (name) ->
-                                        id: server_config.filter({name: name}).nth(0)("id")
+                                        id: server_name_to_id(name)
                                         name: name
                         ).coerceTo('array')
                     })
-            )
-            # This timer keeps track of the failable query, so we can
+            )            
+            
+            # This timer keeps track of the failable index query, so we can
             # cancel it when we navigate away from the table page.
-            @failable_timer = driver.run failable_query, 1000, (error, result) =>
+            @failable_index_timer = driver.run failable_index_query, 1000, (error, result) =>
                 if error?
                     console.log error.msg
                     return
                 @error = null
                 if @indexes?
-                    @indexes.set _.map(result.indexes, (index) -> new Index index)
+                    @indexes.set _.map(result, (index) -> new Index index)
                 else
-                    @indexes = new Indexes _.map result.indexes, (index) ->
+                    @indexes = new Indexes _.map result, (index) ->
                         new Index index
                 @table_view?.set_indexes @indexes
+
+                @model.set
+                    indexes: result
+                if !@table_view?
+                    @table_view = new TableView.TableMainView
+                        model: @model
+                        indexes: @indexes
+                        distribution: @distribution
+                        shards_assignments: @shards_assignments
+                    @render()
+
+            # This timer keeps track of the failable misc query, so we can
+            # cancel it when we navigate away from the table page.
+            @failable_misc_timer = driver.run failable_misc_query, 10000, (error, result) =>
+                if error?
+                    console.log error.msg
+                    return
+                @error = null
                 if @distribution?
                     @distribution.set _.map result.distribution, (shard) ->
                         new Shard shard
@@ -177,7 +210,6 @@ module 'TableView', ->
                         shards_assignments: @shards_assignments
                     @render()
 
-
             # This timer keeps track of the guaranteed query, running
             # it every 5 seconds. We cancel it when navigating away
             # from the table page.
@@ -221,7 +253,8 @@ module 'TableView', ->
             @
         remove: =>
             driver.stop_timer @guaranteed_timer
-            driver.stop_timer @failable_timer
+            driver.stop_timer @failable_index_timer
+            driver.stop_timer @failable_misc_timer
             @table_view?.remove()
             super()
 
