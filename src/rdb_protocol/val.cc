@@ -56,23 +56,6 @@ private:
     datum_t key, row;
 };
 
-namespace es_helper {
-// We don't want to be recomputing this all the time.
-TLS_with_init(map_wire_func_t *, fptr, NULL);
-map_wire_func_t map_wire_func() {
-    if (TLS_get_fptr() == NULL) {
-        auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
-        r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
-        compile_env_t compile_env((var_visibility_t()));
-        func_term_t func_term(&compile_env, map.release_counted());
-        var_scope_t var_scope;
-        counted_t<const func_t> f = func_term.eval_to_func(var_scope);
-        TLS_set_fptr(new map_wire_func_t(f));
-    }
-    return *TLS_get_fptr();
-}
-} // namespace es_helper
-
 class extreme_selection_t : public single_selection_t {
 public:
     extreme_selection_t(env_t *_env,
@@ -98,7 +81,6 @@ public:
             ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
             env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
-        s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);
         return s;
     }
     virtual datum_t replace(

@@ -1,0 +1,45 @@
+desc: Test basic changefeed operations
+table_variable_name: tbl
+tests:
+
+    # Fill in some data
+    - cd: tbl.index_create('a')['created']
+      ot: 1
+
+    - cd: tbl.index_wait().count
+      ot: 1
+
+    - cd: tbl.insert([{id:1, a:8}, {id:2, a:7}])['inserted']
+      ot: 2
+
+    - rb: idmin = tbl.min(index:'id').changes().limit(2)
+    - rb: idmax = tbl.max(index:'id').changes().limit(2)
+    - rb: amin = tbl.min(index:'a').changes().limit(2)
+    - rb: amax = tbl.max(index:'a').changes().limit(2)
+
+    - cd: tbl.insert([{id:0, a:9}, {id:3, a:6}])['inserted']
+      ot: 2
+
+    - rb: idmin.to_a
+      ot: ([{"new_val"=>{"a"=>8, "id"=>1}},
+            {"new_val"=>{"a"=>9, "id"=>0}, "old_val"=>{"a"=>8, "id"=>1}}])
+      testopts:
+        reql-query: False
+
+    - rb: idmax.to_a
+      ot: ([{"new_val"=>{"a"=>7, "id"=>2}},
+            {"new_val"=>{"a"=>6, "id"=>3}, "old_val"=>{"a"=>7, "id"=>2}}])
+      testopts:
+        reql-query: False
+
+    - rb: amin.to_a
+      ot: ([{"new_val"=>{"a"=>7, "id"=>2}},
+            {"new_val"=>{"a"=>6, "id"=>3}, "old_val"=>{"a"=>7, "id"=>2}}])
+      testopts:
+        reql-query: False
+
+    - rb: amax.to_a
+      ot: ([{"new_val"=>{"a"=>8, "id"=>1}},
+            {"new_val"=>{"a"=>9, "id"=>0}, "old_val"=>{"a"=>8, "id"=>1}}])
+      testopts:
+        reql-query: False
