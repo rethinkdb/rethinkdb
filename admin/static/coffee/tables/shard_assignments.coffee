@@ -4,22 +4,23 @@ module 'TableView', ->
         template: Handlebars.templates['shard_assignments-template']
 
         initialize: (data) =>
-            @model = data.model
+            @listenTo @model, 'change:info_unavailable', @set_warnings
             if data.collection?
-                @loading = false
                 @collection = data.collection
-            else
-                @loading = true
             @assignments_view = []
 
+        set_warnings: ->
+            if @model.get('info_unavailable')
+                @$('.unavailable-error').show()
+            else
+                @$('.unavailable-error').hide()
+
         set_assignments: (assignments) =>
-            @loading = false
             @collection = assignments
             @render()
 
         render: =>
-            @$el.html @template
-                loading: @loading
+            @$el.html @template @model.toJSON()
             if @collection?
                 @collection.each (assignment) =>
                     view = new TableView.ShardAssignmentView
@@ -60,6 +61,7 @@ module 'TableView', ->
                             view.remove()
                             @assignments_view.splice position, 1
                             break
+            @set_warnings()
             @
 
         remove: =>

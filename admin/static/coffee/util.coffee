@@ -139,7 +139,6 @@ form_data_as_object = (form) ->
         formdata[x.name] = x.value
     return formdata
 
-
 ###
     Taken from "Namespacing and modules with Coffeescript"
     https://github.com/jashkenas/coffee-script/wiki/Easy-modules-with-coffeescript

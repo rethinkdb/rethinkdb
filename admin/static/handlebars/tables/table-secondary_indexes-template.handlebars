@@ -1,28 +1,27 @@
-
-    <h2 class="title">Secondary indexes</h2>
-    <div class="alert main_alert">
-        <a class="close_hide" href="#">&times;</a>
-        <div class="alert_content"></div>
-    </div>
-    <div class="alert alert-error main_alert_error">
-        <a class="close_hide" href="#">&times;</a>
-        <div class="alert_error_content"></div>
-    </div>
-    <div class="alert alert-error"></div>
-    <div class="content">
-        {{#if loading}}
-        <div class="alert displayed_alert loading">Loading...</div>
-        {{else}}
-        <ul class="list_meta">
-            <li class="square_li no_index">No secondary indexes found.</li>
-        </ul>
-        <ul class="list_secondary_indexes">
-        </ul>
-        <ul class="list_meta">
-            <li class="square_li input_li add_index_li"><input type="text" class="new_index_name" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
-        </ul>
-        <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
-        {{/if}}
-    </div>
-
-
+<h2 class="title">Secondary indexes</h2>
+<div class="alert main_alert">
+  <a class="close_hide" href="#">&times;</a>
+  <div class="alert_content"></div>
+</div>
+<div class="alert alert-error main_alert_error">
+  <a class="close_hide" href="#">&times;</a>
+  <div class="alert_error_content"></div>
+</div>
+<div class="alert alert-error"></div>
+<div class="unavailable-error">
+  <p>
+    Secondary indexes cannot be updated while a primary replica is unavailable.
+  </p>
+</div>
+<div class="content">
+  <ul class="list_meta">
+    <li class="square_li no_index">No secondary indexes found.</li>
+  </ul>
+  <ul class="list_secondary_indexes">
+  </ul>
+  <ul class="list_meta">
+    <li class="square_li input_li add_index_li"><input type="text" class="new_index_name" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
+  </ul>
+  <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a>
+  </div>
+</div>
