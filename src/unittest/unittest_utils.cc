@@ -40,10 +40,7 @@ struct make_sindex_read_t {
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
-                sindex_rangespec_t(
-                    id,
-                    region_t(rng.to_sindex_keyrange(ql::skey_version_t::post_1_16)),
-                    rng),
+                sindex_rangespec_t(id, boost::none, rng),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE);
     }
