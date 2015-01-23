@@ -211,14 +211,10 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
         }
     }
 
-    /* Make sure that every known peer appears in the blueprint in some form, so that the
-    reactor doesn't proceed without approval of every known peer */
-    std::map<server_id_t, peer_id_t> server_id_to_peer_id_map =
-        server_config_client->get_server_id_to_peer_id_map()->get();
-    for (auto it = server_id_to_peer_id_map.begin();
-              it != server_id_to_peer_id_map.end();
-            ++it) {
-        peer_id_t peer = trans.server_id_to_peer_id(it->first);
+    /* Make sure that every known non-ghost server appears in the blueprint in some form,
+    so that the reactor doesn't proceed without their approval */
+    for (const auto &pair : server_config_client->get_server_id_to_name_map()->get()) {
+        peer_id_t peer = trans.server_id_to_peer_id(pair.first);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
