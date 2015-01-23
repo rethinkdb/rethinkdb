@@ -19,115 +19,50 @@ module 'DashboardView', ->
             @fetch_data()
 
         fetch_data: =>
-            # We need to flatten a few sequences with identity
-            # So we store the function here to make the code a bit shorter
-            identity = (a) -> a
-
-            system_table = (name) -> r.db(system_db).table(name)
-            table_status = system_table('table_status')
-            table_config_id = r.db(system_db).table(
-                'table_config', identifierFormat: 'uuid')
-            server_config = system_table('server_config')
-            server_status = system_table('server_status')
-
-            tables_with_primaries_not_ready = table_status.map(
-                table_config_id, (status, config) ->
-                    id: status('id')
-                    name: status('name')
-                    db: status('db')
-                    shards: status('shards').map(
-                        r.range(), config('shards'), (shard, pos, conf_shard) ->
-                            primary_id = conf_shard('primary_replica')
-                            server_config.get(primary_id)('name').default(null).do((primary_name) ->
-                                position: pos.add(1)
-                                num_shards: status('shards').count()
-                                primary_id: primary_id
-                                primary_name: primary_name
-                                primary_state: r.branch(
-                                    primary_name.eq(null),
-                                    'MISSING',
-                                    shard('replicas').filter(
-                                        server: primary_name
-                                    )('state')(0)
-                                )
-                           )
-                    ).filter((shard) ->
-                        r.expr(['ready', 'looking_for_primary_replica'])
-                            .contains(shard('primary_state')).not()
-                    ).coerceTo('array')
-                ).filter((table) -> table('shards').isEmpty().not())
-                .coerceTo('array')
-            tables_with_replicas_not_ready = table_status.map(
-                table_config_id, (status, config) ->
-                    id: status('id')
-                    name: status('name')
-                    db: status('db')
-                    shards: status('shards').map(
-                        r.range(), config('shards'), (shard, pos, conf_shard) ->
-                            position: pos.add(1)
-                            num_shards: status('shards').count(),
-                            replicas: shard('replicas')
-                                .filter((replica) ->
-                                    r.expr(['ready',
-                                        'looking_for_primary_replica',
-                                        'offloading_data'])
-                                        .contains(replica('state')).not()
-                                ).map(conf_shard('replicas'), (replica, replica_id) ->
-                                    replica_id: replica_id
-                                    replica_name: replica('server')
-                                ).coerceTo('array')
-                    ).coerceTo('array')
-            ).filter((table) -> table('shards')(0)('replicas').isEmpty().not())
-            .coerceTo('array')
-            num_primaries = table_config_id('shards')
-                .concatMap(identity)('primary_replica').count()
-            num_connected_primaries = table_status.concatMap((table) ->
-                table('shards')('primary_replica')
-            ).count((primary) -> primary.ne(null))
-            num_replicas = table_config_id('shards')
-                .concatMap((shard) -> shard("replicas"))
-                .concatMap(identity).count()
-            num_connected_replicas = table_status('shards')
-                .concatMap((shard) ->
-                    shard('replicas').concatMap((replica) -> replica('state')))
-                .count((replica) ->
-                    r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
-            disconnected_servers = server_status.filter((server) ->
-                    server("status").ne("connected")
-            ).map((server) ->
-                time_disconnected: server('connection')('time_disconnected')
-                name: server('name')
-            ).coerceTo('array')
-            num_disconnected_tables = table_status.count((table) ->
-                shard_is_down = (shard) -> shard('primary_replica').eq(null)
-                table('shards').map(shard_is_down).contains(true)
+            A = driver.admin()
+            query = r.do(
+                A.table_status.coerceTo('array'),
+                A.table_config_id.coerceTo('array'),
+                A.server_config.coerceTo('array'),
+                A.server_status.coerceTo('array'),
+                A.jobs.coerceTo('array'),
+                A.current_issues.coerceTo('array'),
+                (table_status, table_config_id, server_config,
+                 server_status, jobs, current_issues) ->
+                    Q = driver.queries
+                    r.expr(
+                        num_primaries:
+                            Q.num_primaries(table_config_id)
+                        num_connected_primaries:
+                            Q.num_connected_primaries(table_status)
+                        num_replicas:
+                            Q.num_replicas(table_config_id)
+                        num_connected_replicas:
+                            Q.num_connected_replicas(table_status)
+                        tables_with_primaries_not_ready:
+                            Q.tables_with_primaries_not_ready(
+                                table_config_id, table_status)
+                        tables_with_replicas_not_ready:
+                            Q.tables_with_replicas_not_ready(
+                                table_config_id, table_status)
+                        num_tables: table_config_id.count()
+                        num_servers: server_status.count()
+                        num_connected_servers:
+                            Q.num_connected_servers(server_status)
+                        disconnected_servers:
+                            Q.disconnected_servers(server_status)
+                        num_disconnected_tables:
+                            Q.num_disconnected_tables(table_status)
+                        num_tables_w_missing_replicas:
+                            Q.num_tables_w_missing_replicas(table_status)
+                        num_sindex_issues:
+                            Q.num_sindex_issues(current_issues)
+                        num_sindexes_constructing:
+                            Q.num_sindexes_constructing(jobs)
+                    )
             )
-            num_tables_w_missing_replicas = table_status.count((table) ->
-                table('status')('all_replicas_ready').not()
-            )
-            num_connected_servers = server_status.count((server) ->
-                server('status').eq("connected")
-            )
-
-
-            query = r.expr(
-                num_primaries: num_primaries
-                num_connected_primaries: num_connected_primaries
-                num_replicas: num_replicas
-                num_connected_replicas: num_connected_replicas
-                tables_with_primaries_not_ready: tables_with_primaries_not_ready
-                tables_with_replicas_not_ready: tables_with_replicas_not_ready
-                num_tables: table_config_id.count()
-                num_servers: server_status.count()
-                num_connected_servers: num_connected_servers
-                disconnected_servers: disconnected_servers
-                num_disconnected_tables: num_disconnected_tables
-                num_tables_w_missing_replicas: num_tables_w_missing_replicas
-            )
-
-            @timer = driver.run query, 5000, (error, result) =>
+            dashboard_callback = (error, result) => 
                 if error?
-                    #TODO
                     console.log error
                     @error = error
                     @render()
@@ -137,6 +72,9 @@ module 'DashboardView', ->
                     @dashboard.set result
                     if rerender
                         @render()
+
+            @main_timer = driver.run query, 5000, dashboard_callback
+
 
         render: =>
             if @error?
@@ -148,7 +86,7 @@ module 'DashboardView', ->
             @
 
         remove: =>
-            driver.stop_timer @timer
+            driver.stop_timer @main_timer
             if @dashboard_view
                 @dashboard_view.remove()
             super()
@@ -166,6 +104,8 @@ module 'DashboardView', ->
             @cluster_status_redundancy = new DashboardView.ClusterStatusRedundancy
                 model: @model
             @cluster_status_connectivity = new DashboardView.ClusterStatusConnectivity
+                model: @model
+            @cluster_status_sindexes = new DashboardView.ClusterStatusSindexes
                 model: @model
 
             @stats = new Stats
@@ -199,6 +139,7 @@ module 'DashboardView', ->
             @$('.availability').html @cluster_status_availability.render().$el
             @$('.redundancy').html @cluster_status_redundancy.render().$el
             @$('.connectivity').html @cluster_status_connectivity.render().$el
+            @$('.sindexes').html @cluster_status_sindexes.render().$el
 
             @$('#cluster_performance_container').html @cluster_performance.render().$el
             @$('.recent-log-entries-container').html @logs.render().$el
@@ -212,6 +153,7 @@ module 'DashboardView', ->
             @cluster_status_redundancy.remove()
             @cluster_status_connectivity.remove()
             @cluster_performance.remove()
+            @cluster_status_sindexes.remove()
             @logs.remove()
             super()
 
@@ -403,4 +345,44 @@ module 'DashboardView', ->
         remove: =>
             @stopListening()
             $(window).off 'mouseup', @remove_popup
+            super()
+
+
+    class @ClusterStatusSindexes extends Backbone.View
+        className: 'cluster-status-sindexes'
+
+        template: Handlebars.templates['dashboard_sindexes']
+
+        initialize: =>
+            @listenTo @model, 'change:num_sindex_issues', @render
+            @listenTo @model, 'change:num_sindexes_constructing', @render
+
+        render: =>
+            issues = @model.get('num_sindex_issues') > 1
+            constructing = @model.get('num_sindexes_constructing')
+            if issues or constructing
+                section_class = 'problems-detected'
+                issue_class = if issues then 'bad' else 'good'
+                constructing_class = if constructing then 'bad' else 'good'
+            else
+                section_class = 'no-problems-detected'
+                issue_class = 'good'
+                constructing_class = 'good'
+
+            template_model =
+                section_class: section_class
+                issue_class: issue_class
+                constructing_class: constructing_class
+                num_sindex_issues: @model.get('num_sindex_issues')
+                num_sindexes_constructing: @model.get('num_sindexes_constructing')
+            @$el.html @template template_model
+
+            if @display_popup is true and @model.get('num_connected_servers') isnt @model.get('num_servers')
+                # We re-display the pop up only if there are still issues
+                @show_popup()
+
+            @
+
+        remove: =>
+            @stopListening()
             super()

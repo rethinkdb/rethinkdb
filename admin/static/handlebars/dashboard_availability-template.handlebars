@@ -2,13 +2,13 @@
 <div class="status no-problems-detected">
   <h3>Availability</h3>
   <p class="message"><span class="good">0</span> issues detected</p>
-  <p class="details"><span class="good">{{num_primaries}}/{{num_primaries}}</span> primary replicas available</p>
+  <p class="details"><span class="good">{{num_primaries}}/{{num_primaries}}</span> primaries available</p>
 </div>
 {{else}}
 <div class="status problems-detected">
   <h3>Availability</h3>
   <p class="message"><span class="bad">{{num_disconnected_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-  <p class="details"><span class="bad">{{num_disconnected_primaries}}/{{num_primaries}}</span> <a href="#" class="show_details">primary replicas</a> unavailable</p>
+  <p class="details"><span class="bad">{{num_disconnected_primaries}}/{{num_primaries}}</span> <a href="#" class="show_details">primaries</a> unavailable</p>
 </div>
 {{/if}}
 <div class="popup_container">

@@ -156,6 +156,37 @@ class @Driver
         clearTimeout @timers[timer]?.timeout
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
+    admin: ->
+        cluster_config: r.db(system_db).table('cluster_config')
+        cluster_config_id: r.db(system_db).table(
+            'cluster_config',identifierFormat: 'uuid')
+        current_issues: r.db(system_db).table('current_issues')
+        current_issues_id: r.db(system_db).table(
+            'current_issues', identifierFormat: 'uuid')
+        db_config: r.db(system_db).table('db_config')
+        db_config_id: r.db(system_db).table(
+            'db_config', identifierFormat: 'uuid')
+        jobs: r.db(system_db).table('jobs')
+        jobs_id: r.db(system_db).table(
+            'jobs', identifierFormat: 'uuid')
+        logs: r.db(system_db).table('logs')
+        logs_id: r.db(system_db).table(
+            'logs', identifierFormat: 'uuid')
+        server_config: r.db(system_db).table('server_config')
+        server_config_id: r.db(system_db).table(
+            'server_config', identifierFormat: 'uuid')
+        server_status: r.db(system_db).table('server_status')
+        server_status_id: r.db(system_db).table(
+            'server_status', identifierFormat: 'uuid')
+        stats: r.db(system_db).table('stats')
+        stats_id: r.db(system_db).table(
+            'stats', identifierFormat: 'uuid')
+        table_config: r.db(system_db).table('table_config')
+        table_config_id: r.db(system_db).table(
+            'table_config', identifierFormat: 'uuid')
+        table_status: r.db(system_db).table('table_status')
+        table_status_id: r.db(system_db).table(
+            'table_status', identifierFormat: 'uuid')
 
     # helper methods
     helpers:
@@ -173,11 +204,12 @@ class @Driver
             for [val, action] in specs.reverse()
                 previous = r.branch(r.expr(variable).eq(val), action, previous)
             return previous
+        identity: (x) -> x
 
     # common queries used in multiple places in the ui
     queries:
         all_logs: (limit) =>
-            server_conf = r.db(system_db).table('server_config')
+            server_conf = driver.admin().server_config
             r.db(system_db)
                 .table('logs', identifierFormat: 'uuid')
                 .orderBy(index: r.desc('id'))
@@ -188,7 +220,7 @@ class @Driver
                         server_id: log('server')
                 )
         server_logs: (limit, server_id) =>
-            server_conf = r.db(system_db).table('server_config')
+            server_conf = driver.admin().server_config
             r.db(system_db)
                 .table('logs', identifierFormat: 'uuid')
                 .orderBy(index: r.desc('id'))
@@ -199,46 +231,149 @@ class @Driver
                         server: server_conf.get(log('server'))('name')
                         server_id: log('server')
                 )
-        issues_with_ids: =>
-            issues_id = r.db(system_db).table(
-                'current_issues', identifierFormat: 'uuid')
-            return r.db(system_db).table('current_issues')
-                .merge((issue) ->
-                    issue_id = issues_id.get(issue('id'))
-                    server_disconnected =
-                        disconnected_server_id:
-                            issue_id('info')('disconnected_server')
-                        reporting_servers:
-                            issue('info')('reporting_servers')
-                                .map(issue_id('info')('reporting_servers'),
-                                    (server, server_id) ->
-                                        server: server,
-                                        server_id: server_id
-                                    )
-                    log_write_error =
-                        servers: issue('info')('servers').map(
-                            issue_id('info')('servers'),
-                            (server, server_id) ->
-                                server: server
-                                server_id: server_id
-                        )
-                    outdated_index =
-                        tables: issue('info')('tables').map(
-                            issue_id('info')('tables'),
-                            (table, table_id) ->
-                                db_id: table_id('db')
-                                table_id: table_id('table')
-                        )
-                    invalid_config =
-                        table_id: issue_id('info')('table')
-                        db_id: issue_id('info')('db')
-                    info: driver.helpers.match(issue('type'),
-                        ['server_disconnected', server_disconnected],
-                        ['log_write_error', log_write_error],
-                        ['outdated_index', outdated_index],
-                        ['table_needs_primary', invalid_config],
-                        ['data_lost', invalid_config],
-                        ['write_acks', invalid_config],
-                        [issue('type'), issue('info')], # default
+
+        issues_with_ids: (current_issues=driver.admin().current_issues) ->
+            # we use .get on issues_id, so it must be the real table
+            current_issues_id = driver.admin().current_issues_id
+            current_issues.merge((issue) ->
+                issue_id = current_issues_id.get(issue('id'))
+                server_disconnected =
+                    disconnected_server_id:
+                        issue_id('info')('disconnected_server')
+                    reporting_servers:
+                        issue('info')('reporting_servers')
+                            .map(issue_id('info')('reporting_servers'),
+                                (server, server_id) ->
+                                    server: server,
+                                    server_id: server_id
+                                )
+                log_write_error =
+                    servers: issue('info')('servers').map(
+                        issue_id('info')('servers'),
+                        (server, server_id) ->
+                            server: server
+                            server_id: server_id
                     )
-                ).coerceTo('array')
+                outdated_index =
+                    tables: issue('info')('tables').map(
+                        issue_id('info')('tables'),
+                        (table, table_id) ->
+                            db_id: table_id('db')
+                            table_id: table_id('table')
+                    )
+                invalid_config =
+                    table_id: issue_id('info')('table')
+                    db_id: issue_id('info')('db')
+                info: driver.helpers.match(issue('type'),
+                    ['server_disconnected', server_disconnected],
+                    ['log_write_error', log_write_error],
+                    ['outdated_index', outdated_index],
+                    ['table_needs_primary', invalid_config],
+                    ['data_lost', invalid_config],
+                    ['write_acks', invalid_config],
+                    [issue('type'), issue('info')], # default
+                )
+            ).coerceTo('array')
+
+        tables_with_primaries_not_ready: (
+            table_config_id=driver.admin().table_config_id,
+            table_status=driver.admin().table_status) ->
+                # we need to .get on server_config, so it can't be an
+                # array and must be the real table
+                server_config = driver.admin().server_config
+                table_status.map(table_config_id, (status, config) ->
+                    id: status('id')
+                    name: status('name')
+                    db: status('db')
+                    shards: status('shards').map(
+                        r.range(), config('shards'), (shard, pos, conf_shard) ->
+                            primary_id = conf_shard('primary_replica')
+                            primary_name = server_config.get(primary_id)('name')
+                            position: pos.add(1)
+                            num_shards: status('shards').count()
+                            primary_id: primary_id
+                            primary_name: primary_name
+                            primary_state: shard('replicas').filter(
+                                server: primary_name
+                            )('state')(0)
+                    ).filter((shard) ->
+                        r.expr(['ready', 'looking_for_primary_replica'])
+                            .contains(shard('primary_state')).not()
+                    ).coerceTo('array')
+                ).filter((table) -> table('shards').isEmpty().not())
+                .coerceTo('array')
+
+        tables_with_replicas_not_ready: (
+            table_config_id=driver.admin().table_config_id,
+            table_status=driver.admin().table_status) ->
+                table_status.map(table_config_id, (status, config) ->
+                    id: status('id')
+                    name: status('name')
+                    db: status('db')
+                    shards: status('shards').map(
+                        r.range(), config('shards'), (shard, pos, conf_shard) ->
+                            position: pos.add(1)
+                            num_shards: status('shards').count(),
+                            replicas: shard('replicas')
+                                .filter((replica) ->
+                                    r.expr(['ready',
+                                        'looking_for_primary_replica',
+                                        'offloading_data'])
+                                        .contains(replica('state')).not()
+                                ).map(conf_shard('replicas'), (replica, replica_id) ->
+                                    replica_id: replica_id
+                                    replica_name: replica('server')
+                                ).coerceTo('array')
+                    ).coerceTo('array')
+                ).filter((table) -> table('shards')(0)('replicas').isEmpty().not())
+                .coerceTo('array')
+        num_primaries: (table_config_id=driver.admin().table_config_id) ->
+            table_config_id('shards')
+                .concatMap(driver.helpers.identity)('primary_replica').count()
+
+        num_connected_primaries: (table_status=driver.admin().table_status) ->
+            table_status.concatMap((table) ->
+                table('shards')('primary_replica')
+            ).count((primary) -> primary.ne(null))
+
+        num_replicas: (table_config_id=driver.admin().table_config_id) ->
+            table_config_id('shards')
+                .concatMap((shard) -> shard("replicas"))
+                .concatMap(driver.helpers.identity).count()
+
+        num_connected_replicas: (table_status=driver.admin().table_status) ->
+            table_status('shards')
+                .concatMap((shard) ->
+                    shard('replicas').concatMap((replica) -> replica('state')))
+                .count((replica) ->
+                    r.expr(['ready', 'looking_for_primary_replica']).contains(replica))
+
+        disconnected_servers: (server_status=driver.admin().server_status) ->
+            server_status.filter((server) ->
+                server("status").ne("connected")
+            ).map((server) ->
+                time_disconnected: server('connection')('time_disconnected')
+                name: server('name')
+            ).coerceTo('array')
+
+        num_disconnected_tables: (table_status=driver.admin().table_status) ->
+            table_status.count((table) ->
+                shard_is_down = (shard) -> shard('primary_replica').eq(null)
+                table('shards').map(shard_is_down).contains(true)
+            )
+
+        num_tables_w_missing_replicas: (table_status=driver.admin().table_status) ->
+            table_status.count((table) ->
+                table('status')('all_replicas_ready').not()
+            )
+
+        num_connected_servers: (server_status=driver.admin().server_status) ->
+            server_status.count((server) ->
+                server('status').eq("connected")
+            )
+
+        num_sindex_issues: (current_issues=driver.admin().current_issues) ->
+            current_issues.count((issue) -> issue('type').eq('outdated_index'))
+
+        num_sindexes_constructing: (jobs=driver.admin().jobs) ->
+            jobs.count((job) -> job('type').eq('index_construction'))
