@@ -52,7 +52,6 @@ module 'MainView', ->
 
         fetch_data: (server_uuid) =>
             query = r.expr
-                databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 issues: driver.queries.issues_with_ids()
@@ -72,9 +71,6 @@ module 'MainView', ->
                 if error?
                     console.log(error)
                 else
-                    for database in result.databases
-                        @databases.add new Database(database), {merge: true}
-                        delete result.databases
                     for table in result.tables
                         @tables.add new Table(table), {merge: true}
                         delete result.tables
