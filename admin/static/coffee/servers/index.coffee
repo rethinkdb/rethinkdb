@@ -25,23 +25,30 @@ module 'ServersView', ->
 
 
         fetch_servers: =>
-            query = r.db(system_db).table('server_status').merge( (server) ->
-                id: server("id")
-                tags: r.db(system_db).table('server_config').get(server('id'))('tags')
-                primary_count:
-                    r.db(system_db).table('table_config')
-                    .concatMap( (table) -> table("shards") )
-                    .filter((shard) -> shard("primary_replica").eq(server("name")))
-                    .count()
-                secondary_count:
-                    r.db(system_db).table('table_config')
-                    .concatMap((table) -> table("shards"))
-                    .filter((shard) -> shard("primary_replica").ne(server("name")))
-                    .concatMap((shard) -> shard("replicas"))
-                    .filter((replica) -> replica.eq(server("name")))
-                    .count()
+            query = r.do(
+                r.db(system_db).table('server_config').map((x) ->[x('id'), x]).coerceTo('ARRAY').coerceTo('OBJECT')
+                r.db(system_db).table('table_config').coerceTo('array'),
+                r.db(system_db).table('table_config').coerceTo('array')
+                    .concatMap((table) -> table('shards')),
+                (server_config, table_config, table_config_shards) ->
+                    r.db(system_db).table('server_status').merge( (server) ->
+                        id: server("id")
+                        tags: server_config(server('id'))('tags')
+                        primary_count:
+                            table_config.concatMap( (table) -> table("shards") )
+                            .count((shard) ->
+                                shard("primary_replica").eq(server("name")))
+                        secondary_count:
+                            table_config_shards.filter((shard) ->
+                                shard("primary_replica").ne(server("name")))
+                            .map((shard) -> shard("replicas").count((replica) ->
+                                replica.eq(server("name")))).sum()
+                )
             )
             @timer = driver.run query, 5000, (error, result) =>
+                if error?
+                    console.log error
+                    return
                 ids = {}
                 for server, index in result
                     @servers.add new Server(server)

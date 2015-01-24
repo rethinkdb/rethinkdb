@@ -486,7 +486,6 @@ namespaces_semilattice_metadata_t migrate_tables(
 
 cluster_semilattice_metadata_t migrate_cluster_metadata_to_v1_16(
         const pre_v1_16::cluster_semilattice_metadata_t &old_md) {
-    logNTC("Migrating existing metadata to the new RethinkDB 1.16 format...");
     cluster_semilattice_metadata_t new_md;
     new_md.rdb_namespaces = cow_ptr_t<namespaces_semilattice_metadata_t>(
         migrate_tables(*old_md.rdb_namespaces,
