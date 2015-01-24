@@ -67,6 +67,17 @@ tests:
 
 # Squash Territory
 
+    # Bad squash value
+    - py: tbl.changes(squash=None)
+      rb: tbl.changes(squash:nil)
+      js: tbl.changes({squash:null})
+      ot: err('RqlRuntimeError', 'Expected BOOL or NUMBER but found NULL')
+
+    - py: tbl.changes(squash=-10)
+      rb: tbl.changes(squash:-10)
+      js: tbl.changes({squash:-10})
+      ot: err('RqlRuntimeError', 'Expected BOOL or a positive NUMBER but found a negative NUMBER')
+
     - py: tbl.changes(squash=true).type_of()
       rb: tbl.changes(squash:true).type_of()
       js: tbl.changes({squash:true}).typeOf()
