@@ -879,17 +879,22 @@ TODO: retire this
         margin-right: auto;
         overflow: auto;
         border-collapse: collapse;
+        .flex-justify(space-between);
+                      
         .flex();
         .panel {
             border: thin solid #dfdfdf;
-            .flex-grow(1);
+            .flex-grow(0);
+            .flex-shrink(0);
+            flex-basis: 233px;
             @bad: #e85250;
             @good: #3ba51a;
             vertical-align: top;
+            overflow: hidden;
+            white-space: nowrap;
             & > div:first-child{
                 padding: 20px;
-                .flex();
-                .flex-justify(center);
+            text-overflow: ellipsis;
             }
             h3 {
                 margin-top: 0;

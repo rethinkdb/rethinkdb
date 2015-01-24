@@ -5,10 +5,6 @@ class BackboneCluster extends Backbone.Router
     # tries to manually edit the route
     routes:
         '': 'dashboard'
-        'databases': 'index_tables'
-        'databases/': 'index_tables'
-        'databases/:id': 'database'
-        'databases/:id/': 'database'
         'tables': 'index_tables'
         'tables/': 'index_tables'
         'tables/:id': 'table'
@@ -67,11 +63,6 @@ class BackboneCluster extends Backbone.Router
         @container.html @current_view.render().$el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view_wrapper.set_scrollbar() # In case we check the data explorer, leave and come back
-
-    database: (id) ->
-        @current_view.remove()
-        @current_view = new DatabaseView.DatabaseContainer id
-        @container.html @current_view.render().$el
 
     table: (id) ->
         @current_view.remove()
