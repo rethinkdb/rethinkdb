@@ -1,3 +1,118 @@
+# Release 1.16.0 (Stand By Me)
+
+Released on 2015-01-28
+
+
+The highlights of this release are numerous and exciting. Read the
+[release blog post][1.16-blog] for more details.
+
+[1.16-blog]: http://rethinkdb.com/blog/1.16-release/
+
+There may or may not be API-breaking changes in this release.
+
+## New Features ##
+
+* ReQL admin: a new cluster management and monitoring API (#2169)
+  * Added a system database named `rethinkdb`, with the following tables:
+    * The `cluster_config` table contains cluster-wide settings (#2924)
+    * The `current_issues` table lists issues affecting the cluster (#2864)
+    * The `db_config` table allows listing and renaming databases (#151, #2871)
+    * The `jobs` table lists running jobs (#3115)
+    * The `logs` table for accessing the server logs (#2884)
+    * The `server_config` table for managing servers (#2873)
+    * The `server_status` table contains information about the servers in the cluster (#2923)
+    * The `stats` table contains real-time statistics about the server (#2885)
+    * The `table_config` table allows listing, creating, modifying and dropping tables (#2870)
+    * The `table_status` table contains extra information about each table (#2983)
+    * The hidden `_debug_table_status` table for extra debugging information (#2901)
+  * Improved cluster management
+    * Servers can now be associated with multiple tags using the `--server-tag` flag or by updating the `server_config` table (#2856)
+    * Removed the datacenter abstraction and changed the arguments to `tableCreate` (#2876)
+    * Added a `reconfigure` command to change the replication and sharding settings of a table (#2932)
+    * Added a `rebalance` command to even out the size of a table's shards (#2981)
+    * Redundant information has been removed from the `/ajax` endpoint (#2878, #2879)
+    * Automatically migrate data directories to the new semilattice configuration format (#2869)
+    * The stats now contains the number of client connections (#2989)
+    * Added more information to the return value of `db_create`, `db_drop`, `table_create` and `table_drop` (#3001)
+    * Changed how `durability` and `write_acks` are configured (#3066)
+    * Now allow changing the cache size at runtime (#3166)
+    * Now expose the command line of the server (#3180)
+    * Improved the scalability for large table creation and reconfiguration in large clusters (#3198)
+* ReQL
+  * Added `r.range` which generates all numbers from a given range (#875)
+  * Enforce UTF-8 encoding on input strings (#1181)
+  * Added `wait` which waits for a table to be ready (#2259)
+  * Added `toJsonString` which converts a datum into a JSON string (#2513)
+  * Turned `map` into a variadic function for mapping over multiple sequences in parallel (#2547)
+  * Added an optional `squash` argument to the `changes` command which lets the sever combine multiple changes to the same document (#2726)
+  * `min` and `max` will no use an index when passed the new `index` parameter (#2974, #2981)
+
+## Improvements ##
+
+* Web UI
+  * The web assets are now compiled into the `rethinkdb` executable (#1093)
+  * `getAll` queries on secondary indexes are now shown in the performance graph (#2379)
+  * Added `getField` to the autocompletion in the data explorer (#2624)
+  * Added support for changefeeds in the data explorer (#2643)
+  * Reduced the amount of data used and computations performed by the dashboard (#2786)
+* Server
+  * Removed code used to support outdated tests (#1524)
+  * Improved implementation of erase range operations (#2034)
+  * Now use `jemalloc` by default instead of `tcmalloc`, which solves some apparent memory leaks (#2279)
+  * Replaced vector clocks with naïve timestamp-based conflict resolution (#2784)
+  * No longer complain when `stderr` can't be flushed (#2790)
+  * Replaced uses of the word "machine" to use "server" instead. The old `--machine-name` flag is now `--server-name` (#2877)
+  * The server now prints its own name on startup (#2992)
+  * Adjusted the formatting of log levels and no longer print `info:` lines to stderr (#3040)
+  * Added a `--no-default-bind` option that prevents the server from listening on loopback addresses (#3154)
+  * Lower the CPU load of an idle server (#3185)
+  * Now ignore the OS disk cache when calculating available memory (#3193)
+* Testing
+  * The ReQL tests can now run in parallel (#2305, #2672)
+  * The Ruby driver is not tested against different versions of Ruby (#2526)
+  * Relaxing floating point comparison to account for rounding issues (#2912)
+  * No longer depend on external HTTP servers (#3047)
+* ReQL
+  * Allow creating evenly-spaced shards (#1679)
+  * Allow querying the version of the server (#2698)
+  * Changefeeds are no longer aborted when the primary replica changes (#2757)
+  * Improved the error message when pseudo-types are used as objects (#2766)
+  * The names of types returned by `typeOf` and `info` now match (#3059)
+  * Made internal names of commands more consistent (#3147)
+  * No longer silently ignore global optional arguments (#2052)
+  * Improved handling of socket, protocol and cursor errors (#3207)
+  * Added an `isOpen` method to connections (#2113)
+* JavaScript driver
+  * Upgrade to bluebird 2 (#2973)
+* Python driver
+  * Added a `next` method for cursors (#3042)
+  * `r.expr` now accepts any iterable or mapping (#3146)
+* Build
+  * Updated code to build with post-Yosemite versions of XCode (#3219)
+
+## Bug Fixes ##
+
+* Tests
+  * Fixed the `TimerTest` test (#549)
+  * Always use the in-tree driver for testing (#711)
+* Server
+  * Consolidate log message into a single log entry (#925)
+  * Fixed continuation of partially-interrupted vectored I/O (#2665)
+* ReQL
+  * Changed type of between queries to from `TABLE` to the more correct `TABLE_SLICE` (#1728)
+* Web UI
+  * Use a real fixed width font for backtraces to make them align correctly (#2065)
+* Python driver
+  * Correctly handle unicode characters in error messages (#3051)
+* JavaScript driver
+  * Added support for the `batch_conf` argument to `run` (#3161)
+* Ruby driver
+  * Now allow passing optional arguments to `order_by` (#3221)
+
+## Contributors ##
+
+--
+
 # Release 1.15.3 (Lawrence of Arabia)
 
 Released on 2015-01-08
