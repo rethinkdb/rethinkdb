@@ -113,8 +113,19 @@ public:
         for (auto it = cache.begin(); it != cache.end();) {
             auto tmp = it++;
             if (tmp->second->is_expired()) {
-                tmp->second->pulse();
+                // We go through some rigmarole to make sure we erase from the
+                // cache immediately and call the possibly-blocking destructor
+                // in a separate coroutine to satisfy the
+                // `ASSERT_FINITE_CORO_WAITING` in `call_ringer` in
+                // `arch/timing.cc`.
+                boost::shared_ptr<http_conn_t> conn = std::move(tmp->second);
+                conn->pulse();
                 cache.erase(tmp);
+                coro_t::spawn_now_dangerously([&conn]() {
+                    boost::shared_ptr<http_conn_t> conn2;
+                    conn2.swap(conn);
+                });
+                guarantee(!conn);
             }
         }
     }
