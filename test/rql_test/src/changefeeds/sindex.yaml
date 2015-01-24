@@ -3,13 +3,13 @@ table_variable_name: tbl
 tests:
 
     # Fill in some data
-    - cd: tbl.index_create('a')['created']
+    - rb: tbl.index_create('a')['created']
       ot: 1
 
-    - cd: tbl.index_wait().count
+    - rb: tbl.index_wait().count
       ot: 1
 
-    - cd: tbl.insert([{id:1, a:8}, {id:2, a:7}])['inserted']
+    - rb: tbl.insert([{id:1, a:8}, {id:2, a:7}])['inserted']
       ot: 2
 
     - rb: idmin = tbl.min(index:'id').changes().limit(2)
@@ -17,7 +17,7 @@ tests:
     - rb: amin = tbl.min(index:'a').changes().limit(2)
     - rb: amax = tbl.max(index:'a').changes().limit(2)
 
-    - cd: tbl.insert([{id:0, a:9}, {id:3, a:6}])['inserted']
+    - rb: tbl.insert([{id:0, a:9}, {id:3, a:6}])['inserted']
       ot: 2
 
     - rb: idmin.to_a
