@@ -1492,6 +1492,7 @@ public:
             changes.swap(queued_changes);
 
             std::vector<std::pair<datum_t, datum_t> > pairs;
+            pairs.reserve(changes.size()); // Important to keep iterators valid.
             // This has to be a multimap because of multi-indexes.
             std::multimap<datum_t, decltype(pairs.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
@@ -1525,7 +1526,9 @@ public:
             }
 
             for (auto &&pair : pairs) {
-                if (pair.first != pair.second) {
+                if (!((pair.first.has() && pair.second.has()
+                       && pair.first == pair.second)
+                      || (!pair.first.has() && !pair.second.has()))) {
                     push_el(std::move(pair.first), std::move(pair.second));
                 }
             }
@@ -1601,11 +1604,13 @@ public:
     void push_el(datum_t old_val, datum_t new_val) {
         // Empty changes should have been caught above us.
         guarantee(old_val.has() || new_val.has());
-        els.push_back(
-            datum_t(std::map<datum_string_t, datum_t> {
-                { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
-                { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() }
-            }));
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
+        datum_t el = datum_t(std::map<datum_string_t, datum_t> {
+            { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
+            { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() } });
+        els.push_back(std::move(el));
         maybe_signal_cond();
     }
 
