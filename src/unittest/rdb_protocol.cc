@@ -806,7 +806,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     cond_t interruptor;
     ql::env_t env(&interruptor, reql_version_t::LATEST);
     std::map<size_t, cfeed_bundle_t> bundles;
-    for (size_t i = 0; i <= 20; ++i) {
+    for (size_t i = 1; i <= 20; ++i) {
         bundles.insert(std::make_pair(i, cfeed_bundle_t(&env, &artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
                     std::map<std::string, std::vector<ql::datum_t> >(),

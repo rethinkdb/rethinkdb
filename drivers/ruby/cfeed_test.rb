@@ -52,7 +52,7 @@ $t.delete.run_safe
 #
 
 $machines = 2
-$shards = {sharded: $machines, unsharded: 1, oversharded: $machines*2}
+$shards = {oversharded: $machines*2, sharded: $machines, unsharded: 1}
 $limit_sizes = [512, 1, 10]
 $max_pop_size = 1024
 

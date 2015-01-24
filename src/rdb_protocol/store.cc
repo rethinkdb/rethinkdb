@@ -179,6 +179,8 @@ scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
             &sindex_mapping_data,
             &sindex_uuid);
         if (!found) {
+            // TODO: consider adding some logic on the machine handling the
+            // query to attach a real backtrace here.
             throw ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf("Index `%s` was not found on table `%s`.",
@@ -216,6 +218,7 @@ void do_read(ql::env_t *env,
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        region_t true_region;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -225,8 +228,20 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
+            ql::skey_version_t skey_version =
+                ql::skey_version_from_reql_version(
+                    sindex_info.mapping_version_info.latest_compatible_reql_version);
+            res->skey_version = skey_version;
+            true_region = rget.sindex->region
+                ? *rget.sindex->region
+                : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
         } catch (const ql::exc_t &e) {
             res->result = e;
+            return;
+        } catch (const ql::datum_exc_t &e) {
+            // TODO: consider adding some logic on the machine handling the
+            // query to attach a real backtrace here.
+            res->result = ql::exc_t(e, NULL);
             return;
         }
 
@@ -243,7 +258,7 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->original_range, rget.sindex->region,
+            rget.sindex->original_range, std::move(true_region),
             sindex_sb.get(), env, rget.batchspec, rget.transforms,
             rget.terminal, rget.region.inner, rget.sorting,
             sindex_info, res, release_superblock_t::RELEASE);
@@ -282,7 +297,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     &ops};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    region_t(s.spec.range.range.to_sindex_keyrange()),
+                    boost::none, // We just want to use whole range.
                     s.spec.range.range);
             } else {
                 rget.terminal = ql::limit_read_t{
@@ -360,7 +375,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
 
         response->response = rget_read_response_t();
-        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
+        rget_read_response_t *res =
+            boost::get<rget_read_response_t>(&response->response);
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -389,10 +405,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             return;
         }
 
+        guarantee(geo_read.sindex.region);
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
-            geo_read.sindex.region,
+            *geo_read.sindex.region,
             sindex_sb.get(),
             &ql_env,
             geo_read.batchspec,

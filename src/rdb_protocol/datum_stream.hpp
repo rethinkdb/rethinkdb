@@ -16,7 +16,6 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
-//#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -355,7 +354,7 @@ public:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
@@ -368,7 +367,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 
-    virtual key_range_t original_keyrange() const = 0;
+    virtual boost::optional<key_range_t> original_keyrange() const = 0;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const = 0;
     virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
@@ -401,7 +401,7 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
@@ -412,7 +412,7 @@ public:
     }
 private:
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 
@@ -435,7 +435,7 @@ private:
                       profile_bool_t profile,
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
@@ -444,7 +444,8 @@ private:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 };
 
@@ -463,7 +464,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
@@ -474,11 +476,12 @@ private:
         profile_bool_t profile,
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
+    bool sent_first_read;
 };
 
 // For geospatial intersection queries
@@ -496,7 +499,7 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
@@ -506,7 +509,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
     virtual changefeed::keyspec_t::range_t get_change_spec(
@@ -526,7 +530,7 @@ private:
     // Analogue to rget_readgen_t::next_read_impl(), but generates an intersecting
     // geo read.
     intersecting_geo_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transforms,
         const batchspec_t &batchspec) const;
 
@@ -579,7 +583,7 @@ protected:
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
-    key_range_t active_range;
+    boost::optional<key_range_t> active_range;
 
     // We need this to handle the SINDEX_CONSTANT case.
     std::vector<rget_item_t> items;

@@ -806,10 +806,12 @@ public:
             default: unreachable();
             }
         }
+        skey_version_t skey_version = skey_version_from_reql_version(
+            ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
         rdb_rget_secondary_slice(
             ref.btree,
             srange,
-            region_t(srange.to_sindex_keyrange()),
+            region_t(srange.to_sindex_keyrange(skey_version)),
             ref.superblock,
             env,
             batchspec_t::all(), // Terminal takes care of early termination
@@ -1420,11 +1422,15 @@ public:
     }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
-        return make_scoped<env_t>(
-            outer_env->get_rdb_ctx(),
-            drainer.get_drain_signal(),
-            outer_env->get_all_optargs(),
-            nullptr/*don't profile*/);
+        // This is to support fake environments from the unit tests that don't
+        // actually have a context.
+        return outer_env->get_rdb_ctx() == NULL
+            ? make_scoped<env_t>(outer_env->interruptor, outer_env->reql_version())
+            : make_scoped<env_t>(
+                outer_env->get_rdb_ctx(),
+                drainer.get_drain_signal(),
+                outer_env->get_all_optargs(),
+                nullptr/*don't profile*/);
     }
 
     scoped_ptr_t<env_t> env;
@@ -1486,6 +1492,7 @@ public:
             changes.swap(queued_changes);
 
             std::vector<std::pair<datum_t, datum_t> > pairs;
+            pairs.reserve(changes.size()); // Important to keep iterators valid.
             // This has to be a multimap because of multi-indexes.
             std::multimap<datum_t, decltype(pairs.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
@@ -1519,7 +1526,9 @@ public:
             }
 
             for (auto &&pair : pairs) {
-                if (pair.first != pair.second) {
+                if (!((pair.first.has() && pair.second.has()
+                       && pair.first == pair.second)
+                      || (!pair.first.has() && !pair.second.has()))) {
                     push_el(std::move(pair.first), std::move(pair.second));
                 }
             }
@@ -1595,11 +1604,13 @@ public:
     void push_el(datum_t old_val, datum_t new_val) {
         // Empty changes should have been caught above us.
         guarantee(old_val.has() || new_val.has());
-        els.push_back(
-            datum_t(std::map<datum_string_t, datum_t> {
-                { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
-                { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() }
-            }));
+        if (old_val.has() && new_val.has()) {
+            guarantee(old_val != new_val);
+        }
+        datum_t el = datum_t(std::map<datum_string_t, datum_t> {
+            { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
+            { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() } });
+        els.push_back(std::move(el));
         maybe_signal_cond();
     }
 
@@ -2449,6 +2460,12 @@ counted_t<datum_stream_t> artificial_t::subscribe(
 
 void artificial_t::send_all(const msg_t &msg) {
     assert_thread();
+    if (auto *change = boost::get<msg_t::change_t>(&msg.op)) {
+        guarantee(change->old_val.has() || change->new_val.has());
+        if (change->old_val.has() && change->new_val.has()) {
+            guarantee(change->old_val != change->new_val);
+        }
+    }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();
     msg_visitor_t visitor(feed.get(), &lock, uuid, stamp++);
     boost::apply_visitor(visitor, msg.op);
