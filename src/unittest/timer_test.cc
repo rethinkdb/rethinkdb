@@ -1,10 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
-
 #include <algorithm>
 
 #include "arch/timing.hpp"
 #include "concurrency/pmap.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "utils.hpp"
 

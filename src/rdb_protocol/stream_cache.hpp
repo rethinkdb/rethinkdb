@@ -20,7 +20,7 @@ namespace ql {
 
 class stream_cache_t {
 public:
-    stream_cache_t(rdb_context_t *_rdb_ctx)
+    explicit stream_cache_t(rdb_context_t *_rdb_ctx)
         : rdb_ctx(_rdb_ctx) {
         rassert(rdb_ctx != NULL);
     }

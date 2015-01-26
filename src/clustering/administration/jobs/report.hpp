@@ -91,8 +91,9 @@ public:
 
 class parallel_traversal_progress_t;
 
-// TODO, as part of the `report_t` cleanup this should be moved to `reactor_driver.hpp`
-// to reduce the circular dependency between the jobs logic and the reactor driver.
+// TODO(@vexocide) as part of the `report_t` cleanup this should be
+// moved to `reactor_driver.hpp` to reduce the circular dependency
+// between the jobs logic and the reactor driver.
 class sindex_job_t {
 public:
     sindex_job_t(
