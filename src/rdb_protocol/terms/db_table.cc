@@ -123,7 +123,8 @@ class table_create_term_t : public meta_op_term_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(1, 2),
-            optargspec_t({"primary_key", "shards", "replicas", "primary_replica_tag"})) { }
+            optargspec_t({"primary_key", "shards", "replicas",
+                          "primary_replica_tag", "durability"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -148,6 +149,11 @@ private:
             primary_key = v->as_str().to_std();
         }
 
+        write_durability_t durability =
+            parse_durability_optarg(args->optarg(env, "durability")) ==
+                DURABILITY_REQUIREMENT_SOFT ?
+                    write_durability_t::SOFT : write_durability_t::HARD;
+
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
@@ -164,7 +170,8 @@ private:
         std::string error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
-                config_params, primary_key, env->env->interruptor, &result, &error)) {
+                config_params, primary_key, durability,
+                env->env->interruptor, &result, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return new_val(result);

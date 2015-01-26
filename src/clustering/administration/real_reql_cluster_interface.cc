@@ -193,6 +193,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
         const std::string &primary_key,
+        write_durability_t durability,
         signal_t *interruptor, ql::datum_t *result_out, std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -246,7 +247,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         }
 
         repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
-        repli_info.config.durability = write_durability_t::HARD;
+        repli_info.config.durability = durability;
 
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = versioned_t<name_string_t>(name);
