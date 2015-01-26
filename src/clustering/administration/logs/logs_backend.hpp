@@ -56,7 +56,7 @@ public:
 private:
     class cfeed_machinery_t : public cfeed_artificial_table_backend_t::machinery_t {
     public:
-        cfeed_machinery_t(logs_artificial_table_backend_t *_parent);
+        explicit cfeed_machinery_t(logs_artificial_table_backend_t *_parent);
 
         /* `on_change()` checks for newly-connected peers. If it finds one, it puts an
         entry in `peers_handled` and spawns an instance of `run()`. */
@@ -109,4 +109,3 @@ private:
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_ */
-
