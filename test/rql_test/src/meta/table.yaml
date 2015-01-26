@@ -41,6 +41,27 @@ tests:
       ot: []
 
     # Table create options
+    - py: db.table_create('ab', durability='soft')
+      js: db.table_create('ab', {durability:'soft'})
+      rb: db.table_create('ab', :durability => 'soft')
+      ot: partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'soft'})})]})
+
+    - cd: db.table_drop('ab')
+      ot: partial({'tables_dropped':1})
+
+    - py: db.table_create('ab', durability='hard')
+      js: db.table_create('ab', {durability:'hard'})
+      rb: db.table_create('ab', :durability => 'hard')
+      ot: partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'hard'})})]})
+
+    - cd: db.table_drop('ab')
+      ot: partial({'tables_dropped':1})
+
+    - py: db.table_create('ab', durability='fake')
+      js: db.table_create('ab', {durability:'fake'})
+      rb: db.table_create('ab', :durability => 'fake')
+      ot: err('RqlRuntimeError', 'Durability option `fake` unrecognized (options are "hard" and "soft").')
+
     - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
       js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
       rb: db.table_create('ab', {:primary_key => 'bar', :shards => 1, :replicas => 1})
