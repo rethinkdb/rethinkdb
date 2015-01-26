@@ -1,7 +1,7 @@
 #include "parsing/utf8.hpp"
 
-#include <string>
 #include <string.h>
+#include <string>
 
 #include "rdb_protocol/datum_string.hpp"
 

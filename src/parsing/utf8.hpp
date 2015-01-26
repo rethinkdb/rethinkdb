@@ -23,6 +23,6 @@ bool is_valid(const std::string &, reason_t *);
 bool is_valid(const char *, const char *, reason_t *);
 bool is_valid(const datum_string_t &, reason_t *);
 
-}
+} // namespace utf8
 
 #endif /* PARSING_UTF8_HPP_ */
