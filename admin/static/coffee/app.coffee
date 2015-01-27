@@ -292,10 +292,11 @@ class @Driver
                                     position: pos.add(1)
                                     num_shards: status('shards').count()
                                     primary_id: primary_id
-                                    primary_name: primary_name
+                                    primary_name: primary_name.default('-')
                                     primary_state: shard('replicas').filter(
-                                        server: primary_name
-                                    )('state')(0)
+                                        server: primary_name,
+                                        {default: r.error()}
+                                    )('state')(0).default('missing')
                             ).filter((shard) ->
                                 r.expr(['ready', 'looking_for_primary_replica'])
                                     .contains(shard('primary_state')).not()
