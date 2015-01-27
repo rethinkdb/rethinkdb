@@ -403,6 +403,7 @@ bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &config_params,
         UNUSED const std::string &primary_key,
+        UNUSED write_durability_t durability,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
         std::string *error_out) {
