@@ -58,7 +58,7 @@ module 'DataExplorerView', ->
                 else
                     @profile = null
                     value = result
-                if typeof value._next is 'function' # if it's a cursor
+                if typeof value._next is 'function' and value not instanceof Array # if it's a cursor
                     @type = 'cursor'
                     @results = []
                     @results_offset = 0
