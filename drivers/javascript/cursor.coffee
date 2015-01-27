@@ -27,7 +27,7 @@ class IterableResult
 
         @_responses = []
         @_responseIndex = 0
-        @_outstandingRequests = 1 # Because we haven't add the response yet
+        @_outstandingRequests = 1 # Because we haven't added the response yet
         @_iterations = 0
         @_endFlag = false
         @_contFlag = false
