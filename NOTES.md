@@ -1,3 +1,27 @@
+# Release 1.15.3 (Lawrence of Arabia)
+
+Released on 2015-01-08
+
+Bug fix update.
+
+* Fixed a bug that caused the endpoints of a reversed range to not be
+  correctly included or excluded (#3449)
+* Fixed the `reverse_iterator` implementation for leaf nodes (#3446)
+* Fixed a bug that could cause a bad ordering of secondary indexes for
+  rows with different primary key sizes (#3444)
+* Fixed a bug that could cause a crash under high load when using
+  changefeeds (#3393)
+* Fixed a bug that made it impossible to chain `between` and
+  `distinct` (#3346)
+* Changed some calls to avoid passing `NULL` to `memcpy` (#3317)
+* Fixed the installer artwork on OS X Yosemite (#3253)
+* Changed the version scheme for the JavaScript driver to avoid
+  mis-use of pre-release numbers (#3281)
+* Fixed a bug that could cause `rethinkdb import` and `rethinkdb
+  export` to hang (#3458)
+
+---
+
 # Release 1.15.2 (Lawrence of Arabia)
 
 Released on 2014-11-07
