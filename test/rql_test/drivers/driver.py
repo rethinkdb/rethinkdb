@@ -300,20 +300,18 @@ class PyTestDriver:
     def __init__(self):
         print('Creating default connection to server on port %d\n' % DRIVER_PORT)
         self.cpp_conn = self.connect()
-        self.scope = {}
-        
-        if 'test' not in r.db_list().run(self.cpp_conn):
-            r.db_create('test').run(self.cpp_conn)
+        self.scope = globals()
     
     def connect(self):
         return r.connect(host='localhost', port=DRIVER_PORT)
 
-    def define(self, expr):
+    def define(self, expr, variable):
+        
         try:
-            exec(expr, globals(), self.scope)
+            exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
-
+        
     def run(self, src, expected, name, runopts, testopts):
         if runopts:
             runopts["profile"] = True
@@ -330,47 +328,42 @@ class PyTestDriver:
         else:
             conn = self.cpp_conn
         
-        # Try to build the expected result
+        # -- build the expected result
+        
         if expected:
-            exp_val = eval(expected, dict(list(globals().items()) + list(self.scope.items())))
+            exp_val = eval(expected, self.scope)
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
         
-        # Run the test
-        if 'reql-query' in testopts and str(testopts['reql-query']).lower() == 'false':
-            try:
-                result = eval(src, globals(), self.scope)
-            except Exception as err:
-                result = err
-        else:
-            # Try to build the test
-            try:
-                query = eval(src, dict(list(globals().items()) + list(self.scope.items())))
-            except Exception as err:
-                if not isinstance(exp_val, Err):
-                    print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
-                elif not eq(exp_val, **compOptions)(err):
-                    print_test_failure(name, src, "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val)))
-    
-                return # Can't continue with this test if there is no test query
-    
-            # Check pretty-printing
-            check_pp(src, query)
-    
-            # Run the test
-            result = None
-            try:
-                result = query.run(conn, **runopts)
+        # -- evaluate the command
+        
+        try:
+            result = eval(src, self.scope)
+            
+            # - run as a query if it is one
+            
+            if isinstance(result, r.RqlQuery):
+                
+                # Check pretty-printing
+                
+                check_pp(src, result)
+                
+                # run the query
+                
+                result = result.run(conn, **runopts)
                 if result and "profile" in runopts and runopts["profile"] and "value" in result:
                     result = result["value"]
-            except Exception as err:
-                result = err
+                # ToDo: do something reasonable with the profile
+            
+            # - Save variable if requested
+            
+            if 'variable' in testopts:
+                # ToDo: hadnle complex variables like: a[2]
+                self.scope[testopts['variable']] = result
         
-        # Save variable if requested
-        
-        if 'variable' in testopts:
-            self.scope[testopts['variable']] = result
+        except Exception as err:
+            result = err
         
         # Compare to the expected result
         
@@ -380,7 +373,7 @@ class PyTestDriver:
             elif not eq(exp_val, **compOptions)(result):
                 print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
         elif not eq(exp_val, **compOptions)(result):
-            print_test_failure(name, src, "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
 
 driver = PyTestDriver()
 
@@ -438,8 +431,8 @@ def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
         raise ValueError("This test isn't meant to be run against a specific table")
 
-def define(expr):
-    driver.define(expr)
+def define(expr, variable=None):
+    driver.define(expr, variable=variable)
 
 def bag(lst):
     return Bag(lst)
@@ -451,6 +444,21 @@ def partial(expected):
         return Bag(expected, partial=True)
     else:
         raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
+
+def fetch(cursor, limit=None):
+    '''Pull items from a cursor'''
+    if limit is not None:
+        try:
+            limit = int(limit)
+            assert limit > 0
+        except Exception:
+            "On fetch limit must be None or > 0, got: %s" % repr(limit)
+    result = []
+    for i, value in enumerate(cursor, start=1):
+        result.append(value)
+        if i >= limit:
+            break
+    return result
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
