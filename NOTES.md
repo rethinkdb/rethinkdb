@@ -12,17 +12,17 @@ There may or may not be API-breaking changes in this release.
 ## New Features ##
 
 * ReQL admin: a new cluster management and monitoring API (#2169)
-  * Added a system database named `rethinkdb`
-    * The `cluster_config` table contains cluster-wide settings (#2924)
-    * The `current_issues` table lists issues affecting the cluster and suggests solutions (#2864, #3258)
+  * Added a special system database named `rethinkdb`
+    * The `table_config` table allows changing a table's configuration (#2870)
+    * The `server_config` table allows listing and managing servers in the cluster (#2873)
     * The `db_config` table allows listing and renaming databases (#151, #2871)
-    * The `jobs` table lists running jobs (#3115)
-    * The `logs` table for accessing the server logs (#2884)
-    * The `server_config` table for managing servers (#2873)
+    * The `cluster_config` table contains cluster-wide settings (#2924)
+    * The `table_status` table displays each table's availability and replication status (#2983, #3269)
     * The `server_status` table contains information about the servers in the cluster (#2923, #3270)
+    * The `current_issues` table lists issues affecting the cluster and suggests solutions (#2864, #3258)
+    * The `jobs` table lists running queries and background tasks (#3115)
     * The `stats` table contains real-time statistics about the server (#2885)
-    * The `table_config` table allows listing, creating, modifying and dropping tables (#2870)
-    * The `table_status` table contains extra information about each table (#2983, #3269)
+    * The `logs` table provides access to the server logs (#2884)
     * The hidden `_debug_table_status` table contains internal debugging information (#2901)
     * The hidden `_debug_stats` table contains internal statistics (#3385)
     * The `identifier_format` optional argument to `table` switches between table names (when set to "name") and table identifiers (when set to "uuid") (#3266)
@@ -32,17 +32,15 @@ There may or may not be API-breaking changes in this release.
     * Added a `reconfigure` command to change the replication and sharding settings of a table (#2932)
     * Added a `rebalance` command to even out the size of a table's shards (#2981)
     * Added a `config` command for tables and databases as an alias for the corresponding row in `db_config` or `table_config`
-    * Added a `status` command for tables and databases as an alias for the corresponding row in `db_status` or `table_satus`
-    * Redundant information has been removed from the `/ajax` endpoint (#2878, #2879)
-    * Automatically migrate data directories to the new semilattice configuration format (#2869)
+    * Added a `status` command for tables as an alias for the corresponding row in `table_status`
+    * Most of the `/ajax` endpoints have been removed. Their functionality has been moved to the system tables (#2878, #2879)
     * The stats now contains the number of client connections (#2989)
     * Added more information to the return value of `db_create`, `db_drop`, `table_create` and `table_drop` (#3001)
     * Changed how `durability` and `write_acks` are configured (#3066)
-    * Now allow changing the cache size at runtime (#3166)
-    * Now expose the command line of the server (#3180)
+    * The cache size can now be changed at runtime (#3166)
     * Improved the scalability for large table creation and reconfiguration in large clusters (#3198)
     * Added a new UI for table configuration (#3229)
-    * Now allow over-sharding tables when there are not enough documents (#3271)
+    * Empty can now be sharded (#3271, #1679)
 * ReQL
   * Added `r.range` which generates all numbers from a given range (#875)
   * Enforce UTF-8 encoding on input strings (#1181)
@@ -50,11 +48,16 @@ There may or may not be API-breaking changes in this release.
   * Added `toJsonString` which converts a datum into a JSON string (#2513)
   * Turned `map` into a variadic function for mapping over multiple sequences in parallel (#2574)
   * Added a prefix version of `map` (#3321)
-  * Added an optional `squash` argument to the `changes` command which deafaults to `true`, letting the sever combine multiple changes to the same document (#2726, #3558)
-  * `min` and `max` will now use an index when passed the new `index` parameter (#2974, #2981)
-  * Improved changefeeds
-    * `changes` can now be placed after `between` and `filter` (#3232)
-    * `changes` can also be used on a few other commands for which there should be a comprehensive list here
+  * Added an optional `squash` argument to the `changes` command, which lets the server combine multiple changes to the same document (defaults to `true`) (#2726, #3558)
+  * `min` and `max` now use an index when passed the new `index` parameter (#2974, #2981)
+  * It is now possible to get changefeeds for more types of queries. `changes` can now be chained onto:
+    * Ranges generated with `between` (#3232)
+    * Single documents with `get`
+    * Subsets with `filter`
+    * Sub-documents and modified documents with `map` and other commands that are stream-polymorphic such as `merge`
+    * Certain reductions such as `min` and `max`
+    * Top scoring documents with `orderBy` and `limit`
+    * Combinations of the above, such as `between` followed by `map`
 * Server
   * Made buffered IO the default, added a `--direct-io` flag to enable direct IO and deprecated the `--no-direct-io` flag (#3391)
 * Python driver
@@ -65,29 +68,28 @@ There may or may not be API-breaking changes in this release.
 * Web UI
   * The web assets are now compiled into the `rethinkdb` executable (#1093)
   * `getAll` queries on secondary indexes are now shown in the performance graph (#2379)
-  * Added `getField` to the autocompletion in the data explorer (#2624)
-  * Added support for changefeeds in the data explorer (#2643)
-  * Reduced the amount of data used and computations performed by the dashboard (#2786)
-  * Swapped the order of the "Load" and "Remove" buttons (#3414)
-  * The inaccessible database page was removed (#3491)
+  * Added `getField` to the autocompletion in the Data Explorer (#2624)
+  * Added live updates for changefeeds in the Data Explorer (#2643)
+  * Reduced the amount of data transferred to and processed by the browser by the dashboard (#2786)
+  * The database view was removed (#3491)
   * Added a secondary index monitor to the dashboard (#3493)
 * Server
   * Removed code used to support outdated tests (#1524)
   * Improved implementation of erase range operations (#2034)
-  * Now use `jemalloc` by default instead of `tcmalloc`, which solves some apparent memory leaks (#2279)
-  * Replaced vector clocks with naïve timestamp-based conflict resolution (#2784)
+  * `jemalloc` is now used by default instead of `tcmalloc`, which solves some memory inflation (#2279)
+  * Replaced vector clocks with automatic timestamp-based conflict resolution (#2784)
   * No longer complain when `stderr` can't be flushed (#2790)
   * Replaced uses of the word "machine" to use "server" instead. The old `--machine-name` flag is now `--server-name` (#2877, #3254)
   * The server now prints its own name on startup (#2992)
-  * Adjusted the formatting of log levels and no longer print `info:` lines to stderr (#3040)
+  * Adjusted the formatting of log levels, no longer print `info:` lines to stderr and added a `notice` log level (#3040)
   * Added a `--no-default-bind` option that prevents the server from listening on loopback addresses (#3154)
   * Lower the CPU load of an idle server (#3185)
-  * Now ignore the OS disk cache when calculating available memory (#3193)
-  * Now use `kqueue` instead of `poll` for events on OS X (#3403)
+  * The OS disk cache is now ignored when calculating available memory (#3193)
+  * `kqueue` is now used instead of `poll` for events on OS X for better performance (#3403)
   * Tables now become available faster and table metadata takes less space on disk (#3463)
   * Queries that perform multiple HTTP requests now share the same cookies (#3469)
   * Made resolving of ties in secondary indexes more consistent (#3550)
-  * New version notifications are added to the server logs (#3170)
+  * The server now calls home to RethinkDB HQ to check for newer versions and send anonymized statistics. This can be turned off with the new `--no-update-check` flag (#3170)
 * Testing
   * The ReQL tests can now run in parallel (#2305, #2672)
   * The Ruby driver is now tested against different versions of Ruby (#2526)
@@ -95,12 +97,10 @@ There may or may not be API-breaking changes in this release.
   * No longer depend on external HTTP servers (#3047)
   * Switched to using the new cluster management features in the test suite (#3398, #3401)
 * ReQL
-  * Allow creating evenly-spaced shards (#1679)
   * Allow querying the version of the server (#2698)
-  * Changefeeds are no longer aborted when the primary replica changes (#2757)
   * Improved the error message when pseudo-types are used as objects (#2766)
   * The names of types returned by `typeOf` and `info` now match (#3059)
-  * No longer silently ignore global optional arguments (#2052)
+  * No longer silently ignore unknown global optional arguments (#2052)
   * Improved handling of socket, protocol and cursor errors (#3207)
   * Added an `isOpen` method to connections (#2113)
   * `info` on tables now works when `use_outdated` is true (#3355)
@@ -113,9 +113,9 @@ There may or may not be API-breaking changes in this release.
 * Python driver
   * Added a `next` method for cursors (#3042)
   * `r.expr` now accepts any iterable or mapping (#3146)
-  * `rethinkdb export` now avoids travesing each table twice by using an estimated document count (#3483)
+  * `rethinkdb export` now avoids traversing each table twice by using an estimated document count (#3483)
 * Build
-  * Updated code to build with post-Yosemite versions of XCode (#3219)
+  * Updated code to build with post-Yosemite versions of Xcode (#3219)
 * Packaging
   * Added `procps` as a dependency in the Debian packages (#3404)
   * Now depend on `jemalloc` instead of `gperftools` (#3419)
@@ -126,19 +126,19 @@ There may or may not be API-breaking changes in this release.
   * Fixed the `TimerTest` test (#549)
   * Always use the in-tree driver for testing (#711)
 * Server
-  * Consolidate log message into a single log entry (#925)
+  * Some startup log messages are now consolidated into a single log entry (#925)
   * Fixed continuation of partially-interrupted vectored I/O (#2665)
 * ReQL
-  * Changed type of between queries to from `TABLE` to the more correct `TABLE_SLICE` (#1728)
+  * Changed type of `between` queries to from `TABLE` to the more correct `TABLE_SLICE` (#1728)
 * Web UI
   * Use a real fixed width font for backtraces to make them align correctly (#2065)
   * No longer show empty batches when more data is available (#3432)
 * Python driver
-  * Correctly handle unicode characters in error messages (#3051)
+  * Correctly handle Unicode characters in error messages (#3051)
 * JavaScript driver
-  * Added support for the `batch_conf` argument to `run` (#3161)
+  * Added support for passing batch configuration arguments to `run` (#3161)
 * Ruby driver
-  * Now allow passing optional arguments to `order_by` (#3221)
+  * Optional arguments can now be passed to `order_by` (#3221)
 
 ## Contributors ##
 
