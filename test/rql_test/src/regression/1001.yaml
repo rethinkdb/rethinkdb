@@ -1,15 +1,15 @@
 desc: 1001 (null + between + sindexes)
 table_variable_name: tbl
 tests:
-  - rb: tbl.insert({:a => nil})
+  - rb: tbl.insert({:a => null})
   - rb: tbl.index_create('a')
   - rb: tbl.index_create('b')
   - rb: tbl.index_wait().pluck('index', 'ready')
 
-  - rb: tbl.between(nil, nil).count
+  - rb: tbl.between(null, null).count
     ot: 1
-  - rb: tbl.between(nil, nil, :index => :a).count
+  - rb: tbl.between(null, null, :index => :a).count
     ot: 0
-  - rb: tbl.between(nil, nil, :index => :b).count
+  - rb: tbl.between(null, null, :index => :b).count
     ot: 0
 

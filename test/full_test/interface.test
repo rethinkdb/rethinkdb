@@ -17,6 +17,7 @@ for interface_test_name in [
         'server_config',
         'server_status',
         'shard_balancing',
+        'shard_fuzzer',
         'stat',
         'system_changefeeds',
         'table_acks_durability',

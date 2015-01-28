@@ -1,22 +1,8 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl tbl2 tbl3 tbl4
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: partial({'tables_created':1})
-      def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-      def: tbl2 = r.db('test').table('test2')
-
-    - cd: r.db('test').table_create('test3')
-      ot: partial({'tables_created':1})
-      def: tbl3 = r.db('test').table('test3')
-
-    - cd: r.db('test').table_create('test4')
-      ot: partial({'tables_created':1})
-      def: tbl4 = r.db('test').table('test4')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
@@ -511,7 +497,7 @@ tests:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
 
-    - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], nil, 0]}, multi:true).count
+    - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], null, 0]}, multi:true).count
       py: tbl.group('a', lambda row:'f', lambda row:[], lambda row:[{}, [0], null, 0], multi=True).count()
       js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
       runopts:
@@ -546,7 +532,7 @@ tests:
       ot: 67
 
     - rb: tbl.group('b').count
-      ot: ({nil=>33, 0=>22, 20=>22, 30=>23})
+      ot: ({null=>33, 0=>22, 20=>22, 30=>23})
 
     - rb: tbl.group('a').sum('b')
       ot: ({0=>0, 2=>440, 3=>690})
@@ -584,13 +570,3 @@ tests:
       rb: tbl.max(index:'a').without('b')
       js: tbl.max({index:'a'}).without('b')
       ot: ({'a':3,'id':99})
-
-    # Clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test2')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test3')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test4')
-      ot: partial({'tables_dropped':1})

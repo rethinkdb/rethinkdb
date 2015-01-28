@@ -43,13 +43,16 @@ public:
             peer_id_t const &source_peer,
             server_id_t const &destination_server);
 
-    // For `"disk_compation"` and `"index_construction"` jobs
+    // For `"disk_compation"` and `"index_construction"` jobs, the former only uses
+    // `id`, `type`, and `duration`.
     job_report_t(
             uuid_u const &id,
             std::string const &type,
             double duration,
             namespace_id_t const &table = nil_uuid(),
-            std::string const &index = "");
+            std::string const &index = "",
+            bool is_ready = false,
+            double progress_numerator = 0);
 
     bool to_datum(
             admin_identifier_format_t identifier_format,
@@ -85,6 +88,23 @@ public:
     microtime_t start_time;
     ip_and_port_t client_addr_port;
     cond_t *interruptor;
+};
+
+class parallel_traversal_progress_t;
+
+// TODO(@vexocide) as part of the `report_t` cleanup this should be
+// moved to `reactor_driver.hpp` to reduce the circular dependency
+// between the jobs logic and the reactor driver.
+class sindex_job_t {
+public:
+    sindex_job_t(
+            microtime_t start_time,
+            bool is_ready,
+            double progress);
+
+    microtime_t start_time;
+    bool is_ready;
+    double progress;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

@@ -74,8 +74,8 @@ def table_drop(*args):
 def table_list(*args):
     return ast.TableListTL(*args)
 
-def wait(*args):
-    return ast.WaitTL(*args)
+def wait(*args, **kwargs):
+    return ast.WaitTL(*args, **kwargs)
 
 def reconfigure(*args, **kwargs):
     return ast.ReconfigureTL(*args, **kwargs)

@@ -16,7 +16,5 @@ tests:
     - cd: arr.skip({}).count()
       ot: err("RqlRuntimeError", "Expected type NUMBER but found OBJECT.", [0, 1])
 
-    - py: arr.skip(None)
-      js: arr.skip(null)
-      rb: arr.skip nil
+    - cd: arr.skip(null)
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [1])

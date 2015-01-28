@@ -23,7 +23,7 @@ bool log_write_issue_t::build_info_and_description(
     ql::datum_object_builder_t info_builder;
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
     std::string servers_string;
-    for (auto const &server_id : affected_server_ids) {
+    for (auto const &server_id : reporting_server_ids) {
         ql::datum_t server_name_or_uuid;
         name_string_t server_name;
         if (!convert_server_id_to_datum(server_id, identifier_format,
@@ -45,10 +45,10 @@ bool log_write_issue_t::build_info_and_description(
         "\nThe error message reported is: %s\n\nPlease fix the problem that is "
         "preventing the server%s from writing to their log file. This issue will go "
         "away the next time the server successfully writes to the log file.",
-        affected_server_ids.size() == 1 ? "" : "s",
+        reporting_server_ids.size() == 1 ? "" : "s",
         servers_string.c_str(),
         message.c_str(),
-        affected_server_ids.size() == 1 ? "" : "s"));
+        reporting_server_ids.size() == 1 ? "" : "s"));
     return true;
 }
 
@@ -97,8 +97,8 @@ void log_write_issue_tracker_t::combine(
         if (combined_it == combined_issues.end()) {
             combined_issues.insert(std::make_pair(issue.message, &issue));
         } else {
-            rassert(issue.affected_server_ids.size() == 1);
-            combined_it->second->add_server(issue.affected_server_ids[0]);
+            rassert(issue.reporting_server_ids.size() == 1);
+            combined_it->second->add_server(issue.reporting_server_ids[0]);
         }
     }
 

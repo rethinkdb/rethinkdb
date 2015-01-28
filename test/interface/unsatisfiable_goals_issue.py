@@ -63,7 +63,7 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     print("Checking server up (%.2fs)" % (time.time() - startTime))
     
     server.check()
-    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

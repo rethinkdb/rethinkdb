@@ -72,16 +72,17 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         std::rethrow_exception(exc);
     }
 
-    const bool cfeed = entry->stream->is_cfeed();
-    if (cfeed && reject_cfeeds == reject_cfeeds_t::YES) {
-        erase(key);
-        rfail_toplevel(base_exc_t::GENERIC,
-                       "Changefeeds not allowed on this connection.");
-    } else if (entry->stream->is_exhausted() || (res->response_size() == 0 && !cfeed)) {
+    const ql::feed_type_t cfeed = entry->stream->cfeed_type();
+    if (entry->stream->is_exhausted() || (res->response_size() == 0
+                                          && cfeed == feed_type_t::not_feed)) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
+    } else if (cfeed == feed_type_t::stream) {
+        res->set_type(Response::SUCCESS_FEED);
+    } else if (cfeed == feed_type_t::point) {
+        res->set_type(Response::SUCCESS_ATOM_FEED);
     } else {
-        res->set_type(cfeed ? Response::SUCCESS_FEED : Response::SUCCESS_PARTIAL);
+        res->set_type(Response::SUCCESS_PARTIAL);
     }
     return true;
 }

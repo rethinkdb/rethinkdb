@@ -22,7 +22,8 @@ public:
                  (data.size() > 40
                   ? (std_data.substr(0, 37) + "...").c_str()
                   : std_data.c_str())));
-        return new_val(to_datum(cjson.get(), env->env->limits()));
+        return new_val(to_datum(cjson.get(), env->env->limits(),
+                                env->env->reql_version()));
     }
 
     virtual const char *name() const { return "json"; }

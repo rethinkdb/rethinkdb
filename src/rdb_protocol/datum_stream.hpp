@@ -16,7 +16,6 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
-//#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -27,6 +26,32 @@ namespace ql {
 class env_t;
 class scope_env_t;
 class func_t;
+
+enum class feed_type_t {
+    not_feed,
+    point,
+    stream,
+};
+
+// Handle unions of changefeeds; the union of a stream and a point
+// changefeed is defined to be a stream here.
+inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
+    switch (a) {
+    case feed_type_t::stream:
+        return feed_type_t::stream;
+    case feed_type_t::point:
+        switch (b) {
+        case feed_type_t::stream:
+            return feed_type_t::stream;
+        case feed_type_t::point:
+        case feed_type_t::not_feed:
+            return feed_type_t::point;
+        }
+    case feed_type_t::not_feed:
+        return b;
+    }
+    unreachable();
+}
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -61,7 +86,7 @@ public:
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
     virtual datum_t next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
-    virtual bool is_cfeed() const = 0;
+    virtual feed_type_t cfeed_type() const = 0;
     virtual bool is_infinite() const = 0;
 
     virtual void accumulate(
@@ -95,13 +120,14 @@ protected:
     }
     std::vector<transform_variant_t> transforms;
 
+    virtual void add_transformation(transform_variant_t &&tv,
+                                    const protob_t<const Backtrace> &bt);
+
 private:
     enum class done_t { YES, NO };
 
     virtual bool is_array() const = 0;
 
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
@@ -128,8 +154,8 @@ private:
     virtual bool is_exhausted() const {
         return source->is_exhausted() && batch_cache_exhausted();
     }
-    virtual bool is_cfeed() const {
-        return source->is_cfeed();
+    virtual feed_type_t cfeed_type() const {
+        return source->cfeed_type();
     }
     virtual bool is_infinite() const {
         return source->is_infinite();
@@ -165,7 +191,7 @@ public:
     array_datum_stream_t(datum_t _arr,
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -192,7 +218,7 @@ private:
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
     uint64_t index, left, right;
 };
@@ -222,10 +248,10 @@ public:
     union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src), streams(_streams), streams_index(0),
-          is_cfeed_union(false),
+          union_type(feed_type_t::not_feed),
           is_infinite_union(false) {
         for (auto const &stream : streams) {
-            is_cfeed_union |= stream->is_cfeed();
+            union_type = union_of(union_type, stream->cfeed_type());
             is_infinite_union |= stream->is_infinite();
         }
     }
@@ -238,7 +264,7 @@ public:
     virtual bool is_array() const;
     virtual datum_t as_array(env_t *env);
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -250,7 +276,8 @@ private:
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
-    bool is_cfeed_union, is_infinite_union;
+    feed_type_t union_type;
+    bool is_infinite_union;
 };
 
 class range_datum_stream_t : public eager_datum_stream_t {
@@ -267,8 +294,8 @@ public:
         return false;
     }
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const {
-        return false;
+    virtual feed_type_t cfeed_type() const {
+        return feed_type_t::not_feed;
     }
     virtual bool is_infinite() const {
         return is_infinite_range;
@@ -292,8 +319,8 @@ public:
         return is_array_map;
     }
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const {
-        return is_cfeed_map;
+    virtual feed_type_t cfeed_type() const {
+        return union_type;
     }
     virtual bool is_infinite() const {
         return is_infinite_map;
@@ -302,7 +329,8 @@ public:
 private:
     std::vector<counted_t<datum_stream_t> > streams;
     counted_t<const func_t> func;
-    bool is_array_map, is_cfeed_map, is_infinite_map;
+    feed_type_t union_type;
+    bool is_array_map, is_infinite_map;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by
@@ -326,7 +354,7 @@ public:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
@@ -339,7 +367,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 
-    virtual key_range_t original_keyrange() const = 0;
+    virtual boost::optional<key_range_t> original_keyrange() const = 0;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const = 0;
     virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
@@ -372,7 +401,7 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
@@ -383,7 +412,7 @@ public:
     }
 private:
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
 
@@ -406,7 +435,7 @@ private:
                       profile_bool_t profile,
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
@@ -415,7 +444,8 @@ private:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 };
 
@@ -434,7 +464,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
@@ -445,11 +476,12 @@ private:
         profile_bool_t profile,
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
+    bool sent_first_read;
 };
 
 // For geospatial intersection queries
@@ -467,7 +499,7 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
@@ -477,7 +509,8 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
+    virtual boost::optional<key_range_t> original_keyrange() const;
+    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
     virtual changefeed::keyspec_t::range_t get_change_spec(
@@ -497,7 +530,7 @@ private:
     // Analogue to rget_readgen_t::next_read_impl(), but generates an intersecting
     // geo read.
     intersecting_geo_read_t next_read_impl(
-        const key_range_t &active_range,
+        const boost::optional<key_range_t> &active_range,
         const std::vector<transform_variant_t> &transforms,
         const batchspec_t &batchspec) const;
 
@@ -550,7 +583,7 @@ protected:
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
-    key_range_t active_range;
+    boost::optional<key_range_t> active_range;
 
     // We need this to handle the SINDEX_CONSTANT case.
     std::vector<rget_item_t> items;
@@ -609,7 +642,7 @@ public:
     }
 
     bool is_exhausted() const;
-    virtual bool is_cfeed() const;
+    virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
 private:
@@ -646,8 +679,11 @@ private:
     datum_t next_impl(env_t *);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
 
+    void add_transformation(
+        transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
+
     bool is_exhausted() const;
-    bool is_cfeed() const;
+    virtual feed_type_t cfeed_type() const;
     bool is_array() const;
     bool is_infinite() const;
 

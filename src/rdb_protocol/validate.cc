@@ -181,3 +181,77 @@ void validate_pb(const Term::AssocPair &ap) {
     check_has(ap, has_val, "val");
     validate_pb(ap.val());
 }
+
+static std::set<std::string> acceptable_keys = {
+    "_EVAL_FLAGS_",
+    "_NO_RECURSE_",
+    "_SHORTCUT_",
+    "array_limit",
+    "attempts",
+    "auth",
+    "base",
+    "binary_format",
+    "conflict",
+    "data",
+    "db",
+    "default",
+    "default_timezone",
+    "dry_run",
+    "durability",
+    "fill",
+    "first_batch_scaledown_factor",
+    "float",
+    "geo",
+    "geo_system",
+    "group_format",
+    "header",
+    "identifier_format",
+    "index",
+    "left_bound",
+    "max_batch_bytes",
+    "max_batch_rows",
+    "max_batch_seconds",
+    "max_dist",
+    "max_results",
+    "method",
+    "min_batch_rows",
+    "multi",
+    "non_atomic",
+    "noreply",
+    "num_vertices",
+    "overwrite",
+    "page",
+    "page_limit",
+    "params",
+    "primary_key",
+    "primary_replica_tag",
+    "profile",
+    "redirects",
+    "replicas",
+    "result_format",
+    "return_changes",
+    "return_vals",
+    "right_bound",
+    "shards",
+    "squash",
+    "time_format",
+    "timeout",
+    "unit",
+    "use_outdated",
+    "verify",
+    "wait_for",
+};
+
+void validate_optargs(const Query &q) {
+    for (int i = 0; i < q.global_optargs_size(); ++i) {
+        rcheck_toplevel(
+            acceptable_keys.find(q.global_optargs(i).key()) != acceptable_keys.end(),
+            ql::base_exc_t::GENERIC,
+            strprintf("Unrecognized global optional argument `%s`.",
+                      q.global_optargs(i).key().c_str()));
+    }
+}
+
+bool optarg_is_valid(const std::string &potential_argument) {
+    return acceptable_keys.find(potential_argument) != acceptable_keys.end();
+}

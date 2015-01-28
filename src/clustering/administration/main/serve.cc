@@ -12,7 +12,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
-#include "clustering/administration/log_writer.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -21,13 +21,11 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/stats/proc_stats.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
-#include "clustering/administration/sys_stats.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "clustering/table_manager/table_meta_manager.hpp"
 #include "containers/incremental_lenses.hpp"
@@ -164,6 +162,8 @@ bool do_serve(UNUSED io_backender_t *io_backender,
         metadata_persistence::dummy_table_meta_persistence_interface_t dummy_persistence;
         scoped_ptr_t<table_meta_manager_t> table_meta_manager;
         if (i_am_a_server) {
+            // RSI(raft): Actually hook up base path
+            (void)base_path;
             table_meta_manager.init(new table_meta_manager_t(
                 server_id,
                 &mailbox_manager,
@@ -179,7 +179,7 @@ bool do_serve(UNUSED io_backender_t *io_backender,
 
         // Initialize the stat and jobs manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
-        // jobs_manager and stat_manager mailbox address
+        // jobs_manager and stat_manager mailbox addresses
         jobs_manager_t jobs_manager(&mailbox_manager, server_id);
         stat_manager_t stat_manager(&mailbox_manager, server_id);
 
@@ -296,24 +296,6 @@ bool do_serve(UNUSED io_backender_t *io_backender,
             &cluster_directory_metadata_t::local_issues,
             local_issue_aggregator.get_issues_watchable(),
             &our_root_directory_variable);
-
-        perfmon_collection_t proc_stats_collection;
-        perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
-
-        proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
-
-        scoped_ptr_t<perfmon_collection_t> sys_stats_collection;
-        scoped_ptr_t<perfmon_membership_t> sys_stats_membership;
-        scoped_ptr_t<sys_stats_collector_t> sys_stats_collector;
-        if (i_am_a_server) {
-            sys_stats_collection.init(new perfmon_collection_t);
-            sys_stats_membership.init(new perfmon_membership_t(
-                &get_global_perfmon_collection(),
-                sys_stats_collection.get(),
-                "sys"));
-            sys_stats_collector.init(new sys_stats_collector_t(
-                base_path, sys_stats_collection.get()));
-        }
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
@@ -440,12 +422,14 @@ bool do_serve(UNUSED io_backender_t *io_backender,
                            addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logNTC("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logNTC("by adding `bind=all' to the config file (%s).",
-                                   (*serve_info.config_file).c_str());
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by adding `bind=all' to the config "
+                                   "file (%s).", (*serve_info.config_file).c_str());
                         } else {
-                            logNTC("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by running rethinkdb with the `--bind "
+                                   "all` command line option.");
                         }
                     }
 
@@ -469,20 +453,13 @@ bool do_serve(UNUSED io_backender_t *io_backender,
                     }
 
                     scoped_ptr_t<version_checker_t> checker;
-                    scoped_ptr_t<repeating_timer_t> timer;
-
                     if (i_am_a_server
                         && serve_info.do_version_checking == update_check_t::perform) {
-                        checker.init(new version_checker_t(&rdb_ctx, stop_cond,
-                                                           semilattice_manager_cluster.get_root_view(),
-                                                           uname));
-                        checker->initial_check();
-                        const int64_t day_in_ms = 24 * 60 * 60 * 1000;
-                        timer.init(new repeating_timer_t(day_in_ms, checker.get()));
+                        checker.init(new version_checker_t(&rdb_ctx,
+                            semilattice_manager_cluster.get_root_view(), uname));
                     }
 
                     stop_cond->wait_lazily_unordered();
-
 
                     if (stop_cond->get_source_signo() == SIGINT) {
                         logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
@@ -496,7 +473,6 @@ bool do_serve(UNUSED io_backender_t *io_backender,
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
-
                 }
 
                 cond_t non_interruptor;
@@ -508,6 +484,8 @@ bool do_serve(UNUSED io_backender_t *io_backender,
                 logNTC("Shutting down client connections...\n");
             }
             logNTC("All client connections closed.\n");
+
+            jobs_manager.unset_rdb_context_and_reactor_driver();
 
             logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
