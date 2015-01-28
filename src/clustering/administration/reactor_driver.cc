@@ -77,15 +77,45 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
+bool stores_lifetimer_t::is_gc_active() const {
+    if (serializer_.has()) {
+        return serializer_->is_gc_active();
+    } else {
+        return false;
+    }
+}
+
 stores_lifetimer_t::sindex_jobs_t stores_lifetimer_t::get_sindex_jobs() const {
     stores_lifetimer_t::sindex_jobs_t sindex_jobs;
 
     if (stores_.has()) {
         for (size_t i = 0; i < stores_.size(); ++i) {
-            for (auto const &job : *(stores_[i]->get_sindex_jobs())) {
-                sindex_jobs.insert(std::make_pair(
-                    std::make_pair(stores_[i]->get_table_id(), job.second.second),  // `uuid_u`, `std::string`
-                    job.second.first));
+            if (stores_[i].has()) {
+                on_thread_t on_thread(stores_[i]->home_thread());
+
+                std::map<sindex_name_t, secondary_index_t> sindexes =
+                    stores_[i]->get_sindexes();
+                namespace_id_t table_id = stores_[i]->get_table_id();
+                for (auto const &sindex : sindexes) {
+                    if (sindex.second.being_deleted) {
+                        continue;
+                    }
+
+                    bool is_ready = sindex.second.is_ready();
+
+                    double progress = 1.0;
+                    microtime_t start_time = 0;
+                    if (is_ready == false) {
+                        progress = stores_[i]->get_sindex_progress(
+                            sindex.second.id).as_double();
+                        start_time = stores_[i]->get_sindex_start_time(
+                            sindex.second.id);
+                    }
+
+                    sindex_jobs.insert(std::make_pair(
+                        std::make_pair(table_id, sindex.first.name),
+                        sindex_job_t(start_time, is_ready, progress)));
+                }
             }
         }
     }
@@ -181,14 +211,10 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
         }
     }
 
-    /* Make sure that every known peer appears in the blueprint in some form, so that the
-    reactor doesn't proceed without approval of every known peer */
-    std::map<server_id_t, peer_id_t> server_id_to_peer_id_map =
-        server_config_client->get_server_id_to_peer_id_map()->get();
-    for (auto it = server_id_to_peer_id_map.begin();
-              it != server_id_to_peer_id_map.end();
-            ++it) {
-        peer_id_t peer = trans.server_id_to_peer_id(it->first);
+    /* Make sure that every known non-ghost server appears in the blueprint in some form,
+    so that the reactor doesn't proceed without their approval */
+    for (const auto &pair : server_config_client->get_server_id_to_name_map()->get()) {
+        peer_id_t peer = trans.server_id_to_peer_id(pair.first);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
@@ -301,10 +327,12 @@ public:
     backfill_progress_t get_backfill_progress() const {
         backfill_progress_t backfill_progress;
 
-        for (auto const &backfill : reactor_->get_progress()) {
-            backfill_progress.insert(
-                std::make_pair(std::make_pair(namespace_id_, backfill.first),
-                               backfill.second));
+        if (reactor_.has()) {
+            for (auto const &backfill : reactor_->get_progress()) {
+                backfill_progress.insert(
+                    std::make_pair(std::make_pair(namespace_id_, backfill.first),
+                                   backfill.second));
+            }
         }
 
         return backfill_progress;
@@ -428,7 +456,9 @@ reactor_driver_t::~reactor_driver_t() {
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
 }
 
-bool reactor_driver_t::is_gc_active() const {
+bool reactor_driver_t::is_gc_active() {
+    rwlock_acq_t lock(&reactor_data_rwlock, access_t::read);
+
     for (auto const &reactor : reactor_data) {
         if (reactor.second->is_gc_active()) {
             return true;
@@ -438,26 +468,34 @@ bool reactor_driver_t::is_gc_active() const {
     return false;
 }
 
-reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() const {
+reactor_driver_t::sindex_jobs_t reactor_driver_t::get_sindex_jobs() {
+    rwlock_acq_t lock(&reactor_data_rwlock, access_t::read);
+
     reactor_driver_t::sindex_jobs_t sindex_jobs;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
-        sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
-                           std::make_move_iterator(reactor_sindex_jobs.end()));
+        if (reactor.second.has()) {
+            auto reactor_sindex_jobs = reactor.second->get_sindex_jobs();
+            sindex_jobs.insert(std::make_move_iterator(reactor_sindex_jobs.begin()),
+                               std::make_move_iterator(reactor_sindex_jobs.end()));
+        }
     }
 
     return sindex_jobs;
 }
 
-reactor_driver_t::backfill_progress_t reactor_driver_t::get_backfill_progress() const {
+reactor_driver_t::backfill_progress_t reactor_driver_t::get_backfill_progress() {
+    rwlock_acq_t lock(&reactor_data_rwlock, access_t::read);
+
     reactor_driver_t::backfill_progress_t backfill_progress;
 
     for (auto const &reactor : reactor_data) {
-        auto reactor_backfill_progress = reactor.second->get_backfill_progress();
-        backfill_progress.insert(
-            std::make_move_iterator(reactor_backfill_progress.begin()),
-            std::make_move_iterator(reactor_backfill_progress.end()));
+        if (reactor.second.has()) {
+            auto reactor_backfill_progress = reactor.second->get_backfill_progress();
+            backfill_progress.insert(
+                std::make_move_iterator(reactor_backfill_progress.begin()),
+                std::make_move_iterator(reactor_backfill_progress.end()));
+        }
     }
 
     return backfill_progress;
@@ -474,64 +512,73 @@ void reactor_driver_t::delete_reactor_data(
 }
 
 void reactor_driver_t::on_change() {
-    cluster_semilattice_metadata_t md = semilattice_view->get();
+    auto_drainer_t::lock_t drainer_lock = drainer.lock();
 
-    for (auto it = md.rdb_namespaces->namespaces.begin();
-            it != md.rdb_namespaces->namespaces.end();
-            ++it) {
-        if ((it->second.is_deleted() || we_were_permanently_removed->is_pulsed()) &&
-                std_contains(reactor_data, it->first)) {
-            /* on_change cannot block because it is called as part of
-             * semilattice subscription, however the
-             * watchable_and_reactor_t destructor can block... therefore
-             * bullshit takes place. We must release a value from the
-             * ptr_map into this bullshit auto_type so that it's not in the
-             * map but the destructor hasn't been called... then this needs
-             * to be heap allocated so that it can be safely passed to a
-             * coroutine for destruction. */
-            watchable_and_reactor_t *reactor_datum = reactor_data.at(it->first).release();
-            reactor_data.erase(it->first);
-            coro_t::spawn_sometime(boost::bind(
-                &reactor_driver_t::delete_reactor_data,
-                this,
-                auto_drainer_t::lock_t(&drainer),
-                reactor_datum,
-                it->first));
-        } else if (!it->second.is_deleted()) {
-            const table_replication_info_t *repli_info =
-                &it->second.get_ref().replication_info.get_ref();
+    // This can't block but must acquire a write lock thus it's done through a coroutine.
+    coro_t::spawn_sometime([this, drainer_lock](){
+        rwlock_acq_t rwlock(&reactor_data_rwlock, access_t::write);
 
-            blueprint_t bp;
-            try {
-                bp = construct_blueprint(*repli_info, server_config_client);
-            } catch (server_name_collision_exc_t) {
-                /* Leave the blueprint the way it was before. The user should fix their
-                name collision. This is a bit hacky and it might confuse the user, but
-                it's a safe option, and name collisions are rare. */
-                continue;
-            }
-            if (!std_contains(bp.peers_roles,
-                              mbox_manager->get_connectivity_cluster()->get_me())) {
-                /* This can occur because there is a brief period during startup where
-                our server ID might not appear in `server_config_client`'s mapping of
-                server IDs and peer IDs. We just ignore it; in a moment, the mapping
-                will be updated to include us and `on_change()` will run again. */
-                continue;
-            }
+        cluster_semilattice_metadata_t md = semilattice_view->get();
 
-            /* Either construct a new reactor (if this is a namespace we
-             * haven't seen before). Or send the new blueprint to the
-             * existing reactor. */
-            if (!std_contains(reactor_data, it->first)) {
-                namespace_id_t tmp = it->first;
-                reactor_data.insert(std::make_pair(tmp,
-                    make_scoped<watchable_and_reactor_t>(
-                        base_path, io_backender, this, it->first, bp,
-                        *repli_info, md.servers, svs_by_namespace, ctx)));
-            } else {
-                reactor_data.find(it->first)->second->update_repli_info(
-                    bp, *repli_info, md.servers);
+        for (auto it = md.rdb_namespaces->namespaces.begin();
+                it != md.rdb_namespaces->namespaces.end();
+                ++it) {
+            if ((it->second.is_deleted() || we_were_permanently_removed->is_pulsed()) &&
+                    std_contains(reactor_data, it->first)) {
+                /* on_change cannot block because it is called as part of
+                 * semilattice subscription, however the
+                 * watchable_and_reactor_t destructor can block... therefore
+                 * bullshit takes place. We must release a value from the
+                 * ptr_map into this bullshit auto_type so that it's not in the
+                 * map but the destructor hasn't been called... then this needs
+                 * to be heap allocated so that it can be safely passed to a
+                 * coroutine for destruction. */
+                namespace_id_t namespace_id = it->first;
+                watchable_and_reactor_t *reactor_datum =
+                    reactor_data.at(namespace_id).release();
+                reactor_data.erase(namespace_id);
+                coro_t::spawn_sometime(boost::bind(
+                    &reactor_driver_t::delete_reactor_data,
+                    this,
+                    auto_drainer_t::lock_t(&drainer),
+                    reactor_datum,
+                    namespace_id));
+            } else if (!it->second.is_deleted()) {
+                const table_replication_info_t *repli_info =
+                    &it->second.get_ref().replication_info.get_ref();
+
+                blueprint_t bp;
+                try {
+                    bp = construct_blueprint(*repli_info, server_config_client);
+                } catch (server_name_collision_exc_t) {
+                    /* Leave the blueprint the way it was before. The user should fix their
+                    name collision. This is a bit hacky and it might confuse the user, but
+                    it's a safe option, and name collisions are rare. */
+                    continue;
+                }
+                if (!std_contains(bp.peers_roles,
+                                  mbox_manager->get_connectivity_cluster()->get_me())) {
+                    /* This can occur because there is a brief period during startup where
+                    our server ID might not appear in `server_config_client`'s mapping of
+                    server IDs and peer IDs. We just ignore it; in a moment, the mapping
+                    will be updated to include us and `on_change()` will run again. */
+                    continue;
+                }
+
+                /* Either construct a new reactor (if this is a namespace we
+                 * haven't seen before). Or send the new blueprint to the
+                 * existing reactor. */
+                if (!std_contains(reactor_data, it->first)) {
+                    namespace_id_t tmp = it->first;
+                    reactor_data.insert(std::make_pair(tmp,
+                        make_scoped<watchable_and_reactor_t>(
+                            base_path, io_backender, this, it->first, bp,
+                            *repli_info, md.servers, svs_by_namespace, ctx)));
+                } else {
+                    reactor_data.find(it->first)->second->update_repli_info(
+                        bp, *repli_info, md.servers);
+                }
             }
         }
-    }
+    });
 }

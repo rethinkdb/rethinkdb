@@ -28,7 +28,6 @@ COFFEE_SOURCES := $(patsubst %, $(COFFEE_SOURCE_DIR)/%,\
                        util.coffee \
                        body.coffee \
                        ui_components/modals.coffee ui_components/progressbar.coffee \
-                       tables/database.coffee \
                        tables/index.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
                        servers/index.coffee servers/server.coffee \
                        dashboard.coffee \

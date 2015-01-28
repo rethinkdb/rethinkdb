@@ -10,13 +10,9 @@ tests:
   - cd: r.db('d469').table('t469').index_wait('x').pluck('index', 'ready')
     ot: ([{'ready':True, 'index':'x'}])
 
-  - rb: r(nil).info
-    py: r.expr(None).info()
-    js: r(null).info()
-    ot:
-      rb: ({'type':'NULL','value':'nu''ll'})
-      py: ({'type':'NULL','value':'null'})
-      js: ({'type':'NULL','value':'null'})
+  - cd: r(null).info()
+    py: r.expr(null).info()
+    ot: ({'type':'NULL','value':'null'})
   - rb: r(true).info
     py: r.expr(True).info()
     js: r(true).info()
@@ -39,15 +35,17 @@ tests:
     ot: ({'type':'OBJECT','value':"{\n\t\"a\":\t1\n}"})
 
   - cd: r.db('d469').info()
-    ot: ({'type':'DB','name':'d469'})
+    ot: partial({'type':'DB','name':'d469'})
   - cd: r.db('d469').table('t469').info()
-    ot: ({'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+    ot: ({'type':'TABLE','name':'t469','id':uuid(),
+          'db':{'type':'DB','name':'d469','id':uuid()},
           'primary_key':'id', 'indexes':['x'], 'doc_count_estimates':[0]})
   - rb: r.db('d469').table('t469').filter{true}.info
     py: r.db('d469').table('t469').filter(lambda x:True).info()
     js: r.db('d469').table('t469').filter(function(x) { return true; }).info()
     ot: ({'type':'SELECTION<STREAM>',
-          'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+          'table':{'type':'TABLE','name':'t469','id':uuid(),
+                   'db':{'type':'DB','name':'d469','id':uuid()},
                    'primary_key':'id', 'indexes':['x'], 'doc_count_estimates':[0]}})
   - rb: r.db('d469').table('t469').map{|x| 1}.info
     py: r.db('d469').table('t469').map(lambda x:1).info()

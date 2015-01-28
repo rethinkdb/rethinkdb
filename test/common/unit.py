@@ -1,6 +1,7 @@
-# Copyright 2014 RethinkDB, all rights reserved.
+#!/user/bin/env python
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
-import collections, os.path, subprocess
+import collections, os, subprocess
 
 import test_framework, utils
 
@@ -16,6 +17,7 @@ class AllUnitTests(test_framework.Test):
 
     def configure(self, conf):
         unit_executable = os.path.join(conf['BUILD_DIR'], "rethinkdb-unittest")
+        assert os.access(unit_executable, os.X_OK), 'No useable rethinkdb-unittest executable in: %s' % conf['BUILD_DIR']
         output = subprocess.check_output([unit_executable, "--gtest_list_tests"])
         key = None
         dict = collections.defaultdict(list)

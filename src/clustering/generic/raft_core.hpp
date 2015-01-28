@@ -54,7 +54,7 @@ typedef uint64_t raft_log_index_t;
 
 /* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
-way of assigning integers. Note that `raft_member_id_t` is not a `machine_id_t` or a
+way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
 `peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
 different `raft_member_id_t` the second time. */
 typedef uuid_u raft_member_id_t;

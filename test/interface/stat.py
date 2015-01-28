@@ -24,7 +24,7 @@
 
 from __future__ import print_function
 
-import sys, os, time, re, multiprocessing, random
+import sys, os, time, re, multiprocessing, random, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse, workload_runner
 
@@ -291,7 +291,7 @@ with driver.Metacluster() as metacluster:
                          .get(servers[0]["id"]).run(conn)
         debug_stats_1 = r.db('rethinkdb').table('_debug_stats') \
                          .get(servers[1]["id"]).run(conn)
-        assert debug_stats_0["stats"]["proc"]["pid"] == servers[0]['process'].process.pid
+        assert debug_stats_0["stats"]["eventloop"]["total"] > 0
         assert "error" in debug_stats_1
 
         # Restart server
@@ -310,6 +310,15 @@ with driver.Metacluster() as metacluster:
         stop_event.set()
         for table in tables:
             table['workload'].join()
+
+    print("Checking that stats table is not writable...")
+    length = r.db("rethinkdb").table("stats").count().run(conn)
+    res = r.db("rethinkdb").table("stats").delete().run(conn)
+    assert res["errors"] == length, res
+    res = r.db("rethinkdb").table("stats").update({"foo": "bar"}).run(conn)
+    assert res["errors"] == length, res
+    res = r.db("rethinkdb").table("stats").insert({}).run(conn)
+    assert res["errors"] == 1, res
 
     cluster.check_and_stop()
 

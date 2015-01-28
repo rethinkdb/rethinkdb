@@ -137,14 +137,16 @@ void post_construct_and_drain_queue(
     THROWS_NOTHING
 {
     std::set<uuid_u> sindexes_to_bring_up_to_date;
-    std::vector<map_insertion_sentry_t<uuid_u, std::pair<microtime_t, std::string> > >
-        sindex_sentries;
+    parallel_traversal_progress_t progress_tracker;
+    std::vector<map_insertion_sentry_t<
+        store_t::sindex_context_map_t::key_type,
+        store_t::sindex_context_map_t::mapped_type> > sindex_context_sentries;
     for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
         sindexes_to_bring_up_to_date.insert(sindex.first);
-        sindex_sentries.emplace_back(
-            store->get_sindex_jobs(),
+        sindex_context_sentries.emplace_back(
+            store->get_sindex_context_map(),
             sindex.first,
-            std::make_pair(current_microtime(), sindex.second));
+            std::make_pair(current_microtime(), &progress_tracker));
     }
 
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
@@ -158,7 +160,11 @@ void post_construct_and_drain_queue(
     // reason).
 
     try {
-        post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
+        post_construct_secondary_indexes(
+            store,
+            sindexes_to_bring_up_to_date,
+            lock.get_drain_signal(),
+            &progress_tracker);
 
         /* Drain the queue. */
 
@@ -716,6 +722,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
     out->truncated = false;
+    out->skey_version = ql::skey_version_t::pre_1_16;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -724,6 +731,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<query_response_t>(&responses[i].response);
         guarantee(resp);
+        if (i == 0) {
+            out->skey_version = resp->skey_version;
+        } else {
+            guarantee(out->skey_version == resp->skey_version);
+        }
         if (resp->truncated) {
             out->truncated = true;
             if (best == NULL || key_le.is_le(resp->last_key, *best)) {
@@ -1204,7 +1216,11 @@ RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
         outdated);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(rget_read_response_t, result, truncated, last_key);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    ql::skey_version_t, int8_t,
+    ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(rget_read_response_t,
+                                    result, skey_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_list_response_t, sindexes);

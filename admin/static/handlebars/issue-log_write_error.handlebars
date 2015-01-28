@@ -1,0 +1,28 @@
+<div class="issue {{#if critical }}critical{{/if}} name-conflict">
+  <div class="issue-header">
+    <p class="issue-type">Cannot write logs</p>
+    <p class="message">
+      Log {{pluralize_noun "file" info.servers.length}} cannot be written to
+    </p>
+  </div>
+  <hr />
+  <div class="issue-details">
+    <p>
+      The following {{pluralize_noun "server" info.servers.length}}
+      encountered an error while writing log statements:
+    </p>
+    <ul>
+      {{#each info.servers}}
+      <li><a href="/#servers/{{server_id}}">{{server}}</a></li>
+      {{/each}}
+    </ul>
+    <p>
+      The error message reported is: <code>{{info.message}}</code>
+    </p>
+    <p>
+      Please fix the problem that is preventing the {{pluralize_noun "server" info.servers.length}} from writing to their log
+      file. This issue will go away the next time the server
+      successfully writes to the log file.
+    </p>
+  </div>
+</div>

@@ -111,15 +111,16 @@ message Backtrace {
 message Response {
     enum ResponseType {
         // These response types indicate success.
-        SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
-        SUCCESS_SEQUENCE = 2; // Query returned a sequence of RQL datatypes.
-        SUCCESS_PARTIAL  = 3; // Query returned a partial sequence of RQL
-                              // datatypes.  If you send a [CONTINUE] query with
-                              // the same token as this response, you will get
-                              // more of the sequence.  Keep sending [CONTINUE]
-                              // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED     = 5; // Like [SUCCESS_PARTIAL] but for feeds.
-        WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
+        SUCCESS_ATOM      = 1; // Query returned a single RQL datatype.
+        SUCCESS_SEQUENCE  = 2; // Query returned a sequence of RQL datatypes.
+        SUCCESS_PARTIAL   = 3; // Query returned a partial sequence of RQL
+                               // datatypes.  If you send a [CONTINUE] query with
+                               // the same token as this response, you will get
+                               // more of the sequence.  Keep sending [CONTINUE]
+                               // queries until you get back [SUCCESS_SEQUENCE].
+        SUCCESS_FEED      = 5; // Like [SUCCESS_PARTIAL] but for feeds.
+        WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
+        SUCCESS_ATOM_FEED = 6; // Like [SUCCESS_FEED] but a singleton.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -451,9 +452,9 @@ message Term {
         DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
         DB_LIST       = 59; // -> ARRAY
-        // With no arguments, returns the contents of the `rethinkdb.db_config` system
-        // table. With string arguments, returns only the rows corresponding to the DBs
-        // with the given names.
+        // Creates a table with a particular name in a particular
+        // database.  (You may omit the first argument to use the
+        // default database.)
         TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
                             // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
                             // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
@@ -644,9 +645,7 @@ message Term {
 
         // Construct a time from a date and optional timezone or a
         // date+time and optional timezone.
-        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+        TIME = 136; // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
                     // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
 
         // Constants for ISO 8601 days of the week.

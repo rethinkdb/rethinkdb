@@ -69,7 +69,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     r.db(dbName).wait().run(conn)
     cluster.check()
 
-    assert len(list(r.db('rethinkdb').table('issues').run(conn))) == 0
+    assert len(list(r.db('rethinkdb').table('current_issues').run(conn))) == 0
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

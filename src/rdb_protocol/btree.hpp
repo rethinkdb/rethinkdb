@@ -342,7 +342,8 @@ void rdb_update_sindexes(
 void post_construct_secondary_indexes(
         store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        parallel_traversal_progress_t *progress_tracker)
     THROWS_ONLY(interrupted_exc_t);
 
 /* This deleter actually deletes the value and all associated blocks. */

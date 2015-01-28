@@ -109,7 +109,7 @@ with driver.Cluster(output_folder='.') as cluster:
         res = r.db(dbName).table(t).insert([{}]*1000).run(conn)
         assert res["errors"] == 0 and res["inserted"] == 1000, res
 
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert not issues, repr(issues)
 
     print("Killing the designated 'dead' servers (%.2fs)" % (time.time() - startTime))
@@ -167,7 +167,7 @@ with driver.Cluster(output_folder='.') as cluster:
         check_table_status("table%d" % (i+1), readiness_2)
 
     print("Checking for issues (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     pprint.pprint(issues)
     issues_by_table = {}
     for issue in issues:

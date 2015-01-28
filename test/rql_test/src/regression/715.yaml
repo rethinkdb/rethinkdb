@@ -6,31 +6,16 @@ tests:
     js: tbl.insert({})('inserted')
     ot: 1
 
-  - py: tbl.insert({})['inserted']
+  - cd: tbl.insert({})['inserted']
+    js: tbl.insert({})('inserted')
     runopts:
-      noreply: 'False'
-    ot: 1
-  - js: tbl.insert({})('inserted')
-    runopts:
-      noreply: 'false'
-    ot: 1
-  - rb: tbl.insert({})['inserted']
-    runopts:
-      noreply: 'false'
+      noreply: false
     ot: 1
 
-  - py: tbl.insert({})
+  - cd: tbl.insert({})
     runopts:
-      noreply: 'True'
-    ot: (None)
-  - js: tbl.insert({})
-    runopts:
-      noreply: 'true'
-    ot: (undefined)
-  - rb: tbl.insert({})
-    runopts:
-      noreply: 'true'
-    ot: (nil)
+      noreply: true
+    ot: null
 
   - cd: tbl.count()
     ot: 3

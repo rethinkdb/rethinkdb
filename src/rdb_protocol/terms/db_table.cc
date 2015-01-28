@@ -123,7 +123,8 @@ class table_create_term_t : public meta_op_term_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(1, 2),
-            optargspec_t({"primary_key", "shards", "replicas", "primary_replica_tag"})) { }
+            optargspec_t({"primary_key", "shards", "replicas",
+                          "primary_replica_tag", "durability"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -148,6 +149,11 @@ private:
             primary_key = v->as_str().to_std();
         }
 
+        write_durability_t durability =
+            parse_durability_optarg(args->optarg(env, "durability")) ==
+                DURABILITY_REQUIREMENT_SOFT ?
+                    write_durability_t::SOFT : write_durability_t::HARD;
+
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
@@ -164,7 +170,8 @@ private:
         std::string error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
-                config_params, primary_key, env->env->interruptor, &result, &error)) {
+                config_params, primary_key, durability,
+                env->env->interruptor, &result, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return new_val(result);
@@ -371,24 +378,65 @@ private:
 class wait_term_t : public table_or_db_meta_term_t {
 public:
     wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_or_db_meta_term_t(env, term, optargspec_t({})) { }
+        table_or_db_meta_term_t(env, term, optargspec_t({"timeout", "wait_for"})) { }
 private:
+    static char const * const wait_outdated_str;
+    static char const * const wait_reads_str;
+    static char const * const wait_writes_str;
+    static char const * const wait_all_str;
+
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, UNUSED args_t *args, eval_flags_t,
+            scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        /* We've considered making `readiness` an optarg. See GitHub issue #2259. */
+        // Handle 'wait_for' optarg
         table_readiness_t readiness = table_readiness_t::finished;
+        if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
+            if (wait_for->as_str() == wait_outdated_str) {
+                readiness = table_readiness_t::outdated_reads;
+            } else if (wait_for->as_str() == wait_reads_str) {
+                readiness = table_readiness_t::reads;
+            } else if (wait_for->as_str() == wait_writes_str) {
+                readiness = table_readiness_t::writes;
+            } else if (wait_for->as_str() == wait_all_str) {
+                readiness = table_readiness_t::finished;
+            } else {
+                rfail_target(wait_for, base_exc_t::GENERIC,
+                             "Unknown table readiness state: '%s', must be one of "
+                             "'%s', '%s', '%s', or '%s'",
+                             wait_for->as_str().to_std().c_str(),
+                             wait_outdated_str, wait_reads_str,
+                             wait_writes_str, wait_all_str);
+            }
+        }
+
+        // Handle 'timeout' optarg
+        signal_timer_t timeout_timer;
+        wait_any_t combined_interruptor(env->env->interruptor);
+        if (scoped_ptr_t<val_t> timeout = args->optarg(env, "timeout")) {
+            timeout_timer.start(timeout->as_int<uint64_t>() * 1000);
+            combined_interruptor.add(&timeout_timer);
+        }
+
+        // Perform db or table wait
         ql::datum_t result;
         bool success;
         std::string error;
-        if (static_cast<bool>(name_if_table)) {
-            success = env->env->reql_cluster_interface()->table_wait(
-                db, *name_if_table, readiness, env->env->interruptor, &result, &error);
-        } else {
-            success = env->env->reql_cluster_interface()->db_wait(
-                db, readiness, env->env->interruptor, &result, &error);
+        try {
+            if (static_cast<bool>(name_if_table)) {
+                success = env->env->reql_cluster_interface()->table_wait(db,
+                    *name_if_table, readiness, &combined_interruptor, &result, &error);
+            } else {
+                success = env->env->reql_cluster_interface()->db_wait(
+                    db, readiness, &combined_interruptor, &result, &error);
+            }
+        } catch (const interrupted_exc_t &ex) {
+            if (!timeout_timer.is_pulsed()) {
+                throw;
+            }
+            rfail(base_exc_t::GENERIC, "Timed out while waiting for tables.");
         }
+
         if (!success) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -396,6 +444,11 @@ private:
     }
     virtual const char *name() const { return "wait"; }
 };
+
+char const * const wait_term_t::wait_outdated_str = "ready_for_outdated_reads";
+char const * const wait_term_t::wait_reads_str = "ready_for_reads";
+char const * const wait_term_t::wait_writes_str = "ready_for_writes";
+char const * const wait_term_t::wait_all_str = "all_replicas_ready";
 
 class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
@@ -513,7 +566,8 @@ private:
         scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
 
-        boost::optional<admin_identifier_format_t> identifier_format;
+        auto identifier_format =
+            boost::make_optional<admin_identifier_format_t>(false, admin_identifier_format_t());
         if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
             const datum_string_t &str = v->as_str();
             if (str == "name") {

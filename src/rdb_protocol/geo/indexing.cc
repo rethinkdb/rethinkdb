@@ -68,14 +68,20 @@ std::string s2cellid_to_key(S2CellId id) {
 }
 
 S2CellId key_to_s2cellid(const std::string &sid) {
-    guarantee(sid.length() >= 2 && sid[0] == 'G' && sid[1] == 'C');
+    guarantee(sid.length() >= 2
+              // We need the static cast here because `'G' | 0x80` does integer
+              // promotion and produces 199, whereas `sid[0]` produces -57
+              // because it's a signed char.  C FTW!
+              && (sid[0] == 'G' || static_cast<uint8_t>(sid[0]) == ('G' | 0x80))
+              && sid[1] == 'C');
     return S2CellId::FromToken(sid.substr(2));
 }
 
 S2CellId btree_key_to_s2cellid(const btree_key_t *key) {
     rassert(key != NULL);
-    return key_to_s2cellid(datum_t::extract_secondary(
-        std::string(reinterpret_cast<const char *>(key->contents), key->size)));
+    return key_to_s2cellid(
+        datum_t::extract_secondary(
+            std::string(reinterpret_cast<const char *>(key->contents), key->size)));
 }
 
 std::vector<std::string> compute_index_grid_keys(
@@ -83,7 +89,8 @@ std::vector<std::string> compute_index_grid_keys(
     rassert(key.has());
 
     if (!key.is_ptype(ql::pseudo::geometry_string)) {
-        throw geo_exception_t("Expected geometry but found " + key.get_type_name() + ".");
+        throw geo_exception_t(
+            "Expected geometry but found " + key.get_type_name() + ".");
     }
     if (goal_cells <= 0) {
         throw geo_exception_t("goal_cells must be positive (and should be >= 4).");
@@ -125,8 +132,9 @@ void geo_index_traversal_helper_t::init_query(
 }
 
 done_traversing_t
-geo_index_traversal_helper_t::handle_pair(scoped_key_value_t &&keyvalue,
-                                          concurrent_traversal_fifo_enforcer_signal_t waiter)
+geo_index_traversal_helper_t::handle_pair(
+    scoped_key_value_t &&keyvalue,
+    concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 

@@ -63,15 +63,15 @@ bool artificial_reql_cluster_interface_t::db_config(
 bool artificial_reql_cluster_interface_t::table_create(
         const name_string_t &name, counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
-        const std::string &primary_key, signal_t *interruptor,
-        ql::datum_t *result_out, std::string *error_out) {
+        const std::string &primary_key, write_durability_t durability,
+        signal_t *interruptor, ql::datum_t *result_out, std::string *error_out) {
     if (db->name == database) {
         *error_out = strprintf("Database `%s` is special; you can't create new tables "
             "in it.", database.c_str());
         return false;
     }
     return next->table_create(name, db, config_params, primary_key,
-        interruptor, result_out, error_out);
+        durability, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
@@ -312,8 +312,18 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _server_config_client,
             static_cast<admin_identifier_format_t>(i)));
     }
-    backends[name_string_t::guarantee_valid("issues")] =
+    backends[name_string_t::guarantee_valid("current_issues")] =
         std::make_pair(issues_backend[0].get(), issues_backend[1].get());
+
+    for (int i = 0; i < 2; ++i) {
+        logs_backend[i].init(new logs_artificial_table_backend_t(
+            _mailbox_manager,
+            _directory_map_view,
+            _server_config_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
+    backends[name_string_t::guarantee_valid("logs")] =
+        std::make_pair(logs_backend[0].get(), logs_backend[1].get());
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::servers,

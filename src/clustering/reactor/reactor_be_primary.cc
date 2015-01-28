@@ -194,11 +194,10 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
             try {
                 if (const rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
                     branch_history_t bh = secondary_without_primary->branch_history;
-                    std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
 
                     for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
                             bt != bh.branches.end(); ++bt) {
-                        if (!std_contains(known_branchs, bt->first)) {
+                        if (!branch_history_manager->is_branch_known(bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
                             *its_not_safe_out = false;
@@ -215,11 +214,10 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
                                            res);
                 } else if (const rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
                     branch_history_t bh = nothing_when_safe->branch_history;
-                    std::set<branch_id_t> known_branchs = branch_history_manager->known_branches();
 
                     for (std::map<branch_id_t, branch_birth_certificate_t>::iterator bt  = bh.branches.begin();
                             bt != bh.branches.end(); ++bt) {
-                        if (!std_contains(known_branchs, bt->first)) {
+                        if (!branch_history_manager->is_branch_known(bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
                             *its_not_safe_out = false;

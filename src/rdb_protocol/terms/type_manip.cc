@@ -344,6 +344,10 @@ private:
         switch (type) {
         case DB_TYPE: {
             b |= info.add("name", datum_t(datum_string_t(v->as_db()->name.str())));
+            b |= info.add("id",
+                          v->as_db()->id.is_nil() ?
+                              datum_t::null() :
+                              datum_t(datum_string_t(uuid_to_str(v->as_db()->id))));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
@@ -352,6 +356,7 @@ private:
                           datum_t(datum_string_t(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
+            b |= info.add("id", table->get_id());
             {
                 name_string_t name;
                 bool ok = name.assign_value(table->name);

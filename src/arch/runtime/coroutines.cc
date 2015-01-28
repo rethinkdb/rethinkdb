@@ -16,6 +16,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
+#include "debug.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rethinkdb_backtrace.hpp"
@@ -47,6 +48,9 @@ struct coro_globals_t {
 
     /* An integer counting the number of coros on this thread */
     int coro_count;
+    /* Have we printed a warning about too many coroutines? We only want to
+    print it once. */
+    bool printed_high_coro_count_warning;
 
     /* These variables are used in the implementation of
     `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING`. They record the
@@ -70,6 +74,7 @@ struct coro_globals_t {
         , prev_coro(NULL)
 #ifndef NDEBUG
         , coro_count(0)
+        , printed_high_coro_count_warning(false)
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
@@ -142,9 +147,12 @@ coro_t::coro_t() :
 
 #ifndef NDEBUG
     TLS_get_cglobals()->coro_count++;
-    rassert(TLS_get_cglobals()->coro_count < MAX_COROS_PER_THREAD, "Too many "
-            "coroutines allocated on this thread. This is problem due to a "
-            "misuse of the coroutines\n");
+    if (TLS_get_cglobals()->coro_count > COROS_PER_THREAD_WARN_LEVEL
+        && !TLS_get_cglobals()->printed_high_coro_count_warning) {
+        TLS_get_cglobals()->printed_high_coro_count_warning = true;
+        debugf("A lot of coroutines are allocated on this thread. This could "
+               "indicate a misuse of coroutines.\n");
+    }
 #endif
 }
 

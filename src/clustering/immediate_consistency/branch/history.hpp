@@ -175,9 +175,9 @@ public:
     record for this branch. */
     virtual branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING = 0;
 
-    /* Rrturns which branchs this branch history manager knows about. This can
-     * be used with get branch to prevent failures. */
-    virtual std::set<branch_id_t> known_branches() THROWS_NOTHING = 0;
+    /* Checks whether a given branch id is known. This can be used with get_branch
+    to prevent failures. */
+    virtual bool is_branch_known(branch_id_t branch) THROWS_NOTHING = 0;
 
     /* Adds a new branch to the database. Blocks until it is safely on disk.
     Blocks to avoid a race condition where we write the branch ID to a B-tree's

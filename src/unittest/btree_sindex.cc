@@ -145,7 +145,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             NULL,
             &io_backender,
             base_path_t("."),
-            NULL,
+            scoped_ptr_t<outdated_index_report_t>(),
             generate_uuid());
 
     cond_t dummy_interruptor;

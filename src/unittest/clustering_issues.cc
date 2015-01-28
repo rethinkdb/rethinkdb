@@ -192,7 +192,7 @@ TPTEST(ClusteringIssues, OutdatedIndex) {
     std::string db_name("foo");
     database_id_t db_id = add_database(&env, db_name);
     namespace_id_t table_id = add_table(&env, table_name, db_id);
-    outdated_index_report_t *index_report =
+    scoped_ptr_t<outdated_index_report_t> index_report =
         env.outdated_index_issue_tracker.create_report(table_id);
     index_report->set_outdated_indexes(
         std::set<std::string>({"one", "two", "three"}));
@@ -229,7 +229,7 @@ TPTEST(ClusteringIssues, OutdatedIndex) {
         table_with_uuids.get_field("table").as_str().to_std());
 
     // Clear error case
-    index_report->destroy();
+    index_report.reset();
 
     let_stuff_happen();
     assert_no_issues(&env);

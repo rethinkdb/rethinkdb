@@ -21,6 +21,7 @@
 #include "region/region_map.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "version.hpp"
 
 struct backfill_chunk_t;
 struct read_t;
@@ -202,5 +203,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
                                       DURABILITY_REQUIREMENT_DEFAULT,
                                       DURABILITY_REQUIREMENT_SOFT);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::v1_13, reql_version_t::v1_16_is_latest);
 
 #endif /* PROTOCOL_API_HPP_ */

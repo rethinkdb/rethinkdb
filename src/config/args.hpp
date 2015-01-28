@@ -172,7 +172,9 @@
 // freed. This value is per thread.
 #define COROUTINE_FREE_LIST_SIZE                  64
 
-#define MAX_COROS_PER_THREAD                      10000
+// In debug mode, we print a warning if more than this many coroutines have been
+// allocated on one thread.
+#define COROS_PER_THREAD_WARN_LEVEL               10000
 
 
 // Minimal time we nap before re-checking if a goal is satisfied in the reactor (in ms).

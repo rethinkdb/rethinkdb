@@ -45,7 +45,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         ]}).run(conn)['errors'] == 0
     r.db(dbName).wait().run(conn)
     cluster.check()
-    assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+    assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
     
     print("Starting workload (%.2fs)" % (time.time() - startTime))
     
@@ -53,7 +53,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
-        assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+        assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
         workload.check()
         
         print("Changing the primary replica to second server (%.2fs)" % (time.time() - startTime))
@@ -64,14 +64,14 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
             ]}).run(conn)['errors'] == 0
         r.db(dbName).wait().run(conn)
         cluster.check()
-        assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+        assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
         
         print("Running after workload (%.2fs)" % (time.time() - startTime))
         
         workload.run_after()
     
     cluster.check()
-    assert [] == list(r.db('rethinkdb').table('issues').run(conn))
+    assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

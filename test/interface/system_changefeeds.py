@@ -26,6 +26,7 @@ class AsyncChangefeed(object):
         self.thr = threading.Thread(target = self.run, args = (query, ))
         self.thr.daemon = True
         self.thr.start()
+        time.sleep(0.5)
     def run(self, query):
         try:
             for x in eval(query).changes().run(self.conn):
@@ -51,9 +52,13 @@ with driver.Metacluster() as metacluster:
     proc2.wait_until_started_up()
     cluster1.check()
 
+    # This is necessary because a few log messages may be printed even after
+    # `wait_until_started_up()` returns.
+    time.sleep(5.0)
+
     conn = r.connect(proc1.host, proc1.driver_port)
-    tables = ["cluster_config", "db_config", "issues", "server_config", "server_status",
-        "table_config", "table_status"]
+    tables = ["cluster_config", "db_config", "current_issues", "logs", "server_config",
+        "server_status", "table_config", "table_status"]
     feeds = { }
     for name in tables:
         feeds[name] = AsyncChangefeed(proc1.host, proc1.driver_port,
@@ -111,19 +116,19 @@ with driver.Metacluster() as metacluster:
     res = r.db("rethinkdb").table("server_config").filter({"name": "b"}) \
            .update({"name": "c"}).run(conn)
     assert res["replaced"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status",
+    check(["logs", "server_config", "server_status", "table_config", "table_status",
         "test_config", "test_status", "test2_config", "test2_status"], 1.0)
 
     print("Killing one server...")
     proc2.check_and_stop()
-    check(["server_status", "table_status", "issues",
+    check(["logs", "server_status", "table_status", "current_issues",
         "test_status", "test2_status"], 1.0)
 
     print("Declaring it dead...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "c"}).delete() \
            .run(conn)
     assert res["deleted"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status", "issues",
+    check(["server_config", "server_status", "table_config", "table_status", "current_issues",
         "test_config", "test_status", "test2_config", "test2_status"], 1.0)
 
     print("Shutting everything down...")

@@ -52,11 +52,10 @@ module 'MainView', ->
 
         fetch_data: (server_uuid) =>
             query = r.expr
-                databases: r.db(system_db).table('db_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
-                issues: r.db(system_db).table('issues').coerceTo("ARRAY")
-                num_issues: r.db(system_db).table('issues').count()
+                issues: driver.queries.issues_with_ids()
+                num_issues: r.db(system_db).table('current_issues').count()
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
                     server("status").eq("connected")
@@ -70,11 +69,8 @@ module 'MainView', ->
 
             @timer = driver.run query, 5000, (error, result) =>
                 if error?
-                    #TODO
+                    console.log(error)
                 else
-                    for database in result.databases
-                        @databases.add new Database(database), {merge: true}
-                        delete result.databases
                     for table in result.tables
                         @tables.add new Table(table), {merge: true}
                         delete result.tables

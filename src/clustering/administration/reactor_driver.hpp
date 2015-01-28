@@ -8,6 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "clustering/administration/servers/config_client.hpp"
@@ -15,6 +16,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
+
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
@@ -64,11 +66,11 @@ public:
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
     scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
-    bool is_gc_active() const {
-        return serializer_->is_gc_active();
-    }
+    bool is_gc_active() const;
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
+    // The `multimap` key is the pair of table id and sindex name
+    typedef std::multimap<std::pair<namespace_id_t, std::string>, sindex_job_t>
+        sindex_jobs_t;
     sindex_jobs_t get_sindex_jobs() const;
 
 private:
@@ -119,14 +121,16 @@ public:
         return &watchable_var;
     }
 
-    bool is_gc_active() const;
+    bool is_gc_active();
 
-    typedef std::multimap<std::pair<uuid_u, std::string>, microtime_t> sindex_jobs_t;
-    sindex_jobs_t get_sindex_jobs() const;
+    // As above, the `multimap` key is the pair of table id and sindex name
+    typedef std::multimap<std::pair<namespace_id_t, std::string>, sindex_job_t>
+        sindex_jobs_t;
+    sindex_jobs_t get_sindex_jobs();
 
     typedef std::map<std::pair<namespace_id_t, region_t>, reactor_progress_report_t>
         backfill_progress_t;
-    backfill_progress_t get_backfill_progress() const;
+    backfill_progress_t get_backfill_progress();
 
 private:
     friend class watchable_and_reactor_t;
@@ -161,6 +165,7 @@ private:
     watchable_map_var_t<namespace_id_t, namespace_directory_metadata_t> watchable_var;
 
     reactor_map_t reactor_data;
+    rwlock_t reactor_data_rwlock;
 
     auto_drainer_t drainer;
 
