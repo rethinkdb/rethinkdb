@@ -34,7 +34,6 @@ tests:
       ot: 1
     
     - cd: normal_changes
-      js: normal_changes
       cd:
         ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
         rb: ([{'new_val':{'id':100}, 'old_val':null}])
