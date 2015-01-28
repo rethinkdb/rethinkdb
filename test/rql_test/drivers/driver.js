@@ -56,8 +56,10 @@ function printTestFailure(name, src, messages) {
 
 function eq_test(expected, result, compOpts, partial) {
     TRACE("eq_test: " + JSON.stringify(expected) + " | == | " + JSON.stringify(result) + " | == | " + partial);
+    
     if (expected instanceof Function) {
         return expected(result);
+    
     } else if (result instanceof Function) {
         return result(expected);
 
