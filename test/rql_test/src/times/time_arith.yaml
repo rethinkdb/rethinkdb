@@ -69,8 +69,8 @@ tests:
            [false, true,  true,  false, true,  false]]])
 
   - def:
-      rb: datum_types = r([nil, true, false, 1, "1", [1], {"1" => 1}, r.binary('')])
-      py: datum_types = r.expr([None, true, false, 1, "1", [1], {"1":1}, r.binary(b'')])
+      rb: datum_types = r([null, true, false, 1, "1", [1], {"1" => 1}, r.binary('')])
+      py: datum_types = r.expr([null, true, false, 1, "1", [1], {"1":1}, r.binary(b'')])
       js: datum_types = r([null, true, false, 1, "1", [1], {"1":1}, r.binary(Buffer(0))])
 
 # Test comparisons, from both directions (there was a problem where

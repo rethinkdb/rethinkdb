@@ -59,8 +59,8 @@ tests:
     - rb: tbl.get(7).update({a:1})['replaced']
       ot: 1
     - rb: point_changes.to_a
-      ot: ([{"new_val"=>nil},
-            {"new_val"=>{"id"=>7}, "old_val"=>nil},
+      ot: ([{"new_val"=>null},
+            {"new_val"=>{"id"=>7}, "old_val"=>null},
             {"new_val"=>{"a"=>1, "id"=>7}, "old_val"=>{"id"=>7}}])
       testopts:
         reql-query: False

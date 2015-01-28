@@ -1,8 +1,6 @@
 desc: Tests r.default
 tests:
 
-    # The test driver sometimes rewrites `null` to `None` in Ruby for unknown reasons.
-
     # tst
     - cd: r.expr(1).default(2)
       ot: 1
