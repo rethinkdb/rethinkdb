@@ -75,8 +75,9 @@ class Cursor(object):
         self.it = iter(self._it())
 
     def _extend(self, response):
-        self.end_flag = response.type != pResponse.SUCCESS_PARTIAL and \
-                        response.type != pResponse.SUCCESS_FEED
+        self.end_flag = response.type not in [pResponse.SUCCESS_PARTIAL,
+                                         pResponse.SUCCESS_ATOM_FEED,
+                                         pResponse.SUCCESS_FEED]
         self.responses.append(response)
 
         if len(self.responses) == 1 and not self.end_flag:
@@ -100,9 +101,10 @@ class Cursor(object):
                 break
 
             self.conn._check_error_response(self.responses[0], self.query.term)
-            if self.responses[0].type != pResponse.SUCCESS_PARTIAL and \
-               self.responses[0].type != pResponse.SUCCESS_SEQUENCE and \
-               self.responses[0].type != pResponse.SUCCESS_FEED:
+            if self.responses[0].type not in [pResponse.SUCCESS_PARTIAL,
+                                         pResponse.SUCCESS_SEQUENCE,
+                                         pResponse.SUCCESS_FEED,
+                                         pResponse.SUCCESS_ATOM_FEED]:
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
@@ -126,9 +128,9 @@ class Cursor(object):
                 self.conn._end_cursor(self)
 
 class Connection(object):
-    
+
     _r = None # injected into the class from __init__.py
-    
+
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.closing = False
@@ -163,30 +165,28 @@ class Connection(object):
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
-        
+
         try:
             # Send our initial handshake
-            
+
             self._sock_sendall(
                 struct.pack("<2L", p.VersionDummy.Version.V0_3, len(self.auth_key)) +
                 self.auth_key +
                 struct.pack("<L", p.VersionDummy.Protocol.JSON)
             )
-            
+
             # Read out the response from the server, which will be a null-terminated string
-        
+
             response = b""
             while True:
                 char = self._sock_recvall(1)
                 if char == b"\0":
                     break
                 response += char
-        except socket.timeout:
+        except RqlDriverError as err:
             self.close(noreply_wait=False)
-            raise RqlDriverError("Timed out during handshake with %s:%d." % (self.host, self.port))
-        except socket.error as err:
-            self.close(noreply_wait=False)
-            raise RqlDriverError("Error during handshake with %s:%d - %s" % (self.host, self.port, err))
+            error = str(err).replace('receiving from', 'during handshake with').replace('sending to', 'during handshake with')
+            raise RqlDriverError(error)
 
         if response != b"SUCCESS":
             self.close(noreply_wait=False)
@@ -240,10 +240,16 @@ class Connection(object):
                 try:
                     chunk = self.socket.recv(length - len(res))
                     break
-                except IOError as e:
-                    if e.errno != errno.EINTR:
+                except IOError as err:
+                    if err.errno == errno.ECONNRESET:
                         self.close(noreply_wait=False)
-                        raise
+                        raise RqlDriverError("Connection is closed.")
+                    elif err.errno != errno.EINTR:
+                        self.close(noreply_wait=False)
+                        raise RqlDriverError('Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(err)))
+                except Exception as err:
+                    self.close(noreply_wait=False)
+                    raise RqlDriverError('Error receiving from %s:%s - %s' % (self.host, self.port, str(err)))
                 except:
                     self.close(noreply_wait=False)
                     raise
@@ -258,10 +264,16 @@ class Connection(object):
         while offset < len(data):
             try:
                 offset += self.socket.send(data[offset:])
-            except IOError as e:
-                if e.errno != errno.EINTR:
+            except IOError as err:
+                if err.errno == errno.ECONNRESET:
                     self.close(noreply_wait=False)
-                    raise
+                    raise RqlDriverError("Connection is closed.")
+                elif err.errno != errno.EINTR:
+                    self.close(noreply_wait=False)
+                    raise RqlDriverError('Connection interrupted sending to %s:%s - %s' % (self.host, self.port, str(err)))
+            except Exception as err:
+                self.close(noreply_wait=False)
+                raise RqlDriverError('Error sending to %s:%s - %s' % (self.host, self.port, str(err)))
             except:
                 self.close(noreply_wait=False)
                 raise
@@ -287,9 +299,10 @@ class Connection(object):
         cursor._extend(response)
         cursor.outstanding_requests -= 1
 
-        if response.type != pResponse.SUCCESS_PARTIAL and \
-           response.type != pResponse.SUCCESS_FEED and \
-           cursor.outstanding_requests == 0:
+        if (response.type not in [pResponse.SUCCESS_PARTIAL,
+                             pResponse.SUCCESS_FEED,
+                             pResponse.SUCCESS_ATOM_FEED] and
+            cursor.outstanding_requests == 0):
             del self.cursor_cache[response.token]
 
     def _continue_cursor(self, cursor):
@@ -371,9 +384,10 @@ class Connection(object):
         response = self._read_response(query.token)
         self._check_error_response(response, query.term)
 
-        if response.type == pResponse.SUCCESS_PARTIAL or \
-           response.type == pResponse.SUCCESS_SEQUENCE or \
-           response.type == pResponse.SUCCESS_FEED:
+        if response.type in [pResponse.SUCCESS_PARTIAL,
+                            pResponse.SUCCESS_SEQUENCE,
+                            pResponse.SUCCESS_ATOM_FEED,
+                            pResponse.SUCCESS_FEED]:
             # Sequence responses
             value = Cursor(self, query, opts)
             self.cursor_cache[query.token] = value

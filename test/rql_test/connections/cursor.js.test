@@ -34,31 +34,31 @@ if None in (serverHost, serverPort):
 
 # -- setup the tables
     
-c = r.connect(host=serverHost, port=serverPort)
+conn = r.connect(host=serverHost, port=serverPort)
 
-if dbName not in r.db_list().run(c):
-    res = r.db_create(dbName).run(c)
+if dbName not in r.db_list().run(conn):
+    res = r.db_create(dbName).run(conn)
     assert res["tables_created"] == 1
 
 # ensure a clean table
 
-if tableName in r.db(dbName).table_list().run(c):
-    r.db(dbName).table_drop(tableName).run(c)
-res = r.db(dbName).table_create(tableName).run(c)
+if tableName in r.db(dbName).table_list().run(conn):
+    r.db(dbName).table_drop(tableName).run(conn)
+res = r.db(dbName).table_create(tableName).run(conn)
 assert res["tables_created"] == 1
+r.db(dbName).table(tableName).wait().run(conn)
 
 tbl = r.db(dbName).table(tableName)
 
 # -- generate the data
 
 num_rows = random.randint(1111, 2222)
-
-print("Inserting %d rows" % num_rows)
-range500 = list(range(0, 500))
-documents = [{'id':i, 'nums':range500} for i in xrange(0, num_rows)]
-chunks = (documents[i : i + 100] for i in xrange(0, len(documents), 100))
-for chunk in chunks:
-    tbl.insert(chunk).run(c)
+rows_per_cycle = 100
+nums = list(range(0, 500))
+print("Inserting %d rows of data:" % num_rows, end=' ')
+sys.stdout.flush()
+for i in range(1, num_rows+1, rows_per_cycle):
+    r.range(i, i + min(rows_per_cycle, num_rows - i + 1)).for_each(tbl.insert({'id':r.row, 'nums':nums})).run(conn)
     print('.', end=' ')
     sys.stdout.flush()
 print("Done\n")

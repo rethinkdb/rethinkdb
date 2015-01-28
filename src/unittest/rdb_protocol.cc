@@ -79,7 +79,7 @@ void run_with_namespace_interface(
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t("."),
-                        static_cast<outdated_index_report_t *>(NULL), generate_uuid()));
+                        scoped_ptr_t<outdated_index_report_t>(), generate_uuid()));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;
@@ -258,7 +258,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     ql::configured_limits_t limits;
     ql::datum_t d
-        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
+        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
+                       reql_version_t::LATEST);
     store_key_t pk = store_key_t(d.print_primary());
     ql::datum_t sindex_key_literal = ql::datum_t(1.0);
 
@@ -267,7 +268,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
         write_t write(
-            point_write_t(pk, ql::to_datum(data->get(), limits)),
+            point_write_t(pk, ql::to_datum(data->get(), limits,
+                                           reql_version_t::LATEST)),
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
             ql::configured_limits_t());
@@ -305,7 +307,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(ql::to_datum(data->get(), limits), stream->at(0).data);
+            ASSERT_EQ(ql::to_datum(data->get(), limits, reql_version_t::LATEST),
+                      stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -361,12 +364,14 @@ void populate_sindex(namespace_interface_t *nsi,
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
         ql::configured_limits_t limits;
         ql::datum_t d
-            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
+            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
+                           reql_version_t::LATEST);
         store_key_t pk = store_key_t(d.print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                     reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
         write_response_t response;
 
@@ -631,8 +636,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
-            std::string id(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10,
-                           static_cast<char>(j));
+            std::string id = std::to_string(j)
+                + std::string(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10, ' ');
             std::string sid(j, 'a');
             auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
             std::shared_ptr<const scoped_cJSON_t> data(
@@ -643,7 +648,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             try {
                 pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits).print_primary());
+                                     limits, reql_version_t::LATEST).print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
@@ -653,7 +658,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                             reql_version_t::LATEST)),
                               DURABILITY_REQUIREMENT_DEFAULT,
                               profile_bool_t::PROFILE,
                               limits);
@@ -721,12 +727,13 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits).print_primary());
+                                     limits, reql_version_t::LATEST).print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                                                     reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_DEFAULT,
                       profile_bool_t::PROFILE,
                       ql::configured_limits_t());
@@ -769,17 +776,20 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     };
     dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
-        explicit cfeed_bundle_t(artificial_t *a)
+        cfeed_bundle_t(ql::env_t *env, artificial_t *a)
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
+                          env,
                           keyspec_t::point_t{
                               store_key_t(ql::datum_t(0.0).print_primary())},
                           bt)),
               point_10(a->subscribe(
+                           env,
                            keyspec_t::point_t{
                                store_key_t(ql::datum_t(10.0).print_primary())},
                            bt)),
               range(a->subscribe(
+                        env,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
@@ -793,9 +803,11 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
         ql::protob_t<const Backtrace> bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
+    cond_t interruptor;
+    ql::env_t env(&interruptor, reql_version_t::LATEST);
     std::map<size_t, cfeed_bundle_t> bundles;
-    for (size_t i = 0; i <= 20; ++i) {
-        bundles.insert(std::make_pair(i, cfeed_bundle_t(&artificial_cfeed)));
+    for (size_t i = 1; i <= 20; ++i) {
+        bundles.insert(std::make_pair(i, cfeed_bundle_t(&env, &artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
                     std::map<std::string, std::vector<ql::datum_t> >(),
                     std::map<std::string, std::vector<ql::datum_t> >(),
@@ -803,8 +815,6 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                     ql::datum_t(-static_cast<double>(i)),
                     ql::datum_t(static_cast<double>(i))}));
     }
-    cond_t interruptor;
-    ql::env_t env(&interruptor, reql_version_t::LATEST);
     for (const auto &pair : bundles) {
         ql::batchspec_t bs(ql::batchspec_t::all()
                            .with_new_batch_type(ql::batch_type_t::NORMAL)

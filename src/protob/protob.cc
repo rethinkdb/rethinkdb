@@ -239,7 +239,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(rdb_ctx, ql::reject_cfeeds_t::NO, &interruptor);
+    client_context_t client_ctx(rdb_ctx, &interruptor);
 
     std::string init_error;
 

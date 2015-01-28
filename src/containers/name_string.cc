@@ -51,7 +51,7 @@ name_string_t name_string_t::guarantee_valid(const char *name) {
     return string;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(name_string_t, str_);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(name_string_t, str_);
 
 void debug_print(printf_buffer_t *buf, const name_string_t& s) {
     debug_print(buf, s.str());

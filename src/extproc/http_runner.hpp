@@ -25,11 +25,9 @@ struct http_result_t {
     // subsequent HTTP requests for the query (e.g. if performing depagination).
     std::vector<std::string> cookies;
     std::string error;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_SERIALIZE_OUTSIDE(http_result_t);
+RDB_DECLARE_SERIALIZABLE(http_result_t);
 
 class extproc_pool_t;
 class http_runner_t;
@@ -111,17 +109,17 @@ struct http_opts_t {
     // Limits on execution size
     ql::configured_limits_t limits;
 
+    // ReQL version in use
+    reql_version_t version;
+
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;
 
     bool verify;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_SERIALIZE_OUTSIDE(http_opts_t);
-
+RDB_DECLARE_SERIALIZABLE(http_opts_t);
 RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
 
 

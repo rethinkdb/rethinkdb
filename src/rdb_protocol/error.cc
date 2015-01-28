@@ -35,12 +35,17 @@ void runtime_fail(base_exc_t::type_t type,
     throw datum_exc_t(type, msg);
 }
 
-void runtime_sanity_check_failed(const char *file, int line, const char *test) {
+void runtime_sanity_check_failed(const char *file, int line, const char *test,
+                                 const std::string &msg) {
     lazy_backtrace_formatter_t bt;
+    std::string error_msg = "[" + std::string(test) + "]";
+    if (!msg.empty()) {
+        error_msg += " " + msg;
+    }
     throw exc_t(base_exc_t::GENERIC,
-                strprintf("SANITY CHECK `%s` FAILED AT `%s:%d` (server is buggy)."
+                strprintf("SANITY CHECK FAILED: %s at `%s:%d` (server is buggy).  "
                           "Backtrace:\n%s",
-                          test, file, line, bt.addrs().c_str()),
+                          error_msg.c_str(), file, line, bt.addrs().c_str()),
                 backtrace_t());
 }
 
@@ -135,10 +140,10 @@ void pb_rcheckable_t::propagate(Term *t) const {
     propagate_backtrace(t, bt_src.get());
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(backtrace_t, frames);
-RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(backtrace_t::frame_t, type, pos, opt);
-RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(exc_t, type_, backtrace_, exc_msg_);
-RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(datum_exc_t, type_, exc_msg);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backtrace_t, frames);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backtrace_t::frame_t, type, pos, opt);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(exc_t, type_, backtrace_, exc_msg_);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(datum_exc_t, type_, exc_msg);
 
 
 } // namespace ql

@@ -124,6 +124,8 @@ class IterableResult
                         @_handleRow()
                     when protoResponseType.SUCCESS_FEED
                         @_handleRow()
+                    when protoResponseType.SUCCESS_ATOM_FEED
+                        @_handleRow()
                     when protoResponseType.SUCCESS_SEQUENCE
                         if response.r.length is 0
                             @_responses.shift()
@@ -329,6 +331,19 @@ class Feed extends IterableResult
     toString: ar () -> "[object Feed]"
 
 
+class AtomFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_ATOM_FEED
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object AtomFeed]"
+
+
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
 
@@ -400,5 +415,6 @@ class ArrayResult extends IterableResult
         response
 
 module.exports.Cursor = Cursor
+module.exports.AtomFeed = AtomFeed
 module.exports.Feed = Feed
 module.exports.makeIterable = ArrayResult::makeIterable

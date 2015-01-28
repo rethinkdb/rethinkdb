@@ -4,7 +4,6 @@
 
 namespace pre_v1_16 {
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(vclock_t);
 RDB_IMPL_SERIALIZABLE_1(persistable_blueprint_t, machines_roles);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(persistable_blueprint_t);
 RDB_IMPL_SERIALIZABLE_1(database_semilattice_metadata_t, name);
@@ -19,9 +18,8 @@ RDB_IMPL_SERIALIZABLE_2(machine_semilattice_metadata_t, datacenter, name);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(machine_semilattice_metadata_t);
 RDB_IMPL_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(machines_semilattice_metadata_t);
-RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
-INSTANTIATE_DESERIALIZE_SELF_SINCE_v1_13(ack_expectation_t);
-RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
+RDB_IMPL_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
+INSTANTIATE_DESERIALIZE_SINCE_v1_13(ack_expectation_t);
 RDB_IMPL_SERIALIZABLE_10(namespace_semilattice_metadata_t,
                          blueprint, primary_datacenter, replica_affinities,
                          ack_expectations, shards, name, primary_pinnings,
@@ -488,7 +486,6 @@ namespaces_semilattice_metadata_t migrate_tables(
 
 cluster_semilattice_metadata_t migrate_cluster_metadata_to_v1_16(
         const pre_v1_16::cluster_semilattice_metadata_t &old_md) {
-    logNTC("Migrating existing metadata to the new RethinkDB 1.16 format...");
     cluster_semilattice_metadata_t new_md;
     new_md.rdb_namespaces = cow_ptr_t<namespaces_semilattice_metadata_t>(
         migrate_tables(*old_md.rdb_namespaces,

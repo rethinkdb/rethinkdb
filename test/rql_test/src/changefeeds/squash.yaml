@@ -7,7 +7,7 @@ tests:
       js: tbl.changes({squash:true}).typeOf()
       ot: ("STREAM")
 
-    - cd: normal_changes = tbl.changes().limit(2)
+    - cd: normal_changes = tbl.changes().limit(1)
 
     - py: false_squash_changes = tbl.changes(squash=False).limit(2)
       js: false_squash_changes = tbl.changes({squash:false}).limit(2)
@@ -30,8 +30,7 @@ tests:
       ot: 1
 
     - cd: normal_changes
-      ot: ([{'new_val':{'id':100}, 'old_val':null},
-            {'new_val':{'a':1, 'id':100}, 'old_val':{'id':100}}])
+      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
       testopts:
         reql-query: False
 

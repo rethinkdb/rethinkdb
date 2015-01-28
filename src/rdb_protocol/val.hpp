@@ -35,7 +35,8 @@ public:
     table_t(counted_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
-    const std::string &get_pkey();
+    ql::datum_t get_id() const;
+    const std::string &get_pkey() const;
     datum_t get_row(env_t *env, datum_t pval);
     counted_t<datum_stream_t> get_all(
             env_t *env,

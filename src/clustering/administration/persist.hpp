@@ -66,6 +66,9 @@ public:
 
     auth_semilattice_metadata_t read_metadata();
     void update_metadata(const auth_semilattice_metadata_t &metadata);
+
+private:
+    bool log_migrate;
 };
 
 class cluster_persistent_file_t : public persistent_file_t<cluster_semilattice_metadata_t> {
@@ -90,6 +93,7 @@ private:
     class persistent_branch_history_manager_t;
 
     scoped_ptr_t<persistent_branch_history_manager_t> rdb_branch_history_manager;
+    bool log_migrate;
 };
 
 template <class metadata_t>

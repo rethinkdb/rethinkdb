@@ -78,7 +78,7 @@ with driver.Cluster(output_folder='.') as cluster:
     
     r.db(dbName).wait().run(conn)
     cluster.check()
-    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert len(issues) == 0, 'There were issues on the server: %s' % str(issues)
     
     print('Starting workload (%.2fs)' % (time.time() - startTime))
@@ -89,7 +89,7 @@ with driver.Cluster(output_folder='.') as cluster:
         workload.run_before()
         
         cluster.check()
-        assert list(r.db('rethinkdb').table('issues').run(conn)) == []
+        assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
         workload.check()
         
         current = opts["sequence"].initial
@@ -107,10 +107,10 @@ with driver.Cluster(output_folder='.') as cluster:
             r.db(dbName).wait().run(conn) # ToDo: add timeout when avalible
             
             cluster.check()
-            assert list(r.db('rethinkdb').table('issues').run(conn)) == []
+            assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
         workload.run_after()
 
-    assert list(r.db('rethinkdb').table('issues').run(conn)) == []
+    assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
     
     print('Cleaning up (%.2fs)' % (time.time() - startTime))
 print('Done. (%.2fs)' % (time.time() - startTime))

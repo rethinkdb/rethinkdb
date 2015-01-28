@@ -91,8 +91,8 @@ tests:
       js: tbl.eq_join(function(x) { return x('fake'); }, tbl2).zip().count()
       ot: 0
 
-    - py: tbl.eq_join(lambda x:None, tbl2).zip().count()
-      rb: tbl.eq_join(lambda{|x| nil}, tbl2).zip().count()
+    - py: tbl.eq_join(lambda x:null, tbl2).zip().count()
+      rb: tbl.eq_join(lambda{|x| null}, tbl2).zip().count()
       js: tbl.eq_join(function(x) { return null; }, tbl2).zip().count()
       ot: 0
 

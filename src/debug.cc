@@ -46,7 +46,7 @@ void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n)
 void debugf_prefix_buf(printf_buffer_t *buf) {
     struct timespec t = clock_realtime();
 
-    format_time(t, buf);
+    format_time(t, buf, local_or_utc_time_t::local);
 
     buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
 }

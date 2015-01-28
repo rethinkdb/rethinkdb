@@ -948,8 +948,8 @@ class DB(RqlTopLevelQuery):
     def config(self, *args):
         return Config(self, *args)
 
-    def wait(self, *args):
-        return Wait(self, *args)
+    def wait(self, *args, **kwargs):
+        return Wait(self, *args, **kwargs)
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)
@@ -1027,8 +1027,8 @@ class Table(RqlQuery):
     def config(self, *args):
         return Config(self, *args)
 
-    def wait(self, *args):
-        return Wait(self, *args)
+    def wait(self, *args, **kwargs):
+        return Wait(self, *args, **kwargs)
 
     def reconfigure(self, *args, **kwargs):
         return Reconfigure(self, *args, **kwargs)

@@ -63,7 +63,11 @@ namespace_interface_t *namespace_interface_access_t::get() {
     return nif;
 }
 
-const std::string &real_table_t::get_pkey() {
+ql::datum_t real_table_t::get_id() const {
+    return ql::datum_t(datum_string_t(uuid_to_str(uuid)));
+}
+
+const std::string &real_table_t::get_pkey() const {
     return pkey;
 }
 

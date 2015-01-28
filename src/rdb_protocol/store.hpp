@@ -14,7 +14,6 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/jobs/report.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/rwlock.hpp"
@@ -79,9 +78,6 @@ public:
     virtual void index_dropped(const std::string &index_name) = 0;
     virtual void index_renamed(const std::string &old_name,
                                const std::string &new_name) = 0;
-
-    // Called when the store_t is destroyed and the reporter is no longer needed
-    virtual void destroy() = 0;
 };
 
 class store_t final : public store_view_t {
@@ -96,7 +92,7 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            outdated_index_report_t *_index_report,
+            scoped_ptr_t<outdated_index_report_t> &&_index_report,
             namespace_id_t table_id);
     ~store_t();
 
@@ -195,16 +191,12 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    void add_progress_tracker(
-        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
-        uuid_u id, const parallel_traversal_progress_t *p);
-
-    progress_completion_fraction_t get_progress(uuid_u id);
-
     MUST_USE bool add_sindex(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
+
+    std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
 
     void set_sindexes(
         const std::map<sindex_name_t, secondary_index_t> &sindexes,
@@ -395,8 +387,13 @@ public:
 
     namespace_id_t const &get_table_id() const;
 
-    typedef std::map<uuid_u, std::pair<microtime_t, std::string> > sindex_jobs_t;
-    sindex_jobs_t *get_sindex_jobs();
+    typedef std::map<
+        uuid_u, std::pair<microtime_t, parallel_traversal_progress_t const *>
+    > sindex_context_map_t;
+    sindex_context_map_t *get_sindex_context_map();
+
+    progress_completion_fraction_t get_sindex_progress(uuid_u const &id);
+    microtime_t get_sindex_start_time(uuid_u const &id);
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
@@ -415,19 +412,18 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
-    std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     rdb_context_t *ctx;
     scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
 
     // This report is used by the outdated index issue tracker, and should be updated
     // any time the set of outdated indexes for this table changes
-    outdated_index_report_t *index_report;
+    scoped_ptr_t<outdated_index_report_t> index_report;
 
 private:
     namespace_id_t table_id;
 
-    sindex_jobs_t sindex_jobs;
+    sindex_context_map_t sindex_context;
 
 public:
     // This lock is used to pause backfills while secondary indexes are being

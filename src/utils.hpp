@@ -8,7 +8,6 @@
 #include <functional>
 #include <string>
 
-#include "errors.hpp"
 #include "debug.hpp"
 #include "config/args.hpp"
 
@@ -84,10 +83,13 @@ std::string vstrprintf(const char *format, va_list ap) __attribute__((format (pr
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, printf_buffer_t *buf);
-std::string format_time(struct timespec time);
+enum class local_or_utc_time_t { local, utc };
+void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone);
+std::string format_time(struct timespec time, local_or_utc_time_t zone);
 
-bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out);
+bool parse_time(
+    const std::string &str, local_or_utc_time_t zone,
+    struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);

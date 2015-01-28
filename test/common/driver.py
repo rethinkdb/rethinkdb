@@ -285,7 +285,7 @@ class Files(object):
         else:
             db_containter = db_containter or '.'
             self.db_path = os.path.join(db_containter, str(db_path))
-        assert not os.path.exists(self.db_path)
+        assert not os.path.exists(self.db_path), 'The path given for the new files already existed: %s' % self.db_path
         
         moveConsole = False
         if console_output is None:
@@ -573,7 +573,7 @@ class _Process(object):
         """Throws an exception if the process has crashed or stopped. """
         assert self.process is not None
         if self.process.poll() is not None:
-            raise RuntimeError("Process stopped unexpectedly with return code %d" % self.process.poll())
+            raise RuntimeError("Process %s stopped unexpectedly with return code %d" % (self._name, self.process.poll()))
 
     def check_and_stop(self):
         """Asserts that the process is still running, and then shuts it down by
@@ -582,23 +582,21 @@ class _Process(object):
         
         global runningServers
         
-        if self.running is False:
-            return
-        
-        assert self.process is not None
         try:
-            self.check()
-            self.process.send_signal(signal.SIGINT)
-            start_time = time.time()
-            grace_period = 300
-            while time.time() < start_time + grace_period:
-                if self.process.poll() is not None:
-                    break
-                time.sleep(1)
-            else:
-                raise RuntimeError("Process failed to stop within %d seconds after SIGINT" % grace_period)
-            if self.process.poll() != 0:
-                raise RuntimeError("Process stopped unexpectedly with return code %d after SIGINT" % self.process.poll())
+            if self.running is True:
+                assert self.process is not None
+                self.check()
+                self.process.send_signal(signal.SIGINT)
+                start_time = time.time()
+                grace_period = 300
+                while time.time() < start_time + grace_period:
+                    if self.process.poll() is not None:
+                        break
+                    time.sleep(1)
+                else:
+                    raise RuntimeError("Process %s failed to stop within %d seconds after SIGINT" % (self._name, grace_period))
+                if self.process.poll() != 0:
+                    raise RuntimeError("Process %s stopped unexpectedly with return code %d after SIGINT" % (self._name, self.process.poll()))
         finally:
             if self in runningServers:
                 runningServers.remove(self)
@@ -611,31 +609,28 @@ class _Process(object):
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
         utils.kill_process_group(self.process_group_id, shutdown_grace=0)
-        
-        self.close()
+        self.process = None
+        self.running = False
     
     def close(self):
         """Gracefully terminates the process (if possible), removes it from the cluster, and invalidates the `Process` object."""
         
         global runningServers
         
-        if self.running is False:
-            return
-        
-        if self.process.poll() is None:
-            utils.kill_process_group(self.process_group_id)
-        
-        if self in runningServers:
-            runningServers.remove(self)
-        
-        if self._close_console_output:
-            self.console_file.close()
+        if self.running is True:
+            if self.process.poll() is None:
+                utils.kill_process_group(self.process_group_id)
+            
+            if self in runningServers:
+                runningServers.remove(self)
+            
+            if self._close_console_output:
+                self.console_file.close()
         
         self.process = None
         self.running = False
         
-        # `self.cluster` might be `None` if we crash in the middle of
-        # `move_processes()`.
+        # `self.cluster` might be `None` if we crash in the middle of `move_processes()`
         if self.cluster is not None:
             for other_cluster in self.cluster.metacluster.clusters:
                 if other_cluster is not self.cluster:
@@ -644,18 +639,6 @@ class _Process(object):
             self.cluster.processes.remove(self)
             self.cluster = None
     
-    def shard_table(self, table_name):
-        
-        blackHole = tempfile.NamedTemporaryFile(mode='w+')
-        commandPrefix = [self.executable_path, 'admin', '--join', '%s:%d' % (self.host, self.cluster_port), 'split', 'shard', str(table_name)]
-        
-        for splitPoint in ('Nc040800000000000\2333', 'Nc048800000000000\2349', 'Nc04f000000000000\2362'):
-            returnCode = subprocess.call(commandPrefix + [splitPoint], stdout=blackHole, stderr=blackHole)
-            if returnCode != 0:
-                return returnCode
-        time.sleep(3)
-        return 0
-
 class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """

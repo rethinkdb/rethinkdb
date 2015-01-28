@@ -43,7 +43,7 @@ void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
 void runtime_sanity_check_failed(
-    const char *file, int line, const char *test) NORETURN;
+    const char *file, int line, const char *test, const std::string &msg) NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -169,13 +169,14 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 // guarantee will almost always fail due to an error in the query logic rather
 // than memory corruption.
 #ifndef NDEBUG
-#define r_sanity_check(test) guarantee(test)
+#define r_sanity_check(test, msg...) guarantee(test, ##msg)
 #else
-#define r_sanity_check(test) do {                       \
-        if (!(test)) {                                  \
-            ::ql::runtime_sanity_check_failed(          \
-                __FILE__, __LINE__, stringify(test));   \
-        }                                               \
+#define r_sanity_check(test, msg...) do {                      \
+        if (!(test)) {                                         \
+            ::ql::runtime_sanity_check_failed(                 \
+                __FILE__, __LINE__, stringify(test),           \
+                strprintf(" " msg).substr(1));                 \
+        }                                                      \
     } while (0)
 #endif // NDEBUG
 
@@ -216,7 +217,7 @@ public:
             return type == POS && pos != 0;
         }
 
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(frame_t);
 
     private:
         enum special_frames {
@@ -246,13 +247,10 @@ public:
         }
     }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(backtrace_t);
 private:
     std::list<frame_t> frames;
 };
-
-RDB_SERIALIZE_OUTSIDE(backtrace_t::frame_t);
-RDB_SERIALIZE_OUTSIDE(backtrace_t);
 
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
@@ -283,13 +281,11 @@ public:
     const char *what() const throw () { return exc_msg_.c_str(); }
     const backtrace_t &backtrace() const { return backtrace_; }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(exc_t);
 private:
     backtrace_t backtrace_;
     std::string exc_msg_;
 };
-
-RDB_SERIALIZE_OUTSIDE(exc_t);
 
 // A datum exception is like a normal RQL exception, except it doesn't
 // correspond to part of the source tree.  It's usually thrown from inside
@@ -303,12 +299,10 @@ public:
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:
     std::string exc_msg;
 };
-
-RDB_SERIALIZE_OUTSIDE(datum_exc_t);
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,
                 const backtrace_t &bt = backtrace_t());

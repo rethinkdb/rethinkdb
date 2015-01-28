@@ -6,7 +6,28 @@ $failure_count = 0
 $success_count = 0
 
 DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
-DB_AND_TABLE_NAME = ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME'] || 'no_table_specified'
+puts('Using driver port #{DRIVER_PORT}')
+
+$required_external_tables = []
+if ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME']
+  (ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME']).split(',').each { |table_raw|
+    table_raw = table_raw.strip()
+    if table_raw == ''
+      next
+    end
+    split_value = table_raw.split('.')
+    case split_value.count
+    when 1
+      $required_external_tables.push(['test', split_value[0]])
+    when 2
+      $required_external_tables.push([split_value[0], split_value[1]])
+    else
+      raise('Unusable value for external tables: ' + table_raw)
+    end
+  }
+end
+$required_external_tables = $required_external_tables.reverse
+$stdout.flush
 
 # -- import the rethinkdb driver
 
@@ -248,7 +269,7 @@ end
 
 def test(src, expected, name, opthash=nil, testopts=nil)
   if opthash
-    $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
+    $opthash = Hash[opthash.map{|k,v| [k, v.is_a?(String) ? eval(v, $defines) : v]}]
     if !$opthash[:max_batch_rows]
       $opthash[:max_batch_rows] = 3
     end
@@ -295,37 +316,40 @@ def test(src, expected, name, opthash=nil, testopts=nil)
   
 end
 
-# Generated code must call either `setup_table` or `check_no_table_specified`
 def setup_table(table_variable_name, table_name, db_name="test")
-  at_exit do
-    if DB_AND_TABLE_NAME == "no_table_specified" && r.db(db_name).table_list().run($cpp_conn).include?(table_name)
-      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
-      if res["tables_dropped"] != 1
-        abort "Could not drop table: #{res}"
-      end
-    else
-      parts = DB_AND_TABLE_NAME.split('.')
-      res = r.db(parts.first).table(parts.last).delete().run($cpp_conn)
-      if res["errors"] != 0
-        abort "Could not clear table: #{res}"
-      end
-      res = r.db(parts.first).table(parts.last).index_list().for_each{|row|
-        r.db(parts.first).table(parts.last).index_drop(row)}.run($cpp_conn)
-      if res.has_key?("errors") and res["errors"] != 0
-        abort "Could not drop indexes: #{res}"
-      end
+  
+  if $required_external_tables.count > 0
+    # use one of the required tables
+    table_name, db_name = $required_external_tables.pop
+    raise "External table #{db_name}.#{table_name} did not exist" unless r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($cpp_conn)
+    
+    puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
+    
+    at_exit do
+      res = r.db(db_name).table(table_name).delete().run($cpp_conn)
+      raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
+      res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run($cpp_conn)
+      raise "Failed to remove table indexes from #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0 
     end
-  end
-  if DB_AND_TABLE_NAME == "no_table_specified"
-    res = r.db(db_name).table_create(table_name).run($cpp_conn)
-    if res["tables_created"] != 1
-      abort "Could not create table: #{res}"
-    end
-      $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
   else
-    parts = DB_AND_TABLE_NAME.split('.')
-    $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+    # create a new table
+    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($cpp_conn)
+      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
+      raise "Unable to delete table before use #{db_name}.#{table_name}: #{res}" unless res['errors'] == 0
+    end
+    res = r.db(db_name).table_create(table_name).run($cpp_conn)
+    raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
+    
+    puts("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
+    $stdout.flush
+    
+    at_exit do
+      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
+      raise "Failed to delete table #{db_name}.#{table_name}: #{res}" unless res["tables_dropped"] == 1
+    end
   end
+  
+  $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
 end
 
 def check_no_table_specified
@@ -339,7 +363,7 @@ at_exit do
 end
 
 def check_result(name, src, result, expected, testopts={})
-  sucessfulTest = true
+  successfulTest = true
   begin
     if expected && expected != ''
       expected = eval expected.to_s, $defines
@@ -352,20 +376,20 @@ def check_result(name, src, result, expected, testopts={})
     $stderr.puts "\tEXPECTED: #{show expected}"
     $stderr.puts "\tFAILURE: #{e}"
     $stderr.puts ""
-    sucessfulTest = false
+    successfulTest = false
   end
-  if sucessfulTest
+  if successfulTest
     begin
       if ! eq_test(expected, result, testopts)
         fail_test(name, src, result, expected)
-        sucessfulTest = false
+        successfulTest = false
       end
     rescue Exception => e
-      sucessfulTest = false
+      successfulTest = false
       puts "#{name}: Error: #{e} when comparing #{show result} and #{show expected}"
     end
   end
-  if sucessfulTest
+  if successfulTest
     $success_count += 1
     return true
   else
@@ -395,3 +419,8 @@ end
 True=true
 False=false
 
+# REPLACE WITH TABLE CREATION LINES
+
+if $required_external_tables.count > 0
+  raise "Unused external tables, that is probably not supported by this test: {$required_external_tables}"
+end

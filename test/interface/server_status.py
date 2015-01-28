@@ -35,7 +35,18 @@ with driver.Cluster(output_folder='.') as cluster:
     
     assert r.db("rethinkdb").table("server_status").count().run(conn) == 2
     assert set(r.db("rethinkdb").table("server_status")["name"].run(conn)) == set(["a", "b"])
-    
+
+    # -- insert nonsense
+
+    print("Making sure that server_status is not writable (%.2fs)" %
+        (time.time() - startTime))
+    res = r.db("rethinkdb").table("server_status").delete().run(conn)
+    assert res["errors"] == 2
+    res = r.db("rethinkdb").table("server_status").update({"foo": "bar"}).run(conn)
+    assert res["errors"] == 2
+    res = r.db("rethinkdb").table("server_status").insert({}).run(conn)
+    assert res["errors"] == 1
+
     # -- server a
     
     print("First server info (%.2fs)" % (time.time() - startTime))

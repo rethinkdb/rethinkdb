@@ -20,7 +20,9 @@ SPAWNER_TEST(JSProc, EvalTimeout) {
     js_runner_t::req_config_t config;
     config.timeout_ms = 10;
 
-    ASSERT_THROW(js_runner.eval(loop_source, config), interrupted_exc_t);
+    js_result_t result = js_runner.eval(loop_source, config);
+    std::string value = boost::get<std::string>(result);
+    ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
     ASSERT_FALSE(js_runner.connected());
 }
 
@@ -31,7 +33,7 @@ SPAWNER_TEST(JSProc, CallTimeout) {
 
     js_runner.begin(&extproc_pool, NULL, limits);
 
-    const std::string loop_source = "(function () { for (var x = 0; x < 4e10; x++) {} })";
+    const std::string loop_source = "(function () { for (var x = 0; x < 4e10; x++) {}})";
 
     js_runner_t::req_config_t config;
     config.timeout_ms = 10000;
@@ -43,9 +45,9 @@ SPAWNER_TEST(JSProc, CallTimeout) {
 
     config.timeout_ms = 10;
 
-    ASSERT_THROW(js_runner.call(loop_source,
-                                std::vector<ql::datum_t>(),
-                                config), interrupted_exc_t);
+    result = js_runner.call(loop_source, std::vector<ql::datum_t>(), config);
+    std::string value = boost::get<std::string>(result);
+    ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
     ASSERT_FALSE(js_runner.connected());
 }
 

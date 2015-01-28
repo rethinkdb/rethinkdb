@@ -7,11 +7,12 @@
 #include <string>
 
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
-#include "rdb_protocol/store.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "containers/scoped.hpp"
+#include "rdb_protocol/store.hpp"
 
 template <class> class semilattice_read_view_t;
 
@@ -29,7 +30,7 @@ public:
     // by the store_t when it scans its secondary indexes
     std::set<std::string> *get_index_set(const namespace_id_t &ns_id);
 
-    outdated_index_report_t *create_report(const namespace_id_t &ns_id);
+    scoped_ptr_t<outdated_index_report_t> create_report(const namespace_id_t &ns_id);
 
     static void combine(local_issues_t *local_issues,
                         std::vector<scoped_ptr_t<issue_t> > *issues_out);
@@ -37,7 +38,7 @@ public:
 private:
     friend class outdated_index_report_impl_t;
     void recompute();
-    void destroy_report(outdated_index_report_impl_t *report);
+    void remove_report(outdated_index_report_impl_t *report);
 
     void log_outdated_indexes(namespace_id_t ns_id,
                               std::set<std::string> indexes,
@@ -48,7 +49,7 @@ private:
 
     std::set<namespace_id_t> logged_namespaces;
     one_per_thread_t<outdated_index_issue_t::index_map_t> outdated_indexes;
-    one_per_thread_t<std::set<outdated_index_report_impl_t *> > index_reports;
+    one_per_thread_t<std::set<outdated_index_report_t *> > index_reports;
 
     // Coro pool to handle updates of the local issue
     void coro_pool_callback(UNUSED outdated_index_dummy_value_t dummy,

@@ -132,7 +132,8 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     assert all(map(lambda w: w.is_alive(), waiter_procs)), "Wait returned while a server was still down."
 
     print("Restarting second server (%.2fs)" % (time.time() - startTime))
-    proc2 = driver.Process(cluster, files2, command_prefix=command_prefix, extra_options=serve_options)
+    proc2 = driver.Process(cluster, files2, console_output=True,
+                           command_prefix=command_prefix, extra_options=serve_options)
     proc2.wait_until_started_up()
 
     print("Waiting for table readiness (%.2fs)" % (time.time() - startTime))

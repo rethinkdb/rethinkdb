@@ -28,9 +28,7 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
     arithmetic on them. If `in1` or `in2` terminates early, pad it with zeroes. This
     isn't perfect but the error doesn't matter for our purposes. */
     uint32_t in1_tail = 0, in2_tail = 0;
-    static const size_t num_interp = 4;
-    rassert(sizeof(in1_tail) >= num_interp);
-    for (size_t j = i; j < i + num_interp; ++j) {
+    for (size_t j = i; j < i + sizeof(in1_tail); ++j) {
         uint8_t c1 = j < static_cast<size_t>(in1.size()) ? in1_buf[j] : 0;
         uint8_t c2 = j < static_cast<size_t>(in2.size()) ? in2_buf[j] : 0;
         in1_tail = (in1_tail << 8) + c1;
@@ -39,20 +37,18 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
     rassert(in1_tail <= in2_tail);
 
     /* Compute an integer representation of the interpolated value */
-    uint32_t out_tail = in1_tail*(1-fraction) + in2_tail*fraction;
+    uint32_t out_tail = in1_tail * (1 - fraction) + in2_tail * fraction;
 
-    /* Append the interpolated value onto `out_buf` */
-    for (size_t k = 0; k < num_interp; ++k) {
-        uint8_t c = (out_tail >> (8 * (num_interp - k))) & 0xFF;
-        if (i + k < MAX_KEY_SIZE) {
-            out_buf[i + k] = c;
-        }
+    /* Append the interpolated value onto `out_buf`, discarding trailing null bytes */
+    size_t num_interp = 0;
+    while (num_interp < sizeof(out_tail) && out_tail != 0 && i + num_interp < MAX_KEY_SIZE) {
+        out_buf[i + num_interp] = (out_tail >> 24) & 0xFF;
+        ++num_interp;
+        out_tail <<= 8;
     }
 
     /* Construct the final result */
-    store_key_t out(
-        std::min(i + num_interp, static_cast<size_t>(MAX_KEY_SIZE)),
-        out_buf);
+    store_key_t out(i + num_interp, out_buf);
 
     /* For various reasons (rounding errors, corner cases involving keys very close
     together, etc.), it's possible that the above procedure will produce an `out` that is

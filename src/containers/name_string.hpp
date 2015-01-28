@@ -28,15 +28,13 @@ public:
     bool empty() const { return str_.empty(); }
     const char *c_str() const { return str_.c_str(); }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(name_string_t);
 
     static const char *const valid_char_msg;
 
 private:
     std::string str_;
 };
-
-RDB_SERIALIZE_OUTSIDE(name_string_t);
 
 inline bool operator==(const name_string_t& x, const name_string_t& y) {
     return x.str() == y.str();

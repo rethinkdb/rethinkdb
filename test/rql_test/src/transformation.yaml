@@ -161,14 +161,14 @@ tests:
       rb: tbl.order_by(:id).order_by(:index => :a)[0]
       ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
-    - py: tbl.between(5, None, index='id').order_by(index='id')[0]
+    - py: tbl.between(5, null, index='id').order_by(index='id')[0]
       js: tbl.between(5, null, {index:'id'}).orderBy({index:'id'}).nth(0)
-      rb: tbl.between(5, nil, :index => :id).order_by('a', :index => :id)[0]
+      rb: tbl.between(5, null, :index => :id).order_by('a', :index => :id)[0]
       ot: ({'id':5, 'a':1})
 
-    - py: tbl.order_by('a', index='id').between(5, None, index='id')[0]
+    - py: tbl.order_by('a', index='id').between(5, null, index='id')[0]
       js: tbl.orderBy('a', {index:'id'}).between(5, null, {index:'id'}).nth(0)
-      rb: tbl.order_by('a', :index => :id).between(5, nil, :index => :id)[0]
+      rb: tbl.order_by('a', :index => :id).between(5, null, :index => :id)[0]
       ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
 
     - py: "tbl.order_by(lambda x: x['id'])[0]"

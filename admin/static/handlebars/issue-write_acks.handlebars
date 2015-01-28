@@ -1,0 +1,26 @@
+<div class="issue {{#if critical }}critical{{/if}} name-conflict">
+  <div class="issue-header">
+    <p class="issue-type">Write acks unsatisfiable</p>
+    <p class="message">
+      Due to server loss, a table can't do enough write-acks
+    </p>
+  </div>
+  <hr />
+  <div class="issue-details">
+    <p>
+      One or more servers that were acting as replicas for table
+      <a href="/#tables/{{info.table_id}}">{{info.db}}.{{info.table}}</a> have been permanently removed from the cluster, and as
+        a result the write ack settings you specified in
+      <code>rethinkdb.table_config</code> are no longer satisfiable.
+    </p>
+    <p>
+      This usually happens because different shards have different
+      numbers of replicas; the <code>majority</code> write ack setting
+      applies the same threshold to every shard, but it computes the
+      threshold based on the shard with the most replicas. Fix this by
+      changing the replica assignments in
+      <code>rethinkdb.table_config</code> or by changing the write ack
+      setting to <code>"single"</code>.
+    </p>
+  </div>
+</div>
