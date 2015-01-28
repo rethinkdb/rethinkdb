@@ -1,8 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
+#include <algorithm>
 
 #include "arch/timing.hpp"
 #include "concurrency/pmap.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "utils.hpp"
 
@@ -17,8 +18,11 @@ void walk_wait_times(int i) {
         nap(wait_array[i][j]);
         const ticks_t t2 = get_ticks();
         const int64_t diff = static_cast<int64_t>(t2) - static_cast<int64_t>(t);
-        // Asserts that we're off by less than two milliseconds.
-        ASSERT_LT(llabs(diff - wait_array[i][j] * MILLION), 2 * MILLION);
+        // Asserts that we're off by less than 25% of the sleep time
+        // or two milliseconds, whichever is larger.
+        ASSERT_LT(
+            llabs(diff - wait_array[i][j] * MILLION),
+            std::max(diff / 4, static_cast<int64_t>(2 * MILLION)));
         t = t2;
     }
 

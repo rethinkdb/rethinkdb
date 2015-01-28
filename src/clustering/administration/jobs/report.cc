@@ -33,6 +33,9 @@ job_report_t::job_report_t(
       duration(_duration),
       client_addr_port(_client_addr_port),
       table(nil_uuid()),
+      is_ready(false),
+      progress_numerator(0.0),
+      progress_denominator(0.0),
       destination_server(nil_uuid()) { }
 
 job_report_t::job_report_t(
@@ -50,7 +53,7 @@ job_report_t::job_report_t(
       table(_table),
       is_ready(_is_ready),
       progress_numerator(progress),
-      progress_denominator(1),
+      progress_denominator(1.0),
       source_peer(_source_peer),
       destination_server(_destination_server) { }
 
@@ -59,12 +62,17 @@ job_report_t::job_report_t(
         std::string const &_type,
         double _duration,
         namespace_id_t const &_table,
-        std::string const &_index)
+        std::string const &_index,
+        bool _is_ready,
+        double progress)
     : id(_id),
       type(_type),
       duration(_duration),
       table(_table),
       index(_index),
+      is_ready(_is_ready),
+      progress_numerator(progress),
+      progress_denominator(1.0),
       destination_server(nil_uuid()) { }
 
 bool job_report_t::to_datum(
@@ -72,7 +80,7 @@ bool job_report_t::to_datum(
         server_config_client_t *server_config_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
-    if (type == "backfill" && is_ready) {
+    if ((type == "index_construction" || type == "backfill") && is_ready) {
         // All shards are ready, skip this report.
         return false;
     }
@@ -109,6 +117,8 @@ bool job_report_t::to_datum(
     }
     if (type == "index_construction") {
         info_builder.overwrite("index", convert_string_to_datum(index));
+        info_builder.overwrite("progress",
+            ql::datum_t(progress_numerator / progress_denominator));
     } else if (type == "query") {
         info_builder.overwrite("client_address",
             convert_string_to_datum(client_addr_port.ip().to_string()));
@@ -195,3 +205,11 @@ query_job_t::query_job_t(
     : start_time(_start_time),
       client_addr_port(_client_addr_port),
       interruptor(_interruptor) { }
+
+sindex_job_t::sindex_job_t(
+        microtime_t _start_time,
+        bool _is_ready,
+        double _progress)
+    : start_time(_start_time),
+      is_ready(_is_ready),
+      progress(_progress) { }

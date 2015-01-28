@@ -137,8 +137,8 @@ tests:
     py: tbl.get(1).type_of()
     js: tbl.get(1).typeOf()
     ot: ('SELECTION<OBJECT>')
-  - rb: tbl.get(1).update{nil}
-    py: tbl.get(1).update(lambda x:None)
+  - rb: tbl.get(1).update{null}
+    py: tbl.get(1).update(lambda x:null)
     js: tbl.get(1).update(function(x) { return null;})
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
   - rb: tbl.get(1, :ai)
@@ -186,20 +186,20 @@ tests:
     py: tbl.get_all(1).type_of()
     js: tbl.getAll(1).typeOf()
     ot: ('SELECTION<ARRAY>')
-  - rb: tbl.get_all(1, :index => :id).update{nil}
-    py: tbl.get_all(1, index='id').update(lambda x:None)
+  - rb: tbl.get_all(1, :index => :id).update{null}
+    py: tbl.get_all(1, index='id').update(lambda x:null)
     js: tbl.getAll(1, {index:'id'}).update(function(x) { return null; })
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
-  - rb: tbl.get_all(1).update{nil}
-    py: tbl.get_all(1).update(lambda x:None)
+  - rb: tbl.get_all(1).update{null}
+    py: tbl.get_all(1).update(lambda x:null)
     js: tbl.getAll(1).update(function(x) { return null; })
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
-  - rb: tbl.get_all(1,2,3, :index => :id).update{nil}
-    py: tbl.get_all(1,2,3, index='id').update(lambda x:None)
+  - rb: tbl.get_all(1,2,3, :index => :id).update{null}
+    py: tbl.get_all(1,2,3, index='id').update(lambda x:null)
     js: tbl.getAll(1,2,3, {index:'id'}).update(function(x) { return null; })
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0})
-  - rb: tbl.get_all(1,2,3).update{nil}
-    py: tbl.get_all(1,2,3).update(lambda x:None)
+  - rb: tbl.get_all(1,2,3).update{null}
+    py: tbl.get_all(1,2,3).update(lambda x:null)
     js: tbl.getAll(1,2,3).update(function(x) { return null; })
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0})
 
@@ -267,8 +267,8 @@ tests:
     py: tbl.get_all(1, index='ci').type_of()
     js: tbl.getAll(1, {index:'ci'}).typeOf()
     ot: ('SELECTION<STREAM>')
-  - rb: tbl.get_all(1, :index => :ci).update{nil}
-    py: tbl.get_all(1, index='ci').update(lambda x:None)
+  - rb: tbl.get_all(1, :index => :ci).update{null}
+    py: tbl.get_all(1, index='ci').update(lambda x:null)
     js: tbl.getAll(1, {index:'ci'}).update(function(x) { return null; })
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0})
   - rb: tbl.get_all(1, :index => :brokeni)
@@ -394,14 +394,14 @@ tests:
     js: tbl.getAll(1, {index:'broken'}).orderBy('broken').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.index_create('nil') {nil}
-    py: tbl.index_create('nil', lambda x:None)
+  - rb: tbl.index_create('nil') {null}
+    py: tbl.index_create('nil', lambda x:null)
     js: tbl.indexCreate('nil', function(x) { return null; })
     ot: ({'created':1})
   - cd: tbl.index_wait().pluck('index', 'ready')
 
-  - rb: tbl.get_all(nil, :index => :nil)
-    py: tbl.get_all(None, index='nil')
+  - rb: tbl.get_all(null, :index => :nil)
+    py: tbl.get_all(null, index='nil')
     js: tbl.getAll(null, {index:'nil'})
     ot:
       py: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
@@ -433,28 +433,28 @@ tests:
           {'right':rows[3],'left':rows[1]},
           {'right':rows[4],'left':rows[4]}])
 
-  - rb: tbl.between(nil, nil).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None).order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null).order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil).orderby(:index => :id).map{|x| x[:id]}
-    py: tbl.between(None, None).order_by(index='id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null).orderby(:index => :id).map{|x| x[:id]}
+    py: tbl.between(null, null).order_by(index='id').map(lambda x:x['id'])
     js: tbl.between(null, null).orderBy({index:'id'}).map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil).between(nil, nil).map{|x| x[:id]}
-    py: tbl.between(None, None).between(None, None).map(lambda x:x['id'])
+  - rb: tbl.between(null, null).between(null, null).map{|x| x[:id]}
+    py: tbl.between(null, null).between(null, null).map(lambda x:x['id'])
     js: tbl.between(null, null).between(null, null).map(function(x) { return x('id'); })
     ot: err('RqlRuntimeError', 'Cannot perform multiple BETWEENs on the same table.', [0])
-  - rb: tbl.order_by(index:'id').between(nil, 3).map{|x| x[:id]}
-    py: tbl.order_by(index='id').between(None, 3).map(lambda x:x['id'])
+  - rb: tbl.order_by(index:'id').between(null, 3).map{|x| x[:id]}
+    py: tbl.order_by(index='id').between(null, 3).map(lambda x:x['id'])
     js: tbl.orderBy({index:'id'}).between(null, 3).map(function(x) { return x('id'); })
     ot: ([0, 1, 2])
-  - rb: tbl.between(0, nil).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None).order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null).order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4).order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4).order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
   - rb: tbl.between(0, 4).orderby(:id).map{|x| x[:id]}
@@ -469,29 +469,29 @@ tests:
     py: tbl.between(5, 5).order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None).order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null).order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1).order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1).order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1).order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
   - rb: tbl.between(0, 4, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
@@ -506,29 +506,29 @@ tests:
     py: tbl.between(5, 5, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :index => :id).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='id').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :id).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :id).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='id').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :id).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :id).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='id').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :id).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
   - rb: tbl.between(0, 4, :index => :id).orderby(:id).map{|x| x[:id]}
@@ -543,29 +543,29 @@ tests:
     py: tbl.between(5, 5, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil, :index => :id).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='id').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :id).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :index => :id).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :id).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='id').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :id).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='id').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {index:'id'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
   - rb: tbl.between(0, 4, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
@@ -580,29 +580,29 @@ tests:
     py: tbl.between(5, 5, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :id, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='id', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {'index':'id', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='idi').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :idi).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='idi').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :idi).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :idi).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='idi').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :idi).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
   - rb: tbl.between(0, 4, :index => :idi).orderby(:id).map{|x| x[:id]}
@@ -617,29 +617,29 @@ tests:
     py: tbl.between(5, 5, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5 , {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='idi').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :idi).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :index => :idi).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :idi).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='idi').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :idi).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='idi').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {index:'idi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
   - rb: tbl.between(0, 4, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
@@ -654,29 +654,29 @@ tests:
     py: tbl.between(5, 5, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, 5 , {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(5, nil, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :idi, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='idi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {'index':'idi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
-  - rb: tbl.between(nil, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
   - rb: tbl.between(0, 4, :index => :ai).orderby(:id).map{|x| x[:id]}
@@ -688,16 +688,16 @@ tests:
     js: tbl.between(0, 5, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
 
-  - rb: tbl.between(nil, nil, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(0, nil, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, 4, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 4, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 4, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 4, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 4, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
   - rb: tbl.between(0, 4, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
@@ -747,24 +747,24 @@ tests:
     py: tbl.between(1, 1, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, 1, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(1, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(1, None, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(1, null, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(1, null, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, null, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [4]
-  - rb: tbl.between(5, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, 0, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 0, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 0, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 0, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 0, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
   - rb: tbl.between(-1, -1, :index => :ai).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :ai).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='ai').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :ai).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='ai').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {index:'ai'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
@@ -772,24 +772,24 @@ tests:
     py: tbl.between(1, 1, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, 1, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(1, nil, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(1, None, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(1, null, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(1, null, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, null, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [4]
-  - rb: tbl.between(5, nil, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(5, None, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(5, null, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(5, null, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(5, null, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, 0, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 0, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 0, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 0, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 0, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
   - rb: tbl.between(-1, -1, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
     py: tbl.between(-1, -1, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, -1, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, -1, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, -1, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, -1, :index => :ai, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, -1, index='ai', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, -1, {'index':'ai', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
 
@@ -801,24 +801,24 @@ tests:
     py: tbl.between(-1, 1, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, 1, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, 1, :index => :c).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 1, index='c').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 1, :index => :c).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 1, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 1, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(0, nil, :index => :c).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='c').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :c).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(-1, nil, :index => :c).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(-1, None, index='c').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(-1, null, :index => :c).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(-1, null, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, null, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil, :index => :c).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='c').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :c).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(1, nil, :index => :c).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(1, None, index='c').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(1, null, :index => :c).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(1, null, index='c').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, null, {index:'c'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
   - rb: tbl.between(1, 1, :index => :c).orderby(:id).map{|x| x[:id]}
@@ -834,24 +834,24 @@ tests:
     py: tbl.between(-1, 1, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, 1, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
-  - rb: tbl.between(nil, 1, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, 1, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, 1, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, 1, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, 1, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
-  - rb: tbl.between(0, nil, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(0, None, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(0, null, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(0, null, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(-1, nil, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(-1, None, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(-1, null, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(-1, null, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(-1, null, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(1, nil, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(1, None, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(1, null, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(1, null, index='c', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, null, {'index':'c', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
   - rb: tbl.between(1, 1, :index => :c, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
@@ -869,85 +869,85 @@ tests:
     ot: ({'created':1})
   - cd: tbl.index_wait().pluck('index', 'ready')
 
-  - rb: tbl.between(nil, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 0], index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 0], index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 0], {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 0], index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 0], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 0], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between(nil, [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 1], index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 1], index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 1], {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 1], index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 0], index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 0], index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 0], {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 0], index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 0], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 0], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 1], index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 1], index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 1], {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, nil, :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil, :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
 
-  - rb: tbl.between(nil, [0, 0], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 0], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 0], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 0], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 0], {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [0, 0], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 0], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 0], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 0], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 0], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [0, 1], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 1], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 1], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 1], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 1], {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, [0, 1], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [0, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [0, 1], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [0, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [0, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1]
-  - rb: tbl.between(nil, [1, 0], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 0], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 0], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 0], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 0], {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, [1, 0], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 0], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 0], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 0], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 0], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between(nil, [1, 1], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 1], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 1], :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 1], index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 1], {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
-  - rb: tbl.between(nil, [1, 1], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, [1, 1], :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, [1, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
-  - rb: tbl.between(nil, nil, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between(nil, nil, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between(None, None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between(null, null, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between(null, null, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
 
@@ -983,12 +983,12 @@ tests:
     py: tbl.between([0, 0], [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], [1, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2]
-  - rb: tbl.between([0, 0], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 0], None, index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 0], null, :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 0], null, index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], null, {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between([0, 0], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 0], None, index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 0], null, :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 0], null, index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], null, {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
 
@@ -1024,12 +1024,12 @@ tests:
     py: tbl.between([0, 0], [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], [1, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3]
-  - rb: tbl.between([0, 0], nil, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 0], None, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 0], null, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 0], null, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], null, {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
-  - rb: tbl.between([0, 0], nil, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 0], None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 0], null, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 0], null, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 0], null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
 
@@ -1065,12 +1065,12 @@ tests:
     py: tbl.between([0, 1], [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], [1, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2]
-  - rb: tbl.between([0, 1], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 1], None, index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 1], null, :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 1], null, index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], null, {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
-  - rb: tbl.between([0, 1], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 1], None, index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 1], null, :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 1], null, index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], null, {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
 
@@ -1106,12 +1106,12 @@ tests:
     py: tbl.between([0, 1], [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], [1, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3]
-  - rb: tbl.between([0, 1], nil, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 1], None, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 1], null, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 1], null, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], null, {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
-  - rb: tbl.between([0, 1], nil, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([0, 1], None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([0, 1], null, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([0, 1], null, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([0, 1], null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
 
@@ -1147,12 +1147,12 @@ tests:
     py: tbl.between([1, 0], [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], [1, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2]
-  - rb: tbl.between([1, 0], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 0], None, index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 0], null, :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 0], null, index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], null, {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
-  - rb: tbl.between([1, 0], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 0], None, index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 0], null, :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 0], null, index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], null, {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
 
@@ -1188,12 +1188,12 @@ tests:
     py: tbl.between([1, 0], [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], [1, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3]
-  - rb: tbl.between([1, 0], nil, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 0], None, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 0], null, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 0], null, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], null, {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
-  - rb: tbl.between([1, 0], nil, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 0], None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 0], null, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 0], null, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 0], null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [2, 3, 4]
 
@@ -1229,12 +1229,12 @@ tests:
     py: tbl.between([1, 1], [1, 1], index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], [1, 1], {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: []
-  - rb: tbl.between([1, 1], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 1], None, index='bc').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 1], null, :index => :bc).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 1], null, index='bc').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], null, {index:'bc'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
-  - rb: tbl.between([1, 1], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 1], None, index='cb').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 1], null, :index => :cb).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 1], null, index='cb').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], null, {index:'cb'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
 
@@ -1270,12 +1270,12 @@ tests:
     py: tbl.between([1, 1], [1, 1], index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], [1, 1], {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3]
-  - rb: tbl.between([1, 1], nil, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 1], None, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 1], null, :index => :bc, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 1], null, index='bc', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], null, {'index':'bc', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
-  - rb: tbl.between([1, 1], nil, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
-    py: tbl.between([1, 1], None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
+  - rb: tbl.between([1, 1], null, :index => :cb, :right_bound => :closed).orderby(:id).map{|x| x[:id]}
+    py: tbl.between([1, 1], null, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
 

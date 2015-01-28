@@ -20,13 +20,11 @@ public:
 
     static const int32_t max_length = 2048;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(auth_key_t);
 
 private:
     std::string key;
 };
-
-RDB_SERIALIZE_OUTSIDE(auth_key_t);
 
 bool timing_sensitive_equals(const auth_key_t &x, const auth_key_t &y);
 

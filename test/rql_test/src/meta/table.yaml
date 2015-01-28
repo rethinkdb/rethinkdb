@@ -6,6 +6,14 @@ tests:
     - cd: db.table_list()
       ot: []
 
+    - cd: r.db('rethinkdb').info()
+      ot: ({'type':'DB','name':'rethinkdb','id':null})
+
+    - cd: r.db('rethinkdb').table('stats').info()
+      ot: partial({'db':{'type':'DB','name':'rethinkdb','id':null},
+                   'type':'TABLE','id':null,'name':'stats',
+                   'indexes':[],'primary_key':'id'})
+
     # Table create
     - cd: db.table_create('a')
       ot: partial({'tables_created':1})
@@ -33,6 +41,27 @@ tests:
       ot: []
 
     # Table create options
+    - py: db.table_create('ab', durability='soft')
+      js: db.table_create('ab', {durability:'soft'})
+      rb: db.table_create('ab', :durability => 'soft')
+      ot: partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'soft'})})]})
+
+    - cd: db.table_drop('ab')
+      ot: partial({'tables_dropped':1})
+
+    - py: db.table_create('ab', durability='hard')
+      js: db.table_create('ab', {durability:'hard'})
+      rb: db.table_create('ab', :durability => 'hard')
+      ot: partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'hard'})})]})
+
+    - cd: db.table_drop('ab')
+      ot: partial({'tables_dropped':1})
+
+    - py: db.table_create('ab', durability='fake')
+      js: db.table_create('ab', {durability:'fake'})
+      rb: db.table_create('ab', :durability => 'fake')
+      ot: err('RqlRuntimeError', 'Durability option `fake` unrecognized (options are "hard" and "soft").')
+
     - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
       js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
       rb: db.table_create('ab', {:primary_key => 'bar', :shards => 1, :replicas => 1})
@@ -263,6 +292,11 @@ tests:
       js: r.table('testA',{identifierFormat:'uuid'}).count()
       rb: r.table('testA',{:identifier_format=>'uuid'}).count()
       ot: 0
+
+    - py: r.wait(wait_for='all_replicas_ready', timeout=5)
+      js: r.wait({waitFor:'all' + '_' + 'replicas' + '_' + 'ready', timeout:5})
+      rb: r.wait(:wait_for => 'all_replicas_ready', :timeout => 5)
+      ot: partial({'ready':2})
 
     - cd: db.table_drop('testA')
       ot: partial({'tables_dropped':1})

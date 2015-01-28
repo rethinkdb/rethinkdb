@@ -52,9 +52,8 @@ namespace changefeed {
 // primary or secondary value we're sorting by, and `Val` is the actual row.
 typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
-typedef std::vector<item_t> item_vec_t;
 
-item_vec_t mangle_sort_truncate_stream(
+std::vector<item_t> mangle_sort_truncate_stream(
     stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 boost::optional<datum_t> apply_ops(
@@ -66,21 +65,22 @@ boost::optional<datum_t> apply_ops(
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        item_vec_t start_data;
+        std::vector<item_t> start_data;
         limit_start_t() { }
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
             : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_start_t);
     };
     struct limit_change_t {
         uuid_u sub;
         boost::optional<std::string> old_key;
         boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > > new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_change_t);
     };
     struct limit_stop_t {
         uuid_u sub;
         exc_t exc;
+        RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
         std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
@@ -88,9 +88,11 @@ struct msg_t {
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */
         datum_t old_val, new_val;
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_DECLARE_ME_SERIALIZABLE(change_t);
     };
-    struct stop_t { };
+    struct stop_t {
+        RDB_DECLARE_ME_SERIALIZABLE(stop_t);
+    };
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
@@ -111,11 +113,6 @@ struct msg_t {
     boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 };
 
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::limit_change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::limit_stop_t);
-RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
-RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 
 class real_feed_t;
@@ -364,7 +361,7 @@ public:
         client_t::addr_t _parent_client,
         keyspec_t::limit_t _spec,
         limit_order_t _lt,
-        item_vec_t &&item_vec);
+        std::vector<item_t> &&item_vec);
 
     void add(rwlock_in_line_t *spot,
              store_key_t sk,
@@ -386,7 +383,7 @@ public:
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
-    item_vec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+    std::vector<item_t> read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
                          sorting_t sorting,
                          const boost::optional<item_queue_t::iterator> &start,
                          size_t n);
@@ -432,7 +429,7 @@ public:
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        item_vec_t &&start_data);
+        std::vector<item_t> &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();
@@ -521,6 +518,7 @@ public:
     virtual ~artificial_t();
 
     counted_t<datum_stream_t> subscribe(
+        env_t *env,
         const keyspec_t::spec_t &spec,
         const protob_t<const Backtrace> &bt);
     void send_all(const msg_t &msg);

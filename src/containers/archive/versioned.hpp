@@ -115,32 +115,16 @@ size_t serialized_size_for_version(cluster_version_t version,
     template void serialize<cluster_version_t::CLUSTER>( \
             write_message_t *, const typ &)
 
-#define INSTANTIATE_SERIALIZE_SELF_FOR_DISK(typ)                      \
-    template void typ::rdb_serialize<cluster_version_t::LATEST_DISK>( \
-            write_message_t *) const
-
-#define INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER(typ)               \
-    template void typ::rdb_serialize<cluster_version_t::CLUSTER>( \
-            write_message_t *) const
-
 #ifdef CLUSTER_AND_DISK_VERSIONS_ARE_SAME
 #define INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ)  \
     template void serialize<cluster_version_t::CLUSTER>( \
             write_message_t *, const typ &)
-#define INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER_AND_DISK(typ)          \
-    template void typ::rdb_serialize<cluster_version_t::CLUSTER>(     \
-            write_message_t *) const
 #else
 #define INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ)      \
     template void serialize<cluster_version_t::CLUSTER>(     \
             write_message_t *, const typ &);                 \
     template void serialize<cluster_version_t::LATEST_DISK>( \
             write_message_t *, const typ &)
-#define INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER_AND_DISK(typ)          \
-    template void typ::rdb_serialize<cluster_version_t::CLUSTER>(     \
-            write_message_t *) const;                                 \
-    template void typ::rdb_serialize<cluster_version_t::LATEST_DISK>( \
-            write_message_t *) const
 #endif
 
 #define INSTANTIATE_DESERIALIZE_SINCE_v1_13(typ)                                 \
@@ -155,18 +139,6 @@ size_t serialized_size_for_version(cluster_version_t version,
     template archive_result_t deserialize<cluster_version_t::v1_16_is_latest>(   \
             read_stream_t *, typ *)
 
-#define INSTANTIATE_DESERIALIZE_SELF_SINCE_v1_13(typ)                                     \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13>(             \
-            read_stream_t *s);                                                            \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_2>(           \
-            read_stream_t *s);                                                            \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_14>(             \
-            read_stream_t *s);                                                            \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_15>(             \
-            read_stream_t *s);                                                            \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_16_is_latest>(   \
-            read_stream_t *s)
-
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(typ)                                  \
     template size_t serialized_size<cluster_version_t::v1_13>(const typ &)            \
     template size_t serialized_size<cluster_version_t::v1_13_2>(const typ &)          \
@@ -178,17 +150,9 @@ size_t serialized_size_for_version(cluster_version_t version,
     INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v1_13(typ)
 
-#define INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(typ)    \
-    INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER_AND_DISK(typ); \
-    INSTANTIATE_DESERIALIZE_SELF_SINCE_v1_13(typ)
-
 #define INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)                                 \
     template archive_result_t deserialize<cluster_version_t::v1_16_is_latest>(   \
             read_stream_t *, typ *)
-
-#define INSTANTIATE_DESERIALIZE_SELF_SINCE_v1_16(typ)                                     \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_16_is_latest>(   \
-            read_stream_t *s)
 
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_16(typ)                                  \
     template size_t serialized_size<cluster_version_t::v1_16_is_latest>(const typ &)
@@ -197,19 +161,9 @@ size_t serialized_size_for_version(cluster_version_t version,
     INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)
 
-#define INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_16(typ)    \
-    INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER_AND_DISK(typ); \
-    INSTANTIATE_DESERIALIZE_SELF_SINCE_v1_16(typ)
-
 #define INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(typ)                      \
     INSTANTIATE_SERIALIZE_FOR_CLUSTER(typ);                            \
     template archive_result_t deserialize<cluster_version_t::CLUSTER>( \
             read_stream_t *, typ *)
-
-#define INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(typ)                          \
-    INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER(typ);                                \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::CLUSTER>( \
-            read_stream_t *s)
-
 
 #endif  // CONTAINERS_ARCHIVE_VERSIONED_HPP_

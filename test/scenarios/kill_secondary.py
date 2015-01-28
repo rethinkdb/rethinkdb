@@ -49,7 +49,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     r.db(dbName).wait().run(conn)
     
     cluster.check()
-    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Starting workload (%.2fs)" % (time.time() - startTime))
@@ -58,7 +58,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
-        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        issues = list(r.db('rethinkdb').table('current_issues').run(conn))
         assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
         
         print("Killing the secondary (%.2fs)" % (time.time() - startTime))
@@ -66,7 +66,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         secondary.kill()
         
         time.sleep(.5)
-        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        issues = list(r.db('rethinkdb').table('current_issues').run(conn))
         assert len(issues) > 0, 'The dead server issue is not listed:'
         assert len(issues) < 2, 'There are too many issues in the list: %s' % repr(issues)
         
@@ -74,7 +74,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         
         assert r.db('rethinkdb').table('server_config').get(secondary.uuid).delete().run(conn)['errors'] == 0
         time.sleep(.1)
-        issues = list(r.db('rethinkdb').table('issues').run(conn))
+        issues = list(r.db('rethinkdb').table('current_issues').run(conn))
         assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
         
         print("Running after workload (%.2fs)" % (time.time() - startTime))
@@ -82,7 +82,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         workload.run_after()
     
     cluster.check()
-    issues = list(r.db('rethinkdb').table('issues').run(conn))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

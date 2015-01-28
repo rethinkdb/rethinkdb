@@ -30,27 +30,25 @@ datum_t new_stats_object() {
     return std::move(stats).to_datum();
 }
 
-conflict_behavior_t parse_conflict_optarg(const scoped_ptr_t<val_t> &arg,
-                                          const pb_rcheckable_t *target) {
+conflict_behavior_t parse_conflict_optarg(const scoped_ptr_t<val_t> &arg) {
     if (!arg.has()) { return conflict_behavior_t::ERROR; }
     const datum_string_t &str = arg->as_str();
     if (str == "error") { return conflict_behavior_t::ERROR; }
     if (str == "replace") { return conflict_behavior_t::REPLACE; }
     if (str == "update") { return conflict_behavior_t::UPDATE; }
-    rfail_target(target,
+    rfail_target(arg.get(),
                  base_exc_t::GENERIC,
                  "Conflict option `%s` unrecognized "
                  "(options are \"error\", \"replace\" and \"update\").",
                  str.to_std().c_str());
 }
 
-durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg,
-                                                 const pb_rcheckable_t *target) {
+durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
     const datum_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
-    rfail_target(target,
+    rfail_target(arg.get(),
                  base_exc_t::GENERIC,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
@@ -111,9 +109,9 @@ private:
         }
 
         const conflict_behavior_t conflict_behavior
-            = parse_conflict_optarg(args->optarg(env, "conflict"), this);
+            = parse_conflict_optarg(args->optarg(env, "conflict"));
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(args->optarg(env, "durability"), this);
+            = parse_durability_optarg(args->optarg(env, "durability"));
 
         bool done = false;
         datum_t stats = new_stats_object();
@@ -224,7 +222,7 @@ private:
         }
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(args->optarg(env, "durability"), this);
+            = parse_durability_optarg(args->optarg(env, "durability"));
 
         counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {

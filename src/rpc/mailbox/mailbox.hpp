@@ -92,7 +92,7 @@ public:
 
         RDB_MAKE_ME_EQUALITY_COMPARABLE_3(raw_mailbox_t::address_t, peer, thread, mailbox_id);
 
-        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
+        RDB_MAKE_ME_SERIALIZABLE_3(address_t, peer, thread, mailbox_id);
 
     private:
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
@@ -122,10 +122,8 @@ public:
     address_t get_address() const;
 };
 
-RDB_SERIALIZE_OUTSIDE(raw_mailbox_t::address_t);
-
 /* `send()` sends a message to a mailbox. `send()` can block and must be called
-in a coroutine. If the mailbox does not exist or the peer is inaccessible, `send()`
+in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
 will silently fail. */
 
 void send(mailbox_manager_t *src,

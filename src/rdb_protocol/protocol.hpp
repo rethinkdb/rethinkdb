@@ -171,10 +171,12 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 
 struct rget_read_response_t {
     ql::result_t result;
+    ql::skey_version_t skey_version;
     bool truncated;
     store_key_t last_key;
 
-    rget_read_response_t() : truncated(false) { }
+    rget_read_response_t()
+        : skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
@@ -270,10 +272,9 @@ struct changefeed_point_stamp_response_t {
     // servers and don't synchronize with each other.)
     std::pair<uuid_u, uint64_t> stamp;
     ql::datum_t initial_val;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
+RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
 
 struct dummy_read_response_t {
     // dummy read always succeeds
@@ -328,11 +329,13 @@ struct sindex_rangespec_t {
                        // This is the region in the sindex keyspace.  It's
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
-                       const region_t &_region,
+                       boost::optional<region_t> &&_region,
                        const ql::datum_range_t _original_range)
-        : id(_id), region(_region), original_range(_original_range) { }
+        : id(_id), region(std::move(_region)), original_range(_original_range) { }
     std::string id; // What sindex we're using.
-    region_t region; // What keyspace we're currently operating on.
+    // What keyspace we're currently operating on.  If empty, assume the
+    // original range and create the readgen on the shards.
+    boost::optional<region_t> region;
     ql::datum_range_t original_range; // For dealing with truncation.
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);

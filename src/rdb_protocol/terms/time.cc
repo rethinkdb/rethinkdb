@@ -180,7 +180,7 @@ private:
         int hours = 0;
         int minutes = 0;
         double seconds = 0;
-        std::string tz = "";
+        std::string tz;
         if (args->num_args() == 4) {
             tz = parse_tz(args->arg(env, 3));
         } else if (args->num_args() == 7) {
@@ -195,8 +195,7 @@ private:
             pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
     }
     static std::string parse_tz(scoped_ptr_t<val_t> v) {
-        datum_t d = v->as_datum();
-        return d.as_str().to_std();
+        return v->as_str().to_std();
     }
     virtual const char *name() const { return "time"; }
 };

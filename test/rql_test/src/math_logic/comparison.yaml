@@ -139,19 +139,18 @@ tests:
       ot: false
 
     # Comparisons for NULL
-    - py: [r.expr(None) == None, None == r.expr(None)]
-      js: r(null).eq(null)
-      rb: r(nil).eq(nil)
+    - cd: r(null).eq(null)
+      py: [r.expr(null) == null, null == r.expr(null)]
       ot: true
 
-    - py: [r.expr(None) < None, None < r.expr(None)]
+    - py: [r.expr(null) < null, null < r.expr(null), r.expr(null).gt(null)]
       js: r(null).lt(null)
-      rb: r(nil) < nil
+      rb: r(null) < null
       ot: false
 
-    - py: [r.expr(None) > None, None > r.expr(None)]
+    - py: [r.expr(null) > null, null > r.expr(null), r.expr(null).lt(null)]
       js: r(null).gt(null)
-      rb: r(nil) > nil
+      rb: r(null) > null
       ot: false
 
     # Comparisons for STRING
@@ -329,24 +328,24 @@ tests:
       rb: r([1,2]) < r.binary("")
       ot: true
 
-    - py: True < r.expr(None)
+    - py: True < r.expr(null)
       js: r(true).lt(null)
-      rb: r(true) < nil
+      rb: r(true) < null
       ot: true
 
-    - py: r.expr(None) > []
+    - py: r.expr(null) > []
       js: r(null).gt([])
-      rb: r(nil) > []
+      rb: r(null) > []
       ot: true
 
-    - py: r.expr(None) < 12
+    - py: r.expr(null) < 12
       js: r(null).lt(12)
-      rb: r(nil) < 12
+      rb: r(null) < 12
       ot: true
      
-    - py: r.expr(None) < -2
+    - py: r.expr(null) < -2
       js: r(null).lt(-2)
-      rb: r(nil) < -2
+      rb: r(null) < -2
       ot: true
 
     - py: r.expr(-12) < {}
@@ -407,9 +406,9 @@ tests:
       rb: r('zzz') > -152
       ot: true
 
-    - py: "'zzz' > r.expr(None)"
+    - py: "'zzz' > r.expr(null)"
       js: r('zzz').gt(null)
-      rb: r('zzz') > nil
+      rb: r('zzz') > null
       ot: true
 
     - py: "'zzz' > r.expr([])"

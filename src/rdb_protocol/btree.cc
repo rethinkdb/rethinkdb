@@ -1129,7 +1129,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 std::vector<std::string> expand_geo_key(
-        UNUSED reql_version_t reql_version,
+        reql_version_t reql_version,
         const ql::datum_t &key,
         const store_key_t &primary_key,
         boost::optional<uint64_t> tag_num) {
@@ -1151,10 +1151,13 @@ std::vector<std::string> expand_geo_key(
             //   support: We must be able to truncate geo keys and handle such
             //   truncated keys.
             rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
-                key_to_unescaped_str(primary_key).length()));
+                        ql::skey_version_from_reql_version(reql_version),
+                        key_to_unescaped_str(primary_key).length()));
 
             result.push_back(
-                ql::datum_t::compose_secondary(grid_keys[i], primary_key, tag_num));
+                ql::datum_t::compose_secondary(
+                    ql::skey_version_from_reql_version(reql_version),
+                    grid_keys[i], primary_key, tag_num));
         }
 
         return result;
@@ -1225,10 +1228,6 @@ void compute_keys(const store_key_t &primary_key,
         }
     }
 }
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        reql_version_t, int8_t,
-        reql_version_t::v1_13, reql_version_t::v1_16_is_latest);
 
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info) {
@@ -1701,7 +1700,8 @@ public:
 void post_construct_secondary_indexes(
         store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        parallel_traversal_progress_t *progress_tracker)
     THROWS_ONLY(interrupted_exc_t) {
     cond_t local_interruptor;
 
@@ -1709,20 +1709,7 @@ void post_construct_secondary_indexes(
 
     post_construct_traversal_helper_t helper(store,
             sindexes_to_post_construct, &local_interruptor, interruptor);
-    /* Notice the ordering of progress_tracker and insertion_sentries matters.
-     * insertion_sentries puts pointers in the progress tracker map. Once
-     * insertion_sentries is destructed nothing has a reference to
-     * progress_tracker so we know it's safe to destruct it. */
-    parallel_traversal_progress_t progress_tracker;
-    helper.progress = &progress_tracker;
-
-    std::vector<map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> >
-        insertion_sentries(sindexes_to_post_construct.size());
-    auto sentry = insertion_sentries.begin();
-    for (auto it = sindexes_to_post_construct.begin();
-         it != sindexes_to_post_construct.end(); ++it) {
-        store->add_progress_tracker(&*sentry, *it, &progress_tracker);
-    }
+    helper.progress = progress_tracker;
 
     read_token_t read_token;
     store->new_read_token(&read_token);
@@ -1750,4 +1737,3 @@ void post_construct_secondary_indexes(
 }
 
 void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
-

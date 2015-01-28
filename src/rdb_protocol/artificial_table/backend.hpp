@@ -74,6 +74,7 @@ public:
         std::string *error_out) = 0;
 
     virtual bool read_changes(
+        ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,

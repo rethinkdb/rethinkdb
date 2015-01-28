@@ -53,7 +53,6 @@ void sanitize_time(datum_t *time);
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
 
-
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
@@ -70,7 +69,16 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 void debug_print(printf_buffer_t *, const datum_t &);
 
+// The serialization for this is defined in `protocol.cc` and needs to be
+// updated if more versions are added.
+enum class skey_version_t {
+    pre_1_16 = 0,
+    post_1_16 = 1
+};
+skey_version_t skey_version_from_reql_version(reql_version_t rv);
+
 struct components_t {
+    skey_version_t skey_version;
     std::string secondary;
     std::string primary;
     boost::optional<uint64_t> tag_num;
@@ -191,12 +199,15 @@ public:
     std::string print_primary() const;
     /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
-    static std::string compose_secondary(const std::string &secondary_key,
+    static std::string compose_secondary(skey_version_t skey_version,
+                                         const std::string &secondary_key,
                                          const store_key_t &primary_key,
                                          boost::optional<uint64_t> tag_num);
-    static std::string mangle_secondary(const std::string &secondary,
-                                        const std::string &primary,
-                                        const std::string &tag);
+    static std::string mangle_secondary(
+        skey_version_t skey_version,
+        const std::string &secondary,
+        const std::string &primary,
+        const std::string &tag);
     static std::string encode_tag_num(uint64_t tag_num);
     // tag_num is used for multi-indexes.
     std::string print_secondary(reql_version_t reql_version,
@@ -205,12 +216,14 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static store_key_t extract_primary(const store_key_t &secondary_key);
+    static std::string extract_truncated_secondary(
+        const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(
-            const std::string &secondary_and_primary);
+        const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     static components_t extract_all(const std::string &secondary_and_primary);
-    store_key_t truncated_secondary() const;
+    store_key_t truncated_secondary(skey_version_t skey_version) const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
 
@@ -288,8 +301,8 @@ public:
                       const char *test, const char *file, int line,
                       std::string msg) const NORETURN;
 
-    static size_t max_trunc_size();
-    static size_t trunc_size(size_t primary_key_size);
+    static size_t max_trunc_size(skey_version_t skey_version);
+    static size_t trunc_size(skey_version_t skey_version, size_t primary_key_size);
     /* Note key_is_truncated returns true if the key is of max size. This gives
      * a false positive if the sum sizes of the keys is exactly the maximum but
      * not over at all. This means that a key of exactly max_trunc_size counts
@@ -305,7 +318,7 @@ public:
 
     static void check_str_validity(const datum_string_t &str);
 
-    // Used by serialization code. Returns a pointer to the buf_ref, if
+    // Used by skey_version code. Returns a pointer to the buf_ref, if
     // the datum is currently backed by one, or NULL otherwise.
     const shared_buf_ref_t<char> *get_buf_ref() const;
 
@@ -405,24 +418,31 @@ public:
     bool contains(reql_version_t reql_version, datum_t val) const;
     bool is_universe() const;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(datum_range_t);
 
     // Make sure you know what you're doing if you call these, and think about
     // truncated sindexes.
     key_range_t to_primary_keyrange() const;
-    key_range_t to_sindex_keyrange() const;
+    key_range_t to_sindex_keyrange(skey_version_t skey_version) const;
 
     datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
     datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);
+
+    std::string print() {
+        return strprintf("%c%s,%s%c",
+                         left_bound_type == key_range_t::open ? '(' : '[',
+                         left_bound.print().c_str(),
+                         right_bound.print().c_str(),
+                         right_bound_type == key_range_t::open ? ')' : ']');
+    }
 private:
 
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
-datum_t to_datum(const Datum *d, const configured_limits_t &);
-datum_t to_datum(cJSON *json, const configured_limits_t &);
+datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
+datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,

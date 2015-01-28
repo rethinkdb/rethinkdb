@@ -166,22 +166,8 @@ void reactor_t::be_nothing(region_t region,
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
             on_thread_t th(svs->home_thread());
 
-            /* Persist that we don't have any valid data anymore for this range */
-            {
-                order_source_t order_source; // TODO: order_token_t::ignore
-                write_token_t write_token;
-                svs->new_write_token(&write_token);
-
-                svs->set_metainfo(
-                    region_map_t<binary_blob_t>(
-                        region,
-                        binary_blob_t(version_range_t(version_t::zero()))),
-                    order_source.check_in("be_nothing"),
-                    &write_token,
-                    &ct_interruptor);
-            }
-
-            /* This actually erases the data. */
+            /* This actually erases the data, and also updates the metainfo as it erases
+            each chunk to indicate we don't have any data for that region. */
             svs->reset_data(binary_blob_t(version_range_t(version_t::zero())),
                             region, write_durability_t::HARD, &ct_interruptor);
         }

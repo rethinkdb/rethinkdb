@@ -144,6 +144,23 @@ with driver.Cluster(output_folder='.') as cluster:
     # different code path and get a different error message.
     try_bad_cache_size(2**100, "wrong format")
 
+    print("Checking that nonsense is rejected...")
+    res = r.db("rethinkdb").table("server_config") \
+           .insert({"name": "hi", "tags": [], "cache_size": 100}).run(reql_conn1)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("server_config").update({"foo": "bar"}).run(reql_conn1)
+    assert res["errors"] == 2, res
+    res = r.db("rethinkdb").table("server_config").update({"name": 2}).run(reql_conn1)
+    assert res["errors"] == 2, res
+    res = r.db("rethinkdb").table("server_config").replace(r.row.without("name")) \
+           .run(reql_conn1)
+    assert res["errors"] == 2, res
+    res = r.db("rethinkdb").table("server_config") \
+           .update({"cache_size": "big!"}).run(reql_conn1)
+    assert res["errors"] == 2, res
+    res = r.db("rethinkdb").table("server_config").update({"tags": 0}).run(reql_conn1)
+    assert res["errors"] == 2, res
+
     cluster.check_and_stop()
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

@@ -134,20 +134,20 @@ var_visibility_t var_scope_t::compute_visibility() const {
 }
 
 template <cluster_version_t W>
-void var_scope_t::rdb_serialize(write_message_t *wm) const {
-    serialize<W>(wm, vars);
-    serialize<W>(wm, implicit_depth);
-    if (implicit_depth == 1) {
-        const bool has = maybe_implicit.has();
+void serialize(write_message_t *wm, const var_scope_t &vs) {
+    serialize<W>(wm, vs.vars);
+    serialize<W>(wm, vs.implicit_depth);
+    if (vs.implicit_depth == 1) {
+        const bool has = vs.maybe_implicit.has();
         serialize<W>(wm, has);
         if (has) {
-            serialize<W>(wm, maybe_implicit);
+            serialize<W>(wm, vs.maybe_implicit);
         }
     }
 }
 
 template <cluster_version_t W>
-archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t deserialize(read_stream_t *s, var_scope_t *vs) {
     std::map<sym_t, datum_t> local_vars;
     archive_result_t res = deserialize<W>(s, &local_vars);
     if (bad(res)) { return res; }
@@ -168,24 +168,23 @@ archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
         }
     }
 
-    vars = std::move(local_vars);
-    implicit_depth = local_implicit_depth;
-    maybe_implicit = std::move(local_maybe_implicit);
+    vs->vars = std::move(local_vars);
+    vs->implicit_depth = local_implicit_depth;
+    vs->maybe_implicit = std::move(local_maybe_implicit);
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SERIALIZE_SELF_FOR_CLUSTER_AND_DISK(var_scope_t);
+INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(var_scope_t);
 
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_13>(read_stream_t *s);
+deserialize<cluster_version_t::v1_13>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_13_2>(read_stream_t *s);
+deserialize<cluster_version_t::v1_13_2>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_14>(read_stream_t *s);
+deserialize<cluster_version_t::v1_14>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_15>(read_stream_t *s);
+deserialize<cluster_version_t::v1_15>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_16_is_latest>(read_stream_t *s);
-
+deserialize<cluster_version_t::v1_16_is_latest>(read_stream_t *s, var_scope_t *);
 
 }  // namespace ql

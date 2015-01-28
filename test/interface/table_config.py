@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
 
-"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
+"""Checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
 
 from __future__ import print_function
 
@@ -183,6 +183,18 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     test_invalid(r.row.without("primary_key"))
     test_invalid(r.row.without("db"))
     test_invalid(r.row.without("shards"))
+
+    print("Testing that table_status is not writable (%.2fs)" %
+        (time.time() - startTime))
+    table_count = r.db("rethinkdb").table("table_status").count().run(conn)
+    res = r.db("rethinkdb").table("table_status").delete().run(conn)
+    assert res["errors"] == table_count, res
+    res = r.db("rethinkdb").table("table_status").update({"foo": "bar"}).run(conn)
+    assert res["errors"] == table_count, res
+    res = r.db("rethinkdb").table("table_status").insert({}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db(dbName).table("bar").status().delete().run(conn)
+    assert res["errors"] == 1, res
 
     print("Testing that we can rename tables through table_config (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table("bar").config().update({"name": "bar2"}).run(conn)

@@ -47,7 +47,8 @@ module RethinkDB
       :get_nearest => -1,
       :min => -1,
       :max => -1,
-      :changes => -1
+      :changes => -1,
+      :wait => 0
     }
     @@method_aliases = {
       :lt => :<,

@@ -50,7 +50,8 @@ void insert_rows(int start, int finish, store_t *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
-                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits),
+                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits,
+                             reql_version_t::LATEST),
                 false, store->btree.get(), repli_timestamp_t::distant_past,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
@@ -260,7 +261,8 @@ void _check_keys_are_present(store_t *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(ql::to_datum(expected_value.get(), limits), stream->front().data);
+        ASSERT_EQ(ql::to_datum(expected_value.get(), limits, reql_version_t::LATEST),
+                  stream->front().data);
     }
 }
 
@@ -374,7 +376,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
             NULL,
             &io_backender,
             base_path_t("."),
-            NULL,
+            scoped_ptr_t<outdated_index_report_t>(),
             generate_uuid());
 
     cond_t dummy_interruptor;
@@ -417,7 +419,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
             NULL,
             &io_backender,
             base_path_t("."),
-            NULL,
+            scoped_ptr_t<outdated_index_report_t>(),
             generate_uuid());
 
     cond_t dummy_interruptor;
@@ -455,7 +457,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
                                 access_t::write);
 
         rdb_live_deletion_context_t deletion_context;
-        std::vector<rdb_modification_report_t> mod_reports_out;
+        std::vector<rdb_modification_report_t> mod_reports;
+        key_range_t deleted_range;
         rdb_erase_small_range(store.btree.get(),
                               &tester,
                               key_range_t::universe(),
@@ -463,7 +466,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
                               &deletion_context,
                               &dummy_interruptor,
                               0,
-                              &mod_reports_out);
+                              &mod_reports,
+                              &deleted_range);
     }
 
     check_keys_are_NOT_present(&store, sindex_name);
@@ -495,7 +499,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
             NULL,
             &io_backender,
             base_path_t("."),
-            NULL,
+            scoped_ptr_t<outdated_index_report_t>(),
             generate_uuid());
 
     cond_t dummy_interruptor;
@@ -539,7 +543,7 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
             NULL,
             &io_backender,
             base_path_t("."),
-            NULL,
+            scoped_ptr_t<outdated_index_report_t>(),
             generate_uuid()));
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());

@@ -23,13 +23,12 @@ public:
         return flattening_;
     }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(ellipsoid_spec_t);
 
 private:
     double equator_radius_;
     double flattening_;
 };
-RDB_SERIALIZE_OUTSIDE(ellipsoid_spec_t);
 
 // WGS 84 is a commonly used standard for earth geometry, see
 // http://en.wikipedia.org/w/index.php?title=World_Geodetic_System&oldid=614370148

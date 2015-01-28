@@ -50,17 +50,17 @@ def find_rethinkdb_executable(mode=None):
     result_path = os.environ.get('RDB_EXE_PATH') or os.path.join(latest_build_dir(check_executable=True, mode=mode), 'rethinkdb')
     
     if not os.access(result_path, os.X_OK):
-        raise test_exceptions.NotBuiltException(detail='The rethinkdb server executable is not avalible: %s' % str(result_path))
+        raise test_exceptions.NotBuiltException(detail='The rethinkdb server executable is not available: %s' % str(result_path))
     
     return result_path
 
 def latest_build_dir(check_executable=True, mode=None):
     '''Look for the most recently built version of this project'''
     
-    canidatePath = None
+    candidatePath = None
     
     if os.getenv('RETHINKDB_BUILD_DIR') is not None:
-        canidatePath = os.path.realpath(os.getenv('RETHINKDB_BUILD_DIR'))
+        candidatePath = os.path.realpath(os.getenv('RETHINKDB_BUILD_DIR'))
     
     else:
         masterBuildDir = os.path.join(project_root_dir, 'build')
@@ -74,7 +74,7 @@ def latest_build_dir(check_executable=True, mode=None):
         
         # -- find the build directory with the most recent mtime
         
-        canidateMtime = None
+        candidateMtime = None
         for name in os.listdir(masterBuildDir):
             path = os.path.join(masterBuildDir, name)
             if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
@@ -83,20 +83,20 @@ def latest_build_dir(check_executable=True, mode=None):
                         continue
                 
                 mtime = os.path.getmtime(path)
-                if canidateMtime is None or mtime > canidateMtime:
-                    canidateMtime = mtime
-                    canidatePath = path
+                if candidateMtime is None or mtime > candidateMtime:
+                    candidateMtime = mtime
+                    candidatePath = path
         
-        if canidatePath is None:
+        if candidatePath is None:
             raise test_exceptions.NotBuiltException(detail='no built version of the server could be found')
     
-    if canidatePath is None or (check_executable is True and not os.access(os.path.join(canidatePath, 'rethinkdb'), os.X_OK)):
-        raise test_exceptions.NotBuiltException(detail='the rethinkdb server executable was not present/runable in: %s' % canidatePath)
+    if candidatePath is None or (check_executable is True and not os.access(os.path.join(candidatePath, 'rethinkdb'), os.X_OK)):
+        raise test_exceptions.NotBuiltException(detail='the rethinkdb server executable was not present/runnable in: %s' % candidatePath)
     
-    return canidatePath
+    return candidatePath
 
 def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, buildOptions=None):
-    '''Call `make -C` on a folder to build it. If waitNotification is given wait notificationTimeout seconds and then print the notificaiton'''
+    '''Call `make -C` on a folder to build it. If waitNotification is given wait notificationTimeout seconds and then print the notification'''
     
     outputFile = tempfile.NamedTemporaryFile('w+')
     notificationDeadline = None
@@ -116,9 +116,9 @@ def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, 
 
 def import_python_driver(targetDir=None):
     '''import the latest built version of the python driver into the caller's namespace, ensuring that the drivers are built'''
-    import imp # note: depreciated but not gone in 3.4, will have to add importlib at some point
+    import imp # note: deprecated but not gone in 3.4, will have to add importlib at some point
     
-    # TODO: modify this to allow for system-installled drivers
+    # TODO: modify this to allow for system-installed drivers
     
     # -- figure out what sort of path we got
     
@@ -175,7 +175,7 @@ def import_python_driver(targetDir=None):
     
     # --
     
-    if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb' or not os.path.isfile(os.path.join(driverDir, '__init__.py')): # ToDo: handle ziped egg case
+    if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb' or not os.path.isfile(os.path.join(driverDir, '__init__.py')): # ToDo: handle zipped egg case
         raise ValueError('import_python_driver got an invalid driverDir: %s' % driverDir)
     
     # - return the imported module
@@ -203,8 +203,8 @@ class PerformContinuousAction(threading.Thread):
     database = None
     
     startTime = None
-    durration = 0
-    sucessCount = 0
+    duration = 0
+    successCount = 0
     errorCount = 0
     recordedErrors = None # error string => count
     
@@ -249,12 +249,12 @@ class PerformContinuousAction(threading.Thread):
         while self.stopSignal is False:
             try:
                 self.runAction()
-                self.sucessCount += 1
+                self.successCount += 1
             except Exception as e:
                 self.recordError(e)
                 errorString = str(e)
             time.sleep(self.delay)
-        self.durration = time.time() - self.startTime
+        self.duration = time.time() - self.startTime
     
     def stop(self):
         self.stopSignal = True
@@ -283,24 +283,30 @@ def supportsTerminalColors():
         return False
     return True
 
-def get_test_db_table():
+def get_test_db_table(tableName=None, dbName='test', index=0):
     '''Get the standard name for the table for this test'''
     
     # - name of __main__ module or a random name
     
-    name = None
-    if hasattr(sys.modules['__main__'], '__file__'):
-        name = os.path.basename(sys.modules['__main__'].__file__).split('.')[0]
+    if tableName is None:
+        if hasattr(sys.modules['__main__'], '__file__'):
+            tableName = os.path.basename(sys.modules['__main__'].__file__).split('.')[0]
+        else:
+            tableName = 'random_' + ''.join(random.choice(string.ascii_uppercase for _ in range(4)))
+        
+        # - interpreter version
+        
+        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
+    
     else:
-        name = 'random_' + ''.join(random.choice(string.ascii_uppercase for _ in range(4)))
+        tableName = tableName.replace(".","_").replace("/","_")
     
-    # - interpreter version
-    
-    interpreter = '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
+    if index != 0:
+        tableName += '_tbl%s' % str(index)
     
     # -
     
-    return ('test', name + interpreter)
+    return (dbName, tableName)
     
 
 def get_avalible_port(interface='localhost'):
@@ -331,18 +337,6 @@ def wait_for_port(port, host='localhost', timeout=5):
             return
         time.sleep(.1)
     raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
-
-def shard_table(cluster_port, rdb_executable, table_name):
-        
-    blackHole = tempfile.NamedTemporaryFile('w+')
-    commandPrefix = [str(rdb_executable), 'admin', '--join', 'localhost:%d' % str(cluster_port), 'split', 'shard', str(table_name)]
-    
-    for splitPoint in ('Nc040800000000000\2333', 'Nc048800000000000\2349', 'Nc04f000000000000\2362'):
-        returnCode = subprocess.call(commandPrefix + [splitPoint], stdout=blackHole, stderr=blackHole)
-        if returnCode != 0:
-            return returnCode
-    time.sleep(3)
-    return 0
 
 def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
     '''make sure that the given process group id is not running'''
@@ -513,3 +507,108 @@ def cleanupPathAtExit(path):
     '''helper for cleanupPath'''
     atexit.register(cleanupPath, path)
 
+def getShardRanges(conn, table, db='test'):
+    '''Given a table and a connection return a list of tuples'''
+    
+    # -- input validation/defaulting
+    
+    # - conn
+    
+    if conn is None:
+        raise ValueError('conn must be supplied, got None')
+    elif not hasattr(conn, '_r') or not isinstance(conn, conn._r.Connection):
+        raise ValueError('conn must be a RethinkDB connection object, got %s' % repr(conn))
+    
+    # - table/db
+    
+    tableName = str(table)
+    dbName = str(db)
+    
+    # -- get split points
+    
+    splitPointsRaw = conn._r.db('rethinkdb').table('_debug_table_status').get(conn._r.db(dbName).table(tableName).config()['id'])['split_points'].run(conn)
+    
+    # -- translate split points into ranges
+    
+    ranges = []
+    lastPoint = None
+    for splitPoint in splitPointsRaw:
+        newPoint = None
+        if splitPoint.startswith('N'):
+            # - numbers
+            newPoint = float(splitPoint.split('#', 1)[1])
+        elif splitPoint.startswith('S'):
+            # - strings
+            newPoint = str(splitPoint[1:])
+        elif splitPoint.startswith('P'):
+            raise NotImplementedError('Object split points are not currently supported')
+        else:
+            raise NotImplementedError('Got a type of range that is not known: %s' % repr(splitPoint))
+        
+        ranges.append((lastPoint, newPoint))
+        lastPoint = newPoint
+    
+    # - default if no split points
+    
+    if not ranges:
+        ranges.append((None, None))
+    else:
+        ranges.append((lastPoint, None))
+    
+    # -- return value
+    
+    return ranges
+
+class NextWithTimeout(threading.Thread):
+	'''Constantly tries to fetch the next item on an changefeed'''
+	
+	daemon = True
+	
+	feed = None
+	timeout = None
+	
+	keepRunning = True
+	latestResult = None
+	
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, exitType, value, traceback):
+		self.keepRunning = False
+	
+	def __init__(self, feed, timeout=5):
+		self.feed = iter(feed)
+		self.timeout = timeout
+		super(NextWithTimeout, self).__init__()
+		self.start()
+	
+	def __iter__(self):
+		return self
+	
+	def next(self):
+		deadline = time.time() + self.timeout
+		while time.time() < deadline:
+			if self.latestResult is not None:
+				if isinstance(self.latestResult, Exception):
+					raise self.latestResult
+				result = self.latestResult
+				self.latestResult = None
+				return result
+			time.sleep(.05)
+		else:
+			raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
+	
+	def __next__(self):
+		return self.next()
+	
+	def run(self):
+		while self.keepRunning:
+			if self.latestResult is not None:
+				time.sleep(.1)
+				continue
+			try:
+				self.latestResult = next(self.feed)
+				time.sleep(.5)
+			except Exception as e:
+				self.latestResult = e
+				self.keepRunning = False

@@ -57,7 +57,7 @@ void do_construct_existing_store(
     on_thread_t th(threads[thread_offset]);
 
     // Only pass this down to the first store
-    outdated_index_report_t *index_report = NULL;
+    scoped_ptr_t<outdated_index_report_t> index_report;
     if (thread_offset == 0) {
         index_report = store_args.outdated_index_tracker->create_report(store_args.ns_id);
     }
@@ -68,7 +68,7 @@ void do_construct_existing_store(
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report, store_args.ns_id);
+        std::move(index_report), store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -84,7 +84,7 @@ void do_create_new_store(
     on_thread_t th(threads[thread_offset]);
 
     // Only pass this down to the first store
-    outdated_index_report_t *index_report = NULL;
+    scoped_ptr_t<outdated_index_report_t> index_report;
     if (thread_offset == 0) {
         index_report = store_args.outdated_index_tracker->create_report(store_args.ns_id);
     }
@@ -94,7 +94,7 @@ void do_create_new_store(
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        index_report, store_args.ns_id);
+        std::move(index_report), store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
