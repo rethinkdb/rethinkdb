@@ -5,7 +5,6 @@ module 'TablesView', ->
         id: 'databases_container'
         template:
             main: Handlebars.templates['databases_container-template']
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
             alert_message: Handlebars.templates['alert_message-template']
 
@@ -17,6 +16,7 @@ module 'TablesView', ->
             'click .close': 'remove_parent_alert'
 
         query_callback: (error, result) =>
+            @loading = false
             if error?
                 if @error?.msg isnt error.msg
                     @error = error
@@ -25,9 +25,6 @@ module 'TablesView', ->
                         error: error.message
             else
                 @databases.set _.map(_.sortBy(result, (db) -> db.name), (database) -> new Database(database)), {merge: true}
-                if @loading is true
-                    @loading = false
-                    @render()
 
 
 
@@ -68,8 +65,14 @@ module 'TablesView', ->
             else
                 @$('.remove-tables').prop 'disabled', true
 
-        initialize: =>
-            @databases = new Databases
+        initialize: =>        
+            if not window.view_data_backup.tables_view_databases?
+                window.view_data_backup.tables_view_databases = new Databases
+                @loading = true
+            else
+                @loading = false
+            @databases = window.view_data_backup.tables_view_databases
+
             @databases_list = new TablesView.DatabasesListView
                 collection: @databases
                 container: @
@@ -94,8 +97,6 @@ module 'TablesView', ->
 
             @fetch_data()
 
-            @loading = true # TODO Render that
-
             @add_database_dialog = new Modals.AddDatabaseModal @databases
             @add_table_dialog = new Modals.AddTableModal
                 databases: @databases
@@ -104,12 +105,8 @@ module 'TablesView', ->
                 collection: @databases
 
         render: =>
-            if @loading is true
-                @$el.html @template.loading
-                    page: "tables"
-            else
-                @$el.html @template.main({})
-                @$('.databases_list').html @databases_list.render().$el
+            @$el.html @template.main({})
+            @$('.databases_list').html @databases_list.render().$el
             @
 
         render_message: (message) =>
@@ -134,6 +131,7 @@ module 'TablesView', ->
         className: 'database_list'
         template:
             no_databases: Handlebars.templates['no_databases-template']
+            loading_databases: Handlebars.templates['loading_databases-template']
 
         initialize: (data) =>
             @container = data.container
@@ -146,9 +144,14 @@ module 'TablesView', ->
                 @databases_view.push view
                 @$el.append view.render().$el
 
-            if @collection.length is 0
+            if @container.loading
+                @$el.html @template.loading_databases()
+                @container.display_add_table_button false
+            else if @collection.length is 0
                 @$el.html @template.no_databases()
                 @container.display_add_table_button false
+            else
+                @container.display_add_table_button true
 
             @listenTo @collection, 'add', (database) =>
                 new_view = new TablesView.DatabaseView

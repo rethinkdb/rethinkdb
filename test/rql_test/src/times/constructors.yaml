@@ -94,7 +94,7 @@ tests:
 # inside of ReQL, and the easiest way to access the connection object
 # is by stealing the arguments the test framework provides to `run`.
   - def:
-      rb:  subrunner = class << bad_dts; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:s => x, :d => RethinkDB::RQL.new.iso8601(x)}).run(*args); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+      rb:  subrunner = class << bad_dts; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:s => x, :d => RethinkDB::RQL.new.iso8601(x)}).run(*args); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
   - rb: bad_dts
     ot: ([])
 
@@ -105,6 +105,6 @@ tests:
 # inside of ReQL, and the easiest way to access the connection object
 # is by stealing the arguments the test framework provides to `run`.
   - def:
-      rb:  subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+      rb:  subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
   - rb: bad_dts_in_tz
     ot: ([])

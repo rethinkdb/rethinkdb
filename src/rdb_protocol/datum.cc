@@ -22,6 +22,7 @@
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "parsing/utf8.hpp"
 #include "stl_utils.hpp"
 
 namespace ql {
@@ -375,7 +376,54 @@ datum_t datum_t::binary(datum_string_t &&_data) {
     return datum_t(construct_binary_t(), std::move(_data));
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
+// two versions of these, because std::string is not necessarily null
+// terminated.
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
+{
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
+                rfail_datum(base_exc_t::GENERIC,
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
+                            "%s at position %zu.",
+                            truncation_length, string.c_str(), reason.explanation,
+                            reason.position);
+            }
+            break;
+        default:
+            unreachable();
+    }
+}
+
+inline void fail_if_invalid(reql_version_t reql_version, const char *string)
+{
+    switch (reql_version) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            utf8::reason_t reason;
+            if (!utf8::is_valid(string, &reason)) {
+                int truncation_length = std::min(reason.position, 20ul);
+                rfail_datum(base_exc_t::GENERIC,
+                            "String `%.*s` (truncated) is not a UTF-8 string; "
+                            "%s at position %zu.",
+                            truncation_length, string, reason.explanation,
+                            reason.position);
+            }
+            break;
+        default:
+            unreachable();
+    }
+}
+
+datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (json->type) {
     case cJSON_False: {
         return datum_t::boolean(false);
@@ -390,13 +438,14 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(json->valuedouble);
     } break;
     case cJSON_String: {
+        fail_if_invalid(reql_version, json->valuestring);
         return datum_t(json->valuestring);
     } break;
     case cJSON_Array: {
         std::vector<datum_t> array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits));
+            array.push_back(to_datum(item, limits, reql_version));
         }
         return datum_t(std::move(array), limits);
     } break;
@@ -404,7 +453,8 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         datum_object_builder_t builder;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            bool dup = builder.add(item->string, to_datum(item, limits));
+            fail_if_invalid(reql_version, item->string);
+            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -846,18 +896,39 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::mangle_secondary(const std::string &secondary,
-                                      const std::string &primary,
-                                      const std::string &tag) {
+// Returns `true` if it tagged the skey version.
+bool tag_skey_version(skey_version_t skey_version, std::string *s) {
+    guarantee(s->size() > 0);
+    guarantee(!((*s)[0] & 0x80)); // None of our types have the top bit set.
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: return false;
+    case skey_version_t::post_1_16:
+        (*s)[0] |= 0x80; // Flip the top bit to indicate 1.16+ skey_version.
+        return true;
+    default: unreachable();
+    }
+    unreachable();
+}
+
+std::string datum_t::mangle_secondary(
+    skey_version_t skey_version,
+    const std::string &secondary,
+    const std::string &primary,
+    const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
-    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
-            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
-
-    std::string res = secondary + primary + tag +
-           std::string(1, pk_offset) + std::string(1, tag_offset);
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size());
+    // Note that `secondary` should already have a NULL byte on the end unless
+    // it was truncated (in which case it's fixed-width and doesn't need a
+    // terminator).
+    std::string res = secondary + primary;
+    if (tag_skey_version(skey_version, &res)) {
+        res += std::string(1, 0);
+    }
+    uint8_t tag_offset = res.size();
     guarantee(res.size() <= MAX_KEY_SIZE);
+    res += tag + std::string(1, pk_offset) + std::string(1, tag_offset);
     return res;
 }
 
@@ -870,10 +941,13 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
 }
 
-std::string datum_t::compose_secondary(const std::string &secondary_key,
-        const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
-    std::string primary_key_string = key_to_unescaped_str(primary_key);
+std::string datum_t::compose_secondary(
+    skey_version_t skey_version,
+    const std::string &secondary_key,
+    const store_key_t &primary_key,
+    boost::optional<uint64_t> tag_num) {
 
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         throw exc_t(base_exc_t::GENERIC,
             strprintf(
@@ -889,9 +963,10 @@ std::string datum_t::compose_secondary(const std::string &secondary_key,
     }
 
     const std::string truncated_secondary_key =
-        secondary_key.substr(0, trunc_size(primary_key_string.length()));
+        secondary_key.substr(0, trunc_size(skey_version, primary_key_string.length()));
 
-    return mangle_secondary(truncated_secondary_key, primary_key_string, tag_string);
+    return mangle_secondary(
+        skey_version, truncated_secondary_key, primary_key_string, tag_string);
 }
 
 std::string datum_t::print_secondary(reql_version_t reql_version,
@@ -932,37 +1007,65 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
         unreachable();
     }
 
-    return compose_secondary(secondary_key_string, primary_key, tag_num);
+    return compose_secondary(
+        skey_version_from_reql_version(reql_version),
+        secondary_key_string, primary_key, tag_num);
 }
 
-void parse_secondary(const std::string &key,
-                     components_t *components) THROWS_NOTHING {
-    uint8_t start_of_tag = key[key.size() - 1],
-            start_of_primary = key[key.size() - 2];
+skey_version_t skey_version_from_reql_version(reql_version_t rv) {
+    switch (rv) {
+    case reql_version_t::v1_13: // fallthru
+    case reql_version_t::v1_14: // v1_15 == v1_14
+        return skey_version_t::pre_1_16;
+    case reql_version_t::v1_16_is_latest:
+        return skey_version_t::post_1_16;
+    default: unreachable();
+    }
+}
 
-    guarantee(start_of_primary < start_of_tag);
+components_t parse_secondary(const std::string &key) THROWS_NOTHING {
+    uint8_t start_of_primary = key[key.size() - 2];
+    uint8_t start_of_tag = key[key.size() - 1];
+    uint8_t end_of_primary = start_of_tag;
 
-    components->secondary = key.substr(0, start_of_primary);
-    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+    // TODO: this parses the NULL byte into secondary (and did before as well).
+    // This is currently OK for the same reason the sindex portion of the query
+    // compares correctly lexicographically (since that's about the only useful
+    // thing we can do with the secondary portion).  It's still fragile, though,
+    // so we should consider changing this in the future when we have more time
+    // to test the change.  Tracked in #3630.
+    skey_version_t skey_version = skey_version_t::pre_1_16;
+    std::string secondary = key.substr(0, start_of_primary);
+    if (secondary[0] & 0x80) {
+        skey_version = skey_version_t::post_1_16;
+        // To account for extra NULL byte in 1.16+.
+        end_of_primary -= 1;
+    }
+    guarantee(start_of_primary < end_of_primary);
+    std::string primary =
+        key.substr(start_of_primary, end_of_primary - start_of_primary);
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
+    boost::optional<uint64_t> tag_num;
     if (tag_str.size() != 0) {
 #ifndef BOOST_LITTLE_ENDIAN
         static_assert(false, "This piece of code will break on little endian systems.");
 #endif
-        components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
+        tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
+    return components_t{
+        skey_version,
+        std::move(secondary),
+        std::move(primary),
+        std::move(tag_num)};
 }
 
 components_t datum_t::extract_all(const std::string &str) {
-    components_t components;
-    parse_secondary(str, &components);
-    return components;
+    return parse_secondary(str);
 }
 
 std::string datum_t::extract_primary(const std::string &secondary) {
-    components_t components;
-    parse_secondary(secondary, &components);
+    components_t components = parse_secondary(secondary);
     return components.primary;
 }
 
@@ -970,15 +1073,24 @@ store_key_t datum_t::extract_primary(const store_key_t &secondary_key) {
     return store_key_t(extract_primary(key_to_unescaped_str(secondary_key)));
 }
 
-std::string datum_t::extract_secondary(const std::string &secondary) {
-    components_t components;
-    parse_secondary(secondary, &components);
+std::string datum_t::extract_secondary(const std::string &secondary_and_primary) {
+    components_t components = parse_secondary(secondary_and_primary);
     return components.secondary;
 }
 
+std::string datum_t::extract_truncated_secondary(
+    const std::string &secondary_and_primary) {
+    components_t components = parse_secondary(secondary_and_primary);
+    std::string skey = std::move(components.secondary);
+    size_t mts = max_trunc_size(components.skey_version);
+    if (skey.length() >= mts) {
+        skey.erase(mts);
+    }
+    return skey;
+}
+
 boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
-    components_t components;
-    parse_secondary(secondary, &components);
+    components_t components = parse_secondary(secondary);
     return components.tag_num;
 }
 
@@ -991,7 +1103,7 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // but the amount truncated depends on the length of the primary key.  Since we
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
-store_key_t datum_t::truncated_secondary() const {
+store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
@@ -1013,10 +1125,12 @@ store_key_t datum_t::truncated_secondary() const {
     }
 
     // Truncate the key if necessary
-    if (s.length() >= max_trunc_size()) {
-        s.erase(max_trunc_size());
+    size_t mts = max_trunc_size(skey_version);
+    if (s.length() >= mts) {
+        s.erase(mts);
     }
 
+    tag_skey_version(skey_version, &s);
     return store_key_t(s);
 }
 
@@ -1473,7 +1587,8 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
+datum_t to_datum(const Datum *d, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
     switch (d->type()) {
     case Datum::R_NULL: {
         return datum_t::null();
@@ -1485,17 +1600,19 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return datum_t(d->r_num());
     } break;
     case Datum::R_STR: {
+        fail_if_invalid(reql_version, d->r_str());
         return datum_t(datum_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
+        fail_if_invalid(reql_version, d->r_str());
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits);
+        return to_datum(cjson.get(), limits, reql_version);
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
         out.reserve(d->r_array_size());
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
-            out.add(to_datum(&d->r_array(i), limits));
+            out.add(to_datum(&d->r_array(i), limits, reql_version));
         }
         return std::move(out).to_datum();
     } break;
@@ -1506,8 +1623,10 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
             datum_t::check_str_validity(key);
+            fail_if_invalid(reql_version, ap->key());
             auto res = map.insert(std::make_pair(key,
-                                                 to_datum(&ap->val(), limits)));
+                                                 to_datum(&ap->val(), limits,
+                                                          reql_version)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key %s in object.", key.to_std().c_str()));
         }
@@ -1518,15 +1637,23 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
     }
 }
 
-size_t datum_t::max_trunc_size() {
-    return trunc_size(rdb_protocol::MAX_PRIMARY_KEY_SIZE);
+size_t datum_t::max_trunc_size(skey_version_t skey_version) {
+    return trunc_size(skey_version, rdb_protocol::MAX_PRIMARY_KEY_SIZE);
 }
 
-size_t datum_t::trunc_size(size_t primary_key_size) {
-    //The 2 in this function is necessary because of the offsets which are
-    //included at the end of the key so that we can extract the primary key and
-    //the tag num from secondary keys.
-    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
+size_t datum_t::trunc_size(skey_version_t skey_version, size_t primary_key_size) {
+    // We subtract three bytes because of the NULL byte we pad on the end of the
+    // primary key and the two 1-byte offsets at the end of the key (which are
+    // used to extract the primary key and tag num).
+    size_t terminated_primary_key_size = primary_key_size;
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
+        terminated_primary_key_size += 1;
+        break;
+    default: unreachable();
+    }
+    return MAX_KEY_SIZE - terminated_primary_key_size - tag_size - 2;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
@@ -1934,13 +2061,13 @@ key_range_t datum_range_t::to_primary_keyrange() const {
             : store_key_t::max());
 }
 
-key_range_t datum_range_t::to_sindex_keyrange() const {
+key_range_t datum_range_t::to_sindex_keyrange(skey_version_t skey_version) const {
     return rdb_protocol::sindex_key_range(
         left_bound.has()
-            ? store_key_t(left_bound.truncated_secondary())
+            ? store_key_t(left_bound.truncated_secondary(skey_version))
             : store_key_t::min(),
         right_bound.has()
-            ? store_key_t(right_bound.truncated_secondary())
+            ? store_key_t(right_bound.truncated_secondary(skey_version))
             : store_key_t::max());
 }
 

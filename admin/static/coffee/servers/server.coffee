@@ -3,48 +3,53 @@
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
         template:
-            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
             not_found: Handlebars.templates['element_view-not_found-template']
 
         initialize: (id) =>
             @id = id
-            @loading = true
-            @server = null
+            @server_found = true
+
+            # Initialize with dummy data so we can start rendering the page
+            @server = new Server(id: id)
+            @responsibilities = new Responsibilities
+            @server_view = new ServerView.ServerMainView
+                model: @server
+                collection: @responsibilities
 
             @fetch_server()
 
         fetch_server: =>
-            query = r.db(system_db).table('server_status').get(@id).do( (server) ->
-                r.branch(
-                    server.eq(null),
-                    null,
-                    server.merge( (server) ->
-                        responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
-                            table.merge( (table) ->
-                                shards: table("shards").map(r.range(), (shard, index) ->
-                                    shard.merge(
-                                        num_keys: r.db(table('db')) \
-                                            .table(table('name')) \
-                                            .info()('doc_count_estimates')(index)
-                                        index: index.add(1)
-                                        num_shards: table('shards').count()
-                                        role: r.branch(server('name').eq(shard('primary_replica')),
-                                            'primary', 'secondary')
-                                        )
-                                ).filter((shard) ->
-                                    shard('replicas')('server').contains(server('name'))
-                                ).coerceTo('array')
-                            )
-                        ).filter( (table) ->
-                            table("shards").isEmpty().not()
-                        ).merge( (table) ->
-                            id: table("id")
-                        ).coerceTo("ARRAY")
+            query = r.do(
+                r.db(system_db).table('server_config').get(@id),
+                r.db(system_db).table('server_status').get(@id),
+                (server_config, server_status) ->
+                    r.branch(
+                        server_status.eq(null),
+                        null,
+                        server_status.merge( (server_status) ->
+                            tags: server_config('tags')
+                            responsibilities: r.db(system_db).table('table_status'
+                            ).orderBy( (table) -> table('db').add('.').add(table('name')) ).map( (table) ->
+                                table.merge( (table) ->
+                                    shards: table("shards").map(r.range(), (shard, index) ->
+                                        shard.merge(
+                                            index: index.add(1)
+                                            num_shards: table('shards').count()
+                                            role: r.branch(server_status('name').eq(shard('primary_replica')),
+                                                'primary', 'secondary')
+                                            )
+                                    ).filter((shard) ->
+                                        shard('replicas')('server').contains(server_status('name'))
+                                    ).coerceTo('array')
+                                )
+                            ).filter( (table) ->
+                                table("shards").isEmpty().not()
+                            ).coerceTo("ARRAY")
+                        ).merge
+                            id: server_status 'id'
                     )
-                )
-            ).merge
-                id: r.row 'id'
+            )
 
             @timer = driver.run query, 5000, (error, result) =>
                 # We should call render only once to avoid blowing all the sub views
@@ -52,17 +57,14 @@ module 'ServerView', ->
                     @error = error
                     @render()
                 else
+                    rerender = @error?
                     @error = null
                     if result is null
-                        if @loading is true
-                            @loading = false
-                            @render()
-                        else if @model isnt null
-                            #TODO Test
-                            @server = null
-                            @render()
+                        rerender = rerender or @server_found
+                        @server_found = false
                     else
-                        @loading = false
+                        rerender = rerender or not @server_found
+                        @server_found = true
 
                         responsibilities = []
                         for table in result.responsibilities
@@ -82,7 +84,6 @@ module 'ServerView', ->
                                     index: shard.index
                                     num_shards: shard.num_shards
                                     role: shard.role
-                                    num_keys: shard.num_keys
                                     id: table.db+"."+table.name+"."+shard.index
 
                         if not @responsibilities?
@@ -91,28 +92,20 @@ module 'ServerView', ->
                             @responsibilities.set responsibilities
                         delete result.responsibilities
 
-                        if not @server?
-                            @server = new Server result
-                            @server_view = new ServerView.ServerMainView
-                                model: @server
-                                collection: @responsibilities
+                        @server.set result
 
-                            @render()
-                        else
-                            @server.set result
+                    if rerender
+                        @render()
 
         render: =>
             if @error?
                 @$el.html @template.error
                     error: @error?.message
                     url: '#servers/'+@id
-            else if @loading is true
-                @$el.html @template.loading
-                    page: "server"
             else
-                if @server_view?
+                if @server_found
                     @$el.html @server_view.render().$el
-                else # In this case, the query returned null, so the server
+                else # The server wasn't found
                     @$el.html @template.not_found
                         id: @id
                         type: 'server'
@@ -182,12 +175,11 @@ module 'ServerView', ->
             @$('.profile').html @profile.render().$el
             @$('.performance-graph').html @performance_graph.render().$el
             @$('.responsibilities').html @responsibilities.render().$el
-
-            # TODO: Implement when logs will be available
-            #@logs = new LogView.Container
-            #    route: "ajax/log/"+@model.get('id')+"?"
-            #    type: 'server'
-            #@$('.recent-log-entries').html @logs.render().$el
+            @logs = new LogView.LogsContainer
+                server_id: @model.get('id')
+                limit: 5
+                query: driver.queries.server_logs
+            @$('.recent-log-entries').html @logs.render().$el
             @
 
         remove: =>
@@ -197,6 +189,7 @@ module 'ServerView', ->
             @responsibilities.remove()
             if @rename_modal?
                 @rename_modal.remove()
+            @logs.remove()
 
     class @Title extends Backbone.View
         className: 'server-info-view'
@@ -223,8 +216,12 @@ module 'ServerView', ->
 
         render: =>
             if @model.get('status') != 'connected'
-                last_seen = $.timeago(
-                    @model.get('connection').time_disconnected).slice(0, -4)
+                if @model.get('connection')? and @model.get('connection').time_disconnected?
+                    last_seen = $.timeago(
+                        @model.get('connection').time_disconnected).slice(0, -4)
+                else
+                    last_seen = "unknown time"
+
                 uptime = null
                 version = "unknown"
             else
@@ -233,13 +230,24 @@ module 'ServerView', ->
                     @model.get('connection').time_connected).slice(0, -4)
                 version = @model.get('process').version?.split(' ')[1].split('-')[0]
 
+            if @model.get('network')?
+                main_ip = @model.get('network').hostname
+            else
+                main_ip = ""
+
             @$el.html @template
-                main_ip: @model.get('network').hostname
+                main_ip: main_ip
+                tags: @model.get('tags')
                 uptime: uptime
                 version: version
                 num_shards: @collection.length
                 status: @model.get('status')
                 last_seen: last_seen
+                system_db: system_db
+            @$('.tag-row .tags, .tag-row .admonition').tooltip
+                for_dataexplorer: false
+                trigger: 'hover'
+                placement: 'bottom'
             @
 
         remove: =>
@@ -317,6 +325,7 @@ module 'ServerView', ->
 
 
     class @ResponsibilityView extends Backbone.View
+        className: 'responsibility_container'
         template: Handlebars.templates['responsibility-template']
 
         initialize: =>

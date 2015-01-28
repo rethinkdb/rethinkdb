@@ -4,6 +4,11 @@
 #include "debug.hpp"
 #include "utils.hpp"
 
+std::string key_range_t::print() {
+    printf_buffer_t buf;
+    debug_print(&buf, *this);
+    return buf.c_str();
+}
 
 // fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {

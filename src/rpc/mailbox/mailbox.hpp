@@ -123,7 +123,7 @@ public:
 };
 
 /* `send()` sends a message to a mailbox. `send()` can block and must be called
-in a coroutine. If the mailbox does not exist or the peer is inaccessible, `send()`
+in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
 will silently fail. */
 
 void send(mailbox_manager_t *src,

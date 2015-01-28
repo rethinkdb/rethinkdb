@@ -169,24 +169,21 @@ ql::datum_t convert_nothing_status_to_datum(
        *is_unfinished_out = false;
        return ql::datum_t();
     } else {
-        size_t tally = count_in_state<nothing_t>(*status);
+        size_t tally = count_in_state<nothing_t>(*status) +
+                       count_in_state<nothing_when_done_erasing_t>(*status);
         if (tally == status->size()) {
-            /* This server doesn't have any data; it shouldn't even appear in the map. */
+            /* This server doesn't have any data or is currently erasing it,
+               it shouldn't even appear in the map. */
             *is_unfinished_out = false;
             return ql::datum_t();
         } else {
             *is_unfinished_out = true;
             const char *state;
-            tally += count_in_state<nothing_when_done_erasing_t>(*status);
+            tally += count_in_state<nothing_when_safe_t>(*status);
             if (tally == status->size()) {
-                state = "erasing_data";
+                state = "offloading_data";
             } else {
-                tally += count_in_state<nothing_when_safe_t>(*status);
-                if (tally == status->size()) {
-                    state = "offloading_data";
-                } else {
-                    state = "transitioning";
-                }
+                state = "transitioning";
             }
             ql::datum_object_builder_t object_builder;
             object_builder.overwrite("server", name_or_uuid);

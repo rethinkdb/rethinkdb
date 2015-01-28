@@ -211,6 +211,41 @@ public:
         return res;
     }
 
+    /* Like `try_change()` but for Raft configuration changes */
+    bool try_config_change(raft_member_id_t id, const raft_config_t &new_config,
+            signal_t *interruptor) {
+        bool res;
+        run_on_member(id, [&](dummy_raft_member_t *member, signal_t *interruptor2) {
+            res = false;
+            if (member != nullptr) {
+                /* `interruptor2` is only pulsed when the member is being destroyed, so
+                it's safe to pass as the `hard_interruptor` parameter */
+                try {
+                    scoped_ptr_t<raft_member_t<dummy_raft_state_t>::change_token_t> tok;
+                    {
+                        raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
+                            member, interruptor);
+                        tok = member->propose_config_change(
+                            &change_lock, new_config, interruptor2);
+                    }
+                    if (!tok.has()) {
+                        return;
+                    }
+                    wait_interruptible(tok->get_ready_signal(), interruptor);
+                    res = tok->wait();
+                } catch (const interrupted_exc_t &) {
+                    if (interruptor2->is_pulsed()) {
+                        throw;
+                    }
+                }
+            }
+        });
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+        return res;
+    }
+
     /* `get_all_member_ids()` returns the member IDs of all the members of the cluster,
     alive or dead.  */
     std::set<raft_member_id_t> get_all_member_ids() {
@@ -417,6 +452,38 @@ TPTEST(ClusteringRaft, Failover) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
         traffic_generator.check_changes_present(state);
     });
+}
+
+TPTEST(ClusteringRaft, MemberChange) {
+    std::vector<raft_member_id_t> member_ids;
+    size_t cluster_size = 5;
+    dummy_raft_cluster_t cluster(cluster_size, dummy_raft_state_t(), &member_ids);
+    dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
+    for (size_t i = 0; i < 10; ++i) {
+        /* Do some test writes */
+        raft_member_id_t leader = cluster.find_leader(10000);
+        do_writes(&cluster, leader, 2000, 10);
+
+        /* Kill one member and do some more test writes */
+        cluster.set_live(member_ids[i], dummy_raft_cluster_t::live_t::dead);
+        leader = cluster.find_leader(10000);
+        do_writes(&cluster, leader, 2000, 10);
+
+        /* Add a replacement member and do some more test writes */
+        member_ids.push_back(cluster.join());
+        do_writes(&cluster, leader, 2000, 10);
+
+        /* Update the configuration and do some more test writes */
+        raft_config_t new_config;
+        for (size_t n = i+1; n < i+1+cluster_size; ++n) {
+            new_config.voting_members.insert(member_ids[n]);
+        }
+        signal_timer_t timeout;
+        timeout.start(10000);
+        cluster.try_config_change(leader, new_config, &timeout);
+        do_writes(&cluster, leader, 2000, 10);
+    }
+    ASSERT_LT(100, traffic_generator.get_num_changes());
 }
 
 }   /* namespace unittest */

@@ -98,10 +98,10 @@ module 'Modals', ->
                 if (err)
                     @on_error(err)
                 else
-                    if result?.dropped is 1
+                    if result?.dbs_dropped is 1
                         @on_success()
                     else
-                        @on_error(new Error("The return result was not `{dropped: 1}`"))
+                        @on_error(new Error("The return result was not `{dbs_dropped: 1}`"))
 
         on_success: (response) =>
             super()
@@ -361,13 +361,13 @@ module 'Modals', ->
             super
 
             if @$('.verification').val().toLowerCase() is 'remove'
-                query = r.db(system_db).table('table_config')
+                query = r.db(system_db).table('server_config')
                     .get(@model.get('id')).delete()
                 driver.run_once query, (err, result) =>
-                        if err?
-                            @on_success_with_error()
-                        else
-                            @on_success()
+                    if err?
+                        @on_success_with_error()
+                    else
+                        @on_success()
             else
                 @$('.error_verification').slideDown 'fast'
                 @reset_buttons()
@@ -455,14 +455,14 @@ module 'Modals', ->
             # are just hidden by default.
             errors = @model.get('errors')
             @$('.alert.error p.error').removeClass('shown')
-            @$('.alert.error p.error .server-msg').html('')
+            @$('.alert.error .server-msg').html('')
             if errors.length > 0
                 @$('.btn.btn-primary').prop disabled: true
                 @$('.alert.error').addClass('shown')
                 for error in errors
                     message = @$(".alert.error p.error.#{error}").addClass('shown')
-                    if error == 'server-msg'
-                        message('.server-message').append(@model.get('server_error'))
+                    if error == 'server-error'
+                        @$('.alert.error .server-msg').append(Handlebars.Utils.escapeExpression(@model.get('server_error')))
             else
                 @error_on_empty = false
                 @$('.btn.btn-primary').removeAttr 'disabled'
@@ -581,7 +581,7 @@ module 'Modals', ->
             @model.set errors: errors
             if errors.length > 0
                 @model.set shards: []
-            errors.length > 0 or (errors.length == 1 and @model.get('server_error')?)
+            errors.length > 0
 
 
 
@@ -664,11 +664,6 @@ module 'Modals', ->
             # repetition made the function much more difficult to
             # understand(and debug), so I left it in.
             shard_diffs = []
-            if @model.get('total_keys') < new_shards.length
-                @model.set
-                    error:
-                        "This table doesn't have enough documents for this many shards"
-                return []
             # first handle shards that are in old (and possibly in new)
             for old_shard, i in old_shards
                 if i >= new_shards.length

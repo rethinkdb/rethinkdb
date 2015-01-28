@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/administration/log_writer.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 
 namespace unittest {
 

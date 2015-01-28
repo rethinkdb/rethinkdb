@@ -23,13 +23,14 @@ const uuid_u jobs_manager_t::base_backfill_id =
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id) :
     mailbox_manager(_mailbox_manager),
+    server_id(_server_id),
+    rdb_context(nullptr),
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
                                       this, ph::_1, ph::_2)),
     job_interrupt_mailbox(_mailbox_manager,
                           std::bind(&jobs_manager_t::on_job_interrupt,
-                                    this, ph::_1, ph::_2)),
-    server_id(_server_id) { }
+                                    this, ph::_1, ph::_2)) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
@@ -50,10 +51,30 @@ void jobs_manager_t::set_reactor_driver(reactor_driver_t *_reactor_driver) {
 }
 #endif
 
+void jobs_manager_t::unset_rdb_context_and_reactor_driver() {
+    drainer.drain();
+
+    rdb_context = nullptr;
+// RSI(raft): Reimplement this once Raft supports table IO
+#if 0
+    reactor_driver = nullptr;
+#endif
+}
+
 void jobs_manager_t::on_get_job_reports(
         UNUSED signal_t *interruptor,
         const business_card_t::return_mailbox_t::address_t &reply_address) {
     std::vector<job_report_t> job_reports;
+
+    if (drainer.is_draining()) {
+        // We're shutting down, send an empty reponse since we can't acquire a `drainer`
+        // lock any more. Note the `mailbox_manager` is destructed after we are, thus
+        // the pointer remains valid.
+        send(mailbox_manager, reply_address, job_reports);
+        return;
+    }
+
+    auto lock = drainer.lock();
 
     // Note, as `time` is retrieved here a job may actually report to be started after
     // fetching the time, leading to a negative duration which we round to zero.
@@ -90,12 +111,19 @@ void jobs_manager_t::on_get_job_reports(
                 base_sindex_id,
                 uuid_to_str(sindex_job.first.first) + sindex_job.first.second);
 
+            // Only report the duration of index construction still in progress.
+            double duration = sindex_job.second.is_ready
+                ? 0
+                : time - std::min(sindex_job.second.start_time, time);
+
             job_reports.emplace_back(
                 id,
                 "index_construction",
-                time - std::min(sindex_job.second, time),
+                duration,
                 sindex_job.first.first,
-                sindex_job.first.second);
+                sindex_job.first.second,
+                sindex_job.second.is_ready,
+                sindex_job.second.progress);
         }
 
         if (reactor_driver->is_gc_active()) {
@@ -137,6 +165,13 @@ void jobs_manager_t::on_get_job_reports(
 
 void jobs_manager_t::on_job_interrupt(
         UNUSED signal_t *interruptor, uuid_u const &id) {
+    if (drainer.is_draining()) {
+        // We're shutting down, the query job will be interrupted regardless.
+        return;
+    }
+
+    auto lock = drainer.lock();
+
     pmap(get_num_threads(), [&](int32_t threadnum) {
         on_thread_t thread((threadnum_t(threadnum)));
 

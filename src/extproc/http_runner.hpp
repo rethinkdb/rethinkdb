@@ -109,6 +109,9 @@ struct http_opts_t {
     // Limits on execution size
     ql::configured_limits_t limits;
 
+    // ReQL version in use
+    reql_version_t version;
+
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;

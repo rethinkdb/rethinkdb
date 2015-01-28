@@ -15,16 +15,9 @@ branch_birth_certificate_t in_memory_branch_history_manager_t::get_branch(branch
     return it->second;
 }
 
-std::set<branch_id_t> in_memory_branch_history_manager_t::known_branches() THROWS_NOTHING {
-    std::set<branch_id_t> res;
-
-    for (std::map<branch_id_t, branch_birth_certificate_t>::iterator it  = bh.branches.begin();
-         it != bh.branches.end();
-         ++it) {
-        res.insert(it->first);
-    }
-
-    return res;
+bool in_memory_branch_history_manager_t::is_branch_known(branch_id_t branch)
+        THROWS_NOTHING {
+    return bh.branches.count(branch) > 0;
 }
 
 void in_memory_branch_history_manager_t::create_branch(branch_id_t branch_id, const branch_birth_certificate_t &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

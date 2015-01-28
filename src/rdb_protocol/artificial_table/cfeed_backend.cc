@@ -44,11 +44,13 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 }
 
 bool cfeed_artificial_table_backend_t::read_changes(
-        const ql::protob_t<const Backtrace> &bt,
-        ql::changefeed::keyspec_t::spec_t &&spec,
-        signal_t *interruptor,
-        counted_t<ql::datum_stream_t> *cfeed_out,
-        std::string *error_out) {
+    ql::env_t *env,
+    const ql::protob_t<const Backtrace> &bt,
+    ql::changefeed::keyspec_t::spec_t &&spec,
+    signal_t *interruptor,
+    counted_t<ql::datum_stream_t> *cfeed_out,
+    std::string *error_out) {
+
     guarantee(!begin_destruction_was_called);
     class visitor_t : public boost::static_visitor<bool> {
     public:
@@ -78,7 +80,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
     necessary because we have to call `subscribe()` on the client thread, but we don't
     want to release the lock on the home thread until `subscribe()` returns. */
     on_thread_t thread_switcher_2(request_thread);
-    *cfeed_out = machinery->subscribe(std::move(spec), bt);
+    *cfeed_out = machinery->subscribe(env, std::move(spec), bt);
     return true;
 }
 

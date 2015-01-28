@@ -48,7 +48,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     server2 = driver.Process(cluster=cluster, files='second', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True)
     
-    issues = list(r.db('rethinkdb').table('issues').run(conn1))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn1))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Explicitly adding server to the table (%.2fs)" % (time.time() - startTime))
@@ -75,7 +75,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     conn2 = r.connect(server2.host, server2.driver_port)
     
-    issues = list(r.db('rethinkdb').table('issues').run(conn2))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
     assert len(issues) == 1, 'The issues was not the single item expected: %s' % repr(issues)
     
     print("Declaring first server dead (%.2fs)" % (time.time() - startTime))
@@ -84,7 +84,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     time.sleep(.1)
     r.db(dbName).wait().run(conn2)
     
-    issues = list(r.db('rethinkdb').table('issues').run(conn2))
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     print("Starting second workload (%.2fs)" % (time.time() - startTime))

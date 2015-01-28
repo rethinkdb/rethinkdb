@@ -329,8 +329,8 @@ void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<txn_t> 
 auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
-
+        persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename,
+                                                       perfmon_parent, false) {
     /* Force migration to happen */
     update_metadata(read_metadata());
 }
@@ -339,7 +339,8 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent,
                                                const auth_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
+        persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename,
+                                                       perfmon_parent, true) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -423,7 +424,8 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
 cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,
                                                      const serializer_filepath_t &filename,
                                                      perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, false) {
+        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
+                                                          perfmon_parent, false) {
     construct_branch_history_managers(false);
 
     /* Force migration to happen */
@@ -435,8 +437,8 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                                                      perfmon_collection_t *perfmon_parent,
                                                      const server_id_t &server_id,
                                                      const cluster_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
-
+        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
+                                                          perfmon_parent, true) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -529,16 +531,8 @@ public:
         return it->second;
     }
 
-    std::set<branch_id_t> known_branches() THROWS_NOTHING {
-        std::set<branch_id_t> res;
-
-        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator it = bh.branches.begin();
-             it != bh.branches.end();
-             ++it) {
-            res.insert(it->first);
-        }
-
-        return res;
+    bool is_branch_known(branch_id_t branch) THROWS_NOTHING {
+        return bh.branches.count(branch) > 0;
     }
 
     void create_branch(branch_id_t branch_id,

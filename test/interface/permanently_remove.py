@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import pprint, os, socket, sys, time
+import os, socket, sys, time
 
 startTime = time.time()
 
@@ -22,6 +22,7 @@ with driver.Cluster(output_folder='.') as cluster:
     
     prince_hamlet = driver.Process(cluster=cluster, files='PrinceHamlet', command_prefix=command_prefix, extra_options=serve_options)
     king_hamlet = driver.Process(cluster=cluster, files='KingHamlet', command_prefix=command_prefix, extra_options=serve_options)
+    other_server = driver.Process(cluster=cluster, files='OtherServer', command_prefix=command_prefix, extra_options=serve_options)
     king_hamlet_files = king_hamlet.files
     
     cluster.wait_until_ready()
@@ -89,19 +90,20 @@ with driver.Cluster(output_folder='.') as cluster:
     cluster.check()
 
     print("Checking that the other shows an issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
-    pprint.pprint(issues)
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_disconnected"
     assert issues[0]["critical"]
     assert "KingHamlet" in issues[0]["description"]
-    assert issues[0]["info"]["server"] == "KingHamlet"
-    assert issues[0]["info"]["affected_servers"] == ["PrinceHamlet"]
+    assert issues[0]["info"]["disconnected_server"] == "KingHamlet"
+    assert set(issues[0]["info"]["reporting_servers"]) == \
+        set(["PrinceHamlet", "OtherServer"])
     
     # identifier_format='uuid'
-    issues = list(r.db("rethinkdb").table("issues", identifier_format='uuid').run(conn))
-    assert issues[0]["info"]["server"] == king_hamlet.uuid
-    assert issues[0]["info"]["affected_servers"] == [prince_hamlet.uuid]
+    issues = list(r.db("rethinkdb").table("current_issues", identifier_format='uuid').run(conn))
+    assert issues[0]["info"]["disconnected_server"] == king_hamlet.uuid
+    assert set(issues[0]["info"]["reporting_servers"]) == \
+        set([prince_hamlet.uuid, other_server.uuid])
 
     test_status = r.db(dbName).table("test").status().run(conn)
     test2_status = r.db(dbName).table("test2").status().run(conn)
@@ -118,7 +120,7 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 0
 
     print("Checking the issues that were generated (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 2, issues
     if issues[0]["type"] == "data_lost":
         dl_issue, np_issue = issues
@@ -179,8 +181,7 @@ with driver.Cluster(output_folder='.') as cluster:
     cluster.check()
 
     print("Checking that there is an issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("issues").run(conn))
-    pprint.pprint(issues)
+    issues = list(r.db("rethinkdb").table("current_issues").run(conn))
     assert len(issues) == 1, issues
     assert issues[0]["type"] == "server_ghost"
     assert not issues[0]["critical"]
@@ -192,6 +193,25 @@ with driver.Cluster(output_folder='.') as cluster:
     assert r.db(dbName).table("test").count().run(conn) == 100
     assert r.db(dbName).table("test2").count().run(conn) == 100
     assert r.db(dbName).table("test3").count().run(conn) == 0
+
+    print("Checking that we can reconfigure despite ghost (%.2fs)" % (time.time() - startTime))
+    # This is a regression test for GitHub issue #3627
+    res = r.db(dbName).table("test").config().update({
+        "shards": [
+            {
+                "primary_replica": "OtherServer",
+                "replicas": ["PrinceHamlet", "OtherServer"]
+            },
+            {
+                "primary_replica": "PrinceHamlet",
+                "replicas": ["PrinceHamlet", "OtherServer"]
+            }]
+        }).run(conn)
+    assert res["errors"] == 0, res
+    res = r.db(dbName).table("test").wait().run(conn)
+    assert res["ready"] == 1, res
+    st = r.db(dbName).table("test").status().run(conn)
+    assert st["status"]["all_replicas_ready"], st
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

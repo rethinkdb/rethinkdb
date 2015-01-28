@@ -38,16 +38,16 @@ bool server_disconnected_issue_t::build_info_and_description(
                                     &disconnected_server_name)) {
         /* If a disconnected server is deleted from `rethinkdb.server_config`, there is a
         brief window of time before the `server_disconnected_issue_t` is destroyed.
-        During that time, if the user reads from `rethinkdb.issues`, we don't want to
-        show them an issue saying "__deleted_server__ is still connected". So we return
-        `false` in this case. */
+        During that time, if the user reads from `rethinkdb.current_issues`, we don't
+        want to show them an issue saying "__deleted_server__ is still connected". So we
+        return `false` in this case. */
         return false;
     }
-    ql::datum_array_builder_t affected_servers_builder(
+    ql::datum_array_builder_t reporting_servers_builder(
         ql::configured_limits_t::unlimited);
-    std::string affected_servers_str;
-    size_t num_affected = 0;
-    for (const server_id_t &id : affected_server_ids) {
+    std::string reporting_servers_str;
+    size_t num_reporting = 0;
+    for (const server_id_t &id : reporting_server_ids) {
         ql::datum_t name_or_uuid;
         name_string_t name;
         if (!convert_server_id_to_datum(id, identifier_format, server_config_client,
@@ -55,25 +55,25 @@ bool server_disconnected_issue_t::build_info_and_description(
             /* Ignore connectivity reports from servers that have been declared dead */
             continue;
         }
-        affected_servers_builder.add(name_or_uuid);
-        if (!affected_servers_str.empty()) {
-            affected_servers_str += ", ";
+        reporting_servers_builder.add(name_or_uuid);
+        if (!reporting_servers_str.empty()) {
+            reporting_servers_str += ", ";
         }
-        affected_servers_str += "`" + name.str() + "`";
-        ++num_affected;
+        reporting_servers_str += "`" + name.str() + "`";
+        ++num_reporting;
     }
-    if (num_affected == 0) {
+    if (num_reporting == 0) {
         /* The servers making the reports have all been declared dead */
         return false;
     }
     ql::datum_object_builder_t info_builder;
-    info_builder.overwrite("server", disconnected_server_name_or_uuid);
-    info_builder.overwrite("affected_servers",
-        std::move(affected_servers_builder).to_datum());
+    info_builder.overwrite("disconnected_server", disconnected_server_name_or_uuid);
+    info_builder.overwrite("reporting_servers",
+        std::move(reporting_servers_builder).to_datum());
     *info_out = std::move(info_builder).to_datum();
     *description_out = datum_string_t(strprintf(
-        "Server `%s` is inaccessible from %s%s. Here are some reasons why the server "
-        "may be inaccessible:\n\n"
+        "Server `%s` is disconnected from %s%s. Here are some reasons why the server "
+        "may be disconnected:\n\n"
         "- The server process has crashed.\n"
         "- The network connection between the two servers was interrupted.\n"
         "- The server's canonical address is not configured properly.\n"
@@ -83,8 +83,8 @@ bool server_disconnected_issue_t::build_info_and_description(
         "`rethinkdb.server_config` system table. Once you've deleted the server's "
         "entry, its data and configuration will be discarded.",
         disconnected_server_name.c_str(),
-        (num_affected == 1 ? "" : "these servers: "),
-        affected_servers_str.c_str()));
+        (num_reporting == 1 ? "" : "these servers: "),
+        reporting_servers_str.c_str()));
     return true;
 }
 
@@ -207,8 +207,8 @@ void server_issue_tracker_t::combine(
                 combined_issues.insert(std::make_pair(
                     issue.disconnected_server_id, &issue));
             } else {
-                rassert(issue.affected_server_ids.size() == 1);
-                combined_it->second->add_server(issue.affected_server_ids[0]);
+                rassert(issue.reporting_server_ids.size() == 1);
+                combined_it->second->add_server(issue.reporting_server_ids[0]);
             }
         }
 
@@ -222,7 +222,7 @@ void server_issue_tracker_t::combine(
     {
         std::set<server_id_t> ghost_issues_seen;
         for (auto &ghost_issue : local_issues->server_ghost_issues) {
-            /* This is trivial, since we don't track affected servers for ghost issues.
+            /* This is trivial, since we don't track reporting servers for ghost issues.
             We assume hostname and PID are reported the same by every server, so we just
             show the first report and ignore the others. */
             if (ghost_issues_seen.count(ghost_issue.ghost_server_id) == 0) {

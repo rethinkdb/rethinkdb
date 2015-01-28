@@ -41,13 +41,13 @@ tests:
   - def: bad_tzs = ["-00", "-00:00", "", "UTC+00", "+00:60", "+25:00"]
 
   - def:
-      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.now.in_timezone(x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.now.in_timezone(x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
 
   - rb: bad_tzs
     ot: ([])
 
   - def:
-      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.time(2013, 1, 1, x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.time(2013, 1, 1, x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
 
   - rb: bad_tzs
     ot: ([])
