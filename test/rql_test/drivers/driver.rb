@@ -14,7 +14,7 @@ def print_debug(message)
 end
 
 DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
-print_debug("Using driver port #{DRIVER_PORT}")
+puts("Using driver port #{DRIVER_PORT}")
 
 $required_external_tables = []
 if ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME']
