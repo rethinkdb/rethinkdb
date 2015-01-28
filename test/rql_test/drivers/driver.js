@@ -5,6 +5,22 @@ var Promise = require(Path.resolve(__dirname, '..', '..', '..', 'build', 'packag
 
 var r = require(Path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
+// -- global variables
+
+// Tests are stored in list until they can be sequentially evaluated
+var tests = [r.dbCreate('test')]
+
+var failure_count = 0;
+var tests_run = 0;
+
+// Provides a context for variables
+var defines = {}
+
+var reqlConn = null; // set as testing begins
+
+var tables_to_cleanup = [] // pre-existing tables
+var tables_to_delete = [] // created by this script
+
 // -- input validation
 
 // all argument numbers are +1 because the script is #1
@@ -27,31 +43,23 @@ if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
         }
     }
 }
-required_external_tables.reverse()
+required_external_tables.reverse() // so pop'ing them gets the right order
 
 var TRACE_ENABLED = process.env.VERBOSE || false;
 
 // -- utilities --
-
-failure_count = 0;
 
 function printTestFailure(name, src, messages) {
     failure_count += 1;
     console.log.apply(console,["\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"].concat(messages).concat(["\n"]));
 }
 
-function clone(source) {
-    result = {}
-    for (var key in source) {
-        result[key] = source[key];
-    }
-    return result;
-}
-
 function eq_test(expected, result, compOpts, partial) {
     TRACE("eq_test: " + JSON.stringify(expected) + " | == | " + JSON.stringify(result) + " | == | " + partial);
+    
     if (expected instanceof Function) {
         return expected(result);
+    
     } else if (result instanceof Function) {
         return result(expected);
 
@@ -182,12 +190,6 @@ function returnTrue() {
     return fun;
 }
 
-// Tests are stored in list until they can be sequentially evaluated
-var tests = []
-
-// Any variables defined by the tests are stored here
-var defines = {}
-
 function TRACE(){
     if (TRACE_ENABLED) {
         console.log.apply(console, ["TRACE"].concat([].splice.call(arguments, 0)));
@@ -196,30 +198,26 @@ function TRACE(){
 
 // -- Setup atexit handler for cleanup
 
-var connection = null; // set as testing begins
-
-var tables_to_cleanup = [] // pre-existing tables
-var tables_to_delete = [] // created by this script
-
 function atexitCleanup(exitCode) {
     
     promisesToKeep = [];
     
-    if (connection) {
-        
+    if (!reqlConn) {
+        console.warn('Unable to clean up as there is no open ReQL connection')
+    } else {
         console.log('Cleaning up')
         
         // - cleanup tables
         
         cleanTable = function(dbName, tableName, fullName) {
-            return r.db(dbName).tableList().count(tableName).eq(1).run(connection, function(err, value) {
+            return r.db(dbName).tableList().count(tableName).eq(1).run(reqlConn, function(err, value) {
                 if (err) { throw 'In cleanup there was no table "' + fullName + '" to clean'; }
             }).then(function() {
-                return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(connection, function(err, value) {
+                return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(reqlConn, function(err, value) {
                     throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
                 });
             }).then(function() {
-                return r.db(dbName).table(tableName).delete().run(connection, function(err, value) {
+                return r.db(dbName).table(tableName).delete().run(reqlConn, function(err, value) {
                     throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
                 });
             }).error(function (e) {
@@ -239,7 +237,7 @@ function atexitCleanup(exitCode) {
         // - remove tables
         
         deleteTable = function(dbName, tableName, fullName) {
-            return r.db(dbName).tableDrop(tableName).run(connection, function(err, value) {
+            return r.db(dbName).tableDrop(tableName).run(reqlConn, function(err, value) {
                 if (err) {
                     if (exitCode == 0) { exitCode = 1; }
                     console.error('In cleanup there was no table "' + fullName + '" to delete: ' + err);
@@ -254,14 +252,14 @@ function atexitCleanup(exitCode) {
             
             promisesToKeep.push(deleteTable(dbName, tableName, fullName));
         }
-    }
-    
-    if(promisesToKeep.length > 0) {
-        Promise.all(promisesToKeep).then(function () {
+        
+        if(promisesToKeep.length > 0) {
+            Promise.all(promisesToKeep).then(function () {
+                process.exit(exitCode);
+            });
+        } else {
             process.exit(exitCode);
-        });
-    } else {
-        process.exit(exitCode);
+        }
     }
 }
 
@@ -276,218 +274,102 @@ process.on('unexpectedException',
 )
 
 // Connect first to cpp server
-r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
+r.connect({port:DRIVER_PORT}, function(err, conn) {
 
-    if(cpp_conn_err){
-        console.error("Failed to connect to server:", cpp_conn_err);
+    if(err){
+        console.error("Failed to connect to server:", err);
         process.exit(1);
     }
-    connection = cpp_conn;
+    reqlConn = conn;
 
-    // Pull a test off the queue and run it
-    function runTest() { try {
-        var testPair = tests.shift();
-        if (testPair) {
-            if (testPair instanceof Function) {
-                TRACE("==== runTest == function");
-                testPair(runTest, cpp_conn);
+    // Start the chain of tests
+    runTest();
+});
+
+// Pull a test off the queue and run it
+function runTest() {
+    try {
+        var test = tests.shift();
+        if (test) {
+            if (test instanceof Function) {
+                // -- function such as setup_table
+                TRACE("==== runTest ==== function:  " + test.name);
+                test(test);
                 return;
+            
             } else {
-                var src = testPair[0]
-                var exp_val = testPair[1]
-                var testName = testPair[2];
-                var runopts = testPair[3];
-                var testopts = testPair[4];
-                TRACE("==== runTest == non-function: " + src)
-
-                if (!runopts) {
-                    runopts = {maxBatchRows: 3}
+                // -- regular test
+                TRACE("==== runTest ==== non-function: " + test.src)
+                
+                if (!test.runopts) {
+                    test.runopts = { maxBatchRows: 3 }
                 } else {
-                    for (var opt in runopts) {
-                        runopts[opt] = eval(runopts[opt])
+                    for (var opt in test.runopts) {
+                        test.runopts[opt] = eval(test.runopts[opt])
                     }
-                    if (!("maxBatchRows" in runopts)) {
-                        runopts.maxBatchRows = 3
+                    if (!("maxBatchRows" in test.runopts)) {
+                        test.runopts.maxBatchRows = 3
                     }
                 }
-                if (!testopts) {
-                    testopts = {}
+                if (!test.testopts) {
+                    test.testopts = {}
                 }
                 compOpts = {}
-                if ('precision' in testopts) {
-                    compOpts['precision'] = testopts['precision']
+                if ('precision' in test.testopts) {
+                    compOpts['precision'] = test.testopts['precision']
                 }
-
+                
                 // - convert expected value into a function for comparison
+                var exp_fun = null;
                 try {
                     with (defines) {
-                        var exp_fun = eval(exp_val);
+                        exp_fun = eval(test.expectedSrc);
                     }
                 } catch (err) {
                     // Oops, this shouldn't have happened
-                    console.log(testName);
-                    console.log(exp_val);
+                    console.log(test.name);
+                    console.log(test.expectedSrc);
                     throw err;
                 }
                 if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
-
-                TRACE('expected value: ' + exp_fun.toString() + ' from ' + exp_val)
-
-                // - build the test
-                var test = null;
+                
+                test.exp_fun = exp_fun;
+                
+                TRACE('expected value: ' + test.exp_fun + ' from ' + test.expectedSrc)
+                
+                // - evaluate the test
+                
+                var result = null;
                 try {
                     with (defines) {
                         TRACE("before eval");
-                        test = eval(src);
+                        result = eval(test.src);
                         TRACE("after eval");
-                    }
-                } catch(bld_err) {
-                    TRACE("build error")
-                    if (exp_fun.isErr) {
-                        if (!exp_fun(bld_err)) {
-                            printTestFailure(testName, src,
-                                ["Error eval'ing test src not equal to expected err:\n\tERROR: ", bld_err, "\n\tExpected: ", exp_fun]);
-                        }
-                    } else {
-                        printTestFailure(testName, src, ["Error eval'ing test src:\n\t", bld_err]);
-                    }
-
-                    // continue to next test
-                    runTest();
-                    return;
-                }
-
-                // Run test first on cpp server
-                if (testopts && testopts['reql-query'] == false) {
-                    TRACE("non reql-query result: " + test)
-                    if (test instanceof Object && test.each) {
-                        process_iterable(test, testopts);
-                    } else {
-                        afterArray(null, test, testopts);
-                    }
-                } else {
-                    TRACE("processing query: " + test)
-                    try {
-                        var clone_runopts = runopts ? clone(runopts) : {};
-                        var clone_testopts = testopts ? clone(testopts) : {};
-                        with (defines) {
-                            test.run(cpp_conn, clone_runopts, function(err, cursor) {run_callback(err, cursor, clone_testopts)} );
-                        }
-
-                    } catch(err) {
-                        TRACE("querry error - " + err)
-                        if (exp_fun.isErr) {
-                            if (!exp_fun(err)) {
-                                printTestFailure(testName, src, ["Error running test not equal to expected err:\n\tERROR: ", err, "\n\tEXPECTED: ", exp_val]);
+                        
+                        if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
+                            TRACE("processing query: " + result)
+                            with (defines) {
+                                result.run(reqlConn, test.runopts, function(err, value) { processResult(err,  value, test) } );
+                                return;
                             }
                         } else {
-                            printTestFailure(testName, src, ["Error running test:\n\t", err]);
+                            resultText = result
+                            try {
+                                resultText = result.toString();
+                            } catch (err) {}
+                            TRACE("non reql-query result: " + resultText)
+                            processResult(null, result, test); // will go on to next test
+                            return;
                         }
-
-                        // Continue to next test
-                        runTest();
-                        return;
                     }
-                }
-
-                function afterArray(cpp_err, cpp_res) { try {
-                    TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " expected function: " + exp_fun.toString());
-                    if (cpp_err) {
-                        if (exp_fun.isErr) {
-                            if (!exp_fun(cpp_err)) {
-                                printTestFailure(testName, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(cpp_err), "\n\tEXPECTED ", exp_val]);
-                            }
-                        } else {
-                            var info;
-                            if (cpp_err.msg) {
-                                info = cpp_err.msg;
-                            } else if (cpp_err.message) {
-                                info = cpp_err.message;
-                            } else {
-                                info = JSON.stringify(cpp_res);
-                            }
-
-                            if (cpp_err.stack) {
-                                info += "\n\nStack:\n" + cpp_err.stack.toString();
-                            }
-                            printTestFailure(testName, src, ["Error running test on server:", "\n\tERROR: ", info]);
-                        }
-                    } else if (!exp_fun(cpp_res)) {
-                        printTestFailure(testName, src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(cpp_res), "\n\tEXPECTED: ", exp_val]);
-                    }
-
-                    // Continue to next test. Tests are fully sequential
-                    // so you can rely on previous queries results in
-                    // subsequent tests.
-                    runTest();
+                } catch (result) {
+                    TRACE("querry error - " + result.toString())
+                    TRACE("stack: " + String(result.stack));
+                    processResult(null, result, test); // will go on to next test
                     return;
-                } catch(err) {
-                    console.log("stack: " + String(err.stack))
-                    unexpectedException("afterArray", testName, err);
-                } }
-
-                function process_iterable(feed, test_options) {
-                    TRACE('process_iterable')
-                    var accumulator = [];
-
-                    feed.each(
-                        function(err, _row) {
-                            TRACE('process_iterable_internal')
-                            if (err) {
-                                console.log("stack: " + String(err.stack));
-                                unexpectedException("run_callback", testName, err);
-                            } else {
-                                try {
-                                    if (test_options && test_options.rowfilter) {
-                                        filterFunction = new Function('input', test_options.rowfilter);
-                                        accumulator.push(filterFunction(_row));
-                                    } else {
-                                        accumulator.push(_row);
-                                    }
-                                } catch(err) {
-                                    console.log("stack: " + String(err.stack));
-                                    unexpectedException("run_callback: <<" + test_options.filter + ">>", testName, err);
-                                }
-                            }
-                        },
-                        function () {
-                            if (test_options && test_options.arrayfilter) {
-                                arrayFunction = new Function('input', test_options.arrayfilter);
-                                accumulator = arrayFunction(accumulator)
-                            }
-                            afterArray(null, accumulator, test_options);
-                        }
-                    );
                 }
-
-                function run_callback(cpp_err, cpp_res_cursor, test_options) { try {
-                    TRACE("run_callback src:" + src + ", err:" + cpp_err + ", result:" + cpp_res_cursor);
-
-                    if (test_options && test_options['variable']) {
-                        defines[test_options['variable']] = cpp_res_cursor;
-                    }
-
-                    if (cpp_err) {
-                        afterArray(cpp_err, null, test_options);
-                    } else if (cpp_res_cursor instanceof Object && cpp_res_cursor.toArray) {
-                        try {
-                            cpp_res_cursor.toArray(function (err, result) { afterArray(err, result, test_options)} );
-                        } catch(err) {
-                            if (err instanceof r.Error.RqlDriverError) {
-                                // probably a Feed
-                                afterArray(null, null, test_options);
-                            } else {
-                                throw err;
-                            }
-                        }
-                    } else {
-                        afterArray(null, cpp_res_cursor, test_options);
-                    }
-                } catch(err) {
-                    console.log("stack: " + String(err.stack))
-                    unexpectedException("run_callback", testName, err);
-                } }
+            
             }
         } else {
             // We've hit the end of our test list
@@ -501,12 +383,123 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
         }
     } catch (err) {
         console.log("stack: " + String(err.stack))
-        unexpectedException("runTest", testName, testPair[1], err);
-    } }
+        unexpectedException("runTest", test.name, test[1], err);
+    }
+}
 
-    // Start the recursion though all the tests
-    r.dbCreate('test').run(cpp_conn, runTest);
-});
+function processResult(err, result, test) {
+    // prepare the result to be compared (e.g.: collect feeds and cursor results)
+    TRACE('processResult result: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
+    var accumulator = [];
+    
+    try {
+        // - if an error go straight to compare
+        
+        if (err) {
+            TRACE('processResult ');
+            compareResult(err, null, test);
+        }
+        
+        // - store variable if called for
+        
+        else if (test.testopts && test.testopts.variable) {
+            TRACE('processResult string variable');
+            defines[test.testopts.variable] = result;
+            runTest(); // Continue to next test.
+        }
+        
+        // - pull out feeds and cursors to arrays
+        
+        else if (result instanceof Object && result.each) {
+            if (!isNaN(testopts.result_limit)) {
+                if (testopts.result_limit > 0) {
+                    result.next(
+                }
+            } else {
+                TRACE('processResult collecting full cursor');
+                result.each(
+                    function(err, row) {
+                        TRACE('processResult_iter')
+                        if (err) {
+                            console.log("stack: " + String(err.stack));
+                            unexpectedException("processResult", test.name, err);
+                        } else {
+                            try {
+                                if (test.testopts && test.testopts.rowfilter) {
+                                    filterFunction = new Function('input', test.testopts.rowfilter);
+                                    row = filterFunction(row)
+                                    if (row) {
+                                        accumulator.push();
+                                    }
+                                } else {
+                                    accumulator.push(row);
+                                }
+                                if (test.testopts.result_limit && accumulator.length >= test.testopts.result_limit) {
+                                    return false; // stop iterating
+                                }
+                            } catch(err) {
+                                console.log("stack: " + String(err.stack));
+                                unexpectedException("processResult_iter <<" + test.testopts.filter + ">>", test.name, err);
+                            }
+                        }
+                    },
+                    function () {
+                        TRACE('processResult_final' + test)
+                        if (test.testopts && test.testopts.arrayfilter) {
+                            arrayFunction = new Function('input', test.testopts.arrayfilter);
+                            accumulator = arrayFunction(accumulator)
+                        }
+                        compareResult(null, accumulator, test);
+                    }
+                );
+            }
+        }
+        
+        // - otherwise go to compare
+        
+        else {
+            compareResult(null, result, test);
+        }
+    } catch(err) {
+        console.log("stack: " + String(err.stack))
+        unexpectedException("processResult", test.name, err);
+    }
+}
+
+function compareResult(error, value, test) {
+    try {
+        expextedText = null
+        TRACE("compareResult - err:" + JSON.stringify(error) + ", result:" + JSON.stringify(value) + " expected function: " + test.exp_fun.toString());
+        if (error) {
+            if (test.exp_fun.isErr) {
+                if (!test.exp_fun(error)) {
+                    printTestFailure(test.name, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
+                }
+            } else {
+                var info;
+                if (error.msg) {
+                    info = error.msg;
+                } else if (error.message) {
+                    info = error.message;
+                } else {
+                    info = JSON.stringify(value);
+                }
+                
+                if (error.stack) {
+                    info += "\n\nStack:\n" + error.stack.toString();
+                }
+                printTestFailure(test.name, test.src, ["Error running test on server:", "\n\tERROR: ", info]);
+            }
+        } else if (!test.exp_fun(value)) {
+            printTestFailure(test.name, test.src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(value), "\n\tEXPECTED: ", test.expectedSrc]);
+        }
+    
+        runTest(); // Continue to next test.
+    } catch(err) {
+        console.log("stack: " + String(err.stack))
+        unexpectedException("compareResult", test.name, err);
+    }
+}
 
 function unexpectedException(){
     console.log("Oops, this shouldn't have happened:");
@@ -516,12 +509,18 @@ function unexpectedException(){
 
 // Invoked by generated code to add test and expected result
 // Really constructs list of tests to be sequentially evaluated
-function test(testSrc, resSrc, name, runopts, testopts) {
-    tests.push([testSrc, resSrc, name, runopts, testopts])
+function test(testSrc, expectedSrc, name, runopts, testopts) {
+    tests.push({
+        'src':testSrc,
+        'expectedSrc':expectedSrc,
+        'name':name,
+        'runopts':runopts,
+        'testopts':testopts
+    })
 }
 
 function setup_table(table_variable_name, table_name, db_name) {
-    tests.push(function(next, cpp_conn) {
+    tests.push(function(test) {
         try {
             if (required_external_tables.length > 0) {
                 // use an external table
@@ -529,11 +528,11 @@ function setup_table(table_variable_name, table_name, db_name) {
                 table = required_external_tables.pop();
                 defines[table_variable_name] = r.db(table[0]).table(table[1]);
                 tables_to_cleanup.push([table[0], table[1]])
-                next();
+                runTest();
             } else {
                 // create the table as provided
                 
-                r.db(db_name).tableCreate(table_name).run(cpp_conn, {}, function (err, res) {
+                r.db(db_name).tableCreate(table_name).run(reqlConn, {}, function (err, res) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
@@ -542,7 +541,7 @@ function setup_table(table_variable_name, table_name, db_name) {
                     }
                     defines[table_variable_name] = r.db("test").table(table_name);
                     tables_to_delete.push([db_name, table_name])
-                    next();
+                    runTest();
                 });
             }
         } catch (err) {
@@ -552,14 +551,42 @@ function setup_table(table_variable_name, table_name, db_name) {
     });
 }
 
+// Invoked by generated code to fetch from a cursor
+function fetch(cursor, limit) {
+    fun = function fetch_inner (test) {
+        try {
+            if (limit) {
+                limit = parseInt(limit);
+                if (isNaN(limit)) {
+                    unexpectedException("The limit value of fetch must be null ")
+                }
+            }
+            if (!test.testopts) {
+                test.testopts = {};
+            }
+            test.testopts.result_limit = limit;
+            TRACE('fetching ' + (limit || "all") + ' items')
+            processResult(null, cursor, test)
+        } catch(err) {
+            console.log("stack: " + String(err.stack))
+            unexpectedException("processResult", test.name, err);
+        }
+    }
+    fun.toString = function() {
+        return 'fetch_inner() limit = ' + limit;
+    };
+    return fun;
+}
+
 // Invoked by generated code to define variables to used within
 // subsequent tests
-function define(expr) {
-    tests.push(function(next, cpp_conn) {
+function define(expr, variable) {
+    tests.push(function(test) {
+        TRACE('setting define: ' + variable + ' = '  + expr);
         with (defines) {
-            eval("defines."+expr);
+            eval("defines." + variable + " = " + expr);
         }
-        next();
+        runTest();
     });
 }
 
@@ -575,6 +602,7 @@ function bag(expected, compOpts, partial) {
     };
 }
 
+// Invoked by generated code to ensure at least these contents are in the result
 function partial(expected, compOpts) {
     if (Array.isArray(expected)) {
         return bag(expected, compOpts, true);
@@ -606,7 +634,7 @@ function err_regex(err_name, err_pat, err_frames) {
 
 function err_predicate(err_name, err_pred, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
-    var fun = function(other) {
+    var fun = function err_predicate_return (other) {
         if (!(other instanceof Error)) return false;
         if (err_name && !(other.name === err_name)) return false;
 
@@ -626,7 +654,7 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
 }
 
 function builtin_err(err_name, err_msg) {
-    var fun = function(other) {
+    var fun = function builtin_err_test (other) {
         if (!(other.name === err_name)) return false;
         if (!(other.message === err_msg)) return false;
         return true;
@@ -639,7 +667,7 @@ function builtin_err(err_name, err_msg) {
 }
 
 function arrlen(length, eq_fun) {
-    var fun = function(thing) {
+    var fun = function arrlen_test (thing) {
         if (!thing.length || thing.length !== length) return false;
         return !eq_fun || thing.every(eq_fun);
     };
@@ -650,7 +678,7 @@ function arrlen(length, eq_fun) {
 }
 
 function uuid() {
-    var fun = function(thing) {
+    var fun = function uuid_test (thing) {
         return thing.match && thing.match(/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/);
     };
     fun.toString = function() {
