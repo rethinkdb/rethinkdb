@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys, time
+import atexit, itertools, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
