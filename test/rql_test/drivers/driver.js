@@ -415,7 +415,7 @@ function runTest() {
 function processResult(err, result, test) {
     // prepare the result to be compared (e.g.: collect feeds and cursor results)
     TRACE('processResult: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
-    var accumulator=[];
+    var accumulator = [];
     
     try {
         // - if an error go straight to compare
