@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys, time
+import atexit, itertools, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
@@ -388,8 +388,6 @@ class PyTestDriver:
                 passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
             print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
-        else:
-            passed_count += 1
 
 driver = PyTestDriver()
 
