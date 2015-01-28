@@ -32,23 +32,48 @@ tests:
     js: tps.map([r.row.timezone(), r.row.day()])
     ot: ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]])
 
-# They're all the same time, just in different timezones.
+  # They're all the same time, just in different timezones.
+  
   - rb: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
     py: ts.concat_map(lambda x:ts.map(lambda y:x - y)).distinct()
     js: ts.concatMap(function(x) { return ts.map(function(y) { return x.sub(y); }); }).distinct()
     ot: ([0])
 
-  - def: bad_tzs = ["-00", "-00:00", "", "UTC+00", "+00:60", "+25:00"]
+  # Invalid timezones
+    
+  - cd: r.now().in_timezone("")
+    ot: err('RqlRuntimeError', 'Timezone `` does not start with `-` or `+`.')
+  
+  - cd: r.now().in_timezone("-00")
+    ot: err('RqlRuntimeError', '`-00` is not a valid time offset.')
+  
+  - cd: r.now().in_timezone("-00:00")
+    ot: err('RqlRuntimeError', '`-00:00` is not a valid time offset.')
+    
+  - cd: r.now().in_timezone("UTC+00")
+    ot: err('RqlRuntimeError', 'Timezone `UTC+00` does not start with `-` or `+`.')
+  
+  - cd: r.now().in_timezone("+00:60")
+    ot: err('RqlRuntimeError', 'Minutes out of range in `+00:60`.')
+  
+  - cd: r.now().in_timezone("+25:00")
+    ot: err('RqlRuntimeError', 'Hours out of range in `+25:00`.')
 
-  - def:
-      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.now.in_timezone(x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
-
-  - rb: bad_tzs
-    ot: ([])
-
-  - def:
-      rb:  subrunner = class << bad_tzs; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr([x, RethinkDB::RQL.new.time(2013, 1, 1, x)]).run(*args); rescue RethinkDB::RqlRuntimeError => e; null; end}.select{|x| x != null}; end; end
-
-  - rb: bad_tzs
-    ot: ([])
-
+  
+  - cd: r.time(2013, 1, 1, "")
+    ot: err('RqlRuntimeError', 'Timezone `` does not start with `-` or `+`.')
+  
+  - cd: r.time(2013, 1, 1, "-00")
+    ot: err('RqlRuntimeError', '`-00` is not a valid time offset.')
+  
+  - cd: r.time(2013, 1, 1, "-00:00")
+    ot: err('RqlRuntimeError', '`-00:00` is not a valid time offset.')
+  
+  - cd: r.time(2013, 1, 1, "UTC+00")
+    ot: err('RqlRuntimeError', 'Timezone `UTC+00` does not start with `-` or `+`.')
+  
+  - cd: r.time(2013, 1, 1, "+00:60")
+    ot: err('RqlRuntimeError', 'Minutes out of range in `+00:60`.')
+  
+  - cd: r.time(2013, 1, 1, "+25:00")
+    ot: err('RqlRuntimeError', 'Hours out of range in `+25:00`.')
