@@ -318,7 +318,7 @@ class PyTestDriver:
     def define(self, expr, variable=None):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
-            exec(expr, self.scope)
+            exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
     
@@ -348,40 +348,34 @@ class PyTestDriver:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
         
-        # Run the test
-        if 'reql-query' in testopts and str(testopts['reql-query']).lower() == 'false':
-            try:
-                result = eval(src, self.scope)
-            except Exception as err:
-                result = err
-        else:
-            # Try to build the test
-            try:
-                query = eval(src, self.scope)
-            except Exception as err:
-                if not isinstance(exp_val, Err):
-                    print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
-                elif not eq(exp_val, **compOptions)(err):
-                    print_test_failure(name, src, "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val)))
-    
-                return # Can't continue with this test if there is no test query
-    
-            # Check pretty-printing
-            check_pp(src, query)
-    
-            # Run the test
-            result = None
-            try:
-                result = query.run(conn, **runopts)
+        # -- evaluate the command
+        
+        try:
+            result = eval(src, self.scope)
+            
+            # - run as a query if it is one
+            
+            if isinstance(result, r.RqlQuery):
+                
+                # Check pretty-printing
+                
+                check_pp(src, result)
+                
+                # run the query
+                
+                result = result.run(conn, **runopts)
                 if result and "profile" in runopts and runopts["profile"] and "value" in result:
                     result = result["value"]
-            except Exception as err:
-                result = err
+                # ToDo: do something reasonable with the profile
+            
+            # - Save variable if requested
+            
+            if 'variable' in testopts:
+                # ToDo: hadnle complex variables like: a[2]
+                self.scope[testopts['variable']] = result
         
-        # Save variable if requested
-        
-        if 'variable' in testopts:
-            self.scope[testopts['variable']] = result
+        except Exception as err:
+            result = err
         
         # Compare to the expected result
         
@@ -465,6 +459,21 @@ def partial(expected):
         return Bag(expected, partial=True)
     else:
         raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
+
+def fetch(cursor, limit=None):
+    '''Pull items from a cursor'''
+    if limit is not None:
+        try:
+            limit = int(limit)
+            assert limit > 0
+        except Exception:
+            "On fetch limit must be None or > 0, got: %s" % repr(limit)
+    result = []
+    for i, value in enumerate(cursor, start=1):
+        result.append(value)
+        if i >= limit:
+            break
+    return result
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)

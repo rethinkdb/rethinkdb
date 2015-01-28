@@ -417,7 +417,7 @@ interpreters = {
 class TestGroup(object):
     
     testLanguageEntry = collections.namedtuple('testLanguageEntry', ['command', 'expected', 'definition', 'runopts', 'testopts'])
-    variableRegex = re.compile('^\s*(?P<quoteString>[\'\"]*)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)$')
+    variableRegex = re.compile('^\s*(?P<quoteChar>[\'\"]*)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)$')
     
     @classmethod
     def buildYamlTest(cls, testName, sourceFile, lang, outputPath, shards=1, useSpecificTable=False):
@@ -542,7 +542,7 @@ class TestGroup(object):
         
         # Does this test define a variable?
         if testCode.definition:
-            cls.write_def(out, testCode.definition)
+            cls.write_def(testName, out, testCode.definition)
         
         # Write the commands
         if testCode.command:
@@ -551,7 +551,7 @@ class TestGroup(object):
                 variableMatch = cls.variableRegex.match(test_case)
                 if variableMatch:
                     testCode.testopts['variable'] = variableMatch.group('variableName')
-                    test_case = variableMatch.group('quoteString') + variableMatch.group('expression')
+                    test_case = variableMatch.group('quoteChar') + variableMatch.group('expression')
                 
                 try:
                     out.write("test(%(code)s, %(expected)s, '%(name)s', %(driveropts)s, %(testopts)s)\n" % {
@@ -574,10 +574,23 @@ class TestGroup(object):
                 except Exception as e:
                     raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(testCode.command), str(e)))
 
-    @staticmethod
-    def write_def(out, defs):
+    @classmethod
+    def write_def(cls, testName, out, defs):
         for definition in defs:
-            out.write('define(%s)\n' % definition)
+            variableString = ''
+            
+            # parse the variable name
+            
+            variableMatch = cls.variableRegex.match(definition)
+            if not variableMatch:
+                raise Exception('Error while processing test %s: def entry missing variable name: %s' % (testName, str(definition)))
+            
+            variableString = variableMatch.group('variableName')
+            definition = variableMatch.group('quoteChar') + variableMatch.group('expression')
+            
+            # write the output
+            
+            out.write('define(%s, "%s")\n' % (definition, variableString))
     
     # Tests may specify generic test strings valid for all languages or language specific versions
     @classmethod

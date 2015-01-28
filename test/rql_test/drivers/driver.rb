@@ -83,6 +83,19 @@ def partial(expected)
   end
 end
 
+def fetch(cursor, limit=nil)
+  raise "The limit value of fetch must be nil or > 0, got: #{limit}" unless limit.nil? or true
+  if limit.nil?
+    return cursor.to_a
+  else
+    result = []
+    limit.times do
+      result.push(cursor.next)
+    end
+    return result
+  end
+end
+
 def arrlen(len, x)
   Array.new(len, x)
 end
@@ -101,10 +114,6 @@ end
 
 def err_regex(type, message, backtrace=[])
   Err.new(type, message, backtrace, true)
-end
-
-def eq_test(expected, result, testopts={})
-  return cmp_test(expected, result, testopts) == 0
 end
 
 class Number
@@ -291,42 +300,58 @@ def test(src, expected, name, opthash=nil, testopts=nil)
   end
   $test_count += 1
   
-  if not (testopts and testopts.key?(:'reql-query') and testopts[:'reql-query'].to_s().downcase == 'false')
-    # check that it evaluates without running it
-    begin
-      eval(src, $defines)
-    rescue Exception => e
-      result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], "TODO")
-      return check_result(name, src, result, expected, testopts)
-    end
-  end
+  # -- run the command
   
-  # construct the query
-  queryString = ''
-  if testopts and testopts.key?(:'variable')
-    queryString += testopts[:'variable'] + " = "
-  end
-  
-  if not (testopts and testopts.key?(:'reql-query') and testopts[:'reql-query'].to_s().downcase == 'false')
-    queryString += '(' + src + ')' # handle cases like: r(1) + 3
-    if opthash
-      opthash.each{ |key, value| opthash[key] = eval(value.to_s)}
-      queryString += '.run($reql_conn, ' + opthash.to_s + ')'
-    else
-      queryString += '.run($reql_conn)'
-    end
-  else
-    queryString += src
-  end
-  
-  # run the query
+  result = nil
   begin
-    result = eval queryString, $defines
+    
+    # - save variable if requested
+    
+    if testopts && testopts.key?(:'variable')
+      queryString = "#{testopts[:variable]} = #{src}" # handle cases like: r(1) + 3
+    else
+      queryString = "#{src}" # handle cases like: r(1) + 3
+    end
+    
+    # - run the command
+    
+    result = $defines.eval(queryString)
+    
+    # - run as a query if it is one
+    
+    if result.kind_of?(RethinkDB::RQL)
+      
+      if testopts and testopts.key?(:'variable')
+          queryString = "#{testopts[:variable]} = (#{src})" # handle cases like: r(1) + 3
+        else
+          queryString = "(#{src})" # handle cases like: r(1) + 3
+        end
+      
+      if opthash and opthash.length > 0
+        opthash.each{ |key, value| opthash[key] = eval(value.to_s)}
+        queryString += '.run($reql_conn, ' + opthash.to_s + ')'
+      else
+        queryString += '.run($reql_conn)'
+      end
+      
+      result = $defines.eval(queryString)
+      
+      # - convert cursors from from an Enumerator to a Enumerable, see issue #3682
+      
+      if result.kind_of?(RethinkDB::Cursor) && testopts and testopts.key?(:'variable')
+        result = $defines.eval("#{testopts[:variable]} = #{testopts[:variable]}.each")
+        $stderr.puts("got here #{result}")
+      end
+      
+    end
+    
   rescue Exception => e
-    result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], "TODO")
+    result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], e.backtrace)
   end
-  return check_result(name, src, result, expected, testopts)
   
+  # -- return the result
+  
+  return check_result(name, src, result, expected, testopts)
 end
 
 def setup_table(table_variable_name, table_name, db_name="test")
@@ -392,7 +417,7 @@ def check_result(name, src, result, expected, testopts={})
   end
   if successfulTest
     begin
-      if ! eq_test(expected, result, testopts)
+      if cmp_test(expected, result, testopts) != 0
         fail_test(name, src, result, expected)
         successfulTest = false
       end

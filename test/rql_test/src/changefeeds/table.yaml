@@ -1,0 +1,36 @@
+desc: Test changefeeds on a table
+table_variable_name: tbl
+tests:
+    
+    # - inserts
+    
+    - cd: all_inserts = tbl.changes().limit(2)
+    - cd: tbl.insert([{'id':1}, {'id':2}])
+      ot: partial({'errors':0, 'inserted':2})
+    - cd: all_inserts
+      ot: "bag([{'old_val':null, 'new_val':{'id': 1}}, {'old_val':null, 'new_val':{'id':2}}])"
+    
+    # - updates
+    
+    - cd: updates = tbl.changes().limit(1)
+    - cd: tbl.get(1).update({'version':1})
+      ot: partial({'errors':0, 'replaced':1})
+    - cd: updates
+      ot: [{'old_val':{'id':1}, 'new_val':{'id':1, 'version':1}}]
+  
+    # - pluck on values
+    
+    
+
+    # - changes overflow
+#      
+# ToDo: enable this when we get 
+#      
+#    - cd: overflow = tbl.changes()
+#    # add more than 100,000 entries to make sure we get the overflow error
+#    - cd: r.between(1, 100002).for_each(tbl.insert({}))
+#    - cd: overflow
+#      ot: error(RqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
+#      
+
+   
