@@ -84,7 +84,11 @@ class SrcLang(object):
     
     instance_setup = False
     
+    none_string = 'None'
     line_comment = '#'
+    
+    quote_regex = re.compile(r'^(?P<quoteChar>[\'\"]?)(?P<content>.+?)(?P=quoteChar)(?P<extra>.*)$')
+    none_regex = re.compile(r"(?<!\"|')(?:\b)(None|null|nil)(?:\b)(?<!\"|')")
     
     # -- class variables
     
@@ -117,10 +121,22 @@ class SrcLang(object):
     def dicttranslate(self, dic):
         return dic
 
-    # Translates 'null' to langauge equivalents
-    def nulltranslate(self, strng):
-        return strng
-
+    # Translates 'null' from YAML (including pre-translated to 'None') to langauge equivalents
+    def nulltranslate(self, content):
+        
+        # pull it out of the outermost quote strings to prevent mis-matches on quoted items
+        
+        quoteChar = ''
+        
+        match = self.quote_regex.match(content)
+        if match is not None and match.group('extra') == '':
+            quoteChar = match.group('quoteChar')
+            content = match.group('content')
+        
+        # translate None or null, unless it is alone in quotes, or part of a word
+        
+        return quoteChar + self.none_regex.sub(self.none_string, content) + quoteChar
+    
     # Translate a generic code string using the rules defined by `self`
     def translate_query(self, src, encode=True):
         encoded = src
@@ -245,9 +261,6 @@ class PyLang(SrcLang):
                 encoded = encoded[1:]
         return encoded
     
-    def nulltranslate(self, strng):
-        return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
-    
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output, __ = versionCheckProcess.communicate()
@@ -276,6 +289,7 @@ class JsLang(SrcLang):
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
+    none_string = 'null'
     line_comment = '//'
 
     def langrepr(self, val):
@@ -318,6 +332,7 @@ class RbLang(SrcLang):
     driver_build_env_name = 'RUBY_DRIVER_DIR'
     driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
+    none_string = 'nil'
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
     
     def __init__(self, version, interpreter_env_name='RUBY'):
@@ -365,9 +380,6 @@ class RbLang(SrcLang):
         dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':", ":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
         return dicnew
-
-    def nulltranslate(self, strng):
-        return re.sub('null', 'nil', strng)
     
     def get_interpreter_version(self, executablePath):
         '''Return the version string for this interpreter'''
