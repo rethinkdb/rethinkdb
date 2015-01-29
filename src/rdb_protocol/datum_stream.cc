@@ -1025,8 +1025,16 @@ changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
         if (rspec != NULL) {
             std::copy(transforms.begin(), transforms.end(),
                       std::back_inserter(rspec->transforms));
+            rcheck(right <= static_cast<uint64_t>(std::numeric_limits<size_t>::max()),
+                   base_exc_t::GENERIC,
+                   strprintf("Cannot call `changes` on a slice "
+                             "with size > %zu (got %" PRIu64 ").",
+                             std::numeric_limits<size_t>::max(),
+                             right));
             return changefeed::keyspec_t(
-                changefeed::keyspec_t::limit_t{std::move(*rspec), right},
+                changefeed::keyspec_t::limit_t{
+                    std::move(*rspec),
+                    static_cast<size_t>(right)},
                 std::move(subspec.table),
                 std::move(subspec.table_name));
         }
