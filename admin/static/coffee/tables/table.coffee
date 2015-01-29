@@ -12,14 +12,15 @@ module 'TableView', ->
             @table_found = true
 
             @indexes = null
-            @distribution = null
+            @distribution = new Distribution
 
             @guaranteed_timer = null
             @failable_index_timer = null
             @failable_misc_timer = null
-            
+
             # Initialize the model with mostly empty dummy data so we can render it right away
-            @model = new Table {id: id}
+            @model = new Table {id: id, info_unavailable: false}
+            @listenTo @model, 'change:info_unavailable', @maybe_refetch_data
             @table_view = new TableView.TableMainView
                 model: @model
                 indexes: @indexes
@@ -27,6 +28,22 @@ module 'TableView', ->
                 shards_assignments: @shards_assignments
 
             @fetch_data()
+
+        maybe_refetch_data: (obj, info_unavailable) =>
+            if info_unavailable is false
+                # This is triggered when we go from table.info()
+                # failing to it succeeding. If that's the case, we
+                # should refetch everything. What happens is we try to
+                # fetch indexes every 1s, but more expensive stuff
+                # like table.info() only every 10s. To avoid having
+                # the table UI in an error state longer than we need
+                # to, we use the secondary index query as a canary in
+                # the coalmine to decide when to try again with the
+                # info queries.
+                driver.stop_timer @guaranteed_timer
+                driver.stop_timer @failable_index_timer
+                driver.stop_timer @failable_misc_timer
+                @fetch_data()
 
         fetch_data: =>
             this_id = @id
@@ -123,15 +140,17 @@ module 'TableView', ->
                                         name: name
                         ).coerceTo('array')
                     })
-            )            
+            )
 
             # This timer keeps track of the failable index query, so we can
             # cancel it when we navigate away from the table page.
-            @failable_index_timer = driver.run failable_index_query, 1000, (error, result) =>
+            @failable_index_timer = driver.run(
+              failable_index_query, 1000, (error, result) =>
                 if error?
-                    console.log error.msg
+                    console.log "Shard down"
+                    @model.set 'info_unavailable', true
                     return
-                @error = null
+                @model.set 'info_unavailable', false
                 if @indexes?
                     @indexes.set _.map(result, (index) -> new Index index)
                 else
@@ -148,14 +167,16 @@ module 'TableView', ->
                         distribution: @distribution
                         shards_assignments: @shards_assignments
                     @render()
-
+            )
             # This timer keeps track of the failable misc query, so we can
             # cancel it when we navigate away from the table page.
-            @failable_misc_timer = driver.run failable_misc_query, 10000, (error, result) =>
+            @failable_misc_timer = driver.run(
+              failable_misc_query, 10000, (error, result) =>
                 if error?
-                    console.log error.msg
+                    console.log "Shard down"
+                    @model.set 'info_unavailable', true
                     return
-                @error = null
+                @model.set 'info_unavailable', false
                 if @distribution?
                     @distribution.set _.map result.distribution, (shard) ->
                         new Shard shard
@@ -209,7 +230,7 @@ module 'TableView', ->
                         distribution: @distribution
                         shards_assignments: @shards_assignments
                     @render()
-
+            )
             # This timer keeps track of the guaranteed query, running
             # it every 5 seconds. We cancel it when navigating away
             # from the table page.
@@ -285,7 +306,7 @@ module 'TableView', ->
             @secondary_indexes_view = new TableView.SecondaryIndexesView
                 collection: @indexes
                 model: @model
-            @shards = new TableView.Sharding
+            @shard_distribution = new TableView.ShardDistribution
                 collection: @distribution
                 model: @model
             @server_assignments = new TableView.ShardAssignmentsView
@@ -317,7 +338,7 @@ module 'TableView', ->
 
         set_distribution: (distribution) =>
             @distribution = distribution
-            @shards.set_distribution @distribution
+            @shard_distribution.set_distribution @distribution
 
         set_assignments: (shards_assignments) =>
             @shards_assignments = shards_assignments
@@ -336,7 +357,7 @@ module 'TableView', ->
             @$('.performance-graph').html @performance_graph.render().$el
 
             # Display the shards
-            @$('.sharding').html @shards.render().el
+            @$('.sharding').html @shard_distribution.render().el
 
             # Display the server assignments
             @$('.server-assignments').html @server_assignments.render().el
@@ -387,7 +408,7 @@ module 'TableView', ->
         remove: =>
             @title.remove()
             @profile.remove()
-            @shards.remove()
+            @shard_distribution.remove()
             @server_assignments.remove()
             @performance_graph.remove()
             @secondary_indexes_view.remove()
@@ -477,7 +498,7 @@ module 'TableView', ->
                 if @progress_bar.get_stage() is 'none'
                     @progress_bar.skip_to_processing()
 
-            else if @model.get('num_available_replicas') is @model.get('num_replicas')
+            else
                 if @timer?
                     driver.stop_timer @timer
                     @timer = null
@@ -580,14 +601,16 @@ module 'TableView', ->
 
             @adding_index = false
 
-            if @collection?
-                @loading = false
-                @hook()
+            @listenTo @model, 'change:info_unavailable', @set_warnings
+
+            @render()
+            @hook() if @collection?
+
+        set_warnings:  ->
+            if @model.get('info_unavailable')
+                @$('.unavailable-error').show()
             else
-                @loading = true
-                @$el.html @template
-                    loading: @loading
-                    adding_index: @adding_index
+                @$('.unavailable-error').hide()
 
         set_fetch_progress: (index) =>
             if not @interval_progress?
@@ -611,7 +634,8 @@ module 'TableView', ->
 
                 driver.run_once query, (error, result) =>
                     if error?
-                        # This can happen if the table is temporary unavailable. We log the error, and ignore it
+                        # This can happen if the table is temporarily
+                        # unavailable. We log the error, and ignore it
                         console.log "Nothing bad - Could not fetch secondary indexes statuses"
                         console.log error
                     else
@@ -629,17 +653,10 @@ module 'TableView', ->
 
 
         set_indexes: (indexes) =>
-            @loading = false
             @collection = indexes
             @hook()
 
         hook: =>
-            @$el.html @template
-                loading: @loading
-                adding_index: @adding_index
-
-            @loading = false
-
             @collection.each (index) =>
                 view = new TableView.SecondaryIndexView
                     model: index
@@ -706,6 +723,9 @@ module 'TableView', ->
             @$('.main_alert_error').hide()
 
         render: =>
+            @$el.html @template
+                adding_index: @adding_index
+            @set_warnings()
             return @
 
         # Show the form to add a secondary index
@@ -731,7 +751,6 @@ module 'TableView', ->
                 @hide_add_index()
 
         on_fail_to_connect: =>
-            @loading = false
             @render_error
                 connect_fail: true
             return @

@@ -73,7 +73,7 @@ module 'ServersView', ->
         className: 'servers_view'
         tagName: 'tbody'
         template:
-            loading_servers: Handlebars.templates['loading_servers-template']
+            loading_servers: Handlebars.templates['loading_servers']
         initialize: =>
             @servers_view = []
 
