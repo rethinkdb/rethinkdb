@@ -25,22 +25,22 @@ COFFEE_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/coffee
 # since we don't use requirejs or anything, we list out the dependencies here explicitly in order
 # rather than populating COFFEE_SOURCES with `find` or the like
 COFFEE_SOURCES := $(patsubst %, $(COFFEE_SOURCE_DIR)/%,\
-                       util.coffee \
-                       body.coffee \
-                       ui_components/modals.coffee ui_components/progressbar.coffee \
-                       tables/index.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
-                       servers/index.coffee servers/server.coffee \
-                       dashboard.coffee \
-                       dataexplorer.coffee \
-                       topbar.coffee \
-                       resolve_issues.coffee \
-                       log_view.coffee \
-                       vis.coffee \
-                       modals.coffee \
-                       models.coffee \
-                       navbar.coffee \
-                       router.coffee \
-                       app.coffee)
+		       util.coffee \
+		       body.coffee \
+		       ui_components/modals.coffee ui_components/progressbar.coffee \
+		       tables/index.coffee tables/shard_distribution.coffee tables/shard_assignments.coffee tables/table.coffee \
+		       servers/index.coffee servers/server.coffee \
+		       dashboard.coffee \
+		       dataexplorer.coffee \
+		       topbar.coffee \
+		       resolve_issues.coffee \
+		       log_view.coffee \
+		       vis.coffee \
+		       modals.coffee \
+		       models.coffee \
+		       navbar.coffee \
+		       router.coffee \
+		       app.coffee)
 COFFEE_COMPILED_JS := $(patsubst $(COFFEE_SOURCE_DIR)/%.coffee, $(WEB_ASSETS_OBJ_DIR)/%.js, $(COFFEE_SOURCES))
 JS_VERSION_FILE := $(WEB_ASSETS_OBJ_DIR)/version.js
 LESS_SOURCES := $(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
