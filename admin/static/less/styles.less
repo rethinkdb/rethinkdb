@@ -130,6 +130,8 @@ h1.title {
     margin-bottom: 25px;
 }
 
+
+
 #main_view{
     height: 100%;
 }
@@ -2498,8 +2500,14 @@ TODO: retire this
 
         }
         .stat-row {
+            @orange: rgb(237, 173, 55);
+            @green: rgb(104, 200, 104);
+            @red: rgb(255, 71, 71);
             @height: 60px;
             border-top: thin solid #f0f0f0;
+            .parenthetical {
+                color: #5c6169;
+            }
             p {
                 margin: 0px+(@height - 24)/2 0;
                 font-family: @sans;
@@ -2511,16 +2519,41 @@ TODO: retire this
                     line-height: 24px;
                     color: #5c6169;
                 }
-                &.availability { background: left center no-repeat url('images/live-icon.png'); }
-                &.masters { background: left center no-repeat url('images/layers-icon.png'); }
-                &.replicas { background: left center no-repeat url('images/grid-icon.png'); }
-                &.documents { background: left center no-repeat url('images/document-icon.png'); }
-                &.datacenter { background: left center no-repeat url('images/layers-icon.png'); }
-                &.uptime { background: left center no-repeat url('images/grid-icon.png'); }
-                &.ips { background: left center no-repeat url('images/document-icon.png'); }
-                &.tables { background: left center no-repeat url('images/document-icon.png'); }
-                &.datacenters { background: left center no-repeat url('images/layers-icon.png'); }
-                &.servers { background: left center no-repeat url('images/document-icon.png'); }
+                &.availability {
+                    padding-left: 0px;
+                    .ionicon-table-status {
+                        width: 24px;
+                        height: 22px;
+                        position: relative;
+                        left: -4px;
+                        bottom: -3px;
+                        transform: scaleY(1.1);
+                        &.ready {
+                            // all_replicas_ready == true
+                            fill: @green;
+                        }
+                        &.ready-but-with-caveats {
+                            // ready_for_writes == true
+                            fill: @orange;
+                        }
+                        &.not-ready {
+                            // any other status for a table
+                            fill: @red;
+                        }
+                    }
+                }
+                // 2px is to bring the icons up to the text baseline
+                background-position: left bottom 2px;
+                background-repeat: no-repeat;
+                &.masters { background-image: url('images/layers-icon.png'); }
+                &.replicas { background-image: url('images/grid-icon.png'); }
+                &.documents { background-image: url('images/document-icon.png'); }
+                &.datacenter { background-image: url('images/layers-icon.png'); }
+                &.uptime { background-image: url('images/grid-icon.png'); }
+                &.ips { background-image: url('images/document-icon.png'); }
+                &.tables { background-image: url('images/document-icon.png'); }
+                &.datacenters { background-image: url('images/layers-icon.png'); }
+                &.servers { background-image: url('images/document-icon.png'); }
             }
             &.first { border-top: none; }
         }
