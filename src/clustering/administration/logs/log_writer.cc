@@ -184,98 +184,76 @@ void throw_unless(bool condition, const std::string &where) {
     }
 }
 
-class file_reverse_reader_t {
-public:
-    explicit file_reverse_reader_t(const std::string &filename) :
-        fd(INVALID_FD),
+file_reverse_reader_t::file_reverse_reader_t(scoped_fd_t &&_fd) :
+        fd(std::move(_fd)),
         current_chunk(chunk_size) {
-
-        {
-            int res;
-            do {
-                res = open(filename.c_str(), O_RDONLY);
-            } while (res == INVALID_FD && get_errno() == EINTR);
-            throw_unless(res != INVALID_FD, strprintf("could not open '%s' for reading.", filename.c_str()));
-            fd.reset(res);
+    int64_t fd_filesize = get_file_size(fd.get());
+    if (fd_filesize == 0) {
+        remaining_in_current_chunk = current_chunk_start = 0;
+    } else {
+        remaining_in_current_chunk = fd_filesize % chunk_size;
+        if (remaining_in_current_chunk == 0) {
+            /* We landed right on a chunk boundary; set ourself to read the
+            previous whole chunk. */
+            remaining_in_current_chunk = chunk_size;
         }
+        current_chunk_start = fd_filesize - remaining_in_current_chunk;
+        int res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
+        throw_unless(res == remaining_in_current_chunk, "could not read from file");
 
-        int64_t fd_filesize = get_file_size(fd.get());
-        if (fd_filesize == 0) {
-            remaining_in_current_chunk = current_chunk_start = 0;
-        } else {
-            remaining_in_current_chunk = fd_filesize % chunk_size;
-            if (remaining_in_current_chunk == 0) {
-                /* We landed right on a chunk boundary; set ourself to read the
-                previous whole chunk. */
-                remaining_in_current_chunk = chunk_size;
-            }
-            current_chunk_start = fd_filesize - remaining_in_current_chunk;
-            int res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
-            throw_unless(res == remaining_in_current_chunk, "could not read from file");
-
-            // Ignore the newline and any unfinished statement at the end of the file
-            while (current_chunk[remaining_in_current_chunk - 1] != '\n') {
-                --remaining_in_current_chunk;
-                if (remaining_in_current_chunk == 0) {
-                    read_chunk();
-                }
-            }
+        // Ignore the newline and any unfinished statement at the end of the file
+        while (current_chunk[remaining_in_current_chunk - 1] != '\n') {
             --remaining_in_current_chunk;
             if (remaining_in_current_chunk == 0) {
                 read_chunk();
             }
         }
-    }
-
-    bool get_next(std::string *out) {
+        --remaining_in_current_chunk;
         if (remaining_in_current_chunk == 0) {
-            guarantee(current_chunk_start == 0);
-            return false;
+            read_chunk();
         }
+    }
+}
 
-        *out = "";
-        while (true) {
-            for (int p = remaining_in_current_chunk - 1; p >= 0; --p) {
-                if (current_chunk[p] == '\n') {
-                    *out = std::string(&current_chunk[p] + 1, remaining_in_current_chunk - p - 1) + *out;
+bool file_reverse_reader_t::get_next(std::string *out) {
+    if (remaining_in_current_chunk == 0) {
+        guarantee(current_chunk_start == 0);
+        return false;
+    }
 
-                    remaining_in_current_chunk = p;
-                    if (remaining_in_current_chunk == 0) {
-                        read_chunk();
-                    }
-                    return true;
+    *out = "";
+    while (true) {
+        for (int p = remaining_in_current_chunk - 1; p >= 0; --p) {
+            if (current_chunk[p] == '\n') {
+                *out = std::string(&current_chunk[p] + 1, remaining_in_current_chunk - p - 1) + *out;
+
+                remaining_in_current_chunk = p;
+                if (remaining_in_current_chunk == 0) {
+                    read_chunk();
                 }
-            }
-
-            *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;
-            remaining_in_current_chunk = 0;
-            if (!read_chunk()) {
-                return true; // This is the last (first) line
+                return true;
             }
         }
-    }
 
-private:
-    bool read_chunk() {
-        if (current_chunk_start == 0) {
-            return false;
+        *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;
+        remaining_in_current_chunk = 0;
+        if (!read_chunk()) {
+            return true; // This is the last (first) line
         }
+    }
+}
 
-        current_chunk_start -= chunk_size;
-        int res = pread(fd.get(), current_chunk.data(), chunk_size, current_chunk_start);
-        throw_unless(res == chunk_size, "could not read from file");
-        remaining_in_current_chunk = chunk_size;
-        return true;
+bool file_reverse_reader_t::read_chunk() {
+    if (current_chunk_start == 0) {
+        return false;
     }
 
-    static const int chunk_size = 4096;
-    scoped_fd_t fd;
-    scoped_array_t<char> current_chunk;
-    int remaining_in_current_chunk;
-    int64_t current_chunk_start;
-
-    DISABLE_COPYING(file_reverse_reader_t);
-};
+    current_chunk_start -= chunk_size;
+    int res = pread(fd.get(), current_chunk.data(), chunk_size, current_chunk_start);
+    throw_unless(res == chunk_size, "could not read from file");
+    remaining_in_current_chunk = chunk_size;
+    return true;
+}
 
 /* Most of the logging we do will be through thread_pool_log_writer_t. However,
 thread_pool_log_writer_t depends on the existence of a thread pool, which is
@@ -541,7 +519,14 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
 
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
-        file_reverse_reader_t reader(fallback_log_writer.filename.path());
+        scoped_fd_t fd;
+        do {
+            fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));
+        } while (fd.get() == INVALID_FD && get_errno() == EINTR);
+        throw_unless(fd.get() != INVALID_FD,
+            strprintf("could not open '%s' for reading.",
+                fallback_log_writer.filename.path().c_str()));
+        file_reverse_reader_t reader(std::move(fd));
         std::string line;
         while (max_lines-- > 0 && reader.get_next(&line) && !*cancel) {
             if (line == "") {
