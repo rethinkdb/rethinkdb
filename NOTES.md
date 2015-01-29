@@ -18,18 +18,18 @@ Read the [release blog post][1.16-blog] for more details.
 Data files from RethinkDB versions 1.13.0 onward will be automatically
 migrated to version 1.16.x. As with any major release, back up your data files
 before performing the upgrade. If you are upgrading from a release earlier
-than 1.13.0, follow the migration instructions before upgrading:
+than 1.13.0, follow the [migration instructions][migration-documentation] before upgrading.
 
-http://rethinkdb.com/docs/migration/
+[migration-documentation]: http://rethinkdb.com/docs/migration/
 
 Secondary indexes now use a new format; old indexes will continue to work, but
 you should rebuild indexes after upgrading to 1.16.x. A warning about outdated
 indexes will be issued on startup.
 
 Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
-utility. Consult the troubleshooting document for more information:
+utility. Consult the [troubleshooting document][outdated-indexes-documentation] for more information:
 
-http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
+[outdated-indexes-documentation]: http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
 
 The abstraction of datacenters has been replaced by [server tags][server-tags-documentation].
 Existing datacenter assignments will be converted to server tags automatically.
@@ -51,9 +51,8 @@ Consult the API documentation for these commands for details:
 [dbDrop-api-docs]: http://rethinkdb.com/api/javascript/dbDrop
 
 Changefeeds on a table now combine multiple changes to the same document into a single notification if they happen rapidly.
-You can turn this behavior off by passing the `squash: false` optional argument.
-
-Consult the API documentation for details: [changes][changes-api-docs]
+You can turn this behavior off by passing the `squash: false` optional argument (see the
+[API documentation][changes-api-docs] for details).
 
 [changes-api-docs]: http://rethinkdb.com/api/javascript/changes
 
@@ -77,7 +76,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
     * The `jobs` table lists running queries and background tasks (#3115)
     * The `stats` table contains real-time statistics about the server (#2885)
     * The `logs` table provides access to the server logs (#2884)
-    * The `identifier_format` optional argument to `table` switches how databases, tables and servers are referenced in the system tables. Can be either "name" or "uuid" (#3266)
+    * The `identifierFormat` optional argument to `table` switches how databases, tables and servers are referenced in the system tables. Can be either "name" or "uuid" (#3266)
     * Added hidden debug tables (`_debug_table_status`, `_debug_stats`). These tables are subject to change and not part of the official administration interface (#2901, #3385)
   * Improved cluster management
     * Servers can now be associated with multiple tags using the `--server-tag` flag or by updating the `server_config` table (#2856)
@@ -157,7 +156,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
   * No longer silently ignore unknown global optional arguments (#2052)
   * Improved handling of socket, protocol and cursor errors (#3207)
   * Added an `isOpen` method to connections (#2113)
-  * `info` on tables now works when `use_outdated` is true (#3355)
+  * `info` on tables now works when `useOutdated` is true (#3355)
   * `info` on tables now includes the table id (#3358)
 * Driver protocol
   * Made internal names of commands more consistent (#3147)
