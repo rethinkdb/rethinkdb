@@ -182,6 +182,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
 * Server
   * Some startup log messages are now consolidated into a single log entry (#925)
   * Fixed continuation of partially-interrupted vectored I/O (#2665)
+  * Fixed an issue in the log file parser (#3694)
 * ReQL
   * Changed type of `between` queries to from `TABLE` to the more correct `TABLE_SLICE` (#1728)
 * Web UI
