@@ -52,6 +52,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         
         feedB = self.table.between(rangeB[0], rangeB[1]).changes().run(connB1)
         pointFeed = self.table.get(sampleB_ID).changes().run(connB1)
+        next(pointFeed) # eat the initial value
         
         print("Check that the changefeeds work (%.2fs)" % (time.time() - startTime))
         

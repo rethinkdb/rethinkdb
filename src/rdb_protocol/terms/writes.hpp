@@ -9,8 +9,7 @@ namespace ql {
 class pb_rcheckable_t;
 class val_t;
 
-durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg,
-                                                 const pb_rcheckable_t *target);
+durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg);
 
 }  // namespace ql
 

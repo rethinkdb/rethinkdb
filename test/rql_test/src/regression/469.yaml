@@ -10,13 +10,9 @@ tests:
   - cd: r.db('d469').table('t469').index_wait('x').pluck('index', 'ready')
     ot: ([{'ready':True, 'index':'x'}])
 
-  - rb: r(nil).info
-    py: r.expr(None).info()
-    js: r(null).info()
-    ot:
-      rb: ({'type':'NULL','value':'nu''ll'})
-      py: ({'type':'NULL','value':'null'})
-      js: ({'type':'NULL','value':'null'})
+  - cd: r(null).info()
+    py: r.expr(null).info()
+    ot: ({'type':'NULL','value':'null'})
   - rb: r(true).info
     py: r.expr(True).info()
     js: r(true).info()

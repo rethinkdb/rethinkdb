@@ -383,6 +383,15 @@ private:
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
         datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
+        if (squash.get_type() == datum_t::type_t::R_NUM) {
+            rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::GENERIC,
+                          "Expected BOOL or a positive NUMBER but found "
+                          "a negative NUMBER.");
+        } else if (squash.get_type() != datum_t::type_t::R_BOOL) {
+            rfail_target(sval, base_exc_t::GENERIC,
+                         "Expected BOOL or NUMBER but found %s.",
+                         squash.get_type_name().c_str());
+        }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {

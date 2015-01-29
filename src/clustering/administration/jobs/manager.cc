@@ -105,10 +105,15 @@ void jobs_manager_t::on_get_job_reports(
                 base_sindex_id,
                 uuid_to_str(sindex_job.first.first) + sindex_job.first.second);
 
+            // Only report the duration of index construction still in progress.
+            double duration = sindex_job.second.is_ready
+                ? 0
+                : time - std::min(sindex_job.second.start_time, time);
+
             job_reports.emplace_back(
                 id,
                 "index_construction",
-                time - std::min(sindex_job.second.start_time, time),
+                duration,
                 sindex_job.first.first,
                 sindex_job.first.second,
                 sindex_job.second.is_ready,

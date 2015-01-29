@@ -94,7 +94,7 @@ tests:
     js: tbl.between(r.expr(t1).inTimezone("Z"), t4, {rightBound:'closed', index:'a'}).count()
     ot: 4
 
-  - cd: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], nil)}
+  - cd: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], null)}
     py: tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null))
     js: tbl.indexCreate('b', function(row) { return r.branch(row('id').lt(t4), row('a'), null); })
     ot: ({'created':1})

@@ -33,9 +33,9 @@ tests:
       rb: tbl.get(12).replace{ |row| { :id => row[:id], :a => row[:id] } }
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    - py: tbl.get(13).replace(lambda row:None)
+    - py: tbl.get(13).replace(lambda row:null)
       js: tbl.get(13).replace(function(row) { return null; })
-      rb: tbl.get(13).replace{ |row| nil }
+      rb: tbl.get(13).replace{ |row| null }
       ot: ({'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     # Replace selection of table
@@ -98,9 +98,9 @@ tests:
 
     # Replace whole table
 
-    - py: tbl.replace(lambda row:None)
+    - py: tbl.replace(lambda row:null)
       js: tbl.replace(function(row) { return null; })
-      rb: tbl.replace{ |row| nil }
+      rb: tbl.replace{ |row| null }
       ot: ({'deleted':99,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - cd: tbl.get('sdfjk').replace({'id':'sdfjk'})['inserted']

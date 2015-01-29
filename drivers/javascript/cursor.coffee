@@ -415,5 +415,6 @@ class ArrayResult extends IterableResult
         response
 
 module.exports.Cursor = Cursor
+module.exports.AtomFeed = AtomFeed
 module.exports.Feed = Feed
 module.exports.makeIterable = ArrayResult::makeIterable

@@ -1,8 +1,4 @@
-# TODO changefeeds
-# Turn pause/unpause links into pause/play icons?
-# Should there be a loading animation while paused?
-
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
     @state =
         current_query: null
@@ -58,7 +54,7 @@ module 'DataExplorerView', ->
                 else
                     @profile = null
                     value = result
-                if typeof value._next is 'function' # if it's a cursor
+                if typeof value._next is 'function' and value not instanceof Array # if it's a cursor
                     @type = 'cursor'
                     @results = []
                     @results_offset = 0
@@ -531,6 +527,12 @@ module 'DataExplorerView', ->
 
                     # Add `getField(sttr)`
                     tag = 'getField'
+                else if tag is 'toJsonString, toJSON'
+                    # Add the `toJsonString()` alias
+                    tag = 'toJsonString'
+                    @set_doc_description command, tag, @suggestions
+                    # Also add `toJSON()`
+                    tag = 'toJSON'
                 @set_doc_description command, tag, @suggestions
 
             relations = data['types']
