@@ -5,7 +5,7 @@ Released on 2015-01-29
 The highlights of this release are:
 * A new administration API
 * Changefeeds on complex queries
-* Numerous improvements and enhancements all over the place
+* Numerous improvements and enhancements throughout RethinkDB
 
 Read the [release blog post][1.16-blog] for more details.
 
@@ -62,7 +62,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
 [binary-api-docs]: http://rethinkdb.com/api/javascript/binary/
 
 
-## New Features ##
+## New features ##
 
 * ReQL admin: a new cluster management and monitoring API (#2169)
   * Added a special system database named `rethinkdb`
@@ -174,7 +174,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
   * Added `procps` as a dependency in the Debian packages (#3404)
   * Now depend on `jemalloc` instead of `gperftools` (#3419)
 
-## Bug Fixes ##
+## Bug fixes ##
 
 * Tests
   * Fixed the `TimerTest` test (#549)
