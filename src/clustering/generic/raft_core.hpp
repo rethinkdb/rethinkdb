@@ -55,7 +55,16 @@ uses integers for this purpose, but we use UUIDs because we have no reliable dis
 way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
 `peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
 different `raft_member_id_t` the second time. */
-typedef uuid_u raft_member_id_t;
+class raft_member_id_t {
+public:
+    raft_member_id_t() : uuid(nil_uuid()) { }
+    explicit raft_member_id_t(uuid_u u) : uuid(u) { }
+    bool is_nil() const { return uuid.is_nil(); }
+    bool operator==(const raft_member_id_t &other) const { return uuid == other.uuid; }
+    bool operator!=(const raft_member_id_t &other) const { return uuid != other.uuid; }
+    bool operator<(const raft_member_id_t &other) const { return uuid < other.uuid; }
+    uuid_u uuid;
+};
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {

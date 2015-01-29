@@ -18,7 +18,7 @@ raft_persistent_state_t<state_t>::make_initial(
     /* The Raft paper indicates that `current_term` should be initialized to 0 and the
     first log index is 1. */
     ps.current_term = 0;
-    ps.voted_for = nil_uuid();
+    ps.voted_for = raft_member_id_t();
     ps.snapshot_state = initial_state;
     raft_complex_config_t complex_config;
     complex_config.config = initial_config;
@@ -122,7 +122,7 @@ raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
     of starting the new peer with a blank state. */
     raft_persistent_state_t<state_t> ps_copy = ps;
     /* Clear `voted_for` since the newly-joining peer will not have voted for anything */
-    ps_copy.voted_for = nil_uuid();
+    ps_copy.voted_for = raft_member_id_t();
     return ps_copy;
 }
 
@@ -348,7 +348,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     if (mode == mode_t::leader ||
             (mode == mode_t::follower && current_microtime() <
                 last_heard_from_leader + election_timeout_min_ms * 1000)) {
-        debugf("%s disregarding RequestVote RPC\n", uuid_to_str(this_member_id).substr(0,4).c_str());
+        debugf("%s disregarding RequestVote RPC\n", uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->vote_granted = false;
         return;
@@ -598,7 +598,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     rejects the request" */
     if (request.term < ps.current_term) {
         debugf("%s on_append_entries_rpc() term out of date\n",
-            uuid_to_str(this_member_id).substr(0,4).c_str());
+            uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
         reply_out->term = ps.current_term;
@@ -646,7 +646,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             ps.log.get_entry_term(request.entries.prev_index) !=
                 request.entries.prev_term) {
         debugf("%s on_append_entries_rpc() log mismatch\n",
-            uuid_to_str(this_member_id).substr(0,4).c_str());
+            uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -686,7 +686,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
         new_entries = "<none>";
     }
     debugf("%s on_append_entries_rpc() recorded %s\n",
-        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
         new_entries.c_str());
 
     /* Raft paper, Figure 2: "Append any new entries not already in the log" */
@@ -967,10 +967,10 @@ void raft_member_t<state_t>::update_term(
     /* In Figure 2, `votedFor` is defined as "candidateId that received vote in
     current term (or null if none)". So when the current term changes, we have to
     update `voted_for`. */
-    ps.voted_for = nil_uuid();
+    ps.voted_for = raft_member_id_t();
 
     /* The same logic applies to `current_term_leader_id`. */
-    current_term_leader_id = nil_uuid();
+    current_term_leader_id = raft_member_id_t();
 }
 
 template<class state_t>
@@ -1047,8 +1047,8 @@ void raft_member_t<state_t>::leader_update_match_index(
     it->second = new_value;
 
     debugf("%s leader_update_match_index for %s to %d\n",
-        uuid_to_str(this_member_id).substr(0,4).c_str(),
-        uuid_to_str(key).substr(0,4).c_str(),
+        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
+        uuid_to_str(key.uuid).substr(0,4).c_str(),
         static_cast<int>(new_value));
 
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
@@ -1075,7 +1075,7 @@ void raft_member_t<state_t>::leader_update_match_index(
         }
     }
     debugf("%s commit_index %d -> %d\n",
-        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
         static_cast<int>(old_commit_index),
         static_cast<int>(new_commit_index));
     if (new_commit_index != old_commit_index) {
@@ -1142,7 +1142,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     immediately, because `candidate_run_election()` will do it. */
 
     debugf("%s begin first election (term = %d)\n",
-        uuid_to_str(this_member_id).substr(0,4).c_str(),
+        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
         static_cast<int>(ps.current_term));
 
     mode = mode_t::candidate;
@@ -1177,12 +1177,12 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 update_term(ps.current_term + 1, mutex_acq.get());
                 /* Go around the `while`-loop again. */
                 debugf("%s election timeout (term = %d)\n",
-                    uuid_to_str(this_member_id).substr(0,4).c_str(),
+                    uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
                     static_cast<int>(ps.current_term));
             }
         }
 
-        debugf("%s elected\n", uuid_to_str(this_member_id).substr(0,4).c_str());
+        debugf("%s elected\n", uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);

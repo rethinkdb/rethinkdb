@@ -55,7 +55,7 @@ public:
     {
         raft_config_t initial_config;
         for (size_t i = 0; i < num; ++i) {
-            raft_member_id_t member_id = generate_uuid();
+            raft_member_id_t member_id(generate_uuid());
             if (member_ids_out) {
                 member_ids_out->push_back(member_id);
             }
@@ -91,7 +91,7 @@ public:
         }
         guarantee(found_init_state, "Can't add a new node to a cluster with no living "
             "members.");
-        raft_member_id_t member_id = generate_uuid();
+        raft_member_id_t member_id(generate_uuid());
         add_member(member_id, init_state);
         return member_id;
     }
@@ -100,13 +100,13 @@ public:
     void set_live(const raft_member_id_t &member_id, live_t live) {
         switch (live) {
             case live_t::alive:
-                debugf("%s state alive\n", uuid_to_str(member_id).substr(0,4).c_str());
+                debugf("%s state alive\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
                 break;
             case live_t::isolated:
-                debugf("%s state isolated\n", uuid_to_str(member_id).substr(0,4).c_str());
+                debugf("%s state isolated\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
                 break;
             case live_t::dead:
-                debugf("%s state dead\n", uuid_to_str(member_id).substr(0,4).c_str());
+                debugf("%s state dead\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
                 break;
             default: unreachable();
         }
@@ -166,7 +166,7 @@ public:
     bool try_change(raft_member_id_t id, const uuid_u &change,
             signal_t *interruptor) {
         debugf("%s propose_change(%s) begin\n",
-            uuid_to_str(id).substr(0,4).c_str(),
+            uuid_to_str(id.uuid).substr(0,4).c_str(),
             uuid_to_str(change).substr(0,2).c_str());
         bool res;
         run_on_member(id, [&](dummy_raft_member_t *member, signal_t *interruptor2) {
@@ -193,7 +193,7 @@ public:
                 }
             } else {
                 debugf("%s propose_change(%s) failing because dead\n",
-                    uuid_to_str(id).substr(0,4).c_str(),
+                    uuid_to_str(id.uuid).substr(0,4).c_str(),
                     uuid_to_str(change).substr(0,2).c_str());
             }
         });
@@ -457,14 +457,14 @@ TPTEST(ClusteringRaft, Failover) {
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
     raft_member_id_t leader = cluster.find_leader(60000);
     debugf("failover elected 1st leader: %s\n",
-        uuid_to_str(leader).substr(0,4).c_str());
+        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
     debugf("failover did 1st writes\n");
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
     leader = cluster.find_leader(60000);
     debugf("failover elected 2nd leader: %s\n",
-        uuid_to_str(leader).substr(0,4).c_str());
+        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
     debugf("failover did 2nd writes\n");
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
@@ -473,7 +473,7 @@ TPTEST(ClusteringRaft, Failover) {
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
     debugf("failover elected 3rd leader: %s\n",
-        uuid_to_str(leader).substr(0,4).c_str());
+        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
     debugf("failover did 3rd writes\n");
     cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
@@ -481,7 +481,7 @@ TPTEST(ClusteringRaft, Failover) {
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
     debugf("failover elected 4th leader: %s\n",
-        uuid_to_str(leader).substr(0,4).c_str());
+        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
     debugf("failover did 4th writes\n");
     ASSERT_LT(100, traffic_generator.get_num_changes());
