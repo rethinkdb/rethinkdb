@@ -448,6 +448,7 @@ show_descr () {
     error_details=
 }
 
+# show_no [package_descr] [package_name]
 # Like 'show no', but show the delayed error if there is one
 show_no () {
     local req=$required
@@ -455,8 +456,8 @@ show_no () {
     local info=""
     show no
     if $req; then
-        if can_fetch "$(guess_pkg_name "${1:-}")"; then
-            info=" Try running ./configure with the --fetch ${1:-} or --allow-fetch flags."
+        if can_fetch "$(guess_pkg_name "${2:-$1}")"; then
+            info=" Try running ./configure with the --fetch ${2:-$1} or --allow-fetch flags."
         fi
         error "${err:-${1:-} not found.$info}"
     elif [[ -n "$delayed_error" ]]; then
@@ -738,7 +739,7 @@ check_bin () {
             fetch_bin $1
             return
         else
-            show_no
+            show_no "$1"
             return
         fi
     fi
@@ -846,6 +847,14 @@ int main() {
     m.insert(std::make_pair(0, C()));
 }
 
+~jemalloc:
+
+#include <jemalloc/jemalloc.h>
+
+int main(){
+    static_assert(JEMALLOC_VERSION_MAJOR >= 3, "jemalloc version 3 or above is required");
+}
+
 ~'
 
 # An assoc-list of possible library aliases
@@ -884,7 +893,7 @@ check_lib () {
         ${info}_dep $1
         check_lib_compile "$path" $1
         if $can_show; then
-            show_no "$path"
+            show_no "$path" "$1"
             empty_deps_lib $1 false
         fi
         return
@@ -911,7 +920,7 @@ check_lib () {
     if fetch_allowed $(lib_pkg_name $1); then
         fetch_lib $1
     else
-        show_no "lib$1$static_info"
+        show_no "lib$1$static_info" "$1"
         empty_deps_lib $1 false
     fi
 }
@@ -967,13 +976,20 @@ check_cross_compiling () {
 }
 
 check_static_lib () {
+    local found=false
     for path in $try_lib_paths; do
         local l=$path/lib$1.a
-        check_lib_compile "$l" "$2"
-        if ! $can_show; then
-            return 0
+        if test -e "$l"; then
+            found=true
+            check_lib_compile "$l" "$2"
+            if ! $can_show; then
+                return 0
+            fi
         fi
     done
+    if ! $found; then
+        error_details="${error_details:-}"$"lib$1.a not found\n"
+    fi
 }
 
 # Some utility functions

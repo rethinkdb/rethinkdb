@@ -1,5 +1,5 @@
 
-version=7.36.0
+version=7.40.0
 
 src_url=http://curl.haxx.se/download/curl-$version.tar.bz2
 
