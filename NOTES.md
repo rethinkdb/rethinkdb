@@ -11,7 +11,7 @@ Read the [release blog post][1.16-blog] for more details.
 
 [1.16-blog]: http://rethinkdb.com/blog/1.16-release/
 
-## Compatbility ##
+## Compatibility ##
 
 ### Backwards-compatible changes ###
 
@@ -27,7 +27,7 @@ you should rebuild indexes after upgrading to 1.16.x. A warning about outdated
 indexes will be issued on startup.
 
 Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
-utility. Consult the [troubleshooting document][outdated-indexes-documentation] for more information:
+utility. Consult the [troubleshooting document][outdated-indexes-documentation] for more information.
 
 [outdated-indexes-documentation]: http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
 
