@@ -57,7 +57,17 @@ uses integers for this purpose, but we use UUIDs because we have no reliable dis
 way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
 `peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
 different `raft_member_id_t` the second time. */
-typedef uuid_u raft_member_id_t;
+class raft_member_id_t {
+public:
+    raft_member_id_t() : uuid(nil_uuid()) { }
+    explicit raft_member_id_t(uuid_u u) : uuid(u) { }
+    bool is_nil() const { return uuid.is_nil(); }
+    bool operator==(const raft_member_id_t &other) const { return uuid == other.uuid; }
+    bool operator!=(const raft_member_id_t &other) const { return uuid != other.uuid; }
+    bool operator<(const raft_member_id_t &other) const { return uuid < other.uuid; }
+    uuid_u uuid;
+};
+RDB_DECLARE_SERIALIZABLE(raft_member_id_t);
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
@@ -778,8 +788,10 @@ private:
     applied. The `state` field of `committed_state` is equivalent to the "state machine"
     in the Raft paper. The `log_index` field is equal to the `lastApplied` and
     `commitIndex` variables in Figure 2 of the Raft paper. This implementation deviates
-    from the Raft paper in that the paper allows `lastApplied` to lag behind
-    `commitIndex`, but we require them to be equal at all times. */
+    from the Raft paper in that the paper allows for a delay between when changes are
+    committed and when they are applied to the state machine, so `lastApplied` may lag
+    behind `commitIndex`. But we always apply changes to the state machine as soon as
+    they are committed, so `lastApplied` and `commitIndex` are equivalent for us. */
     watchable_variable_t<state_and_config_t> committed_state;
 
     /* `latest_state` describes the state after all log entries, not only committed ones,
