@@ -216,3 +216,43 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
     }
 }
 
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
+    a->assert_thread();
+    b->assert_thread();
+
+    while (true) {
+        cond_t changed;
+        typename watchable_t<a_type>::subscription_t a_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<b_type>::subscription_t b_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        {
+            typename watchable_t<a_type>::freeze_t a_freeze(a);
+            typename watchable_t<b_type>::freeze_t b_freeze(b);
+            ASSERT_FINITE_CORO_WAITING;
+            bool is_done;
+            a->apply_read([&](const a_type *a_value) {
+                b->apply_read([&](const b_type *b_value) {
+                    is_done = fun(*a_value, *b_value);
+                });
+            });
+            if (is_done) {
+                return;
+            }
+            a_subs.reset(a, &a_freeze);
+            b_subs.reset(b, &b_freeze);
+        }
+        // Nap a little so changes to the watchables can accumulate.
+        // This is purely a performance optimization to save CPU cycles,
+        // in case that applying `fun` is expensive (which it is in our
+        // applications in the reactors as of 12/10/2013).
+        if (nap_before_retry_ms > 0) {
+            nap(nap_before_retry_ms, interruptor);
+        }
+        wait_interruptible(&changed, interruptor);
+    }
+}

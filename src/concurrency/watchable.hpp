@@ -151,6 +151,17 @@ private:
     DISABLE_COPYING(watchable_t);
 };
 
+/* `run_until_satisfied_2()` repeatedly calls `fun(a->get(), b->get())` until
+`fun` returns `true` or `interruptor` is pulsed. It's efficient because it only
+retries `fun` when the value of `a` or `b` changes. */
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
+
 inline void call_function(const std::function<void()> &f) {
     f();
 }
@@ -200,6 +211,13 @@ public:
     void apply_read(const std::function<void(const value_t*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(&value);
+    }
+
+    /* This returns a const reference to the current value. The caller is responsible for
+    ensuring that nothing calls `set_value()` or `apply_atomic_op()` while this reference
+    exists. */
+    const value_t &get_ref() {
+        return value;
     }
 
     value_t get() {
