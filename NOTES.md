@@ -1,13 +1,67 @@
 # Release 1.16.0 (Stand By Me)
 
-Released on 2015-01-28
+Released on 2015-01-29
 
-The highlights of this release are numerous and exciting. Read the
-[release blog post][1.16-blog] for more details.
+The highlights of this release are:
+* A new administration API
+* Changefeeds on complex queries
+* Numerous improvements and enhancements all over the place
+
+Read the [release blog post][1.16-blog] for more details.
 
 [1.16-blog]: http://rethinkdb.com/blog/1.16-release/
 
-There may or may not be API-breaking changes in this release.
+## Compatbility ##
+
+### Backwards-compatible changes ###
+
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 1.16.x. As with any major release, back up your data files
+before performing the upgrade. If you are upgrading from a release earlier
+than 1.13.0, follow the migration instructions before upgrading:
+
+http://rethinkdb.com/docs/migration/
+
+Secondary indexes now use a new format; old indexes will continue to work, but
+you should rebuild indexes after upgrading to 1.16.x. A warning about outdated
+indexes will be issued on startup.
+
+Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
+utility. Consult the troubleshooting document for more information:
+
+http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
+
+The abstraction of datacenters has been replaced by [server tags][server-tags-documentation].
+Existing datacenter assignments will be converted to server tags automatically.
+
+[server-tags-documentation]: http://rethinkdb.com/docs/sharding-and-replication/
+
+### API-breaking changes ###
+
+The `tableCreate`, `tableDrop`, `dbCreate` and `dbDrop` terms have a new set of return values.
+The previous return values `created` and `dropped` have been renamed to `tables_creates` / `dbs_created` and
+`tables_dropped` / `dbs_dropped` respectively. The terms now additionally return a `config_changes` field.
+
+Consult the API documentation for these commands for details:
+[tableCreate][tableCreate-api-docs], [tableDrop][tableDrop-api-docs], [dbCreate][dbCreate-api-docs], [dbDrop][dbDrop-api-docs]
+
+[tableCreate-api-docs]: http://rethinkdb.com/api/javascript/tableCreate
+[tableDrop-api-docs]: http://rethinkdb.com/api/javascript/tableDrop
+[dbCreate-api-docs]: http://rethinkdb.com/api/javascript/dbCreate
+[dbDrop-api-docs]: http://rethinkdb.com/api/javascript/dbDrop
+
+Changefeeds on a table now combine multiple changes to the same document into a single notification if they happen rapidly.
+You can turn this behavior off by passing the `squash: false` optional argument.
+
+Consult the API documentation for details: [changes][changes-api-docs]
+
+[changes-api-docs]: http://rethinkdb.com/api/javascript/changes
+
+Strings passed to ReQL are now rejected if they are not valid UTF-8.
+Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instead.
+
+[binary-api-docs]: http://rethinkdb.com/api/javascript/binary/
+
 
 ## New Features ##
 
@@ -23,12 +77,12 @@ There may or may not be API-breaking changes in this release.
     * The `jobs` table lists running queries and background tasks (#3115)
     * The `stats` table contains real-time statistics about the server (#2885)
     * The `logs` table provides access to the server logs (#2884)
-    * The hidden `_debug_table_status` table contains internal debugging information (#2901)
-    * The hidden `_debug_stats` table contains internal statistics (#3385)
-    * The `identifier_format` optional argument to `table` switches between table names (when set to "name") and table identifiers (when set to "uuid") (#3266)
+    * The `identifier_format` optional argument to `table` switches how databases and tables are referenced in the system tables. Can be either "name" or "uuid" (#3266)
+    * Added hidden debug tables (`_debug_table_status`, `_debug_stats`). These tables are subject to change and not part of the official administration interface (#2901, #3385)
   * Improved cluster management
     * Servers can now be associated with multiple tags using the `--server-tag` flag or by updating the `server_config` table (#2856)
     * Removed the datacenter abstraction and changed the arguments to `tableCreate` (#2876)
+    * Removed the `rethinkdb admin` command line interface
     * Added a `reconfigure` command to change the replication and sharding settings of a table (#2932)
     * Added a `rebalance` command to even out the size of a table's shards (#2981)
     * Added a `config` command for tables and databases as an alias for the corresponding row in `db_config` or `table_config`
@@ -40,7 +94,7 @@ There may or may not be API-breaking changes in this release.
     * The cache size can now be changed at runtime (#3166)
     * Improved the scalability for large table creation and reconfiguration in large clusters (#3198)
     * Added a new UI for table configuration (#3229)
-    * Empty can now be sharded (#3271, #1679)
+    * Empty tables can now be sharded (#3271, #1679)
 * ReQL
   * Added `r.range` which generates all numbers from a given range (#875)
   * Enforce UTF-8 encoding on input strings (#1181)
