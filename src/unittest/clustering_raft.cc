@@ -113,6 +113,11 @@ public:
         member_info_t *i = members.at(member_id).get();
         if (i->rpc_drainer.has() && live != live_t::alive) {
             alive_members.delete_key(member_id);
+            /* The reason we don't just do `i->rpc_drainer.reset()` is that if something
+            were to read `i->rpc_drainer` while the `auto_drainer_t` destructor was
+            blocking, it might get a pointer to an invalid `auto_drainer_t` instead of
+            getting a null pointer. This workaround ensures that `i->rpc_drainer` will
+            always either be valid or null. */
             scoped_ptr_t<auto_drainer_t> dummy;
             std::swap(i->rpc_drainer, dummy);
             dummy.reset();

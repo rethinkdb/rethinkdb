@@ -760,8 +760,10 @@ private:
     applied. The `state` field of `committed_state` is equivalent to the "state machine"
     in the Raft paper. The `log_index` field is equal to the `lastApplied` and
     `commitIndex` variables in Figure 2 of the Raft paper. This implementation deviates
-    from the Raft paper in that the paper allows `lastApplied` to lag behind
-    `commitIndex`, but we require them to be equal at all times. */
+    from the Raft paper in that the paper allows for a delay between when changes are
+    committed and when they are applied to the state machine, so `lastApplied` may lag
+    behind `commitIndex`. But we always apply changes to the state machine as soon as
+    they are committed, so `lastApplied` and `commitIndex` are equivalent for us. */
     watchable_variable_t<state_and_config_t> committed_state;
 
     /* `latest_state` describes the state after all log entries, not only committed ones,
