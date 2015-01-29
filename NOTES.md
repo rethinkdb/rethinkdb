@@ -77,7 +77,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
     * The `jobs` table lists running queries and background tasks (#3115)
     * The `stats` table contains real-time statistics about the server (#2885)
     * The `logs` table provides access to the server logs (#2884)
-    * The `identifier_format` optional argument to `table` switches how databases and tables are referenced in the system tables. Can be either "name" or "uuid" (#3266)
+    * The `identifier_format` optional argument to `table` switches how databases, tables and servers are referenced in the system tables. Can be either "name" or "uuid" (#3266)
     * Added hidden debug tables (`_debug_table_status`, `_debug_stats`). These tables are subject to change and not part of the official administration interface (#2901, #3385)
   * Improved cluster management
     * Servers can now be associated with multiple tags using the `--server-tag` flag or by updating the `server_config` table (#2856)
@@ -170,6 +170,7 @@ Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instea
   * `rethinkdb export` now avoids traversing each table twice by using an estimated document count (#3483)
 * Build
   * Updated code to build with post-Yosemite versions of Xcode (#3219)
+  * Fetch Curl 7.40.0 when not using the system-installed one (#3540)
 * Packaging
   * Added `procps` as a dependency in the Debian packages (#3404)
   * Now depend on `jemalloc` instead of `gperftools` (#3419)
