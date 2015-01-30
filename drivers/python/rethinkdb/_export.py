@@ -283,7 +283,8 @@ def get_table_size(progress, conn, db, table, progress_info):
     progress_info[1].value = table_size
     progress_info[0].value = 0
 
-def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
+def export_table(host, port, auth_key, db, table, directory, fields, format,
+                 error_queue, progress_info, sindex_counter, stream_semaphore, exit_event):
     writer = None
 
     try:
@@ -292,6 +293,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
         rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
+        sindex_counter.value += len(table_info["indexes"])
 
         with stream_semaphore:
             task_queue = SimpleQueue()
@@ -341,6 +343,7 @@ def run_clients(options, db_table_set):
     error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
     stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
+    sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
 
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
     errors = [ ]
@@ -361,6 +364,7 @@ def run_clients(options, db_table_set):
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
+                                                           sindex_counter,
                                                            stream_semaphore,
                                                            exit_event)))
             processes[-1].start()
@@ -380,12 +384,14 @@ def run_clients(options, db_table_set):
             print_progress(1.0)
 
         # Continue past the progress output line and print total rows processed
-        def plural(num, text):
-            return "%d %s%s" % (num, text, "" if num == 1 else "s")
+        def plural(num, text, plural_text):
+            return "%d %s" % (num, text if num == 1 else plural_text)
 
         print("")
-        print("%s exported from %s" % (plural(sum([max(0, info[0].value) for info in progress_info]), "row"),
-                                       plural(len(db_table_set), "table")))
+        print("%s exported from %s, with %s" %
+              (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
+               plural(len(db_table_set), "table", "tables"),
+               plural(sindex_counter.value, "secondary index", "secondary indexes")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
