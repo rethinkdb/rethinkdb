@@ -81,7 +81,7 @@ def check_version(progress, conn):
     parsed_version = None
     try:
         version = r.db('rethinkdb').table('server_status')[0]['process']['version'].run(conn)
-        matches = re.match('rethinkdb (\d+)\.(\d+)\.(\d+)\-', version)
+        matches = re.match('rethinkdb (\d+)\.(\d+)\.(\d+)', version)
         if matches == None:
             raise RuntimeError("invalid version string format")
         parsed_version = tuple(int(num) for num in matches.groups())
