@@ -164,7 +164,7 @@ raft_member_t<state_t>::propose_change(
         new change_token_t(this, log_index, false));
 
     raft_log_entry_t<state_t> new_entry;
-    new_entry.type = raft_log_entry_t<state_t>::type_t::regular;
+    new_entry.type = raft_log_entry_type_t::regular;
     new_entry.change = boost::optional<typename state_t::change_t>(change);
     new_entry.term = ps.current_term;
 
@@ -202,7 +202,7 @@ raft_member_t<state_t>::propose_config_change(
     new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
 
     raft_log_entry_t<state_t> new_entry;
-    new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+    new_entry.type = raft_log_entry_type_t::config;
     new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps.current_term;
 
@@ -674,9 +674,9 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             new_entries += ", ";
         }
         const raft_log_entry_t<state_t> &e = request.entries.get_entry_ref(i);
-        if (e.type == raft_log_entry_t<state_t>::type_t::regular) {
+        if (e.type == raft_log_entry_type_t::regular) {
             new_entries += "CHANGE";
-        } else if (e.type == raft_log_entry_t<state_t>::type_t::config) {
+        } else if (e.type == raft_log_entry_type_t::config) {
             new_entries += "CONFIG";
         } else {
             new_entries += "NOOP";
@@ -764,19 +764,19 @@ void raft_member_t<state_t>::check_invariants(
         latest_term_in_log = entry.term;
 
         switch (entry.type) {
-        case raft_log_entry_t<state_t>::type_t::regular:
+        case raft_log_entry_type_t::regular:
             guarantee(static_cast<bool>(entry.change), "Regular log entries should "
                 "carry changes");
             guarantee(!static_cast<bool>(entry.config), "Regular log entries shouldn't "
                 "carry configurations.");
             break;
-        case raft_log_entry_t<state_t>::type_t::config:
+        case raft_log_entry_type_t::config:
             guarantee(!static_cast<bool>(entry.change), "Configuration log entries "
                 "shouldn't carry changes");
             guarantee(static_cast<bool>(entry.config), "Configuration log entries "
                 "should carry configurations.");
             break;
-        case raft_log_entry_t<state_t>::type_t::noop:
+        case raft_log_entry_type_t::noop:
             guarantee(!static_cast<bool>(entry.change), "Noop log entries shouldn't "
                 "carry changes");
             guarantee(!static_cast<bool>(entry.config), "Noop log entries"
@@ -793,7 +793,7 @@ void raft_member_t<state_t>::check_invariants(
     size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
     for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
         raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
-        if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
+        if (entry.type == raft_log_entry_type_t::config) {
             if (entry.config->is_joint_consensus()) {
                 ++uncommitted_config_1s;
             } else {
@@ -941,13 +941,13 @@ void raft_member_t<state_t>::apply_log_entries(
     for (raft_log_index_t i = first; i <= last; ++i) {
         const raft_log_entry_t<state_t> &e = log.get_entry_ref(i);
         switch (e.type) {
-            case raft_log_entry_t<state_t>::type_t::regular:
+            case raft_log_entry_type_t::regular:
                 state_and_config->state.apply_change(*e.change);
                 break;
-            case raft_log_entry_t<state_t>::type_t::config:
+            case raft_log_entry_type_t::config:
                 state_and_config->config = *e.config;
                 break;
-            case raft_log_entry_t<state_t>::type_t::noop:
+            case raft_log_entry_type_t::noop:
                 break;
             default: unreachable();
         }
@@ -1214,7 +1214,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         from our own term. */
         {
             raft_log_entry_t<state_t> new_entry;
-            new_entry.type = raft_log_entry_t<state_t>::type_t::noop;
+            new_entry.type = raft_log_entry_type_t::noop;
             new_entry.term = ps.current_term;
             leader_append_log_entry(new_entry, mutex_acq.get(),
                 leader_keepalive.get_drain_signal());
@@ -1752,7 +1752,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         new_config.config = *committed_state.get_ref().config.new_config;
 
         raft_log_entry_t<state_t> new_entry;
-        new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+        new_entry.type = raft_log_entry_type_t::config;
         new_entry.config = boost::optional<raft_complex_config_t>(new_config);
         new_entry.term = ps.current_term;
 

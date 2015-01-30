@@ -16,6 +16,8 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
@@ -65,6 +67,7 @@ public:
     bool operator<(const raft_member_id_t &other) const { return uuid < other.uuid; }
     uuid_u uuid;
 };
+RDB_DECLARE_SERIALIZABLE(raft_member_id_t);
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
@@ -106,6 +109,7 @@ public:
         return !(*this == other);
     }
 };
+RDB_DECLARE_SERIALIZABLE(raft_config_t);
 
 /* `raft_complex_config_t` can represent either a `raft_config_t` or a joint consensus of
 an old and a new `raft_config_t`. */
@@ -157,29 +161,34 @@ public:
         return !(*this == other);
     }
 };
+RDB_DECLARE_SERIALIZABLE(raft_complex_config_t);
+
+enum class raft_log_entry_type_t {
+    /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
+    then `change` has a value but `config` is empty. */
+    regular,
+    /* A `config` log entry has a `raft_complex_config_t`. They are used to change
+    the cluster configuration. See Section 6 of the Raft paper. So if `type` is
+    `config`, then `config` has a value but `change` is empty. */
+    config,
+    /* A `noop` log entry does nothing and carries niether a `change_t` nor a
+    `raft_complex_config_t`. See Section 8 of the Raft paper. */
+    noop
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, uint8_t,
+    raft_log_entry_type_t::regular, raft_log_entry_type_t::noop);
 
 /* `raft_log_entry_t` describes an entry in the Raft log. */
 template<class state_t>
 class raft_log_entry_t {
 public:
-    enum class type_t {
-        /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
-        then `change` has a value but `config` is empty. */
-        regular,
-        /* A `config` log entry has a `raft_complex_config_t`. They are used to change
-        the cluster configuration. See Section 6 of the Raft paper. So if `type` is
-        `config`, then `config` has a value but `change` is empty. */
-        config,
-        /* A `noop` log entry does nothing and carries niether a `change_t` nor a
-        `raft_complex_config_t`. See Section 8 of the Raft paper. */
-        noop
-    };
-
-    type_t type;
+    raft_log_entry_type_t type;
     raft_term_t term;
     /* Whether `change` and `config` are empty or not depends on the value of `type`. */
     boost::optional<typename state_t::change_t> change;
     boost::optional<raft_complex_config_t> config;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(raft_log_entry_t, type, term, change, config);
 };
 
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
@@ -247,6 +256,8 @@ public:
     void append(const raft_log_entry_t<state_t> &entry) {
         entries.push_back(entry);
     }
+
+    RDB_MAKE_ME_SERIALIZABLE_3(raft_log_t, prev_index, prev_term, entries);
 };
 
 /* `raft_persistent_state_t` describes the information that each member of the Raft
@@ -282,6 +293,9 @@ private:
     "last included term" as described in Section 7. `log.entries` corresponds to the
     `log` variable in Figure 2. */
     raft_log_t<state_t> log;
+
+    RDB_MAKE_ME_SERIALIZABLE_5(raft_persistent_state_t, current_term, voted_for,
+        snapshot_state, snapshot_config, log);
 };
 
 /* `raft_storage_interface_t` is an abstract class that `raft_member_t` uses to store
@@ -324,6 +338,8 @@ private:
         raft_member_id_t candidate_id;
         raft_log_index_t last_log_index;
         raft_term_t last_log_term;
+        RDB_MAKE_ME_SERIALIZABLE_4(request_vote_t,
+            term, candidate_id, last_log_index, last_log_term);
     };
 
     /* `install_snapshot_t` describes the parameters of the "InstallSnapshot RPC"
@@ -342,6 +358,9 @@ private:
         raft_term_t last_included_term;
         state_t snapshot_state;
         raft_complex_config_t snapshot_config;
+        RDB_MAKE_ME_SERIALIZABLE_6(install_snapshot_t,
+            term, leader_id, last_included_index, last_included_term, snapshot_state,
+            snapshot_config);
     };
 
     /* `append_entries_t` describes the parameters of the "AppendEntries RPC" described
@@ -355,9 +374,13 @@ private:
         raft_member_id_t leader_id;
         raft_log_t<state_t> entries;
         raft_log_index_t leader_commit;
+        RDB_MAKE_ME_SERIALIZABLE_4(append_entries_t,
+            term, leader_id, entries, leader_commit);
     };
 
     boost::variant<request_vote_t, install_snapshot_t, append_entries_t> request;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_request_t, request);
 };
 
 /* `raft_rpc_reply_t` describes the reply to a `raft_rpc_request_t`. */
@@ -371,6 +394,7 @@ private:
     public:
         raft_term_t term;
         bool vote_granted;
+        RDB_MAKE_ME_SERIALIZABLE_2(request_vote_t, term, vote_granted);
     };
 
     /* `install_snapshot_t` describes in the information returned from the
@@ -378,6 +402,7 @@ private:
     class install_snapshot_t {
     public:
         raft_term_t term;
+        RDB_MAKE_ME_SERIALIZABLE_1(install_snapshot_t, term);
     };
 
     /* `append_entries_t` describes the information returned from the
@@ -386,9 +411,12 @@ private:
     public:
         raft_term_t term;
         bool success;
+        RDB_MAKE_ME_SERIALIZABLE_2(append_entries_t, term, success);
     };
 
     boost::variant<request_vote_t, install_snapshot_t, append_entries_t> reply;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_reply_t, reply);
 };
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
