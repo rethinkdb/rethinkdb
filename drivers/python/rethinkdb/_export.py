@@ -29,7 +29,7 @@ except ImportError:
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
-      [--format (csv | json)] [--fields FIELD,FIELD...] [--clients NUM]"
+      [--format (csv | json)] [--fields FIELD,FIELD...] [--keys KEY,KEY...] [--clients NUM]"
 
 def print_export_help():
     print(info)
@@ -44,6 +44,9 @@ def print_export_help():
     print("  --format (csv | json)            format to write (defaults to json)")
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
+    print("  --keys KEY,KEY...                limit the exported documents by primary key")
+    print("                                   (another index may be given by --index)")
+    print("  --index INDEX                    used with --keys to search by a non-primary index")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
     print("                                   be specified multiple times)")
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
@@ -73,6 +76,8 @@ def parse_options():
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--keys", dest="keys", metavar="<KEY>,<KEY>...", default=None, type="string")
+    parser.add_option("--index", dest="index", metavar="<INDEX>", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
@@ -121,6 +126,18 @@ def parse_options():
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
+
+    if options.keys is None:
+        res["keys"] = None
+    else:
+        res["keys"] = options.keys.split(",")
+
+    if options.index is None:
+        res["index"] = None
+    elif options.keys is None:
+        raise RuntimeError("Error: the '--index' option used without '--keys'")
+    else:
+        res["index"] = options.index
 
     # Get number of clients
     if options.clients < 1:
@@ -188,12 +205,21 @@ def write_table_metadata(progress, conn, db, table, base_path):
 # This is called through rdb_call_wrapper and may be called multiple times if
 # connection errors occur.  In order to facilitate this, we do an order_by by the
 # primary key so that we only ever get a given row once.
-def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_info, exit_event):
+def read_table_into_queue(progress, conn, db, table, pkey, keys, index, task_queue, progress_info, exit_event):
     read_rows = 0
-    if progress[0] is None:
-        cursor = r.db(db).table(table).order_by(index=pkey).run(conn, time_format="raw", binary_format='raw')
+    table = r.db(db).table(table)
+
+    if progress[0] is not None:
+        table = table.between(progress[0], None, left_bound="open")
+
+    if keys is None:
+        table = table.order_by(index=pkey)
+    elif index is not None:
+        table = table.get_all(*keys, index=index).order_by(pkey)
     else:
-        cursor = r.db(db).table(table).between(progress[0], None, left_bound="open").order_by(index=pkey).run(conn, time_format="raw", binary_format='raw')
+        table = table.get_all(*keys).order_by(pkey)
+
+    cursor = table.run(conn, time_format="raw", binary_format="raw")
 
     try:
         for row in cursor:
@@ -283,14 +309,27 @@ def get_table_size(progress, conn, db, table, progress_info):
     progress_info[1].value = table_size
     progress_info[0].value = 0
 
-def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
+def get_query_size(progress, conn, db, table, keys, index, progress_info):
+    query_size = r.db(db).table(table).get_all(*keys, index=index).count().run(conn)
+    progress_info[1].value = query_size
+    progress_info[0].value = 0
+
+def export_table(host, port, auth_key, db, table, directory, fields, keys, index, format, error_queue, progress_info, stream_semaphore, exit_event):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+
+        if keys is None:
+            rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+        elif index is not None:
+            rdb_call_wrapper(conn_fn, "count by index", get_query_size, db, table, keys, index, progress_info)
+        else:
+            progress_info[1].value = len(keys)
+            progress_info[0].value = 0
+
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
 
         with stream_semaphore:
@@ -299,7 +338,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
             writer.start()
 
             rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
-                             table_info["primary_key"], task_queue, progress_info, exit_event)
+                             table_info["primary_key"], keys, index, task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -358,6 +397,8 @@ def run_clients(options, db_table_set):
                                                            db, table,
                                                            options["directory_partial"],
                                                            options["fields"],
+                                                           options["keys"],
+                                                           options["index"],
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
