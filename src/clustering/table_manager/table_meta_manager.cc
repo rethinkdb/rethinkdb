@@ -109,7 +109,7 @@ table_meta_manager_t::active_table_t::active_table_t(
     raft_committed_subs(std::bind(&active_table_t::on_raft_committed_change, this)),
     raft_readiness_subs(std::bind(&active_table_t::on_raft_readiness_change, this))
 {
-    guarantee(!member_id.is_unset());
+    guarantee(!member_id.is_nil());
     guarantee(!epoch.id.is_unset());
     update_bcard(false);
     {

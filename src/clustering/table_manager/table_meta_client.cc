@@ -183,7 +183,7 @@ bool table_meta_client_t::create(
     raft_state.config = initial_config;
     raft_config_t raft_config;
     for (const server_id_t &server_id : servers) {
-        raft_member_id_t member_id = generate_uuid();
+        raft_member_id_t member_id(generate_uuid());
         raft_state.member_ids[server_id] = member_id;
         raft_config.voting_members.insert(member_id);
     }
