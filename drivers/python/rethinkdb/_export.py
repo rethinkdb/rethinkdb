@@ -45,6 +45,8 @@ def print_export_help():
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
     print("  --keys KEY,KEY...                limit the exported documents by primary key")
+    print("                                   (another index may be given by --index)")
+    print("  --index INDEX                    used with --keys to search by a non-primary index")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
     print("                                   be specified multiple times)")
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
@@ -75,6 +77,7 @@ def parse_options():
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
     parser.add_option("--keys", dest="keys", metavar="<KEY>,<KEY>...", default=None, type="string")
+    parser.add_option("--index", dest="index", metavar="<INDEX>", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
@@ -128,6 +131,13 @@ def parse_options():
         res["keys"] = None
     else:
         res["keys"] = options.keys.split(",")
+
+    if options.index is None:
+        res["index"] = None
+    elif options.keys is None:
+        raise RuntimeError("Error: the '--index' option used without '--keys'")
+    else:
+        res["index"] = options.index
 
     # Get number of clients
     if options.clients < 1:
@@ -195,7 +205,7 @@ def write_table_metadata(progress, conn, db, table, base_path):
 # This is called through rdb_call_wrapper and may be called multiple times if
 # connection errors occur.  In order to facilitate this, we do an order_by by the
 # primary key so that we only ever get a given row once.
-def read_table_into_queue(progress, conn, db, table, pkey, keys, task_queue, progress_info, exit_event):
+def read_table_into_queue(progress, conn, db, table, pkey, keys, index, task_queue, progress_info, exit_event):
     read_rows = 0
     table = r.db(db).table(table)
 
@@ -204,6 +214,8 @@ def read_table_into_queue(progress, conn, db, table, pkey, keys, task_queue, pro
 
     if keys is None:
         table = table.order_by(index=pkey)
+    elif index is not None:
+        table = table.get_all(*keys, index=index).order_by(pkey)
     else:
         table = table.get_all(*keys).order_by(pkey)
 
@@ -297,7 +309,12 @@ def get_table_size(progress, conn, db, table, progress_info):
     progress_info[1].value = table_size
     progress_info[0].value = 0
 
-def export_table(host, port, auth_key, db, table, directory, fields, keys, format, error_queue, progress_info, stream_semaphore, exit_event):
+def get_query_size(progress, conn, db, table, keys, index, progress_info):
+    query_size = r.db(db).table(table).get_all(*keys, index=index).count().run(conn)
+    progress_info[1].value = query_size
+    progress_info[0].value = 0
+
+def export_table(host, port, auth_key, db, table, directory, fields, keys, index, format, error_queue, progress_info, stream_semaphore, exit_event):
     writer = None
 
     try:
@@ -306,10 +323,12 @@ def export_table(host, port, auth_key, db, table, directory, fields, keys, forma
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
 
         if keys is None:
-          rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+            rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+        elif index is not None:
+            rdb_call_wrapper(conn_fn, "count by index", get_query_size, db, table, keys, index, progress_info)
         else:
-          progress_info[1].value = len(keys)
-          progress_info[0].value = 0
+            progress_info[1].value = len(keys)
+            progress_info[0].value = 0
 
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
 
@@ -319,7 +338,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, keys, forma
             writer.start()
 
             rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
-                             table_info["primary_key"], keys, task_queue, progress_info, exit_event)
+                             table_info["primary_key"], keys, index, task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -379,6 +398,7 @@ def run_clients(options, db_table_set):
                                                            options["directory_partial"],
                                                            options["fields"],
                                                            options["keys"],
+                                                           options["index"],
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
