@@ -388,6 +388,8 @@ class PyTestDriver:
                 passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
             print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+        else:
+            passed_count += 1
 
 driver = PyTestDriver()
 
