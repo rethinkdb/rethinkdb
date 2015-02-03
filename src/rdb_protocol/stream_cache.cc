@@ -8,37 +8,50 @@
 namespace ql {
 
 bool stream_cache_t::contains(int64_t key) {
-    return streams.find(key) != streams.end();
+    rwlock_acq_t lock(&streams_lock, access_t::read);
+    auto it = streams.find(key);
+    return it != streams.end();
 }
 
-void stream_cache_t::insert(int64_t key,
+bool stream_cache_t::insert(int64_t key,
                             use_json_t use_json,
                             std::map<std::string, wire_func_t> global_optargs,
                             profile_bool_t profile_requested,
                             counted_t<datum_stream_t> val_stream) {
-    maybe_evict();
-    auto res = streams.insert(
-            std::make_pair(key,
-                           make_scoped<entry_t>(time(0),
-                                                use_json,
-                                                std::move(global_optargs),
-                                                profile_requested,
-                                                val_stream)));
-    guarantee(res.second);
+    auto entry = make_counted<entry_t>(
+        time(0), use_json, std::move(global_optargs), profile_requested, val_stream);
+    rwlock_acq_t lock(&streams_lock, access_t::write);
+    auto res = streams.insert(std::make_pair(key, std::move(entry)));
+    return res.second;
 }
 
-void stream_cache_t::erase(int64_t key) {
-    size_t num_erased = streams.erase(key);
-    guarantee(num_erased == 1);
+bool stream_cache_t::erase(int64_t key) {
+    counted_t<entry_t> entry;
+    {
+        rwlock_acq_t lock(&streams_lock, access_t::write);
+        auto it = streams.find(key);
+        if (it == streams.end()) return false;
+        entry = it->second;
+        streams.erase(it);
+    }
+
+    // Wait for all outstanding queries on this token to finish.
+    new_mutex_acq_t lock(&entry->mutex);
+    // We're the only remaining query on this token, so it's safe to return.
+    guarantee(entry.unique());
+    return true;
 }
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
-    std::map<int64_t, scoped_ptr_t<entry_t> >::iterator it = streams.find(key);
-    if (it == streams.end()) {
-        return false;
+    counted_t<entry_t> entry;
+    {
+        rwlock_acq_t lock(&streams_lock, access_t::read);
+        auto it = streams.find(key);
+        if (it == streams.end()) return false;
+        entry = it->second;
+        entry->last_activity = time(0);
     }
-    entry_t *const entry = it->second.get();
-    entry->last_activity = time(0);
+    new_mutex_acq_t lock(&entry->mutex);
 
     std::exception_ptr exc;
     try {
@@ -85,10 +98,6 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
     return true;
-}
-
-void stream_cache_t::maybe_evict() {
-    // We never evict right now.
 }
 
 stream_cache_t::entry_t::entry_t(time_t _last_activity,
