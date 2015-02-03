@@ -350,16 +350,19 @@ def setup_table(table_variable_name, table_name, db_name="test")
   
   if $required_external_tables.count > 0
     # use one of the required tables
-    table_name, db_name = $required_external_tables.pop
-    raise "External table #{db_name}.#{table_name} did not exist" unless r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
+    db_name, table_name = $required_external_tables.pop
+    begin
+      r.db(db_name).table(table_name).count().eq(1).run($reql_conn)
+    rescue RqlRuntimeError => e
+      raise "External table #{db_name}.#{table_name} did not exist"
+    end
     
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     
     at_exit do
       res = r.db(db_name).table(table_name).delete().run($reql_conn)
       raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
-      res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run($reql_conn)
-      raise "Failed to remove table indexes from #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0 
+      res = r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run($reql_conn)
     end
   else
     # create a new table
@@ -379,6 +382,12 @@ def setup_table(table_variable_name, table_name, db_name="test")
   end
   
   $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
+end
+
+def setup_table_check()
+    if $required_external_tables.count > 0
+      raise "Unused external tables, that is probably not supported by this test: {$required_external_tables}"
+    end
 end
 
 def check_no_table_specified
@@ -455,9 +464,3 @@ end
 
 True=true
 False=false
-
-# REPLACE WITH TABLE CREATION LINES
-
-if $required_external_tables.count > 0
-  raise "Unused external tables, that is probably not supported by this test: {$required_external_tables}"
-end

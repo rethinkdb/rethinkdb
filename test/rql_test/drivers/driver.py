@@ -63,7 +63,7 @@ print('Using driver port: %d' % DRIVER_PORT)
 required_external_tables = []
 if len(sys.argv) > 2 or os.environ.get('TEST_DB_AND_TABLE_NAME'):
     for rawValue in (sys.argv[2] if len(sys.argv) > 3 else os.environ.get('TEST_DB_AND_TABLE_NAME')).split(','):
-        rawValue = rawValue.stip()
+        rawValue = rawValue.strip()
         if rawValue == '':
             continue
         splitValue = rawValue.split('.')
@@ -306,12 +306,11 @@ class PyTestDriver:
         return r.connect(host='localhost', port=DRIVER_PORT)
 
     def define(self, expr, variable):
-        
         try:
             exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
-        
+    
     def run(self, src, expected, name, runopts, testopts):
         if runopts:
             runopts["profile"] = True
@@ -408,12 +407,14 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
         assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, repr(res))
         res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
-        assert res["errors"] == 0, 'Failed to remove table indexes from %s.%s: %s' % (db_name, table_name, repr(res))
     
     if len(required_external_tables) > 0:
-        table_name, db_name = required_external_tables.pop()
-        assert r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(driver.cpp_conn) is True, 'External table %s.%s did not exist' % (db_name, table_name)
-        atexit.register(_clean_table, tableName=table_name, dbName=db_name)
+        db_name, table_name = required_external_tables.pop()
+        try:
+            r.db(db_name).table(table_name).count().eq(1).run(driver.cpp_conn) # checking that the table exists, even for hidden tables
+        except r.RqlRuntimeError:
+            raise Exception('External table %s.%s did not exist' % (db_name, table_name))
+        atexit.register(_clean_table, table_name=table_name, db_name=db_name)
         
         print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     else:
@@ -426,6 +427,11 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         print('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     
     globals()[table_variable_name] = r.db(db_name).table(table_name)
+
+def setup_table_check():
+    '''Make sure that the required tables have been setup'''
+    if len(required_external_tables) > 0:
+        raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))
 
 def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
@@ -485,12 +491,3 @@ def the_end():
 
 false = False
 true = True
-
-# -- Table Creation
-
-# REPLACE WITH TABLE CREATION LINES
-
-# -- Required External Table Enforcement
-
-if len(required_external_tables) > 0:
-    raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))
