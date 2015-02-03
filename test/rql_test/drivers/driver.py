@@ -442,6 +442,11 @@ def setup_table(table_variable_name, table_name, db_name='test'):
     
     globals()[table_variable_name] = r.db(db_name).table(table_name)
 
+def setup_table_check():
+    '''Make sure that the required tables have been setup'''
+    if len(required_external_tables) > 0:
+        raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))
+
 def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
         raise ValueError("This test isn't meant to be run against a specific table")
@@ -501,12 +506,3 @@ def the_end():
 
 false = False
 true = True
-
-# -- Table Creation
-
-# REPLACE WITH TABLE CREATION LINES
-
-# -- Required External Table Enforcement
-
-if len(required_external_tables) > 0:
-    raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))

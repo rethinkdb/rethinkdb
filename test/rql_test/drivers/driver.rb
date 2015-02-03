@@ -389,6 +389,12 @@ def setup_table(table_variable_name, table_name, db_name="test")
   $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
 end
 
+def setup_table_check()
+    if $required_external_tables.count > 0
+      raise "Unused external tables, that is probably not supported by this test: {$required_external_tables}"
+    end
+end
+
 def check_no_table_specified
   if DB_AND_TABLE_NAME != "no_table_specified"
     abort "This test isn't meant to be run against a specific table"
@@ -463,9 +469,3 @@ end
 
 True=true
 False=false
-
-# REPLACE WITH TABLE CREATION LINES
-
-if $required_external_tables.count > 0
-  raise "Unused external tables, that is probably not supported by this test: {$required_external_tables}"
-end

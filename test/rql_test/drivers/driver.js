@@ -306,7 +306,7 @@ function runTest() {
             
             } else {
                 // -- regular test
-                TRACE("==== runTest ==== non-function: " + test.src)
+                TRACE("==== runTest ==== test: " + test.src)
                 
                 if (!test.runopts) {
                     test.runopts = { maxBatchRows: 3 }
@@ -353,6 +353,16 @@ function runTest() {
                         TRACE("before eval");
                         result = eval(test.src);
                         TRACE("after eval");
+                        
+                        // - allow autoRunTest functions to take over
+                        
+                        if (result instanceof Function && result.autoRunTest) {
+                            TRACE("processing auto-run test: " + result)
+                            result(test);
+                            return; // the auto-run should take over
+                        }
+                        
+                        // - 
                         
                         if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
                             TRACE("processing query: " + result)
@@ -403,7 +413,7 @@ function processResult(err, result, test) {
         // - if an error go straight to compare
         
         if (err) {
-            TRACE('processResult ');
+            TRACE('processResult error');
             compareResult(err, null, test);
         }
         
@@ -418,14 +428,33 @@ function processResult(err, result, test) {
         // - pull out feeds and cursors to arrays
         
         else if (result instanceof Object && result.each) {
-            if (!isNaN(testopts.result_limit)) {
-                if (testopts.result_limit > 0) {
-                    result.next(
-                }
+            if (!isNaN(test.testopts.result_limit) && test.testopts.result_limit > 0) {
+                TRACE('processResult_limitedIter collecting ' + test.testopts.result_limit + ' item(s) from cursor');
+                
+                handleError = function processResult_error(err) {
+                    unexpectedException("processResult_limitedIter", test.name, err);
+                };
+                
+                limitedProcessor = function processResult_limitedIter(row) {
+                    accumulator.push(row);
+                    if (accumulator.length >= test.testopts.result_limit) {
+                        // - limit reached
+                        TRACE('processResult_limitedIter final, items: ' + accumulator.length);
+                        compareResult(null, accumulator, test);
+                    } else {
+                        TRACE('processResult_limitedIter next, items: ' + accumulator.length);
+                        result.next().then(limitedProcessor).error(handleError);
+                    }
+                    
+                };
+                
+                // start accumulator loop
+                result.next().then(limitedProcessor).error(handleError);
+                
             } else {
                 TRACE('processResult collecting full cursor');
                 result.each(
-                    function(err, row) {
+                    function processResult_iter(err, row) {
                         TRACE('processResult_iter')
                         if (err) {
                             console.log("stack: " + String(err.stack));
@@ -450,7 +479,7 @@ function processResult(err, result, test) {
                             }
                         }
                     },
-                    function () {
+                    function processResult_iterFinal() {
                         TRACE('processResult_final' + test)
                         if (test.testopts && test.testopts.arrayfilter) {
                             arrayFunction = new Function('input', test.testopts.arrayfilter);
@@ -460,11 +489,8 @@ function processResult(err, result, test) {
                     }
                 );
             }
-        }
-        
         // - otherwise go to compare
-        
-        else {
+        } else {
             compareResult(null, result, test);
         }
     } catch(err) {
@@ -511,7 +537,7 @@ function compareResult(error, value, test) {
         if (error) {
             if (test.exp_fun.isErr) {
                 if (!test.exp_fun(error)) {
-                    printTestFailure(test.name, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
+                    printTestFailure(test.name, test.src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
                 }
             } else {
                 var info;
@@ -558,7 +584,7 @@ function test(testSrc, expectedSrc, name, runopts, testopts) {
 }
 
 function setup_table(table_variable_name, table_name, db_name) {
-    tests.push(function(test) {
+    tests.push(function setup_table_inner(test) {
         try {
             if (required_external_tables.length > 0) {
                 // use an external table
@@ -589,9 +615,23 @@ function setup_table(table_variable_name, table_name, db_name) {
     });
 }
 
+// check that all of the requested tables have been setup
+function setup_table_check() {
+    tests.push(function setup_table_check_innter() {
+        if (required_external_tables.length > 0) {
+            tableNames = []
+            for (i in required_external_tables) {
+                tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
+            }
+            throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
+        }
+    });
+}
+
 // Invoked by generated code to fetch from a cursor
 function fetch(cursor, limit) {
-    fun = function fetch_inner (test) {
+    fun = function fetch_inner(test) {
+        TRACE("fetch_inner test: " + JSON.stringify(test))
         try {
             if (limit) {
                 limit = parseInt(limit);
@@ -613,13 +653,14 @@ function fetch(cursor, limit) {
     fun.toString = function() {
         return 'fetch_inner() limit = ' + limit;
     };
+    fun.autoRunTest = true;
     return fun;
 }
 
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr, variable) {
-    tests.push(function(test) {
+    tests.push(function define_inner(test) {
         TRACE('setting define: ' + variable + ' = '  + expr);
         with (defines) {
             eval("defines." + variable + " = " + expr);
@@ -741,13 +782,3 @@ function the_end(){ }
 
 True = true;
 False = false;
-
-// REPLACE WITH TABLE CREATION LINES
-
-if (required_external_tables.length > 0) {
-    tableNames = []
-    for (i in required_external_tables) {
-        tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
-    }
-    throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
-}

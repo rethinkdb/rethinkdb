@@ -486,9 +486,14 @@ class TestGroup(object):
             
             outputFile.write('\n%s Tests %s (%s): %s (%s)\n\n' % (lang.line_comment, testName, lang.display_name, parsed_data.get('desc', ''), sourceFile))
             
+            # - write the header
+            
+            outputFile.write(lang.polyglot_language_header)
+            
             # - generate the table setup lines
             
-            tableCreateLines = []
+            outputFile.write('%s -- Table Creation\n\n' % lang.line_comment)
+            
             if "table_variable_name" in parsed_data:
                 variableNames = parsed_data['table_variable_name']
                 if hasattr(parsed_data['table_variable_name'], 'upper'):
@@ -496,19 +501,14 @@ class TestGroup(object):
                 
                 for index, variableName in enumerate(variableNames):
                     db_name, table_name = utils.get_test_db_table(tableName=testName, index=index)
-                    tableCreateLines += ["setup_table(%s, %s, %s)" % (
+                    outputFile.write("setup_table(%s, %s, %s)\n" % (
                         lang.langrepr(variableName),
                         lang.langrepr(table_name),
-                        lang.langrepr(db_name))]
-            if len(tableCreateLines) > 0:
-                tableCreateLines = '\n'.join(tableCreateLines)
+                        lang.langrepr(db_name)
+                    ))
+                outputFile.write('\n')
             else:
-               tableCreateLines = '%s No auto-created tables' % lang.line_comment
-            
-            # - add the header/driver
-            
-            tableCreationTag = '%s REPLACE WITH TABLE CREATION LINES' % lang.line_comment
-            outputFile.write(lang.polyglot_language_header.replace(tableCreationTag, tableCreateLines))
+               outputFile.write('%s No auto-created tables' % lang.line_comment)
             
             # - mark end of the header/driver
             
@@ -1263,7 +1263,7 @@ class WorkerThread(threading.Thread):
                             break
                         try:
                             if test.checkTestDone():
-                                if test.returncode != 0:
+                                if test.returncode != 0 and self.existingServer is None:
                                     restartServer = True
                                 break
                             try:
