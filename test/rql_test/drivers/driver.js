@@ -520,7 +520,6 @@ function processResult(err, result, test) {
             }
         
         // - otherwise go to compare
-        
         } else {
             compareResult(null, result, test);
         }
