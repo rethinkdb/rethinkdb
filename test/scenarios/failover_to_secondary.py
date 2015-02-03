@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -61,17 +61,35 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         print("Killing the primary (%.2fs)" % (time.time() - startTime))
         primary.close()
         
+        print("Checking for the issue (%.2fs)" % (time.time() - startTime))
+        
+        deadline = time.time() + 5
+        last_error = None
+        while time.time() < deadline:
+            try:
+                issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
+                assert len(issues) > 0, 'The server did not record the issue for the killed server'
+                assert len(issues) == 1, 'The server recorded more issues than the single one expected: %s' % str(issues)
+                break
+            except Exception as e:
+                last_error = e
+                time.sleep(.2)
+        else:
+            raise last_error
+        
+        print("Deleting the dead server (%.2fs)" % (time.time() - startTime))
+        
+        result = r.db('rethinkdb').table('server_config').get(primary.uuid).delete().run(conn2)
+        assert result['errors'] == 0, 'Error deleting server: %s' % repr(result)
+        
         print("Moving the shard to the secondary (%.2fs)" % (time.time() - startTime))
         
         assert r.db(dbName).table(tableName).config() \
             .update({'shards':[
                 {'primary_replica':secondary.name, 'replicas':[secondary.name]}
             ]}).run(conn2)['errors'] == 0
-        r.db(dbName).wait().run(conn2)
+        r.db(dbName).wait(timeout=20).run(conn2)
         cluster.check()
-        issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
-        assert len(issues) > 0, 'The server did not record the issue for the killed server'
-        assert len(issues) == 1, 'The server recorded more issues than the single one expected: %s' % str(issues)
         
         print("Running workload after (%.2fs)" % (time.time() - startTime))
         workload.run_after()
