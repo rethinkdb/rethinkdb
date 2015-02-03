@@ -29,7 +29,7 @@ var required_external_tables = [];
 if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
     rawValues = (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME).split(',');
     for (i in rawValues) {
-        rawValue = rawValues[i].trim;
+        rawValue = rawValues[i].trim();
         if (rawValue == '') {
             continue;
         }
@@ -56,10 +56,8 @@ function printTestFailure(name, src, messages) {
 
 function eq_test(expected, result, compOpts, partial) {
     TRACE("eq_test: " + JSON.stringify(expected) + " | == | " + JSON.stringify(result) + " | == | " + partial);
-    
     if (expected instanceof Function) {
         return expected(result);
-    
     } else if (result instanceof Function) {
         return result(expected);
 
@@ -167,7 +165,7 @@ function le_test(a, b){
 
 // Equality comparison
 function eq(exp, compOpts) {
-    var fun = function(val) {
+    var fun = function eq_inner (val) {
         if (!eq_test(val, exp, compOpts)) {
             return false;
         } else {
@@ -181,7 +179,7 @@ function eq(exp, compOpts) {
 }
 
 function returnTrue() {
-    var fun = function(val) {
+    var fun = function returnTrue_inner (val) {
         return True;
     }
     fun.toString = function() {
@@ -214,11 +212,15 @@ function atexitCleanup(exitCode) {
                 if (err) { throw 'In cleanup there was no table "' + fullName + '" to clean'; }
             }).then(function() {
                 return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(reqlConn, function(err, value) {
-                    throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
+                    if (err) {
+                        throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
+                    }
                 });
             }).then(function() {
                 return r.db(dbName).table(tableName).delete().run(reqlConn, function(err, value) {
-                    throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
+                    if (err) {
+                        throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
+                    }
                 });
             }).error(function (e) {
                 if (exitCode == 0) { exitCode = 1; }
@@ -299,7 +301,7 @@ function runTest() {
             
             } else {
                 // -- regular test
-                TRACE("==== runTest ==== non-function: " + test.src)
+                TRACE("==== runTest ==== test: " + test.src)
                 
                 if (!test.runopts) {
                     test.runopts = { maxBatchRows: 3 }
@@ -347,6 +349,16 @@ function runTest() {
                         result = eval(test.src);
                         TRACE("after eval");
                         
+                        // - allow autoRunTest functions to take over
+                        
+                        if (result instanceof Function && result.autoRunTest) {
+                            TRACE("processing auto-run test: " + result)
+                            result(test);
+                            return; // the auto-run should take over
+                        }
+                        
+                        // - 
+                        
                         if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
                             TRACE("processing query: " + result)
                             with (defines) {
@@ -390,13 +402,13 @@ function runTest() {
 function processResult(err, result, test) {
     // prepare the result to be compared (e.g.: collect feeds and cursor results)
     TRACE('processResult result: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
-    var accumulator = [];
+    var accumulator=[];
     
     try {
         // - if an error go straight to compare
         
         if (err) {
-            TRACE('processResult ');
+            TRACE('processResult error');
             compareResult(err, null, test);
         }
         
@@ -411,14 +423,33 @@ function processResult(err, result, test) {
         // - pull out feeds and cursors to arrays
         
         else if (result instanceof Object && result.each) {
-            if (!isNaN(testopts.result_limit)) {
-                if (testopts.result_limit > 0) {
-                    result.next(
-                }
+            if (!isNaN(test.testopts.result_limit) && test.testopts.result_limit > 0) {
+                TRACE('processResult_limitedIter collecting ' + test.testopts.result_limit + ' item(s) from cursor');
+                
+                handleError = function processResult_error(err) {
+                    unexpectedException("processResult_limitedIter", test.name, err);
+                };
+                
+                limitedProcessor = function processResult_limitedIter(row) {
+                    accumulator.push(row);
+                    if (accumulator.length >= test.testopts.result_limit) {
+                        // - limit reached
+                        TRACE('processResult_limitedIter final, items: ' + accumulator.length);
+                        compareResult(null, accumulator, test);
+                    } else {
+                        TRACE('processResult_limitedIter next, items: ' + accumulator.length);
+                        result.next().then(limitedProcessor).error(handleError);
+                    }
+                    
+                };
+                
+                // start accumulator loop
+                result.next().then(limitedProcessor).error(handleError);
+                
             } else {
                 TRACE('processResult collecting full cursor');
                 result.each(
-                    function(err, row) {
+                    function processResult_iter(err, row) {
                         TRACE('processResult_iter')
                         if (err) {
                             console.log("stack: " + String(err.stack));
@@ -434,16 +465,13 @@ function processResult(err, result, test) {
                                 } else {
                                     accumulator.push(row);
                                 }
-                                if (test.testopts.result_limit && accumulator.length >= test.testopts.result_limit) {
-                                    return false; // stop iterating
-                                }
                             } catch(err) {
                                 console.log("stack: " + String(err.stack));
                                 unexpectedException("processResult_iter <<" + test.testopts.filter + ">>", test.name, err);
                             }
                         }
                     },
-                    function () {
+                    function processResult_iterFinal() {
                         TRACE('processResult_final' + test)
                         if (test.testopts && test.testopts.arrayfilter) {
                             arrayFunction = new Function('input', test.testopts.arrayfilter);
@@ -453,11 +481,8 @@ function processResult(err, result, test) {
                     }
                 );
             }
-        }
-        
         // - otherwise go to compare
-        
-        else {
+        } else {
             compareResult(null, result, test);
         }
     } catch(err) {
@@ -473,7 +498,7 @@ function compareResult(error, value, test) {
         if (error) {
             if (test.exp_fun.isErr) {
                 if (!test.exp_fun(error)) {
-                    printTestFailure(test.name, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
+                    printTestFailure(test.name, test.src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
                 }
             } else {
                 var info;
@@ -520,7 +545,7 @@ function test(testSrc, expectedSrc, name, runopts, testopts) {
 }
 
 function setup_table(table_variable_name, table_name, db_name) {
-    tests.push(function(test) {
+    tests.push(function setup_table_inner(test) {
         try {
             if (required_external_tables.length > 0) {
                 // use an external table
@@ -551,9 +576,23 @@ function setup_table(table_variable_name, table_name, db_name) {
     });
 }
 
+// check that all of the requested tables have been setup
+function setup_table_check() {
+    tests.push(function setup_table_check_innter() {
+        if (required_external_tables.length > 0) {
+            tableNames = []
+            for (i in required_external_tables) {
+                tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
+            }
+            throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
+        }
+    });
+}
+
 // Invoked by generated code to fetch from a cursor
 function fetch(cursor, limit) {
-    fun = function fetch_inner (test) {
+    fun = function fetch_inner(test) {
+        TRACE("fetch_inner test: " + JSON.stringify(test))
         try {
             if (limit) {
                 limit = parseInt(limit);
@@ -575,13 +614,14 @@ function fetch(cursor, limit) {
     fun.toString = function() {
         return 'fetch_inner() limit = ' + limit;
     };
+    fun.autoRunTest = true;
     return fun;
 }
 
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr, variable) {
-    tests.push(function(test) {
+    tests.push(function define_inner(test) {
         TRACE('setting define: ' + variable + ' = '  + expr);
         with (defines) {
             eval("defines." + variable + " = " + expr);
@@ -593,7 +633,7 @@ function define(expr, variable) {
 // Invoked by generated code to support bag comparison on this expected value
 function bag(expected, compOpts, partial) {
     var bag = eval(expected).sort(le_test);
-    var fun = function(other) {
+    var fun = function bag_inner(other) {
         other = other.sort(le_test);
         return eq_test(bag, other, compOpts, true);
     };
@@ -607,7 +647,7 @@ function partial(expected, compOpts) {
     if (Array.isArray(expected)) {
         return bag(expected, compOpts, true);
     } else if (expected instanceof Object) {
-        var fun = function(result) {
+        var fun = function partial_inner(result) {
             return eq_test(expected, result, compOpts, true);
         };
         fun.toString = function() {
@@ -695,13 +735,3 @@ function the_end(){ }
 
 True = true;
 False = false;
-
-// REPLACE WITH TABLE CREATION LINES
-
-if (required_external_tables.length > 0) {
-    tableNames = []
-    for (i in required_external_tables) {
-        tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
-    }
-    throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
-}
