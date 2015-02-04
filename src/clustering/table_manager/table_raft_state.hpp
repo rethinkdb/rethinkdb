@@ -42,15 +42,13 @@ public:
     class primary_t {
     public:
         server_id_t server;
-        bool warm_shutdown;
-        server_id_t warm_shutdown_for;
+        boost::optional<server_id_t> hand_over;
     };
     void sanity_check() const {
         if (static_cast<bool>(primary)) {
             guarantee(replicas.count(primary->server) == 1);
-            guarantee(warm_shutdown || warm_shutdown_for.is_nil());
-            if (!warm_shutdown_for.is_nil()) {
-                guarantee(replicas.count(warm_shutdown_for) == 1);
+            if (static_cast<bool>(primary->hand_over) && !primary->hand_over.is_nil()) {
+                guarantee(replicas.count(primary->hand_over) == 1);
             }
         }
         for (const server_id_t &s : voters) {
@@ -70,15 +68,13 @@ according to the following rules:
 
 If `server_id == contract.primary->server`:
 - Serve backfills to servers that request them
-- If we restarted since `contract.branch` was created, don't handle any queries, and ack
-    `primary_need_new_branch`. This is because another replica might have more up-to-date
-    data on `contract.branch` than we do, so it's not safe to continue adding writes to
-    `contract.branch`.
-- If `contract.primary->warm_shutdown`, then don't handle any queries. If
-    `contract.primary->hand_over_to` is up to date, or it's nil and any member of
-    `voters` is up to date, then ack `primary_ready`. Otherwise, ack
-    `primary_in_progress`.
-- Otherwise, do handle queries. Ack writes to the client when a majority of `voters` and
+- If `contract.primary->hand_over`, then don't handle any queries. If
+    `*contract.primary->hand_over` is up to date, then ack `primary_ready`. Otherwise,
+    ack `primary_in_progress`.
+- If `contract.branch` isn't a branch ID that we just now created, then don't handle any
+    queries and report `primary_need_branch` with a branch ID.
+- If `contract.primary->hand_over` is empty and `contract.branch` is the branch that we
+    created, do handle queries. Ack writes to the client when a majority of `voters` and
     `temp_voters` (if present) have them on disk. If every write that happened before the
     last time the contract changed has been replicated to a majority of `voters` and
     `temp_voters` (if present), then ack `primary_ready`. Otherwise, ack
@@ -99,7 +95,7 @@ the ack a `region_map_t<version_t>` describing the data it has on disk, as well 
 history for the `version_t`s in the map. */
 
 enum class contract_ack_t {
-    primary_need_new_branch,
+    primary_need_branch,
     primary_in_progress,
     primary_ready,
     secondary_need_primary,

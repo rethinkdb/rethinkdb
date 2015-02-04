@@ -19,6 +19,7 @@ contract_t calculate_contract(
         ack *specifically* for `old_c`, it won't appear in this map. */
         const std::map<server_id_t, contract_ack_t::state_t> &ack_states,
         const std::map<server_id_t, version_t> &ack_versions,
+        const std::map<server_id_t, branch_id_t> &ack_branches,
         /* Creates a new branch, starting from the given version, to be hosted on the
         given server. `update_contract()` should call this at most once. If several calls
         to `update_contract()` in the same batch all call `branch_maker()` for contiguous
@@ -79,15 +80,15 @@ contract_t calculate_contract(
     /* If a server was removed from `config.replicas` and `c.voters` but it's still in
     `c.replicas`, and it's not primary, then remove it. (If it is primary, it won't be
     for long, because we'll detect this case and switch to another primary.) */
-    bool should_warm_shutdown_primary = false;
+    bool should_kill_primary = false;
     for (const server_id_t &server : old_c.replicas) {
         if (config.replicas.count(server) == 0 &&
                 old_c.voters.count(server) == 0 &&
                 (!static_cast<bool>(old_c.temp_voters) ||
                     old_c.temp_voters->count(server) == 0)) {
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
-                /* We'll process this case further down */
-                should_warm_shutdown_primary = true;
+                /* We'll process this case further down. */
+                should_kill_primary = true;
             } else {
                 new_c.replicas.erase(server);
             }
@@ -164,6 +165,10 @@ contract_t calculate_contract(
     old primary to the new one; we need a majority of replicas to promise to stop
     receiving updates from the old primary before it's safe to elect a new one. */
     if (static_cast<bool>(old_c.primary)) {
+        /* Note we already checked for the case where the old primary wasn't supposed to
+        be a replica. If this is so, then `should_kill_primary` will already be set to
+        `true`. */
+
         /* Check if we need to do an auto-failover. The precise form of this condition
         isn't important for correctness. If we do an auto-failover when the primary isn't
         actually dead, or don't do an auto-failover when the primary is actually dead,
@@ -175,52 +180,45 @@ contract_t calculate_contract(
                 ++voters_cant_reach_primary;
             }
         }
-        bool should_kill_primary = voters_cant_reach_primary > new_c.voters.size() / 2;
-
-        /* If the current primary isn't supposed to be a replica anymore, we'll already
-        have set `should_warm_shutdown_primary` to `true` earlier. Now we also check for
-        the case where it's supposed to be a replica but another replica is supposed to
-        be primary. */
-        server_id_t warm_shutdown_for = nil_uuid();
-        if (old_c.primary->server != config.primary_replica &&
-                ack_states.count(config.primary_replica) == 1 &&
-                ack_states.at(config.primary_replica) ==
-                    contract_ack_t::secondary_streaming) {
-            should_warm_shutdown_primary = true;
-            warm_shutdown_for = config.primary_replica;
+        if (voters_cant_reach_primary > new_c.voters.size() / 2) {
+            should_kill_primary = true;
         }
 
         if (should_kill_primary) {
             new_c.primary = boost::none;
-        } else if (should_warm_shutdown_primary) {
-            /* If the primary already finished the warm shutdown, for the desired server,
-            then kill it. Otherwise, start the warm shutdown. */
-            if (old_c.primary->warm_shutdown == true &&
-                    old_c.primary->warm_shutdown_for = warm_shutdown_for &&
+        } else if (old_c.primary->server != config.primary_replica &&
+                ack_states.count(config.primary_replica) == 1 &&
+                ack_states.at(config.primary_replica) ==
+                    contract_ack_t::secondary_streaming) {
+            /* The old primary is still a valid replica, but it isn't equal to
+            `config.primary_replica`. So we have to do a hand-over to ensure that after
+            we kill the primary, `config.primary_replica` will be a valid candidate. */
+
+            if (old_c.primary->hand_over == config.primary_replica &&
                     ack_states.count(old_c.primary->server) == 1 &&
                     ack_states.at(old_c.primary->server) ==
-                        contract_ack_t::state_t::primary_ready) {
+                        contract_ack_t::primary_ready) {
+                /* We already did the hand over. Now it's safe to stop the old primary.
+                */
                 new_c.primary = boost::none;
             } else {
-                new_c.primary->warm_shutdown = true;
-                new_c.primary->warm_shutdown_for = warm_shutdown_for;
+                new_c.primary->hand_over = boost::make_optional(config.primary_replica);
             }
         } else {
-            /* Usually this will be a no-op. However, it's possible that we'll start a
-            warm shutdown but then the config will change before we finish, and this
-            aborts the warm shutdown. */
-            new_c.primary->warm_shutdown = false;
-            new_c.primary->warm_shutdown_for = nil_uuid();
-
-            /* We might need to issue the primary a new branch ID */
-            if (ack_states.count(old_c.primary->server) == 1 &&
-                    ack_states.at(old_c.primary->server) ==
-                        contract_ack_t::primary_need_new_branch) {
-                new_c.branch = branch_maker(
-                    old_c.primary->server,
-                    ack_versions.at(old_c.primary->server));
-            }
+            /* We're sticking with the current primary, so `hand_over` should be empty.
+            In the unlikely event that we were in the middle of a hand-over and then
+            changed our minds, it might not be empty, so we clear it manually. */
+            new_c.primary->hand_over = boost::none.
         }
+    }
+
+    /* Register a branch if a primary is asking us to */
+    if (static_cast<bool>(old_c.primary) &&
+            static_cast<bool>(new_c.primary) &&
+            old_c.primary->server == new_c.primary->server &&
+            ack_states.count(old_c.primary->server) == 1 &&
+            ack_states.at(old_c.primary->server) == primary_need_branch) {
+        old_c.branch = ack_branches.at(old_c.primary->server);
     }
 
     return new_c;
