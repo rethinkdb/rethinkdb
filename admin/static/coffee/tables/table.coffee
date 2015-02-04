@@ -618,13 +618,14 @@ module 'TableView', ->
                 @interval_progress = setInterval @fetch_progress, 1000
 
         fetch_progress: =>
-            fetch_for_progress = []
+            build_in_progress = false
             for index in @collection.models
                 if index.get('ready') isnt true
-                    fetch_for_progress.push index.get 'index'
+                    build_in_progress = true
+                    break
 
-            if fetch_for_progress.length > 0
-                query = r.db(@model.get('db')).table(@model.get('name')).indexStatus(r.args(fetch_for_progress))
+            if build_in_progress and @model.get('db')?
+                query = r.db(@model.get('db')).table(@model.get('name')).indexStatus()
                     .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
                     .merge( (index) => {
                         id: index("index")
