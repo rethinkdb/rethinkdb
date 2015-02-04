@@ -882,5 +882,5 @@ module 'TableView', ->
             @$('.alert_confirm_delete').hide()
 
         remove: =>
-            @progress_bar?.destroy()
+            @progress_bar?.remove()
             super()
