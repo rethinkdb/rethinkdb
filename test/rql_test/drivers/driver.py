@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys
+import atexit, itertools, os, re, sys, time
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
@@ -465,6 +465,10 @@ def fetch(cursor, limit=None):
         if i >= limit:
             break
     return result
+
+def wait(seconds):
+    '''Sleep for some seconds'''
+    time.sleep(seconds)
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
