@@ -282,29 +282,21 @@ class JsLang(SrcLang):
     }
     line_comment = '//'
     
-    nametranslate_regex = re.compile(r"(?P<quoteChar>[\"\'\`]?)\$?\b[a-z$]+(_[a-z$]+)+\b\$?(?P=quoteChar)")
-    
+    nametranslate_regex = re.compile(r"(?<!\"|')(?:\b)(?P<pre>[a-z]+)_(?P<post>[a-z]+)(?:\b)(?<!\"|')")
+
+    def langrepr(self, val):
+        if isinstance(val, str):
+            return repr(val)
+        elif isinstance(val, unicode):
+            return repr(val)[1:] # Get rid of the 'u'
+        elif isinstance(val, bool):
+            return ("true" if val else "false")
+        else:
+            return repr(str(val))
+
     # Converts canonical form (underscore separation) to camel case
-    @classmethod
-    def nametranslate(cls, name):
-        def replaceFnct(match):
-            if match.group('quoteChar') not in (None, ''):
-                return match.group()
-            returnStr = ''
-            upCase = False
-            for char in match.group():
-                if upCase:
-                    upCase = False
-                    returnStr += char.upper()
-                else:
-                    if char == '_':
-                        upCase = True
-                    else:
-                        upCase = False
-                        returnStr += char
-            return returnStr
-        
-        name = re.sub(cls.nametranslate_regex, replaceFnct, name)
+    def nametranslate(self, name):
+        name = re.sub(self.nametranslate_regex, lambda x: x.group('pre') + x.group('post').title(), name)
         return re.sub('__', '_', name)
     
     def get_interpreter_version(self, executablePath):
