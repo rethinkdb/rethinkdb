@@ -399,7 +399,7 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) =>
             if @isOpen()
                 @close({noreplyWait:false})
-            @emit 'close'
+            @emit 'error', new err.RqlDriverError "Could not connect to " + @host + ":" + @port
 
         @rawSocket.on 'close', =>
             if @isOpen()
