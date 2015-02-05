@@ -34,7 +34,10 @@ std::string jobs_artificial_table_backend_t::get_primary_key_name() {
 
 void jobs_artificial_table_backend_t::get_all_job_reports(
         signal_t *interruptor,
-        std::map<uuid_u, job_report_t> *job_reports_out) {
+        std::map<uuid_u, query_job_report_t> *query_jobs_out,
+        std::map<uuid_u, disk_compaction_job_report_t> *disk_compaction_jobs_out,
+        std::map<uuid_u, index_construction_job_report_t> *index_construction_jobs_out,
+        std::map<uuid_u, backfill_job_report_t> *backfill_jobs_out) {
     assert_thread();  // Accessing `directory_view`
 
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_t;
@@ -43,25 +46,41 @@ void jobs_artificial_table_backend_t::get_all_job_reports(
         cond_t returned_job_reports;
         disconnect_watcher_t disconnect_watcher(mailbox_manager, peer.first);
 
-        mailbox_t<void(std::vector<job_report_t>)> return_mailbox(
+        jobs_manager_business_card_t::return_mailbox_t return_mailbox(
             mailbox_manager,
-            [&](UNUSED signal_t *, std::vector<job_report_t> const &return_job_reports) {
-                for (auto const &return_job_report : return_job_reports) {
-                    auto result = job_reports_out->insert(
-                        std::make_pair(return_job_report.id, return_job_report));
-
-                    // Note `std::map.insert` returns a `std::pair<iterator, bool>`,
-                    // here we update the `job_report_t` if it already existed.
+            [&](UNUSED signal_t *,
+                std::vector<query_job_report_t> const & query_jobs,
+                std::vector<disk_compaction_job_report_t> const &disk_compaction_jobs,
+                std::vector<index_construction_job_report_t> const &index_construction_jobs,
+                std::vector<backfill_job_report_t> const &backfill_jobs) {
+                for (auto const &query_job : query_jobs) {
+                    auto result = query_jobs_out->insert(
+                        std::make_pair(query_job.id, query_job));
                     if (result.second == false) {
-                        result.first->second.duration = std::max(
-                            result.first->second.duration, return_job_report.duration);
-                        result.first->second.is_ready &= return_job_report.is_ready;
-                        result.first->second.progress_numerator +=
-                            return_job_report.progress_numerator;
-                        result.first->second.progress_denominator +=
-                            return_job_report.progress_denominator;
+                        result.first->second.merge(query_job);
                     }
-                    result.first->second.servers.insert(peer.second.server_id);
+                }
+                for (auto const &disk_compaction_job : disk_compaction_jobs) {
+                    auto result = disk_compaction_jobs_out->insert(
+                        std::make_pair(disk_compaction_job.id, disk_compaction_job));
+                    if (result.second == false) {
+                        result.first->second.merge(disk_compaction_job);
+                    }
+                }
+                for (auto const &index_construction_job : index_construction_jobs) {
+                    auto result = index_construction_jobs_out->insert(
+                        std::make_pair(index_construction_job.id,
+                                       index_construction_job));
+                    if (result.second == false) {
+                        result.first->second.merge(index_construction_job);
+                    }
+                }
+                for (auto const &backfill_job : backfill_jobs) {
+                    auto result = backfill_jobs_out->insert(
+                        std::make_pair(backfill_job.id, backfill_job));
+                    if (result.second == false) {
+                        result.first->second.merge(backfill_job);
+                    }
                 }
 
                 returned_job_reports.pulse();
@@ -88,13 +107,40 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t rethreader(home_thread());
 
-    std::map<uuid_u, job_report_t> job_reports;
-    get_all_job_reports(&ct_interruptor, &job_reports);
+    std::map<uuid_u, query_job_report_t> query_jobs;
+    std::map<uuid_u, disk_compaction_job_report_t> disk_compaction_jobs;
+    std::map<uuid_u, index_construction_job_report_t> index_construction_jobs;
+    std::map<uuid_u, backfill_job_report_t> backfill_jobs;
+
+    get_all_job_reports(
+        &ct_interruptor,
+        &query_jobs,
+        &disk_compaction_jobs,
+        &index_construction_jobs,
+        &backfill_jobs);
 
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
-    for (auto const &job_report : job_reports) {
-        ql::datum_t row;
-        if (job_report.second.to_datum(
+    ql::datum_t row;
+    for (auto const &query_job : query_jobs) {
+        if (query_job.second.to_datum(
+                identifier_format, server_config_client, metadata, &row)) {
+            rows_out->push_back(row);
+        }
+    }
+    for (auto const &disk_compaction_job : disk_compaction_jobs) {
+        if (disk_compaction_job.second.to_datum(
+                identifier_format, server_config_client, metadata, &row)) {
+            rows_out->push_back(row);
+        }
+    }
+    for (auto const &index_construction_job : index_construction_jobs) {
+        if (index_construction_job.second.to_datum(
+                identifier_format, server_config_client, metadata, &row)) {
+            rows_out->push_back(row);
+        }
+    }
+    for (auto const &backfill_job : backfill_jobs) {
+        if (backfill_job.second.to_datum(
                 identifier_format, server_config_client, metadata, &row)) {
             rows_out->push_back(row);
         }
@@ -112,19 +158,44 @@ bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
     cross_thread_signal_t ct_interruptor(interruptor, home_thread());
     on_thread_t rethreader(home_thread());
 
-    std::string job_report_type;
-    uuid_u job_report_id;
-    if (convert_job_type_and_id_from_datum(
-            primary_key, &job_report_type, &job_report_id)) {
-        std::map<uuid_u, job_report_t> job_reports;
-        get_all_job_reports(&ct_interruptor, &job_reports);
+    std::string job_type;
+    uuid_u job_id;
+    if (convert_job_type_and_id_from_datum(primary_key, &job_type, &job_id)) {
+        std::map<uuid_u, query_job_report_t> query_jobs;
+        std::map<uuid_u, disk_compaction_job_report_t> disk_compaction_jobs;
+        std::map<uuid_u, index_construction_job_report_t> index_construction_jobs;
+        std::map<uuid_u, backfill_job_report_t> backfill_jobs;
 
-        std::map<uuid_u, job_report_t>::const_iterator iterator =
-            job_reports.find(job_report_id);
-        if (iterator != job_reports.end() && iterator->second.type == job_report_type) {
-            cluster_semilattice_metadata_t metadata = semilattice_view->get();
-            ql::datum_t row;
-            if (iterator->second.to_datum(
+        get_all_job_reports(
+            &ct_interruptor,
+            &query_jobs,
+            &disk_compaction_jobs,
+            &index_construction_jobs,
+            &backfill_jobs);
+
+        cluster_semilattice_metadata_t metadata = semilattice_view->get();
+        ql::datum_t row;
+        if (job_type == "query") {
+            auto const iterator = query_jobs.find(job_id);
+            if (iterator != query_jobs.end() && iterator->second.to_datum(
+                   identifier_format, server_config_client, metadata, &row)) {
+                *row_out = std::move(row);
+            }
+        } else if (job_type == "disk_compaction") {
+            auto const iterator = disk_compaction_jobs.find(job_id);
+            if (iterator != disk_compaction_jobs.end() && iterator->second.to_datum(
+                   identifier_format, server_config_client, metadata, &row)) {
+                *row_out = std::move(row);
+            }
+        } else if (job_type == "index_construction") {
+            auto const iterator = index_construction_jobs.find(job_id);
+            if (iterator != index_construction_jobs.end() && iterator->second.to_datum(
+                   identifier_format, server_config_client, metadata, &row)) {
+                *row_out = std::move(row);
+            }
+        } else if (job_type == "backfill") {
+            auto const iterator = backfill_jobs.find(job_id);
+            if (iterator != backfill_jobs.end() && iterator->second.to_datum(
                    identifier_format, server_config_client, metadata, &row)) {
                 *row_out = std::move(row);
             }

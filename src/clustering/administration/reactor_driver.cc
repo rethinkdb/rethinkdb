@@ -58,6 +58,14 @@ bool table_directory_converter_t::key_2_to_1(
     return true;
 }
 
+sindex_job_t::sindex_job_t(
+        microtime_t _start_time,
+        bool _is_ready,
+        double _progress)
+    : start_time(_start_time),
+      is_ready(_is_ready),
+      progress(_progress) { }
+
 stores_lifetimer_t::stores_lifetimer_t() { }
 
 stores_lifetimer_t::~stores_lifetimer_t() {

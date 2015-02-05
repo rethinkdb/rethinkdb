@@ -22,9 +22,11 @@ const uuid_u jobs_manager_t::base_backfill_id =
     str_to_uuid("a5e1b38d-c712-42d7-ab4c-f177a3fb0d20");
 
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
-                               server_id_t const &_server_id) :
+                               server_id_t const &_server_id,
+                               server_config_client_t *_server_config_client) :
     mailbox_manager(_mailbox_manager),
     server_id(_server_id),
+    server_config_client(_server_config_client),
     rdb_context(nullptr),
     reactor_driver(nullptr),
     get_job_reports_mailbox(_mailbox_manager,
@@ -60,13 +62,21 @@ void jobs_manager_t::unset_rdb_context_and_reactor_driver() {
 void jobs_manager_t::on_get_job_reports(
         UNUSED signal_t *interruptor,
         const business_card_t::return_mailbox_t::address_t &reply_address) {
-    std::vector<job_report_t> job_reports;
+    std::vector<query_job_report_t> query_job_reports;
+    std::vector<disk_compaction_job_report_t> disk_compaction_job_reports;
+    std::vector<index_construction_job_report_t> index_construction_job_reports;
+    std::vector<backfill_job_report_t> backfill_job_reports;
 
     if (drainer.is_draining()) {
         // We're shutting down, send an empty reponse since we can't acquire a `drainer`
         // lock any more. Note the `mailbox_manager` is destructed after we are, thus
         // the pointer remains valid.
-        send(mailbox_manager, reply_address, job_reports);
+        send(mailbox_manager,
+             reply_address,
+             query_job_reports,
+             disk_compaction_job_reports,
+             index_construction_job_reports,
+             backfill_job_reports);
         return;
     }
 
@@ -77,83 +87,95 @@ void jobs_manager_t::on_get_job_reports(
     microtime_t time = current_microtime();
 
     pmap(get_num_threads(), [&](int32_t threadnum) {
-        // Here we need to store `job_report_t` locally to prevent multiple threads from
-        // inserting into the outer `job_reports`.
-        std::vector<job_report_t> job_reports_inner;
+        // Here we need to store `query_job_report_t` locally to prevent multiple threads
+        // from inserting into the outer `job_reports`.
+        std::vector<query_job_report_t> query_job_reports_inner;
         {
             on_thread_t thread((threadnum_t(threadnum)));
 
             if (rdb_context != nullptr) {
                 for (auto const &query
                         : *rdb_context->get_query_jobs_for_this_thread()) {
-                    job_reports_inner.emplace_back(
+                    query_job_reports_inner.emplace_back(
                         query.first,
-                        "query",
                         time - std::min(query.second.start_time, time),
+                        server_id,
                         query.second.client_addr_port);
                 }
             }
         }
-        job_reports.insert(job_reports.end(),
-                           std::make_move_iterator(job_reports_inner.begin()),
-                           std::make_move_iterator(job_reports_inner.end()));
+        query_job_reports.insert(
+            query_job_reports.end(),
+            std::make_move_iterator(query_job_reports_inner.begin()),
+            std::make_move_iterator(query_job_reports_inner.end()));
     });
 
     if (reactor_driver != nullptr) {
-        for (auto const &sindex_job : reactor_driver->get_sindex_jobs()) {
+        for (auto const &job : reactor_driver->get_sindex_jobs()) {
             uuid_u id = uuid_u::from_hash(
                 base_sindex_id,
-                uuid_to_str(sindex_job.first.first) + sindex_job.first.second);
+                uuid_to_str(job.first.first) + job.first.second);
 
-            // Only report the duration of index construction still in progress.
-            double duration = sindex_job.second.is_ready
+            // Only report the duration of index constructions still in progress.
+            double duration = job.second.is_ready
                 ? 0
-                : time - std::min(sindex_job.second.start_time, time);
+                : time - std::min(job.second.start_time, time);
 
-            job_reports.emplace_back(
+            index_construction_job_reports.emplace_back(
                 id,
-                "index_construction",
                 duration,
-                sindex_job.first.first,
-                sindex_job.first.second,
-                sindex_job.second.is_ready,
-                sindex_job.second.progress);
+                server_id,
+                job.first.first,
+                job.first.second,
+                job.second.is_ready,
+                job.second.progress);
         }
 
         if (reactor_driver->is_gc_active()) {
-            uuid_u id = uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id));
-
-            // `disk_compaction` jobs do not have a duration, it's set to -1 to prevent
-            // it being displayed later.
-            job_reports.emplace_back(id, "disk_compaction", -1);
+            disk_compaction_job_reports.emplace_back(
+                uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id)),
+                -1.0,           // Note that `"disk_compaction"` jobs do not have a duration.
+                server_id);
         }
 
-        for (auto const &report : reactor_driver->get_backfill_progress()) {
-            // Only report the duration of backfills still in progress.
-            double duration = report.second.is_ready
-                ? 0
-                : time - std::min(report.second.start_time, time);
-
+        for (auto const &backfills : reactor_driver->get_backfill_progress()) {
             std::string base_str =
-                uuid_to_str(server_id) + uuid_to_str(report.first.first);
-            for (auto const &backfill : report.second.backfills) {
+                uuid_to_str(server_id) + uuid_to_str(backfills.first.first);
+
+            // Only report the duration of backfills still in progress.
+            double duration = backfills.second.is_ready
+                ? 0
+                : time - std::min(backfills.second.start_time, time);
+
+            for (auto const &backfill : backfills.second.backfills) {
                 uuid_u id = uuid_u::from_hash(
                     base_backfill_id, base_str + uuid_to_str(backfill.first.get_uuid()));
 
-                job_reports.emplace_back(
+                boost::optional<server_id_t> source_server_id =
+                    server_config_client->get_server_id_for_peer_id(backfill.first);
+                if (static_cast<bool>(source_server_id) == false) {
+                    continue;
+                }
+
+                backfill_job_reports.emplace_back(
                     id,
-                    "backfill",
                     duration,
-                    report.first.first,
-                    report.second.is_ready,
+                    server_id,
+                    backfills.first.first,
+                    backfills.second.is_ready,
                     backfill.second,
-                    backfill.first,
+                    source_server_id.get(),
                     server_id);
             }
         }
     }
 
-    send(mailbox_manager, reply_address, job_reports);
+    send(mailbox_manager,
+         reply_address,
+         query_job_reports,
+         disk_compaction_job_reports,
+         index_construction_job_reports,
+         backfill_job_reports);
 }
 
 void jobs_manager_t::on_job_interrupt(

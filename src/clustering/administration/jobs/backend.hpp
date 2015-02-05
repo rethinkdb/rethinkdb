@@ -48,7 +48,10 @@ public:
 private:
     void get_all_job_reports(
             signal_t *interruptor,
-            std::map<uuid_u, job_report_t> *job_reports_out);
+            std::map<uuid_u, query_job_report_t> *query_jobs_out,
+            std::map<uuid_u, disk_compaction_job_report_t> *disk_compaction_jobs_out,
+            std::map<uuid_u, index_construction_job_report_t> *index_construction_jobs_out,
+            std::map<uuid_u, backfill_job_report_t> *backfill_jobs_out);
 
     mailbox_manager_t *mailbox_manager;
 

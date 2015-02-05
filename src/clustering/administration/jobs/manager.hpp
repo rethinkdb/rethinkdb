@@ -16,7 +16,10 @@
 
 class jobs_manager_business_card_t {
 public:
-    typedef mailbox_t<void(std::vector<job_report_t>)> return_mailbox_t;
+    typedef mailbox_t<void(std::vector<query_job_report_t>,
+                           std::vector<disk_compaction_job_report_t>,
+                           std::vector<index_construction_job_report_t>,
+                           std::vector<backfill_job_report_t>)> return_mailbox_t;
     typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_reports_mailbox_t;
     typedef mailbox_t<void(uuid_u)> job_interrupt_mailbox_t;
 
@@ -31,7 +34,8 @@ class reactor_driver_t;
 class jobs_manager_t {
 public:
     explicit jobs_manager_t(mailbox_manager_t *mailbox_manager,
-                            server_id_t const &server_id);
+                            server_id_t const &server_id,
+                            server_config_client_t *server_config_client);
 
     typedef jobs_manager_business_card_t business_card_t;
     jobs_manager_business_card_t get_business_card();
@@ -57,8 +61,8 @@ private:
     void on_job_interrupt(UNUSED signal_t *interruptor, uuid_u const &id);
 
     mailbox_manager_t *mailbox_manager;
-
     server_id_t server_id;
+    server_config_client_t *server_config_client;
 
     rdb_context_t *rdb_context;
     reactor_driver_t *reactor_driver;

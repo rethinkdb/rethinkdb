@@ -8,7 +8,6 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "clustering/administration/servers/config_client.hpp"
@@ -54,6 +53,18 @@ public:
     bool key_2_to_1(const peer_id_t &key2,
                     std::pair<peer_id_t, namespace_id_t> *key1_out);
     namespace_id_t table_id;
+};
+
+class sindex_job_t {
+public:
+    sindex_job_t(
+            microtime_t start_time,
+            bool is_ready,
+            double progress);
+
+    microtime_t start_time;
+    bool is_ready;
+    double progress;
 };
 
 // This type holds some store_t objects, and doesn't let anybody _casually_ touch them.
