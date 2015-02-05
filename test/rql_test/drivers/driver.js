@@ -360,11 +360,19 @@ function runTest() {
                         // - 
                         
                         if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
-                            TRACE("processing query: " + result)
+                            TRACE("processing reql query: " + result)
                             with (defines) {
                                 result.run(reqlConn, test.runopts, function(err, value) { processResult(err,  value, test) } );
                                 return;
                             }
+                        } else if (result && result.hasOwnProperty('_settledValue')) {
+                            TRACE("processing promise: " + result)
+                            result.then(function(result) {
+                                processResult(null, result, test); // will go on to next test
+                            }).error(function(err) {
+                                processResult(err, null, test); // will go on to next test
+                            });
+                            return;
                         } else {
                             resultText = result
                             try {
@@ -401,7 +409,7 @@ function runTest() {
 
 function processResult(err, result, test) {
     // prepare the result to be compared (e.g.: collect feeds and cursor results)
-    TRACE('processResult result: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
+    TRACE('processResult: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
     var accumulator=[];
     
     try {
@@ -437,7 +445,7 @@ function processResult(err, result, test) {
                         TRACE('processResult_limitedIter final, items: ' + accumulator.length);
                         compareResult(null, accumulator, test);
                     } else {
-                        TRACE('processResult_limitedIter next, items: ' + accumulator.length);
+                        TRACE('processResult_limitedIter next, collected: ' + accumulator.length + ', item: ' + JSON.stringify(row));
                         result.next().then(limitedProcessor).error(handleError);
                     }
                     
@@ -610,9 +618,22 @@ function fetch(cursor, limit) {
             console.log("stack: " + String(err.stack))
             unexpectedException("processResult", test.name, err);
         }
-    }
+    };
     fun.toString = function() {
         return 'fetch_inner() limit = ' + limit;
+    };
+    fun.autoRunTest = true;
+    return fun;
+}
+
+// allows for a bit of time to go by
+function wait(seconds) {
+    fun = function wait_inner(test) {
+        TRACE("wait_inner test: " + JSON.stringify(test))
+        setTimeout(function () { runTest() }, seconds * 1000);
+    };
+    fun.toString = function() {
+        return 'wait_inner() seconds = ' + seconds;
     };
     fun.autoRunTest = true;
     return fun;
@@ -662,14 +683,20 @@ function partial(expected, compOpts) {
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
     return err_predicate(
-        err_name, function(msg) { return (!err_msg || (err_msg === msg)); },
-        err_frames, err_name+"(\""+err_msg+"\")");
+        err_name,
+        function(msg) { return (!err_msg || (err_msg === msg)); },
+        err_frames || [],
+        err_name+"(\""+err_msg+"\")"
+    );
 }
 
 function err_regex(err_name, err_pat, err_frames) {
     return err_predicate(
-        err_name, function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
-        err_frames, err_name + "(\""+err_pat+"\")");
+        err_name,
+        function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
+        err_frames,
+        err_name + "(\""+err_pat+"\")"
+    );
 }
 
 function err_predicate(err_name, err_pred, err_frames, desc) {
