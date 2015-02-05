@@ -88,6 +88,10 @@ def fetch(cursor, limit=nil)
   end
 end
 
+def wait(seconds)
+  sleep(seconds)
+end
+
 def arrlen(len, x)
   Array.new(len, x)
 end
@@ -142,8 +146,8 @@ end
 def cmp_test(expected, result, testopts={}, partial=false)
   if expected.object_id == NoError.object_id
     if result.class == Err
-      puts e
-      puts e.backtrace
+      puts result
+      puts result.backtrace
       return -1
     end
     return 0
@@ -332,7 +336,6 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       
       if result.kind_of?(RethinkDB::Cursor) && testopts and testopts.key?(:'variable')
         result = $defines.eval("#{testopts[:variable]} = #{testopts[:variable]}.each")
-        $stderr.puts("got here #{result}")
       end
       
     end
