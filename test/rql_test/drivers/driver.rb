@@ -96,6 +96,10 @@ def fetch(cursor, limit=nil)
   end
 end
 
+def wait(seconds)
+  sleep(seconds)
+end
+
 def arrlen(len, x)
   Array.new(len, x)
 end
@@ -340,7 +344,6 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       
       if result.kind_of?(RethinkDB::Cursor) && testopts and testopts.key?(:'variable')
         result = $defines.eval("#{testopts[:variable]} = #{testopts[:variable]}.each")
-        $stderr.puts("got here #{result}")
       end
       
     end

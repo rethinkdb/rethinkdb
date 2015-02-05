@@ -288,6 +288,8 @@ class JsLang(SrcLang):
     
     none_string = 'null'
     line_comment = '//'
+    
+    nametranslate_regex = re.compile(r"(?<!\"|')(?:\b)(?P<pre>[a-z]+)_(?P<post>[a-z]+)(?:\b)(?<!\"|')")
 
     def langrepr(self, val):
         if isinstance(val, str):
@@ -301,10 +303,8 @@ class JsLang(SrcLang):
 
     # Converts canonical form (underscore separation) to camel case
     def nametranslate(self, name):
-        if not re.search('__', name):
-            return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
-        else:
-            return re.sub('__', '_', name)
+        name = re.sub(self.nametranslate_regex, lambda x: x.group('pre') + x.group('post').title(), name)
+        return re.sub('__', '_', name)
     
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
