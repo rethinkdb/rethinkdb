@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_MANAGER_TABLE_RAFT_STATE_HPP_
-#define CLUSTERING_TABLE_MANAGER_TABLE_RAFT_STATE_HPP_
+#ifndef CLUSTERING_TABLE_RAFT_STATE_HPP_
+#define CLUSTERING_TABLE_RAFT_STATE_HPP_
 
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
@@ -9,32 +9,32 @@ namespace table_raft {
 
 /* `table_raft::state_t` is the type of the state that is stored in each table's Raft
 instance. The most important part is a collection of `contract_t`s, which describe the
-current state of the different shards. The table's replicas watch the `contract_t`s and
-perform backfills, accept queries, etc. in response to what the `contract_t`s say. In
-addition, they send `contract_ack_t`s and some other metadata back to the table's Raft
-leader, which updates the `contract_t`s as necessary to perform auto-failover, implement
-the user's configuration changes, and so on. */
+current state of the different shards. Each replica has a `follower_t` for each table,
+which watches the `contract_t`s and performs backfills, accepts queries, etc. in response
+to what the `contract_t`s say. In addition, the `follower_t` sends `contract_ack_t`s back
+to the table's `leader_t`, which initiates Raft transactions to update the `contract_t`s
+as necessary to perform auto-failover, implement the user's configuration changes, and so
+on. */
 
 class state_t;
 class contract_t;
-enum class contract_ack_t;
+class contract_ack_t;
 
 /* We provide the following consistency guarantee: Suppose the client sends a write W
 which affects some region R of the table, and the cluster acknowledges that W has been
 performed. Then every future read will see W, even if servers die or auto-failover
 happens, unless the administrator issues a manual override. (This assumes that the reads
-and writes are run with the highest level of consistency guarantees.)
+and writes are not acked to the client until a majority of voters have replied.)
 
 To provide this guarantee, we maintain a bunch of invariants. Let V be the `version_t`
-of the shard after W has been performed. Let `c` be the `contract_t` in the Raft state
-for some region R' which overlaps R. Then the following are always true unless the user
-issues a manual override:
+which W creates. Let `c` be the `contract_t` in the Raft state for some region R' which
+overlaps R. Then the following are always true unless the user issues a manual override:
 1. A majority of `c.voters` have versions on disk which descend from V (or are V) in the
     intersection of R and R'.
 2. If `c.primary` is present, then `c.primary->server` has a version on disk which
     descends from V (or is V) in the intersection of R and R'.
-3. The latest version on `c.branch` is descended from V (or is V) in the intersection of
-    R and R'.
+3. The latest version on `c.branch` descends from V (or is V) in the intersection of R
+    and R'.
 */
 
 class contract_t {
@@ -89,20 +89,28 @@ Otherwise, if `server_id` is in `contract.replicas`:
 
 If `server_id` is not in `contract.replicas`:
 - Delete all data and ack `nothing`.
+*/
 
-If the replica acks `primary_need_new_branch` or `secondary_need_primary`, it sends with
-the ack a `region_map_t<version_t>` describing the data it has on disk, as well as branch
-history for the `version_t`s in the map. */
+class contract_ack_t {
+public:
+    enum class state_t {
+        primary_need_branch,
+        primary_in_progress,
+        primary_ready,
+        secondary_need_primary,
+        secondary_backfilling,
+        secondary_streaming,
+        nothing
+    };
 
-enum class contract_ack_t {
-    primary_need_branch,
-    primary_in_progress,
-    primary_ready,
-    secondary_need_primary,
-    secondary_backfilling,
-    secondary_streaming,
-    nothing
-};
+    explicit contract_ack_t(state_t s) : state(s) { }
+
+    state_t state;
+
+    /* This is non-empty if `state` is `primary_need_new_branch` or
+    `secondary_need_primary`. */
+    boost::optional<region_map_t<version_t> > version;
+}
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
 gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
@@ -123,7 +131,7 @@ public:
         class new_contracts_t {
         public:
             std::set<contract_id_t> to_remove;
-            std::map<constract_id_t, std::pair<key_range_t, contract_t> > to_add;
+            std::map<contract_id_t, std::pair<key_range_t, contract_t> > to_add;
         };
 
         change_t() { }
@@ -139,7 +147,7 @@ public:
     }
 
     table_config_and_shards_t config;
-    std::map<contract_id_t, std::pair<key_range_t, contract_t> > contracts;
+    std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
@@ -149,5 +157,5 @@ RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 
 } /* namespace table_raft */
 
-#endif /* CLUSTERING_TABLE_MANAGER_TABLE_RAFT_STATE_HPP_ */
+#endif /* CLUSTERING_TABLE_RAFT_STATE_HPP_ */
 

@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_manager/table_raft_state.hpp"
+#include "clustering/table_raft/state.hpp"
 
 void table_raft_state_t::apply_change(const table_raft_state_t::change_t &c) {
     class visitor_t : public boost::static_visitor<void> {
