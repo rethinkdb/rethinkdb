@@ -261,7 +261,7 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_3
+    @@magic_number = VersionDummy::Version::V0_4
     @@wire_protocol = VersionDummy::Protocol::JSON
 
     def debug_socket; @socket; end

@@ -180,6 +180,7 @@ private:
     // This is templatized based on the wire protocol requested by the client
     template<class protocol_t>
     void connection_loop(tcp_conn_t *conn,
+                         size_t max_concurrent_queries,
                          signal_t *interruptor,
                          client_context_t *client_ctx);
 

@@ -257,8 +257,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 throw protob_server_exc_t(
                     "Authorization required but client does not support it.");
             }
-        } else if (client_magic_number == VersionDummy::V0_2 ||
-                   client_magic_number == VersionDummy::V0_3) {
+        } else if (client_magic_number == VersionDummy::V0_2
+                   || client_magic_number == VersionDummy::V0_3
+                   || client_magic_number == VersionDummy::V0_4) {
             auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
             if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
@@ -271,16 +272,24 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       "client driver version not match the server?");
         }
 
+        size_t max_concurrent_queries =
+            (client_magic_number == VersionDummy::V0_1
+             || client_magic_number == VersionDummy::V0_2
+             || client_magic_number == VersionDummy::V0_3) ? 1 : 1024;
+
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
-        if (client_magic_number == VersionDummy::V0_3) {
+        if (client_magic_number != VersionDummy::V0_1
+            && client_magic_number != VersionDummy::V0_2) {
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
 
         if (wire_protocol == VersionDummy::JSON) {
-            connection_loop<json_protocol_t>(conn.get(), &interruptor, &client_ctx);
+            connection_loop<json_protocol_t>(
+                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
-            connection_loop<protobuf_protocol_t>(conn.get(), &interruptor, &client_ctx);
+            connection_loop<protobuf_protocol_t>(
+                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
         } else {
             throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
                                                 wire_protocol));
@@ -304,10 +313,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     }
 }
 
-const size_t max_concurrent_queries = 1024;
-
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
+                                     size_t max_concurrent_queries,
                                      signal_t *raw_interruptor,
                                      client_context_t *client_ctx) {
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
