@@ -58,9 +58,12 @@ public:
 class sindex_job_t {
 public:
     sindex_job_t(
-            microtime_t start_time,
-            bool is_ready,
-            double progress);
+            microtime_t _start_time,
+            bool _is_ready,
+            double _progress)
+        : start_time(_start_time),
+          is_ready(_is_ready),
+          progress(_progress) { }
 
     microtime_t start_time;
     bool is_ready;
