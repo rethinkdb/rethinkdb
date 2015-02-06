@@ -34,8 +34,11 @@ version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx,
 
 void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepalive) {
     const cluster_semilattice_metadata_t snapshot = metadata->get();
-    ql::env_t env(rdb_ctx, keepalive.get_drain_signal(),
-        std::map<std::string, ql::wire_func_t>(), nullptr);
+    ql::env_t env(rdb_ctx,
+                  false,
+                  keepalive.get_drain_signal(),
+                  std::map<std::string, ql::wire_func_t>(),
+                  nullptr);
     http_opts_t opts;
     opts.limits = env.limits();
     opts.result_format = http_result_format_t::JSON;

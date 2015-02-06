@@ -57,7 +57,11 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     try {
         scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(entry->profile);
 
-        env_t env(rdb_ctx, interruptor, entry->global_optargs, trace.get_or_null());
+        env_t env(rdb_ctx,
+                  return_empty_normal_batches,
+                  interruptor,
+                  entry->global_optargs,
+                  trace.get_or_null());
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL

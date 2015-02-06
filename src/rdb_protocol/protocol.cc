@@ -716,7 +716,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         rassert(q.optargs.size() != 0);
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, interruptor, q.optargs, trace.get_or_null());
+    ql::env_t env(ctx, false, interruptor, q.optargs, trace.get_or_null());
 
     // Initialize response.
     response_out->response = query_response_t();

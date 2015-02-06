@@ -681,7 +681,7 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx, false, drainer.get_drain_signal(), std::move(optargs), nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -997,7 +997,9 @@ class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
     std::vector<datum_t>
-    get_els(batcher_t *batcher, const signal_t *interruptor);
+    get_els(batcher_t *batcher,
+            bool return_empty_normal_batches,
+            const signal_t *interruptor);
     virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
@@ -1428,6 +1430,7 @@ private:
             ? make_scoped<env_t>(outer_env->interruptor, outer_env->reql_version())
             : make_scoped<env_t>(
                 outer_env->get_rdb_ctx(),
+                outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
                 nullptr/*don't profile*/);
@@ -1924,7 +1927,9 @@ public:
                "Cannot call a terminal (`reduce`, `count`, etc.) on an "
                "infinite stream (such as a changefeed).");
         batcher_t batcher = bs.to_batcher();
-        return sub->get_els(&batcher, env->interruptor);
+        return sub->get_els(&batcher,
+                            env->return_empty_normal_batches,
+                            env->interruptor);
     }
 private:
     bool is_point;
@@ -1943,7 +1948,9 @@ subscription_t::subscription_t(feed_t *_feed, const datum_t &_squash)
 subscription_t::~subscription_t() { }
 
 std::vector<datum_t>
-subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
+subscription_t::get_els(batcher_t *batcher,
+                        bool return_empty_normal_batches,
+                        const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
@@ -1951,10 +1958,15 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     // We wait for data if we don't have any or if we're squashing and not
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
-        signal_timer_t timer;
-        if (batcher->get_batch_type() == batch_type_t::NORMAL
+        scoped_ptr_t<signal_timer_t> timer;
+        if (return_empty_normal_batches
             || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer.start(batcher->microtime_left() / 1000);
+            timer = make_scoped<signal_timer_t>();
+        }
+        if (timer.has()
+            && (batcher->get_batch_type() == batch_type_t::NORMAL
+                || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST)) {
+            timer->start(batcher->microtime_left() / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
@@ -1973,15 +1985,19 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
             cond_t wait_for_data;
             cond = &wait_for_data;
             try {
-                wait_any_t any_interruptor(interruptor, &timer);
                 // We don't need to wait on the drain signal because the interruptor
                 // will be pulsed if we're shutting down.  Not that `cond` might
                 // already be reset by the time we get here, so make sure to wait on
                 // `&wait_for_data`.
-                wait_interruptible(&wait_for_data, &any_interruptor);
+                if (timer.has()) {
+                    wait_any_t any_interruptor(interruptor, timer.get());
+                    wait_interruptible(&wait_for_data, &any_interruptor);
+                } else {
+                    wait_interruptible(&wait_for_data, interruptor);
+                }
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
-                if (timer.is_pulsed()) {
+                if (timer.has() && timer->is_pulsed()) {
                     return std::vector<datum_t>();
                 }
                 throw e;

@@ -321,6 +321,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     rdb_ctx(&extproc_pool, this)
 {
     env.init(new ql::env_t(&rdb_ctx,
+                           false,
                            &interruptor,
                            std::map<std::string, ql::wire_func_t>(),
                            nullptr /* no profile trace */));

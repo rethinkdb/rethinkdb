@@ -143,6 +143,7 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 }
 
 env_t::env_t(rdb_context_t *ctx,
+             bool _return_empty_normal_batches,
              signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
@@ -150,6 +151,7 @@ env_t::env_t(rdb_context_t *ctx,
       limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version_(reql_version_t::LATEST),
       cache_(LRU_CACHE_SIZE),
+      return_empty_normal_batches(_return_empty_normal_batches),
       interruptor(_interruptor),
       trace(_trace),
       evals_since_yield_(0),
@@ -165,6 +167,7 @@ env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
     : global_optargs_(),
       reql_version_(reql_version),
       cache_(LRU_CACHE_SIZE),
+      return_empty_normal_batches(false),
       interruptor(_interruptor),
       trace(NULL),
       evals_since_yield_(0),

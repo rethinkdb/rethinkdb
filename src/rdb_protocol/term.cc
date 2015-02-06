@@ -238,7 +238,11 @@ void run(protob_t<Query> q,
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, &combined_interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx,
+                  stream_cache->should_return_empty_normal_batches(),
+                  &combined_interruptor,
+                  global_optargs(q),
+                  trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -300,6 +304,8 @@ void run(protob_t<Query> q,
                         return;
                     }
 
+                    // TODO: it kinda sucks that we throw away our `env` and
+                    // build a new one from scratch in `serve`.
                     bool b = stream_cache->serve(token, res, &combined_interruptor);
                     r_sanity_check(b);
                 }

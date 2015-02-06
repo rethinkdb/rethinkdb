@@ -20,8 +20,8 @@ class env_t;
 
 class stream_cache_t {
 public:
-    explicit stream_cache_t(rdb_context_t *_rdb_ctx)
-        : rdb_ctx(_rdb_ctx) {
+    explicit stream_cache_t(rdb_context_t *_rdb_ctx, bool _return_empty_normal_batches)
+        : rdb_ctx(_rdb_ctx), return_empty_normal_batches(_return_empty_normal_batches) {
         rassert(rdb_ctx != NULL);
     }
     // Only use this if you *don't* intend to call `insert`, `erase`, or `serve`
@@ -34,6 +34,9 @@ public:
                 counted_t<datum_stream_t> val_stream);
     bool erase(int64_t key);
     MUST_USE bool serve(int64_t key, Response *res, signal_t *interruptor);
+    bool should_return_empty_normal_batches() {
+        return return_empty_normal_batches;
+    }
 private:
     struct entry_t : public single_threaded_countable_t<entry_t> {
         ~entry_t();
@@ -58,6 +61,7 @@ private:
     rdb_context_t *const rdb_ctx;
     rwlock_t streams_lock;
     std::map<int64_t, counted_t<entry_t> > streams;
+    const bool return_empty_normal_batches;
 
     DISABLE_COPYING(stream_cache_t);
 };

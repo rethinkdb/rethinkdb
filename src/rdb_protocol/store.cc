@@ -278,7 +278,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
-        ql::env_t env(ctx, interruptor, s.optargs, trace);
+        ql::env_t env(ctx, false, interruptor, s.optargs, trace);
         ql::stream_t stream;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
@@ -372,7 +372,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const intersecting_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(ctx, false, interruptor, geo_read.optargs, trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
@@ -421,7 +421,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const nearest_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(ctx, false, interruptor, geo_read.optargs, trace);
 
         response->response = nearest_geo_read_response_t();
         nearest_geo_read_response_t *res =
@@ -475,7 +475,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rassert(rget.optargs.size() != 0);
         }
 
-        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace);
+        ql::env_t ql_env(ctx, false, interruptor, rget.optargs, trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
@@ -674,7 +674,7 @@ private:
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
+        ql::env_t ql_env(ctx, false, interruptor, br.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));

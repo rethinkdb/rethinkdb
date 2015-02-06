@@ -243,7 +243,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(rdb_ctx);
 
     std::string init_error;
 
@@ -251,15 +250,18 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
+        bool pre_2 = client_magic_number == VersionDummy::V0_1;
+        bool pre_3 = pre_2 || client_magic_number == VersionDummy::V0_2;
+        bool pre_4 = pre_3 || client_magic_number == VersionDummy::V0_3;
+        bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
+
         // With version 0_2 and up, the client drivers specifies the authorization key
-        if (client_magic_number == VersionDummy::V0_1) {
+        if (pre_2) {
             if (!auth_key.str().empty()) {
                 throw protob_server_exc_t(
                     "Authorization required but client does not support it.");
             }
-        } else if (client_magic_number == VersionDummy::V0_2
-                   || client_magic_number == VersionDummy::V0_3
-                   || client_magic_number == VersionDummy::V0_4) {
+        } else if (legal) {
             auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
             if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
@@ -272,17 +274,15 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       "client driver version not match the server?");
         }
 
-        size_t max_concurrent_queries =
-            (client_magic_number == VersionDummy::V0_1
-             || client_magic_number == VersionDummy::V0_2
-             || client_magic_number == VersionDummy::V0_3) ? 1 : 1024;
+        size_t max_concurrent_queries = pre_4 ? 1 : 1024;
 
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
-        if (client_magic_number != VersionDummy::V0_1
-            && client_magic_number != VersionDummy::V0_2) {
+        if (!pre_3) {
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
+
+        client_context_t client_ctx(rdb_ctx, pre_4 ? true : false);
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
