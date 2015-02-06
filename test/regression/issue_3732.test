@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# Copyright 2015 RethinkDB, all rights reserved.
+
+# issue-url: https://github.com/rethinkdb/rethinkdb/issues/3732
+# issue-description: inital values for point changefeeds are incorrect after a delete of that same id on virtual tables
+
+from __future__ import print_function
+
+import os, sys
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir, 'common'))
+import utils, rdb_unittest
+
+# =====
+
+class Issue3732(rdb_unittest.RdbTestCase):
+    recordsToGenerate = 0
+    
+    def helper(self, table):
+        server = self.cluster[0]
+        
+        for i in range(20):
+            feedConn = self.r.connect(host=server.host, port=server.driver_port)
+            
+            table.insert({'id':1, 'version':1}).run(self.conn)
+            table.get(1).delete().run(self.conn)
+            
+            table.insert({'id':1, 'version':2}).run(self.conn)
+            feed = utils.NextWithTimeout(self.table.get(1).changes().run(feedConn), timeout=0.1)
+            
+            self.assertEqual(list(table.run(self.conn)), [{'id':1, 'version':2}]) 
+            
+            self.assertEqual(next(feed), {'new_val':{'id':1, 'version':2}})
+            
+            table.get(1).delete().run(self.conn)
+    
+    def test_virtual(self):
+        '''Inital value should always exist, even if preceded by a delete on virutal tables'''
+        
+        self.helper(table=self.r.db('rethinkdb').table('_debug_scratch'))
+    
+    def test_real(self):
+        '''Demonstrate that this works as expected on regular tables'''
+        
+        self.helper(table=self.table)
+
+# ===== main
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()
