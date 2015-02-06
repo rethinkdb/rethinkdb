@@ -255,10 +255,11 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
 #ifndef NDEBUG
         throw;
 #else
-        *s = s->substr(0, start_offset)
-             + strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
-                         Response::RUNTIME_ERROR,
-                         "Internal error in `write_json_pb`, please report this.");
+        // Erase everything we have added above, then append an error message
+        s->erase(start_offset);
+        *s += strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
+                        Response::RUNTIME_ERROR,
+                        "Internal error in `write_json_pb`, please report this.");
 #endif // NDEBUG
     }
 }
