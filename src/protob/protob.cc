@@ -76,7 +76,9 @@ public:
                               signal_t *interruptor) {
         int64_t token = response.token();
         uint32_t size;
-        std::string str;
+        const uint32_t prefix_size = sizeof(token) + sizeof(size);
+        // Reserve space for the token and the size
+        std::string str(prefix_size, '\0');
 
         json_shim::write_json_pb(response, &str);
         if (str.size() > MAX_RESPONSE_SIZE) {
@@ -87,11 +89,20 @@ public:
             send_response(error_response, handler, conn, interruptor);
             return;
         }
-        size = str.size();
+        guarantee(str.size() >= prefix_size);
+        size = str.size() - prefix_size;
 
-        conn->write(&token, sizeof(token), interruptor);
-        conn->write(&size, sizeof(size), interruptor);
-        conn->write(str.data(), size, interruptor);
+        // Fill in the prefix.
+        // std::string::operator[] has unspecified complexity, but in practice
+        // it should be fine.
+        for (size_t i = 0; i < sizeof(token); ++i) {
+            str[i] = reinterpret_cast<char *>(&token)[i];
+        }
+        for (size_t i = 0; i < sizeof(size); ++i) {
+            str[i + sizeof(token)] = reinterpret_cast<char *>(&size)[i];
+        }
+
+        conn->write(str.data(), prefix_size + size, interruptor);
     }
 };
 
@@ -106,9 +117,11 @@ public:
 
         if (size > MAX_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(0, &error_response,
-                                       strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
-                                                 size, MAX_QUERY_SIZE));
+            handler->unparseable_query(
+                0,
+                &error_response,
+                strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                          size, MAX_QUERY_SIZE));
             send_response(error_response, handler, conn, interruptor);
             return false;
         } else {
@@ -134,21 +147,25 @@ public:
         scoped_array_t<char> scoped_array;
         const char *data;
         uint32_t size;
+        const uint32_t prefix_size = sizeof(size);
 
-        if (static_cast<uint64_t>(response.ByteSize()) > MAX_RESPONSE_SIZE) {
+        if (static_cast<uint64_t>(response.ByteSize()) + prefix_size
+                > MAX_RESPONSE_SIZE) {
             Response error_response;
-            handler->unparseable_query(response.token(), &error_response,
+            handler->unparseable_query(
+                response.token(),
+                &error_response,
                 strprintf("Response size (%d) is greater than maximum (%zu).",
                           response.ByteSize(), MAX_RESPONSE_SIZE));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
         size = response.ByteSize();
-        scoped_array.init(size);
-        response.SerializeToArray(scoped_array.data(), size);
+        scoped_array.init(prefix_size + size);
+        memcpy(scoped_array.data(), &size, sizeof(size));
+        response.SerializeToArray(scoped_array.data() + prefix_size, size);
         data = scoped_array.data();
-        conn->write(&size, sizeof(size), interruptor);
-        conn->write(data, size, interruptor);
+        conn->write(data, prefix_size + size, interruptor);
     }
 };
 
