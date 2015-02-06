@@ -50,7 +50,6 @@ public:
     new_mutex_acq_t(new_mutex_t *lock) : new_mutex_in_line_t(lock) {
         acq_signal()->wait();
     }
-    ~new_mutex_acq_t() { }
 
 private:
     DISABLE_COPYING(new_mutex_acq_t);
