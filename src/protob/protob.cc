@@ -15,6 +15,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/queue/limited_fifo.hpp"
 #include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
@@ -355,7 +356,8 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                 abort.pulse_if_not_already_pulsed();
             }
         });
-    unlimited_fifo_queue_t<ql::protob_t<Query> > coro_queue;
+    // Pick a small limit so queries back up on the TCP connection.
+    limited_fifo_queue_t<ql::protob_t<Query> > coro_queue(4);
     coro_pool_t<ql::protob_t<Query> > coro_pool(
         max_concurrent_queries, &coro_queue, &callback);
 

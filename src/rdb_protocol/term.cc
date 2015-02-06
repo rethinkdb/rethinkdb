@@ -206,7 +206,6 @@ void run(protob_t<Query> q,
          stream_cache_t *stream_cache,
          ip_and_port_t const &peer,
          Response *res) {
-    debugf("run: %s\n", q->DebugString().c_str());
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {

@@ -16,7 +16,6 @@
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
 
