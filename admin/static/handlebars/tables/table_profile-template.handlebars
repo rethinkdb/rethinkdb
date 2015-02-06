@@ -1,6 +1,12 @@
 <div class="summary">
   <div class="stat-row first">
-    <p class="availability"><span class="big">{{humanize_table_status status}}</span></p>
+    <p class="availability">
+      {{!-- availability svg gets inserted here --}}
+      <span class="big">{{humanize_table_status status}}</span>
+      {{#if parenthetical}}
+      <span class="parenthetical">(some replicas missing)</span>
+      {{/if}}
+    </p>
   </div>
   <div class="stat-row">
     <p class="documents">
@@ -13,9 +19,10 @@
       </span>documents</p>
   </div>
   <div class="stat-row">
-    <p class="masters"><span class="big">{{num_available_shards}}/{{num_shards}} </span> primary replicas available</p>
+    <p class="masters"><span class="big">{{num_available_shards}}/{{num_shards}}</span> primary replicas available</p>
   </div>
   <div class="stat-row">
-    <p class="replicas"><span class="big">{{num_available_replicas}}/{{num_replicas}} </span> replicas available</p>
+    <p class="replicas"><span class="big">
+      {{num_available_replicas}}/{{num_replicas}} </span> replicas available</p>
   </div>
 </div>
