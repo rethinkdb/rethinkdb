@@ -74,35 +74,38 @@ public:
                               query_handler_t *handler,
                               tcp_conn_t *conn,
                               signal_t *interruptor) {
-        int64_t token = response.token();
-        uint32_t size;
-        const uint32_t prefix_size = sizeof(token) + sizeof(size);
+        const int64_t token = response.token();
+
+        uint32_t data_size_32; // filled in below
+        const size_t prefix_size = sizeof(token) + sizeof(data_size_32);
         // Reserve space for the token and the size
         std::string str(prefix_size, '\0');
 
         json_shim::write_json_pb(response, &str);
-        if (str.size() > MAX_RESPONSE_SIZE) {
+        guarantee(str.size() >= prefix_size);
+        const size_t data_size = str.size() - prefix_size;
+
+        if (data_size > MAX_RESPONSE_SIZE) {
             Response error_response;
             handler->unparseable_query(token, &error_response,
                 strprintf("Response size (%zu) is greater than maximum (%zu).",
-                          str.size(), MAX_RESPONSE_SIZE));
+                          data_size, MAX_RESPONSE_SIZE));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
-        guarantee(str.size() >= prefix_size);
-        size = str.size() - prefix_size;
 
         // Fill in the prefix.
         // std::string::operator[] has unspecified complexity, but in practice
         // it should be fine.
         for (size_t i = 0; i < sizeof(token); ++i) {
-            str[i] = reinterpret_cast<char *>(&token)[i];
+            str[i] = reinterpret_cast<const char *>(&token)[i];
         }
-        for (size_t i = 0; i < sizeof(size); ++i) {
-            str[i + sizeof(token)] = reinterpret_cast<char *>(&size)[i];
+        data_size_32 = static_cast<uint32_t>(data_size);
+        for (size_t i = 0; i < sizeof(data_size_32); ++i) {
+            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size_32)[i];
         }
 
-        conn->write(str.data(), prefix_size + size, interruptor);
+        conn->write(str.data(), str.size(), interruptor);
     }
 };
 
@@ -144,28 +147,26 @@ public:
                               query_handler_t *handler,
                               tcp_conn_t *conn,
                               signal_t *interruptor) {
-        scoped_array_t<char> scoped_array;
-        const char *data;
-        uint32_t size;
-        const uint32_t prefix_size = sizeof(size);
-
-        if (static_cast<uint64_t>(response.ByteSize()) + prefix_size
-                > MAX_RESPONSE_SIZE) {
+        const size_t data_size = response.ByteSize();
+        if (data_size > MAX_RESPONSE_SIZE) {
             Response error_response;
             handler->unparseable_query(
                 response.token(),
                 &error_response,
-                strprintf("Response size (%d) is greater than maximum (%zu).",
-                          response.ByteSize(), MAX_RESPONSE_SIZE));
+                strprintf("Response size (%zu) is greater than maximum (%zu).",
+                          data_size, MAX_RESPONSE_SIZE));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
-        size = response.ByteSize();
-        scoped_array.init(prefix_size + size);
-        memcpy(scoped_array.data(), &size, sizeof(size));
-        response.SerializeToArray(scoped_array.data() + prefix_size, size);
-        data = scoped_array.data();
-        conn->write(data, prefix_size + size, interruptor);
+        const uint32_t data_size_32 = static_cast<uint32_t>(data_size);
+        const size_t prefix_size = sizeof(data_size_32);
+        const size_t total_size = prefix_size + data_size;
+
+        scoped_array_t<char> scoped_array(total_size);
+        memcpy(scoped_array.data(), &data_size_32, sizeof(data_size_32));
+        response.SerializeToArray(scoped_array.data() + prefix_size, data_size_32);
+
+        conn->write(scoped_array.data(), total_size, interruptor);
     }
 };
 
