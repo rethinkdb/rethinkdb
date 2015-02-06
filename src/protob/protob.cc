@@ -326,8 +326,11 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
     ip_and_port_t peer;
-    bool b = conn->getpeername(&peer);
-    guarantee(b); // If this guarantee is failing, ask Vexocide.
+    bool got_peer_name = conn->getpeername(&peer);
+    if (!got_peer_name) {
+        // Return early and close the connection.
+        return;
+    }
 
     std::exception_ptr err;
     cond_t abort;
