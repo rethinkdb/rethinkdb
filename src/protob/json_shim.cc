@@ -203,6 +203,10 @@ bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
 }
 
 void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
+    // Note: We must keep any existing prefix in `s` intact.
+#ifdef NDEBUG
+    const size_t start_offset = s->length();
+#endif
     try {
         *s += strprintf("{\"t\":%d,\"r\":[", r.type());
         for (int i = 0; i < r.response_size(); ++i) {
@@ -251,9 +255,11 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
 #ifndef NDEBUG
         throw;
 #else
-        *s = strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
-                       Response::RUNTIME_ERROR,
-                       "Internal error in `write_json_pb`, please report this.");
+        // Erase everything we have added above, then append an error message
+        s->erase(start_offset);
+        *s += strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
+                        Response::RUNTIME_ERROR,
+                        "Internal error in `write_json_pb`, please report this.");
 #endif // NDEBUG
     }
 }
