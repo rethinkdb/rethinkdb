@@ -466,7 +466,7 @@ class HttpConnection extends Connection
         protocol = if host.protocol is 'https' then 'https' else @DEFAULT_PROTOCOL
         url = "#{protocol}://#{@host}:#{@port}#{host.pathname}ajax/reql/"
         xhr = new XMLHttpRequest
-        xhr.open("GET", url+"open-new-connection", true)
+        xhr.open("POST", url+"open-new-connection", true)
         xhr.responseType = "arraybuffer"
 
         xhr.onreadystatechange = (e) =>
