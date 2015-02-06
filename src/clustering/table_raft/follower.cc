@@ -19,6 +19,7 @@ follower::ongoing_key_t follower::get_contract_key(
             pair.second.primary->server == server_id) {
         key.role = ongoing_key_t::role_t::primary;
         key.primary = nil_uuid();
+        key.branch = nil_uuid();
     } else if (pair.second.replicas.count(server_id) == 1) {
         key.role = ongoing_key_t::role_t::secondary;
         if (static_cast<bool>(pair.second.primary) {
@@ -26,9 +27,11 @@ follower::ongoing_key_t follower::get_contract_key(
         } else {
             key.primary = nil_uuid();
         }
+        key.branch = pair.second.branch;
     } else {
         key.role = ongoing_key_t::role_t::erase;
         key.primary = nil_uuid();
+        key.branch = nil_uuid();
     }
     return key;
 }
@@ -137,16 +140,3 @@ void follower_t::update(const state_t &new_state,
     }
 }
 
-
-void follower_t::execute_contract_nothing(
-        const region_t &region,
-        const contact_id_t &cid,
-        UNUSED const contract_t &c,
-        store_t *store,
-        signal_t *interruptor) {
-    store->reset_data(binary_blob_t(version_t::zero()),
-        region, write_durability_t::HARD, interruptor);
-    ack(contract_ack_t::nothing, boost::none, boost::none);
-    interruptor->wait_lazily_unordered();
-    throw interrupted_exc_t();
-}

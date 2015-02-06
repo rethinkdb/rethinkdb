@@ -20,8 +20,8 @@ private:
     sometimes want to update an existing one. Specifically, we want to create a new
     ongoing when:
      * The region of the contract changes
-     * This server's role in the contract (primary, replica, or neither) changes
-     * This server's role is a replica but the primary has changed
+     * This server's role in the contract (primary, secondary, or neither) changes
+     * This server's role is a secondary but the primary or branch has changed
     We implement this by computing an `ongoing_key_t` based on each contract, using the
     `get_contract_key()` function. If the old and new contracts have the same
     `ongoing_key_t`, then we update the corresponding ongoing. But if they differ, then
@@ -32,10 +32,11 @@ private:
         region_t region;
         role_t role;
         server_id_t primary;
+        branch_id_t branch;
         /* This is just so we can use it as a `std::set`/`std::map` key */
         bool operator<(const ongoing_key_t &k) const {
-            return std::tie(region, role, primary) <
-                std::tie(k.region, k.role, k.primary);
+            return std::tie(region, role, primary, branch) <
+                std::tie(k.region, k.role, k.primary, k.branch);
         }
     };
 

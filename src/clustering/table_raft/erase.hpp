@@ -7,20 +7,21 @@ namespace table_raft {
 class erase_t {
 public:
     erase_t(
+        const server_id_t &server_id,
         store_view_t *s,
         const region_t &r,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &ack_cb);
-    ~erase_t();   /* may block */
     void update_contract(
         const contract_t &c,
         const std::function<void(contract_ack_t)> &ack_cb);
 
 private:
-    void do_erase(auto_drainer_t::lock_t);
+    void run(auto_drainer_t::lock_t);
 
-    store_view_t *store;
-    region_t r;
+    server_id_t const server_id;
+    store_view_t *const store;
+    region_t const r;
     auto_drainer_t drainer;
 };
 
