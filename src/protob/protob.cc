@@ -221,6 +221,8 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
     return ret;
 }
 
+const size_t post_3_max_concurrent_queries = 1024;
+
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
     // This must be read here because of home threads and stuff
@@ -274,7 +276,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       "client driver version not match the server?");
         }
 
-        size_t max_concurrent_queries = pre_4 ? 1 : 1024;
+        size_t max_concurrent_queries = pre_4 ? 1 : post_3_max_concurrent_queries;
 
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
