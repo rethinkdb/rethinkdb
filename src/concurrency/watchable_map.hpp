@@ -131,6 +131,25 @@ private:
 template<class key_t, class value_t>
 class watchable_map_var_t : public watchable_map_t<key_t, value_t> {
 public:
+    /* `entry_t` creates a map entry in its constructor and removes it in the destructor.
+    It is an alternative to `set_key()` and `delete_key()`. It crashes if an entry with
+    that key already exists. Don't call `delete_key()` on the entry that this creates,
+    and don't call `set_all()` while this exists. */
+    class entry_t {
+    public:
+        entry_t() : parent(nullptr) { }
+        entry_t(watchable_map_var_t *parent, key_t &&key, value_t &&value);
+        entry_t(const entry_t &) = delete;
+        entry_t(entry_t &&);
+        ~entry_t();
+        entry_t &operator=(const entry_t &) = delete;
+        entry_t &operator=(entry_t &&);
+
+    private:
+        watchable_map_var_t *parent;
+        typename std::map<key_t, value_t>::iterator iterator;
+    };
+
     watchable_map_var_t() { }
     explicit watchable_map_var_t(std::map<key_t, value_t> &&source);
 
