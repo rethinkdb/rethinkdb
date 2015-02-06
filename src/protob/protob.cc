@@ -335,6 +335,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     std::exception_ptr err;
     cond_t abort;
     wait_any_t conn_interruptor(raw_interruptor, &abort);
+    new_mutex_t send_mutex;
 
     std_function_callback_t<ql::protob_t<Query> > callback(
         [&](ql::protob_t<Query> query, signal_t *coro_pool_interruptor) {
@@ -344,6 +345,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                 Response response;
                 if (handler->run_query(
                         query, &response, &cb_interruptor, client_ctx, peer)) {
+                    new_mutex_acq_t send_lock(&send_mutex);
                     protocol_t::send_response(response, handler, conn, &cb_interruptor);
                 }
             } catch (...) {
