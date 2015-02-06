@@ -29,7 +29,9 @@ template <class> class semilattice_readwrite_view_t;
 
 class client_context_t {
 public:
-    explicit client_context_t(rdb_context_t *rdb_ctx, bool return_empty_normal_batches)
+    explicit client_context_t(
+        rdb_context_t *rdb_ctx,
+        ql::return_empty_normal_batches_t return_empty_normal_batches)
         : stream_cache(rdb_ctx, return_empty_normal_batches) { }
     ql::stream_cache_t stream_cache;
 };
@@ -44,7 +46,7 @@ public:
             // We always return empty normal batches after the timeout for HTTP
             // connections; I think we have to do this to keep the conn cache
             // from timing out.
-            client_ctx(rdb_ctx, true),
+            client_ctx(rdb_ctx, ql::return_empty_normal_batches_t::YES),
             counter(&rdb_ctx->stats.client_connections) {
         }
 

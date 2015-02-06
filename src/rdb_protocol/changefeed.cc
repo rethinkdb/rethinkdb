@@ -681,7 +681,8 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, false, drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx, return_empty_normal_batches_t::NO,
+        drainer.get_drain_signal(), std::move(optargs), nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -998,7 +999,7 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher,
-            bool return_empty_normal_batches,
+            return_empty_normal_batches_t return_empty_normal_batches,
             const signal_t *interruptor);
     virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
@@ -1949,7 +1950,7 @@ subscription_t::~subscription_t() { }
 
 std::vector<datum_t>
 subscription_t::get_els(batcher_t *batcher,
-                        bool return_empty_normal_batches,
+                        return_empty_normal_batches_t return_empty_normal_batches,
                         const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
@@ -1959,7 +1960,7 @@ subscription_t::get_els(batcher_t *batcher,
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
         scoped_ptr_t<signal_timer_t> timer;
-        if (return_empty_normal_batches
+        if (return_empty_normal_batches == return_empty_normal_batches_t::YES
             || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
             timer = make_scoped<signal_timer_t>();
         }

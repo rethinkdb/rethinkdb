@@ -206,6 +206,7 @@ void run(protob_t<Query> q,
          stream_cache_t *stream_cache,
          ip_and_port_t const &peer,
          Response *res) {
+    debugf("run: %s\n", q->DebugString().c_str());
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -239,7 +240,7 @@ void run(protob_t<Query> q,
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
         env_t env(ctx,
-                  stream_cache->should_return_empty_normal_batches(),
+                  stream_cache->get_return_empty_normal_batches(),
                   &combined_interruptor,
                   global_optargs(q),
                   trace.get_or_null());

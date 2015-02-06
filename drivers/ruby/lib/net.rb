@@ -94,22 +94,18 @@ module RethinkDB
     def close
       if @more
         @more = false
-        @conn.wait(@token) # Ignore the response - TODO: do this asynchronously
         q = [Query::QueryType::STOP]
-        res = @conn.run_internal(q, @opts, @token)
-        if ((res['t'] != Response::ResponseType::SUCCESS_SEQUENCE &&
-             res['t'] != Response::ResponseType::SUCCESS_FEED &&
-             res['t'] != Response::ResponseType::SUCCESS_ATOM_FEED) ||
-            res['r'] != [])
-          raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
-        end
+        @conn.run_internal(q, @opts.merge({noreply: true}), @token)
         return true
       end
+      return false
     end
 
     def fetch_batch
-      @conn.register_query(@token, @opts)
-      @conn.dispatch([Query::QueryType::CONTINUE], @token)
+      if @more
+        @conn.register_query(@token, @opts)
+        @conn.dispatch([Query::QueryType::CONTINUE], @token)
+      end
     end
   end
 

@@ -16,7 +16,7 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *argume
         // TODO: there's a `env_t(interruptor, reql_version)` constructor,
         // should this be using that?
         env_t env(ctx,
-                  false,
+                  return_empty_normal_batches_t::NO,
                   interruptor,
                   std::map<std::string, wire_func_t>(),
                   nullptr);

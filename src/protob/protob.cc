@@ -282,7 +282,10 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
 
-        client_context_t client_ctx(rdb_ctx, pre_4 ? true : false);
+        client_context_t client_ctx(
+            rdb_ctx,
+            pre_4 ? ql::return_empty_normal_batches_t::YES
+                  : ql::return_empty_normal_batches_t::NO);
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(

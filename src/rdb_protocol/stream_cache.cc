@@ -18,40 +18,53 @@ bool stream_cache_t::insert(int64_t key,
                             std::map<std::string, wire_func_t> global_optargs,
                             profile_bool_t profile_requested,
                             counted_t<datum_stream_t> val_stream) {
+    debugf("insert %ld\n", key);
     auto entry = make_counted<entry_t>(
         time(0), use_json, std::move(global_optargs), profile_requested, val_stream);
     rwlock_acq_t lock(&streams_lock, access_t::write);
+    debugf("insert locked\n");
     auto res = streams.insert(std::make_pair(key, std::move(entry)));
     return res.second;
 }
 
 bool stream_cache_t::erase(int64_t key) {
+    debugf("erase %ld\n", key);
     counted_t<entry_t> entry;
     {
         rwlock_acq_t lock(&streams_lock, access_t::write);
+        debugf("erase locked\n");
         auto it = streams.find(key);
-        if (it == streams.end()) return false;
+        if (it == streams.end()) {
+            debugf("erase abort\n");
+            return false;
+        }
         entry = it->second;
         streams.erase(it);
     }
+    debugf("erase unlocked %zu\n", counted_use_count(entry.get()));
 
     // Wait for all outstanding queries on this token to finish.
     new_mutex_acq_t lock(&entry->mutex);
+    debugf("erase mutex\n");
     // We're the only remaining query on this token, so it's safe to return.
     guarantee(entry.unique());
     return true;
 }
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
+    debugf("serve %ld\n", key);
     counted_t<entry_t> entry;
     {
         rwlock_acq_t lock(&streams_lock, access_t::read);
+        debugf("serve locked\n");
         auto it = streams.find(key);
         if (it == streams.end()) return false;
         entry = it->second;
         entry->last_activity = time(0);
     }
+    debugf("serve unlocked %zu\n", counted_use_count(entry.get()));
     new_mutex_acq_t lock(&entry->mutex);
+    debugf("serve mutex\n");
 
     std::exception_ptr exc;
     try {
