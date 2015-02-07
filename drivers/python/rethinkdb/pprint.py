@@ -80,7 +80,8 @@ class Nest(Document):
 
 
 def CommaSep(*args):
-    if len(args) == 0: return empty
+    if len(args) == 0:
+        return empty
     docs = [args[0]]
     for subdoc in args[1:]:
         docs.append(Text(','))
