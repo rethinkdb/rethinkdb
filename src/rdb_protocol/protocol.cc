@@ -751,11 +751,15 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
 
     // Unshard and finish up.
-    scoped_ptr_t<ql::accumulator_t> acc(q.terminal
-        ? ql::make_terminal(*q.terminal)
-        : ql::make_append(sorting, NULL));
-    acc->unshard(&env, out->last_key, results);
-    acc->finish(&out->result);
+    try {
+        scoped_ptr_t<ql::accumulator_t> acc(q.terminal
+            ? ql::make_terminal(*q.terminal)
+            : ql::make_append(sorting, NULL));
+        acc->unshard(&env, out->last_key, results);
+        acc->finish(&out->result);
+    } catch (const ql::exc_t &ex) {
+        *out = query_response_t(ex);
+    }
 }
 
 void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
