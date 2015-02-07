@@ -315,21 +315,21 @@ def trackActualPosition(stream):
                     yield subelt
                 yield element
             else:
-                b2 = lookahead.pop()
-                lookahead.append(b2 + [GBeg(element._hpos)]
-                                 + b + [element])  # inefficient
+                lookahead[-1].append(GBeg(element._hpos))
+                lookahead[-1].extend(b)
+                lookahead[-1].append(element)
         elif len(lookahead) == 0:
             yield element
         else:
-            b = lookahead.pop()
-            lookahead.append(b + [element])
+            lookahead[-1].append(element)
 
 
 # for elt in trackActualPosition(annotateStream(genStream(doc2))):
 #     print(">! %s" % elt)
 
-
-# not doing the h-only-lookahead checking here because it's madness
+# Kiselyov adds a pruning step; this is overly complicated, useless in our
+# environment, and requires that we guarantee that all documents have nonzero
+# length, which I'm not prepared to do.  So we use trackActualPosition instead.
 
 
 def format(width, stream):
@@ -370,8 +370,11 @@ def format(width, stream):
 def pprint(width, document):
     return format(width,
                   trackActualPosition(annotateStream(genStream(document))))
+print(" " * 4 + "|")
 print(pprint(5, doc2))
 print("-" * 20)
+print(" " * 39 + "|")
 print(pprint(40, doc2))
 print("-" * 20)
+print(" " * 79 + "|")
 print(pprint(80, doc2))
