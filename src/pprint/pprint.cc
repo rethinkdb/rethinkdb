@@ -1,4 +1,4 @@
-#include "pprint/pprint.cc"
+#include "pprint/pprint.hpp"
 
 namespace pprint {
 
