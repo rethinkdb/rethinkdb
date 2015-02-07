@@ -119,7 +119,7 @@ void parsed_stats_t::store_shard_values(const ql::datum_t &shard_perf,
                                       &stats_out->written_docs_per_sec);
                     add_perfmon_value(sub_pair.second, "total_keys_read",
                                       &stats_out->read_docs_total);
-                    add_perfmon_value(sub_pair.second, "total_keys_written",
+                    add_perfmon_value(sub_pair.second, "total_keys_set",
                                       &stats_out->written_docs_total);
                 } else if (key == "cache") {
                     add_perfmon_value(sub_pair.second, "in_use_bytes",

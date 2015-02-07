@@ -837,7 +837,7 @@ def import_file(options):
     file_info["format"] = options["import_format"]
     file_info["db"] = db
     file_info["table"] = table
-    file_info["info"] = {"primary_key": pkey}
+    file_info["info"] = {"primary_key": pkey, "indexes": []}
 
     spawn_import_clients(options, [file_info])
 

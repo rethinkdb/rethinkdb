@@ -14,7 +14,10 @@ int _gettid() {
 
 fd_t scoped_fd_t::reset(fd_t f2) {
     if (fd != INVALID_FD) {
-        int res = close(fd);
+        int res;
+        do {
+            res = close(fd);
+        } while (res != 0 && get_errno() == EINTR);
         guarantee_err(res == 0, "error returned by close(2)");
     }
     fd = f2;

@@ -32,7 +32,6 @@ public:
 
     fd_t reset(fd_t f2 = INVALID_FD);
 
-    // TODO: Make get check that it's not returning INVALID_FD.
     fd_t get() {
         return fd;
     }

@@ -369,8 +369,8 @@ void query_server_t::handle(const http_req_t &req,
                             http_res_t *result,
                             signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
-    if (req.method == GET &&
-        req.resource.as_string().find("open-new-connection")) {
+    if (req.method == POST &&
+        req.resource.as_string().find("open-new-connection") != std::string::npos) {
         int32_t conn_id = http_conn_cache.create(rdb_ctx);
 
         std::string body_data;

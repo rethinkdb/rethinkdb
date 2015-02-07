@@ -38,7 +38,23 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 std::string format_log_message(const log_message_t &m, bool for_console = false);
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error);
 
-log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
+
+class file_reverse_reader_t {
+public:
+    explicit file_reverse_reader_t(scoped_fd_t &&fd);
+    bool get_next(std::string *out);
+
+private:
+    bool read_chunk();
+
+    static const int chunk_size = 4096;
+    scoped_fd_t fd;
+    scoped_array_t<char> current_chunk;
+    int remaining_in_current_chunk;
+    int64_t current_chunk_start;
+
+    DISABLE_COPYING(file_reverse_reader_t);
+};
 
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) __attribute__((format (printf, 4, 5)));
 void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args) __attribute__((format (printf, 4, 0)));

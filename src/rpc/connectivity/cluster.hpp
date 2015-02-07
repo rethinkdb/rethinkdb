@@ -12,7 +12,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
 #include "perfmon/perfmon.hpp"
@@ -268,10 +268,10 @@ public:
     peer_id_t get_me() THROWS_NOTHING;
 
     /* This returns a watchable table of every active connection. The returned
-    `watchable_t` will be valid for the thread that `get_connections()` was called on. */
-    typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t> >
-            connection_map_t;
-    clone_ptr_t<watchable_t<connection_map_t> > get_connections() THROWS_NOTHING;
+    `watchable_map_t` will be valid for the thread that `get_connections()` was called
+    on. */
+    typedef std::pair<connection_t *, auto_drainer_t::lock_t> connection_pair_t;
+    watchable_map_t<peer_id_t, connection_pair_t> *get_connections() THROWS_NOTHING;
 
     /* Shortcut if you just want to access one connection, which is by far the most
     common case. Returns `NULL` if there is no active connection to the given peer. */
@@ -296,12 +296,14 @@ private:
     const peer_id_t me;
 
     /* `connections` holds open connections to other peers. It's the same on every
-    thread. It has an entry for every peer we are fully and officially connected to,
-    including us. That means it's a subset of the entries in `run_t::routing_table`. It
-    also holds an `auto_drainer_t::lock_t` for each connection; that way, the connection
-    can make sure nobody acquires a lock on its `auto_drainer_t` after it removes itself
-    from `connections`. */
-    one_per_thread_t<watchable_variable_t<connection_map_t> > connections;
+    thread, except that the `auto_drainer_t::lock_t`s on each thread correspond to the
+    thread-specific `auto_drainer_t`s in the `connection_t`. It has an entry for every
+    peer we are fully and officially connected to, including us. That means it's a subset
+    of the entries in `run_t::routing_table`. The only legal way to acquire a
+    connection's `auto_drainer_t` is through this map; this way, the connection can make
+    sure nobody acquires a lock on its `auto_drainer_t` after it removes itself from
+    `connections`. */
+    one_per_thread_t<watchable_map_var_t<peer_id_t, connection_pair_t> > connections;
 
     cluster_message_handler_t *message_handlers[max_message_tag];
 

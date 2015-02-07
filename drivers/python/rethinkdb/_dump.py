@@ -131,9 +131,9 @@ def run_rethinkdb_export(options):
     res = -1
 
     # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-    print("NOTE: 'rethinkdb-dump' only dumps data and does *not* dump secondary indexes or")
-    print(" cluster metadata.  You will need to recreate your secondary indexes and cluster")
-    print(" setup yourself after you run 'rethinkdb-restore'.")
+    print("NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save")
+    print(" cluster metadata.  You will need to recreate your cluster setup yourself after ")
+    print(" you run 'rethinkdb-restore'.")
 
     try:
         do_export(temp_dir, options)

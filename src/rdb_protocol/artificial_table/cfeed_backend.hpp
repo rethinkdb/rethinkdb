@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_ARTIFICIAL_TABLE_CFEED_BACKEND_HPP_
 #define RDB_PROTOCOL_ARTIFICIAL_TABLE_CFEED_BACKEND_HPP_
 
+#include "arch/timing.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/changefeed.hpp"

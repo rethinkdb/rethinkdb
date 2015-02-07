@@ -10,7 +10,7 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
     inner(_inner),
     all_subs(inner,
         [this](const key1_t &key1, const value1_t *value1) {
-            rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
+            rwi_lock_assertion_t::write_acq_t write_acq(&(this->rwi_lock));
             key2_t key2;
             if (this->key_1_to_2(key1, &key2)) {
                 if (value1 != nullptr) {
@@ -106,7 +106,7 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
             map(_map), key(_key),
             subs(map, key,
                 [this](const value_t *) {
-                    rwi_lock_assertion_t::write_acq_t acq(&rwi_lock);
+                     rwi_lock_assertion_t::write_acq_t acq(&(this->rwi_lock));
                     publisher.publish([](const std::function<void()> &f) { f(); });
                 },
                 false)
@@ -182,7 +182,7 @@ void watchable_buffer_t<value_t>::notify() {
         auto_drainer_t::lock_t keepalive(&drainer);
         coro_t::spawn_sometime([this, keepalive]() {
             signal_timer_t timer;
-            timer.start(delay);
+            timer.start(this->delay);
             try {
                 wait_interruptible(&timer, keepalive.get_drain_signal());
             } catch (interrupted_exc_t) {

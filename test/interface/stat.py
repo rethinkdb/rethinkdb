@@ -306,6 +306,26 @@ with driver.Metacluster() as metacluster:
         all_stats = get_and_check_global_stats(tables, servers, conn)
         also_stats = get_individual_stats(all_stats, conn)
         compare_global_and_individual_stats(all_stats, also_stats)
+
+        # Verify that 'total' stats are non-zero
+        def check_non_zero_totals(stats):
+            for row in stats:
+                if row['id'][0] == 'server':
+                    if row['id'][1] == servers[1]['id']:
+                        assert row['query_engine']['queries_total'] == 0
+                    else:
+                        assert row['query_engine']['queries_total'] > 0
+                    assert row['query_engine']['read_docs_total'] > 0
+                    assert row['query_engine']['written_docs_total'] > 0
+                if row['id'][0] == 'table_server':
+                    assert row['query_engine']['read_docs_total'] > 0
+                    assert row['query_engine']['written_docs_total'] > 0
+                    assert row['storage_engine']['disk']['read_bytes_total'] > 0
+                    assert row['storage_engine']['disk']['written_bytes_total'] > 0
+                
+        check_non_zero_totals(all_stats)
+        check_non_zero_totals(also_stats)
+        
     finally:
         stop_event.set()
         for table in tables:

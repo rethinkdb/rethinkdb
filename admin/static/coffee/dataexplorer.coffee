@@ -54,12 +54,12 @@ module 'DataExplorerView', ->
                 else
                     @profile = null
                     value = result
-                if typeof value._next is 'function' and value not instanceof Array # if it's a cursor
+                if value? and typeof value._next is 'function' and value not instanceof Array # if it's a cursor
                     @type = 'cursor'
                     @results = []
                     @results_offset = 0
                     @cursor = value
-                    @is_feed = @cursor.toString() == '[object Feed]'
+                    @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
                     @missing = 0
                     @ended = false
                 else
