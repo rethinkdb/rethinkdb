@@ -34,14 +34,17 @@ public:
 private:
     void main_coro(connectivity_cluster_t::run_t *cluster_run,
                    auto_drainer_t::lock_t keepalive);
-    void on_connections_change();
+    void on_connection_change(
+        const peer_id_t &peer,
+        const connectivity_cluster_t::connection_pair_t *pair);
 
     connectivity_cluster_t *cluster;
     peer_address_set_t peers_not_heard_from;
     cond_t done_signal;
     signal_timer_t grace_period_timer;
     auto_drainer_t drainer;
-    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t subs;
+    watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>
+        ::all_subs_t subs;
     bool successful_connection;
 
     DISABLE_COPYING(initial_joiner_t);

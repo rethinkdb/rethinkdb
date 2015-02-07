@@ -29,14 +29,12 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(
     metadata(initial_metadata),
     next_sync_from_query_id(0), next_sync_to_query_id(0),
     semaphore(MAX_OUTSTANDING_SEMILATTICE_WRITES),
-    connection_change_subscription([this]() { this->on_connections_change(); })
+    connection_change_subscription(
+        get_connectivity_cluster()->get_connections(),
+        std::bind(&semilattice_manager_t::on_connection_change, this, ph::_1, ph::_2),
+        false)
 {
-    ASSERT_FINITE_CORO_WAITING;
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(
-        get_connectivity_cluster()->get_connections());
-    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
-    connection_change_subscription.reset(get_connectivity_cluster()->get_connections(),
-                                         &freeze);
+    guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }
 
 template<class metadata_t>
@@ -78,11 +76,10 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     handler. */
     auto_drainer_t::lock_t parent_keepalive(parent->drainers.get());
 
-    for (const std::pair<connectivity_cluster_t::connection_t *,
-                         auto_drainer_t::lock_t> &pair :
+    for (const std::pair<peer_id_t, connectivity_cluster_t::connection_pair_t> &pair :
             parent->last_connections) {
-        connectivity_cluster_t::connection_t *connection = pair.first;
-        auto_drainer_t::lock_t connection_keepalive = pair.second;
+        connectivity_cluster_t::connection_t *connection = pair.second.first;
+        auto_drainer_t::lock_t connection_keepalive = pair.second.second;
         coro_t::spawn_sometime(
             [this, parent_keepalive /* important to capture */,
              connection, connection_keepalive /* important to capture */,
@@ -479,32 +476,25 @@ void semilattice_manager_t<metadata_t>::on_message(
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_connections_change() {
-    connectivity_cluster_t::connection_map_t current_connections =
-            get_connectivity_cluster()->get_connections()->get();
-    for (const std::pair<peer_id_t, std::pair<connectivity_cluster_t::connection_t *,
-                                              auto_drainer_t::lock_t> > &pair :
-            current_connections) {
-        connectivity_cluster_t::connection_t *connection = pair.second.first;
-        auto_drainer_t::lock_t connection_keepalive = pair.second.second;
-        if (last_connections.count(connection) == 0) {
-            last_connections.insert(std::make_pair(connection, connection_keepalive));
-            auto_drainer_t::lock_t this_keepalive(drainers.get());
-            coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
-                    connection, connection_keepalive /* important to capture */]() {
-                metadata_writer_t writer(metadata, metadata_version);
-                new_semaphore_acq_t acq(&this->semaphore, 1);
-                acq.acquisition_signal()->wait();
-                get_connectivity_cluster()->send_message(connection,
-                    connection_keepalive, get_message_tag(), &writer);
-            });
-        }
+void semilattice_manager_t<metadata_t>::on_connection_change(
+        const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair) {
+    if (pair != nullptr && last_connections.count(peer_id) == 0) {
+        connectivity_cluster_t::connection_t *connection = pair->first;
+        auto_drainer_t::lock_t connection_keepalive = pair->second;
+        last_connections.insert(std::make_pair(peer_id, *pair));
+        auto_drainer_t::lock_t this_keepalive(drainers.get());
+        coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
+                connection, connection_keepalive /* important to capture */]() {
+            metadata_writer_t writer(metadata, metadata_version);
+            new_semaphore_acq_t acq(&this->semaphore, 1);
+            acq.acquisition_signal()->wait();
+            get_connectivity_cluster()->send_message(connection,
+                connection_keepalive, get_message_tag(), &writer);
+        });
     }
-    for (auto next = last_connections.begin(); next != last_connections.end();) {
-        auto pair = next++;
-        if (current_connections.count(pair->first->get_peer_id()) == 0) {
-            last_connections.erase(pair->first);
-        }
+    if (pair == nullptr && last_connections.count(peer_id) == 1) {
+        last_connections.erase(peer_id);
     }
 }
 

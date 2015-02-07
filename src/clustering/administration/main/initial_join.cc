@@ -64,7 +64,9 @@ initial_joiner_t::initial_joiner_t(
         int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
-    subs([this] { on_connections_change(); }),
+    subs(cluster->get_connections(),
+        std::bind(&initial_joiner_t::on_connection_change, this, ph::_1, ph::_2),
+        true),
     successful_connection(false) {
     guarantee(!peers.empty());
 
@@ -85,11 +87,6 @@ initial_joiner_t::initial_joiner_t(
     }
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
-
-    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(
-            cluster->get_connections());
-    subs.reset(cluster->get_connections(), &freeze);
-    on_connections_change();
 }
 
 static const int initial_retry_interval_ms = 200;
@@ -134,28 +131,27 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run,
         done_signal.pulse();
 }
 
-void initial_joiner_t::on_connections_change() {
-    for (auto pair : cluster->get_connections()->get()) {
-        peer_id_t peer = pair.first;
-        if (peer != cluster->get_me()) {
-            successful_connection = true;
-            peer_address_t peer_addr = pair.second.first->get_peer_address();
+void initial_joiner_t::on_connection_change(
+        const peer_id_t &peer,
+        const connectivity_cluster_t::connection_pair_t *pair) {
+    if (peer == cluster->get_me() || pair == nullptr) {
+        return;
+    }
+    successful_connection = true;
+    peer_address_t peer_addr = pair->first->get_peer_address();
+    // We want to remove a peer address, find it in the set (if it's there at all, and
+    // remove it)
+    peer_address_set_t::iterator join_addr =
+        find_peer_address_in_set(peers_not_heard_from, peer_addr);
+    if (join_addr != peers_not_heard_from.end()) {
+        peers_not_heard_from.erase(*join_addr);
+    }
 
-            // We want to remove a peer address, find it in the set (if it's there at
-            // all, and remove it)
-            peer_address_set_t::iterator join_addr =
-                find_peer_address_in_set(peers_not_heard_from, peer_addr);
-            if (join_addr != peers_not_heard_from.end()) {
-                peers_not_heard_from.erase(*join_addr);
-            }
+    if (!done_signal.is_pulsed()) {
+        done_signal.pulse();
 
-            if (!done_signal.is_pulsed()) {
-                done_signal.pulse();
-
-                if (!grace_period_timer.is_running()) {
-                    grace_period_timer.start(grace_period_before_warn_ms);
-                }
-            }
+        if (!grace_period_timer.is_running()) {
+            grace_period_timer.start(grace_period_before_warn_ms);
         }
     }
 }
