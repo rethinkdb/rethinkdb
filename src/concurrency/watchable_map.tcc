@@ -90,15 +90,14 @@ void watchable_map_t<key_t, value_t>::notify_change(
 
 template<class key_t, class value_t>
 watchable_map_var_t<key_t, value_t>::entry_t::entry_t(
-        watchable_map_var_t *p, key_t &&key, value_t &&value) :
+        watchable_map_var_t *p, const key_t &key, const value_t &value) :
     parent(p)
 {
     rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
-    auto pair = parent->map.insert(std::make_pair(std::move(key), std::move(value)));
+    auto pair = parent->map.insert(std::make_pair(key, value));
     guarantee(pair.second, "key for entry_t already exists");
     iterator = pair.first;
-    watchable_map_t<key_t, value_t>::notify_change(
-        iterator->first, &iterator->second, &write_acq);
+    parent->notify_change(iterator->first, &iterator->second, &write_acq);
 }
 
 template<class key_t, class value_t>
@@ -110,20 +109,24 @@ watchable_map_var_t<key_t, value_t>::entry_t::entry_t(entry_t &&other) :
 
 template<class key_t, class value_t>
 watchable_map_var_t<key_t, value_t>::entry_t::~entry_t() {
-    *this = entry_t();
+    if (parent != nullptr) {
+        *this = entry_t();
+    }
 }
 
 template<class key_t, class value_t>
-entry_t &operator=(entry_t &&other) {
+typename watchable_map_var_t<key_t, value_t>::entry_t &
+watchable_map_var_t<key_t, value_t>::entry_t::operator=(entry_t &&other) {
     if (parent != nullptr) {
         rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
         key_t key = iterator->first;
         parent->map.erase(iterator);
-        watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+        parent->notify_change(key, nullptr, &write_acq);
     }
     parent = other.parent;
     iterator = other.iterator;
     other.parent = nullptr;
+    return *this;
 }
 
 template <class key_t, class value_t>

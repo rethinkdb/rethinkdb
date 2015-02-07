@@ -138,7 +138,7 @@ public:
     class entry_t {
     public:
         entry_t() : parent(nullptr) { }
-        entry_t(watchable_map_var_t *parent, key_t &&key, value_t &&value);
+        entry_t(watchable_map_var_t *parent, const key_t &key, const value_t &value);
         entry_t(const entry_t &) = delete;
         entry_t(entry_t &&);
         ~entry_t();

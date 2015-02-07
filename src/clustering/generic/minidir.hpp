@@ -2,6 +2,12 @@
 #ifndef CLUSTERING_GENERIC_MINIDIR_HPP_
 #define CLUSTERING_GENERIC_MINIDIR_HPP_
 
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/watchable_map.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "rpc/mailbox/mailbox.hpp"
+#include "rpc/mailbox/typed.hpp"
+
 /* "Minidir" is short for "mini directory". The minidir classes are for broadcasting
 state across the network just like the directory, but the broadcast is to a finite set of
 mailboxes instead of to every connected server. This gives better performance and
@@ -32,7 +38,9 @@ public:
         key_t key,
         boost::optional<value_t> value
         )> update_mailbox_t;
-    update_mailbox_t::addr_t update_mailbox;
+    typename update_mailbox_t::address_t update_mailbox;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(minidir_bcard_t, update_mailbox);
 };
 
 /* Instantiate a `minidir_read_manager_t` on the server that's supposed to be receiving
@@ -74,10 +82,10 @@ private:
         public:
             std::map<key_t, typename watchable_map_var_t<key_t, value_t>::entry_t> map;
             fifo_enforcer_sink_t fifo_sink;
-        }
+        };
         peer_data_t(auto_drainer_t::lock_t ck) : connection_keepalive(ck) { }
         auto_drainer_t::lock_t connection_keepalive;
-        std::map<uuid_u, link_data_t> link_map;
+        std::map<uuid_u, scoped_ptr_t<link_data_t> > link_map;
         auto_drainer_t drainer;
     };
 
@@ -89,7 +97,7 @@ private:
         signal_t *interruptor,
         const peer_id_t &peer_id,
         const minidir_link_id_t &link_id,
-        firo_enforcer_write_token_t token,
+        fifo_enforcer_write_token_t token,
         bool closing_link,
         const key_t &key,
         const boost::optional<value_t> &value);
@@ -120,7 +128,7 @@ public:
     typedef uuid_u reader_id_t;
 
     minidir_write_manager_t(
-        mailbox_manager_t *mm;
+        mailbox_manager_t *mm,
         watchable_map_t<key_t, value_t> *_values,
         watchable_map_t<reader_id_t, minidir_bcard_t<key_t, value_t> > *_readers);
     ~minidir_write_manager_t();
@@ -161,7 +169,7 @@ private:
         us that the old connection has been dropped, so we'll delete the lock, before it
         starts a new connection. This prevents us getting confused. */
         auto_drainer_t::lock_t connection_keepalive;
-        std::map<reader_id_t, link_data_t> link_map;
+        std::map<reader_id_t, scoped_ptr_t<link_data_t> > link_map;
     };
 
     void on_connection_change(
@@ -175,17 +183,17 @@ private:
         const minidir_bcard_t<key_t, value_t> *bcard);
 
     void spawn_update(
-        peer_data_t::link_data_t *link_data,
+        typename peer_data_t::link_data_t *link_data,
         const key_t &key,
         const boost::optional<value_t> &value);
     void spawn_closing_link(
-        peer_data_t::link_data_t *link_data);
+        typename peer_data_t::link_data_t *link_data);
 
     mailbox_manager_t *const mailbox_manager;
     watchable_map_t<key_t, value_t> *const values;
     watchable_map_t<reader_id_t, minidir_bcard_t<key_t, value_t> > *const readers;
 
-    std::map<peer_id_t, peer_data_t> peer_map;
+    std::map<peer_id_t, scoped_ptr_t<peer_data_t> > peer_map;
     bool stopping;
 
     /* This must be destroyed after we destroy the `subs`es, since they may spawn new

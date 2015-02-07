@@ -2,6 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/generic/minidir.hpp"
+#include "clustering/generic/minidir.tcc"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -18,7 +19,7 @@ TPTEST(ClusteringMinidir, Register) {
     writer1_data.set_key("hello", "world");
     watchable_map_var_t<uuid_u, minidir_bcard_t<std::string, std::string> >
         writer1_readers;
-    writer1_readers.set_key(generate_uuid(), reader1.get_bcard());
+    writer1_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
     minidir_write_manager_t<std::string, std::string> writer1(
         cluster.get_mailbox_manager(),
         &writer1_data,
@@ -35,7 +36,7 @@ TPTEST(ClusteringMinidir, Register) {
         minidir_read_manager_t<std::string, std::string> reader2(
             cluster.get_mailbox_manager());
         uuid_u reader2_id = generate_uuid();
-        writer1_readers.set_key(reader2_id, reader2.get_bcard());
+        writer1_readers.set_key_no_equals(reader2_id, reader2.get_bcard());
 
         let_stuff_happen();
         ASSERT_EQ(writer1_data.get_all(), reader2.get_values()->get_all());
@@ -47,9 +48,10 @@ TPTEST(ClusteringMinidir, Register) {
 
         watchable_map_var_t<std::string, std::string> writer2_data;
         writer2_data.set_key("blah", "baz");
-        watchable_map_var_t<std::string, std::string> writer2_readers;
-        writer2_readers.set_key(generate_uuid(), reader1.get_bcard());
-        writer2_readers.set_key(generate_uuid(), reader2.get_bcard());
+        watchable_map_var_t<uuid_u, minidir_bcard_t<std::string, std::string> >
+            writer2_readers;
+        writer2_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
+        writer2_readers.set_key_no_equals(generate_uuid(), reader2.get_bcard());
         minidir_write_manager_t<std::string, std::string> writer2(
             cluster.get_mailbox_manager(),
             &writer2_data,
