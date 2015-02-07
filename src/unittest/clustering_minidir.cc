@@ -9,7 +9,7 @@
 namespace unittest {
 
 /* `SinglePeer` tests sending messages across a minidir on a single peer. */
-TPTEST(ClusteringMinidir, Register) {
+TPTEST(ClusteringMinidir, SinglePeer) {
     simple_mailbox_cluster_t cluster;
 
     minidir_read_manager_t<std::string, std::string> reader1(
@@ -74,6 +74,39 @@ TPTEST(ClusteringMinidir, Register) {
     ASSERT_EQ(writer1_data.get_all(), reader1.get_values()->get_all());
 }
 
-/* RSI: Test multi-peer scenarios */
+/* `MultiPeer` tests some special error cases that come up when there are multiple peers
+*/
+TPTEST(ClusteringMinidir, MultiPeer) {
+    simple_mailbox_cluster_t cluster1, cluster2;
+
+    minidir_read_manager_t<std::string, std::string> reader1(
+        cluster1.get_mailbox_manager());
+
+    watchable_map_var_t<std::string, std::string> writer1_data;
+    writer1_data.set_key("hello", "world");
+    watchable_map_var_t<uuid_u, minidir_bcard_t<std::string, std::string> >
+        writer1_readers;
+    writer1_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
+    minidir_write_manager_t<std::string, std::string> writer1(
+        cluster2.get_mailbox_manager(),
+        &writer1_data,
+        &writer1_readers);
+
+    let_stuff_happen();
+    ASSERT_EQ(0, reader1.get_values()->get_all().size());   /* they're not connected */
+
+    cluster1.connect(&cluster2);
+    let_stuff_happen();
+    ASSERT_EQ(writer1_data.get_all(), reader1.get_values()->get_all());
+
+    cluster1.disconnect(&cluster2);
+    let_stuff_happen();
+    ASSERT_EQ(0, reader1.get_values()->get_all().size());
+
+    cluster1.connect(&cluster2);
+    let_stuff_happen();
+    ASSERT_EQ(writer1_data.get_all(), reader1.get_values()->get_all());
+}
 
 }   /* namespace unittest */
+

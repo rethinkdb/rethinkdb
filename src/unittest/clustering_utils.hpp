@@ -217,6 +217,8 @@ inline std::string mc_key_gen() {
     return key;
 }
 
+peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
+
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
@@ -232,6 +234,18 @@ public:
     }
     mailbox_manager_t *get_mailbox_manager() {
         return &mailbox_manager;
+    }
+    void connect(simple_mailbox_cluster_t *other) {
+        connectivity_cluster_run.join(
+            get_cluster_local_address(&other->connectivity_cluster));
+    }
+    void disconnect(simple_mailbox_cluster_t *other) {
+        auto_drainer_t::lock_t keepalive;
+        connectivity_cluster_t::connection_t *conn = connectivity_cluster.get_connection(
+            other->connectivity_cluster.get_me(),
+            &keepalive);
+        guarantee(conn != nullptr);
+        conn->kill_connection();
     }
 private:
     connectivity_cluster_t connectivity_cluster;
@@ -258,8 +272,6 @@ private:
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
 #endif
-
-peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 
 }  // namespace unittest
 
