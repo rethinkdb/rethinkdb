@@ -4,8 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
@@ -205,17 +206,20 @@ class replace_term_t : public op_term_t {
 public:
     replace_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"non_atomic", "durability", "return_vals", "return_changes"})) { }
+                    optargspec_t({"non_atomic", "durability",
+                                  "return_vals", "return_changes"})) { }
 
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         bool nondet_ok = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
         return_changes_t return_changes = return_changes_t::NO;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
-            return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+            return_changes =
+                v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
         }
         if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
             rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
@@ -243,20 +247,35 @@ private:
             counted_t<table_t> tbl = tblrows->table;
             counted_t<datum_stream_t> ds = tblrows->seq;
 
+            if (f->is_deterministic()) {
+                // Attach a transformation to `ds` to pull out the primary key.
+                auto x = pb::dummy_var_t::REPLACE_HELPER_ROW;
+                r::reql_t map = r::fun(x, r::expr(x)[tbl->get_pkey()]);
+                compile_env_t compile_env((var_visibility_t()));
+                func_term_t func_term(&compile_env, map.release_counted());
+                var_scope_t var_scope;
+                counted_t<const func_t> func = func_term.eval_to_func(var_scope);
+                ds->add_transformation(map_wire_func_t(func), backtrace());
+            }
+
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
-                std::vector<datum_t> vals
-                    = ds->next_batch(env->env, batchspec);
+                std::vector<datum_t> vals = ds->next_batch(env->env, batchspec);
                 if (vals.empty()) {
                     break;
                 }
-                std::vector<datum_t> keys;
-                keys.reserve(vals.size());
-                for (auto it = vals.begin(); it != vals.end(); ++it) {
-                    keys.push_back((*it).get_field(datum_string_t(tbl->get_pkey())));
+
+                scoped_ptr_t<std::vector<datum_t> > keys;
+                if (!f->is_deterministic()) {
+                    keys = make_scoped<std::vector<datum_t> >();
+                    keys->reserve(vals.size());
+                    for (const auto &val : vals) {
+                        keys->push_back(
+                            val.get_field(datum_string_t(tbl->get_pkey())));
+                    }
                 }
                 datum_t replace_stats = tbl->batched_replace(
-                    env->env, vals, keys,
+                    env->env, vals, keys.has() ? *keys : vals,
                     f, nondet_ok, durability_requirement, return_changes);
                 stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
                                     &conditions);
