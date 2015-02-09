@@ -49,7 +49,7 @@ public:
 private:
     void get_all_job_reports(
             signal_t *interruptor,
-            std::map<uuid_u, job_report_t> *job_reports_out);
+            std::map<uuid_u, ql::datum_t> *jobs_out);
 
     mailbox_manager_t *mailbox_manager;
 
