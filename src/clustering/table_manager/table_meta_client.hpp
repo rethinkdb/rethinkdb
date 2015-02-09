@@ -24,13 +24,12 @@ public:
 
     /* `find()` determines the ID of the table with the given name in the given database.
     If it finds exactly one such table, sets `*table_id_out` to the table ID and returns
-    `true`. Otherwise, sets `*count_out` to the number of tables found and returns
-    `false`. `find()` will not block */
-    bool find(
+    `ok`. Otherwise, leaves `table_id_out` empty and returns `none` or `multiple`. */
+    enum class find_res_t { ok, none, multiple };
+    find_res_t find(
         const database_id_t &database,
         const name_string_t &name,
-        namespace_id_t *table_id_out,
-        size_t *count_out);
+        namespace_id_t *table_id_out);
 
     /* `get_name()` determines the name and database of the table with the given ID; it's
     the reverse of `find()`. It returns `false` if there is no visible existing table

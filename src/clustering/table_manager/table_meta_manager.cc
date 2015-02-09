@@ -4,6 +4,10 @@
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.tcc"
 
+/* RSI: Should be `since_N` where `N` is the version for Raft */
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_meta_persistent_state_t,
+    epoch, member_id, raft_state);
+
 table_meta_manager_t::table_meta_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
@@ -23,7 +27,7 @@ table_meta_manager_t::table_meta_manager_t(
         [this](const peer_id_t &peer, const table_meta_manager_bcard_t *bcard) {
             if (peer != mailbox_manager->get_me() && bcard != nullptr) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
-                for (auto &&pair : tables) {
+                for (const auto &pair : tables) {
                     schedule_sync(pair.first, pair.second.get(), peer);
                 }
             }
@@ -345,12 +349,12 @@ void table_meta_manager_t::on_get_config(
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
         std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
             table_mutex_in_lines;
-        for (auto &&pair : tables) {
+        for (const auto &pair : tables) {
             table_mutex_in_lines[pair.first] =
                 make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
         }
         global_mutex_acq.reset();
-        for (auto &&pair : table_mutex_in_lines) {
+        for (const auto &pair : table_mutex_in_lines) {
             wait_interruptible(pair.second->acq_signal(), interruptor);
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());

@@ -203,9 +203,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         /* Make sure there isn't an existing table with the same name */
         {
             namespace_id_t dummy_table_id;
-            size_t count;
-            table_meta_client->find(db->id, name, &dummy_table_id, &count);
-            if (count != 0) {
+            if (table_meta_client->find(db->id, name, &dummy_table_id) !=
+                    table_meta_client_t::find_res_t::none) {
                 *error_out = strprintf("Table `%s.%s` already exists.", db->name.c_str(),
                     name.c_str());
                 return false;
@@ -1024,18 +1023,19 @@ bool real_reql_cluster_interface_t::find_table(
         const name_string_t &name,
         namespace_id_t *table_id_out,
         std::string *error_out) {
-    size_t count;
-    if (!table_meta_client->find(db->id, name, table_id_out, &count)) {
-        if (count == 0) {
-            *error_out = strprintf("Table `%s.%s` does not exist.", db->name.c_str(),
-                name.c_str());
-        } else {
-            *error_out = strprintf("Table `%s.%s` is ambiguous; there are multiple "
-                "tables with that name.", db->name.c_str(), name.c_str());
-        }
+    table_meta_client_t::find_res_t res =
+        table_meta_client->find(db->id, name, table_id_out);
+    if (res == table_meta_client_t::find_res_t::none) {
+        *error_out = strprintf("Table `%s.%s` does not exist.", db->name.c_str(),
+            name.c_str());
         return false;
+    } else if (res == table_meta_client_t::find_res_t::multiple) {
+        *error_out = strprintf("Table `%s.%s` is ambiguous; there are multiple "
+            "tables with that name.", db->name.c_str(), name.c_str());
+        return false;
+    } else {
+        return true;
     }
-    return true;
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */
