@@ -258,8 +258,11 @@ class @Driver
                     tables: issue('info')('tables').map(
                         issue_id('info')('tables'),
                         (table, table_id) ->
+                            db: table('db')
                             db_id: table_id('db')
                             table_id: table_id('table')
+                            table: table('table')
+                            indexes: table('indexes')
                     )
                 invalid_config =
                     table_id: issue_id('info')('table')

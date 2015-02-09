@@ -1287,7 +1287,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                                      repli_timestamp_t::invalid));
             } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     std::move(it->block_token),
+                                                     it->block_token,
                                                      it->tstamp));
             } else {
                 write_ops.push_back(index_write_op_t(it->block_id,

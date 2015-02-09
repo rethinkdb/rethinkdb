@@ -26,7 +26,7 @@ bool debug_stats_artificial_table_backend_t::write_row(
         UNUSED ql::datum_t *new_value_inout,
         UNUSED signal_t *interruptor,
         std::string *error_out) {
-    *error_out = "It's illegal to write to the `rethinkdb.debug_stats` table.";
+    *error_out = "It's illegal to write to the `rethinkdb._debug_stats` table.";
     return false;
 }
 

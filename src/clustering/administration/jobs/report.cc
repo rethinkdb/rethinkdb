@@ -20,185 +20,230 @@ ql::datum_t convert_job_type_and_id_to_datum(std::string const &type, uuid_u con
     return std::move(primary_key_builder).to_datum();
 }
 
-job_report_t::job_report_t() {
+disk_compaction_job_report_t::disk_compaction_job_report_t()
+    : job_report_base_t<disk_compaction_job_report_t>() { }
+
+disk_compaction_job_report_t::disk_compaction_job_report_t(
+        uuid_u const &_id,
+        double _duration,
+        server_id_t const &_server_id)
+    : job_report_base_t<disk_compaction_job_report_t>(
+        "disk_compaction", _id, _duration, _server_id) { }
+
+void disk_compaction_job_report_t::merge_derived(
+        disk_compaction_job_report_t const &) { }
+
+bool disk_compaction_job_report_t::info_derived(
+        UNUSED admin_identifier_format_t identifier_format,
+        UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
+        UNUSED cluster_semilattice_metadata_t const &metadata,
+        UNUSED ql::datum_object_builder_t *info_builder_out) const {
+    return true;
 }
 
-job_report_t::job_report_t(
-        uuid_u const &_id,
-        std::string const &_type,
-        double _duration,
-        ip_and_port_t const &_client_addr_port)
-    : id(_id),
-      type(_type),
-      duration(_duration),
-      client_addr_port(_client_addr_port),
-      table(nil_uuid()),
-      is_ready(false),
-      progress_numerator(0.0),
-      progress_denominator(0.0),
-      destination_server(nil_uuid()) { }
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
+    disk_compaction_job_report_t, type, id, duration, servers);
 
-job_report_t::job_report_t(
+backfill_job_report_t::backfill_job_report_t()
+    : job_report_base_t<backfill_job_report_t>() { }
+
+backfill_job_report_t::backfill_job_report_t(
         uuid_u const &_id,
-        std::string const &_type,
         double _duration,
+        server_id_t const &_server_id,
         namespace_id_t const &_table,
         bool _is_ready,
-        double progress,
-        peer_id_t const &_source_peer,
+        double _progress,
+        server_id_t const &_source_server,
         server_id_t const &_destination_server)
-    : id(_id),
-      type(_type),
-      duration(_duration),
+    : job_report_base_t<backfill_job_report_t>("backfill", _id, _duration, _server_id),
       table(_table),
       is_ready(_is_ready),
-      progress_numerator(progress),
+      progress_numerator(_progress),
       progress_denominator(1.0),
-      source_peer(_source_peer),
-      destination_server(_destination_server) { }
+      source_server(_source_server),
+      destination_server(_destination_server) {
+    servers.insert({source_server, destination_server});
+}
 
-job_report_t::job_report_t(
-        uuid_u const &_id,
-        std::string const &_type,
-        double _duration,
-        namespace_id_t const &_table,
-        std::string const &_index,
-        bool _is_ready,
-        double progress)
-    : id(_id),
-      type(_type),
-      duration(_duration),
-      table(_table),
-      index(_index),
-      is_ready(_is_ready),
-      progress_numerator(progress),
-      progress_denominator(1.0),
-      destination_server(nil_uuid()) { }
+void backfill_job_report_t::merge_derived(
+       backfill_job_report_t const &job_report) {
+    is_ready &= job_report.is_ready;
+    progress_numerator += job_report.progress_numerator;
+    progress_denominator += job_report.progress_denominator;
+}
 
-bool job_report_t::to_datum(
+bool backfill_job_report_t::info_derived(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
         cluster_semilattice_metadata_t const &metadata,
-        ql::datum_t *row_out) const {
-    if ((type == "index_construction" || type == "backfill") && is_ready) {
-        // All shards are ready, skip this report.
+        ql::datum_object_builder_t *info_builder_out) const {
+    if (is_ready) {
+        return false;   // All shards are ready, skip this job.
+    }
+
+    ql::datum_t table_name_or_uuid;
+    ql::datum_t db_name_or_uuid;
+    if (!convert_table_id_to_datums(
+            table,
+            identifier_format,
+            metadata,
+            table_meta_client,
+            &table_name_or_uuid,
+            nullptr,
+            &db_name_or_uuid,
+            nullptr)) {
+        return false;
+    }
+    info_builder_out->overwrite("table", table_name_or_uuid);
+    info_builder_out->overwrite("db", db_name_or_uuid);
+
+    ql::datum_t source_server_name_or_uuid;
+    if (convert_server_id_to_datum(
+            source_server,
+            identifier_format,
+            server_config_client,
+            &source_server_name_or_uuid,
+            nullptr)) {
+        info_builder_out->overwrite("source_server", source_server_name_or_uuid);
+    } else {
         return false;
     }
 
-    ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
-    for (uuid_u const &server : servers) {
-        ql::datum_t server_name_or_uuid;
-        if (convert_server_id_to_datum(
-                server,
-                identifier_format,
-                server_config_client,
-                &server_name_or_uuid,
-                nullptr)) {
-            servers_builder.add(server_name_or_uuid);
-        }
-    }
-
-    ql::datum_object_builder_t info_builder;
-    if (!table.is_nil()) {
-        ql::datum_t table_name_or_uuid;
-        ql::datum_t db_name_or_uuid;
-        if (!convert_table_id_to_datums(
-                table,
-                identifier_format,
-                metadata,
-                table_meta_client,
-                &table_name_or_uuid,
-                nullptr,
-                &db_name_or_uuid,
-                nullptr)) {
-            return false;
-        }
-        info_builder.overwrite("table", table_name_or_uuid);
-        info_builder.overwrite("db", db_name_or_uuid);
-    }
-    if (type == "index_construction") {
-        info_builder.overwrite("index", convert_string_to_datum(index));
-        info_builder.overwrite("progress",
-            ql::datum_t(progress_numerator / progress_denominator));
-    } else if (type == "query") {
-        info_builder.overwrite("client_address",
-            convert_string_to_datum(client_addr_port.ip().to_string()));
-        info_builder.overwrite("client_port",
-            convert_port_to_datum(client_addr_port.port().value()));
-    } else if (type == "backfill") {
-        info_builder.overwrite("progress",
-            ql::datum_t(progress_numerator / progress_denominator));
-
-        boost::optional<server_id_t> source_server =
-            server_config_client->get_server_id_for_peer_id(source_peer);
-        if (static_cast<bool>(source_server)) {
-            ql::datum_t source_server_name_or_uuid;
-            if (convert_server_id_to_datum(
-                    source_server.get(),
-                    identifier_format,
-                    server_config_client,
-                    &source_server_name_or_uuid,
-                    nullptr)) {
-                info_builder.overwrite("source_server", source_server_name_or_uuid);
-
-                // Make sure the source server is also in the servers list.
-                if (servers.find(source_server.get()) == servers.end()) {
-                    servers_builder.add(source_server_name_or_uuid);
-                }
-            } else {
-                return false;
-            }
-        } else {
-            return false;
-        }
-
-        ql::datum_t destination_server_name_or_uuid;
-        if (convert_server_id_to_datum(
-                destination_server,
-                identifier_format,
-                server_config_client,
-                &destination_server_name_or_uuid,
-                nullptr)) {
-            info_builder.overwrite("destination_server", destination_server_name_or_uuid);
-
-            if (servers.find(destination_server) == servers.end()) {
-                servers_builder.add(destination_server_name_or_uuid);
-            }
-        } else {
-            return false;
-        }
-    }
-
-    if (servers_builder.empty()) {
+    ql::datum_t destination_server_name_or_uuid;
+    if (convert_server_id_to_datum(
+            destination_server,
+            identifier_format,
+            server_config_client,
+            &destination_server_name_or_uuid,
+            nullptr)) {
+        info_builder_out->overwrite(
+            "destination_server", destination_server_name_or_uuid);
+    } else {
         return false;
     }
 
-    ql::datum_object_builder_t builder;
-    builder.overwrite("id", convert_job_type_and_id_to_datum(type, id));
-    builder.overwrite("servers", std::move(servers_builder).to_datum());
-    builder.overwrite("type", convert_string_to_datum(type));
-    builder.overwrite("duration_sec",
-        duration >= 0 ? ql::datum_t(duration / 1e6) : ql::datum_t::null());
-    builder.overwrite("info", std::move(info_builder).to_datum());
-    *row_out = std::move(builder).to_datum();
+    info_builder_out->overwrite("progress",
+        ql::datum_t(progress_numerator / progress_denominator));
 
     return true;
 }
-RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
-    job_report_t,
+
+RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(
+    backfill_job_report_t,
     type,
     id,
     duration,
-    client_addr_port,
+    servers,
+    table,
+    is_ready,
+    progress_numerator,
+    progress_denominator,
+    source_server,
+    destination_server);
+
+index_construction_job_report_t::index_construction_job_report_t()
+    : job_report_base_t<index_construction_job_report_t>() { }
+
+index_construction_job_report_t::index_construction_job_report_t(
+        uuid_u const &_id,
+        double _duration,
+        server_id_t const &_server_id,
+        namespace_id_t const &_table,
+        std::string const &_index,
+        bool _is_ready,
+        double _progress)
+    : job_report_base_t<index_construction_job_report_t>(
+        "index_construction", _id, _duration, _server_id),
+      table(_table),
+      index(_index),
+      is_ready(_is_ready),
+      progress_numerator(_progress),
+      progress_denominator(1.0) { }
+
+void index_construction_job_report_t::merge_derived(
+       index_construction_job_report_t const &job_report) {
+    is_ready &= job_report.is_ready;
+    progress_numerator += job_report.progress_numerator;
+    progress_denominator += job_report.progress_denominator;
+}
+
+bool index_construction_job_report_t::info_derived(
+        admin_identifier_format_t identifier_format,
+        UNUSED server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
+        cluster_semilattice_metadata_t const &metadata,
+        ql::datum_object_builder_t *info_builder_out) const {
+    if (is_ready) {
+        return false;   // All shards are ready, skip this job.
+    }
+
+    ql::datum_t table_name_or_uuid;
+    ql::datum_t db_name_or_uuid;
+    if (!convert_table_id_to_datums(
+            table,
+            identifier_format,
+            metadata,
+            table_meta_client,
+            &table_name_or_uuid,
+            nullptr,
+            &db_name_or_uuid,
+            nullptr)) {
+        return false;
+    }
+    info_builder_out->overwrite("table", table_name_or_uuid);
+    info_builder_out->overwrite("db", db_name_or_uuid);
+
+    info_builder_out->overwrite("index", convert_string_to_datum(index));
+    info_builder_out->overwrite("progress",
+        ql::datum_t(progress_numerator / progress_denominator));
+
+    return true;
+}
+
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+    index_construction_job_report_t,
+    type,
+    id,
+    duration,
+    servers,
     table,
     index,
     is_ready,
     progress_numerator,
-    progress_denominator,
-    source_peer,
-    destination_server,
-    servers);
+    progress_denominator);
+
+query_job_report_t::query_job_report_t()
+    : job_report_base_t<query_job_report_t>() { }
+
+query_job_report_t::query_job_report_t(
+        uuid_u const &_id,
+        double _duration,
+        server_id_t const &_server_id,
+        ip_and_port_t const &_client_addr_port)
+    : job_report_base_t<query_job_report_t>("query", _id, _duration, _server_id),
+      client_addr_port(_client_addr_port) { }
+
+void query_job_report_t::merge_derived(query_job_report_t const &) { }
+
+bool query_job_report_t::info_derived(
+        UNUSED admin_identifier_format_t identifier_format,
+        UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
+        UNUSED cluster_semilattice_metadata_t const &metadata,
+        ql::datum_object_builder_t *info_builder_out) const {
+    info_builder_out->overwrite("client_address",
+        convert_string_to_datum(client_addr_port.ip().to_string()));
+    info_builder_out->overwrite("client_port",
+        convert_port_to_datum(client_addr_port.port().value()));
+
+    return true;
+}
+
+RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
+    query_job_report_t, type, id, duration, servers, client_addr_port);
 
 query_job_t::query_job_t(
         microtime_t _start_time,
@@ -207,11 +252,3 @@ query_job_t::query_job_t(
     : start_time(_start_time),
       client_addr_port(_client_addr_port),
       interruptor(_interruptor) { }
-
-sindex_job_t::sindex_job_t(
-        microtime_t _start_time,
-        bool _is_ready,
-        double _progress)
-    : start_time(_start_time),
-      is_ready(_is_ready),
-      progress(_progress) { }

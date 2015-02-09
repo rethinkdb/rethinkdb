@@ -4,6 +4,10 @@
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.tcc"
 
+/* RSI: Should be `since_N` where `N` is the version for Raft */
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_meta_persistent_state_t,
+    epoch, member_id, raft_state);
+
 table_meta_manager_t::table_meta_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
@@ -23,7 +27,7 @@ table_meta_manager_t::table_meta_manager_t(
         [this](const peer_id_t &peer, const table_meta_manager_bcard_t *bcard) {
             if (peer != mailbox_manager->get_me() && bcard != nullptr) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
-                for (auto &&pair : tables) {
+                for (const auto &pair : tables) {
                     schedule_sync(pair.first, pair.second.get(), peer);
                 }
             }
@@ -69,7 +73,7 @@ table_meta_manager_t::table_meta_manager_t(
             table->active = make_scoped<active_table_t>(this, table_id, state.epoch,
                 state.member_id, state.raft_state, table->multistore_ptr.get());
             raft_member_t<table_raft_state_t>::state_and_config_t raft_state =
-                table->active->raft.get_raft()->get_committed_state()->get();
+                table->active->get_raft()->get_committed_state()->get();
             guarantee(raft_state.state.member_ids.at(server_id) == state.member_id,
                 "Somehow we persisted a state in which we were not a member of the "
                 "cluster");
@@ -109,7 +113,7 @@ table_meta_manager_t::active_table_t::active_table_t(
     raft_committed_subs(std::bind(&active_table_t::on_raft_committed_change, this)),
     raft_readiness_subs(std::bind(&active_table_t::on_raft_readiness_change, this))
 {
-    guarantee(!member_id.is_unset());
+    guarantee(!member_id.is_nil());
     guarantee(!epoch.id.is_unset());
     update_bcard(false);
     {
@@ -332,7 +336,7 @@ void table_meta_manager_t::on_get_config(
             global_mutex_acq.reset();
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->active.has()) {
-                it->second->active->raft.get_raft()->get_committed_state()->apply_read(
+                it->second->active->get_raft()->get_committed_state()->apply_read(
                     [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                         result[*table_id] = s->state.config;
                     });
@@ -345,17 +349,17 @@ void table_meta_manager_t::on_get_config(
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
         std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
             table_mutex_in_lines;
-        for (auto &&pair : tables) {
+        for (const auto &pair : tables) {
             table_mutex_in_lines[pair.first] =
                 make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
         }
         global_mutex_acq.reset();
-        for (auto &&pair : table_mutex_in_lines) {
+        for (const auto &pair : table_mutex_in_lines) {
             wait_interruptible(pair.second->acq_signal(), interruptor);
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
             if (it->second->active.has()) {
-                it->second->active->raft.get_raft()->get_committed_state()->apply_read(
+                it->second->active->get_raft()->get_committed_state()->apply_read(
                     [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                         result[pair.first] = s->state.config;
                     });
@@ -382,7 +386,7 @@ void table_meta_manager_t::on_set_config(
         if (it->second->active.has()) {
             /* OK, so we are hosting the table. Time to attempt the change. */
             raft_member_t<table_raft_state_t> *raft =
-                it->second->active->raft.get_raft();
+                it->second->active->get_raft();
 
             table_config_and_shards_t old_config;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
@@ -445,7 +449,7 @@ void table_meta_manager_t::do_sync(
     } else if (table.active.has()) {
         raft_log_index_t log_index;
         boost::optional<raft_member_id_t> member_id;
-        table.active->raft.get_raft()->get_committed_state()->apply_read(
+        table.active->get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
                 log_index = st->log_index;
                 auto it = st->state.member_ids.find(other_server_id);
@@ -459,7 +463,7 @@ void table_meta_manager_t::do_sync(
                         *member_id != table_bcard->raft_member_id))) {
             boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state;
             if (static_cast<bool>(member_id)) {
-                initial_state = table.active->raft.get_raft()->get_state_for_init();
+                initial_state = table.active->get_raft()->get_state_for_init();
             }
             table_meta_manager_bcard_t::timestamp_t timestamp;
             timestamp.epoch = table.timestamp.epoch;

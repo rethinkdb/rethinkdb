@@ -102,7 +102,7 @@ class HttpTargetServer(object):
     httpPort = None
     sslPort = None
     
-    def __init__(self, httpbinPort=0, httpPort=0, sslPort=0, startupTimeout=5):
+    def __init__(self, httpbinPort=0, httpPort=0, sslPort=0, startupTimeout=20):
         '''Start a server, using subprocess to do it out-of-process'''
         
         # -- startup server

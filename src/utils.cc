@@ -519,6 +519,7 @@ std::string errno_string(int errsv) {
 
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
                             UNUSED const int flag, UNUSED FTW *ftw) {
+    logNTC("In recursion: removing file %s\n", path);
     int res = ::remove(path);
     guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
@@ -531,6 +532,7 @@ void remove_directory_recursive(const char *path) {
     // and closing directories extra times if it needs to go deeper
     // than that).
     const int max_openfd = 128;
+    logNTC("Recursively removing directory %s\n", path);
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
@@ -577,4 +579,3 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
-

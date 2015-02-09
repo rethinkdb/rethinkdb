@@ -12,14 +12,28 @@ module 'TableView', ->
             @table_found = true
 
             @indexes = null
-            @distribution = null
+            @distribution = new Distribution
 
             @guaranteed_timer = null
             @failable_index_timer = null
             @failable_misc_timer = null
-            
-            # Initialize the model with mostly empty dummy data so we can render it right away
-            @model = new Table {id: id}
+
+            # This is the cache of error messages we've received from
+            # @failable_index_query and @failable_misc_query
+            @current_errors = {index: [], misc: []}
+
+            # Initialize the model with mostly empty dummy data so we
+            # can render it right away
+            #
+            # We have two types of errors that can trip us
+            # up. info_unavailable errors happen when a you can't
+            # fetch table.info(). index_unavailable errors happen when
+            # you can't fetch table.indexStatus()
+            @model = new Table
+                id: id
+                info_unavailable: false
+                index_unavailable: false
+            @listenTo @model, 'change:index_unavailable', (=> @maybe_refetch_data())
             @table_view = new TableView.TableMainView
                 model: @model
                 indexes: @indexes
@@ -28,8 +42,43 @@ module 'TableView', ->
 
             @fetch_data()
 
-        fetch_data: =>
-            this_id = @id
+        maybe_refetch_data: =>
+            if @model.get('info_unavailable') and not @model.get('index_unavailable')
+                # This is triggered when we go from
+                # table.indexStatus() failing to it succeeding. If
+                # that's the case, we should refetch everything. What
+                # happens is we try to fetch indexes every 1s, but
+                # more expensive stuff like table.info() only every
+                # 10s. To avoid having the table UI in an error state
+                # longer than we need to, we use the secondary index
+                # query as a canary in the coalmine to decide when to
+                # try again with the info queries.
+
+                @fetch_once()
+
+        fetch_once: _.debounce((=>
+            # fetches data once, but only does it if we flap less than
+            # once every 2 seconds
+            driver.run_once(@failable_misc_query, @failable_misc_handler)
+            driver.run_once(@guaranteed_query, @guaranted_handler)
+            ), 2000, true)
+
+        add_error_message: (type, error) =>
+            # This avoids spamming the console with the same error
+            # message. It keeps a cache of messages, prints out
+            # anything new, and resets the cache once we stop
+            # receiving errors
+            if error not in @current_errors[type]
+                console.log "#{type} error: #{error}"
+                @current_errors[type].push(error)
+
+        clear_cached_error_messages: (type) =>
+            # We clear the cache of errors once a successful query
+            # makes it through
+            if @current_errors[type].length > 0
+                @current_errors[type] = []
+
+        guaranteed_query: =>
             # This query should succeed as long as the cluster is
             # available, since we get it from the system tables.  Info
             # we don't get from the system tables includes things like
@@ -37,39 +86,43 @@ module 'TableView', ->
             # obtained from table.info() and table.indexStatus() below
             # in `failable_*_query` so if they fail we still get the
             # data available in the system tables.
-            guaranteed_query =
-                r.do(
-                    r.db(system_db).table('server_config').coerceTo('array'),
-                    r.db(system_db).table('table_status').get(this_id),
-                    r.db(system_db).table('table_config').get(this_id),
-                    (server_config, table_status, table_config) ->
-                        r.branch(
-                            table_status.eq(null),
-                            null,
-                            table_status.merge(
-                                max_shards: 32
-                                num_shards: table_config("shards").count()
-                                num_servers: server_config.count()
-                                num_default_servers: server_config.filter((server) ->
-                                    server('tags').contains('default')).count()
-                                num_available_shards: table_status("shards").count((row) -> row('primary_replica').ne(null))
-                                num_replicas: table_config("shards").concatMap( (shard) -> shard('replicas')).count()
-                                num_available_replicas: table_status("shards").concatMap((shard) ->
+            r.do(
+                r.db(system_db).table('server_config').coerceTo('array'),
+                r.db(system_db).table('table_status').get(@id),
+                r.db(system_db).table('table_config').get(@id),
+                (server_config, table_status, table_config) ->
+                    r.branch(
+                        table_status.eq(null),
+                        null,
+                        table_status.merge(
+                            max_shards: 32
+                            num_shards: table_config("shards").count()
+                            num_servers: server_config.count()
+                            num_default_servers: server_config.filter((server) ->
+                                server('tags').contains('default')).count()
+                            num_available_shards: table_status("shards").count(
+                                (row) -> row('primary_replica').ne(null))
+                            num_replicas: table_config("shards").concatMap(
+                                (shard) -> shard('replicas')).count()
+                            num_available_replicas: table_status("shards").concatMap(
+                                (shard) ->
                                     shard('replicas').filter({state: "ready"})).count()
-                                num_replicas_per_shard: table_config("shards").map((shard) -> shard('replicas').count()).max()
-                                status: table_status('status')
-                                id: table_status("id")
-                                # These are updated below if the table is ready
-                            ).without('shards')
-                        )
+                            num_replicas_per_shard: table_config("shards").map(
+                                (shard) -> shard('replicas').count()).max()
+                            status: table_status('status')
+                            id: table_status("id")
+                            # These are updated below if the table is ready
+                        ).without('shards')
                     )
+                )
 
+        failable_index_query: =>
             # This query only checks the status of secondary indexes.
             # It can throw an exception and failif the primary
             # replica is unavailable (which happens immediately after
             # a reconfigure).
-            failable_index_query = r.do(
-                r.db(system_db).table('table_config').get(this_id)
+            r.do(
+                r.db(system_db).table('table_config').get(@id)
                 (table_config) ->
                     r.db(table_config("db"))
                     .table(table_config("name"), {useOutdated: true})
@@ -82,16 +135,17 @@ module 'TableView', ->
                     }) # add an id for backbone
             )
 
+        failable_misc_query: =>
             # Query to load data distribution and shard assignments.
             # We keep this separate from the failable_index_query because we don't want
             # to run it as often.
             # This query can throw an exception and failif the primary
             # replica is unavailable (which happens immediately after
             # a reconfigure). Since this query makes use of
-            # table.info(), it's separated from the guaranteed query above.
-            failable_misc_query = r.do(
-                r.db(system_db).table('table_status').get(this_id),
-                r.db(system_db).table('table_config').get(this_id),
+            # table.info(), it's separated from the guaranteed query
+            r.do(
+                r.db(system_db).table('table_status').get(@id),
+                r.db(system_db).table('table_config').get(@id),
                 r.db(system_db).table('server_config')
                     .map((x) -> [x('name'), x('id')]).coerceTo('ARRAY').coerceTo('OBJECT'),
                 (table_status, table_config, server_name_to_id) ->
@@ -123,118 +177,141 @@ module 'TableView', ->
                                         name: name
                         ).coerceTo('array')
                     })
-            )            
+            )
 
+        handle_failable_index_response: (error, result) =>
+            # Handle the result of failable_index_query
+            if error?
+                @add_error_message('index', error.msg)
+                @model.set 'index_unavailable', true
+                return
+            @model.set 'index_unavailable', false
+            @clear_cached_error_messages('index')
+            if @indexes?
+                @indexes.set _.map(result, (index) -> new Index index)
+            else
+                @indexes = new Indexes _.map result, (index) ->
+                    new Index index
+            @table_view?.set_indexes @indexes
+
+            @model.set
+                indexes: result
+            if !@table_view?
+                @table_view = new TableView.TableMainView
+                    model: @model
+                    indexes: @indexes
+                    distribution: @distribution
+                    shards_assignments: @shards_assignments
+                @render()
+
+        handle_failable_misc_response: (error, result) =>
+            if error?
+                @add_error_message('misc', error.msg)
+                @model.set 'info_unavailable', true
+                return
+            @model.set 'info_unavailable', false
+            @clear_cached_error_messages('misc')
+            if @distribution?
+                @distribution.set _.map result.distribution, (shard) ->
+                    new Shard shard
+                @distribution.trigger 'update'
+            else
+                @distribution = new Distribution _.map(
+                    result.distribution, (shard) -> new Shard shard)
+                @table_view?.set_distribution @distribution
+            shards_assignments = []
+            for shard in result.shards_assignments
+                shards_assignments.push
+                    id: "start_shard_#{shard.id}"
+                    shard_id: shard.id
+                    num_keys: shard.num_keys
+                    start_shard: true
+
+                shards_assignments.push
+                    id: "shard_primary_#{shard.id}"
+                    primary: true
+                    shard_id: shard.id
+                    data: shard.primary
+
+                for replica, position in shard.replicas
+                    shards_assignments.push
+                        id: "shard_replica_#{shard.id}_#{position}"
+                        replica: true
+                        replica_position: position
+                        shard_id: shard.id
+                        data: replica
+
+                shards_assignments.push
+                    id: "end_shard_#{shard.id}"
+                    shard_id: shard.id
+                    end_shard: true
+
+            if @shards_assignments?
+                @shards_assignments.set _.map shards_assignments, (shard) ->
+                    new ShardAssignment shard
+            else
+                @shards_assignments = new ShardAssignments(
+                    _.map shards_assignments,
+                        (shard) -> new ShardAssignment shard
+                )
+                @table_view?.set_assignments @shards_assignments
+
+            @model.set result
+            if !@table_view?
+                @table_view = new TableView.TableMainView
+                    model: @model
+                    indexes: @indexes
+                    distribution: @distribution
+                    shards_assignments: @shards_assignments
+                @render()
+
+        handle_guaranteed_response: (error, result) =>
+            if error?
+                # TODO: We may want to render only if we failed to open a connection
+                # TODO: Handle when the table is deleted
+                @error = error
+                @render()
+            else
+                rerender = @error?
+                @error = null
+                if result is null
+                    rerender = rerender or @table_found
+                    @table_found = false
+                    # Reset the data
+                    @indexes = null
+                    @render()
+                else
+                    rerender = rerender or not @table_found
+                    @table_found = true
+                    @model.set result
+
+                if rerender
+                    @render()
+
+        fetch_data: =>
             # This timer keeps track of the failable index query, so we can
             # cancel it when we navigate away from the table page.
-            @failable_index_timer = driver.run failable_index_query, 1000, (error, result) =>
-                if error?
-                    console.log error.msg
-                    return
-                @error = null
-                if @indexes?
-                    @indexes.set _.map(result, (index) -> new Index index)
-                else
-                    @indexes = new Indexes _.map result, (index) ->
-                        new Index index
-                @table_view?.set_indexes @indexes
-
-                @model.set
-                    indexes: result
-                if !@table_view?
-                    @table_view = new TableView.TableMainView
-                        model: @model
-                        indexes: @indexes
-                        distribution: @distribution
-                        shards_assignments: @shards_assignments
-                    @render()
-
+            @failable_index_timer = driver.run(
+                @failable_index_query(),
+                1000,
+                @handle_failable_index_response
+            )
             # This timer keeps track of the failable misc query, so we can
             # cancel it when we navigate away from the table page.
-            @failable_misc_timer = driver.run failable_misc_query, 10000, (error, result) =>
-                if error?
-                    console.log error.msg
-                    return
-                @error = null
-                if @distribution?
-                    @distribution.set _.map result.distribution, (shard) ->
-                        new Shard shard
-                    @distribution.trigger 'update'
-                else
-                    @distribution = new Distribution _.map(
-                        result.distribution, (shard) -> new Shard shard)
-                    @table_view?.set_distribution @distribution
-                shards_assignments = []
-                for shard in result.shards_assignments
-                    shards_assignments.push
-                        id: "start_shard_#{shard.id}"
-                        shard_id: shard.id
-                        num_keys: shard.num_keys
-                        start_shard: true
-
-                    shards_assignments.push
-                        id: "shard_primary_#{shard.id}"
-                        primary: true
-                        shard_id: shard.id
-                        data: shard.primary
-
-                    for replica, position in shard.replicas
-                        shards_assignments.push
-                            id: "shard_replica_#{shard.id}_#{position}"
-                            replica: true
-                            replica_position: position
-                            shard_id: shard.id
-                            data: replica
-
-                    shards_assignments.push
-                        id: "end_shard_#{shard.id}"
-                        shard_id: shard.id
-                        end_shard: true
-
-                if @shards_assignments?
-                    @shards_assignments.set _.map shards_assignments, (shard) ->
-                        new ShardAssignment shard
-                else
-                    @shards_assignments = new ShardAssignments(
-                        _.map shards_assignments,
-                            (shard) -> new ShardAssignment shard
-                    )
-                    @table_view?.set_assignments @shards_assignments
-
-                @model.set result
-                if !@table_view?
-                    @table_view = new TableView.TableMainView
-                        model: @model
-                        indexes: @indexes
-                        distribution: @distribution
-                        shards_assignments: @shards_assignments
-                    @render()
+            @failable_misc_timer = driver.run(
+                @failable_misc_query(),
+                10000,
+                @handle_failable_misc_response,
+            )
 
             # This timer keeps track of the guaranteed query, running
             # it every 5 seconds. We cancel it when navigating away
             # from the table page.
-            @guaranteed_timer = driver.run guaranteed_query, 5000, (error, result) =>
-                if error?
-                    # TODO: We may want to render only if we failed to open a connection
-                    # TODO: Handle when the table is deleted
-                    @error = error
-                    @render()
-                else
-                    rerender = @error?
-                    @error = null
-                    if result is null
-                        rerender = rerender or @table_found
-                        @table_found = false
-                        # Reset the data
-                        @indexes = null
-                        @render()
-                    else
-                        rerender = rerender or not @table_found
-                        @table_found = true
-                        @model.set result
-
-                    if rerender
-                        @render()
+            @guaranteed_timer = driver.run(
+                @guaranteed_query(),
+                5000,
+                @handle_guaranteed_response,
+            )
 
         render: =>
             if @error?
@@ -285,7 +362,7 @@ module 'TableView', ->
             @secondary_indexes_view = new TableView.SecondaryIndexesView
                 collection: @indexes
                 model: @model
-            @shards = new TableView.Sharding
+            @shard_distribution = new TableView.ShardDistribution
                 collection: @distribution
                 model: @model
             @server_assignments = new TableView.ShardAssignmentsView
@@ -317,7 +394,7 @@ module 'TableView', ->
 
         set_distribution: (distribution) =>
             @distribution = distribution
-            @shards.set_distribution @distribution
+            @shard_distribution.set_distribution @distribution
 
         set_assignments: (shards_assignments) =>
             @shards_assignments = shards_assignments
@@ -336,7 +413,7 @@ module 'TableView', ->
             @$('.performance-graph').html @performance_graph.render().$el
 
             # Display the shards
-            @$('.sharding').html @shards.render().el
+            @$('.sharding').html @shard_distribution.render().el
 
             # Display the server assignments
             @$('.server-assignments').html @server_assignments.render().el
@@ -387,7 +464,7 @@ module 'TableView', ->
         remove: =>
             @title.remove()
             @profile.remove()
-            @shards.remove()
+            @shard_distribution.remove()
             @server_assignments.remove()
             @performance_graph.remove()
             @secondary_indexes_view.remove()
@@ -477,7 +554,7 @@ module 'TableView', ->
                 if @progress_bar.get_stage() is 'none'
                     @progress_bar.skip_to_processing()
 
-            else if @model.get('num_available_replicas') is @model.get('num_replicas')
+            else
                 if @timer?
                     driver.stop_timer @timer
                     @timer = null
@@ -542,20 +619,61 @@ module 'TableView', ->
 
         initialize: =>
             @listenTo @model, 'change', @render
+            @indicator = new TableView.TableStatusIndicator
+                model: @model
 
         render: =>
-            @$el.html @template
+            obj = {
                 status: @model.get 'status'
                 total_keys: @model.get 'total_keys'
                 num_shards: @model.get 'num_shards'
                 num_available_shards: @model.get 'num_available_shards'
                 num_replicas: @model.get 'num_replicas'
                 num_available_replicas: @model.get 'num_available_replicas'
-            return @
+            }
 
+            if obj.status?.ready_for_writes and not obj?.status.all_replicas_ready
+                obj.parenthetical = true
+
+            @$el.html @template obj
+            @$('.availability').prepend(@indicator.$el)
+
+            return @
         remove: =>
-            @stopListening()
+            @indicator.remove()
             super()
+
+    class @TableStatusIndicator extends Backbone.View
+        # This is an svg element showing the table's status in the
+        # appropriate color. Unlike a lot of other views, its @$el is
+        # set to the svg element from the template, rather than being
+        # wrapped.
+        template: Handlebars.templates['table_status_indicator']
+
+        initialize: =>
+            status_class = @status_to_class(@model.get('status'))
+            @setElement(@template(status_class: status_class))
+            @render()
+            @listenTo @model, 'change:status', @render
+
+        status_to_class: (status) =>
+            if not status
+                return "unknown"
+            # ensure this matches "humanize_table_readiness" in util.coffee
+            if status.all_replicas_ready
+                return "ready"
+            else if status.ready_for_writes
+                return "ready-but-with-caveats"
+            else
+                return "not-ready"
+
+        render: =>
+            # We don't re-render the template, just update the class of the svg
+            stat_class = @status_to_class(@model.get('status'))
+            # .addClass and .removeClass don't work on <svg> elements
+            @$el.attr('class', "ionicon-table-status #{stat_class}")
+
+
 
     class @SecondaryIndexesView extends Backbone.View
         template: Handlebars.templates['table-secondary_indexes-template']
@@ -580,14 +698,16 @@ module 'TableView', ->
 
             @adding_index = false
 
-            if @collection?
-                @loading = false
-                @hook()
+            @listenTo @model, 'change:index_unavailable', @set_warnings
+
+            @render()
+            @hook() if @collection?
+
+        set_warnings:  ->
+            if @model.get('index_unavailable')
+                @$('.unavailable-error').show()
             else
-                @loading = true
-                @$el.html @template
-                    loading: @loading
-                    adding_index: @adding_index
+                @$('.unavailable-error').hide()
 
         set_fetch_progress: (index) =>
             if not @interval_progress?
@@ -595,13 +715,14 @@ module 'TableView', ->
                 @interval_progress = setInterval @fetch_progress, 1000
 
         fetch_progress: =>
-            fetch_for_progress = []
+            build_in_progress = false
             for index in @collection.models
                 if index.get('ready') isnt true
-                    fetch_for_progress.push index.get 'index'
+                    build_in_progress = true
+                    break
 
-            if fetch_for_progress.length > 0
-                query = r.db(@model.get('db')).table(@model.get('name')).indexStatus(r.args(fetch_for_progress))
+            if build_in_progress and @model.get('db')?
+                query = r.db(@model.get('db')).table(@model.get('name')).indexStatus()
                     .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
                     .merge( (index) => {
                         id: index("index")
@@ -611,7 +732,8 @@ module 'TableView', ->
 
                 driver.run_once query, (error, result) =>
                     if error?
-                        # This can happen if the table is temporary unavailable. We log the error, and ignore it
+                        # This can happen if the table is temporarily
+                        # unavailable. We log the error, and ignore it
                         console.log "Nothing bad - Could not fetch secondary indexes statuses"
                         console.log error
                     else
@@ -629,17 +751,10 @@ module 'TableView', ->
 
 
         set_indexes: (indexes) =>
-            @loading = false
             @collection = indexes
             @hook()
 
         hook: =>
-            @$el.html @template
-                loading: @loading
-                adding_index: @adding_index
-
-            @loading = false
-
             @collection.each (index) =>
                 view = new TableView.SecondaryIndexView
                     model: index
@@ -706,6 +821,9 @@ module 'TableView', ->
             @$('.main_alert_error').hide()
 
         render: =>
+            @$el.html @template
+                adding_index: @adding_index
+            @set_warnings()
             return @
 
         # Show the form to add a secondary index
@@ -731,7 +849,6 @@ module 'TableView', ->
                 @hide_add_index()
 
         on_fail_to_connect: =>
-            @loading = false
             @render_error
                 connect_fail: true
             return @
@@ -862,5 +979,5 @@ module 'TableView', ->
             @$('.alert_confirm_delete').hide()
 
         remove: =>
-            @progress_bar?.destroy()
+            @progress_bar?.remove()
             super()

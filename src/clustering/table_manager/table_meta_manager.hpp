@@ -136,13 +136,27 @@ private:
             multistore_ptr_t *multistore_ptr);
         ~active_table_t();
 
+        /* Creates or updates the business card for this table in the directory. It's
+        public because `table_meta_manager_t::on_set_config()` calls it. `expect_exists`
+        should be `false` to create and `true` to update. */
+        void update_bcard(bool expect_exists);
+
+        /* These are public so that `table_meta_manager_t` can see them */
+        table_meta_manager_t * const parent;
+        const namespace_id_t table_id;
+        const table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
+        const raft_member_id_t member_id;
+
+        raft_member_t<table_raft_state_t> *get_raft() {
+            return raft.get_raft();
+        }
+
+    private:
         /* This is a `raft_storage_interface_t` method that the `raft_member_t` calls to
         write its state to disk. */
         void write_persistent_state(
             const raft_persistent_state_t<table_raft_state_t> &persistent_state,
             signal_t *interruptor);
-
-        void update_bcard(bool expect_exists);
 
         /* This is the callback for `table_directory_subs` */
         void on_table_directory_change(
@@ -154,11 +168,6 @@ private:
 
         /* This is the callback for `raft_readiness_subs` */
         void on_raft_readiness_change();
-
-        table_meta_manager_t * const parent;
-        const namespace_id_t table_id;
-        const table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
-        const raft_member_id_t member_id;
 
         /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
         `table_meta_bcard_t`s and putting them into a map for the

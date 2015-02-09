@@ -47,7 +47,8 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
         opts.url = "http://update.rethinkdb.com/checkin";
         opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
         opts.form_data["Version"] = RETHINKDB_VERSION;
-        opts.form_data["Number-Of-Servers"] = snapshot.servers.servers.size();
+        opts.form_data["Number-Of-Servers"]
+            = strprintf("%zu", snapshot.servers.servers.size());
         opts.form_data["Uname"] = uname;
         // RSI(raft): Reimplement this once table meta operations work
         return;
@@ -126,4 +127,3 @@ void version_checker_t::process_result(const http_result_t &result) {
         rfail_datum(ql::base_exc_t::GENERIC, "unexpected status code");
     }
 }
-

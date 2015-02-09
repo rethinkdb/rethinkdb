@@ -41,13 +41,23 @@ serverProcess = subprocess.Popen(serverCommand, bufsize=bufferSize, stdout=subpr
 
 # --  wait, then check for the "Server ready" message
 
+isDone = False
+doneLock = threading.Lock()
+
 def lineReader(inputFile, outputQueue):
-    for line in iter(inputFile.readline, b''):
-        outputQueue.put(line)
-    outputQueue.close()
+    while True:
+        with doneLock:
+            if isDone: return
+        currentPosition = inputFile.tell()
+        line = inputFile.readline()
+        if not line:
+            inputFile.seek(currentPosition)
+        else:
+            outputQueue.put(line)
 
 lineQueue = Queue.Queue()
 readerThread = threading.Thread(target=lineReader, args=(open(logFilePath, 'r'), lineQueue))
+readerThread.start()
 
 deadline = time.time() + waitSeconds
 while time.time() < deadline and serverProcess.poll() is None:
@@ -55,10 +65,14 @@ while time.time() < deadline and serverProcess.poll() is None:
         line = lineQueue.get_nowait()
         if 'Server ready' in line:
             print('Server reported ready')
+            with doneLock:
+                isDone = True
             sys.exit()
     except Queue.Empty:
         pass
 
+with doneLock:
+    isDone = True
 serverProcess.kill()
 
 sys.stderr.write('Failure: server did not report ready after %d seconds\n' % waitSeconds)

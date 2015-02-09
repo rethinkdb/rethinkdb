@@ -312,9 +312,9 @@ bool table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
-                    guarantee((*config_shards_out)[shard].primary_replica.is_unset());
-                    (*config_shards_out)[shard].replicas.insert(server);
-                    (*config_shards_out)[shard].primary_replica = server;
+                    guarantee(config_shards_out->at(shard).primary_replica.is_unset());
+                    config_shards_out->at(shard).replicas.insert(server);
+                    config_shards_out->at(shard).primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
                     that our second call to `pick_best_pairings()` will take into account
                     the choices made in this round. */
