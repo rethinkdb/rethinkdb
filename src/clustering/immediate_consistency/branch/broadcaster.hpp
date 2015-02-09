@@ -82,7 +82,6 @@ public:
             store_view_t *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             order_source_t *order_source,
-            branch_id_t branch_id,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
@@ -105,6 +104,8 @@ public:
                      write_callback_t *cb,
                      signal_t *interruptor,
                      const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t);
+
+    branch_id_t get_branch_id() const;
 
     broadcaster_business_card_t get_business_card();
 
