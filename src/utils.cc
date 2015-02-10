@@ -26,6 +26,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "clustering/administration/main/directory_lock.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/file_stream.hpp"
@@ -555,20 +556,32 @@ std::string temporary_directory_path(const base_path_t& base_path) {
     return base_path.path() + "/tmp";
 }
 
-void recreate_temporary_directory(const base_path_t& base_path) {
-    const std::string path = temporary_directory_path(base_path);
+bool is_rw_directory(const base_path_t& path) {
+    if (!access((path.path() + "/a-file-name").c_str(), R_OK | F_OK | W_OK))
+        return false;
+    struct stat details;
+    if (stat(path.path().c_str(), &details) != 0)
+        return false;
+    return (details.st_mode & S_IFDIR) > 0;
+}
 
-    remove_directory_recursive(path.c_str());
+void recreate_temporary_directory(const base_path_t& base_path) {
+    const base_path_t path(temporary_directory_path(base_path));
+
+    if (is_rw_directory(path) && check_dir_emptiness(path))
+        return;
+    remove_directory_recursive(path.path().c_str());
 
     int res;
     do {
-        res = mkdir(path.c_str(), 0755);
+        res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
-    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed",
+                  path.path().c_str());
 
     // Call fsync() on the parent directory to guarantee that the newly
     // created directory's directory entry is persisted to disk.
-    warn_fsync_parent_directory(path.c_str());
+    warn_fsync_parent_directory(path.path().c_str());
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
