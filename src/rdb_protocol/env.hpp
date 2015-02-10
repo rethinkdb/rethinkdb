@@ -62,6 +62,7 @@ public:
     // This is _not_ to be used for secondary index function evaluation -- it doesn't
     // take a reql_version parameter.
     env_t(rdb_context_t *ctx,
+          return_empty_normal_batches_t return_empty_normal_batches,
           signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
           profile::trace_t *trace);
@@ -128,6 +129,8 @@ private:
     query_cache_t cache_;
 
 public:
+    const return_empty_normal_batches_t return_empty_normal_batches;
+
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 

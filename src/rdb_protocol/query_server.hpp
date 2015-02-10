@@ -28,6 +28,7 @@ public:
 
     MUST_USE bool run_query(const ql::protob_t<Query> &query,
                             Response *response_out,
+                            signal_t *interruptor,
                             client_context_t *client_ctx,
                             ip_and_port_t const &peer);
 

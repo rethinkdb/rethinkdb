@@ -43,5 +43,16 @@ private:
     DISABLE_COPYING(new_mutex_in_line_t);
 };
 
+class new_mutex_acq_t : private new_mutex_in_line_t {
+public:
+    // Acquires the lock.  The constructor blocks the coroutine, it doesn't return
+    // until the lock is acquired.
+    new_mutex_acq_t(new_mutex_t *lock) : new_mutex_in_line_t(lock) {
+        acq_signal()->wait();
+    }
+
+private:
+    DISABLE_COPYING(new_mutex_acq_t);
+};
 
 #endif  // CONCURRENCY_NEW_MUTEX_HPP_
