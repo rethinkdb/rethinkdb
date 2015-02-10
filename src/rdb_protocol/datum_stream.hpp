@@ -60,7 +60,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
-    virtual changefeed::keyspec_t get_change_spec() = 0;
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -117,7 +117,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 protected:
-    virtual changefeed::keyspec_t get_change_spec() {
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
@@ -216,7 +216,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual changefeed::keyspec_t get_change_spec();
+    virtual std::vector<changefeed::keyspec_t> get_change_specs();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -270,8 +270,13 @@ public:
     virtual bool is_infinite() const;
 
 private:
-    virtual changefeed::keyspec_t get_change_spec() {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
+        std::vector<changefeed::keyspec_t> specs;
+        for (auto &&stream : streams) {
+            auto subspecs = stream->get_change_specs();
+            std::move(subspecs.begin(), subspecs.end(), std::back_inserter(specs));
+        }
+        return specs;
     }
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
@@ -377,7 +382,7 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const = 0;
 
     const std::string &get_table_name() const { return table_name; }
@@ -407,7 +412,7 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t> transforms) const {
         return changefeed::keyspec_t::range_t{
             std::move(transforms), sindex_name(), sorting, original_datum_range};
@@ -515,7 +520,7 @@ public:
     virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const {
         rfail_datum(base_exc_t::GENERIC,
                     "%s", "Cannot call `changes` on an intersection read.");
@@ -569,7 +574,7 @@ public:
 
     virtual changefeed::keyspec_t get_change_spec() const {
         return changefeed::keyspec_t(
-            readgen->get_change_spec(transforms),
+            readgen->get_range_spec(transforms),
             table,
             readgen->get_table_name());
     }
@@ -648,8 +653,8 @@ public:
     virtual bool is_infinite() const;
 
 private:
-    virtual changefeed::keyspec_t get_change_spec() {
-        return reader->get_change_spec();
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
+        return std::vector<changefeed::keyspec_t>{reader->get_change_spec()};
     }
 
     std::vector<datum_t >
@@ -689,7 +694,7 @@ private:
     bool is_array() const;
     bool is_infinite() const;
 
-    changefeed::keyspec_t get_change_spec();
+    std::vector<changefeed::keyspec_t> get_change_specs();
 
     std::vector<datum_t> rows;
     size_t index;

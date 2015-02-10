@@ -1018,9 +1018,12 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
-changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
+std::vector<changefeed::keyspec_t> slice_datum_stream_t::get_change_specs() {
     if (left == 0) {
-        changefeed::keyspec_t subspec = source->get_change_spec();
+        auto subspecs = source->get_change_specs();
+        rcheck(subspecs.size() == 1, base_exc_t::GENERIC,
+               "Cannot call `changes` on a slice of a union.");
+        auto subspec = subspecs[0];
         auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
         if (rspec != NULL) {
             std::copy(transforms.begin(), transforms.end(),
@@ -1031,15 +1034,15 @@ changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
                              "with size > %zu (got %" PRIu64 ").",
                              std::numeric_limits<size_t>::max(),
                              right));
-            return changefeed::keyspec_t(
+            return std::vector<changefeed::keyspec_t>{changefeed::keyspec_t(
                 changefeed::keyspec_t::limit_t{
                     std::move(*rspec),
                     static_cast<size_t>(right)},
                 std::move(subspec.table),
-                std::move(subspec.table_name));
+                std::move(subspec.table_name))};
         }
     }
-    return wrapper_datum_stream_t::get_change_spec();
+    return wrapper_datum_stream_t::get_change_specs();
 }
 
 std::vector<datum_t>
@@ -1359,9 +1362,9 @@ bool vector_datum_stream_t::is_infinite() const {
     return false;
 }
 
-changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
+std::vector<changefeed::keyspec_t> vector_datum_stream_t::get_change_specs() {
     if (changespec) {
-        return *changespec;
+        return std::vector<changefeed::keyspec_t>{*changespec};
     } else {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
     }

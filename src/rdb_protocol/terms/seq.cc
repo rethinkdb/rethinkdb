@@ -396,17 +396,26 @@ private:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<datum_stream_t> seq = v->as_seq(env->env);
-            changefeed::keyspec_t keyspec = seq->get_change_spec();
-            boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
-                                 keyspec.spec);
-            return new_val(
-                env->env,
-                keyspec.table->read_changes(
-                    env->env,
-                    squash,
-                    std::move(keyspec.spec),
-                    backtrace(),
-                    keyspec.table_name));
+            std::vector<counted_t<datum_stream_t> > streams;
+            std::vector<changefeed::keyspec_t> keyspecs = seq->get_change_specs();
+            r_sanity_check(keyspecs.size() >= 1);
+            for (auto &&keyspec : keyspecs) {
+                boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
+                                     keyspec.spec);
+                streams.push_back(
+                    keyspec.table->read_changes(
+                        env->env,
+                        squash,
+                        std::move(keyspec.spec),
+                        backtrace(),
+                        keyspec.table_name));
+            }
+            if (streams.size() == 1) {
+                return new_val(env->env, streams[0]);
+            } else {
+                return new_val(env->env, make_counted<union_datum_stream_t>(
+                                   std::move(streams), backtrace()));
+            }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
                 env->env, v->as_single_selection()->read_changes(squash));

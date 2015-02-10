@@ -133,7 +133,7 @@ public:
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
     const counted_t<table_t> &get_tbl() const { return tbl; }
     const boost::optional<std::string> &get_idx() const { return idx; }
-    ql::changefeed::keyspec_t::range_t get_change_spec();
+    ql::changefeed::keyspec_t::range_t get_range_spec();
 private:
     friend class distinct_term_t;
     const counted_t<table_t> tbl;
