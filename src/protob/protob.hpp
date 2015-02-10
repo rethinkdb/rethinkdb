@@ -17,128 +17,56 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/counted.hpp"
 #include "http/http.hpp"
-
-#include "rdb_protocol/stream_cache.hpp"
+#include "perfmon/perfmon.hpp"
 #include "rdb_protocol/counted_term.hpp"
 
 class auth_key_t;
 class auth_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 
-class client_context_t {
-public:
-    explicit client_context_t(
-        rdb_context_t *rdb_ctx,
-        ql::return_empty_normal_batches_t return_empty_normal_batches)
-        : stream_cache(rdb_ctx, return_empty_normal_batches) { }
-    ql::stream_cache_t stream_cache;
-};
+class rdb_context_t;
+namespace ql {
+class query_id_t;
+class query_cache_t;
+}
 
-class http_conn_cache_t : public repeating_timer_callback_t {
+class http_conn_cache_t : public repeating_timer_callback_t,
+                          public home_thread_mixin_t {
 public:
-    class http_conn_t {
+    class http_conn_t : public single_threaded_countable_t<http_conn_t> {
     public:
-        explicit http_conn_t(rdb_context_t *rdb_ctx) :
-            in_use(false),
-            last_accessed(time(0)),
-            // We always return empty normal batches after the timeout for HTTP
-            // connections; I think we have to do this to keep the conn cache
-            // from timing out.
-            client_ctx(rdb_ctx, ql::return_empty_normal_batches_t::YES),
-            counter(&rdb_ctx->stats.client_connections) {
-        }
+        http_conn_t(rdb_context_t *rdb_ctx,
+                    ip_and_port_t client_addr_port);
 
-        client_context_t *get_ctx() {
-            last_accessed = time(0);
-            return &client_ctx;
-        }
+        ql::query_cache_t *get_query_cache();
+        signal_t *get_interruptor();
 
-        signal_t *get_interruptor() {
-            return &interruptor;
-        }
-
-        void pulse() {
-            rassert(!interruptor.is_pulsed());
-            interruptor.pulse();
-        }
-
-        bool is_expired() {
-            return difftime(time(0), last_accessed) > TIMEOUT_SEC;
-        }
-
-        bool acquire() {
-            if (in_use) {
-                return false;
-            }
-            in_use = true;
-            return true;
-        }
-
-        void release() {
-            in_use = false;
-        }
+        void pulse();
+        bool is_expired();
 
     private:
-        bool in_use;
         cond_t interruptor;
         time_t last_accessed;
-        client_context_t client_ctx;
+        scoped_ptr_t<ql::query_cache_t> query_cache;
         scoped_perfmon_counter_t counter;
         DISABLE_COPYING(http_conn_t);
     };
 
-    http_conn_cache_t() : next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
-    ~http_conn_cache_t() {
-        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
-        for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
-    }
+    http_conn_cache_t();
+    ~http_conn_cache_t();
 
-    boost::shared_ptr<http_conn_t> find(int32_t key) {
-        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
-            it = cache.find(key);
-        if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
-        return it->second;
-    }
-    int32_t create(rdb_context_t *rdb_ctx) {
-        int32_t key = next_id++;
-        cache.insert(
-            std::make_pair(key, boost::make_shared<http_conn_t>(rdb_ctx)));
-        return key;
-    }
-    void erase(int32_t key) {
-        auto it = cache.find(key);
-        if (it != cache.end()) {
-            it->second->pulse();
-            cache.erase(it);
-        }
-    }
+    counted_t<http_conn_t> find(int32_t key);
+    int32_t create(rdb_context_t *rdb_ctx, ip_and_port_t client_addr_port);
+    void erase(int32_t key);
 
-    void on_ring() {
-        for (auto it = cache.begin(); it != cache.end();) {
-            auto tmp = it++;
-            if (tmp->second->is_expired()) {
-                // We go through some rigmarole to make sure we erase from the
-                // cache immediately and call the possibly-blocking destructor
-                // in a separate coroutine to satisfy the
-                // `ASSERT_FINITE_CORO_WAITING` in `call_ringer` in
-                // `arch/timing.cc`.
-                boost::shared_ptr<http_conn_t> conn = std::move(tmp->second);
-                conn->pulse();
-                cache.erase(tmp);
-                coro_t::spawn_now_dangerously([&conn]() {
-                    boost::shared_ptr<http_conn_t> conn2;
-                    conn2.swap(conn);
-                });
-                guarantee(!conn);
-            }
-        }
-    }
+    void on_ring();
 private:
     static const time_t TIMEOUT_SEC = 5*60;
     static const int64_t TIMER_RESOLUTION_MS = 5000;
 
-    std::map<int32_t, boost::shared_ptr<http_conn_t> > cache;
+    std::map<int32_t, counted_t<http_conn_t> > cache;
     int32_t next_id;
     repeating_timer_t http_timeout_timer;
 };
@@ -147,11 +75,11 @@ class query_handler_t {
 public:
     virtual ~query_handler_t() { }
 
-    virtual MUST_USE bool run_query(const ql::protob_t<Query> &query,
+    virtual MUST_USE bool run_query(const ql::query_id_t &query_id,
+                                    const ql::protob_t<Query> &query,
                                     Response *response_out,
-                                    signal_t *interruptor,
-                                    client_context_t *client_ctx,
-                                    ip_and_port_t const &peer) = 0;
+                                    ql::query_cache_t *query_cache,
+                                    signal_t *interruptor) = 0;
 
     virtual void unparseable_query(int64_t token,
                                    Response *response_out,
@@ -186,8 +114,8 @@ private:
     template<class protocol_t>
     void connection_loop(tcp_conn_t *conn,
                          size_t max_concurrent_queries,
-                         signal_t *interruptor,
-                         client_context_t *client_ctx);
+                         ql::query_cache_t *query_cache,
+                         signal_t *interruptor);
 
     // For HTTP server
     void handle(const http_req_t &request,

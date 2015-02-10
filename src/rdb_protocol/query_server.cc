@@ -7,7 +7,7 @@
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/profile.hpp"
-#include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/query_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
 rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
@@ -30,19 +30,19 @@ int rdb_query_server_t::get_port() const {
 
 // Predeclaration for run, only used here
 namespace ql {
-    void run(protob_t<Query> q,
-             rdb_context_t *ctx,
-             signal_t *interruptor,
-             stream_cache_t *stream_cache,
-             ip_and_port_t const &peer,
-             Response *response_out);
+    void run(const ql::query_id_t &query_id,
+             protob_t<Query> q,
+             Response *response_out,
+             ql::query_cache_t *query_cache,
+             signal_t *interruptor);
 }
 
-bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
+bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
+                                   const ql::protob_t<Query> &query,
                                    Response *response_out,
-                                   signal_t *interruptor,
-                                   client_context_t *client_ctx,
-                                   ip_and_port_t const &peer) {
+                                   ql::query_cache_t *query_cache,
+                                   signal_t *interruptor) {
+    guarantee(query_cache != NULL);
     guarantee(interruptor != NULL);
     response_out->set_token(query->token());
 
@@ -54,12 +54,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
         scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active);
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
-        ql::run(query,
-                rdb_ctx,
-                interruptor,
-                &client_ctx->stream_cache,
-                peer,
-                response_out);
+        ql::run(query_id, query, response_out, query_cache, interruptor);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {

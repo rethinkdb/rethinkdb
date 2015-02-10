@@ -25,6 +25,90 @@
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_server.hpp"
+#include "rdb_protocol/query_cache.hpp"
+
+http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
+                                            ip_and_port_t client_addr_port) :
+    last_accessed(time(0)),
+    // We always return empty normal batches after the timeout for HTTP
+    // connections; I think we have to do this to keep the conn cache
+    // from timing out.
+    query_cache(new ql::query_cache_t(rdb_ctx, client_addr_port,
+                                      ql::return_empty_normal_batches_t::YES)),
+    counter(&rdb_ctx->stats.client_connections) { }
+
+ql::query_cache_t *http_conn_cache_t::http_conn_t::get_query_cache() {
+    last_accessed = time(0);
+    return query_cache.get();
+}
+
+signal_t *http_conn_cache_t::http_conn_t::get_interruptor() {
+    return &interruptor;
+}
+
+void http_conn_cache_t::http_conn_t::pulse() {
+    rassert(!interruptor.is_pulsed());
+    interruptor.pulse();
+}
+
+bool http_conn_cache_t::http_conn_t::is_expired() {
+    return difftime(time(0), last_accessed) > TIMEOUT_SEC;
+}
+
+http_conn_cache_t::http_conn_cache_t() :
+    next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
+
+http_conn_cache_t::~http_conn_cache_t() {
+    for (auto &pair : cache) pair.second->pulse();
+}
+
+counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(int32_t key) {
+    assert_thread();
+    auto conn_it = cache.find(key);
+    if (conn_it == cache.end()) return counted_t<http_conn_t>();
+    return conn_it->second;
+}
+
+int32_t http_conn_cache_t::create(rdb_context_t *rdb_ctx,
+                                  ip_and_port_t client_addr_port) {
+    assert_thread();
+    int32_t key = next_id++;
+    cache.insert(
+        std::make_pair(key, make_counted<http_conn_t>(rdb_ctx, client_addr_port)));
+    return key;
+}
+
+void http_conn_cache_t::erase(int32_t key) {
+    assert_thread();
+    auto it = cache.find(key);
+    if (it != cache.end()) {
+        it->second->pulse();
+        cache.erase(it);
+    }
+}
+
+void http_conn_cache_t::on_ring() {
+    assert_thread();
+    for (auto it = cache.begin(); it != cache.end();) {
+        auto tmp = it++;
+        if (tmp->second->is_expired()) {
+            // We go through some rigmarole to make sure we erase from the
+            // cache immediately and call the possibly-blocking destructor
+            // in a separate coroutine to satisfy the
+            // `ASSERT_FINITE_CORO_WAITING` in `call_ringer` in
+            // `arch/timing.cc`.
+            counted_t<http_conn_t> conn(std::move(tmp->second));
+            conn->pulse();
+            cache.erase(tmp);
+            coro_t::spawn_now_dangerously(
+                [&conn]() {
+                    counted_t<http_conn_t> conn2;
+                    conn2.swap(conn);
+                });
+            guarantee(!conn);
+        }
+    }
+}
 
 struct protob_server_exc_t : public std::exception {
 public:
@@ -262,6 +346,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
+    ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
+    UNUSED bool peer_res = conn->getpeername(&client_addr_port);
 
     std::string init_error;
 
@@ -301,17 +387,16 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
 
-        client_context_t client_ctx(
-            rdb_ctx,
-            pre_4 ? ql::return_empty_normal_batches_t::YES
-                  : ql::return_empty_normal_batches_t::NO);
+        ql::query_cache_t query_cache(rdb_ctx, client_addr_port,
+                                      pre_4 ? ql::return_empty_normal_batches_t::YES :
+                                              ql::return_empty_normal_batches_t::NO);
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
-                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
+                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
             connection_loop<protobuf_protocol_t>(
-                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
+                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
         } else {
             throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
                                                 wire_protocol));
@@ -338,31 +423,44 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
-                                     signal_t *raw_interruptor,
-                                     client_context_t *client_ctx) {
+                                     ql::query_cache_t *query_cache,
+                                     signal_t *raw_interruptor) {
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
-
-    ip_and_port_t peer;
-    bool got_peer_name = conn->getpeername(&peer);
-    if (!got_peer_name) {
-        // Return early and close the connection.
-        return;
-    }
 
     std::exception_ptr err;
     cond_t abort;
-    wait_any_t conn_interruptor(raw_interruptor, &abort);
     new_mutex_t send_mutex;
 
-    std_function_callback_t<ql::protob_t<Query> > callback(
-        [&](ql::protob_t<Query> query, signal_t *coro_pool_interruptor) {
+
+    // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
+    // (which are RAII) are allocated and destroyed properly.  When we read a query off
+    // of the wire, it needs to be allocated a query_id_t immediately, because we then
+    // put it into the coro pool.  Once it is in the coro pool, all ordering guarantees
+    // are lost, so it must be done as soon as we receive the query.
+    //
+    // The nascent_query_list_t holds ownership of the query_info_t until it is successfully
+    // handed over to the coroutine that will run the query.  This allows us to guarantee
+    // proper destruction of query_id_ts in exceptional interruption or error cases.
+    //
+    // A ql::query_id_t is used to provide an absolute ordering of queries, and is necessary
+    // for proper NOREPLY_WAIT semantics.
+    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > > nascent_query_list_t;
+    nascent_query_list_t query_list;
+
+    std_function_callback_t<nascent_query_list_t::iterator> callback(
+        [&](nascent_query_list_t::iterator query_it,
+            signal_t *pool_interruptor) {
+
+            ql::query_id_t query_id(std::move(query_it->first));
+            ql::protob_t<Query> query_pb(std::move(query_it->second));
+            query_list.erase(query_it);
+
             try {
-                wait_any_t cb_interruptor(
-                    &conn_interruptor, coro_pool_interruptor);
+                wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
                 Response response;
-                if (handler->run_query(
-                        query, &response, &cb_interruptor, client_ctx, peer)) {
-                    new_mutex_acq_t send_lock(&send_mutex);
+                if (handler->run_query(query_id, query_pb, &response,
+                                       query_cache, &cb_interruptor)) {
+                    new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                     protocol_t::send_response(response, handler, conn, &cb_interruptor);
                 }
             } catch (...) {
@@ -372,16 +470,21 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                 abort.pulse_if_not_already_pulsed();
             }
         });
-    // Pick a small limit so queries back up on the TCP connection.
-    limited_fifo_queue_t<ql::protob_t<Query> > coro_queue(4);
-    coro_pool_t<ql::protob_t<Query> > coro_pool(
-        max_concurrent_queries, &coro_queue, &callback);
 
+    // Pick a small limit so queries back up on the TCP connection.
+    limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
+    coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
+                                                          &coro_queue,
+                                                          &callback);
+
+    wait_any_t loop_interruptor(raw_interruptor, &abort);
     for (;;) {
         ql::protob_t<Query> query(ql::make_counted_query());
         try {
-            if (protocol_t::parse_query(conn, &conn_interruptor, handler, &query)) {
-                coro_queue.push(std::move(query));
+            if (protocol_t::parse_query(conn, &loop_interruptor, handler, &query)) {
+                query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
+                                                     std::move(query)));
+                coro_queue.push(query_list.begin());
             }
         } catch (...) {
             if (err) {
@@ -393,35 +496,13 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     }
 }
 
-class conn_acq_t {
-public:
-    conn_acq_t() : conn(NULL) { }
-
-    bool init(http_conn_cache_t::http_conn_t *_conn) {
-        guarantee(conn == NULL);
-        if (_conn->acquire()) {
-            conn = _conn;
-            return true;
-        }
-        return false;
-    }
-
-    ~conn_acq_t() {
-        if (conn != NULL) {
-            conn->release();
-        }
-    }
-private:
-    http_conn_cache_t::http_conn_t *conn;
-};
-
 void query_server_t::handle(const http_req_t &req,
                             http_res_t *result,
                             signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
-        int32_t conn_id = http_conn_cache.create(rdb_ctx);
+        int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
@@ -469,21 +550,11 @@ void query_server_t::handle(const http_req_t &req,
         handler->unparseable_query(token, &response,
                                    "Client is buggy (failed to deserialize query).");
     } else {
-        boost::shared_ptr<http_conn_cache_t::http_conn_t> conn =
-            http_conn_cache.find(conn_id);
-        if (!conn) {
+        counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
+        if (!conn.has()) {
             handler->unparseable_query(token, &response,
                                        "This HTTP connection is not open.");
         } else {
-            // Make sure the connection is not already running a query
-            conn_acq_t conn_acq;
-
-            if (!conn_acq.init(conn.get())) {
-                *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                     "Session is already running a query");
-                return;
-            }
-
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
             ql::datum_t noreply = static_optarg("noreply", query);
@@ -493,15 +564,16 @@ void query_server_t::handle(const http_req_t &req,
 
             if (!response_needed) {
                 *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                     "Noreply writes unsupported over HTTP\n");
+                                     "noreply queries are not supported over HTTP\n");
                 return;
             }
 
-            client_context_t *client_ctx = conn->get_ctx();
-            signal_t *conn_interruptor = conn->get_interruptor();
-            wait_any_t true_interruptor(interruptor, conn_interruptor);
-            response_needed = handler->run_query(
-                query, &response, &true_interruptor, client_ctx, req.peer);
+            wait_any_t true_interruptor(interruptor, conn->get_interruptor());
+            ql::query_id_t query_id(conn->get_query_cache());
+            response_needed = handler->run_query(query_id,
+                                                 query, &response,
+                                                 conn->get_query_cache(),
+                                                 &true_interruptor);
             rassert(response_needed);
         }
     }

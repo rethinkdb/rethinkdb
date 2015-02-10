@@ -146,19 +146,6 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(query_job_report_t);
 
-// TODO, this will be merged into `stream_cache_t::entry_t` as part of #3662
-class query_job_t {
-public:
-    query_job_t(
-            microtime_t _start_time,
-            ip_and_port_t const &_client_addr_port,
-            cond_t *interruptor);
-
-    microtime_t start_time;
-    ip_and_port_t client_addr_port;
-    cond_t *interruptor;
-};
-
 #include "clustering/administration/jobs/report.tcc"
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

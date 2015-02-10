@@ -9,9 +9,12 @@
 #include "protob/protob.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/stream_cache.hpp"
 
-namespace ql { template <class> class protob_t; }
+namespace ql {
+template <class> class protob_t;
+class query_id_t;
+class query_cache_t;
+}
 class rdb_context_t;
 
 // Overloads used by protob_server_t.
@@ -26,11 +29,11 @@ public:
     http_app_t *get_http_app();
     int get_port() const;
 
-    MUST_USE bool run_query(const ql::protob_t<Query> &query,
+    MUST_USE bool run_query(const ql::query_id_t &query_id,
+                            const ql::protob_t<Query> &query,
                             Response *response_out,
-                            signal_t *interruptor,
-                            client_context_t *client_ctx,
-                            ip_and_port_t const &peer);
+                            ql::query_cache_t *query_cache,
+                            signal_t *interruptor);
 
     void unparseable_query(int64_t token,
                            Response *response_out,

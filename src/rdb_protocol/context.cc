@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/context.hpp"
 
-#include "clustering/administration/jobs/report.hpp"
+#include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "time.hpp"
 
@@ -53,6 +53,6 @@ rdb_context_t::rdb_context_t(
 
 rdb_context_t::~rdb_context_t() { }
 
-rdb_context_t::query_jobs_t * rdb_context_t::get_query_jobs_for_this_thread() {
-    return query_jobs.get();
+std::set<ql::query_cache_t *> *rdb_context_t::get_query_caches_for_this_thread() {
+    return query_caches.get();
 }

@@ -46,7 +46,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     return wire_func_t(func);
 }
 
-std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q) {
+std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q) {
     rassert(q.has());
 
     Term *t = q->mutable_query();
@@ -150,7 +150,7 @@ env_t::env_t(rdb_context_t *ctx,
     : global_optargs_(std::move(optargs)),
       limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version_(reql_version_t::LATEST),
-      cache_(LRU_CACHE_SIZE),
+      regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),
       interruptor(_interruptor),
       trace(_trace),
@@ -168,7 +168,7 @@ env_t::env_t(signal_t *_interruptor,
              reql_version_t reql_version)
     : global_optargs_(),
       reql_version_(reql_version),
-      cache_(LRU_CACHE_SIZE),
+      regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),
       interruptor(_interruptor),
       trace(NULL),
