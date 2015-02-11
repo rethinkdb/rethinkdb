@@ -560,11 +560,10 @@ bool table_config_artificial_table_backend_t::write_row(
         }
 
         if (!existed_before || new_config.config.name != old_config.config.name) {
-            size_t count;
             namespace_id_t dummy_table_id;
-            bool ok = table_meta_client->find(new_config.config.database,
-                new_config.config.name, &dummy_table_id, &count);
-            if (ok || count != 0) {
+            if (table_meta_client->find(new_config.config.database,
+                    new_config.config.name, &dummy_table_id)
+                        != table_meta_client_t::find_res_t::none) {
                 if (!existed_before) {
                     /* This message looks weird in the context of the variable named
                     `existed_before`, but it's correct. `existed_before` is true if a

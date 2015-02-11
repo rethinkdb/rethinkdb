@@ -40,9 +40,10 @@ namespace ql {
 
 bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
                                    Response *response_out,
+                                   signal_t *interruptor,
                                    client_context_t *client_ctx,
                                    ip_and_port_t const &peer) {
-    guarantee(client_ctx->interruptor != NULL);
+    guarantee(interruptor != NULL);
     response_out->set_token(query->token());
 
     ql::datum_t noreply = static_optarg("noreply", query);
@@ -55,7 +56,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
         // `ql::run` will set the status code
         ql::run(query,
                 rdb_ctx,
-                client_ctx->interruptor,
+                interruptor,
                 &client_ctx->stream_cache,
                 peer,
                 response_out);

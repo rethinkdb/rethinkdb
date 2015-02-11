@@ -54,18 +54,16 @@ with driver.Cluster(output_folder='.') as cluster:
 
     print("Checking for an issue (%.2fs)" % (time.time() - startTime))
     issues = list(r.db("rethinkdb").table("current_issues").run(conn))
-    pprint.pprint(issues)
-    assert len(issues) == 1
-    assert issues[0]["type"] == "log_write_error"
-    assert issues[0]["critical"] == False
-    assert issues[0]["info"]["servers"] == ["the_server"]
-    assert "File too large" in issues[0]["info"]["message"]
+    assert len(issues) == 1, pprint.pprint(issues)
+    assert issues[0]["type"] == "log_write_error", pprint.pprint(issues)
+    assert issues[0]["critical"] == False, pprint.pprint(issues)
+    assert issues[0]["info"]["servers"] == ["the_server"], pprint.pprint(issues)
+    assert "File too large" in issues[0]["info"]["message"], pprint.pprint(issues)
 
     print("Checking issue with identifier_format='uuid' (%.2fs)" % (time.time() - startTime))
     issues = list(r.db("rethinkdb").table("current_issues", identifier_format="uuid").run(conn))
-    pprint.pprint(issues)
-    assert len(issues) == 1
-    assert issues[0]["info"]["servers"] == [server_uuid]
+    assert len(issues) == 1, pprint.pprint(issues)
+    assert issues[0]["info"]["servers"] == [server_uuid], pprint.pprint(issues)
 
     print("Making sure issues table is not writable (%.2fs)" % (time.time() - startTime))
     res = r.db("rethinkdb").table("current_issues").delete().run(conn)

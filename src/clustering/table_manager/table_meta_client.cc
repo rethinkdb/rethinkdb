@@ -19,20 +19,25 @@ table_meta_client_t::table_meta_client_t(
         true)
     { }
 
-bool table_meta_client_t::find(
+table_meta_client_t::find_res_t table_meta_client_t::find(
         const database_id_t &database,
         const name_string_t &name,
-        namespace_id_t *table_id_out,
-        size_t *count_out) {
-    *count_out = 0;
+        namespace_id_t *table_id_out) {
+    size_t count = 0;
     table_metadata_by_id.get_watchable()->read_all(
         [&](const namespace_id_t &key, const table_metadata_t *value) {
             if (value->database == database && value->name == name) {
-                ++*count_out;
+                ++count;
                 *table_id_out = key;
             }
         });
-    return (*count_out == 1);
+    if (count == 0) {
+        return find_res_t::none;
+    } else if (count == 1) {
+        return find_res_t::ok;
+    } else {
+        return find_res_t::multiple;
+    }
 }
 
 bool table_meta_client_t::get_name(

@@ -716,7 +716,8 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         rassert(q.optargs.size() != 0);
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, interruptor, q.optargs, trace.get_or_null());
+    ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
+                  interruptor, q.optargs, trace.get_or_null());
 
     // Initialize response.
     response_out->response = query_response_t();
@@ -751,11 +752,15 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
 
     // Unshard and finish up.
-    scoped_ptr_t<ql::accumulator_t> acc(q.terminal
-        ? ql::make_terminal(*q.terminal)
-        : ql::make_append(sorting, NULL));
-    acc->unshard(&env, out->last_key, results);
-    acc->finish(&out->result);
+    try {
+        scoped_ptr_t<ql::accumulator_t> acc(q.terminal
+            ? ql::make_terminal(*q.terminal)
+            : ql::make_append(sorting, NULL));
+        acc->unshard(&env, out->last_key, results);
+        acc->finish(&out->result);
+    } catch (const ql::exc_t &ex) {
+        *out = query_response_t(ex);
+    }
 }
 
 void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {

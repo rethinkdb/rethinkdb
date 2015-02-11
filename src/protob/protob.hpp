@@ -28,12 +28,10 @@ template <class> class semilattice_readwrite_view_t;
 
 class client_context_t {
 public:
-    explicit client_context_t(rdb_context_t *rdb_ctx,
-                              signal_t *_interruptor)
-        : interruptor(_interruptor),
-          stream_cache(rdb_ctx) { }
-    // Holy shit, this field gets MODIFIED!
-    signal_t *interruptor;
+    explicit client_context_t(
+        rdb_context_t *rdb_ctx,
+        ql::return_empty_normal_batches_t return_empty_normal_batches)
+        : stream_cache(rdb_ctx, return_empty_normal_batches) { }
     ql::stream_cache_t stream_cache;
 };
 
@@ -44,13 +42,20 @@ public:
         explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(rdb_ctx, &interruptor),
+            // We always return empty normal batches after the timeout for HTTP
+            // connections; I think we have to do this to keep the conn cache
+            // from timing out.
+            client_ctx(rdb_ctx, ql::return_empty_normal_batches_t::YES),
             counter(&rdb_ctx->stats.client_connections) {
         }
 
         client_context_t *get_ctx() {
             last_accessed = time(0);
             return &client_ctx;
+        }
+
+        signal_t *get_interruptor() {
+            return &interruptor;
         }
 
         void pulse() {
@@ -144,6 +149,7 @@ public:
 
     virtual MUST_USE bool run_query(const ql::protob_t<Query> &query,
                                     Response *response_out,
+                                    signal_t *interruptor,
                                     client_context_t *client_ctx,
                                     ip_and_port_t const &peer) = 0;
 
@@ -154,11 +160,13 @@ public:
 
 class query_server_t : public http_app_t {
 public:
-    query_server_t(rdb_context_t *rdb_ctx,
-                   const std::set<ip_address_t> &local_addresses,
-                   int port,
-                   query_handler_t *_handler,
-                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata);
+    query_server_t(
+        rdb_context_t *rdb_ctx,
+        const std::set<ip_address_t> &local_addresses,
+        int port,
+        query_handler_t *_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _auth_metadata);
     ~query_server_t();
 
     int get_port() const;
@@ -177,6 +185,8 @@ private:
     // This is templatized based on the wire protocol requested by the client
     template<class protocol_t>
     void connection_loop(tcp_conn_t *conn,
+                         size_t max_concurrent_queries,
+                         signal_t *interruptor,
                          client_context_t *client_ctx);
 
     // For HTTP server

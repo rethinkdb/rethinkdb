@@ -27,6 +27,8 @@ class env_t;
 class scope_env_t;
 class func_t;
 
+enum class return_empty_normal_batches_t { NO, YES };
+
 enum class feed_type_t {
     not_feed,
     point,

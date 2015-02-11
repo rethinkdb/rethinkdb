@@ -13,7 +13,12 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *argume
         // before there are any extant environments at all.  Only
         // because we use an empty argument list do we prevent an
         // infinite loop.
-        env_t env(ctx, interruptor, std::map<std::string, wire_func_t>(),
+        // TODO: there's a `env_t(interruptor, reql_version)` constructor,
+        // should this be using that?
+        env_t env(ctx,
+                  return_empty_normal_batches_t::NO,
+                  interruptor,
+                  std::map<std::string, wire_func_t>(),
                   nullptr);
         int64_t limit = arguments->get_optarg(&env, "array_limit")->as_int();
         rcheck_datum(limit > 1, base_exc_t::GENERIC,
