@@ -26,8 +26,34 @@ public:
         const std::function<void(const contract_ack_t &)> &ack_cb);
 
 private:
+    class ack_condition_t :
+            public single_threaded_countable_t,
+            public ack_checker_t {
+    public:
+        /* This describes the conditions under which incoming writes are acked to the
+        client. If `hand_over` is true, writes are forbidden. Otherwise, writes are acked
+        when a majority of `voters` and `temp_voters` (if present) ack them. */
+        bool hand_over;
+        std::set<server_id_t> voters;
+        boost::optional<std::set<server_id_t> > temp_voters;
+    };
+
     void run(auto_drainer_t::lock_t keepalive);
     void send_ack(const contract_ack_t &ca);
+    bool on_write(
+        const write_t &request,
+        fifo_enforcer_sink_t::exit_write_t *exiter,
+        order_token_t order_token,
+        signal_t *interruptor,
+        write_response_t *response_out,
+        std::string *error_out);
+    bool on_read(
+        const read_t &request,
+        fifo_enforcer_sink_t::exit_read_t *exiter,
+        order_token_t order_token,
+        signal_t *interruptor,
+        read_response_t *response_out,
+        std::string *error_out);
 
     server_id_t const server_id;
     store_view_t *const store;
@@ -53,13 +79,8 @@ private:
     constructed. `run()` pulses it after it finishes constructing them. */
     promise_t<broadcaster_t *> our_broadcaster;
 
-    /* These determines the conditions under which incoming writes are acked. If
-    `hand_over` is true, incoming writes always fail; this is used for hand-overs.
-    Otherwise, writes need a majority of the servers in `voters` to ack them, and also a
-    majority of `temp_voters` if it is non-empty. */
-    bool hand_over;
-    std::set<server_id_t> voters;
-    boost::optional<std::set<server_id_t> > temp_voters;
+    /* We update this every time a new contract comes in */
+    counted_t<ack_condition_t> ack_condition;
 
     auto_drainer_t drainer;
 };
