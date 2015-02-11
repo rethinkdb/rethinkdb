@@ -116,6 +116,10 @@ doc_handle_t make_concat(std::vector<doc_handle_t> &&args) {
 doc_handle_t make_concat(std::initializer_list<doc_handle_t> args) {
     return std::make_shared<concat_t>(args);
 }
+template <typename It>
+doc_handle_t make_concat(It &begin, It &end) {
+    return std::make_shared<concat_t>(begin, end);
+}
 
 struct group_t : public document_t {
     doc_handle_t child;
@@ -180,14 +184,18 @@ doc_handle_t arglist(std::initializer_list<doc_handle_t> init) {
     return make_concat({ lparen, comma_separated(init), rparen });
 }
 
-doc_handle_t dotted_list(std::initializer_list<doc_handle_t> init) {
+template <typename Container>
+doc_handle_t dotted_list_int(Container init) {
     static const doc_handle_t plain_dot = std::make_shared<text_t>(".");
     if (init.size() == 0) return empty;
+    if (init.size() == 1) return make_nest(*(init.begin()));
     std::vector<doc_handle_t> v;
     auto it = init.begin();
     v.push_back(*it++);
     bool first = true;
     for (; it != init.end(); it++) {
+        // a bit involved here, because we don't want to break on the
+        // first dot (looks ugly)
         if (first) {
             v.push_back(plain_dot);
             first = false;
@@ -196,12 +204,27 @@ doc_handle_t dotted_list(std::initializer_list<doc_handle_t> init) {
         }
         v.push_back(*it);
     }
-    return make_nest(make_concat(std::move(v)));
+    // the idea here is that dotted(a, b, c) turns into concat(a,
+    // nest(concat(".", b, dot, c))) which means that the dots line up
+    // on linebreaks nicely.
+    return make_concat({v[0], make_nest(make_concat(v.begin()+1, v.end()))});
+}
+
+doc_handle_t dotted_list(std::initializer_list<doc_handle_t> init) {
+    return dotted_list_int(init);
 }
 
 doc_handle_t funcall(const std::string &name,
                      std::initializer_list<doc_handle_t> init) {
     return make_concat({make_text(name), arglist(init)});
+}
+
+doc_handle_t r_dot(std::initializer_list<doc_handle_t> args) {
+    static const doc_handle_t r = std::make_shared<text_t>("r");
+    std::vector<doc_handle_t> v;
+    v.push_back(r);
+    v.insert(v.end(), args.begin(), args.end());
+    return dotted_list_int(v);
 }
 
 struct text_element_t;

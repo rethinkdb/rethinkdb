@@ -57,19 +57,14 @@ extern const doc_handle_t br;
 extern const doc_handle_t dot;
 
 
-template <typename... Ts>
-inline doc_handle_t comma_separated(Ts... docs) {
-    return comma_separated({docs...});
-}
-
 // documents separated by commas and then a `br`.
 //
 // think `1, 2, 3`
 doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init);
 
 template <typename... Ts>
-inline doc_handle_t arglist(Ts... docs) {
-    return arglist({docs...});
+inline doc_handle_t comma_separated(Ts... docs) {
+    return comma_separated({docs...});
 }
 
 // argument list; comma separated arguments wrapped in parens with a nest.
@@ -78,8 +73,8 @@ inline doc_handle_t arglist(Ts... docs) {
 doc_handle_t arglist(std::initializer_list<doc_handle_t> init);
 
 template <typename... Ts>
-inline doc_handle_t dotted_list(Ts... docs) {
-    return dotted_list({docs...});
+inline doc_handle_t arglist(Ts... docs) {
+    return arglist({docs...});
 }
 
 // documents separated by `dot`.
@@ -88,8 +83,8 @@ inline doc_handle_t dotted_list(Ts... docs) {
 doc_handle_t dotted_list(std::initializer_list<doc_handle_t> init);
 
 template <typename... Ts>
-inline doc_handle_t funcall(const std::string &name, Ts... docs) {
-    return funcall(name, {docs...});
+inline doc_handle_t dotted_list(Ts... docs) {
+    return dotted_list({docs...});
 }
 
 // function call document, where `name` is the call and `init` are the args.
@@ -97,8 +92,21 @@ inline doc_handle_t funcall(const std::string &name, Ts... docs) {
 // think `foo(1, 2, 3)`
 doc_handle_t funcall(const std::string &name, std::initializer_list<doc_handle_t> init);
 
+template <typename... Ts>
+inline doc_handle_t funcall(const std::string &name, Ts... docs) {
+    return funcall(name, {docs...});
+}
+
+// helper for r.foo.bar.baz expressions.
+doc_handle_t r_dot(std::initializer_list<doc_handle_t> args);
+
+template <typename... Ts>
+inline doc_handle_t r_dot(Ts... docs) {
+    return r_dot({docs...});
+}
+
 // render document at the given width.
-std::string &&pretty_print(unsigned int width, doc_handle_t doc);
+std::string pretty_print(unsigned int width, doc_handle_t doc);
 
 } // namespace pprint
 
