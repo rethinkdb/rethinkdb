@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
 '''This runs a bunch of the ReQL tests against the `rethinkdb._debug_scratch` artificial table to check that `artificial_table_t` works properly.'''
 
@@ -21,7 +21,9 @@ r = utils.import_python_driver()
 print("Spinning up a server (%.2fs)" % (time.time() - startTime))
 with driver.Process(files='db', output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
     server.check()
-
+    
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
     command_line = [
         os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test', 'test-runner')),
         '--cluster-port', str(server.cluster_port),
@@ -34,6 +36,10 @@ with driver.Process(files='db', output_folder='.', command_prefix=command_prefix
     command_line.extend('polyglot/regression/%d' % issue_number for issue_number in [
         309, 453, 522, 545, 568, 678, 1155, 1179, 1468, 2399, 2697,
         2709, 2838, 2930])
+    
+    print('Ensuring that db "test" exists for secondary table (%.2fs)' % (time.time() - startTime))
+    if 'test' not in r.db_list().run(conn):
+        r.db_create('test').run(conn)
     
     print("Command line:", " ".join(command_line))
     print("Running the QL test (%.2fs)" % (time.time() - startTime))

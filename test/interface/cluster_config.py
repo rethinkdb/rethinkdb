@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
 """The `interface.cluster_config` test checks that the special `rethinkdb.cluster_config` table behaves as expected."""
 
@@ -66,8 +66,8 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": {"hidden": True}}).run(conn)
     assert res["errors"] == 1
 
-    print("Inserting nonsense to make sure it's not accepted" %
-        (time.time() - startTime))
+    print("Inserting nonsense to make sure it's not accepted (%.2fs)" % (time.time() - startTime))
+    
     res = r.db("rethinkdb").table("cluster_config").insert({"id": "foobar"}).run(conn)
     assert res["errors"] == 1, res
     res = r.db("rethinkdb").table("cluster_config").get("auth").delete().run(conn)
