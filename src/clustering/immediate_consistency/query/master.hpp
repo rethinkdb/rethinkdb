@@ -11,11 +11,9 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
-class ack_checker_t;
-
 /* Each shard has a `master_t` on its primary replica server. The `master_t` is
 responsible for receiving queries from the servers that the clients connect to
-and forwarding those queries to the `broadcaster_t`. Specifically, the class
+and forwarding those queries to the `query_clalback_t`. Specifically, the class
 `master_access_t`, which is instantiated by `cluster_namespace_interface_t`,
 sends the queries to the `master_t`.
 
@@ -24,10 +22,27 @@ responsible for throttling queries from the different `master_access_t`s. */
 
 class master_t {
 public:
-    master_t(mailbox_manager_t *mm, ack_checker_t *ac,
-             region_t r,
-             broadcaster_t *b) THROWS_ONLY(interrupted_exc_t);
+    class query_callback_t {
+    public:
+        virtual bool on_write(
+            const write_t &request,
+            fifo_enforcer_sink_t::exit_write_t *exiter,
+            order_token_t order_token,
+            signal_t *interruptor,
+            write_response_t *response_out,
+            std::string *error_out) = 0;
+        virtual bool on_read(
+            const read_t &request,
+            fifo_enforcer_sink_t::exit_read_t *exiter,
+            order_token_t order_token,
+            signal_t *interruptor,
+            read_response_t *response_out,
+            std::string *error_out) = 0;
+    protected:
+        virtual ~query_callback_t() { }
+    };
 
+    master_t(mailbox_manager_t *mm, region_t r, query_callback_t *callback);
     ~master_t();
 
     master_business_card_t get_business_card();

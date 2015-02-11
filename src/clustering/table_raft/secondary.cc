@@ -104,6 +104,11 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 order_source, /* RSI */
                 nullptr); /* RSI(raft): Hook up backfill progress again */
 
+            replier_t replier(
+                &listener,
+                mailbox_manager,
+                branch_history_manager /* RSI */);
+
             /* Let the leader know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
 

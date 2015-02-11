@@ -13,9 +13,8 @@ primary_t::primary_t(
     primary_bcards(pbcs),
     region(r),
     original_branch_id(c.branch_id),
-{
-    update_contract(c, acb);
-}
+    latest_contract(make_counted<contract_info_t>(c, acb))
+    { }
 
 void primary_t::update_contract(
         const contract_t &c,
@@ -25,53 +24,37 @@ void primary_t::update_contract(
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == server_id);
 
-    /* Did this contract assign us a branch ID? */
+    /* Mark the old contract as obsolete, and record the new one */
+    latest_contract->obsolete.pulse();
+    latest_contract = make_counted<contract_info_t>(c, acb);
+
+    /* Did the new contract assign us a branch ID? */
     if (!our_branch_id.get_ready_signal()->is_pulsed() &&
             c.branch_id != original_branch_id) {
         /* This contract just issued us our initial branch ID */
         our_branch_id.pulse(c.branch_id);
-        /* Change `last_ack` immediately so we don't re-send another branch ID request */
-        last_ack = boost::make_optional(contract_ack_t(
+        /* Change `latest_ack` immediately so we don't re-send another branch ID request
+        */
+        latest_ack = boost::make_optional(contract_ack_t(
             contract_ack_t::state_t::primary_in_progress));
-    }
-
-    /* Record the new ack condition */
-    ack_condition = make_counted<ack_condition_t>();
-    if (static_cast<bool>(c.primary->hand_over)) {
-        ack_condition->hand_over = true;
-    } else {
-        ack_condition->hand_over = false;
-        voters = c.voters;
-        temp_voters = c.temp_voters;
     }
 
     /* If we have a running broadcaster, then go back to acking `primary_in_progress`
     until the new write condition takes affect */
     if (our_broadcaster.get_ready_signal()->is_pulsed()) {
-        guarantee(last_ack->state == contract_ack_t::state_t::primary_in_progress ||
-            last_ack->state == contract_ack_t::state_t::primary_ready);
-        last_ack = boost::make_optional(contract_ack_t(
+        guarantee(static_cast<bool>(latest_ack));
+        guarantee(latest_ack->state == contract_ack_t::state_t::primary_in_progress ||
+            latest_ack->state == contract_ack_t::state_t::primary_ready);
+        latest_ack = boost::make_optional(contract_ack_t(
             contract_ack_t::state_t::primary_in_progress));
-
-        /* Start a dummy write to force a sync to disk */
-        class dummy_write_callback_t : public broadcaster_t::write_callback_t {
-        public:
-            void on_ack(const server_id_t &, write_response_t &&) { }
-            void on_end() { }
-        } write_callback;
-        state_timestamp_t timestamp = our_broadcaster.wait()->spawn_write(
-            write_t(
-                sync_t(),
-                DURABILITY_REQUIREMENT_HARD,
-                profile_bool_t::DONT_PROFILE, 
-                ql::configured_limits_t::configured_limits_t()),
-            order_token_t::ignore(),
-            &write_callback);
+        /* Start a coroutine to eventually ack `primary_ready` */
         coro_t::spawn_sometime(std::bind(
-            &primary_t::wait_for_sync, this, timestamp, acb));
+            &primary_t::sync_and_ack_contract, this, latest_contract, drainer.lock()));
     }
 
-    ack_cb(last_ack);
+    if (static_cast<bool>(latest_ack)) {
+        latest_contract->ack_cb(*latest_ack);
+    }
 }
 
 void primary_t::run(auto_drainer_t::lock_t keepalive) {
@@ -94,7 +77,8 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             /* Send a request for the leader to issue us a new branch ID */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
             ack.version = boost::make_optional(our_branch_version.wait());
-            send_ack(ack);
+            latest_ack = boost::make_optional(ack);
+            latest_contract->ack_cb(ack);
         }
 
         /* Wait until we get our branch ID assigned */
@@ -104,7 +88,9 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
         /* RSI: Must flush the branch history to disk before we call the broadcaster_t
         constructor */
 
-        /* Set up our `broadcaster_t` */
+        /* Set up the `broadcaster_t`, `listener_t`, and `replier_t`, which do the
+        actual important work */
+
         broadcaster_t broadcaster(
             mailbox_manager,
             rdb_context, /* RSI */
@@ -115,7 +101,6 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             branch_id,
             keepalive.get_drain_signal());
 
-        /* Set up the `listener_t` */
         listener_t listener(
             base_path, /* RSI */
             io_backender, /* RSI */
@@ -127,14 +112,40 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             keepalive.get_drain_signal(),
             order_source /* RSI */);
 
+        replier_t replier(
+            &listener,
+            mailbox_manager,
+            branch_history_manager /* RSI */);
+
+        /* Put an entry in the minidir so the replicas can find us */
+        primary_bcard_t bcard;
+        bcard.broadcaster = broadcaster.get_business_card();
+        bcard.replier = replier.get_business_card();
+        bcard.peer = mailbox_manager->get_me();
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+            ::entry_t minidir_entry(&primary_bcards,
+                std::make_pair(server_id, our_branch_id.wait()), bcard);
+
+        /* Pulse `our_broadcaster` so that `update_contract()` knows we set up a
+        broadcaster */
+        our_broadcaster.pulse(&broadcaster);
+
+        /* Start the process of acking the current contract */
+        if (!keepalive.get_drain_signal()->is_pulsed()) {
+            coro_t::spawn_sometime(std::bind(&primary_t::sync_and_ack_contract, this,
+                latest_contract, drainer.lock()));
+        }
+
+        /* Set up the `master_t` and put an entry in the directory so we can receive
+        queries */
+        master_t master(mailbox_manager, region, this);
+
+        /* RSI(raft): Publish the `master_t` in the directory so we can receive
+        queries */
+
     } catch (const interrupted_exc_t &) {
         /* do nothing */
     }
-}
-
-void primary_t::send_ack(const contract_ack_t &ca) {
-    ack_cb(ca);
-    last_ack = boost::make_optional(ca);
 }
 
 bool primary_t::on_write(
@@ -144,27 +155,54 @@ bool primary_t::on_write(
         signal_t *interruptor,
         write_response_t *response_out,
         std::string *error_out) {
-    guarantee(our_broadcaster->get_ready_signal()->is_pulsed());
+    guarantee(our_broadcaster.get_ready_signal()->is_pulsed());
+
+    if (static_cast<bool>(latest_contract->contract.primary->hand_over)) {
+        *error_out = "The primary replica is currently changing from one replica to "
+            "another. The write was not performed. This error should go away in a "
+            "couple of seconds.";
+        return false;
+    }
+
+    /* RSI(raft): Right now we ack the write when it's safe (i.e. won't be lost by
+    failover or othe reconfiguration). We should let the user control when the write is
+    acked, by adjusting both the durability and the ack thresholds. But the initial test
+    should still check for the stronger of the user's condition and the safety condition;
+    for example, if the user has three replicas and they set the ack threshold to one,
+    and only the primary replica is available, we should reject the write because it's
+    impossible for it to be safe, even though the user's condition is satisfiable. */
+
+    /* Make sure we have contact with a quorum of replicas. If not, don't even attempt
+    the write. This is mostly to reduce user confusion. */
+    {
+        ack_counter_t counter;
+        our_broadcaster.wait()->get_readable_dispatchees()->apply_read(
+            [&](const std::set<server_id_t> &servers) {
+                for (const server_id_t &s : servers) {
+                    counter.note_ack(s);
+                }
+            });
+        if (!counter.is_safe()) {
+            *error_out = "The primary replica isn't connected to a quorum of replicas. "
+                "The write was not performed.";
+            return false;
+        }
+    }
 
     class write_callback_t : public broadcaster_t::write_callback_t {
     public:
-        write_callback_t(write_response_t *_r_out, std::string *_e_out) :
-            response_out(_r_out), error_out(_e_out), voter_acks(0), temp_voter_acks(0)
-            { }
+        write_callback_t(write_response_t *_r_out, std::string *_e_out,
+                counted_t<contract_info_t> contract) :
+            ack_counter(contract), response_out(_r_out), error_out(_e_out) { }
+        write_durability_t get_default_write_durability() {
+            /* This only applies to writes that don't specify the durability */
+            return write_durability_t::HARD;
+        }
         void on_ack(const server_id_t &server, write_response_t &&resp) {
             if (!done.is_pulsed()) {
-                voter_acks += ack_condition->voters.count(server);
-                if (static_cast<bool>(ack_condition->temp_voters)) {
-                    temp_voter_acks += ack_condition->temp_voters->count(server);
-                }
-                /* RSI(raft): Currently we wait for more than half of the voters. In
-                theory we could wait for some other threshold, such as only one voter, or
-                all the voters. We should let the user tune this. */
-                if (voter_acks * 2 > ack_condition->voters.size() &&
-                        (!static_cast<bool>(ack_condition->temp_voters) ||
-                            temp_voter_acks * 2 > ack_condition->temp_voters->size())) {
+                ack_counter.note_ack(server);
+                if (ack_counter.is_safe()) {
                     *response_out = std::move(resp);
-                    ok = true;
                     done.pulse();
                 }
             }
@@ -172,46 +210,29 @@ bool primary_t::on_write(
         void on_end() {
             if (!done.is_pulsed()) {
                 *error_out = "The primary replica lost contact with the secondary "
-                    "replicas while performing the write. It may or may not have been "
-                    "perforrmed.";
-                ok = false;
+                    "replicas. The write may or may not have been performed.";
                 done.pulse();
             }
         }
+        ack_counter_t ack_counter;
         cond_t done;
-        bool ok;
         write_response_t *response_out;
         std::string *error_out;
-        counted_t<ack_condition_t> ack_condition;
-        size_t voter_acks, temp_voter_acks;
-    } write_callback(response_out, error_out);
+    } write_callback(response_out, error_out, latest_contract);
 
-    {
-        /* We have to copy `ack_condition` and spawn the write at the same time for
-        proper synchronization with `update_contract()` */
-        ASSERT_NO_CORO_WAITING;
+    /* It's important that we don't block between making a local copy of
+    `latest_contract` (above) and calling `spawn_write()` (below) */
 
-        if (ack_condition->hand_over) {
-            *error_out = "Writes are temporarily disabled while the primary replica "
-                "changes. This error should go away in a couple of seconds.";
-            return false;
-        }
-        /* RSI(raft): If the broadcaster doesn't currently have enough readable replicas
-        to satisfy the ack condition, then don't even start the write. */
+    our_broadcaster->wait()->spawn_write(
+        request,
+        order_token,
+        &write_callback,
+        local_ack_condition.get());
 
-        write_callback.ack_condition = ack_condition;
-        our_broadcaster->wait()->spawn_write(
-            request,
-            /* RSI(raft): Make write durability user-controllable */
-            write_durability_t::HARD,
-            order_token,
-            &write_callback,
-            local_ack_condition.get());
-        exiter->exit();
-    }
+    exiter->exit();
 
     wait_interruptible(&write_callback.done, interruptor);
-    return write_callback.ok;
+    return write_callback.ack_counter.is_safe();
 }
 
 bool primary_t::on_read(
@@ -221,6 +242,76 @@ bool primary_t::on_read(
         signal_t *interruptor,
         read_response_t *response_out,
         std::string *error_out) {
-    
+    guarantee(our_broadcaster.get_ready_signal()->is_pulsed());
+    try {
+        our_broadcaster.wait()->read(
+            request,
+            response_out,
+            exiter,
+            order_token,
+            interruptor);
+        return true;
+    } catch (const cannot_perform_query_exc_t &e) {
+        *error_out = e.what();
+        return false;
+    }
+}
+
+bool primary_t::is_contract_ackable(
+        counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
+    /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
+    replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
+    the new primary. */
+    if (!static_cast<bool>(contract->contract.primary->hand_over)) {
+        ack_counter_t ack_counter(contract);
+        for (const server_id_t &s : servers) {
+            ack_counter.note_ack(s);
+        }
+        return ack_counter.is_safe();
+    } else {
+        return servers.count(*contract->contract.primary->hand_over) == 1;
+    }
+}
+
+void primary_t::sync_and_ack_contract(
+        counted_t<contract_info_t> contract,
+        auto_drainer_t::lock_t keepalive) {
+    try {
+        wait_any_t interruptor(&contract->obsolete, keepalive.get_drain_signal());
+        while (!interruptor.is_pulsed()) {
+            /* Wait until it looks like the write could go through */
+            our_broadcaster.wait()->get_readable_dispatchees()->run_until_satisfied(
+                std::bind(&primary_t::is_contract_ackable, contract, ph::_1),
+                &interruptor);
+            /* Now try to actually put the write through */
+            class safe_write_callback_t : public broadcaster_t::write_callback_t {
+            public:
+                safe_write_callback_t(counted_t<contract_info_t> c) : contract(c) { }
+                void on_ack(const server_id_t &server, write_response_t &&) {
+                    servers.insert(server);
+                    if (is_contract_ackable(contract, servers)) {
+                        done.pulse_if_not_already_pulsed();
+                    }
+                }
+                void on_end() {
+                    done.pulse_if_not_already_pulsed();
+                }
+                counted_t<contract_info_t> contract;
+                std::set<server_id_t> servers;
+                cond_t done;
+            } write_callback;
+            our_broadcaster.wait()->spawn_write(write_t::make_sync(),
+                order_token_t::ignore(), &write_callback);
+            wait_interruptible(&write_callback.done, &interruptor);
+            if (is_contract_ackable(contract, write_callback.servers)) {
+                break;
+            }
+        }
+        /* OK, time to ack the contract */
+        contract->ack_cb(contract_ack_t(contract_ack_t::state_t::primary_ready));
+    } catch (const interrupted_exc_t &) {
+        /* Either the contract is obsolete or we are being destroyed. In either case,
+        stop trying to ack the contract. */
+    }
 }
 
