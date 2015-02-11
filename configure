@@ -137,8 +137,10 @@ configure () {
     if [[ "$ALLOCATOR" = system ]]; then
         var MALLOC_LIBS ""
         var MALLOC_LIBS_DEP ""
+        boolvar STATIC_MALLOC false
     else
         check_lib "$ALLOCATOR" require
+        boolvar STATIC_MALLOC contains "$static_libs" "$ALLOCATOR"
         macro MALLOC_LIBS     "\$($(uc $ALLOCATOR)_LIBS)"
         macro MALLOC_LIBS_DEP "\$($(uc $ALLOCATOR)_LIBS_DEP)"
     fi
@@ -801,6 +803,7 @@ fetch_lib () {
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
     macro "$(uc "$1")_INCLUDE_DEP"      "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
+    static_libs="$static_libs $1"
 }
 
 # require_dep <name>
