@@ -7,11 +7,11 @@
 
 namespace pprint {
 
-struct text_t;
-struct cond_t;
-struct concat_t;
-struct group_t;
-struct nest_t;
+class text_t;
+class cond_t;
+class concat_t;
+class group_t;
+class nest_t;
 
 class document_visitor_t {
 public:
@@ -24,7 +24,8 @@ public:
     virtual void operator()(const nest_t &) const = 0;
 };
 
-struct text_t : public document_t {
+class text_t : public document_t {
+public:
     std::string text;
 
     text_t(const std::string &str) : text(str) {}
@@ -50,7 +51,8 @@ doc_handle_t make_text(std::string &&text) {
     return std::make_shared<text_t>(std::move(text));
 }
 
-struct cond_t : public document_t {
+class cond_t : public document_t {
+public:
     std::string small, cont, tail;
 
     cond_t(const std::string &l, const std::string &r)
@@ -80,7 +82,8 @@ doc_handle_t make_cond(std::string &&l, std::string &&r, std::string &&t) {
 }
 
 // concatenation of multiple documents
-struct concat_t : public document_t {
+class concat_t : public document_t {
+public:
     std::vector<doc_handle_t> children;
 
     concat_t(std::vector<doc_handle_t> &&args)
@@ -121,7 +124,8 @@ doc_handle_t make_concat(It &begin, It &end) {
     return std::make_shared<concat_t>(begin, end);
 }
 
-struct group_t : public document_t {
+class group_t : public document_t {
+public:
     doc_handle_t child;
 
     group_t(doc_handle_t doc) : child(doc) {}
@@ -141,7 +145,8 @@ doc_handle_t make_group(doc_handle_t child) {
     return std::make_shared<group_t>(child);
 }
 
-struct nest_t : public document_t {
+class nest_t : public document_t {
+public:
     doc_handle_t child;
 
     nest_t(doc_handle_t doc) : child(doc) {}
@@ -227,12 +232,12 @@ doc_handle_t r_dot(std::initializer_list<doc_handle_t> args) {
     return dotted_list_int(v);
 }
 
-struct text_element_t;
-struct cond_element_t;
-struct nbeg_element_t;
-struct nend_element_t;
-struct gbeg_element_t;
-struct gend_element_t;
+class text_element_t;
+class cond_element_t;
+class nbeg_element_t;
+class nend_element_t;
+class gbeg_element_t;
+class gend_element_t;
 
 class stream_element_visitor_t {
 public:
@@ -248,7 +253,8 @@ public:
 
 // Streaming version of the document tree, suitable for printing after
 // much processing
-struct stream_element_t : public std::enable_shared_from_this<stream_element_t> {
+class stream_element_t : public std::enable_shared_from_this<stream_element_t> {
+public:
     int hpos;                   // -1 means not set yet
 
     stream_element_t() : hpos(-1) {}
@@ -261,7 +267,8 @@ struct stream_element_t : public std::enable_shared_from_this<stream_element_t> 
 
 typedef std::shared_ptr<stream_element_t> stream_handle_t;
 
-struct text_element_t : public stream_element_t {
+class text_element_t : public stream_element_t {
+public:
     std::string payload;
 
     text_element_t(const std::string &text, unsigned int hpos)
@@ -276,7 +283,8 @@ struct text_element_t : public stream_element_t {
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
 };
 
-struct cond_element_t : public stream_element_t {
+class cond_element_t : public stream_element_t {
+public:
     std::string small, tail, cont;
 
     cond_element_t(const std::string &l, const std::string &t,
@@ -294,7 +302,8 @@ struct cond_element_t : public stream_element_t {
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
 };
 
-struct nbeg_element_t : public stream_element_t {
+class nbeg_element_t : public stream_element_t {
+public:
     nbeg_element_t() : stream_element_t() {}
     nbeg_element_t(unsigned int hpos) : stream_element_t(hpos) {}
     virtual ~nbeg_element_t() {}
@@ -305,7 +314,8 @@ struct nbeg_element_t : public stream_element_t {
     }
 };
 
-struct nend_element_t : public stream_element_t {
+class nend_element_t : public stream_element_t {
+public:
     nend_element_t() : stream_element_t() {}
     nend_element_t(unsigned int hpos) : stream_element_t(hpos) {}
     virtual ~nend_element_t() {}
@@ -316,7 +326,8 @@ struct nend_element_t : public stream_element_t {
     }
 };
 
-struct gbeg_element_t : public stream_element_t {
+class gbeg_element_t : public stream_element_t {
+public:
     gbeg_element_t() : stream_element_t() {}
     gbeg_element_t(unsigned int hpos) : stream_element_t(hpos) {}
     virtual ~gbeg_element_t() {}
@@ -327,7 +338,8 @@ struct gbeg_element_t : public stream_element_t {
     }
 };
 
-struct gend_element_t : public stream_element_t {
+class gend_element_t : public stream_element_t {
+public:
     gend_element_t() : stream_element_t() {}
     gend_element_t(unsigned int hpos) : stream_element_t(hpos) {}
     virtual ~gend_element_t() {}
