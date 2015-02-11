@@ -15,7 +15,7 @@ pQuery = p.Query.QueryType
 
 from . import repl # For the repl connection
 from .errors import *
-from .ast import RqlQuery, DB, recursively_convert_pseudotypes
+from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes
 
 try:
     {}.iteritems
@@ -380,14 +380,19 @@ class Connection(object):
         if async or ('noreply' in opts and opts['noreply']):
             return None
 
+        if query.type == pQuery.NOREPLY_WAIT:
+            # Fill in a dummy term for backtraces printing in case of an error
+            query.term = RqlTopLevelQuery()
+            query.term.st = "noreply_wait"
+
         # Get response
         response = self._read_response(query.token)
         self._check_error_response(response, query.term)
 
         if response.type in [pResponse.SUCCESS_PARTIAL,
-                            pResponse.SUCCESS_SEQUENCE,
-                            pResponse.SUCCESS_ATOM_FEED,
-                            pResponse.SUCCESS_FEED]:
+                             pResponse.SUCCESS_SEQUENCE,
+                             pResponse.SUCCESS_ATOM_FEED,
+                             pResponse.SUCCESS_FEED]:
             # Sequence responses
             value = Cursor(self, query, opts)
             self.cursor_cache[query.token] = value
