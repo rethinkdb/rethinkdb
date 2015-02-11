@@ -329,7 +329,7 @@ rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
 
 MAYBE_CHECK_STATIC_MALLOC =
-ifeq ($(filter -l%, $(value MALLOC_LIBS)),) # if the allocator is not dynamically linked
+ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
   ifeq (tcmalloc,$(ALLOCATOR))
     MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
     MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in TCMalloc." >&2 && false)
