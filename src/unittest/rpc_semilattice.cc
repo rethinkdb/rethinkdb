@@ -79,9 +79,9 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
     /* Block until the connection is established */
     signal_timer_t timeout;
     timeout.start(1000);
-    cluster1.get_connections()->run_until_satisfied(
-        [](connectivity_cluster_t::connection_map_t connections) -> bool {
-            return connections.size() == 2;
+    cluster1.get_connections()->run_all_until_satisfied(
+        [](watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t> *map) {
+            return map->get_all().size() == 2;
         }, &timeout);
 
     cond_t non_interruptor;
@@ -120,9 +120,9 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     /* Block until the connection is established */
     signal_timer_t timeout;
     timeout.start(1000);
-    cluster1.get_connections()->run_until_satisfied(
-        [](const connectivity_cluster_t::connection_map_t &connections) -> bool {
-            return connections.size() == 2;
+    cluster1.get_connections()->run_all_until_satisfied(
+        [](watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t> *map) {
+            return map->get_all().size() == 2;
         }, &timeout);
 
     slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
