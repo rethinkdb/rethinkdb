@@ -1324,9 +1324,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         get_and_set_user_group_and_directory(opts, &data_directory_lock);
 
-        recreate_temporary_directory(base_path);
-
         initialize_logfile(opts, base_path);
+
+        recreate_temporary_directory(base_path);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1437,10 +1437,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
         guarantee(!is_new_directory);
 
-        recreate_temporary_directory(base_path);
-
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
+
+        recreate_temporary_directory(base_path);
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
@@ -1671,10 +1671,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             get_and_set_user_group(opts);
         }
 
-        recreate_temporary_directory(base_path);
-
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
+
+        recreate_temporary_directory(base_path);
 
         name_string_t server_name;
         if (is_new_directory) {
