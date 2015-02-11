@@ -228,6 +228,8 @@ void leader_t::pump_contracts(
         const state_t &old_state,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *new_contracts_out,
         std::set<contract_id_t> *delete_contracts_out);
+    /* RSI(raft): Hash sharding */
+
     /* First, break up the key range into chunks small enough that the `table_config_t`,
     old contracts, contract acks, and branch history are homogeneous across each chunk.
     We do this by inserting every key boundary from any of those sets into
@@ -241,11 +243,21 @@ void leader_t::pump_contracts(
     }
     std::map<store_key_t, const contract_t *> old_contract_table;
     for (const auto &pair : old_state.contracts) {
-        
+        split_points.insert(pair.second.first.left);
+        auto res = old_contract_table.insert(std::make_pair(
+            pair.second.first.left,
+            &pair.second.second));
+        guarantee(res.second, "Found contract with overlapping or empty range");
     }
-    std::map<store_key_t, contract_ack_t::state_t> ack_state_table;
-    std::map<store_key_t, version_t> ack_version_table;
-    std::map<store_key_t, branch_id_t> ack_branch_table;
+    std::map<store_key_t, std::pair<server_id_t, contract_ack_t::state_t> >
+        ack_state_table;
+    std::map<store_key_t, std::pair<server_id_t, version_t> > ack_version_table;
+    std::map<store_key_t, std::pair<server_id_t, branch_id_t> > ack_branch_table;
+    acks->read_all([&](
+            const std::pair<server_id_t, contract_id_t> &key,
+            const contract_ack_t *ack) {
+        
+    });
 }
 
 } /* namespace table_raft */
