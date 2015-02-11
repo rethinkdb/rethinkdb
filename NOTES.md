@@ -1,3 +1,24 @@
+# Release 1.16.1 (Stand By Me)
+
+Released on 2015-02-12
+
+Bug fix update.
+
+* Now write to the log every time a file is deleted (#1780)
+* Fixed `rethinkdb dump` and other backup scripts to correctly detect the server version (#3706)
+* Changed the output of `rethinkdb dump` to clarify that indexes are being saved (#3708)
+* Fixed memory consumption with newer versions of boost (#3712)
+* Fixed the `written_docs_total` field of `rethinkdb.stats` (#3713)
+* Fixed a bug that caused the web UI to hang when creating indexes (#3718)
+* Fixed how secondary index status was being reported (#3721)
+* Fixed rounding of document counts in the web UI (#3722)
+* Fixed a bug that broke the `-f` flag of `rethinkdb import` (#3728)
+* Fixed a bug that caused information to go missing in the web UI (#3729)
+* Fixed a bug that caused RethinkDB to refuse to link with jemalloc dynamically (#3741)
+* Fixed an uncaught exception in the handling or `r.js` (#3745)
+
+--
+
 # Release 1.16.0 (Stand By Me)
 
 Released on 2015-01-29
