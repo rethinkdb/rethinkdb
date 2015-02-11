@@ -1322,9 +1322,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        initialize_logfile(opts, base_path);
-
         get_and_set_user_group_and_directory(opts, &data_directory_lock);
+
+        initialize_logfile(opts, base_path);
 
         recreate_temporary_directory(base_path);
 
