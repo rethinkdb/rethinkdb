@@ -11,6 +11,10 @@ public:
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks);
 
 private:
+    void pump_contracts(
+        const state_t &old_state,
+        std::map<contract_id_t, std::pair<region_t, contract_t> > *new_contracts_out,
+        std::set<contract_id_t> *delete_contracts_out);
 };
 
 } /* namespace table_raft */

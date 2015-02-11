@@ -12,7 +12,7 @@ primary_t::primary_t(
     store(s),
     primary_bcards(pbcs),
     region(r),
-    original_branch_id(c.branch_id),
+    our_branch_id(generate_uuid()),
     latest_contract(make_counted<contract_info_t>(c, acb))
     { }
 
@@ -28,13 +28,12 @@ void primary_t::update_contract(
     latest_contract->obsolete.pulse();
     latest_contract = make_counted<contract_info_t>(c, acb);
 
-    /* Did the new contract assign us a branch ID? */
-    if (!our_branch_id.get_ready_signal()->is_pulsed() &&
-            c.branch_id != original_branch_id) {
+    /* Has our branch ID been registered yet? */
+    if (!branch_registered.is_pulsed() && c.branch_id == our_branch_id) {
         /* This contract just issued us our initial branch ID */
-        our_branch_id.pulse(c.branch_id);
-        /* Change `latest_ack` immediately so we don't re-send another branch ID request
-        */
+        branch_registered.pulse();
+        /* Change `latest_ack` immediately so we don't keep sending the branch
+        registration request */
         latest_ack = boost::make_optional(contract_ack_t(
             contract_ack_t::state_t::primary_in_progress));
     }
@@ -69,21 +68,16 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             store->do_get_metainfo(order_token_t::ignore, token,
                 keepalive.get_drain_signal(), &blobs);
 
-            /* Store the initial version in `our_branch_version` so that
-            `update_contract()` will be able to re-send the request if the contract
-            changes before we are issued a branch ID */
-            our_branch_version.pulse(to_version_map(blobs));
-
-            /* Send a request for the leader to issue us a new branch ID */
+            /* Send a request for the leader to register our branch */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
-            ack.version = boost::make_optional(our_branch_version.wait());
+            ack.version = boost::make_optional(to_version_map(blobs));
+            ack.branch_id = boost::make_optional(our_branch_id);
             latest_ack = boost::make_optional(ack);
             latest_contract->ack_cb(ack);
         }
 
-        /* Wait until we get our branch ID assigned */
-        wait_interruptible(our_branch_id.get_ready_signal(),
-            keepalive.get_drain_signal());
+        /* Wait until we get our branch registered */
+        wait_interruptible(&branch_registered, keepalive.get_drain_signal());
 
         /* RSI: Must flush the branch history to disk before we call the broadcaster_t
         constructor */

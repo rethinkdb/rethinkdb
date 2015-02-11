@@ -100,20 +100,16 @@ private:
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *primary_bcards;
     region_t const region;
-
-    /* `original_branch_id` is the branch ID that was in the contract we were started
-    with. We always need to request a new branch ID when we're first started; storing
-    `original_branch_id` is how we detect if a new branch ID has been assigned. */
-    branch_id_t const original_branch_id;
+    branch_id_t const our_branch_id;
 
     /* `latest_contract` stores the latest contract we've received, along with its ack
     callback. `latest_ack` stores the latest contract ack we've sent. */
     counted_t<contract_info_t> latest_contract;
     boost::optional<contract_ack_t> latest_ack;
 
-    /* `our_branch_id` stores the branch ID for the branch we're accepting writes for.
-    `update_contract()` pulses it when we are issued a branch ID by the leader. */
-    promise_t<branch_id_t> our_branch_id;
+    /* `branch_registered` is pulsed once the leader has committed our branch ID to the
+    Raft state. */
+    cond_t branch_registered;
 
     /* `our_broadcaster` stores the pointer to the `broadcaster_t` and `master_t` we
     constructed. `run()` pulses it after it finishes constructing them. */

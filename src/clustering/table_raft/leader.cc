@@ -224,5 +224,29 @@ contract_t calculate_contract(
     return new_c;
 }
 
+void leader_t::pump_contracts(
+        const state_t &old_state,
+        std::map<contract_id_t, std::pair<region_t, contract_t> > *new_contracts_out,
+        std::set<contract_id_t> *delete_contracts_out);
+    /* First, break up the key range into chunks small enough that the `table_config_t`,
+    old contracts, contract acks, and branch history are homogeneous across each chunk.
+    We do this by inserting every key boundary from any of those sets into
+    `split_points`. As we go, we also make notes in the `*_table`s that we can use to
+    efficiently find the contract, acks, etc. for a given chunk later. */
+    std::set<store_key_t> split_points;
+    for (const auto &pair : branch_history) {
+        for (const auto &pair2 : pair.second.origin) {
+            split_points.insert(pair2.first.inner.left);
+        }
+    }
+    std::map<store_key_t, const contract_t *> old_contract_table;
+    for (const auto &pair : old_state.contracts) {
+        
+    }
+    std::map<store_key_t, contract_ack_t::state_t> ack_state_table;
+    std::map<store_key_t, version_t> ack_version_table;
+    std::map<store_key_t, branch_id_t> ack_branch_table;
+}
+
 } /* namespace table_raft */
 

@@ -110,6 +110,8 @@ public:
     /* This is non-empty if `state` is `primary_need_new_branch` or
     `secondary_need_primary`. */
     boost::optional<region_map_t<version_t> > version;
+
+    boost::optional<branch_id_t> branch;
 }
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
@@ -148,6 +150,7 @@ public:
 
     table_config_and_shards_t config;
     std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
+    branch_history_t branch_history;
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
