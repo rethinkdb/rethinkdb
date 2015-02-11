@@ -78,5 +78,4 @@ private:
     DISABLE_COPYING(rwlock_acq_t);
 };
 
-
 #endif  // CONCURRENCY_RWLOCK_HPP_

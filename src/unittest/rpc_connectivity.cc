@@ -251,7 +251,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
         ANY_PORT, 0);
 
     /* Make sure `get_connections()` is initially sane */
-    connectivity_cluster_t::connection_map_t list_1 = c1.get_connections()->get();
+    std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> list_1 =
+        c1.get_connections()->get_all();
     EXPECT_TRUE(list_1.find(c1.get_me()) != list_1.end());
     EXPECT_EQ(1u, list_1.size());
 
@@ -264,7 +265,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
         let_stuff_happen();
 
         /* Make sure `get_connections()` correctly notices that a peer connects */
-        connectivity_cluster_t::connection_map_t list_2 = c1.get_connections()->get();
+        std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> list_2 =
+            c1.get_connections()->get_all();
         ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
         EXPECT_EQ(
             cr2.get_port(),
@@ -276,7 +278,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
     let_stuff_happen();
 
     /* Make sure `get_peers_list()` notices that a peer has disconnected */
-    connectivity_cluster_t::connection_map_t list_3 = c1.get_connections()->get();
+    std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> list_3 =
+        c1.get_connections()->get_all();
     EXPECT_EQ(1u, list_3.size());
 }
 
@@ -302,7 +305,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
 
     EXPECT_NE(
         static_cast<size_t>(num_members),
-        nodes[1]->get_connections()->get().size())
+        nodes[1]->get_connections()->get_all().size())
       << "This test is supposed to test what happens when a cluster is "
          "interrupted as it starts up, but the cluster finished starting up "
          "before we could interrupt it.";
@@ -344,7 +347,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
-            pass &= (blob_size == nodes[i]->get_connections()->get().size());
+            pass &= (blob_size == nodes[i]->get_connections()->get_all().size());
         }
     }
 
@@ -359,7 +362,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
-            pass &= ((blob_size * 2) == nodes[i]->get_connections()->get().size());
+            pass &= ((blob_size * 2) == nodes[i]->get_connections()->get_all().size());
         }
     }
 }

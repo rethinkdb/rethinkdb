@@ -7,6 +7,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "concurrency/wait_any.hpp"
 #include "containers/archive/boost_types.hpp"
 
 template<class key_t, class value_t>
@@ -31,14 +32,11 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
         /* `on_connections_change()` will take care of sending initial messages */
         false),
     connections_subs(
-        [this]() {
-            this->on_connections_change();
-        })
+        connectivity_cluster->get_connections(),
+        std::bind(&directory_map_write_manager_t::on_connection_change,
+            this, ph::_1, ph::_2),
+        true)
 {
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
-        connections_freeze(connectivity_cluster->get_connections());
-    connections_subs.reset(connectivity_cluster->get_connections(), &connections_freeze);
-    on_connections_change();
 }
 
 template<class key_t, class value_t>
@@ -66,18 +64,18 @@ private:
 };
 
 template<class key_t, class value_t>
-void directory_map_write_manager_t<key_t, value_t>::on_connections_change() {
-    connectivity_cluster_t::connection_map_t current_connections =
-        connectivity_cluster->get_connections()->get();
-    for (auto pair : current_connections) {
-        auto res = conns.insert(std::make_pair(pair.second.first, conn_info_t()));
+void directory_map_write_manager_t<key_t, value_t>::on_connection_change(
+        UNUSED const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair) {
+    if (pair != nullptr) {
+        auto res = conns.insert(std::make_pair(pair->first, conn_info_t()));
         if (res.second) {
             value->read_all([&](const key_t &key, const value_t *) {
                 res.first->second.dirty_keys.insert(key);
             });
             coro_t::spawn_sometime(std::bind(
                 &directory_map_write_manager_t::stream_to_conn, this,
-                pair.second.first, pair.second.second, drainer.lock(), res.first));
+                pair->first, pair->second, drainer.lock(), res.first));
         }
     }
 }

@@ -238,7 +238,11 @@ void run(protob_t<Query> q,
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, &combined_interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx,
+                  stream_cache->get_return_empty_normal_batches(),
+                  &combined_interruptor,
+                  global_optargs(q),
+                  trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -250,18 +254,6 @@ void run(protob_t<Query> q,
             return;
         } catch (const datum_exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
-            return;
-        }
-
-        try {
-            rcheck_toplevel(!stream_cache->contains(token),
-                            base_exc_t::GENERIC,
-                            strprintf("ERROR: duplicate token %" PRIi64, token));
-        } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
             return;
         }
 
@@ -298,11 +290,22 @@ void run(protob_t<Query> q,
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache->insert(token,
-                                         use_json,
-                                         env.get_all_optargs(),
-                                         profile,
-                                         seq);
+                    bool inserted = stream_cache->insert(
+                        token, use_json, env.get_all_optargs(), profile, seq);
+                    try {
+                        rcheck_toplevel(
+                            inserted, base_exc_t::GENERIC,
+                            strprintf("ERROR: duplicate token %" PRIi64, token));
+                    } catch (const exc_t &e) {
+                        fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+                        return;
+                    } catch (const datum_exc_t &e) {
+                        fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+                        return;
+                    }
+
+                    // TODO: it kinda sucks that we throw away our `env` and
+                    // build a new one from scratch in `serve`.
                     bool b = stream_cache->serve(token, res, &combined_interruptor);
                     r_sanity_check(b);
                 }
@@ -347,12 +350,15 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_STOP: {
         try {
-            rcheck_toplevel(stream_cache->contains(token), base_exc_t::GENERIC,
+            bool erased = stream_cache->erase(token);
+            rcheck_toplevel(erased, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
-            stream_cache->erase(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
             return;
         }
     } break;

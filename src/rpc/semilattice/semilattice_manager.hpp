@@ -70,7 +70,9 @@ private:
     /* These are called by the `connectivity_cluster_t`. They shouldn't block. */
     void on_message(connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t,
                     read_stream_t *);
-    void on_connections_change();
+    void on_connection_change(
+        const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair);
 
     /* These are spawned in new coroutines. */
     void send_metadata_to_peer(peer_id_t, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
@@ -90,8 +92,7 @@ private:
     publisher_controller_t<std::function<void()> > metadata_publisher;
     rwi_lock_assertion_t metadata_mutex;
 
-    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t>
-        last_connections;
+    std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> last_connections;
 
     std::map<peer_id_t, metadata_version_t> last_versions_seen;
     std::multimap<std::pair<peer_id_t, metadata_version_t>, cond_t *> version_waiters;
@@ -117,7 +118,7 @@ private:
 
     one_per_thread_t<auto_drainer_t> drainers;
 
-    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t
+    watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>::all_subs_t
         connection_change_subscription;
 };
 

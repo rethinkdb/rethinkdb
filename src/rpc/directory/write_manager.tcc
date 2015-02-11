@@ -22,48 +22,40 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     value(value_),
     semaphore(MAX_OUTSTANDING_DIRECTORY_WRITES),
     value_change_subscription([this]() { this->on_value_change(); }),
-    connections_change_subscription([this]() { this->on_connections_change(); })
+    connections_change_subscription(connectivity_cluster->get_connections(),
+        std::bind(&directory_write_manager_t::on_connection_change,
+            this, ph::_1, ph::_2),
+        true)
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
-        connections_freeze(connectivity_cluster->get_connections());
     value_change_subscription.reset(value, &value_freeze);
-    connections_change_subscription.reset(connectivity_cluster->get_connections(),
-                                          &connections_freeze);
-    /* This will take care of sending initial messages if necessary. */
-    on_connections_change();
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHING {
+void directory_write_manager_t<metadata_t>::on_connection_change(
+        const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair) THROWS_NOTHING {
     DEBUG_VAR mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
-    connectivity_cluster_t::connection_map_t current_connections =
-        connectivity_cluster->get_connections()->get();
-    for (auto pair : current_connections) {
-        connectivity_cluster_t::connection_t *connection = pair.second.first;
-        auto_drainer_t::lock_t connection_keepalive = pair.second.second;
-        if (last_connections.count(connection) == 0) {
-            last_connections.insert(std::make_pair(connection, connection_keepalive));
-            auto_drainer_t::lock_t this_keepalive(&drainer);
-            metadata_t initial_value = value.get()->get();
-            fifo_enforcer_state_t initial_state = metadata_fifo_source.get_state();
-            coro_t::spawn_sometime(
-                [this, this_keepalive /* important to capture */,
-                        connection, connection_keepalive /* important to capture */,
-                        initial_value, initial_state]() {
-                    new_semaphore_acq_t acq(&this->semaphore, 1);
-                    acq.acquisition_signal()->wait();
-                    initialization_writer_t writer(initial_value, initial_state);
-                    connectivity_cluster->send_message(connection, connection_keepalive,
-                            message_tag, &writer);
-                });
-        }
+    if (pair != nullptr && last_connections.count(peer_id) == 0) {
+        connectivity_cluster_t::connection_t *connection = pair->first;
+        auto_drainer_t::lock_t connection_keepalive = pair->second;
+        last_connections.insert(std::make_pair(peer_id, *pair));
+        auto_drainer_t::lock_t this_keepalive(&drainer);
+        metadata_t initial_value = value.get()->get();
+        fifo_enforcer_state_t initial_state = metadata_fifo_source.get_state();
+        coro_t::spawn_sometime(
+            [this, this_keepalive /* important to capture */,
+                    connection, connection_keepalive /* important to capture */,
+                    initial_value, initial_state]() {
+                new_semaphore_acq_t acq(&this->semaphore, 1);
+                acq.acquisition_signal()->wait();
+                initialization_writer_t writer(initial_value, initial_state);
+                connectivity_cluster->send_message(connection, connection_keepalive,
+                        message_tag, &writer);
+            });
     }
-    for (auto next = last_connections.begin(); next != last_connections.end();) {
-        auto pair = next++;
-        if (current_connections.count(pair->first->get_peer_id()) == 0) {
-            last_connections.erase(pair->first);
-        }
+    if (pair == nullptr && last_connections.count(peer_id) == 1) {
+        last_connections.erase(peer_id);
     }
 }
 
@@ -74,8 +66,8 @@ void directory_write_manager_t<metadata_t>::on_value_change() THROWS_NOTHING {
     fifo_enforcer_write_token_t token = metadata_fifo_source.enter_write();
     auto_drainer_t::lock_t this_keepalive(&drainer);
     for (auto pair : last_connections) {
-        connectivity_cluster_t::connection_t *connection = pair.first;
-        auto_drainer_t::lock_t connection_keepalive = pair.second;
+        connectivity_cluster_t::connection_t *connection = pair.second.first;
+        auto_drainer_t::lock_t connection_keepalive = pair.second.second;
         coro_t::spawn_sometime(
             [this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,

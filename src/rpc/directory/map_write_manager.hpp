@@ -34,7 +34,9 @@ private:
         cond_t *pulse_on_dirty;
     };
 
-    void on_connections_change();
+    void on_connection_change(
+        const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair);
     void stream_to_conn(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
@@ -57,8 +59,8 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_map_t<key_t, value_t>::all_subs_t value_subs;
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t
-        connections_subs;
+    typename watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>
+        ::all_subs_t connections_subs;
 };
 
 #endif /* RPC_DIRECTORY_WRITE_MAP_MANAGER_HPP_ */

@@ -17,14 +17,14 @@ auto_reconnector_t::auto_reconnector_t(
     server_id_translation_table(server_id_translation_table_),
     server_metadata(server_metadata_),
     server_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this)),
-    connection_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
+    connection_subs(
+        connectivity_cluster->get_connections(),
+        std::bind(&auto_reconnector_t::on_connect_or_disconnect, this),
+        false)
 {
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze1(
+    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze(
         server_id_translation_table);
-    server_id_translation_table_subs.reset(server_id_translation_table, &freeze1);
-    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze2(
-        connectivity_cluster->get_connections());
-    connection_subs.reset(connectivity_cluster->get_connections(), &freeze2);
+    server_id_translation_table_subs.reset(server_id_translation_table, &freeze);
     on_connect_or_disconnect();
 }
 
