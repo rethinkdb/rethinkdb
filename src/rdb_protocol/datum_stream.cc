@@ -1180,17 +1180,181 @@ bool union_datum_stream_t::is_infinite() const {
     return is_infinite_union;
 }
 
-std::vector<datum_t>
-union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
-    for (; streams_index < streams.size(); ++streams_index) {
-        std::vector<datum_t> batch
-            = streams[streams_index]->next_batch(env, batchspec);
-        if (batch.size() != 0 ||
-            streams[streams_index]->cfeed_type() != feed_type_t::not_feed) {
-            return batch;
+struct coro_info_t {
+    coro_info_t(scoped_ptr_t<env_t> _env, batchspec_t _batchspec)
+        : env(std::move(_env)), batchspec(std::move(_batchspec)) { }
+    const scoped_ptr_t<env_t> env;
+    // This changes because the first batch is special.
+    batchspec_t batchspec;
+};
+
+void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
+    ++active;
+    auto_drainer_t::lock_t lock(&drainer);
+    counted_t<datum_stream_t> stream = streams[i];
+    signal_t *interruptor = lock.get_drain_signal();
+    bool is_first = true;
+    try {
+        for (;;) {
+            cond_t notify;
+            notify_conds[i] = &notify;
+            debugf("%zu nwait %p\n", i, &notify);
+            wait_interruptible(&notify, interruptor);
+            debugf("%zu WAKE\n", i);
+            // We get an erroneous "declaration shadows a local
+            // variable" error from the compiler if we use a plain
+            // `ASSERT_NO_CORO_WAITING` here, because it isn't smart
+            // enough to handle the lambda.
+            {
+                ASSERT_NO_CORO_WAITING;
+                r_sanity_check(notify_conds[i] == NULL);
+                r_sanity_check(outstanding_notifications > 0);
+                debugf("%zu outstanding: %zu\n", i, outstanding_notifications);
+                if (--outstanding_notifications == 0) {
+                    all_notified->pulse_if_not_already_pulsed();
+                }
+                r_sanity_check(coro_info.has());
+                r_sanity_check(coro_info->env->interruptor == interruptor);
+            }
+            // We need to copy this out because it isn't const.
+            batchspec_t bs = coro_info->batchspec;
+            if (bs.get_batch_type() == batch_type_t::NORMAL_FIRST && !is_first) {
+                bs = bs.with_new_batch_type(batch_type_t::NORMAL);
+            }
+            is_first = false;
+            std::vector<datum_t> batch
+                = stream->next_batch(coro_info->env.get(), bs);
+            debugf("%zu batch size: %zu\n", i, batch.size());
+            if (batch.size() == 0) {
+                debugf("%zu cfeed type %d (vs. %d)",
+                       i, stream->cfeed_type(), feed_type_t::not_feed);
+                if (stream->cfeed_type() == feed_type_t::not_feed) {
+                    debugf("%zu breaking\n", i);
+                    break;
+                } else {
+                    r_sanity_check(
+                        (coro_info->env->return_empty_normal_batches
+                         == return_empty_normal_batches_t::YES)
+                        || (bs.get_batch_type() == batch_type_t::NORMAL_FIRST));
+                }
+            }
+            debugf("%zu pushing %zu\n", i, batch.size());
+            queue.push(std::move(batch));
+            debugf("%zu pulsing %p\n", i, data_available.get());
+            data_available->pulse_if_not_already_pulsed();
+        }
+    } catch (const interrupted_exc_t) {
+        // Just fall through and end; the drainer signal being pulsed
+        // will interrupt `next_batch_impl` as well.
+    } catch (...) {
+        ASSERT_NO_CORO_WAITING;
+        exc = std::current_exception();
+        abort.pulse_if_not_already_pulsed();
+    }
+    if (--active == 0) {
+        if (data_available.has()) {
+            data_available->pulse_if_not_already_pulsed();
         }
     }
-    return std::vector<datum_t>();
+}
+
+union_datum_stream_t::union_datum_stream_t(
+    std::vector<counted_t<datum_stream_t> > &&_streams,
+    const protob_t<const Backtrace> &bt_src)
+    : datum_stream_t(bt_src),
+      streams(_streams),
+      union_type(feed_type_t::not_feed),
+      is_infinite_union(false) {
+
+    for (const auto &stream : streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_union |= stream->is_infinite();
+    }
+
+    notify_conds = std::vector<cond_t *>(streams.size(), nullptr);
+    for (size_t i = 0; i < streams.size(); ++i) {
+        ASSERT_FINITE_CORO_WAITING;
+        // We spawn immediately so that we can safely acquire the drainer lock.
+        coro_t::spawn_now_dangerously([i, this]() { this->coro_cb(i); });
+    }
+    r_sanity_check(active == streams.size());
+}
+
+std::vector<datum_t>
+union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+    // This needs to be on the same thread as the coroutines spawned in the
+    // constructor.
+    home_thread_mixin_t::assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(), &abort);
+    for (;;) {
+        try {
+            // The client is already doing prefetching, so we don't want to do
+            // *double* prefetching by prefetching on the server as well.
+            while (queue.size() == 0) {
+                if (active == 0) return std::vector<datum_t>();
+                if (exc) std::rethrow_exception(exc);
+                {
+                    ASSERT_NO_CORO_WAITING;
+                    if (!coro_info.has()) {
+                        // We only have to do this once because we use the same optargs
+                        // etc.  for every batch.
+                        if (!coro_info.has()) {
+                            coro_info = make_scoped<coro_info_t>(
+                                make_scoped<env_t>(
+                                    env->get_rdb_ctx(),
+                                    env->return_empty_normal_batches,
+                                    drainer.get_drain_signal(),
+                                    env->get_all_optargs(),
+                                    nullptr),
+                                batchspec);
+                        }
+                    }
+                    r_sanity_check(outstanding_notifications == 0);
+                    all_notified = make_scoped<cond_t>();
+                    data_available = make_scoped<cond_t>();
+                    debugf("all_notified: %p, data_available: %p\n",
+                           all_notified.get(), data_available.get());
+                    for (size_t i = 0; i < notify_conds.size(); ++i) {
+                        if (notify_conds[i] != NULL) {
+                            debugf("%zu notify\n", i);
+                            outstanding_notifications += 1;
+                            notify_conds[i]->pulse();
+                            notify_conds[i] = NULL;
+                        }
+                    }
+                }
+                debugf("wait all_notified %p\n", all_notified.get());
+                wait_interruptible(all_notified.get(), &interruptor);
+                debugf("WAKE all_notified\n");
+                r_sanity_check(outstanding_notifications == 0);
+                debugf("wait data_available %p\n", data_available.get());
+                wait_interruptible(data_available.get(), &interruptor);
+                debugf("WAKE data_available %zu\n", queue.size());
+            }
+        } catch (...) {
+            // Prefer throwing coroutine exceptions because we might have been
+            // interrupted by `abort`, and in all other cases it doesn't matter
+            // which we throw.
+            if (exc) std::rethrow_exception(exc);
+            throw;
+        }
+        r_sanity_check(queue.size() != 0);
+        std::vector<datum_t> data = std::move(queue.front());
+        queue.pop();
+        if (data.size() ==0) {
+            // We should only ever get empty batches if one of our streams is a
+            // changefeed.
+            r_sanity_check(union_type != feed_type_t::not_feed);
+            // If we aren't supposed to send empty normal batches, and this
+            // isn't a `NORMAL_FIRST` batch, we don't send it.
+            if ((env->return_empty_normal_batches == return_empty_normal_batches_t::NO)
+                && (batchspec.get_batch_type() != batch_type_t::NORMAL_FIRST)) {
+                continue;
+            }
+        }
+        return data;
+    }
 }
 
 // RANGE_DATUM_STREAM_T

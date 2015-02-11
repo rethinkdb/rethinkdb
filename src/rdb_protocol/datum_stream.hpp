@@ -6,6 +6,7 @@
 #include <deque>
 #include <list>
 #include <map>
+#include <queue>
 #include <set>
 #include <string>
 #include <utility>
@@ -14,6 +15,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/math_utils.hpp"
@@ -245,18 +247,12 @@ size_t index;
 std::vector<datum_t> data;
 };
 
-class union_datum_stream_t : public datum_stream_t {
+struct coro_info_t;
+
+class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
     union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
-                         const protob_t<const Backtrace> &bt_src)
-        : datum_stream_t(bt_src), streams(_streams), streams_index(0),
-          union_type(feed_type_t::not_feed),
-          is_infinite_union(false) {
-        for (auto const &stream : streams) {
-            union_type = union_of(union_type, stream->cfeed_type());
-            is_infinite_union |= stream->is_infinite();
-        }
-    }
+                         const protob_t<const Backtrace> &bt_src);
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt);
@@ -270,6 +266,8 @@ public:
     virtual bool is_infinite() const;
 
 private:
+    void coro_cb(size_t index) THROWS_NOTHING;
+
     virtual std::vector<changefeed::keyspec_t> get_change_specs() {
         std::vector<changefeed::keyspec_t> specs;
         for (auto &&stream : streams) {
@@ -281,10 +279,21 @@ private:
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
+    // We need to keep these around to apply transformations to even though we
+    // spawn coroutines to read from them.
     std::vector<counted_t<datum_stream_t> > streams;
-    size_t streams_index;
     feed_type_t union_type;
     bool is_infinite_union;
+
+    size_t active = 0, outstanding_notifications = 0;
+    cond_t abort;
+    std::vector<cond_t *> notify_conds;
+    scoped_ptr_t<cond_t> all_notified, data_available;
+    scoped_ptr_t<coro_info_t> coro_info;
+    std::exception_ptr exc;
+    std::queue<std::vector<datum_t> > queue; // FIFO
+
+    auto_drainer_t drainer;
 };
 
 class range_datum_stream_t : public eager_datum_stream_t {
