@@ -40,6 +40,7 @@ struct text_t : public document_t {
 
     virtual unsigned int width() const { return text.length(); }
     virtual void visit(const document_visitor_t &v) const { v(*this); }
+    virtual std::string str() const { return "Text(\"" + text + "\")"; }
 
     static doc_handle_t make(const std::string &text) {
         return std::make_shared<text_t>(text);
@@ -70,6 +71,9 @@ struct cond_t : public document_t {
 
     // no linebreaks, so only `small` is relevant
     virtual unsigned int width() const { return small.length(); }
+    virtual std::string str() const {
+        return "Cond(\"" + small + "\",\"" + cont + "\",\"" + tail + "\")";
+    }
 
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
@@ -95,12 +99,19 @@ struct concat_t : public document_t {
         : children(init) {}
     virtual ~concat_t() {}
 
-    unsigned int width() const {
+    virtual unsigned int width() const {
         unsigned int w = 0;
         for (auto i = children.begin(); i != children.end(); i++) {
             w += (*i)->width();
         }
         return w;
+    }
+    virtual std::string str() const {
+        std::string result = "";
+        for (auto i = children.begin(); i != children.end(); i++) {
+            result += (*i)->str();
+        }
+        return result;
     }
 
     virtual void visit(const document_visitor_t &v) const { v(*this); }
@@ -119,8 +130,11 @@ struct group_t : public document_t {
     group_t(doc_handle_t doc) : child(doc) {}
     virtual ~group_t() {}
 
-    unsigned int width() const {
+    virtual unsigned int width() const {
         return child->width();
+    }
+    virtual std::string str() const {
+        return "Group(" + child->str() + ")";
     }
 
     virtual void visit(const document_visitor_t &v) const { v(*this); }
@@ -136,8 +150,11 @@ struct nest_t : public document_t {
     nest_t(doc_handle_t doc) : child(doc) {}
     virtual ~nest_t() {}
 
-    unsigned int width() const {
+    virtual unsigned int width() const {
         return child->width();
+    }
+    virtual std::string str() const {
+        return "Nest(" + child->str() + ")";
     }
 
     virtual void visit(const document_visitor_t &v) const { v(*this); }
