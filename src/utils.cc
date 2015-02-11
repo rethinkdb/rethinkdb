@@ -557,7 +557,7 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 }
 
 bool is_rw_directory(const base_path_t& path) {
-    if (!access((path.path() + "/a-file-name").c_str(), R_OK | F_OK | W_OK))
+    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
         return false;
     struct stat details;
     if (stat(path.path().c_str(), &details) != 0)
