@@ -8,7 +8,15 @@
 
 namespace pprint {
 
-class document_t;
+class document_visitor_t;
+class document_t {
+public:
+    virtual ~document_t() {}
+    virtual unsigned int width() const = 0;
+    virtual void visit(const document_visitor_t &v) const = 0;
+    virtual std::string str() const = 0;
+};
+
 typedef std::shared_ptr<const document_t> doc_handle_t;
 
 // textual element

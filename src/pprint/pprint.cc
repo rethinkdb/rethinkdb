@@ -24,13 +24,6 @@ public:
     virtual void operator()(const nest_t &) const = 0;
 };
 
-class document_t {
-public:
-    virtual ~document_t() {}
-    virtual unsigned int width() const = 0;
-    virtual void visit(const document_visitor_t &v) const = 0;
-};
-
 struct text_t : public document_t {
     std::string text;
 
