@@ -3,28 +3,60 @@
 
 namespace table_raft {
 
+/* A `contract_ack_t` is not necessarily homogeneous. It may have different `version_t`s
+for different regions, and a region with a single `version_t` may need to be split
+further depending on the branch history. Since `calculate_contract()` assumes it's
+processing a homogeneous input, we need to break the `contract_ack_t` into homogeneous
+pieces. `contract_ack_frag_t` is like a homogeneous version of `contract_ack_t`; in place
+of the `region_map_t<state_t>` it has a single `state_timestamp_t`. Use `fragment_ack()`
+to convert a `contract_ack_t` into a `region_map_t<contract_ack_frag_t>`. */
+
+class contract_ack_frag_t {
+public:
+    contract_ack_t::state_t state;
+    boost::optional<state_timestamp_t> version;
+    boost::optional<branch_id_t> branch;
+};
+
+region_map_t<contract_ack_frag_t> break_ack_into_fragments(
+        const server_id_t &server,
+        const region_t &region,
+        const contract_ack_t &ack,
+        const branch_id_t &branch,
+        const branch_history_t &branch_history) {
+    contract_ack_frag_t base_frag;
+    base_frag.state = ack.state;
+    base_frag.branch = ack.branch;
+    if (!static_cast<bool>(ack.version)) {
+        return region_map_t<contract_ack_frag_t>(region, base_frag);
+    } else {
+        std::vector<std::pair<region_t, contract_ack_frag_t> > parts;
+        for (const std::pair<region_t, version_t> &vers_pair : *ack.version) {
+            region_map_t<state_timestamp_t> timestamps = version_project_to_branch(
+                vers_pair.second, branch, branch_history);
+            for (const std::pair<region_t, state_timestamp_t> &ts_pair : timestamps) {
+                base_frag.version = boost::make_optional(ts_pair.second);
+                pairs.push_back(std::make_pair(ts_pair.first, base_frag));
+            }
+        }
+        return region_map_t<contract_ack_frag_t>(parts.begin(), parts.end());
+    }
+}
+
 /* `calculate_contract()` calculates a new contract for a region. Whenever any of the
 inputs changes, the leader will call `update_contract()` to compute a contract for each
 range of keys. The new contract will often be the same as the old, in which case it
 doesn't get a new contract ID. */
 contract_t calculate_contract(
-        /* The region that we're computing a contract for. This region will never contain
-        any split points. */
-        const region_t &region,
         /* The old contract that contains this region. */
         const contract_t &old_c,
         /* The user-specified configuration for the shard containing this region. */
         const table_config_t::shard_t &config,
         /* Contract acks from replicas regarding `old_c`. If a replica hasn't sent us an
-        ack *specifically* for `old_c`, it won't appear in this map. */
-        const std::map<server_id_t, contract_ack_t::state_t> &ack_states,
-        const std::map<server_id_t, version_t> &ack_versions,
-        const std::map<server_id_t, branch_id_t> &ack_branches,
-        /* Creates a new branch, starting from the given version, to be hosted on the
-        given server. `update_contract()` should call this at most once. If several calls
-        to `update_contract()` in the same batch all call `branch_maker()` for contiguous
-        regions, it will combine all the calls into the same branch. */
-        const std::function<branch_id_t(server_id_t, version_t)> &branch_maker) {
+        ack *specifically* for `old_c`, it won't appear in this map. Note that the acks
+        are preprocessed by projecting `version` onto `old_c.branch` and then doing one
+        call to `calculate_contract()` for each of the resulting regions. */
+        const std::map<server_id_t, contract_ack_frag_t> &acks) {
 
     contract_t new_c = old_c;
 
@@ -40,9 +72,9 @@ contract_t calculate_contract(
     if (!static_cast<bool>(old_c.temp_voters) && old_c.voters != config.replicas) {
         size_t num_streaming = 0;
         for (const server_id_t &server : config.replicas) {
-            auto it = ack_states.find(server);
-            if (it != ack_states.end() &&
-                    (it->second == contract_ack_t::secondary_streaming ||
+            auto it = acks.find(server);
+            if (it != acks.end() &&
+                    (it->second.state == contract_ack_t::secondary_streaming ||
                     (static_cast<bool>(old_c.primary) &&
                         old_c.primary->server == server))) {
                 ++num_streaming;
@@ -69,8 +101,8 @@ contract_t calculate_contract(
         policy was implemented has been backfilled to a majority of `temp_voters`. So we
         can't switch voters unless the primary reports `primary_running`. */
         if (static_cast<bool>(old_c.primary) &&
-                ack_states.count(old_c.primary->server) == 1 &&
-                ack_states.at(old_c.primary->server) == contract_ack_t::primary_ready) {
+                acks.count(old_c.primary->server) == 1 &&
+                acks.at(old_c.primary->server).state == contract_ack_t::primary_ready) {
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
             new_c.temp_voters = boost::none;
@@ -111,11 +143,9 @@ contract_t calculate_contract(
         if we run the algorithm twice; this helps to reduce unnecessary fragmentation. */
         std::vector<std::pair<state_timestamp_t, server_id_t> > replica_states;
         for (const server_id_t &server : new_c.voters) {
-            if (ack_states.count(server) == 1 && ack_states.at(server) ==
+            if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::secondary_need_primary) {
-                state_timestamp_t timestamp = version_project_to_branch(
-                    branch_history, ack_versions.at(server), old_c.branch, region);
-                replica_states.insert(std::make_pair(timestamp, server));
+                replica_states.insert(std::make_pair(*acks.at(server).version, server));
             }
         }
         std::sort(replica_states.begin(), replica_states.end());
@@ -146,7 +176,6 @@ contract_t calculate_contract(
             p.warm_shutdown = false;
             p.warm_shutdown_for = nil_uuid();
             new_c.primary = boost::make_optional(p);
-            new_c.branch = branch_maker(*new_primary, ack_versions.at(*new_primary));
         }
     }
 
@@ -175,7 +204,7 @@ contract_t calculate_contract(
         the worst that will happen is we'll lose availability. */
         size_t voters_cant_reach_primary = 0;
         for (const server_id_t &server : new_c.voters) {
-            if (ack_states.count(server) == 1 && ack_states.at(server) ==
+            if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack::secondary_need_primary) {
                 ++voters_cant_reach_primary;
             }
@@ -187,16 +216,16 @@ contract_t calculate_contract(
         if (should_kill_primary) {
             new_c.primary = boost::none;
         } else if (old_c.primary->server != config.primary_replica &&
-                ack_states.count(config.primary_replica) == 1 &&
-                ack_states.at(config.primary_replica) ==
+                acks.count(config.primary_replica) == 1 &&
+                acks.at(config.primary_replica).state ==
                     contract_ack_t::secondary_streaming) {
             /* The old primary is still a valid replica, but it isn't equal to
             `config.primary_replica`. So we have to do a hand-over to ensure that after
             we kill the primary, `config.primary_replica` will be a valid candidate. */
 
             if (old_c.primary->hand_over == config.primary_replica &&
-                    ack_states.count(old_c.primary->server) == 1 &&
-                    ack_states.at(old_c.primary->server) ==
+                    acks.count(old_c.primary->server) == 1 &&
+                    acks.at(old_c.primary->server).state ==
                         contract_ack_t::primary_ready) {
                 /* We already did the hand over. Now it's safe to stop the old primary.
                 */
@@ -216,48 +245,114 @@ contract_t calculate_contract(
     if (static_cast<bool>(old_c.primary) &&
             static_cast<bool>(new_c.primary) &&
             old_c.primary->server == new_c.primary->server &&
-            ack_states.count(old_c.primary->server) == 1 &&
-            ack_states.at(old_c.primary->server) == primary_need_branch) {
-        old_c.branch = ack_branches.at(old_c.primary->server);
+            acks.count(old_c.primary->server) == 1 &&
+            acks.at(old_c.primary->server).state == primary_need_branch) {
+        new_c.branch = *acks.at(old_c.primary->server).branch;
     }
 
     return new_c;
 }
 
-void leader_t::pump_contracts(
+/* `calculate_all_contracts()` is sort of like `calculate_contract()` except that it
+applies to the whole set of contracts instead of to a single contract. It takes the
+inputs that `calculate_contract()` needs, but in sharded form; then breaks the key space
+into small enough chunks that the inputs are homogeneous across each chunk; then calls
+`calculate_contract()` on each chunk. The output is in the form of a `new_contracts_t`
+(i.e. a diff) instead of a complete set of new contracts. */
+new_contracts_t calculate_all_contracts(
         const state_t &old_state,
-        std::map<contract_id_t, std::pair<region_t, contract_t> > *new_contracts_out,
-        std::set<contract_id_t> *delete_contracts_out);
-    /* RSI(raft): Hash sharding */
+        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks);
 
-    /* First, break up the key range into chunks small enough that the `table_config_t`,
-    old contracts, contract acks, and branch history are homogeneous across each chunk.
-    We do this by inserting every key boundary from any of those sets into
-    `split_points`. As we go, we also make notes in the `*_table`s that we can use to
-    efficiently find the contract, acks, etc. for a given chunk later. */
-    std::set<store_key_t> split_points;
-    for (const auto &pair : branch_history) {
-        for (const auto &pair2 : pair.second.origin) {
-            split_points.insert(pair2.first.inner.left);
+    ASSERT_FINITE_CORO_WAITING;
+
+    std::vector<region_t, contract_t> new_contract_vector;
+
+    /* We want to break the key-space into sub-regions small enough that the contract,
+    table config, and ack versions are all constant across the sub-region. First we
+    iterate over all contracts: */
+    for (const std::pair<contract_id_t, std::pair<region_t, contract_t> > &cpair :
+            old_state.contracts) {
+        /* Next iterate over all shards of the table config and find the ones that
+        overlap the contract in question: */
+        for (size_t si = 0; si < old_state.config.shards.size(); ++si) {
+            region_t region = region_intersection(
+                cpair.second.first,
+                region_t(old_state.config.shard_scheme.get_shard_range(si)));
+            if (region_is_empty(ixn)) {
+                continue;
+            }
+            /* Now collect the acks for this contract into `ack_frags`. `ack_frags` is
+            homogeneous at first and then it gets fragmented as we iterate over `acks`.
+            */
+            region_map_t<std::map<server_id_t, contract_ack_frag_t> > frags_by_server(
+                region);
+            acks->read_all([&](
+                    const std::pair<server_id_t, contract_id_t> &key,
+                    const contract_ack_t *value) {
+                if (key.second != cpair.first) {
+                    return;
+                }
+                region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
+                    key.first, region, *value, cpair.second.second.branch,
+                    old_state.branch_history);
+                for (const auto &fpair : frags) {
+                    auto part_of_frags_by_server = frags_by_server.mask(fpair.first);
+                    for (auto &&fspair : part_of_frags_by_server) {
+                        fspair.second.insert(std::make_pair(key.first, fspair.second));
+                    }
+                    frags_by_server.update(part_of_frags_by_server);
+                }
+            });
+            for (const auto &apair : ack_frags) {
+                /* We've finally collected all the inputs to `calculate_contract()` and
+                broken the key space into regions across which the inputs are
+                homogeneous. So now we can actually call it. */
+                contract_t new_contract = calculate_contract(
+                    cpair.second,
+                    old_state.config.shards[si],
+                    apair.second);
+                new_contract_vector.push_back(std::make_pair(apair.first, new_contract));
+            }
         }
     }
-    std::map<store_key_t, const contract_t *> old_contract_table;
-    for (const auto &pair : old_state.contracts) {
-        split_points.insert(pair.second.first.left);
-        auto res = old_contract_table.insert(std::make_pair(
-            pair.second.first.left,
-            &pair.second.second));
-        guarantee(res.second, "Found contract with overlapping or empty range");
+
+    /* Put the new contracts into a `region_map_t` to coalesce adjacent regions that have
+    identical contracts */
+    region_map_t<contract_t> new_contract_region_map(
+        new_contract_vector.begin(), new_contract_vector.end());
+
+    /* Slice the new contracts by CPU shard, so that no contract spans more than one CPU
+    shard */
+    std::map<region_t, contract_t> new_contract_map;
+    for (size_t cpu = 0; cpu < CPU_SHARDING_FACTOR; ++cpu) {
+        region_t cpu_region = cpu_sharding_subspace(cpu, CPU_SHARDING_FACTOR);
+        for (const auto &pair : new_contract_region_map.mask(cpu_region)) {
+            guarantee(pair.first.beg == cpu_region.beg &&
+                pair.first.end == cpu_region.end);
+            new_contract_map.insert(pair);
+        }
     }
-    std::map<store_key_t, std::pair<server_id_t, contract_ack_t::state_t> >
-        ack_state_table;
-    std::map<store_key_t, std::pair<server_id_t, version_t> > ack_version_table;
-    std::map<store_key_t, std::pair<server_id_t, branch_id_t> > ack_branch_table;
-    acks->read_all([&](
-            const std::pair<server_id_t, contract_id_t> &key,
-            const contract_ack_t *ack) {
-        
-    });
+
+    /* Diff the new contracts against the old contracts */
+    state_t::change_t::new_contracts_t diff;
+    for (const auto &cpair : old_state.contracts) {
+        auto it = new_contract_map.find(cpair.second.first);
+        if (it != new_contract_map.end() && it->second == cpair.second.second) {
+            /* The contract was unchanged. Remove it from `new_contract_map` to signal
+            that we don't need to assign it a new ID. */
+            new_contract_map.erase(it);
+        } else {
+            /* The contract was changed. So delete the old one. */
+            diff.to_remove.insert(cpair.first);
+        }
+    }
+    for (const auto &pair : new_contract_map) {
+        /* The contracts remaining in `new_contract_map` are actually new; whatever
+        contracts used to cover their region have been deleted. So assign them contract
+        IDs and export them. */
+        diff.to_add.insert(std::make_pair(generate_uuid(), pair));
+    }
+    return diff;
 }
 
 } /* namespace table_raft */
