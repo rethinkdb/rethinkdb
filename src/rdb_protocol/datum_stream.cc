@@ -1076,7 +1076,9 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
         }
     }
 
-    while (index < right && !batcher.should_send_batch()) {
+    while (index < right) {
+        if (batcher.should_send_batch()) break;
+        if (source->cfeed_type() != feed_type_t::not_feed && ret.size() > 0) break;
         sampler.new_sample();
         std::vector<datum_t> v =
             source->next_batch(env, batchspec.with_at_most(right - index));

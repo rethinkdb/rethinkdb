@@ -12,10 +12,10 @@ tests:
     - rb: tbl.insert([{id:1, a:8}, {id:2, a:7}])['inserted']
       ot: 2
 
-    - rb: idmin = tbl.min(index:'id').changes().limit(2)
-    - rb: idmax = tbl.max(index:'id').changes().limit(2)
-    - rb: amin = tbl.min(index:'a').changes().limit(2)
-    - rb: amax = tbl.max(index:'a').changes().limit(2)
+    - rb: idmin = tbl.min(index:'id').changes(squash:false).limit(2)
+    - rb: idmax = tbl.max(index:'id').changes(squash:false).limit(2)
+    - rb: amin = tbl.min(index:'a').changes(squash:false).limit(2)
+    - rb: amax = tbl.max(index:'a').changes(squash:false).limit(2)
 
     - rb: tbl.insert([{id:0, a:9}, {id:3, a:6}])['inserted']
       ot: 2

@@ -25,7 +25,7 @@ bool stream_cache_t::insert(int64_t key,
     return res.second;
 }
 
-bool stream_cache_t::erase(int64_t key) {
+bool stream_cache_t::erase(int64_t key, wait_for_other_queries_t wait) {
     counted_t<entry_t> entry;
     {
         rwlock_acq_t lock(&streams_lock, access_t::write);
@@ -37,10 +37,12 @@ bool stream_cache_t::erase(int64_t key) {
         streams.erase(it);
     }
 
-    // Wait for all outstanding queries on this token to finish.
-    new_mutex_acq_t lock(&entry->mutex);
-    // We're the only remaining query on this token, so it's safe to return.
-    guarantee(entry.unique());
+    if (wait == wait_for_other_queries_t::YES) {
+        // Wait for all outstanding queries on this token to finish.
+        new_mutex_acq_t lock(&entry->mutex);
+        // We're the only remaining query on this token, so it's safe to return.
+        guarantee(entry.unique());
+    }
     return true;
 }
 
@@ -87,14 +89,14 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // We can't do this in the `catch` statement because erase may trigger
         // destructors that might need to switch coroutines to do some bookkeeping,
         // and we can't switch coroutines inside an exception handler.
-        erase(key);
+        erase(key, wait_for_other_queries_t::NO);
         std::rethrow_exception(exc);
     }
 
     const ql::feed_type_t cfeed = entry->stream->cfeed_type();
     if (entry->stream->is_exhausted() || (res->response_size() == 0
                                           && cfeed == feed_type_t::not_feed)) {
-        erase(key);
+        erase(key, wait_for_other_queries_t::NO);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else if (cfeed == feed_type_t::stream) {
         res->set_type(Response::SUCCESS_FEED);

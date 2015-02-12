@@ -18,6 +18,8 @@ namespace ql {
 
 class env_t;
 
+enum class wait_for_other_queries_t { YES, NO };
+
 class stream_cache_t {
 public:
     explicit stream_cache_t(rdb_context_t *_rdb_ctx,
@@ -33,7 +35,7 @@ public:
                 std::map<std::string, wire_func_t> global_optargs,
                 profile_bool_t profile_requested,
                 counted_t<datum_stream_t> val_stream);
-    bool erase(int64_t key);
+    bool erase(int64_t key, wait_for_other_queries_t wait);
     MUST_USE bool serve(int64_t key, Response *res, signal_t *interruptor);
     return_empty_normal_batches_t get_return_empty_normal_batches() {
         return return_empty_normal_batches;

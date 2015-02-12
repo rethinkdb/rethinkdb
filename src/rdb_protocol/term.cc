@@ -350,7 +350,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_STOP: {
         try {
-            bool erased = stream_cache->erase(token);
+            bool erased = stream_cache->erase(token, wait_for_other_queries_t::YES);
             rcheck_toplevel(erased, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
             res->set_type(Response::SUCCESS_SEQUENCE);
