@@ -10,6 +10,23 @@
 
 namespace pprint {
 
+// Pretty printing occurs in two global phases.  Rather than try to
+// print some random C++ tree directly, which could get quite ugly
+// quite quickly, we build a "pretty printer document" out of some
+// very simple primitives.  These primitives (and our algorithm) are
+// due to Oppen[1] originally and later Kiselyov[2].  Oppen's original
+// formulation had `Text`, `LineBreak`, `Concat`, and `Group`.  I
+// generalized `LineBreak` to `cond_t` which became our `cond_t`
+// because we need to do more sophisticated breaks, and I added
+// `nest_t` for controllable indentation.
+//
+// [1]: Oppen, D.C.: Prettyprinting. ACM Trans. Program. Lang. Syst. 2
+//      (1980) 465–483.  Not available online without an ACM subscription.
+//
+// [2]: Kiselyov, O., Petyon-Jones, S. and Sabry, A.: Lazy v. Yield:
+//      Incremental, Linear Pretty-printing.  Available online at
+//      http://okmij.org/ftp/continuations/PPYield/yield-pp.pdf
+
 class text_t;
 class cond_t;
 class concat_t;
@@ -217,6 +234,25 @@ doc_handle_t r_dot(std::initializer_list<doc_handle_t> args) {
     return dotted_list_int(v);
 }
 
+// The document tree is convenient for certain operations, but we're
+// going to convert it straightaway into a linear stream through
+// essentially an in-order traversal.  We do this because it's easier
+// to compute the width in linear time; it's possible to do it
+// directly on the tree, but the naive algorithm recomputes the widths
+// constantly and a dynamic programming or memorized version is more
+// annoying.  This stream has the attractive property that we can
+// process it one element at a time, so it does not need to be created
+// in its entirety.
+//
+// Our stream type translates `text_t` to `text_element_t` and
+// `cond_t` to `cond_element_t`.  Since we're streaming, the extra
+// structure for the `concat_t` goes away.  The tricky ones are groups
+// and nests, which must preserve their heirarchy somehow.  We do this
+// by wrapping the child contents with a GBeg or here `gbeg_element_t`
+// meaning Group Begin and ending with a GEnd or `gend_element_t`
+// meaning Group End.  Similarly with `nbeg_element_t` and
+// `nend_element_t`.
+
 class text_element_t;
 class cond_element_t;
 class nbeg_element_t;
@@ -338,6 +374,10 @@ public:
     }
 };
 
+// Once we have the stream, we can begin massaging it prior to pretty
+// printing.  C++ native streams aren't really suitable for us; we
+// have too much internal state.  Fortunately chain calling functions
+// can work, so we set up some machinery to help with that.
 class fn_wrapper_t {
     std::shared_ptr<stream_element_visitor_t> v;
     std::string name;
@@ -353,6 +393,8 @@ public:
 
 typedef std::shared_ptr<fn_wrapper_t> thunk_t;
 
+// The first phase is to just generate the stream elements from the
+// document tree, which is simple enough.
 class generate_stream_visitor_t : public document_visitor_t {
     thunk_t fn;
 public:
@@ -392,6 +434,11 @@ void generate_stream(doc_handle_t doc, thunk_t fn) {
     doc->visit(v);
 }
 
+// The second phase is to annotate the stream elements with the
+// horizontal position of their last character (assuming no line
+// breaks).  We can't actually do this successfully for
+// `nbeg_element_t` and `gbeg_element_t` at this time, but everything
+// else is pretty easy.
 class annotate_stream_visitor_t : public stream_element_visitor_t {
     thunk_t fn;
     unsigned int position;
@@ -412,7 +459,7 @@ public:
     }
 
     virtual void operator()(gbeg_element_t &e) {
-        e.hpos = position;
+        // can't do this accurately
         (*fn)(e.shared_from_this());
     }
 
@@ -422,7 +469,7 @@ public:
     }
 
     virtual void operator()(nbeg_element_t &e) {
-        e.hpos = position;
+        // can't do this accurately
         (*fn)(e.shared_from_this());
     }
 
@@ -438,6 +485,11 @@ thunk_t annotate_stream(thunk_t fn) {
         "annotate");
 }
 
+// The third phase is to accurately compute the `hpos` for
+// `gbeg_element_t`.  We don't care about the hpos for
+// `nbeg_element_t`, but the `gbeg_element_t` is important for line
+// breaking.  We couldn't accurately annotate it
+// `annotate_stream_visitor_t`; this corrects that oversight.
 class correct_gbeg_visitor_t : public stream_element_visitor_t {
     thunk_t fn;
     typedef std::unique_ptr<std::list<stream_handle_t> > buffer_t;
@@ -466,7 +518,7 @@ public:
     }
 
     virtual void operator()(nbeg_element_t &e) {
-        guarantee(e.hpos);
+        guarantee(!e.hpos);     // don't care about `nbeg_element_t` hpos
         maybe_push(e);
     }
 
@@ -475,7 +527,8 @@ public:
         maybe_push(e);
     }
 
-    virtual void operator()(gbeg_element_t &) {
+    virtual void operator()(gbeg_element_t &e) {
+        guarantee(!e.hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
         lookahead.push_back(buffer_t(new std::list<stream_handle_t>()));
     }
 
@@ -503,6 +556,28 @@ thunk_t correct_gbeg_stream(thunk_t fn) {
         "correct_gbeg");
 }
 
+// Kiselyov's original formulation includes an alternate third phase
+// which limits lookahead to the width of the page.  This is difficult
+// for us because we don't guarantee docs are of nonzero length,
+// although that could be finessed, and also it adds extra complexity
+// for minimal benefit, so skip it.
+
+// The final phase is to compute output.  Each time we see a
+// `gbeg_element_t`, we can compare its `hpos` with `rightEdge` to see
+// whether it'll fit without breaking.  If it does fit, increment
+// `fittingElements` and proceed, which will cause the logic for
+// `text_element_t` and `cond_element_t` to just append stuff without
+// line breaks.  If it doesn't fit, set `fittingElements` to 0, which
+// will cause `cond_element_t` to do line breaks.  When we do a line
+// break, we need to compute where the new right edge of the 'page'
+// would be in the context of the original stream; so if we saw a
+// `cond_element_t` with `e.hpos` of 300 (meaning it ends at
+// horizontal position 300), the new right edge would be 300 -
+// indentation + page width.
+//
+// `output_visitor_t` outputs to a string which is used as an append
+// buffer; it could, in theory, stream the output but this isn't
+// useful at present.
 class output_visitor_t : public stream_element_visitor_t {
     const unsigned int width;
     unsigned int fittingElements, rightEdge, hpos;
@@ -557,6 +632,7 @@ public:
     virtual void operator()(nend_element_t &) { indent.pop_back(); }
 };
 
+// Here we assemble the chain whose elements we have previously forged.
 std::string pretty_print(unsigned int width, doc_handle_t doc) {
     std::shared_ptr<output_visitor_t> output =
         std::make_shared<output_visitor_t>(width);
