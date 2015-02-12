@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "containers/counted.hpp"
 
@@ -40,8 +41,8 @@ counted_t<const document_t>
 make_concat(std::initializer_list<counted_t<const document_t> > args);
 
 template <typename... Ts>
-inline counted_t<const document_t> make_concat(Ts... docs) {
-    return make_concat({docs...});
+inline counted_t<const document_t> make_concat(Ts &&... docs) {
+    return make_concat({std::forward<Ts>(docs)...});
 }
 
 // document enclosure where all linebreaks are interpreted consistently.
@@ -64,8 +65,8 @@ counted_t<const document_t>
 comma_separated(std::initializer_list<counted_t<const document_t> > init);
 
 template <typename... Ts>
-inline counted_t<const document_t> comma_separated(Ts... docs) {
-    return comma_separated({docs...});
+inline counted_t<const document_t> comma_separated(Ts &&... docs) {
+    return comma_separated({std::forward<Ts>(docs)...});
 }
 
 // argument list; comma separated arguments wrapped in parens with a nest.
@@ -75,8 +76,8 @@ counted_t<const document_t>
 arglist(std::initializer_list<counted_t<const document_t> >);
 
 template <typename... Ts>
-inline counted_t<const document_t> arglist(Ts... docs) {
-    return arglist({docs...});
+inline counted_t<const document_t> arglist(Ts &&... docs) {
+    return arglist({std::forward<Ts>(docs)...});
 }
 
 // documents separated by `dot`.
@@ -86,8 +87,8 @@ counted_t<const document_t>
 dotted_list(std::initializer_list<counted_t<const document_t> >);
 
 template <typename... Ts>
-inline counted_t<const document_t> dotted_list(Ts... docs) {
-    return dotted_list({docs...});
+inline counted_t<const document_t> dotted_list(Ts &&... docs) {
+    return dotted_list({std::forward<Ts>(docs)...});
 }
 
 // function call document, where `name` is the call and `init` are the args.
@@ -97,16 +98,16 @@ counted_t<const document_t>
 funcall(const std::string &, std::initializer_list<counted_t<const document_t> >);
 
 template <typename... Ts>
-inline counted_t<const document_t> funcall(const std::string &name, Ts... docs) {
-    return funcall(name, {docs...});
+inline counted_t<const document_t> funcall(const std::string &name, Ts &&... docs) {
+    return funcall(name, {std::forward<Ts>(docs)...});
 }
 
 // helper for r.foo.bar.baz expressions.
 counted_t<const document_t> r_dot(std::initializer_list<counted_t<const document_t> >);
 
 template <typename... Ts>
-inline counted_t<const document_t> r_dot(Ts... docs) {
-    return r_dot({docs...});
+inline counted_t<const document_t> r_dot(Ts &&... docs) {
+    return r_dot({std::forward<Ts>(docs)...});
 }
 
 // render document at the given width.
