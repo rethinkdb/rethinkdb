@@ -545,8 +545,9 @@ public:
     }
 
     virtual void operator()(gend_element_t &) {
-        if (fittingElements != 0)
+        if (fittingElements != 0) {
             --fittingElements;
+        }
     }
 
     virtual void operator()(nbeg_element_t &) {
