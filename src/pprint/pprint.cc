@@ -91,8 +91,8 @@ public:
     concat_t(std::vector<counted_t<const document_t> > args)
         : children(std::move(args)) {}
     template <typename It>
-    concat_t(const It &begin, const It &end)
-        : children(begin, end) {}
+    concat_t(It begin, It end)
+        : children(std::move(begin), std::move(end)) {}
     concat_t(std::initializer_list<counted_t<const document_t> > init)
         : children(std::move(init)) {}
     virtual ~concat_t() {}
@@ -123,8 +123,9 @@ make_concat(std::initializer_list<counted_t<const document_t> > args) {
     return make_counted<concat_t>(std::move(args));
 }
 template <typename It>
-counted_t<const document_t> make_concat(const It &begin, const It &end) {
-    return make_counted<concat_t>(begin, end);
+counted_t<const document_t> make_concat(It &&begin, It &&end) {
+    return make_counted<concat_t>(std::forward<It>(begin),
+                                  std::forward<It>(end));
 }
 
 class group_t : public document_t {
@@ -194,16 +195,16 @@ arglist(std::initializer_list<counted_t<const document_t> > init) {
     return make_concat({ lparen, comma_separated(init), rparen });
 }
 
-template <typename Container>
-counted_t<const document_t> dotted_list_int(Container init) {
+template <typename It>
+counted_t<const document_t> dotted_list_int(It begin, It end) {
     static const counted_t<const document_t> plain_dot = make_counted<text_t>(".");
-    if (init.size() == 0) return empty;
-    if (init.size() == 1) return make_nest(*(init.begin()));
+    if (begin == end) return empty;
     std::vector<counted_t<const document_t> > v;
-    auto it = init.begin();
+    It it = begin;
     v.push_back(*it++);
+    if (it == end) return make_nest(v[0]);
     bool first = true;
-    for (; it != init.end(); it++) {
+    for (; it != end; it++) {
         // a bit involved here, because we don't want to break on the
         // first dot (looks ugly)
         if (first) {
@@ -222,7 +223,7 @@ counted_t<const document_t> dotted_list_int(Container init) {
 
 counted_t<const document_t>
 dotted_list(std::initializer_list<counted_t<const document_t> > init) {
-    return dotted_list_int(init);
+    return dotted_list_int(init.begin(), init.end());
 }
 
 counted_t<const document_t> funcall(const std::string &name,
@@ -236,7 +237,7 @@ r_dot(std::initializer_list<counted_t<const document_t> > args) {
     std::vector<counted_t<const document_t> > v;
     v.push_back(r);
     v.insert(v.end(), args.begin(), args.end());
-    return dotted_list_int(v);
+    return dotted_list_int(v.begin(), v.end());
 }
 
 // The document tree is convenient for certain operations, but we're
