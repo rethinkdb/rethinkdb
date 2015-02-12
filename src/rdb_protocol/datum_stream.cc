@@ -1209,7 +1209,9 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
     std::vector<datum_t> batch;
     // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
     // think strongly it should be something else you're probably right.
-    batcher_t batcher = batchspec.with_at_most(500).to_batcher();
+    batcher_t batcher = batchspec.get_batch_type() == batch_type_t::TERMINAL ?
+                            batchspec.to_batcher() :
+                            batchspec.with_at_most(500).to_batcher();
 
     while (!is_exhausted()) {
         double next = safe_to_double(start++);
