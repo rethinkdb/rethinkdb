@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <sys/resource.h>
-
+#include <algorithm>
 #include <set>
 
 #include "clustering/administration/main/command_line.hpp"
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     } else {
         std::string subcommand = argv[1];
-
+std::transform(subcommand.begin(), subcommand.end(), subcommand.begin(), ::tolower)
         if (subcommand == "create") {
             return main_rethinkdb_create(argc, argv);
         } else if (subcommand == "serve") {
@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
                 return 0;
             } else if (argc == 3) {
                 std::string subcommand2 = argv[2];
+                std::transform(subcommand2.begin(), subcommand2.end(), subcommand2.begin(), ::tolower)
                 if (subcommand2 == "create") {
                     help_rethinkdb_create();
                     return 0;
