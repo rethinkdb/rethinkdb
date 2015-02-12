@@ -4,12 +4,15 @@
 
 #include <string>
 #include <vector>
-#include <memory>
+
+#include "containers/counted.hpp"
 
 namespace pprint {
 
 class document_visitor_t;
-class document_t {
+// Pretty printer document.  Has to be `slow_atomic_countable_t`
+// because of reuse of things like `br` and `dot`.
+class document_t : public slow_atomic_countable_t<document_t> {
 public:
     virtual ~document_t() {}
     virtual unsigned int width() const = 0;
@@ -17,7 +20,7 @@ public:
     virtual std::string str() const = 0;
 };
 
-typedef std::shared_ptr<const document_t> doc_handle_t;
+typedef counted_t<const document_t> doc_handle_t;
 
 // textual element
 doc_handle_t make_text(std::string text);

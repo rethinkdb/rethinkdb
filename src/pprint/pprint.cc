@@ -58,7 +58,7 @@ public:
 };
 
 doc_handle_t make_text(const std::string text) {
-    return std::make_shared<text_t>(std::move(text));
+    return make_counted<text_t>(std::move(text));
 }
 
 class cond_t : public document_t {
@@ -80,7 +80,7 @@ public:
 
 doc_handle_t make_cond(const std::string l, const std::string r,
                        const std::string t) {
-    return std::make_shared<cond_t>(std::move(l), std::move(r), std::move(t));
+    return make_counted<cond_t>(std::move(l), std::move(r), std::move(t));
 }
 
 // concatenation of multiple documents
@@ -116,14 +116,14 @@ public:
 };
 
 doc_handle_t make_concat(std::vector<doc_handle_t> args) {
-    return std::make_shared<concat_t>(std::move(args));
+    return make_counted<concat_t>(std::move(args));
 }
 doc_handle_t make_concat(std::initializer_list<doc_handle_t> args) {
-    return std::make_shared<concat_t>(std::move(args));
+    return make_counted<concat_t>(std::move(args));
 }
 template <typename It>
 doc_handle_t make_concat(const It &begin, const It &end) {
-    return std::make_shared<concat_t>(begin, end);
+    return make_counted<concat_t>(begin, end);
 }
 
 class group_t : public document_t {
@@ -144,7 +144,7 @@ public:
 };
 
 doc_handle_t make_group(doc_handle_t child) {
-    return std::make_shared<group_t>(child);
+    return make_counted<group_t>(child);
 }
 
 class nest_t : public document_t {
@@ -165,12 +165,12 @@ public:
 };
 
 doc_handle_t make_nest(doc_handle_t child) {
-    return std::make_shared<nest_t>(child);
+    return make_counted<nest_t>(child);
 }
 
-const doc_handle_t empty = std::make_shared<text_t>("");
-const doc_handle_t br = std::make_shared<cond_t>(" ", "");
-const doc_handle_t dot = std::make_shared<cond_t>(".", ".");
+const doc_handle_t empty = make_counted<text_t>("");
+const doc_handle_t br = make_counted<cond_t>(" ", "");
+const doc_handle_t dot = make_counted<cond_t>(".", ".");
 
 doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init) {
     if (init.size() == 0) return empty;
@@ -178,7 +178,7 @@ doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init) {
     auto it = init.begin();
     v.push_back(*it++);
     for (; it != init.end(); it++) {
-        v.push_back(std::make_shared<text_t>(","));
+        v.push_back(make_counted<text_t>(","));
         v.push_back(br);
         v.push_back(*it);
     }
@@ -186,14 +186,14 @@ doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init) {
 }
 
 doc_handle_t arglist(std::initializer_list<doc_handle_t> init) {
-    static const doc_handle_t lparen = std::make_shared<text_t>("(");
-    static const doc_handle_t rparen = std::make_shared<text_t>(")");
+    static const doc_handle_t lparen = make_counted<text_t>("(");
+    static const doc_handle_t rparen = make_counted<text_t>(")");
     return make_concat({ lparen, comma_separated(init), rparen });
 }
 
 template <typename Container>
 doc_handle_t dotted_list_int(Container init) {
-    static const doc_handle_t plain_dot = std::make_shared<text_t>(".");
+    static const doc_handle_t plain_dot = make_counted<text_t>(".");
     if (init.size() == 0) return empty;
     if (init.size() == 1) return make_nest(*(init.begin()));
     std::vector<doc_handle_t> v;
@@ -227,7 +227,7 @@ doc_handle_t funcall(const std::string &name,
 }
 
 doc_handle_t r_dot(std::initializer_list<doc_handle_t> args) {
-    static const doc_handle_t r = std::make_shared<text_t>("r");
+    static const doc_handle_t r = make_counted<text_t>("r");
     std::vector<doc_handle_t> v;
     v.push_back(r);
     v.insert(v.end(), args.begin(), args.end());
@@ -260,7 +260,8 @@ class nend_element_t;
 class gbeg_element_t;
 class gend_element_t;
 
-class stream_element_visitor_t {
+class stream_element_visitor_t
+    : public single_threaded_countable_t<stream_element_visitor_t> {
 public:
     virtual ~stream_element_visitor_t() {}
 
@@ -273,9 +274,12 @@ public:
 };
 
 // Streaming version of the document tree, suitable for printing after
-// much processing
-class stream_element_t : public std::enable_shared_from_this<stream_element_t> {
+// much processing.  Because we don't have any constant values here
+// due to the `hpos` stuff, this can be `single_threaded_countable_t`.
+class stream_element_t : public single_threaded_countable_t<stream_element_t> {
 public:
+    friend class annotate_stream_visitor_t;
+    friend class correct_gbeg_visitor_t;
     boost::optional<size_t> hpos;
 
     stream_element_t() : hpos() {}
@@ -289,7 +293,7 @@ public:
     }
 };
 
-typedef std::shared_ptr<stream_element_t> stream_handle_t;
+typedef counted_t<stream_element_t> stream_handle_t;
 
 class text_element_t : public stream_element_t {
 public:
@@ -378,12 +382,12 @@ public:
 // printing.  C++ native streams aren't really suitable for us; we
 // have too much internal state.  Fortunately chain calling functions
 // can work, so we set up some machinery to help with that.
-class fn_wrapper_t {
-    std::shared_ptr<stream_element_visitor_t> v;
+class fn_wrapper_t : public single_threaded_countable_t<fn_wrapper_t> {
+    counted_t<stream_element_visitor_t> v;
     std::string name;
 
 public:
-    fn_wrapper_t(std::shared_ptr<stream_element_visitor_t> _v, std::string _name)
+    fn_wrapper_t(counted_t<stream_element_visitor_t> _v, std::string _name)
         : v(_v), name(_name) {}
 
     void operator()(stream_handle_t e) {
@@ -391,7 +395,7 @@ public:
     }
 };
 
-typedef std::shared_ptr<fn_wrapper_t> thunk_t;
+typedef counted_t<fn_wrapper_t> thunk_t;
 
 // The first phase is to just generate the stream elements from the
 // document tree, which is simple enough.
@@ -402,11 +406,11 @@ public:
     virtual ~generate_stream_visitor_t() {}
 
     virtual void operator()(const text_t &t) const {
-        (*fn)(std::make_shared<text_element_t>(t.text));
+        (*fn)(make_counted<text_element_t>(t.text));
     }
 
     virtual void operator()(const cond_t &c) const {
-        (*fn)(std::make_shared<cond_element_t>(c.small, c.tail, c.cont));
+        (*fn)(make_counted<cond_element_t>(c.small, c.tail, c.cont));
     }
 
     virtual void operator()(const concat_t &c) const {
@@ -415,17 +419,17 @@ public:
     }
 
     virtual void operator()(const group_t &g) const {
-        (*fn)(std::make_shared<gbeg_element_t>());
+        (*fn)(make_counted<gbeg_element_t>());
         g.child->visit(*this);
-        (*fn)(std::make_shared<gend_element_t>());
+        (*fn)(make_counted<gend_element_t>());
     }
 
     virtual void operator()(const nest_t &n) const {
-        (*fn)(std::make_shared<nbeg_element_t>());
-        (*fn)(std::make_shared<gbeg_element_t>());
+        (*fn)(make_counted<nbeg_element_t>());
+        (*fn)(make_counted<gbeg_element_t>());
         n.child->visit(*this);
-        (*fn)(std::make_shared<gend_element_t>());
-        (*fn)(std::make_shared<nend_element_t>());
+        (*fn)(make_counted<gend_element_t>());
+        (*fn)(make_counted<nend_element_t>());
     }
 };
 
@@ -449,39 +453,39 @@ public:
     virtual void operator()(text_element_t &t) {
         position += t.payload.size();
         t.hpos = position;
-        (*fn)(t.shared_from_this());
+        (*fn)(t.counted_from_this());
     }
 
     virtual void operator()(cond_element_t &c) {
         position += c.small.size();
         c.hpos = position;
-        (*fn)(c.shared_from_this());
+        (*fn)(c.counted_from_this());
     }
 
     virtual void operator()(gbeg_element_t &e) {
         // can't do this accurately
-        (*fn)(e.shared_from_this());
+        (*fn)(e.counted_from_this());
     }
 
     virtual void operator()(gend_element_t &e) {
         e.hpos = position;
-        (*fn)(e.shared_from_this());
+        (*fn)(e.counted_from_this());
     }
 
     virtual void operator()(nbeg_element_t &e) {
         // can't do this accurately
-        (*fn)(e.shared_from_this());
+        (*fn)(e.counted_from_this());
     }
 
     virtual void operator()(nend_element_t &e) {
         e.hpos = position;
-        (*fn)(e.shared_from_this());
+        (*fn)(e.counted_from_this());
     }
 };
 
 thunk_t annotate_stream(thunk_t fn) {
-    return std::make_shared<fn_wrapper_t>(
-        std::make_shared<annotate_stream_visitor_t>(fn),
+    return make_counted<fn_wrapper_t>(
+        make_counted<annotate_stream_visitor_t>(fn),
         "annotate");
 }
 
@@ -501,9 +505,9 @@ public:
 
     void maybe_push(stream_element_t &e) {
         if (lookahead.empty()) {
-            (*fn)(e.shared_from_this());
+            (*fn)(e.counted_from_this());
         } else {
-            lookahead.back()->push_back(e.shared_from_this());
+            lookahead.back()->push_back(e.counted_from_this());
         }
     }
 
@@ -538,21 +542,21 @@ public:
         lookahead.pop_back();
         if (lookahead.empty()) {
             // this is then the topmost group
-            (*fn)(std::make_shared<gbeg_element_t>(*(e.hpos)));
-            std::for_each(b->begin(), b->end(), *fn);
-            (*fn)(e.shared_from_this());
+            (*fn)(make_counted<gbeg_element_t>(*(e.hpos)));
+            for (const auto &element : *b) (*fn)(element);
+            (*fn)(e.counted_from_this());
         } else {
             buffer_t &b2 = lookahead.back();
-            b2->push_back(std::make_shared<gbeg_element_t>(*(e.hpos)));
+            b2->push_back(make_counted<gbeg_element_t>(*(e.hpos)));
             b2->splice(b2->end(), *b);
-            b2->push_back(e.shared_from_this());
+            b2->push_back(e.counted_from_this());
         }
     }
 };
 
 thunk_t correct_gbeg_stream(thunk_t fn) {
-    return std::make_shared<fn_wrapper_t>(
-        std::make_shared<correct_gbeg_visitor_t>(fn),
+    return make_counted<fn_wrapper_t>(
+        make_counted<correct_gbeg_visitor_t>(fn),
         "correct_gbeg");
 }
 
@@ -634,10 +638,10 @@ public:
 
 // Here we assemble the chain whose elements we have previously forged.
 std::string pretty_print(unsigned int width, doc_handle_t doc) {
-    std::shared_ptr<output_visitor_t> output =
-        std::make_shared<output_visitor_t>(width);
+    counted_t<output_visitor_t> output =
+        make_counted<output_visitor_t>(width);
     thunk_t corr_gbeg =
-        correct_gbeg_stream(std::make_shared<fn_wrapper_t>(output, "output"));
+        correct_gbeg_stream(make_counted<fn_wrapper_t>(output, "output"));
     thunk_t annotate = annotate_stream(std::move(corr_gbeg));
     generate_stream(doc, std::move(annotate));
     return output->result;
