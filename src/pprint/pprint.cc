@@ -52,7 +52,7 @@ public:
     text_t(std::string &&str) : text(str) {}
     virtual ~text_t() {}
 
-    virtual unsigned int width() const { return text.length(); }
+    virtual size_t width() const { return text.length(); }
     virtual void visit(const document_visitor_t &v) const { v(*this); }
     virtual std::string str() const { return "Text(\"" + text + "\")"; }
 };
@@ -70,7 +70,7 @@ public:
     virtual ~cond_t() {}
 
     // no linebreaks, so only `small` is relevant
-    virtual unsigned int width() const { return small.length(); }
+    virtual size_t width() const { return small.length(); }
     virtual std::string str() const {
         return "Cond(\"" + small + "\",\"" + cont + "\",\"" + tail + "\")";
     }
@@ -97,8 +97,8 @@ public:
         : children(std::move(init)) {}
     virtual ~concat_t() {}
 
-    virtual unsigned int width() const {
-        unsigned int w = 0;
+    virtual size_t width() const {
+        size_t w = 0;
         for (const auto &child : children) {
             w += child->width();
         }
@@ -134,7 +134,7 @@ public:
     group_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~group_t() {}
 
-    virtual unsigned int width() const {
+    virtual size_t width() const {
         return child->width();
     }
     virtual std::string str() const {
@@ -155,7 +155,7 @@ public:
     nest_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~nest_t() {}
 
-    virtual unsigned int width() const {
+    virtual size_t width() const {
         return child->width();
     }
     virtual std::string str() const {
@@ -446,7 +446,7 @@ void generate_stream(counted_t<const document_t> doc, counted_t<fn_wrapper_t> fn
 // else is pretty easy.
 class annotate_stream_visitor_t : public stream_element_visitor_t {
     counted_t<fn_wrapper_t> fn;
-    unsigned int position;
+    size_t position;
 public:
     annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
     virtual ~annotate_stream_visitor_t() {}
@@ -584,12 +584,12 @@ counted_t<fn_wrapper_t> correct_gbeg_stream(counted_t<fn_wrapper_t> fn) {
 // buffer; it could, in theory, stream the output but this isn't
 // useful at present.
 class output_visitor_t : public stream_element_visitor_t {
-    const unsigned int width;
-    unsigned int fittingElements, rightEdge, hpos;
-    std::vector<unsigned int> indent;
+    const size_t width;
+    size_t fittingElements, rightEdge, hpos;
+    std::vector<size_t> indent;
 public:
     std::string result;
-    output_visitor_t(unsigned int w)
+    output_visitor_t(size_t w)
         : width(w), fittingElements(0), rightEdge(w), hpos(0), indent(),
           result() {}
     virtual ~output_visitor_t() {}
@@ -601,7 +601,7 @@ public:
 
     virtual void operator()(cond_element_t &c) {
         if (fittingElements == 0) {
-            unsigned int currentIndent = indent.empty() ? 0 : indent.back();
+            size_t currentIndent = indent.empty() ? 0 : indent.back();
             result += c.tail;
             result += '\n';
             result += std::string(currentIndent, ' ');
@@ -616,8 +616,7 @@ public:
     }
 
     virtual void operator()(gbeg_element_t &e) {
-        if (fittingElements != 0 ||
-            static_cast<unsigned int>(*(e.hpos)) <= rightEdge) {
+        if (fittingElements != 0 || *(e.hpos) <= rightEdge) {
             ++fittingElements;
         } else {
             fittingElements = 0;
@@ -638,7 +637,7 @@ public:
 };
 
 // Here we assemble the chain whose elements we have previously forged.
-std::string pretty_print(unsigned int width, counted_t<const document_t> doc) {
+std::string pretty_print(size_t width, counted_t<const document_t> doc) {
     counted_t<output_visitor_t> output =
         make_counted<output_visitor_t>(width);
     counted_t<fn_wrapper_t> corr_gbeg =

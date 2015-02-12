@@ -16,7 +16,7 @@ class document_visitor_t;
 class document_t : public slow_atomic_countable_t<document_t> {
 public:
     virtual ~document_t() {}
-    virtual unsigned int width() const = 0;
+    virtual size_t width() const = 0;
     virtual void visit(const document_visitor_t &v) const = 0;
     virtual std::string str() const = 0;
 };
@@ -111,7 +111,7 @@ inline counted_t<const document_t> r_dot(Ts &&... docs) {
 }
 
 // Render document at the given width.
-std::string pretty_print(unsigned int width, counted_t<const document_t> doc);
+std::string pretty_print(size_t width, counted_t<const document_t> doc);
 
 } // namespace pprint
 
