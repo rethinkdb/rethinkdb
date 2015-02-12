@@ -5,6 +5,9 @@
 #include <functional>
 #include <memory>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 namespace pprint {
 
 class text_t;
@@ -237,14 +240,17 @@ public:
 // much processing
 class stream_element_t : public std::enable_shared_from_this<stream_element_t> {
 public:
-    int hpos;                   // -1 means not set yet
+    boost::optional<size_t> hpos;
 
-    stream_element_t() : hpos(-1) {}
-    stream_element_t(unsigned int n) : hpos(n) {}
+    stream_element_t() : hpos() {}
+    stream_element_t(size_t n) : hpos(n) {}
     virtual ~stream_element_t() {}
 
     virtual void visit(stream_element_visitor_t &v) = 0;
     virtual std::string str() const = 0;
+    std::string pos_or_not() const {
+        return hpos ? std::to_string(*hpos) : "-1";
+    }
 };
 
 typedef std::shared_ptr<stream_element_t> stream_handle_t;
@@ -253,13 +259,13 @@ class text_element_t : public stream_element_t {
 public:
     std::string payload;
 
-    text_element_t(const std::string &text, unsigned int hpos)
+    text_element_t(const std::string &text, size_t hpos)
         : stream_element_t(hpos), payload(text) {}
     text_element_t(const std::string &text)
         : stream_element_t(), payload(text) {}
     virtual ~text_element_t() {}
     virtual std::string str() const {
-        return "TE(\"" + payload + "\"," + std::to_string(hpos) + ")";
+        return "TE(\"" + payload + "\"," + pos_or_not() + ")";
     }
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
@@ -269,16 +275,16 @@ class cond_element_t : public stream_element_t {
 public:
     std::string small, tail, cont;
 
-    cond_element_t(const std::string &l, const std::string &t,
-                   const std::string &r)
-        : stream_element_t(), small(l), tail(t), cont(r) {}
-    cond_element_t(const std::string &l, const std::string &t,
-                   const std::string &r, unsigned int hpos)
-        : stream_element_t(hpos), small(l), tail(t), cont(r) {}
+    cond_element_t(std::string l, std::string t, std::string r)
+        : stream_element_t(), small(std::move(l)), tail(std::move(t)),
+          cont(std::move(r)) {}
+    cond_element_t(std::string l, std::string t, std::string r, size_t hpos)
+        : stream_element_t(hpos), small(std::move(l)), tail(std::move(t)),
+          cont(std::move(r)) {}
     virtual ~cond_element_t() {}
     virtual std::string str() const {
         return "CE(\"" + small + "\",\"" + tail + "\",\"" + cont + "\","
-            + std::to_string(hpos) + ")";
+            + pos_or_not() + ")";
     }
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
@@ -287,48 +293,48 @@ public:
 class nbeg_element_t : public stream_element_t {
 public:
     nbeg_element_t() : stream_element_t() {}
-    nbeg_element_t(unsigned int hpos) : stream_element_t(hpos) {}
+    nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nbeg_element_t() {}
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
-        return "NBeg(" + std::to_string(hpos) + ")";
+        return "NBeg(" + pos_or_not() + ")";
     }
 };
 
 class nend_element_t : public stream_element_t {
 public:
     nend_element_t() : stream_element_t() {}
-    nend_element_t(unsigned int hpos) : stream_element_t(hpos) {}
+    nend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nend_element_t() {}
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
-        return "NEnd(" + std::to_string(hpos) + ")";
+        return "NEnd(" + pos_or_not() + ")";
     }
 };
 
 class gbeg_element_t : public stream_element_t {
 public:
     gbeg_element_t() : stream_element_t() {}
-    gbeg_element_t(unsigned int hpos) : stream_element_t(hpos) {}
+    gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gbeg_element_t() {}
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
-        return "GBeg(" + std::to_string(hpos) + ")";
+        return "GBeg(" + pos_or_not() + ")";
     }
 };
 
 class gend_element_t : public stream_element_t {
 public:
     gend_element_t() : stream_element_t() {}
-    gend_element_t(unsigned int hpos) : stream_element_t(hpos) {}
+    gend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gend_element_t() {}
 
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
-        return "GEnd(" + std::to_string(hpos) + ")";
+        return "GEnd(" + pos_or_not() + ")";
     }
 };
 
@@ -450,18 +456,22 @@ public:
     }
 
     virtual void operator()(text_element_t &t) {
+        guarantee(t.hpos);
         maybe_push(t);
     }
 
     virtual void operator()(cond_element_t &c) {
+        guarantee(c.hpos);
         maybe_push(c);
     }
 
     virtual void operator()(nbeg_element_t &e) {
+        guarantee(e.hpos);
         maybe_push(e);
     }
 
     virtual void operator()(nend_element_t &e) {
+        guarantee(e.hpos);
         maybe_push(e);
     }
 
@@ -470,16 +480,17 @@ public:
     }
 
     virtual void operator()(gend_element_t &e) {
+        guarantee(e.hpos);
         buffer_t b(std::move(lookahead.back()));
         lookahead.pop_back();
         if (lookahead.empty()) {
             // this is then the topmost group
-            (*fn)(std::make_shared<gbeg_element_t>(e.hpos));
+            (*fn)(std::make_shared<gbeg_element_t>(*(e.hpos)));
             std::for_each(b->begin(), b->end(), *fn);
             (*fn)(e.shared_from_this());
         } else {
             buffer_t &b2 = lookahead.back();
-            b2->push_back(std::make_shared<gbeg_element_t>(e.hpos));
+            b2->push_back(std::make_shared<gbeg_element_t>(*(e.hpos)));
             b2->splice(b2->end(), *b);
             b2->push_back(e.shared_from_this());
         }
@@ -517,7 +528,7 @@ public:
             result += c.cont;
             fittingElements = 0;
             hpos = currentIndent + c.cont.size();
-            rightEdge = (width - hpos) + c.hpos;
+            rightEdge = (width - hpos) + *(c.hpos);
         } else {
             result += c.small;
             hpos += c.small.size();
@@ -526,7 +537,7 @@ public:
 
     virtual void operator()(gbeg_element_t &e) {
         if (fittingElements != 0 ||
-            static_cast<unsigned int>(e.hpos) <= rightEdge) {
+            static_cast<unsigned int>(*(e.hpos)) <= rightEdge) {
             ++fittingElements;
         } else {
             fittingElements = 0;
