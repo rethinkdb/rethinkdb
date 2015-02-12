@@ -8,15 +8,15 @@ namespace unittest {
 using namespace pprint;
 
 TEST(PPrintTest, SimpleText) {
-    doc_handle_t handle = make_text("some text");
+    counted_t<const document_t> handle = make_text("some text");
 
     ASSERT_EQ("some text", pretty_print(10, handle));
     ASSERT_EQ("some text", pretty_print(4, handle));
 }
 
 TEST(PPrintTest, SimpleCond) {
-    doc_handle_t handle = make_concat(make_text("some text"), br,
-                                      make_text("some more text"));
+    counted_t<const document_t> handle = make_concat(make_text("some text"), br,
+                                                     make_text("some more text"));
 
     // Oddity of Kiselyov's algorithm is it always breaks if not in a group.
     ASSERT_EQ("some text\nsome more text", pretty_print(80, handle));
@@ -24,7 +24,7 @@ TEST(PPrintTest, SimpleCond) {
 }
 
 TEST(PPrintTest, GroupedCond) {
-    doc_handle_t handle
+    counted_t<const document_t> handle
         = make_group(make_concat(make_text("some text"), br,
                                  make_text("some more text")));
 
@@ -33,7 +33,7 @@ TEST(PPrintTest, GroupedCond) {
 }
 
 TEST(PPrintTest, GroupedCondWithTail) {
-    doc_handle_t handle
+    counted_t<const document_t> handle
         = make_group(make_concat(make_text("some text"), make_cond(" ", "", " \\"),
                                  make_text("some more text")));
 
@@ -42,7 +42,7 @@ TEST(PPrintTest, GroupedCondWithTail) {
 }
 
 TEST(PPrintTest, Nest) {
-    doc_handle_t handle = r_dot(funcall("foo"),
+    counted_t<const document_t> handle = r_dot(funcall("foo"),
                                 funcall("foo"),
                                 funcall("foo"),
                                 funcall("foo"),
@@ -57,7 +57,7 @@ TEST(PPrintTest, Nest) {
 }
 
 TEST(PPrintTest, Involved) {
-    doc_handle_t handle
+    counted_t<const document_t> handle
         = r_dot(funcall("expr", make_text("5")),
                 funcall("add", r_dot(funcall("expr", make_text("7")),
                                      funcall("frob"))),

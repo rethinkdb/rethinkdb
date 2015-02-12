@@ -57,7 +57,7 @@ public:
     virtual std::string str() const { return "Text(\"" + text + "\")"; }
 };
 
-doc_handle_t make_text(const std::string text) {
+counted_t<const document_t> make_text(const std::string text) {
     return make_counted<text_t>(std::move(text));
 }
 
@@ -78,7 +78,7 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_cond(const std::string l, const std::string r,
+counted_t<const document_t> make_cond(const std::string l, const std::string r,
                        const std::string t) {
     return make_counted<cond_t>(std::move(l), std::move(r), std::move(t));
 }
@@ -86,14 +86,14 @@ doc_handle_t make_cond(const std::string l, const std::string r,
 // concatenation of multiple documents
 class concat_t : public document_t {
 public:
-    std::vector<doc_handle_t> children;
+    std::vector<counted_t<const document_t> > children;
 
-    concat_t(std::vector<doc_handle_t> args)
+    concat_t(std::vector<counted_t<const document_t> > args)
         : children(std::move(args)) {}
     template <typename It>
     concat_t(const It &begin, const It &end)
         : children(begin, end) {}
-    concat_t(std::initializer_list<doc_handle_t> init)
+    concat_t(std::initializer_list<counted_t<const document_t> > init)
         : children(std::move(init)) {}
     virtual ~concat_t() {}
 
@@ -115,22 +115,23 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_concat(std::vector<doc_handle_t> args) {
+counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> > args) {
     return make_counted<concat_t>(std::move(args));
 }
-doc_handle_t make_concat(std::initializer_list<doc_handle_t> args) {
+counted_t<const document_t>
+make_concat(std::initializer_list<counted_t<const document_t> > args) {
     return make_counted<concat_t>(std::move(args));
 }
 template <typename It>
-doc_handle_t make_concat(const It &begin, const It &end) {
+counted_t<const document_t> make_concat(const It &begin, const It &end) {
     return make_counted<concat_t>(begin, end);
 }
 
 class group_t : public document_t {
 public:
-    doc_handle_t child;
+    counted_t<const document_t> child;
 
-    group_t(doc_handle_t doc) : child(doc) {}
+    group_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~group_t() {}
 
     virtual unsigned int width() const {
@@ -143,15 +144,15 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_group(doc_handle_t child) {
+counted_t<const document_t> make_group(counted_t<const document_t> child) {
     return make_counted<group_t>(child);
 }
 
 class nest_t : public document_t {
 public:
-    doc_handle_t child;
+    counted_t<const document_t> child;
 
-    nest_t(doc_handle_t doc) : child(doc) {}
+    nest_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~nest_t() {}
 
     virtual unsigned int width() const {
@@ -164,17 +165,18 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_nest(doc_handle_t child) {
+counted_t<const document_t> make_nest(counted_t<const document_t> child) {
     return make_counted<nest_t>(child);
 }
 
-const doc_handle_t empty = make_counted<text_t>("");
-const doc_handle_t br = make_counted<cond_t>(" ", "");
-const doc_handle_t dot = make_counted<cond_t>(".", ".");
+const counted_t<const document_t> empty = make_counted<text_t>("");
+const counted_t<const document_t> br = make_counted<cond_t>(" ", "");
+const counted_t<const document_t> dot = make_counted<cond_t>(".", ".");
 
-doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init) {
+counted_t<const document_t>
+comma_separated(std::initializer_list<counted_t<const document_t> > init) {
     if (init.size() == 0) return empty;
-    std::vector<doc_handle_t> v;
+    std::vector<counted_t<const document_t> > v;
     auto it = init.begin();
     v.push_back(*it++);
     for (; it != init.end(); it++) {
@@ -185,18 +187,19 @@ doc_handle_t comma_separated(std::initializer_list<doc_handle_t> init) {
     return make_nest(make_concat(std::move(v)));
 }
 
-doc_handle_t arglist(std::initializer_list<doc_handle_t> init) {
-    static const doc_handle_t lparen = make_counted<text_t>("(");
-    static const doc_handle_t rparen = make_counted<text_t>(")");
+counted_t<const document_t>
+arglist(std::initializer_list<counted_t<const document_t> > init) {
+    static const counted_t<const document_t> lparen = make_counted<text_t>("(");
+    static const counted_t<const document_t> rparen = make_counted<text_t>(")");
     return make_concat({ lparen, comma_separated(init), rparen });
 }
 
 template <typename Container>
-doc_handle_t dotted_list_int(Container init) {
-    static const doc_handle_t plain_dot = make_counted<text_t>(".");
+counted_t<const document_t> dotted_list_int(Container init) {
+    static const counted_t<const document_t> plain_dot = make_counted<text_t>(".");
     if (init.size() == 0) return empty;
     if (init.size() == 1) return make_nest(*(init.begin()));
-    std::vector<doc_handle_t> v;
+    std::vector<counted_t<const document_t> > v;
     auto it = init.begin();
     v.push_back(*it++);
     bool first = true;
@@ -217,18 +220,20 @@ doc_handle_t dotted_list_int(Container init) {
     return make_concat({v[0], make_nest(make_concat(v.begin()+1, v.end()))});
 }
 
-doc_handle_t dotted_list(std::initializer_list<doc_handle_t> init) {
+counted_t<const document_t>
+dotted_list(std::initializer_list<counted_t<const document_t> > init) {
     return dotted_list_int(init);
 }
 
-doc_handle_t funcall(const std::string &name,
-                     std::initializer_list<doc_handle_t> init) {
+counted_t<const document_t> funcall(const std::string &name,
+                     std::initializer_list<counted_t<const document_t> > init) {
     return make_concat({make_text(name), arglist(init)});
 }
 
-doc_handle_t r_dot(std::initializer_list<doc_handle_t> args) {
-    static const doc_handle_t r = make_counted<text_t>("r");
-    std::vector<doc_handle_t> v;
+counted_t<const document_t>
+r_dot(std::initializer_list<counted_t<const document_t> > args) {
+    static const counted_t<const document_t> r = make_counted<text_t>("r");
+    std::vector<counted_t<const document_t> > v;
     v.push_back(r);
     v.insert(v.end(), args.begin(), args.end());
     return dotted_list_int(v);
@@ -292,8 +297,6 @@ public:
         return hpos ? std::to_string(*hpos) : "-1";
     }
 };
-
-typedef counted_t<stream_element_t> stream_handle_t;
 
 class text_element_t : public stream_element_t {
 public:
@@ -390,19 +393,17 @@ public:
     fn_wrapper_t(counted_t<stream_element_visitor_t> _v, std::string _name)
         : v(_v), name(_name) {}
 
-    void operator()(stream_handle_t e) {
+    void operator()(counted_t<stream_element_t> e) {
         e->visit(*v);
     }
 };
 
-typedef counted_t<fn_wrapper_t> thunk_t;
-
 // The first phase is to just generate the stream elements from the
 // document tree, which is simple enough.
 class generate_stream_visitor_t : public document_visitor_t {
-    thunk_t fn;
+    counted_t<fn_wrapper_t> fn;
 public:
-    generate_stream_visitor_t(thunk_t f) : fn(f) {}
+    generate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f) {}
     virtual ~generate_stream_visitor_t() {}
 
     virtual void operator()(const text_t &t) const {
@@ -415,7 +416,7 @@ public:
 
     virtual void operator()(const concat_t &c) const {
         std::for_each(c.children.begin(), c.children.end(),
-                      [this](doc_handle_t d) { d->visit(*this); });
+                      [this](counted_t<const document_t> d) { d->visit(*this); });
     }
 
     virtual void operator()(const group_t &g) const {
@@ -433,7 +434,7 @@ public:
     }
 };
 
-void generate_stream(doc_handle_t doc, thunk_t fn) {
+void generate_stream(counted_t<const document_t> doc, counted_t<fn_wrapper_t> fn) {
     generate_stream_visitor_t v(std::move(fn));
     doc->visit(v);
 }
@@ -444,10 +445,10 @@ void generate_stream(doc_handle_t doc, thunk_t fn) {
 // `nbeg_element_t` and `gbeg_element_t` at this time, but everything
 // else is pretty easy.
 class annotate_stream_visitor_t : public stream_element_visitor_t {
-    thunk_t fn;
+    counted_t<fn_wrapper_t> fn;
     unsigned int position;
 public:
-    annotate_stream_visitor_t(thunk_t f) : fn(f), position(0) {}
+    annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
     virtual ~annotate_stream_visitor_t() {}
 
     virtual void operator()(text_element_t &t) {
@@ -483,7 +484,7 @@ public:
     }
 };
 
-thunk_t annotate_stream(thunk_t fn) {
+counted_t<fn_wrapper_t> annotate_stream(counted_t<fn_wrapper_t> fn) {
     return make_counted<fn_wrapper_t>(
         make_counted<annotate_stream_visitor_t>(fn),
         "annotate");
@@ -495,12 +496,12 @@ thunk_t annotate_stream(thunk_t fn) {
 // breaking.  We couldn't accurately annotate it
 // `annotate_stream_visitor_t`; this corrects that oversight.
 class correct_gbeg_visitor_t : public stream_element_visitor_t {
-    thunk_t fn;
-    typedef std::unique_ptr<std::list<stream_handle_t> > buffer_t;
+    counted_t<fn_wrapper_t> fn;
+    typedef std::unique_ptr<std::list<counted_t<stream_element_t> > > buffer_t;
     std::vector<buffer_t> lookahead;
 
 public:
-    correct_gbeg_visitor_t(thunk_t f) : fn(f), lookahead() {}
+    correct_gbeg_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), lookahead() {}
     virtual ~correct_gbeg_visitor_t() {}
 
     void maybe_push(stream_element_t &e) {
@@ -533,7 +534,7 @@ public:
 
     virtual void operator()(gbeg_element_t &e) {
         guarantee(!e.hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
-        lookahead.push_back(buffer_t(new std::list<stream_handle_t>()));
+        lookahead.push_back(buffer_t(new std::list<counted_t<stream_element_t> >()));
     }
 
     virtual void operator()(gend_element_t &e) {
@@ -554,7 +555,7 @@ public:
     }
 };
 
-thunk_t correct_gbeg_stream(thunk_t fn) {
+counted_t<fn_wrapper_t> correct_gbeg_stream(counted_t<fn_wrapper_t> fn) {
     return make_counted<fn_wrapper_t>(
         make_counted<correct_gbeg_visitor_t>(fn),
         "correct_gbeg");
@@ -637,12 +638,12 @@ public:
 };
 
 // Here we assemble the chain whose elements we have previously forged.
-std::string pretty_print(unsigned int width, doc_handle_t doc) {
+std::string pretty_print(unsigned int width, counted_t<const document_t> doc) {
     counted_t<output_visitor_t> output =
         make_counted<output_visitor_t>(width);
-    thunk_t corr_gbeg =
+    counted_t<fn_wrapper_t> corr_gbeg =
         correct_gbeg_stream(make_counted<fn_wrapper_t>(output, "output"));
-    thunk_t annotate = annotate_stream(std::move(corr_gbeg));
+    counted_t<fn_wrapper_t> annotate = annotate_stream(std::move(corr_gbeg));
     generate_stream(doc, std::move(annotate));
     return output->result;
 }
