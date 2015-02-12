@@ -17,6 +17,11 @@ tests:
     - rb: amin = tbl.min(index:'a').changes(squash:false).limit(2)
     - rb: amax = tbl.max(index:'a').changes(squash:false).limit(2)
 
+    - rb: idmin2 = tbl.min(index:'id').changes(squash:true).limit(2)
+    - rb: idmax2 = tbl.max(index:'id').changes(squash:true).limit(2)
+    - rb: amin2 = tbl.min(index:'a').changes(squash:true).limit(2)
+    - rb: amax2 = tbl.max(index:'a').changes(squash:true).limit(2)
+
     - rb: tbl.insert([{id:0, a:9}, {id:3, a:6}])['inserted']
       ot: 2
 
@@ -39,6 +44,30 @@ tests:
         reql-query: False
 
     - rb: amax.to_a
+      ot: ([{"new_val"=>{"a"=>8, "id"=>1}},
+            {"new_val"=>{"a"=>9, "id"=>0}, "old_val"=>{"a"=>8, "id"=>1}}])
+      testopts:
+        reql-query: False
+
+    - rb: idmin2.to_a
+      ot: ([{"new_val"=>{"a"=>8, "id"=>1}},
+            {"new_val"=>{"a"=>9, "id"=>0}, "old_val"=>{"a"=>8, "id"=>1}}])
+      testopts:
+        reql-query: False
+
+    - rb: idmax2.to_a
+      ot: ([{"new_val"=>{"a"=>7, "id"=>2}},
+            {"new_val"=>{"a"=>6, "id"=>3}, "old_val"=>{"a"=>7, "id"=>2}}])
+      testopts:
+        reql-query: False
+
+    - rb: amin2.to_a
+      ot: ([{"new_val"=>{"a"=>7, "id"=>2}},
+            {"new_val"=>{"a"=>6, "id"=>3}, "old_val"=>{"a"=>7, "id"=>2}}])
+      testopts:
+        reql-query: False
+
+    - rb: amax2.to_a
       ot: ([{"new_val"=>{"a"=>8, "id"=>1}},
             {"new_val"=>{"a"=>9, "id"=>0}, "old_val"=>{"a"=>8, "id"=>1}}])
       testopts:
