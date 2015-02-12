@@ -35,19 +35,9 @@ public:
     virtual unsigned int width() const { return text.length(); }
     virtual void visit(const document_visitor_t &v) const { v(*this); }
     virtual std::string str() const { return "Text(\"" + text + "\")"; }
-
-    static doc_handle_t make(const std::string &text) {
-        return std::make_shared<text_t>(text);
-    }
-    static doc_handle_t make(std::string &&text) {
-        return std::make_shared<text_t>(std::move(text));
-    }
 };
 
-doc_handle_t make_text(const std::string &text) {
-    return std::make_shared<text_t>(text);
-}
-doc_handle_t make_text(std::string &&text) {
+doc_handle_t make_text(const std::string text) {
     return std::make_shared<text_t>(std::move(text));
 }
 
@@ -55,13 +45,8 @@ class cond_t : public document_t {
 public:
     std::string small, cont, tail;
 
-    cond_t(const std::string &l, const std::string &r)
-        : small(l), cont(r), tail("") {}
-    cond_t(const std::string &l, const std::string &r, const std::string &t)
-        : small(l), cont(r), tail(t) {}
-    cond_t(std::string &&l, std::string &&r) : small(l), cont(r), tail("") {}
-    cond_t(std::string &&l, std::string &&r, std::string &&t)
-        : small(l), cont(r), tail(t) {}
+    cond_t(const std::string l, const std::string r, const std::string t="")
+        : small(std::move(l)), cont(std::move(r)), tail(std::move(t)) {}
     virtual ~cond_t() {}
 
     // no linebreaks, so only `small` is relevant
@@ -73,11 +58,8 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_cond(const std::string &l, const std::string &r,
-                       const std::string &t) {
-    return std::make_shared<cond_t>(l, r, t);
-}
-doc_handle_t make_cond(std::string &&l, std::string &&r, std::string &&t) {
+doc_handle_t make_cond(const std::string l, const std::string r,
+                       const std::string t) {
     return std::make_shared<cond_t>(std::move(l), std::move(r), std::move(t));
 }
 
@@ -86,26 +68,26 @@ class concat_t : public document_t {
 public:
     std::vector<doc_handle_t> children;
 
-    concat_t(std::vector<doc_handle_t> &&args)
-        : children(args) {}
+    concat_t(std::vector<doc_handle_t> args)
+        : children(std::move(args)) {}
     template <typename It>
-    concat_t(It &begin, It &end)
+    concat_t(const It &begin, const It &end)
         : children(begin, end) {}
     concat_t(std::initializer_list<doc_handle_t> init)
-        : children(init) {}
+        : children(std::move(init)) {}
     virtual ~concat_t() {}
 
     virtual unsigned int width() const {
         unsigned int w = 0;
-        for (auto i = children.begin(); i != children.end(); i++) {
-            w += (*i)->width();
+        for (const auto &child : children) {
+            w += child->width();
         }
         return w;
     }
     virtual std::string str() const {
         std::string result = "";
-        for (auto i = children.begin(); i != children.end(); i++) {
-            result += (*i)->str();
+        for (const auto &child : children) {
+            result += child->str();
         }
         return result;
     }
@@ -113,14 +95,14 @@ public:
     virtual void visit(const document_visitor_t &v) const { v(*this); }
 };
 
-doc_handle_t make_concat(std::vector<doc_handle_t> &&args) {
+doc_handle_t make_concat(std::vector<doc_handle_t> args) {
     return std::make_shared<concat_t>(std::move(args));
 }
 doc_handle_t make_concat(std::initializer_list<doc_handle_t> args) {
-    return std::make_shared<concat_t>(args);
+    return std::make_shared<concat_t>(std::move(args));
 }
 template <typename It>
-doc_handle_t make_concat(It &begin, It &end) {
+doc_handle_t make_concat(const It &begin, const It &end) {
     return std::make_shared<concat_t>(begin, end);
 }
 

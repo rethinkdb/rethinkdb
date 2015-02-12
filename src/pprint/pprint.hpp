@@ -20,8 +20,7 @@ public:
 typedef std::shared_ptr<const document_t> doc_handle_t;
 
 // textual element
-doc_handle_t make_text(const std::string &text);
-doc_handle_t make_text(std::string &&text);
+doc_handle_t make_text(std::string text);
 
 // primitive for conditional linebreaks.
 //
@@ -31,12 +30,11 @@ doc_handle_t make_text(std::string &&text);
 // printed at the start of the new line.
 //
 // You probably shouldn't use this; use `br` or `dot` when they work.
-doc_handle_t make_cond(const std::string &small, const std::string &cont,
-                       const std::string &tail);
-doc_handle_t make_cond(std::string &&small, std::string &&cont, std::string &&tail);
+doc_handle_t make_cond(const std::string small, const std::string cont,
+                       const std::string tail);
 
 // document composition
-doc_handle_t make_concat(std::vector<doc_handle_t> &&args);
+doc_handle_t make_concat(std::vector<doc_handle_t> args);
 doc_handle_t make_concat(std::initializer_list<doc_handle_t> args);
 
 template <typename... Ts>
