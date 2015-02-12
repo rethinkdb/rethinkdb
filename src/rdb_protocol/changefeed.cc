@@ -1494,9 +1494,7 @@ public:
     // to delay applying them to the active data set until our timer is up.
     virtual void note_data_wait() {
         ASSERT_NO_CORO_WAITING;
-        debugf("note_data_wait\n");
         if (queued_changes.size() != 0 && need_init == got_init) {
-            debugf("note_data_wait REAL\n");
             guarantee(squash);
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
@@ -1627,9 +1625,6 @@ public:
     virtual void note_change(
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
-        debugf("note_change %s %s\n",
-               debug::print(old_key).c_str(),
-               debug::print(new_val).c_str());
         ASSERT_NO_CORO_WAITING;
 
         // If we aren't done initializing, or if we're squashing, just queue up
@@ -2006,23 +2001,18 @@ subscription_t::get_els(batcher_t *batcher,
                 // will be pulsed if we're shutting down.  Not that `cond` might
                 // already be reset by the time we get here, so make sure to wait on
                 // `&wait_for_data`.
-                debugf("waiting\n");
                 if (timer.has()) {
-                    debugf("waiting1\n");
                     wait_any_t any_interruptor(interruptor, timer.get());
                     wait_interruptible(&wait_for_data, &any_interruptor);
                 } else {
-                    debugf("waiting2\n");
                     wait_interruptible(&wait_for_data, interruptor);
                 }
                 // We might have been woken up by `note_change`, in which case
                 // we should try to squash down again.
                 note_data_wait();
             } catch (const interrupted_exc_t &e) {
-                debugf("int\n");
                 cond = NULL;
                 if (timer.has() && timer->is_pulsed()) {
-                    debugf("intret\n");
                     return std::vector<datum_t>();
                 }
                 throw e;
@@ -2035,7 +2025,6 @@ subscription_t::get_els(batcher_t *batcher,
             }
         }
     }
-    debugf("foo\n");
 
     std::vector<datum_t> v;
     if (exc) {
@@ -2050,7 +2039,6 @@ subscription_t::get_els(batcher_t *batcher,
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else if (has_el()) {
-        debugf("foo1\n");
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
             batcher->note_el(el);
@@ -2061,7 +2049,6 @@ subscription_t::get_els(batcher_t *batcher,
         // matters for squashing.)
         mid_batch = batcher->should_send_batch();
     } else {
-        debugf("foo2\n");
         return std::vector<datum_t>();
     }
     guarantee(v.size() != 0);
@@ -2079,9 +2066,7 @@ void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
 
 void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
-    debugf("maybe_signal_cond %p %d %d %zu\n", cond, has_el(), bool(exc), skipped);
     if (cond != NULL && (has_el() || exc || skipped != 0)) {
-        debugf("signaling\n");
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;
