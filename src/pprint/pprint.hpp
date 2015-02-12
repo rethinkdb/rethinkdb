@@ -21,10 +21,10 @@ public:
     virtual std::string str() const = 0;
 };
 
-// textual element
+// Primitive textual element.
 counted_t<const document_t> make_text(std::string text);
 
-// primitive for conditional linebreaks.
+// Primitive for conditional linebreaks.
 //
 // `small` is what will be printed if there is no linebreak.  If there
 // is a linebreak, `tail` will be printed on the previous line (think
@@ -35,7 +35,7 @@ counted_t<const document_t> make_text(std::string text);
 counted_t<const document_t> make_cond(const std::string small, const std::string cont,
                        const std::string tail);
 
-// document composition
+// A concatenation of documents.
 counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> > args);
 counted_t<const document_t>
 make_concat(std::initializer_list<counted_t<const document_t> > args);
@@ -45,12 +45,12 @@ inline counted_t<const document_t> make_concat(Ts &&... docs) {
     return make_concat({std::forward<Ts>(docs)...});
 }
 
-// document enclosure where all linebreaks are interpreted consistently.
+// A document enclosure where all linebreaks are interpreted consistently.
 counted_t<const document_t> make_group(counted_t<const document_t> doc);
 
-// document enclosure where all linebreaks are indented to the start of the nest.
+// A document enclosure where all linebreaks are indented to the start of the nest.
 //
-// implicitly wraps `doc` in a group.
+// This implicitly wraps `doc` in a group.
 counted_t<const document_t> make_nest(counted_t<const document_t> doc);
 
 extern const counted_t<const document_t> empty;
@@ -58,9 +58,9 @@ extern const counted_t<const document_t> br;
 extern const counted_t<const document_t> dot;
 
 
-// documents separated by commas and then a `br`.
+// Documents separated by commas and then a `br`.
 //
-// think `1, 2, 3`
+// Think `1, 2, 3`.
 counted_t<const document_t>
 comma_separated(std::initializer_list<counted_t<const document_t> > init);
 
@@ -69,9 +69,9 @@ inline counted_t<const document_t> comma_separated(Ts &&... docs) {
     return comma_separated({std::forward<Ts>(docs)...});
 }
 
-// argument list; comma separated arguments wrapped in parens with a nest.
+// Argument list; comma separated arguments wrapped in parens with a nest.
 //
-// think `(1, 2, 3)`
+// Think `(1, 2, 3)`.
 counted_t<const document_t>
 arglist(std::initializer_list<counted_t<const document_t> >);
 
@@ -80,9 +80,9 @@ inline counted_t<const document_t> arglist(Ts &&... docs) {
     return arglist({std::forward<Ts>(docs)...});
 }
 
-// documents separated by `dot`.
+// Documents separated by `dot`.
 //
-// think `r.foo().bar().baz()`
+// Think `r.foo().bar().baz()`.
 counted_t<const document_t>
 dotted_list(std::initializer_list<counted_t<const document_t> >);
 
@@ -91,9 +91,9 @@ inline counted_t<const document_t> dotted_list(Ts &&... docs) {
     return dotted_list({std::forward<Ts>(docs)...});
 }
 
-// function call document, where `name` is the call and `init` are the args.
+// Function call document, where `name` is the call and `init` are the args.
 //
-// think `foo(1, 2, 3)`
+// Think `foo(1, 2, 3)`.
 counted_t<const document_t>
 funcall(const std::string &, std::initializer_list<counted_t<const document_t> >);
 
@@ -102,7 +102,7 @@ inline counted_t<const document_t> funcall(const std::string &name, Ts &&... doc
     return funcall(name, {std::forward<Ts>(docs)...});
 }
 
-// helper for r.foo.bar.baz expressions.
+// Helper for r.foo.bar.baz expressions.
 counted_t<const document_t> r_dot(std::initializer_list<counted_t<const document_t> >);
 
 template <typename... Ts>
@@ -110,7 +110,7 @@ inline counted_t<const document_t> r_dot(Ts &&... docs) {
     return r_dot({std::forward<Ts>(docs)...});
 }
 
-// render document at the given width.
+// Render document at the given width.
 std::string pretty_print(unsigned int width, counted_t<const document_t> doc);
 
 } // namespace pprint
