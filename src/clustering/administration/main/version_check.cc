@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/main/version_check.hpp"
 
+#include <map>
 #include <math.h>
 
 #include "logger.hpp"
@@ -32,6 +33,19 @@ version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx,
                                      this, true, drainer.lock()));
 }
 
+template <typename K, typename V>
+size_t count_not_deleted(std::map<K, deletable_t<V> > const &map) {
+    size_t count = 0;
+
+    for (const auto &pair : map) {
+        if (!pair.second.is_deleted()) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepalive) {
     const cluster_semilattice_metadata_t snapshot = metadata->get();
     ql::env_t env(rdb_ctx,
@@ -51,11 +65,11 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
         opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
         opts.form_data["Version"] = RETHINKDB_VERSION;
         opts.form_data["Number-Of-Servers"]
-            = strprintf("%zu", snapshot.servers.servers.size());
+            = strprintf("%zu", count_not_deleted(snapshot.servers.servers));
         opts.form_data["Uname"] = uname;
         opts.form_data["Cooked-Number-Of-Tables"]
             = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                        cook(snapshot.rdb_namespaces->namespaces.size()));
+                        cook(count_not_deleted(snapshot.rdb_namespaces->namespaces)));
         //opts.form_data["Cooked-Size-Of-Shards"]
         //    = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
     }
