@@ -42,7 +42,12 @@ query_id_t::query_id_t(query_cache_t *_parent) :
 }
 
 query_id_t::~query_id_t() {
-    parent->assert_thread();
+    if (parent != nullptr) {
+        parent->assert_thread();
+    } else {
+        rassert(!in_a_list());
+    }
+
     if (in_a_list()) {
         parent->outstanding_query_ids.remove(this);
         if (value_ == parent->oldest_outstanding_query_id.get()) {
