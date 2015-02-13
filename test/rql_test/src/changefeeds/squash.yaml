@@ -29,8 +29,13 @@ tests:
       js: tbl.get(100).update({'a':1})('replaced')
       ot: 1
 
-    - cd: normal_changes
-      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+    - rb: normal_changes
+      ot: ([{'new_val':{'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+    - py: normal_changes
+      js: normal_changes
+      ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False
 
@@ -45,7 +50,12 @@ tests:
       testopts:
         reql-query: False
 
-    - cd: squash_changes
-      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+    - rb: squash_changes
+      ot: ([{'new_val':{'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+    - py: squash_changes
+      js: squash_changes
+      ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False
