@@ -117,15 +117,17 @@ watchable_map_var_t<key_t, value_t>::entry_t::~entry_t() {
 template<class key_t, class value_t>
 typename watchable_map_var_t<key_t, value_t>::entry_t &
 watchable_map_var_t<key_t, value_t>::entry_t::operator=(entry_t &&other) {
-    if (parent != nullptr) {
-        rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
-        key_t key = iterator->first;
-        parent->map.erase(iterator);
-        parent->notify_change(key, nullptr, &write_acq);
+    if (this != &other) {
+        if (parent != nullptr) {
+            rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+            key_t key = iterator->first;
+            parent->map.erase(iterator);
+            parent->notify_change(key, nullptr, &write_acq);
+        }
+        parent = other.parent;
+        iterator = other.iterator;
+        other.parent = nullptr;
     }
-    parent = other.parent;
-    iterator = other.iterator;
-    other.parent = nullptr;
     return *this;
 }
 
