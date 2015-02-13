@@ -1,3 +1,36 @@
+# Release 1.16.2 (Stand By Me)
+
+Released on 2015-02-16
+
+Bug fix update.
+
+* Fixed a bug in `r.range` that caused query failures (#3767)
+* Fixed a race condition in the implementation of `.order_by.limit.changes` (#3765)
+* Fixed a build error that caused very slow `r.js` performance (#3757)
+* Removed spurious comma in the Data Explorer (#3730)
+
+--
+
+# Release 1.16.1 (Stand By Me)
+
+Released on 2015-02-12
+
+Bug fix update.
+
+* Write a message to the log every time a file is deleted (#1780)
+* Fixed `rethinkdb dump` and other backup scripts to correctly detect the server version (#3706)
+* Changed the output of `rethinkdb dump` to clarify that indexes are being saved (#3708)
+* Fixed unbounded memory consumption when using the official OS X package or when building with boost 1.56.0 or higher (#3712)
+* Fixed the `written_docs_total` field of `rethinkdb.stats` (#3713)
+* Fixed a bug that caused the web UI to hang when creating or deleting indexes (#3717, #3721)
+* Fixed rounding of document counts in the web UI (#3722)
+* Fixed a bug that broke the `-f` flag of `rethinkdb import` (#3728)
+* Fixed a bug that prevented the web UI from loading data properly (#3729)
+* Fixed a bug that caused RethinkDB to refuse to link with jemalloc dynamically (#3741)
+* Fixed an uncaught exception in the handling of `r.js` (#3745)
+
+--
+
 # Release 1.16.0 (Stand By Me)
 
 Released on 2015-01-29
