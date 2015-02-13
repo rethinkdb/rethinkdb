@@ -804,7 +804,9 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
     cond_t interruptor;
-    ql::env_t env(&interruptor, reql_version_t::LATEST);
+    ql::env_t env(&interruptor,
+                  ql::return_empty_normal_batches_t::YES,
+                  reql_version_t::LATEST);
     std::map<size_t, cfeed_bundle_t> bundles;
     for (size_t i = 1; i <= 20; ++i) {
         bundles.insert(std::make_pair(i, cfeed_bundle_t(&env, &artificial_cfeed)));

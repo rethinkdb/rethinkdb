@@ -70,7 +70,9 @@ public:
     // Used in unittest and for some secondary index environments (hence the
     // reql_version parameter).  (For secondary indexes, the interruptor definitely
     // should be a dummy cond.)
-    explicit env_t(signal_t *interruptor, reql_version_t reql_version);
+    explicit env_t(signal_t *interruptor,
+                   return_empty_normal_batches_t return_empty_normal_batches,
+                   reql_version_t reql_version);
 
     ~env_t();
 

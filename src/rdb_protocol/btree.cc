@@ -747,7 +747,9 @@ done_traversing_t rget_cb_t::handle_pair(
             // Secondary index functions are deterministic (so no need for an
             // rdb_context_t) and evaluated in a pristine environment (without global
             // optargs).
-            ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
+            ql::env_t sindex_env(job.env->interruptor,
+                                 ql::return_empty_normal_batches_t::NO,
+                                 sindex->func_reql_version);
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
@@ -1183,7 +1185,9 @@ void compute_keys(const store_key_t &primary_key,
     // Secondary index functions are deterministic (so no need for an rdb_context_t)
     // and evaluated in a pristine environment (without global optargs).
     cond_t non_interruptor;
-    ql::env_t sindex_env(&non_interruptor, reql_version);
+    ql::env_t sindex_env(&non_interruptor,
+                         ql::return_empty_normal_batches_t::NO,
+                         reql_version);
 
     ql::datum_t index =
         index_info.mapping.compile_wire_func()->call(&sindex_env, doc)->as_datum();

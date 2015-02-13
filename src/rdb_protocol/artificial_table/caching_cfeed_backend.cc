@@ -212,7 +212,9 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
         return false;
     }
     guarantee(stream->cfeed_type() == ql::feed_type_t::not_feed);
-    ql::env_t env(interruptor, reql_version_t::LATEST);
+    ql::env_t env(interruptor,
+                  ql::return_empty_normal_batches_t::NO,
+                  reql_version_t::LATEST);
     std::vector<ql::datum_t> datums;
     try {
         datums = stream->next_batch(&env, ql::batchspec_t::all());
