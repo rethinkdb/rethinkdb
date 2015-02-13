@@ -175,22 +175,22 @@ class RqlQuery(object):
         return Mod(other, self)
 
     def __and__(self, other):
-        query = All(self, other)
+        query = And(self, other)
         query.set_infix()
         return query
 
     def __rand__(self, other):
-        query = All(other, self)
+        query = And(other, self)
         query.set_infix()
         return query
 
     def __or__(self, other):
-        query = Any(self, other)
+        query = Or(self, other)
         query.set_infix()
         return query
 
     def __ror__(self, other):
-        query = Any(other, self)
+        query = Or(other, self)
         query.set_infix()
         return query
 
@@ -230,16 +230,10 @@ class RqlQuery(object):
         return Mod(self, *args)
 
     def and_(self, *args):
-        return All(self, *args)
-
-    def all(self, *args):
-        return All(self, *args)
+        return And(self, *args)
 
     def or_(self, *args):
-        return Any(self, *args)
-
-    def any(self, *args):
-        return Any(self, *args)
+        return Or(self, *args)
 
     def not_(self, *args):
         return Not(self, *args)
@@ -1302,13 +1296,13 @@ class Branch(RqlTopLevelQuery):
     tt = pTerm.BRANCH
     st = "branch"
 
-class Any(RqlBoolOperQuery):
-    tt = pTerm.ANY
+class Or(RqlBoolOperQuery):
+    tt = pTerm.OR
     st = "or_"
     st_infix = "|"
 
-class All(RqlBoolOperQuery):
-    tt = pTerm.ALL
+class And(RqlBoolOperQuery):
+    tt = pTerm.AND
     st = "and_"
     st_infix = "&"
 

@@ -6,7 +6,7 @@ __all__ = [
     'db', 'db_create', 'db_drop', 'db_list',
     'table', 'table_create', 'table_drop', 'table_list',
     'wait', 'reconfigure', 'rebalance',
-    'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'any', 'all', 'and_', 'or_', 'not_',
+    'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
@@ -140,16 +140,10 @@ def not_(*args):
     return ast.Not(*args)
 
 def and_(*args):
-    return ast.All(*args)
+    return ast.And(*args)
 
 def or_(*args):
-    return ast.Any(*args)
-
-def all(*args):
-    return ast.All(*args)
-
-def any(*args):
-    return ast.Any(*args)
+    return ast.Or(*args)
 
 def type_of(*args):
     return ast.TypeOf(*args)

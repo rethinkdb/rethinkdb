@@ -9,13 +9,13 @@
 
 namespace ql {
 
-// ALL and ANY are written strangely because I originally thought that we could
+// AND and OR are written strangely because I originally thought that we could
 // have non-boolean values that evaluate to true, but then we decided not to do
 // that.
 
-class all_term_t : public op_term_t {
+class and_term_t : public op_term_t {
 public:
-    all_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    and_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -27,12 +27,12 @@ private:
         }
         unreachable();
     }
-    virtual const char *name() const { return "all"; }
+    virtual const char *name() const { return "and"; }
 };
 
-class any_term_t : public op_term_t {
+class or_term_t : public op_term_t {
 public:
-    any_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    or_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -44,7 +44,7 @@ private:
         }
         return new_val_bool(false);
     }
-    virtual const char *name() const { return "any"; }
+    virtual const char *name() const { return "or"; }
 };
 
 class branch_term_t : public op_term_t {
@@ -128,11 +128,11 @@ private:
 };
 
 
-counted_t<term_t> make_all_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<all_term_t>(env, term);
+counted_t<term_t> make_and_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<and_term_t>(env, term);
 }
-counted_t<term_t> make_any_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<any_term_t>(env, term);
+counted_t<term_t> make_or_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<or_term_t>(env, term);
 }
 counted_t<term_t> make_branch_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<branch_term_t>(env, term);

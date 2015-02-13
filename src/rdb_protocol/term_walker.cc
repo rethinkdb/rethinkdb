@@ -193,8 +193,8 @@ private:
         case Term::TYPE_OF:
         case Term::FUNCALL:
         case Term::BRANCH:
-        case Term::ANY:
-        case Term::ALL:
+        case Term::OR:
+        case Term::AND:
         case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:
@@ -391,8 +391,8 @@ private:
         case Term::INDEX_RENAME:
         case Term::FUNCALL:
         case Term::BRANCH:
-        case Term::ANY:
-        case Term::ALL:
+        case Term::OR:
+        case Term::AND:
         case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:

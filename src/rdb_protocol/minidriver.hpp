@@ -119,7 +119,7 @@ public:
     REQL_METHOD(operator <, LT)
     REQL_METHOD(operator >=, GE)
     REQL_METHOD(operator <=, LE)
-    REQL_METHOD(operator &&, ALL)
+    REQL_METHOD(operator &&, AND)
     REQL_METHOD(count, COUNT)
     REQL_METHOD(map, MAP)
     REQL_METHOD(concat_map, CONCAT_MAP)
