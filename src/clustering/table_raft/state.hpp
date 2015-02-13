@@ -107,10 +107,11 @@ public:
 
     state_t state;
 
-    /* This is non-empty if `state` is `primary_need_new_branch` or
-    `secondary_need_primary`. */
+    /* This is non-empty if `state` is `primary_need_branch` or `secondary_need_primary`.
+    */
     boost::optional<region_map_t<version_t> > version;
 
+    /* This is non-empty if `state` is `primary_need_branch` */
     boost::optional<branch_id_t> branch;
 }
 
@@ -132,8 +133,10 @@ public:
 
         class new_contracts_t {
         public:
-            std::set<contract_id_t> to_remove;
-            std::map<contract_id_t, std::pair<key_range_t, contract_t> > to_add;
+            std::set<contract_id_t> remove_contracts;
+            std::map<contract_id_t, std::pair<key_range_t, contract_t> > add_contracts;
+            std::set<branch_id_t> remove_branches;
+            branch_history_t add_branches;
         };
 
         change_t() { }

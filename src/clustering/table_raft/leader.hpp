@@ -10,11 +10,22 @@ public:
         raft_member_t<state_t> *raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks);
 
+    boost::optional<raft_log_index_t> change_config(
+        const std::function<void(table_config_and_shards_t *)> &changer,
+        signal_t *interruptor);
+
 private:
-    void pump_contracts(
-        const state_t &old_state,
-        std::map<contract_id_t, std::pair<region_t, contract_t> > *new_contracts_out,
-        std::set<contract_id_t> *delete_contracts_out);
+    void pump_contracts(auto_drainer_t::lock_t keepalive);
+
+    raft_member_t<state_t> *const raft;
+    watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
+
+    scoped_ptr_t<cond_t> wake_pump_contracts;
+
+    auto_drainer_t drainer;
+
+    watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>::all_subs_t
+        ack_subs;
 };
 
 } /* namespace table_raft */
