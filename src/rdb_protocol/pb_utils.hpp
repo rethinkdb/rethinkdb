@@ -46,7 +46,7 @@ enum class dummy_var_t {
     FUNC_EQCOMPARISON,
     FUNC_PAGE,
     DISTINCT_ROW,
-    EXTREME_SELECTION_ROW
+    REPLACE_HELPER_ROW
 };
 
 // Don't use this!  The minidriver uses this.  Returns the sym_t corresponding to a
