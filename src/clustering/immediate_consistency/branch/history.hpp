@@ -61,49 +61,7 @@ inline void debug_print(printf_buffer_t *buf, const version_t& v) {
     buf->appendf("}");
 }
 
-/* `version_range_t` is a pair of `version_t`s. The meta-info, which is stored
-in the superblock of the B-tree, records a `version_range_t` for each range of
-keys. Each key's value is the value it had at some `version_t` in the recorded
-`version_range_t`.
-
-The reason we store `version_range_t` instead of `version_t` is that if a
-backfill were interrupted, we wouldn't know which keys were up-to-date and
-which were not. All that we would know is that each key's state lay at some
-point between the version the B-tree was at before the backfill started and the
-version that the backfiller is at. */
-
-class version_range_t {
-public:
-    version_range_t() { }
-    explicit version_range_t(const version_t &v) :
-        earliest(v), latest(v) { }
-    version_range_t(const version_t &e, const version_t &l) :
-        earliest(e), latest(l) { }
-
-    bool is_coherent() const {
-        return earliest == latest;
-    }
-    bool operator==(const version_range_t &v) const {
-        return earliest == v.earliest && latest == v.latest;
-    }
-    bool operator!=(const version_range_t &v) const {
-        return !(*this == v);
-    }
-
-    version_t earliest, latest;
-};
-
-RDB_DECLARE_SERIALIZABLE(version_range_t);
-
-inline void debug_print(printf_buffer_t *buf, const version_range_t& vr) {
-    buf->appendf("vr{earliest=");
-    debug_print(buf, vr.earliest);
-    buf->appendf(", latest=");
-    debug_print(buf, vr.latest);
-    buf->appendf("}");
-}
-
-region_map_t<version_range_t> to_version_range_map(const region_map_t<binary_blob_t> &blob_map);
+region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map);
 
 /* The state of the database at the time that the `broadcaster_t` was created
 and the sequence of writes that pass through a `broadcaster_t` are collectively
@@ -136,7 +94,7 @@ public:
 
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
     constructed. `origin.get_region()` will be the same as `region`. */
-    region_map_t<version_range_t> origin;
+    region_map_t<version_t> origin;
 };
 
 RDB_DECLARE_SERIALIZABLE(branch_birth_certificate_t);
@@ -193,12 +151,10 @@ public:
 
     /* Convenience function that finds all records related to the given version
     map and copies them into `out` */
-    void export_branch_history(const region_map_t<version_range_t> &region_map, branch_history_t *out) THROWS_NOTHING {
-        for (region_map_t<version_range_t>::const_iterator it = region_map.begin();
-                                                                                it != region_map.end();
-                                                                                ++it) {
-            if (!it->second.latest.branch.is_nil()) {
-                export_branch_history(it->second.latest.branch, out);
+    void export_branch_history(const region_map_t<version_t> &region_map, branch_history_t *out) THROWS_NOTHING {
+        for (const auto &pair : region_map) {
+            if (!it->second.branch.is_nil()) {
+                export_branch_history(it->second.branch, out);
             }
         }
     }

@@ -31,51 +31,25 @@ class backfill_throttler_t;
 contacts a `broadcaster_t` to sign up for real-time updates, and also backfills
 from a `replier_t` to get a copy of all the existing data. As long as the
 `listener_t` exists and nothing goes wrong, it will keep in sync with the
-branch.
-
-There are four ways a `listener_t` can go wrong:
- *  You can interrupt the constructor. It will throw `interrupted_exc_t`. The
-    store may be left in a half-backfilled state; you can determine this through
-    the store's metadata.
- *  It can fail to contact the backfiller. In that case,
-    the constructor will throw `backfiller_lost_exc_t`.
- *  It can fail to contact the broadcaster. In this case it will throw `broadcaster_lost_exc_t`.
- *  It can successfully join the branch, but then lose contact with the
-    broadcaster later. In that case, `get_broadcaster_lost_signal()` will be
-    pulsed when it loses touch.
-*/
+branch. */
 
 class listener_t {
 public:
-    class backfiller_lost_exc_t : public std::exception {
-    public:
-        const char *what() const throw () {
-            return "Lost contact with backfiller";
-        }
-    };
-
-    class broadcaster_lost_exc_t : public std::exception {
-    public:
-        const char *what() const throw () {
-            return "Lost contact with broadcaster";
-        }
-    };
-
     listener_t(
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
             const server_id_t &server_id,
             backfill_throttler_t *backfill_throttler,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
+            broadcaster_business_card_t broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             store_view_t *svs,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier, 
+            replier_business_card_t replier_metadata, 
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
             order_source_t *order_source,
             double *backfill_progress_out   /* can be null */)
-            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
+            THROWS_ONLY(interrupted_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
     becoming the first mirror of a new branch. It should only be called once for
@@ -85,7 +59,6 @@ public:
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
             const server_id_t &server_id,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             broadcaster_t *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
@@ -93,10 +66,6 @@ public:
             order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
 
     ~listener_t();
-
-    /* Returns a signal that is pulsed if the mirror is not in contact with the
-    master. */
-    signal_t *get_broadcaster_lost_signal();
 
     // Getters used by the replier :(
     // TODO: Some of these can and should be passed directly to the replier?
@@ -160,21 +129,15 @@ public:
     };
 
 private:
-    // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
-    static boost::optional<boost::optional<backfiller_business_card_t> > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t> > &replier_bcard);
-
-    // TODO: Boost boost optional optional business card business card protocol_tee tee tee tee piii kaaa chuuuuu!
-    static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > > get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t> > &broadcaster_bcard);
-
     /* `try_start_receiving_writes()` is called from within the constructors. It
     tries to register with the master. It throws `interrupted_exc_t` if
     `interruptor` is pulsed. Otherwise, it fills `registration_result_cond` with
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster,
+            broadcaster_business_card_t broadcaster,
             signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
 
     void on_write(
             signal_t *interruptor,

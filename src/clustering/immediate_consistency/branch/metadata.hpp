@@ -136,15 +136,13 @@ It appears in the directory. */
 struct broadcaster_business_card_t {
 
     broadcaster_business_card_t(branch_id_t bid,
-            const branch_history_t &bh,
             const registrar_business_card_t<listener_business_card_t> &r) :
-        branch_id(bid), branch_id_associated_branch_history(bh), registrar(r) { }
+        branch_id(bid), registrar(r) { }
 
     broadcaster_business_card_t() { }
 
     branch_id_t branch_id;
-    branch_history_t branch_id_associated_branch_history;
-
+    region_t region;
     registrar_business_card_t<listener_business_card_t> registrar;
 };
 

@@ -168,7 +168,7 @@ void backfillee(
         branch_history_manager_t *branch_history_manager,
         store_view_t *svs,
         region_t region,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
+        backfiller_business_card_t backfiller_metadata,
         signal_t *interruptor,
         double *progress_out)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
@@ -176,7 +176,6 @@ void backfillee(
     backfill_session_id_t backfill_session_id = generate_uuid();
 
     rassert(region_is_superset(svs->get_region(), region));
-    resource_access_t<backfiller_business_card_t> backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
     read_token_t read_token;
@@ -192,10 +191,8 @@ void backfillee(
     start_point = start_point.mask(region);
 
     branch_history_t start_point_associated_history;
-    {
-        on_thread_t th(branch_history_manager->home_thread());
-        branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
-    }
+    branch_history_manager->export_branch_history(
+        start_point, &start_point_associated_history);
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -253,7 +250,7 @@ void backfillee(
 
         /* Send off the backfill request */
         send(mailbox_manager,
-            backfiller.access().backfill_mailbox,
+            backfiller_metadata.backfill_mailbox,
             backfill_session_id,
             start_point, start_point_associated_history,
             end_point_mailbox.get_address(),
@@ -276,54 +273,30 @@ void backfillee(
                 const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(
                 send_cast_to_correct_type, mailbox_manager,
-                backfiller.access().cancel_backfill_mailbox,
+                backfiller_metadata.cancel_backfill_mailbox,
                 backfill_session_id);
         }
 
         /* Wait to get an allocation mailbox */
         mailbox_addr_t<void(int)> allocation_mailbox;
-        {
-            wait_any_t waiter(alloc_mailbox_promise.get_ready_signal(), backfiller.get_failed_signal());
-            wait_interruptible(&waiter, interruptor);
-
-            /* Throw an exception if backfiller died */
-            backfiller.access();
-            bool got_value = alloc_mailbox_promise.try_get_value(&allocation_mailbox);
-            guarantee(got_value);
-        }
+        wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
+        bool got_value = alloc_mailbox_promise.try_get_value(&allocation_mailbox);
+        guarantee(got_value);
 
         /* Wait until we get a message in `end_point_mailbox`. */
-        {
-            wait_any_t waiter(end_point_cond.get_ready_signal(), backfiller.get_failed_signal());
-            wait_interruptible(&waiter, interruptor);
-
-            /* Throw an exception if backfiller died */
-            backfiller.access();
-            guarantee(end_point_cond.get_ready_signal()->is_pulsed());
-        }
-
-        /* Record the updated branch history information that we got. It's
-        essential that we call `record_branch_history()` before we update the
-        metainfo, because otherwise if we crashed at a bad time the data might
-        make it to disk as part of the metainfo but not as part of the branch
-        history, and that would lead to crashes. */
-        {
-            cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
-            branch_history_t branch_history = end_point_cond.wait().second;
-            on_thread_t th(branch_history_manager->home_thread());
-            branch_history_manager->import_branch_history(branch_history, &ct_interruptor);
-        }
+        wait_interruptible(end_point_cond.get_ready_signal(), interruptor);
+        guarantee(end_point_cond.get_ready_signal()->is_pulsed());
 
         /* Indicate in the metadata that a backfill is happening. We do this by
         marking every region as indeterminate between the current state and the
         backfill end state, since we don't know whether the backfill has reached
         that region yet. */
 
-        typedef region_map_t<version_range_t> version_map_t;
+        typedef region_map_t<version_t> version_map_t;
 
         version_map_t end_point = end_point_cond.wait().first;
 
-        std::vector<std::pair<region_t, version_range_t> > span_parts;
+        std::vector<std::pair<region_t, version_map_t> > span_parts;
 
         {
 #ifndef NDEBUG

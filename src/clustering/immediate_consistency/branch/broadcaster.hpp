@@ -18,23 +18,9 @@
 
 class listener_t;
 template <class> class semilattice_readwrite_view_t;
-class multistore_ptr_t;
 class mailbox_manager_t;
 class rdb_context_t;
 class uuid_u;
-
-class ack_checker_t : public home_thread_mixin_t {
-public:
-    virtual bool is_acceptable_ack_set(const std::set<server_id_t> &acks) const = 0;
-    virtual write_durability_t get_write_durability() const = 0;
-
-    ack_checker_t() { }
-protected:
-    virtual ~ack_checker_t() { }
-
-private:
-    DISABLE_COPYING(ack_checker_t);
-};
 
 /* Each shard has a `broadcaster_t` on its primary replica. Each server sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
@@ -55,33 +41,31 @@ public:
     class write_callback_t {
     public:
         write_callback_t();
-        /* `on_success()` is called when a sufficiently large set of replicas have
-        acknowledged the write, as judged by the `ack_checker_t` passed to
-        `spawn_write()`. */
-        virtual void on_success(const write_response_t &response) = 0;
-        /* `on_failure()` is called when the `ack_checker_t` cannot be satisfied. If
-        `might_have_run_anyway` is `true`, then the write might have been performed
-        anyway; if `might_have_run_anyway` is `false`, then the write definitely wasn't
-        performed. */
-        virtual void on_failure(bool might_have_run_anyway) = 0;
+        /* `get_default_write_durability()` returns the write durability that this write
+        should use if the write itself didn't specify. */
+        virtual write_durability_t get_default_write_durability() = 0;
+        /* Every time the write is acked, `on_ack()` is called. When no more replicas
+        will ack the write, `on_end()` is called. */
+        virtual void on_ack(const server_id_t &, write_response_t &&) = 0;
+        virtual void on_end() = 0;
 
     protected:
         virtual ~write_callback_t();
 
     private:
         friend class broadcaster_t;
-        /* This is so that if the write callback is destroyed before `on_success()` or
-        `on_failure()` is called, it will get deregistered. */
+        /* This is so that if the write callback is destroyed before `on_end()` is
+        called, it will get deregistered. */
         incomplete_write_t *write;
     };
 
     broadcaster_t(
             mailbox_manager_t *mm,
-            rdb_context_t *rdb_context,
-            branch_history_manager_t *bhm,
             store_view_t *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
-            order_source_t *order_source,
+            const branch_id_t &branch_id,
+            const branch_birth_certificate_t &branch_info,
+            order_source_t *order_source,   /* only used during the constructor */
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
@@ -92,18 +76,13 @@ public:
         signal_t *interruptor)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
-    /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
-    and replies asynchronously via a callback. It may block, so it takes an
-    `interruptor`, but it shouldn't block for a long time. If the
-    `write_callback_t` is destroyed while the write is still in progress, its
-    destructor will automatically deregister it so that no segfaults will
-    happen. */
+    /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun and
+    replies asynchronously via a callback. It will not block. If the `write_callback_t`
+    is destroyed while the write is still in progress, its destructor will automatically
+    deregister it so that no segfaults will happen. */
     void spawn_write(const write_t &w,
-                     fifo_enforcer_sink_t::exit_write_t *lock,
                      order_token_t tok,
-                     write_callback_t *cb,
-                     signal_t *interruptor,
-                     const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t);
+                     write_callback_t *cb);
 
     branch_id_t get_branch_id() const;
 
@@ -183,8 +162,6 @@ private:
     perfmon_collection_t broadcaster_collection;
     perfmon_membership_t broadcaster_membership;
 
-    rdb_context_t *const rdb_context;
-
     mailbox_manager_t *const mailbox_manager;
 
     const branch_id_t branch_id;
@@ -193,8 +170,6 @@ private:
     store_view that was passed to our constructor. After that, it's
     `NULL`. */
     store_view_t *bootstrap_svs;
-
-    branch_history_manager_t *const branch_history_manager;
 
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that

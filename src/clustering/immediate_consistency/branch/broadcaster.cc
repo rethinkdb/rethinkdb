@@ -25,74 +25,48 @@ const size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
 
 broadcaster_t::broadcaster_t(
         mailbox_manager_t *mm,
-        rdb_context_t *_rdb_context,
-        branch_history_manager_t *bhm,
         store_view_t *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
+        const branch_id_t &_branch_id,
+        const branch_birth_certificiate_t &branch_info,
         order_source_t *order_source,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
-      rdb_context(_rdb_context),
       mailbox_manager(mm),
-      branch_id(generate_uuid()),
-      branch_history_manager(bhm),
+      branch_id(_branch_id),
       registrar(mailbox_manager, this)
 {
     order_checkpoint.set_tagappend("broadcaster_t");
 
-    /* Snapshot the starting point of the store; we'll need to record this
-       and store it in the metadata. */
+#ifndef NDEBUG
+    /* Make sure the store's initial value matches the initial value in the branch birth
+    certificate (just as a sanity check) */
     read_token_t read_token;
     initial_svs->new_read_token(&read_token);
+    region_map_t<binary_blob_t> origin_blob;
+    initial_svs->do_get_metainfo(
+        order_source->check_in("broadcaster_t(read)").with_read_mode(),
+        &read_token,
+        interruptor,
+        &origin_blob);
+    guarantee(to_version_map(origin_blob) == branch_info.origin);
+    guarantee(initial_svs->get_region() == branch_info.region);
+#endif
 
-    region_map_t<binary_blob_t> origins_blob;
-    initial_svs->do_get_metainfo(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor, &origins_blob);
-
-    region_map_t<version_range_t> origins = to_version_range_map(origins_blob);
-
-    /* Determine what the first timestamp of the new branch will be */
-    state_timestamp_t initial_timestamp = state_timestamp_t::zero();
-
-    typedef region_map_t<version_range_t> version_map_t;
-
-    for (version_map_t::const_iterator it =  origins.begin();
-         it != origins.end();
-         it++) {
-        state_timestamp_t part_timestamp = it->second.latest.timestamp;
-        if (part_timestamp > initial_timestamp) {
-            initial_timestamp = part_timestamp;
-        }
-    }
-    current_timestamp = newest_complete_timestamp = initial_timestamp;
-
-    /* Make an entry for this branch in the global branch history
-       semilattice */
-    {
-        branch_birth_certificate_t birth_certificate;
-        birth_certificate.region = initial_svs->get_region();
-        birth_certificate.initial_timestamp = initial_timestamp;
-        birth_certificate.origin = origins;
-
-        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
-        on_thread_t th(branch_history_manager->home_thread());
-
-        branch_history_manager->create_branch(branch_id, birth_certificate, &ct_interruptor);
-    }
-
-    /* Reset the store metadata. We should do this after making the branch
-       entry in the global metadata so that we aren't left in a state where
-       the store has been marked as belonging to a branch for which no
-       information exists. */
+    /* Initialize the metainfo to the new branch */
     write_token_t write_token;
     initial_svs->new_write_token(&write_token);
-    initial_svs->set_metainfo(region_map_t<binary_blob_t>(initial_svs->get_region(),
-                                                          binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-                              order_source->check_in("broadcaster_t(write)"),
-                              &write_token,
-                              interruptor);
+    initial_svs->set_metainfo(
+        region_map_t<binary_blob_t>(
+            initial_svs->get_region(),
+            binary_blob_t(version_t(branch_id, branch_info.initial_timestamp))),
+        order_source->check_in("broadcaster_t(write)"),
+        &write_token,
+        interruptor);
 
-    /* Perform an initial sanity check. */
+    /* Initialize the broadcaster state */
+    current_timestamp = newest_complete_timestamp = branch_info.initial_timestamp;
     sanity_check();
 
     /* Set `bootstrap_store` so that the initial listener can find it */
@@ -104,9 +78,7 @@ branch_id_t broadcaster_t::get_branch_id() const {
 }
 
 broadcaster_business_card_t broadcaster_t::get_business_card() {
-    branch_history_t branch_id_associated_branch_history;
-    branch_history_manager->export_branch_history(branch_id, &branch_id_associated_branch_history);
-    return broadcaster_business_card_t(branch_id, branch_id_associated_branch_history, registrar.get_business_card());
+    return broadcaster_business_card_t(branch_id, registrar.get_business_card());
 }
 
 store_view_t *broadcaster_t::release_bootstrap_svs_for_listener() {
@@ -125,23 +97,16 @@ public:
     incomplete_write_t(broadcaster_t *p,
                        const write_t &w,
                        state_timestamp_t ts,
-                       const ack_checker_t *ac,
                        write_callback_t *cb) :
-        write(w), timestamp(ts), ack_checker(ac), callback(cb), parent(p), incomplete_count(0) { }
+        write(w), timestamp(ts), callback(cb), parent(p), incomplete_count(0) { }
 
     const write_t write;
     const state_timestamp_t timestamp;
-    const ack_checker_t *ack_checker;
 
     /* This is a callback to notify when the write has either succeeded or
     failed. Once the write succeeds, we will set this to `NULL` so that we
     don't call it again. */
     write_callback_t *callback;
-
-    /* This is the set of listeners that have acknowledged the write so far. When it
-    satisfies the ack checker, then `callback->on_success()` will be called. */
-    std::set<server_id_t> ack_set;
-
 private:
     friend class incomplete_write_ref_t;
 
@@ -427,19 +392,11 @@ void broadcaster_t::read(
 }
 
 void broadcaster_t::spawn_write(const write_t &write,
-                                fifo_enforcer_sink_t::exit_write_t *lock,
                                 order_token_t order_token,
-                                write_callback_t *cb,
-                                signal_t *interruptor,
-                                const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
-
-    rassert(cb != NULL);
-
-    order_token.assert_write_mode();
-
-    wait_interruptible(lock, interruptor);
+                                write_callback_t *cb) {
     ASSERT_FINITE_CORO_WAITING;
-
+    rassert(cb != NULL);
+    order_token.assert_write_mode();
     sanity_check();
 
     /* We have to be careful about the case where dispatchees are joining or
@@ -450,19 +407,10 @@ void broadcaster_t::spawn_write(const write_t &write,
     by the loop further down in this very function. */
     DEBUG_VAR mutex_assertion_t::acq_t mutex_acq(&mutex);
 
-    lock->end();
-
-    /* If there are few enough readable dispatchees that the ack checker can't possibly be
-    satisfied, then bail out early */
-    if (!ack_checker->is_acceptable_ack_set(readable_dispatchees_as_set)) {
-        cb->on_failure(false);
-        return;
-    }
-
     write_durability_t durability;
     switch (write.durability()) {
         case DURABILITY_REQUIREMENT_DEFAULT:
-            durability = ack_checker->get_write_durability();
+            durability = cb->get_default_write_durability();
             break;
         case DURABILITY_REQUIREMENT_SOFT:
             durability = write_durability_t::SOFT;
@@ -601,21 +549,10 @@ void broadcaster_t::background_writeread(
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
 
-        write_ref.get()->ack_set.insert(mirror->server_id);
-        if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
-            /* We might get here multiple times, if `is_acceptable_ack_set()`
-            returns `true` before all of the acks have come back. To avoid
-            calling the callback multiple times, we set `callback` to `NULL`
-            after the first time. This also signals `end_write()` not to call
-            `on_failure()`. */
-            if (write_ref.get()->callback != NULL) {
-                guarantee(write_ref.get()->callback->write == write_ref.get().get());
-                write_ref.get()->callback->write = NULL;
-                write_ref.get()->callback->on_success(response);
-                write_ref.get()->callback = NULL;
-            }
+        if (write_ref.get()->callback != nullptr) {
+            guarantee(write_ref.get()->callback->write == write_ref.get().get());
+            write_ref.get()->callback->on_ack(mirror->server_id, std::move(response));
         }
-
     } catch (const interrupted_exc_t &) {
         return;
     }
@@ -644,12 +581,10 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
         guarantee(newest_complete_timestamp.next() == removed_write->timestamp);
         newest_complete_timestamp = removed_write->timestamp;
     }
-    /* `write->callback` could be `NULL` if we already called `on_success()` on
-    it */
-    if (write->callback != NULL) {
+    if (write->callback != nullptr) {
         guarantee(write->callback->write == write.get());
         write->callback->write = NULL;
-        write->callback->on_failure(true);
+        write->callback->on_end();
     }
 }
 
@@ -741,7 +676,7 @@ void broadcaster_t::all_read(
         }
 
         read.unshard(responses.data(), responses.size(), response,
-                     rdb_context, &interruptor2);
+                     nullptr, &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
