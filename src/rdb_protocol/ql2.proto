@@ -333,7 +333,7 @@ message Term {
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
-        INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
+        OFFSETS_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
         CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
 
         // Stream/Object Ops

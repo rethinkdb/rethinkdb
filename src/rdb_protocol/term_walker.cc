@@ -152,7 +152,7 @@ private:
         case Term::SET_UNION:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
-        case Term::INDEXES_OF:
+        case Term::OFFSETS_OF:
         case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
@@ -345,7 +345,7 @@ private:
         case Term::SET_UNION:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
-        case Term::INDEXES_OF:
+        case Term::OFFSETS_OF:
         case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:

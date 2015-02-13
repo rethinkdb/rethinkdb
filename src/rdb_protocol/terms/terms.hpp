@@ -58,7 +58,7 @@ counted_t<term_t> make_change_at_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_splice_at_term(
     compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_indexes_of_term(
+counted_t<term_t> make_offsets_of_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // control.cc
