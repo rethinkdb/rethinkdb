@@ -1,3 +1,16 @@
+# Release 1.16.2 (Stand By Me)
+
+Released on 2015-02-16
+
+Bug fix update.
+
+* Fixed a bug in `r.range` that caused a crash in debug mode (#3767)
+* Fixed a race condition in the implementation of `.order_by.limit.changes` (#3765)
+* Fixed a build errror that caused really slow `r.js` performance (#3757)
+* Removed spurious comma in the Data Explorer (#3730)
+
+--
+
 # Release 1.16.1 (Stand By Me)
 
 Released on 2015-02-12
