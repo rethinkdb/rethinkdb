@@ -271,15 +271,16 @@ class stream_element_visitor_t
 public:
     virtual ~stream_element_visitor_t() {}
 
-    // These aren't const refs in contravention to our style guide
-    // because we want to be able to modify them and the originals are
-    // invariably stored in some `counted_t`.
-    virtual void operator()(text_element_t &) = 0; // NOLINT(runtime/references)
-    virtual void operator()(cond_element_t &) = 0; // NOLINT(runtime/references)
-    virtual void operator()(nbeg_element_t &) = 0; // NOLINT(runtime/references)
-    virtual void operator()(nend_element_t &) = 0; // NOLINT(runtime/references)
-    virtual void operator()(gbeg_element_t &) = 0; // NOLINT(runtime/references)
-    virtual void operator()(gend_element_t &) = 0; // NOLINT(runtime/references)
+    // boost::static_visitor uses references for this pattern, but because
+    // our style guide says that we use pointers if we will modify the
+    // parameter, we use pointers here.  The originals are invariably
+    // stored in some `counted_t`.
+    virtual void operator()(text_element_t *) = 0;
+    virtual void operator()(cond_element_t *) = 0;
+    virtual void operator()(nbeg_element_t *) = 0;
+    virtual void operator()(nend_element_t *) = 0;
+    virtual void operator()(gbeg_element_t *) = 0;
+    virtual void operator()(gend_element_t *) = 0;
 };
 
 // Streaming version of the document tree, suitable for printing after
@@ -295,8 +296,7 @@ public:
     explicit stream_element_t(size_t n) : hpos(n) {}
     virtual ~stream_element_t() {}
 
-    // NOLINTNEXTLINE(runtime/references) we cannot require that the visitor be const
-    virtual void visit(stream_element_visitor_t &v) = 0;
+    virtual void visit(stream_element_visitor_t *v) = 0;
     virtual std::string str() const = 0;
     std::string pos_or_not() const {
         return hpos ? std::to_string(*hpos) : "-1";
@@ -316,8 +316,7 @@ public:
         return "TE(\"" + payload + "\"," + pos_or_not() + ")";
     }
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
 };
 
 class cond_element_t : public stream_element_t {
@@ -336,8 +335,7 @@ public:
             + pos_or_not() + ")";
     }
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
 };
 
 class nbeg_element_t : public stream_element_t {
@@ -346,8 +344,7 @@ public:
     explicit nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nbeg_element_t() {}
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
     virtual std::string str() const {
         return "NBeg(" + pos_or_not() + ")";
     }
@@ -359,8 +356,7 @@ public:
     explicit nend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nend_element_t() {}
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
     virtual std::string str() const {
         return "NEnd(" + pos_or_not() + ")";
     }
@@ -372,8 +368,7 @@ public:
     explicit gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gbeg_element_t() {}
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
     virtual std::string str() const {
         return "GBeg(" + pos_or_not() + ")";
     }
@@ -385,8 +380,7 @@ public:
     explicit gend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gend_element_t() {}
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void visit(stream_element_visitor_t &v) { v(*this); }
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
     virtual std::string str() const {
         return "GEnd(" + pos_or_not() + ")";
     }
@@ -405,7 +399,7 @@ public:
         : v(_v), name(_name) {}
 
     void operator()(counted_t<stream_element_t> e) {
-        e->visit(*v);
+        e->visit(v.get());
     }
 };
 
@@ -462,36 +456,36 @@ public:
     explicit annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
     virtual ~annotate_stream_visitor_t() {}
 
-    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
-        position += t.payload.size();
-        t.hpos = position;
-        (*fn)(t.counted_from_this());
+    virtual void operator()(text_element_t *t) {
+        position += t->payload.size();
+        t->hpos = position;
+        (*fn)(t->counted_from_this());
     }
 
-    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
-        position += c.small.size();
-        c.hpos = position;
-        (*fn)(c.counted_from_this());
+    virtual void operator()(cond_element_t *c) {
+        position += c->small.size();
+        c->hpos = position;
+        (*fn)(c->counted_from_this());
     }
 
-    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
+    virtual void operator()(gbeg_element_t *e) {
         // can't do this accurately
-        (*fn)(e.counted_from_this());
+        (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(gend_element_t &e) { // NOLINT(runtime/references)
-        e.hpos = position;
-        (*fn)(e.counted_from_this());
+    virtual void operator()(gend_element_t *e) {
+        e->hpos = position;
+        (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(nbeg_element_t &e) { // NOLINT(runtime/references)
+    virtual void operator()(nbeg_element_t *e) {
         // can't do this accurately
-        (*fn)(e.counted_from_this());
+        (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(nend_element_t &e) { // NOLINT(runtime/references)
-        e.hpos = position;
-        (*fn)(e.counted_from_this());
+    virtual void operator()(nend_element_t *e) {
+        e->hpos = position;
+        (*fn)(e->counted_from_this());
     }
 };
 
@@ -515,53 +509,53 @@ public:
     explicit correct_gbeg_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), lookahead() {}
     virtual ~correct_gbeg_visitor_t() {}
 
-    void maybe_push(stream_element_t &e) { // NOLINT(runtime/references)
+    void maybe_push(stream_element_t *e) {
         if (lookahead.empty()) {
-            (*fn)(e.counted_from_this());
+            (*fn)(e->counted_from_this());
         } else {
-            lookahead.back()->push_back(e.counted_from_this());
+            lookahead.back()->push_back(e->counted_from_this());
         }
     }
 
-    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
-        guarantee(t.hpos);
+    virtual void operator()(text_element_t *t) {
+        guarantee(t->hpos);
         maybe_push(t);
     }
 
-    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
-        guarantee(c.hpos);
+    virtual void operator()(cond_element_t *c) {
+        guarantee(c->hpos);
         maybe_push(c);
     }
 
-    virtual void operator()(nbeg_element_t &e) { // NOLINT(runtime/references)
-        guarantee(!e.hpos);     // don't care about `nbeg_element_t` hpos
+    virtual void operator()(nbeg_element_t *e) {
+        guarantee(!e->hpos);     // don't care about `nbeg_element_t` hpos
         maybe_push(e);
     }
 
-    virtual void operator()(nend_element_t &e) { // NOLINT(runtime/references)
-        guarantee(e.hpos);
+    virtual void operator()(nend_element_t *e) {
+        guarantee(e->hpos);
         maybe_push(e);
     }
 
-    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
-        guarantee(!e.hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
+    virtual void operator()(gbeg_element_t *e) {
+        guarantee(!e->hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
         lookahead.push_back(buffer_t(new std::list<counted_t<stream_element_t> >()));
     }
 
-    virtual void operator()(gend_element_t &e) { // NOLINT(runtime/references)
-        guarantee(e.hpos);
+    virtual void operator()(gend_element_t *e) {
+        guarantee(e->hpos);
         buffer_t b(std::move(lookahead.back()));
         lookahead.pop_back();
         if (lookahead.empty()) {
             // this is then the topmost group
-            (*fn)(make_counted<gbeg_element_t>(*(e.hpos)));
+            (*fn)(make_counted<gbeg_element_t>(*(e->hpos)));
             for (const auto &element : *b) (*fn)(element);
-            (*fn)(e.counted_from_this());
+            (*fn)(e->counted_from_this());
         } else {
             buffer_t &b2 = lookahead.back();
-            b2->push_back(make_counted<gbeg_element_t>(*(e.hpos)));
+            b2->push_back(make_counted<gbeg_element_t>(*(e->hpos)));
             b2->splice(b2->end(), *b);
-            b2->push_back(e.counted_from_this());
+            b2->push_back(e->counted_from_this());
         }
     }
 };
@@ -605,47 +599,46 @@ public:
           result() {}
     virtual ~output_visitor_t() {}
 
-    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
-        result += t.payload;
-        hpos += t.payload.size();
+    virtual void operator()(text_element_t *t) {
+        result += t->payload;
+        hpos += t->payload.size();
     }
 
-    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
+    virtual void operator()(cond_element_t *c) {
         if (fittingElements == 0) {
             size_t currentIndent = indent.empty() ? 0 : indent.back();
-            result += c.tail;
+            result += c->tail;
             result += '\n';
             result += std::string(currentIndent, ' ');
-            result += c.cont;
+            result += c->cont;
             fittingElements = 0;
-            hpos = currentIndent + c.cont.size();
-            rightEdge = (width - hpos) + *(c.hpos);
+            hpos = currentIndent + c->cont.size();
+            rightEdge = (width - hpos) + *(c->hpos);
         } else {
-            result += c.small;
-            hpos += c.small.size();
+            result += c->small;
+            hpos += c->small.size();
         }
     }
 
-    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
-        if (fittingElements != 0 || *(e.hpos) <= rightEdge) {
+    virtual void operator()(gbeg_element_t *e) {
+        if (fittingElements != 0 || *(e->hpos) <= rightEdge) {
             ++fittingElements;
         } else {
             fittingElements = 0;
         }
     }
 
-    virtual void operator()(gend_element_t &) { // NOLINT(runtime/references)
+    virtual void operator()(gend_element_t *) {
         if (fittingElements != 0) {
             --fittingElements;
         }
     }
 
-    virtual void operator()(nbeg_element_t &) { // NOLINT(runtime/references)
+    virtual void operator()(nbeg_element_t *) {
         indent.push_back(hpos);
     }
 
-    // NOLINTNEXTLINE(runtime/references)
-    virtual void operator()(nend_element_t &) { indent.pop_back(); }
+    virtual void operator()(nend_element_t *) { indent.pop_back(); }
 };
 
 // Here we assemble the chain whose elements we have previously forged.
