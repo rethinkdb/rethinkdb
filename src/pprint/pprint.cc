@@ -48,8 +48,8 @@ class text_t : public document_t {
 public:
     std::string text;
 
-    text_t(const std::string &str) : text(str) {}
-    text_t(std::string &&str) : text(str) {}
+    explicit text_t(const std::string &str) : text(str) {}
+    explicit text_t(std::string &&str) : text(str) {}
     virtual ~text_t() {}
 
     virtual size_t width() const { return text.length(); }
@@ -88,12 +88,12 @@ class concat_t : public document_t {
 public:
     std::vector<counted_t<const document_t> > children;
 
-    concat_t(std::vector<counted_t<const document_t> > args)
+    explicit concat_t(std::vector<counted_t<const document_t> > args)
         : children(std::move(args)) {}
     template <typename It>
     concat_t(It begin, It end)
         : children(std::move(begin), std::move(end)) {}
-    concat_t(std::initializer_list<counted_t<const document_t> > init)
+    explicit concat_t(std::initializer_list<counted_t<const document_t> > init)
         : children(std::move(init)) {}
     virtual ~concat_t() {}
 
@@ -132,7 +132,7 @@ class group_t : public document_t {
 public:
     counted_t<const document_t> child;
 
-    group_t(counted_t<const document_t> doc) : child(doc) {}
+    explicit group_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~group_t() {}
 
     virtual size_t width() const {
@@ -153,7 +153,7 @@ class nest_t : public document_t {
 public:
     counted_t<const document_t> child;
 
-    nest_t(counted_t<const document_t> doc) : child(doc) {}
+    explicit nest_t(counted_t<const document_t> doc) : child(doc) {}
     virtual ~nest_t() {}
 
     virtual size_t width() const {
@@ -271,12 +271,15 @@ class stream_element_visitor_t
 public:
     virtual ~stream_element_visitor_t() {}
 
-    virtual void operator()(text_element_t &) = 0;
-    virtual void operator()(cond_element_t &) = 0;
-    virtual void operator()(nbeg_element_t &) = 0;
-    virtual void operator()(nend_element_t &) = 0;
-    virtual void operator()(gbeg_element_t &) = 0;
-    virtual void operator()(gend_element_t &) = 0;
+    // These aren't const refs in contravention to our style guide
+    // because we want to be able to modify them and the originals are
+    // invariably stored in some `counted_t`.
+    virtual void operator()(text_element_t &) = 0; // NOLINT(runtime/references)
+    virtual void operator()(cond_element_t &) = 0; // NOLINT(runtime/references)
+    virtual void operator()(nbeg_element_t &) = 0; // NOLINT(runtime/references)
+    virtual void operator()(nend_element_t &) = 0; // NOLINT(runtime/references)
+    virtual void operator()(gbeg_element_t &) = 0; // NOLINT(runtime/references)
+    virtual void operator()(gend_element_t &) = 0; // NOLINT(runtime/references)
 };
 
 // Streaming version of the document tree, suitable for printing after
@@ -289,9 +292,10 @@ public:
     boost::optional<size_t> hpos;
 
     stream_element_t() : hpos() {}
-    stream_element_t(size_t n) : hpos(n) {}
+    explicit stream_element_t(size_t n) : hpos(n) {}
     virtual ~stream_element_t() {}
 
+    // NOLINTNEXTLINE(runtime/references) we cannot require that the visitor be const
     virtual void visit(stream_element_visitor_t &v) = 0;
     virtual std::string str() const = 0;
     std::string pos_or_not() const {
@@ -305,13 +309,14 @@ public:
 
     text_element_t(const std::string &text, size_t hpos)
         : stream_element_t(hpos), payload(text) {}
-    text_element_t(const std::string &text)
+    explicit text_element_t(const std::string &text)
         : stream_element_t(), payload(text) {}
     virtual ~text_element_t() {}
     virtual std::string str() const {
         return "TE(\"" + payload + "\"," + pos_or_not() + ")";
     }
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
 };
 
@@ -331,15 +336,17 @@ public:
             + pos_or_not() + ")";
     }
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
 };
 
 class nbeg_element_t : public stream_element_t {
 public:
     nbeg_element_t() : stream_element_t() {}
-    nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nbeg_element_t() {}
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
         return "NBeg(" + pos_or_not() + ")";
@@ -349,9 +356,10 @@ public:
 class nend_element_t : public stream_element_t {
 public:
     nend_element_t() : stream_element_t() {}
-    nend_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit nend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~nend_element_t() {}
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
         return "NEnd(" + pos_or_not() + ")";
@@ -361,9 +369,10 @@ public:
 class gbeg_element_t : public stream_element_t {
 public:
     gbeg_element_t() : stream_element_t() {}
-    gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gbeg_element_t() {}
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
         return "GBeg(" + pos_or_not() + ")";
@@ -373,9 +382,10 @@ public:
 class gend_element_t : public stream_element_t {
 public:
     gend_element_t() : stream_element_t() {}
-    gend_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit gend_element_t(size_t hpos) : stream_element_t(hpos) {}
     virtual ~gend_element_t() {}
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void visit(stream_element_visitor_t &v) { v(*this); }
     virtual std::string str() const {
         return "GEnd(" + pos_or_not() + ")";
@@ -404,7 +414,7 @@ public:
 class generate_stream_visitor_t : public document_visitor_t {
     counted_t<fn_wrapper_t> fn;
 public:
-    generate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f) {}
+    explicit generate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f) {}
     virtual ~generate_stream_visitor_t() {}
 
     virtual void operator()(const text_t &t) const {
@@ -449,37 +459,37 @@ class annotate_stream_visitor_t : public stream_element_visitor_t {
     counted_t<fn_wrapper_t> fn;
     size_t position;
 public:
-    annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
+    explicit annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
     virtual ~annotate_stream_visitor_t() {}
 
-    virtual void operator()(text_element_t &t) {
+    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
         position += t.payload.size();
         t.hpos = position;
         (*fn)(t.counted_from_this());
     }
 
-    virtual void operator()(cond_element_t &c) {
+    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
         position += c.small.size();
         c.hpos = position;
         (*fn)(c.counted_from_this());
     }
 
-    virtual void operator()(gbeg_element_t &e) {
+    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
         // can't do this accurately
         (*fn)(e.counted_from_this());
     }
 
-    virtual void operator()(gend_element_t &e) {
+    virtual void operator()(gend_element_t &e) { // NOLINT(runtime/references)
         e.hpos = position;
         (*fn)(e.counted_from_this());
     }
 
-    virtual void operator()(nbeg_element_t &e) {
+    virtual void operator()(nbeg_element_t &e) { // NOLINT(runtime/references)
         // can't do this accurately
         (*fn)(e.counted_from_this());
     }
 
-    virtual void operator()(nend_element_t &e) {
+    virtual void operator()(nend_element_t &e) { // NOLINT(runtime/references)
         e.hpos = position;
         (*fn)(e.counted_from_this());
     }
@@ -502,10 +512,10 @@ class correct_gbeg_visitor_t : public stream_element_visitor_t {
     std::vector<buffer_t> lookahead;
 
 public:
-    correct_gbeg_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), lookahead() {}
+    explicit correct_gbeg_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), lookahead() {}
     virtual ~correct_gbeg_visitor_t() {}
 
-    void maybe_push(stream_element_t &e) {
+    void maybe_push(stream_element_t &e) { // NOLINT(runtime/references)
         if (lookahead.empty()) {
             (*fn)(e.counted_from_this());
         } else {
@@ -513,32 +523,32 @@ public:
         }
     }
 
-    virtual void operator()(text_element_t &t) {
+    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
         guarantee(t.hpos);
         maybe_push(t);
     }
 
-    virtual void operator()(cond_element_t &c) {
+    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
         guarantee(c.hpos);
         maybe_push(c);
     }
 
-    virtual void operator()(nbeg_element_t &e) {
+    virtual void operator()(nbeg_element_t &e) { // NOLINT(runtime/references)
         guarantee(!e.hpos);     // don't care about `nbeg_element_t` hpos
         maybe_push(e);
     }
 
-    virtual void operator()(nend_element_t &e) {
+    virtual void operator()(nend_element_t &e) { // NOLINT(runtime/references)
         guarantee(e.hpos);
         maybe_push(e);
     }
 
-    virtual void operator()(gbeg_element_t &e) {
+    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
         guarantee(!e.hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
         lookahead.push_back(buffer_t(new std::list<counted_t<stream_element_t> >()));
     }
 
-    virtual void operator()(gend_element_t &e) {
+    virtual void operator()(gend_element_t &e) { // NOLINT(runtime/references)
         guarantee(e.hpos);
         buffer_t b(std::move(lookahead.back()));
         lookahead.pop_back();
@@ -590,17 +600,17 @@ class output_visitor_t : public stream_element_visitor_t {
     std::vector<size_t> indent;
 public:
     std::string result;
-    output_visitor_t(size_t w)
+    explicit output_visitor_t(size_t w)
         : width(w), fittingElements(0), rightEdge(w), hpos(0), indent(),
           result() {}
     virtual ~output_visitor_t() {}
 
-    virtual void operator()(text_element_t &t) {
+    virtual void operator()(text_element_t &t) { // NOLINT(runtime/references)
         result += t.payload;
         hpos += t.payload.size();
     }
 
-    virtual void operator()(cond_element_t &c) {
+    virtual void operator()(cond_element_t &c) { // NOLINT(runtime/references)
         if (fittingElements == 0) {
             size_t currentIndent = indent.empty() ? 0 : indent.back();
             result += c.tail;
@@ -616,7 +626,7 @@ public:
         }
     }
 
-    virtual void operator()(gbeg_element_t &e) {
+    virtual void operator()(gbeg_element_t &e) { // NOLINT(runtime/references)
         if (fittingElements != 0 || *(e.hpos) <= rightEdge) {
             ++fittingElements;
         } else {
@@ -624,16 +634,17 @@ public:
         }
     }
 
-    virtual void operator()(gend_element_t &) {
+    virtual void operator()(gend_element_t &) { // NOLINT(runtime/references)
         if (fittingElements != 0) {
             --fittingElements;
         }
     }
 
-    virtual void operator()(nbeg_element_t &) {
+    virtual void operator()(nbeg_element_t &) { // NOLINT(runtime/references)
         indent.push_back(hpos);
     }
 
+    // NOLINTNEXTLINE(runtime/references)
     virtual void operator()(nend_element_t &) { indent.pop_back(); }
 };
 

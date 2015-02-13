@@ -5,7 +5,7 @@
 
 namespace unittest {
 
-using namespace pprint;
+using namespace pprint; // NOLINT(build/namespaces)
 
 TEST(PPrintTest, SimpleText) {
     counted_t<const document_t> handle = make_text("some text");
