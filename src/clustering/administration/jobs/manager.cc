@@ -7,6 +7,7 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rdb_protocol/query_cache.hpp"
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
                                     get_job_reports_mailbox_address,
@@ -94,13 +95,18 @@ void jobs_manager_t::on_get_job_reports(
             on_thread_t thread((threadnum_t(threadnum)));
 
             if (rdb_context != nullptr) {
-                for (auto const &query
-                        : *rdb_context->get_query_jobs_for_this_thread()) {
-                    query_job_reports_inner.emplace_back(
-                        query.first,
-                        time - std::min(query.second.start_time, time),
-                        server_id,
-                        query.second.client_addr_port);
+                for (auto const &query_cache
+                        : *rdb_context->get_query_caches_for_this_thread()) {
+                    for (auto const &pair : *query_cache) {
+                        if (pair.second->persistent_interruptor.is_pulsed()) {
+                            continue;
+                        }
+                        query_job_reports_inner.emplace_back(
+                            pair.second->job_id,
+                            time - std::min(pair.second->start_time, time),
+                            server_id,
+                            query_cache->get_client_addr_port());
+                    }
                 }
             }
         }
@@ -191,11 +197,13 @@ void jobs_manager_t::on_job_interrupt(
         on_thread_t thread((threadnum_t(threadnum)));
 
         if (rdb_context != nullptr) {
-            rdb_context_t::query_jobs_t *query_jobs =
-                rdb_context->get_query_jobs_for_this_thread();
-            rdb_context_t::query_jobs_t::const_iterator iterator = query_jobs->find(id);
-            if (iterator != query_jobs->end()) {
-                iterator->second.interruptor->pulse_if_not_already_pulsed();
+            for (auto &&query_cache : *rdb_context->get_query_caches_for_this_thread()) {
+                for (auto &&pair : *query_cache) {
+                    if (pair.second->job_id == id) {
+                        pair.second->persistent_interruptor.pulse_if_not_already_pulsed();
+                        return;
+                    }
+                }
             }
         }
     });

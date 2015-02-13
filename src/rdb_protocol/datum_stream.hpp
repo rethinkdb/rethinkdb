@@ -71,7 +71,7 @@ public:
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
-    counted_t<datum_stream_t> indexes_of(counted_t<const func_t> f);
+    counted_t<datum_stream_t> offsets_of(counted_t<const func_t> f);
     counted_t<datum_stream_t> ordered_distinct();
 
     // Returns false or NULL respectively if stream is lazy.
@@ -167,9 +167,9 @@ protected:
     const counted_t<datum_stream_t> source;
 };
 
-class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
+class offsets_of_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    indexes_of_datum_stream_t(counted_t<const func_t> _f, counted_t<datum_stream_t> _source);
+    offsets_of_datum_stream_t(counted_t<const func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
     std::vector<datum_t>

@@ -2,6 +2,7 @@
 #define CONCURRENCY_NEW_MUTEX_HPP_
 
 #include "concurrency/rwlock.hpp"
+#include "concurrency/interruptor.hpp"
 
 // This is a mutex, following the usual semantics (seen in rwlock_t,
 // fifo_enforcer_sink_t, buf_lock_t) where construction puts you in the queue, a
@@ -43,15 +44,22 @@ private:
     DISABLE_COPYING(new_mutex_in_line_t);
 };
 
-class new_mutex_acq_t : private new_mutex_in_line_t {
+class new_mutex_acq_t {
 public:
     // Acquires the lock.  The constructor blocks the coroutine, it doesn't return
     // until the lock is acquired.
-    new_mutex_acq_t(new_mutex_t *lock) : new_mutex_in_line_t(lock) {
-        acq_signal()->wait();
+    explicit new_mutex_acq_t(new_mutex_t *lock) : in_line(lock) {
+        in_line.acq_signal()->wait();
+    }
+
+    // Acquires the lock.  The constructor blocks the coroutine until the lock
+    // is acquired or the interruptor is pulsed.
+    new_mutex_acq_t(new_mutex_t *lock, signal_t *interruptor) : in_line(lock) {
+        wait_interruptible(in_line.acq_signal(), interruptor);
     }
 
 private:
+    new_mutex_in_line_t in_line;
     DISABLE_COPYING(new_mutex_acq_t);
 };
 

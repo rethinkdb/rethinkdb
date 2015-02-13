@@ -360,8 +360,8 @@ class RqlQuery(object):
     def is_empty(self, *args):
         return IsEmpty(self, *args)
 
-    def indexes_of(self, *args):
-        return IndexesOf(self, *[func_wrap(arg) for arg in args])
+    def offsets_of(self, *args):
+        return OffsetsOf(self, *[func_wrap(arg) for arg in args])
 
     def slice(self, *args, **kwargs):
         return Slice(self, *args, **kwargs)
@@ -1146,9 +1146,9 @@ class Downcase(RqlMethodQuery):
     tt = pTerm.DOWNCASE
     st = 'downcase'
 
-class IndexesOf(RqlMethodQuery):
-    tt = pTerm.INDEXES_OF
-    st = 'indexes_of'
+class OffsetsOf(RqlMethodQuery):
+    tt = pTerm.OFFSETS_OF
+    st = 'offsets_of'
 
 class IsEmpty(RqlMethodQuery):
     tt = pTerm.IS_EMPTY

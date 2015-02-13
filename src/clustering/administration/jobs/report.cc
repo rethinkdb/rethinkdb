@@ -238,11 +238,3 @@ bool query_job_report_t::info_derived(
 
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
     query_job_report_t, type, id, duration, servers, client_addr_port);
-
-query_job_t::query_job_t(
-        microtime_t _start_time,
-        ip_and_port_t const &_client_addr_port,
-        cond_t *_interruptor)
-    : start_time(_start_time),
-      client_addr_port(_client_addr_port),
-      interruptor(_interruptor) { }

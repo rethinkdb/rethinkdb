@@ -705,8 +705,8 @@ scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
 }
-counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<const func_t> f) {
-    return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
+counted_t<datum_stream_t> datum_stream_t::offsets_of(counted_t<const func_t> f) {
+    return make_counted<offsets_of_datum_stream_t>(f, counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
     return make_counted<ordered_distinct_datum_stream_t>(counted_from_this());
@@ -987,17 +987,17 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
     return ret;
 }
 
-// INDEXES_OF_DATUM_STREAM_T
-indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<const func_t> _f,
+// OFFSETS_OF_DATUM_STREAM_T
+offsets_of_datum_stream_t::offsets_of_datum_stream_t(counted_t<const func_t> _f,
                                                      counted_t<datum_stream_t> _source)
     : wrapper_datum_stream_t(_source), f(_f), index(0) {
     guarantee(f.has() && source.has());
 }
 
 std::vector<datum_t>
-indexes_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
+offsets_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
     std::vector<datum_t> ret;
-    profile::sampler_t sampler("Finding indexes_of eagerly.", env->trace);
+    profile::sampler_t sampler("Finding offsets_of eagerly.", env->trace);
     while (ret.size() == 0) {
         std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) {

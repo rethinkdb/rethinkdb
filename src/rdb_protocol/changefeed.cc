@@ -1428,7 +1428,9 @@ private:
         // This is to support fake environments from the unit tests that don't
         // actually have a context.
         return outer_env->get_rdb_ctx() == NULL
-            ? make_scoped<env_t>(outer_env->interruptor, outer_env->reql_version())
+            ? make_scoped<env_t>(outer_env->interruptor,
+                                 outer_env->return_empty_normal_batches,
+                                 outer_env->reql_version())
             : make_scoped<env_t>(
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,

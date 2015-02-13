@@ -48,6 +48,7 @@ enum class sindex_geo_bool_t;
 namespace ql {
 class configured_limits_t;
 class env_t;
+class query_cache_t;
 class db_t : public single_threaded_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const name_string_t &_name) : id(_id), name(_name) { }
@@ -257,7 +258,6 @@ protected:
 };
 
 class mailbox_manager_t;
-class query_job_t;
 
 class rdb_context_t {
 public:
@@ -307,11 +307,10 @@ public:
         DISABLE_COPYING(stats_t);
     } stats;
 
-    typedef std::map<uuid_u, query_job_t> query_jobs_t;
-    query_jobs_t * get_query_jobs_for_this_thread();
+    std::set<ql::query_cache_t *> *get_query_caches_for_this_thread();
 
 private:
-    one_per_thread_t<query_jobs_t> query_jobs;
+    one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
 
 private:
     DISABLE_COPYING(rdb_context_t);

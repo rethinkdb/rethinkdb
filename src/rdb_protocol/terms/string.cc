@@ -17,9 +17,9 @@ private:
         std::string str = args->arg(env, 0)->as_str().to_std();
         std::string re = args->arg(env, 1)->as_str().to_std();
         std::shared_ptr<re2::RE2> regexp;
-        query_cache_t & cache = env->env->query_cache();
-        auto search = cache.regex_cache.find(re);
-        if (search == cache.regex_cache.end()) {
+        regex_cache_t &cache = env->env->regex_cache();
+        auto search = cache.regexes.find(re);
+        if (search == cache.regexes.end()) {
             regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
             if (!regexp->ok()) {
                 rfail(base_exc_t::GENERIC,
@@ -28,7 +28,7 @@ private:
                       regexp->error_arg().c_str(),
                       regexp->error().c_str());
             }
-            cache.regex_cache[re] = regexp;
+            cache.regexes[re] = regexp;
         } else {
             regexp = search->second;
         }

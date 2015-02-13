@@ -85,7 +85,7 @@ tests:
       - tbl.for_each()
       - tbl.get()
       - r.expr([]).sample()
-      - tbl.indexes_of()
+      - tbl.offsets_of()
     - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
       cd:
       - r.db_create(1,2)
@@ -135,7 +135,7 @@ tests:
       - tbl.for_each(1,2)
       - tbl.get(1,2)
       - r.expr([]).sample(1,2)
-      - tbl.indexes_of(1,2)
+      - tbl.offsets_of(1,2)
 
     - ot:
         py: err("RqlCompileError", "Expected 2 arguments but found 4.", [])

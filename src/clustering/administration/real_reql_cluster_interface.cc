@@ -857,17 +857,20 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         return false;
     }
 
+    ql::datum_object_builder_t builder;
     table_replication_info_t new_repli_info = table_md->replication_info.get_ref();
+    // If there's not enough data to rebalance, just pretend like we did
     if (!calculate_split_points_with_distribution(
             counts,
             new_repli_info.config.shards.size(),
             &new_repli_info.shard_scheme,
             error_out)) {
-        return false;
+        builder.overwrite("rebalanced", ql::datum_t(0.0));
+    } else {
+        builder.overwrite("rebalanced", ql::datum_t(1.0));
+        table_md->replication_info.set(new_repli_info);
+        semilattice_root_view->join(*cluster_md);
     }
-
-    table_md->replication_info.set(new_repli_info);
-    semilattice_root_view->join(*cluster_md);
 
     /* Calculate new status */
     ql::datum_t new_status;
@@ -876,8 +879,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         return false;
     }
 
-    ql::datum_object_builder_t builder;
-    builder.overwrite("rebalanced", ql::datum_t(1.0));
     builder.overwrite("status_changes", make_replacement_pair(old_status, new_status));
     *results_out = std::move(builder).to_datum();
 
