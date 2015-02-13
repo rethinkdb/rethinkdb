@@ -1476,10 +1476,14 @@ public:
                     datum_t(std::map<datum_string_t, datum_t> {
                             { datum_string_t("new_val"), (*it)->second.second } }));
             }
-            decltype(queued_changes) changes;
-            changes.swap(queued_changes);
-            for (const auto &pair : changes) {
-                note_change(pair.first, pair.second);
+            if (squash) {
+                note_data_wait();
+            } else {
+                decltype(queued_changes) changes;
+                changes.swap(queued_changes);
+                for (const auto &pair : changes) {
+                    note_change(pair.first, pair.second);
+                }
             }
             guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
@@ -1623,11 +1627,16 @@ public:
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
-        // If we aren't done initializing yet, just queue up the change.  It
-        // will be sent in `maybe_start`.  We also queue up changes in the case
-        // where we're squashing.
+        // If we aren't done initializing, or if we're squashing, just queue up
+        // the change.  If we're initializing, we're done; the change will be
+        // sent in `maybe_start`.  If we're squashing and we're done
+        // initializing, there might be a coroutine blocking on more data in
+        // `get_els`, so we call `maybe_signal_cond` to possibly wake it up.
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
+            if (need_init == got_init) {
+                maybe_signal_cond();
+            }
         } else {
             std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
             if (pair.first.has() || pair.second.has()) {
@@ -1982,9 +1991,11 @@ subscription_t::get_els(batcher_t *batcher,
         // that if we're squashing, we started the timeout *before* waiting
         // on `min_timer`.)
         if (!has_el()) {
-            note_data_wait();
             cond_t wait_for_data;
             cond = &wait_for_data;
+            // This has to come after the `cond` because it might pulse it if
+            // we're squashing and need to.
+            note_data_wait();
             try {
                 // We don't need to wait on the drain signal because the interruptor
                 // will be pulsed if we're shutting down.  Not that `cond` might
@@ -1996,6 +2007,9 @@ subscription_t::get_els(batcher_t *batcher,
                 } else {
                     wait_interruptible(&wait_for_data, interruptor);
                 }
+                // We might have been woken up by `note_change`, in which case
+                // we should try to squash down again.
+                note_data_wait();
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
                 if (timer.has() && timer->is_pulsed()) {
