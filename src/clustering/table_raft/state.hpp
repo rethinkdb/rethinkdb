@@ -118,7 +118,9 @@ public:
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
 gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
 responding to. This way, the leader knows exactly which contract the follower is acking.
-*/
+
+In order to facilitiate CPU sharding, each contract's region must apply to exactly one
+CPU shard. */
 
 typedef uuid_u contract_id_t;
 

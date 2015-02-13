@@ -2,8 +2,8 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
+#include "clustering/table_raft/cpu_sharding.hpp"
 
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing

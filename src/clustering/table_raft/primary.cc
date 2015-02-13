@@ -87,8 +87,6 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
 
         broadcaster_t broadcaster(
             mailbox_manager,
-            rdb_context, /* RSI */
-            branch_history_manager, /* RSI */
             store,
             parent_perfmon_collection, /* RSI */
             order_source, /* RSI */
@@ -220,8 +218,7 @@ bool primary_t::on_write(
     our_broadcaster->wait()->spawn_write(
         request,
         order_token,
-        &write_callback,
-        local_ack_condition.get());
+        &write_callback);
 
     exiter->exit();
 

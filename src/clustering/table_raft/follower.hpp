@@ -17,15 +17,16 @@ public:
         const server_id_t &server_id,
         raft_member_t<state_t> *raft,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *other_broadcaster_bcards);
+            *remote_primary_bcards,
+        const multistore_ptr_t *multistore);
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *get_acks() {
         return &ack_map;
     }
 
     watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *get_primary_bcards() {
-        return &primary_map;
+            *get_local_primary_bcards() {
+        return &local_primary_bcards;
     }
 
 private:
@@ -59,6 +60,7 @@ private:
     class ongoing_data_t {
     public:
         contract_id_t contract_id;
+        scoped_ptr_t<store_subview_t> store_subview;
         /* Exactly one of these will be non-empty; which one depends on the `role` of the
         key that this is stored under */
         scoped_ptr_t<primary_t> primary;
@@ -85,10 +87,17 @@ private:
     block. */
     void send_ack(const contract_id_t &cid, const contract_ack_t &ack);
 
+    const server_id_t server_id;
     raft_member_t<state_t> *const raft;
+    watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+        *const remote_primary_bcards;
+    const multistore_ptr_t *const multistore;
 
     std::map<ongoing_key_t, ongoing_data_t> ongoings;
     bool update_coro_running;
+
+    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+        local_primary_bcards;
 
     auto_drainer_t drainer;
     watchable_t<raft_member_t<state_t>::state_and_config_t>::subscription_t
