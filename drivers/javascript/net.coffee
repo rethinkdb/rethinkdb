@@ -396,10 +396,7 @@ class TcpConnection extends Connection
 
             @rawSocket.on 'data', handshake_callback
 
-        @rawSocket.on 'error', (args...) =>
-            if @isOpen()
-                @close({noreplyWait:false})
-            @emit 'error', new err.RqlDriverError "Could not connect to " + @host + ":" + @port
+        @rawSocket.on 'error', (err) => @emit 'error', err
 
         @rawSocket.on 'close', =>
             if @isOpen()
