@@ -1198,9 +1198,7 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
         for (;;) {
             cond_t notify;
             notify_conds[i] = &notify;
-            debugf("%zu nwait %p\n", i, &notify);
             wait_interruptible(&notify, interruptor);
-            debugf("%zu WAKE\n", i);
             // We get an erroneous "declaration shadows a local
             // variable" error from the compiler if we use a plain
             // `ASSERT_NO_CORO_WAITING` here, because it isn't smart
@@ -1209,7 +1207,6 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
                 ASSERT_NO_CORO_WAITING;
                 r_sanity_check(notify_conds[i] == NULL);
                 r_sanity_check(outstanding_notifications > 0);
-                debugf("%zu outstanding: %zu\n", i, outstanding_notifications);
                 if (--outstanding_notifications == 0) {
                     all_notified->pulse_if_not_already_pulsed();
                 }
@@ -1224,12 +1221,8 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
             is_first = false;
             std::vector<datum_t> batch
                 = stream->next_batch(coro_info->env.get(), bs);
-            debugf("%zu batch size: %zu\n", i, batch.size());
             if (batch.size() == 0) {
-                debugf("%zu cfeed type %d (vs. %d)",
-                       i, stream->cfeed_type(), feed_type_t::not_feed);
                 if (stream->cfeed_type() == feed_type_t::not_feed) {
-                    debugf("%zu breaking\n", i);
                     break;
                 } else {
                     r_sanity_check(
@@ -1238,9 +1231,7 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
                         || (bs.get_batch_type() == batch_type_t::NORMAL_FIRST));
                 }
             }
-            debugf("%zu pushing %zu\n", i, batch.size());
             queue.push(std::move(batch));
-            debugf("%zu pulsing %p\n", i, data_available.get());
             data_available->pulse_if_not_already_pulsed();
         }
     } catch (const interrupted_exc_t) {
@@ -1312,31 +1303,24 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                                     env->return_empty_normal_batches,
                                     drainer.get_drain_signal(),
                                     env->get_all_optargs(),
-                                    trace.get()),
+                                    trace.has() ? trace.get() : nullptr),
                                 batchspec);
                         }
                     }
                     r_sanity_check(outstanding_notifications == 0);
                     all_notified = make_scoped<cond_t>();
                     data_available = make_scoped<cond_t>();
-                    debugf("all_notified: %p, data_available: %p\n",
-                           all_notified.get(), data_available.get());
                     for (size_t i = 0; i < notify_conds.size(); ++i) {
                         if (notify_conds[i] != NULL) {
-                            debugf("%zu notify\n", i);
                             outstanding_notifications += 1;
                             notify_conds[i]->pulse();
                             notify_conds[i] = NULL;
                         }
                     }
                 }
-                debugf("wait all_notified %p\n", all_notified.get());
                 wait_interruptible(all_notified.get(), &interruptor);
-                debugf("WAKE all_notified\n");
                 r_sanity_check(outstanding_notifications == 0);
-                debugf("wait data_available %p\n", data_available.get());
                 wait_interruptible(data_available.get(), &interruptor);
-                debugf("WAKE data_available %zu\n", queue.size());
             }
         } catch (...) {
             // Prefer throwing coroutine exceptions because we might have been
