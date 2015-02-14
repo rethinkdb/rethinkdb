@@ -33,7 +33,7 @@ public:
 
     void pulse();
 
-    void wait_eagerly_deprecated();
+    void wait_ordered();
 
 private:
     bool pulsed_;

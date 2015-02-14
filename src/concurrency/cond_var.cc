@@ -20,12 +20,11 @@ void one_waiter_cond_t::pulse() {
     if (waiter_) {
         coro_t *tmp = waiter_;
         waiter_ = NULL;
-        tmp->notify_now_deprecated();
-        // we might be destroyed here
+        tmp->notify_later_ordered();
     }
 }
 
-void one_waiter_cond_t::wait_eagerly_deprecated() {
+void one_waiter_cond_t::wait_ordered() {
     rassert(!waiter_);
     if (!pulsed_) {
         waiter_ = coro_t::self();
