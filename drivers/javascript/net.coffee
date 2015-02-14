@@ -396,10 +396,7 @@ class TcpConnection extends Connection
 
             @rawSocket.on 'data', handshake_callback
 
-        @rawSocket.on 'error', (args...) =>
-            if @isOpen()
-                @close({noreplyWait:false})
-            @emit 'close'
+        @rawSocket.on 'error', (err) => @emit 'error', err
 
         @rawSocket.on 'close', =>
             if @isOpen()
