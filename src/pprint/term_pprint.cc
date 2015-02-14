@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/ql2_extensions.pb.h"
 
 namespace pprint {
