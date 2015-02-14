@@ -289,6 +289,8 @@ private:
     cond_t abort;
     std::vector<cond_t *> notify_conds;
     scoped_ptr_t<cond_t> all_notified, data_available;
+    scoped_ptr_t<profile::trace_t> trace;
+    scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<coro_info_t> coro_info;
     std::exception_ptr exc;
     std::queue<std::vector<datum_t> > queue; // FIFO
