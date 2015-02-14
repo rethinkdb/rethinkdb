@@ -34,8 +34,8 @@ broadcaster_t::broadcaster_t(
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
       mailbox_manager(mm),
+      region(branch_info.region),
       branch_id(_branch_id),
-      region(branch_info.region);
       registrar(mailbox_manager, this)
 {
     order_checkpoint.set_tagappend("broadcaster_t");

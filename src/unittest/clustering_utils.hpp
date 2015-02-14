@@ -9,6 +9,7 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
@@ -22,9 +23,20 @@
 
 namespace unittest {
 
-struct fake_fifo_enforcement_t {
-    fifo_enforcer_source_t source;
-    fifo_enforcer_sink_t sink;
+class simple_write_callback_t : public broadcaster_t::write_callback_t, public cond_t {
+public:
+    simple_write_callback_t() : acks(0) { }
+    write_durability_t get_default_write_durability() {
+        return write_durability_t::HARD;
+    }
+    void on_ack(const server_id_t &, write_response_t &&) {
+        ++acks;
+    }
+    void on_end() {
+        EXPECT_EQ(1, acks);
+        pulse();
+    }
+    int acks;
 };
 
 inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {

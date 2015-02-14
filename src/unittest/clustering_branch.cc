@@ -98,22 +98,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         std::string key = std::string(1, 'a' + randint(26));
         values_inserted[key] = strprintf("%d", i);
         write_t w = mock_overwrite(key, strprintf("%d", i));
-
-        class : public broadcaster_t::write_callback_t, public cond_t {
-        public:
-            write_durability_t get_default_write_durability() {
-                return write_durability_t::HARD;
-            }
-            void on_ack(const server_id_t &, write_response_t &&) {
-                ++acks;
-            }
-            void on_end() {
-                EXPECT_EQ(1, acks);
-                pulse();
-            }
-            int acks;
-        } write_callback;
-        write_callback.acks = 0;
+        simple_write_callback_t write_callback;
         (*broadcaster)->spawn_write(
             w,
             order_source->check_in("unittest::run_read_write_test(write)"),
@@ -124,8 +109,9 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
     /* Now send some reads. */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
             it != values_inserted.end(); it++) {
-        unittest::fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+        fifo_enforcer_source_t fifo_source;
+        fifo_enforcer_sink_t fifo_sink;
+        fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
 
         read_t r = mock_read(it->first);
         cond_t non_interruptor;
@@ -144,20 +130,7 @@ then adds another mirror. */
 
 static void write_to_broadcaster(broadcaster_t *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     write_t w = mock_overwrite(key, value);
-    class : public broadcaster_t::write_callback_t, public cond_t {
-    public:
-        write_durability_t get_default_write_durability() {
-            return write_durability_t::HARD;
-        }
-        void on_ack(const server_id_t &, write_response_t &&) {
-            ++acks;
-        }
-        void on_end() {
-            EXPECT_EQ(1, acks);
-            pulse();
-        }
-        int acks;
-    } write_callback;
+    simple_write_callback_t write_callback;
     broadcaster->spawn_write(w, otok, &write_callback);
     write_callback.wait_lazily_unordered();
 }

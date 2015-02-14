@@ -28,8 +28,6 @@ void run_with_broadcaster(
     std::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
         branch_history_manager_t *,
-        clone_ptr_t< watchable_t< boost::optional< boost::optional<
-            broadcaster_business_card_t> > > >,
         scoped_ptr_t<broadcaster_t> *,
         test_store_t *,
         scoped_ptr_t<listener_t> *,
@@ -54,25 +52,27 @@ void run_with_broadcaster(
 
     cond_t interruptor;
 
+    branch_birth_certificate_t branch_info;
+    branch_info.region = region_t::universe();
+    branch_info.origin =
+        region_map_t<version_t>(region_t::universe(), version_t::zero());
+    branch_info.initial_timestamp = state_timestamp_t::zero();
+
     scoped_ptr_t<broadcaster_t> broadcaster(
         new broadcaster_t(
             cluster.get_mailbox_manager(),
-            &ctx,
-            &branch_history_manager,
             &initial_store.store,
             &get_global_perfmon_collection(),
+            generate_uuid(),
+            branch_info,
             &order_source,
             &interruptor));
-
-    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t> >(boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t> initial_listener(new listener_t(
         base_path_t("."), //TODO is it bad that this isn't configurable?
         &io_backender,
         cluster.get_mailbox_manager(),
         generate_uuid(),
-        broadcaster_business_card_watchable_variable.get_watchable(),
-        &branch_history_manager,
         broadcaster.get(),
         &get_global_perfmon_collection(),
         &interruptor,
@@ -80,7 +80,6 @@ void run_with_broadcaster(
 
     fun(std::make_pair(&io_backender, &cluster),
         &branch_history_manager,
-        broadcaster_business_card_watchable_variable.get_watchable(),
         &broadcaster,
         &initial_store,
         &initial_listener,
@@ -91,7 +90,6 @@ void run_with_broadcaster(
 void run_in_thread_pool_with_broadcaster(
         std::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
                             branch_history_manager_t *,
-                            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > >,
                             scoped_ptr_t<broadcaster_t> *,
                             test_store_t *,
                             scoped_ptr_t<listener_t> *,
@@ -129,28 +127,14 @@ void write_to_broadcaster(size_t value_padding_length,
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
             ql::configured_limits_t());
-
-    fake_fifo_enforcement_t enforce;
-    fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    class : public broadcaster_t::write_callback_t, public cond_t {
-    public:
-        void on_success(const write_response_t &) {
-            pulse();
-        }
-        void on_failure(UNUSED bool might_have_been_run) {
-            EXPECT_TRUE(false);
-        }
-    } write_callback;
-    cond_t non_interruptor;
-    fake_ack_checker_t ack_checker(1);
-    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
+    simple_write_callback_t write_callback;
+    broadcaster->spawn_write(write, otok, &write_callback);
     write_callback.wait_lazily_unordered();
 }
 
 void run_backfill_test(size_t value_padding_length,
                        std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
                        branch_history_manager_t *branch_history_manager,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
                        scoped_ptr_t<broadcaster_t> *broadcaster,
                        test_store_t *,
                        scoped_ptr_t<listener_t> *initial_listener,
@@ -161,11 +145,7 @@ void run_backfill_test(size_t value_padding_length,
 
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
-
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
@@ -190,17 +170,14 @@ void run_backfill_test(size_t value_padding_length,
         cluster->get_mailbox_manager(),
         generate_uuid(),
         &backfill_throttler,
-        broadcaster_metadata_view,
+        (*broadcaster)->get_business_card(),
         branch_history_manager,
         &store2.store,
-        replier_business_card_variable.get_watchable(),
+        replier.get_business_card(),
         &get_global_perfmon_collection(),
         &interruptor,
         order_source,
         nullptr);
-
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
 
     nap(10000);
 
@@ -213,8 +190,9 @@ void run_backfill_test(size_t value_padding_length,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         read_t read(point_read_t(store_key_t(it->first)), profile_bool_t::PROFILE);
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+        fifo_enforcer_source_t fifo_source;
+        fifo_enforcer_sink_t fifo_sink;
+        fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
         cond_t non_interruptor;
         read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
@@ -228,19 +206,18 @@ void run_backfill_test(size_t value_padding_length,
 
 TEST(RDBProtocolBackfill, Backfill) {
      run_in_thread_pool_with_broadcaster(
-             std::bind(&run_backfill_test, 0, ph::_1, ph::_2, ph::_3,
-                       ph::_4, ph::_5, ph::_6, ph::_7, ph::_8));
+         std::bind(&run_backfill_test, 0, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5,
+            ph::_6, ph::_7));
 }
 
 TEST(RDBProtocolBackfill, BackfillLargeValues) {
      run_in_thread_pool_with_broadcaster(
-             std::bind(&run_backfill_test, 300, ph::_1, ph::_2, ph::_3, ph::_4,
-                       ph::_5, ph::_6, ph::_7, ph::_8));
+         std::bind(&run_backfill_test, 300, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5,
+            ph::_6, ph::_7));
 }
 
 void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
                               branch_history_manager_t *branch_history_manager,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
                               scoped_ptr_t<broadcaster_t> *broadcaster,
                               test_store_t *,
                               scoped_ptr_t<listener_t> *initial_listener,
@@ -252,12 +229,9 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
+    
     replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
     nap(100);   /* make time for the broadcaster to find out about the replier */
-
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
 
     std::string id("sid");
     {
@@ -270,22 +244,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                                       sindex_geo_bool_t::REGULAR),
                       profile_bool_t::PROFILE, ql::configured_limits_t());
 
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(
-            &enforce.sink, enforce.source.enter_write());
-        class : public broadcaster_t::write_callback_t, public cond_t {
-        public:
-            void on_success(const write_response_t &) {
-                pulse();
-            }
-            void on_failure(UNUSED bool might_have_been_run) {
-                EXPECT_TRUE(false);
-            }
-        } write_callback;
-        cond_t non_interruptor;
-        fake_ack_checker_t ack_checker(1);
-        broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
-                                        &write_callback, &non_interruptor, &ack_checker);
+        simple_write_callback_t write_callback;
+        broadcaster->get()->spawn_write(write, order_token_t::ignore, &write_callback);
         write_callback.wait_lazily_unordered();
     }
 
@@ -310,17 +270,14 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         cluster->get_mailbox_manager(),
         generate_uuid(),
         &backfill_throttler,
-        broadcaster_metadata_view,
+        (*broadcaster)->get_business_card(),
         branch_history_manager,
         &store2.store,
-        replier_business_card_variable.get_watchable(),
+        replier.get_business_card(),
         &get_global_perfmon_collection(),
         &interruptor,
         order_source,
         nullptr);
-
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
 
     nap(10000);
 
@@ -337,8 +294,9 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                                                ql::configured_limits_t(),
                                                reql_version_t::LATEST);
         read_t read = make_sindex_read(sindex_key_literal, id);
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+        fifo_enforcer_source_t fifo_source;
+        fifo_enforcer_sink_t fifo_sink;
+        fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
         cond_t non_interruptor;
         read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);

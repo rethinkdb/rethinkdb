@@ -135,9 +135,9 @@ It appears in the directory. */
 
 struct broadcaster_business_card_t {
 
-    broadcaster_business_card_t(branch_id_t bid,
-            const registrar_business_card_t<listener_business_card_t> &r) :
-        branch_id(bid), registrar(r) { }
+    broadcaster_business_card_t(branch_id_t bid, const region_t &regn,
+            const registrar_business_card_t<listener_business_card_t> &regr) :
+        branch_id(bid), region(regn), registrar(regr) { }
 
     broadcaster_business_card_t() { }
 
