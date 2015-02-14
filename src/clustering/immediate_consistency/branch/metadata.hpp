@@ -99,10 +99,10 @@ struct backfiller_business_card_t {
 
     typedef mailbox_t< void(
         backfill_session_id_t,
-        region_map_t<version_range_t>,
+        region_map_t<version_t>,
         branch_history_t,
         mailbox_addr_t< void(
-            region_map_t<version_range_t>,
+            region_map_t<version_t>,
             branch_history_t
             ) >,
         mailbox_addr_t< void(

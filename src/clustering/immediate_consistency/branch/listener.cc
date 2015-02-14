@@ -46,9 +46,8 @@ public:
         region_map_t<binary_blob_t> masked = metainfo.mask(region);
 
         for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
-            version_range_t range = binary_blob_t::get<version_range_t>(it->second);
-            guarantee(range.earliest.timestamp == range.latest.timestamp);
-            guarantee(range.latest.timestamp <= tstamp_);
+            version_t range = binary_blob_t::get<version_t>(it->second);
+            guarantee(range.timestamp <= tstamp_);
         }
     }
 
@@ -72,7 +71,7 @@ listener_t::listener_t(const base_path_t &base_path,
                        signal_t *interruptor,
                        order_source_t *order_source,
                        double *backfill_progress_out)
-        THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
+        THROWS_ONLY(interrupted_exc_t) :
 
     mailbox_manager_(mm),
     server_id_(server_id),
@@ -113,7 +112,7 @@ listener_t::listener_t(const base_path_t &base_path,
     mailbox_t<void()> ack_mbox(
         mailbox_manager_,
         [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
-    send(mailbox_manager_, replier_access.access().synchronize_mailbox, 
+    send(mailbox_manager_, replier.synchronize_mailbox, 
         streaming_begin_point, ack_mbox.get_address());
     wait_interruptible(&backfiller_is_up_to_date, interruptor);
 
@@ -123,7 +122,7 @@ listener_t::listener_t(const base_path_t &base_path,
         backfill_throttler_t::lock_t throttler_lock(backfill_throttler, peer,
                                                     interruptor);
         backfillee(mailbox_manager_,
-                   branch_history,
+                   branch_history_manager,
                    svs_,
                    svs_->get_region(),
                    replier.backfiller_bcard,
@@ -145,10 +144,10 @@ listener_t::listener_t(const base_path_t &base_path,
     for (const auto &chunk : backfill_end_point) {
         guarantee(chunk.second.branch == branch_id_);
         if (first_chunk) {
-            backfill_end_timestamp = chunk.second.version;
+            backfill_end_timestamp = chunk.second.timestamp;
             first_chunk = false;
         } else {
-            guarantee(backfill_end_timestamp == chunk.second.version);
+            guarantee(backfill_end_timestamp == chunk.second.timestamp);
         }
     }
 
@@ -173,7 +172,6 @@ listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
                        const server_id_t &server_id,
-                       branch_history_manager_t *branch_history_manager,
                        broadcaster_t *broadcaster,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
@@ -200,18 +198,12 @@ listener_t::listener_t(const base_path_t &base_path,
     our_branch_region_ = broadcaster->get_region();
 
 #ifndef NDEBUG
-    /* Make sure the initial state of the store is sane. Note that we assume
-    that we're using the same `branch_history_manager_t` as the broadcaster, so
-    an entry should already be present for the branch we're trying to join, and
-    we skip calling `import_branch_history()`. */
-    rassert(svs_->get_region() == this_branch_history.region);
-
     /* Snapshot the metainfo before we start receiving writes */
     read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> initial_metainfo_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
-    region_map_t<version_range_t> initial_metainfo = to_version_range_map(initial_metainfo_blob);
+    region_map_t<version_t> initial_metainfo = to_version_map(initial_metainfo_blob);
 #endif
 
     /* Attempt to register for writes */
@@ -226,7 +218,7 @@ listener_t::listener_t(const base_path_t &base_path,
                                          local_listener_registration_.lock());
 
 #ifndef NDEBUG
-    region_map_t<version_range_t> expected_initial_metainfo(
+    region_map_t<version_t> expected_initial_metainfo(
         svs_->get_region(),
         version_t(branch_id_, listener_intro.broadcaster_begin_timestamp));
     rassert(expected_initial_metainfo == initial_metainfo);
@@ -249,21 +241,17 @@ listener_t::~listener_t() {
     read_mailbox_.begin_shutdown();
 }
 
-signal_t *listener_t::get_broadcaster_lost_signal() {
-    return registrant_->get_failed_signal();
-}
-
 void listener_t::try_start_receiving_writes(
         broadcaster_business_card_t broadcaster,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
+        THROWS_ONLY(interrupted_exc_t)
 {
     /* `listener_intro_t` represents the introduction we expect to get from the
     broadcaster if all goes well. */
     listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-            [&](signal_t *, const listener_intro_t &i) {
-                registration_done_cond.pulse(intro);
+            [&](signal_t *, const listener_intro_t &intro) {
+                registration_done_cond_.pulse(intro);
             });
 
     listener_business_card_t our_bcard(
@@ -343,7 +331,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<binary_blob_t>(svs_->get_region(),
-            binary_blob_t(version_range_t(version_t(branch_id_, qe.timestamp)))),
+            binary_blob_t(version_t(branch_id_, qe.timestamp))),
         qe.write,
         &response,
         write_durability_t::SOFT,
@@ -415,7 +403,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     write_response_t response;
     svs_->write(DEBUG_ONLY(metainfo_checker, )
                 region_map_t<binary_blob_t>(svs_->get_region(),
-                                            binary_blob_t(version_range_t(version_t(branch_id_, timestamp)))),
+                                            binary_blob_t(version_t(branch_id_, timestamp))),
                 write,
                 &response,
                 durability,

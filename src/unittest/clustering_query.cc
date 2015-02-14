@@ -38,16 +38,20 @@ static void run_read_write_test() {
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a branch */
-    mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
+    mock_store_t initial_store((binary_blob_t(version_t::zero())));
 
-    rdb_context_t rdb_context;
+    branch_birth_certificate_t branch_info;
+    branch_info.region = region_t::universe();
+    branch_info.origin =
+        region_map_t<version_t>(region_t::universe(), version_t::zero());
+    branch_info.initial_timestamp = state_timestamp_t::zero();
 
     cond_t interruptor;
     broadcaster_t broadcaster(cluster.get_mailbox_manager(),
-                              &rdb_context,
-                              &branch_history_manager,
                               &initial_store,
                               &get_global_perfmon_collection(),
+                              generate_uuid(),
+                              branch_info,
                               &order_source,
                               &interruptor);
 
@@ -59,8 +63,6 @@ static void run_read_write_test() {
         &io_backender,
         cluster.get_mailbox_manager(),
         generate_uuid(),
-        broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
-        &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
         &interruptor,
@@ -125,7 +127,7 @@ static void run_broadcaster_problem_test() {
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a branch */
-    mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
+    mock_store_t initial_store((binary_blob_t(version_t::zero())));
 
     rdb_context_t rdb_context;
 

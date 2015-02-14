@@ -559,9 +559,9 @@ public:
             std::pair<std::map<branch_id_t, branch_birth_certificate_t>::iterator, bool>
                 insert_res = out->branches.insert(std::make_pair(next, bc));
             guarantee(insert_res.second);
-            for (region_map_t<version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
-                if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
-                    to_process.insert(it->second.latest.branch);
+            for (region_map_t<version_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
+                if (!it->second.branch.is_nil() && out->branches.count(it->second.branch) == 0) {
+                    to_process.insert(it->second.branch);
                 }
             }
         }

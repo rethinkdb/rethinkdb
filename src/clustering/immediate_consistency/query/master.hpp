@@ -8,10 +8,7 @@
 #include <utility>
 
 #include "clustering/generic/multi_throttling_server.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
-
-class ack_checker_t;
 
 /* Each shard has a `master_t` on its primary replica server. The `master_t` is
 responsible for receiving queries from the servers that the clients connect to
@@ -24,10 +21,27 @@ responsible for throttling queries from the different `master_access_t`s. */
 
 class master_t {
 public:
-    master_t(mailbox_manager_t *mm, ack_checker_t *ac,
-             region_t r,
-             broadcaster_t *b) THROWS_ONLY(interrupted_exc_t);
+    class query_callback_t {
+    public:
+        virtual bool on_write(
+            const write_t &request,
+            fifo_enforcer_sink_t::exit_write_t *exiter,
+            order_token_t order_token,
+            signal_t *interruptor,
+            write_response_t *response_out,
+            std::string *error_out) = 0;
+        virtual bool on_read(
+            const read_t &request,
+            fifo_enforcer_sink_t::exit_read_t *exiter,
+            order_token_t order_token,
+            signal_t *interruptor,
+            read_response_t *response_out,
+            std::string *error_out) = 0;
+    protected:
+        virtual ~query_callback_t() { }
+    };
 
+    master_t(mailbox_manager_t *mm, region_t r, query_callback_t *callback);
     ~master_t();
 
     master_business_card_t get_business_card();
@@ -48,10 +62,9 @@ private:
         fifo_enforcer_sink_t fifo_sink;
     };
 
-    mailbox_manager_t *mailbox_manager;
-    ack_checker_t *ack_checker;
-    broadcaster_t *broadcaster;
-    region_t region;
+    mailbox_manager_t *const mailbox_manager;
+    query_callback_t *const query_callback;
+    region_t const region;
 
     /* See note in `client_t::perform_request()` for what this is about */
     cond_t shutdown_cond;

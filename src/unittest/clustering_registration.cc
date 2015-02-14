@@ -32,11 +32,6 @@ public:
     std::string registrant_data;
 };
 
-boost::optional<boost::optional<registrar_business_card_t<std::string> > > wrap_in_optional(
-        const boost::optional<registrar_business_card_t<std::string> > &inner) {
-    return boost::optional<boost::optional<registrar_business_card_t<std::string> > >(inner);
-}
-
 }   /* anonymous namespace */
 
 /* `Register` tests registration, updating, and deregistration of a single
@@ -49,19 +44,15 @@ TPTEST(ClusteringRegistration, Register) {
         cluster.get_mailbox_manager(),
         &controller);
 
-    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card()));
-
     EXPECT_FALSE(controller.has_registrant);
 
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            metadata_controller.get_watchable()->subview(&wrap_in_optional),
+            registrar.get_business_card(),
             "hello");
         let_stuff_happen();
 
-        EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
         EXPECT_TRUE(controller.has_registrant);
         EXPECT_EQ("hello", controller.registrant_data);
     }
@@ -86,26 +77,20 @@ TPTEST(ClusteringRegistration, RegistrarDeath) {
 
     EXPECT_FALSE(controller.has_registrant);
 
-    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        boost::optional<registrar_business_card_t<std::string> >(registrar->get_business_card()));
-
     registrant_t<std::string> registrant(
         cluster.get_mailbox_manager(),
-        metadata_controller.get_watchable()->subview(&wrap_in_optional),
+        registrar->get_business_card(),
         "hello");
     let_stuff_happen();
 
-    EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_TRUE(controller.has_registrant);
     EXPECT_EQ("hello", controller.registrant_data);
 
     /* Kill the registrar */
-    metadata_controller.set_value(boost::optional<registrar_business_card_t<std::string> >());
     registrar.reset();
 
     let_stuff_happen();
 
-    EXPECT_TRUE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_FALSE(controller.has_registrant);
 }
 
@@ -119,15 +104,12 @@ TPTEST(ClusteringRegistration, QuickDisconnect) {
         cluster.get_mailbox_manager(),
         &controller);
 
-    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card()));
-
     EXPECT_FALSE(controller.has_registrant);
 
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            metadata_controller.get_watchable()->subview(&wrap_in_optional),
+            registrar.get_business_card(),
             "hello");
     }
     let_stuff_happen();

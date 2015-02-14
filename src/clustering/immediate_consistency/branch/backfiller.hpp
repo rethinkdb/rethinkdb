@@ -30,15 +30,15 @@ private:
     friend class backfiller_send_backfill_callback_t;
 
     bool confirm_and_send_metainfo(region_map_t<binary_blob_t> metainfo,
-                                   region_map_t<version_range_t> start_point,
-                                   mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont);
+                                   region_map_t<version_t> start_point,
+                                   mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont);
 
     void on_backfill(
             signal_t *interruptor,
             backfill_session_id_t session_id,
-            const region_map_t<version_range_t> &start_point,
+            const region_map_t<version_t> &start_point,
             const branch_history_t &start_point_associated_branch_history,
-            mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+            mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont,
             mailbox_addr_t<void(
                 backfill_chunk_t,
                 double,

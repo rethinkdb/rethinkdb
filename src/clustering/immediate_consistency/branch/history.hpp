@@ -153,8 +153,8 @@ public:
     map and copies them into `out` */
     void export_branch_history(const region_map_t<version_t> &region_map, branch_history_t *out) THROWS_NOTHING {
         for (const auto &pair : region_map) {
-            if (!it->second.branch.is_nil()) {
-                export_branch_history(it->second.branch, out);
+            if (!pair.second.branch.is_nil()) {
+                export_branch_history(pair.second.branch, out);
             }
         }
     }

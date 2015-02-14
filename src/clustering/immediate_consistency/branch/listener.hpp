@@ -59,7 +59,6 @@ public:
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
             const server_id_t &server_id,
-            branch_history_manager_t *branch_history_manager,
             broadcaster_t *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,

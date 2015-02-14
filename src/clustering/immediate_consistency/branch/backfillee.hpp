@@ -26,7 +26,7 @@ void backfillee(
         region_t region,
 
         /* The backfiller to backfill from. */
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
+        const backfiller_business_card_t &backfiller_metadata,
 
         signal_t *interruptor,
 

@@ -28,13 +28,14 @@ broadcaster_t::broadcaster_t(
         store_view_t *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
         const branch_id_t &_branch_id,
-        const branch_birth_certificiate_t &branch_info,
+        const branch_birth_certificate_t &branch_info,
         order_source_t *order_source,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
       mailbox_manager(mm),
       branch_id(_branch_id),
+      region(branch_info.region);
       registrar(mailbox_manager, this)
 {
     order_checkpoint.set_tagappend("broadcaster_t");
@@ -77,8 +78,12 @@ branch_id_t broadcaster_t::get_branch_id() const {
     return branch_id;
 }
 
+region_t broadcaster_t::get_region() {
+    return region;
+}
+
 broadcaster_business_card_t broadcaster_t::get_business_card() {
-    return broadcaster_business_card_t(branch_id, registrar.get_business_card());
+    return broadcaster_business_card_t(branch_id, region, registrar.get_business_card());
 }
 
 store_view_t *broadcaster_t::release_bootstrap_svs_for_listener() {
@@ -427,7 +432,7 @@ void broadcaster_t::spawn_write(const write_t &write,
     order_token = order_checkpoint.check_through(order_token);
 
     boost::shared_ptr<incomplete_write_t> write_wrapper = boost::make_shared<incomplete_write_t>(
-            this, write, timestamp, ack_checker, cb);
+            this, write, timestamp, cb);
     incomplete_writes.push_back(write_wrapper);
 
     // You can't reuse the same callback for two writes.

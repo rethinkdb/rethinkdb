@@ -15,23 +15,17 @@
 
 master_access_t::master_access_t(
         mailbox_manager_t *mm,
-        const clone_ptr_t<watchable_t<boost::optional<boost::optional<master_business_card_t> > > > &master,
+        const master_business_card_t &master,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
     mailbox_manager(mm),
+    region(master.region),
     multi_throttling_client(
         mailbox_manager,
-        master->subview(&master_access_t::extract_multi_throttling_business_card),
+        master.multi_throttling,
         master_business_card_t::inner_client_business_card_t(),
         interruptor)
-{
-    boost::optional<boost::optional<master_business_card_t> > business_card = master->get();
-    if (!business_card || !business_card.get()) {
-        throw resource_lost_exc_t();
-    }
-
-    region = business_card.get().get().region;
-}
+    { }
 
 void master_access_t::new_read_token(fifo_enforcer_sink_t::exit_read_t *out) {
     out->begin(&internal_fifo_sink, internal_fifo_source.enter_read());
@@ -73,22 +67,16 @@ void master_access_t::read(
 
     multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
 
-    wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
-    wait_interruptible(&waiter, interruptor);
+    wait_interruptible(result_or_failure.get_ready_signal(), interruptor);
 
-    if (result_or_failure.is_pulsed()) {
-        if (const std::string *error
-            = boost::get<std::string>(&result_or_failure.wait())) {
-            throw cannot_perform_query_exc_t(*error);
-        } else if (const read_response_t *result =
-                boost::get<read_response_t>(
-                    &result_or_failure.wait())) {
-            *response = *result;
-        } else {
-            unreachable();
-        }
+    if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
+        throw cannot_perform_query_exc_t(*error);
+    } else if (const read_response_t *result =
+            boost::get<read_response_t>(
+                &result_or_failure.wait())) {
+        *response = *result;
     } else {
-        throw resource_lost_exc_t();
+        unreachable();
     }
 }
 
@@ -128,19 +116,14 @@ void master_access_t::write(
 
     multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
 
-    wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
-    wait_interruptible(&waiter, interruptor);
+    wait_interruptible(result_or_failure.get_ready_signal(), interruptor);
 
-    if (result_or_failure.get_ready_signal()->is_pulsed()) {
-        if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
-            throw cannot_perform_query_exc_t(*error);
-        } else if (const write_response_t *result =
-                boost::get<write_response_t>(&result_or_failure.wait())) {
-            *response = *result;
-        } else {
-            unreachable();
-        }
+    if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
+        throw cannot_perform_query_exc_t(*error);
+    } else if (const write_response_t *result =
+            boost::get<write_response_t>(&result_or_failure.wait())) {
+        *response = *result;
     } else {
-        throw resource_lost_exc_t();
+        unreachable();
     }
 }

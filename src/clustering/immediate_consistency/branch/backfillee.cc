@@ -168,7 +168,7 @@ void backfillee(
         branch_history_manager_t *branch_history_manager,
         store_view_t *svs,
         region_t region,
-        backfiller_business_card_t backfiller_metadata,
+        const backfiller_business_card_t &backfiller_metadata,
         signal_t *interruptor,
         double *progress_out)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
@@ -186,7 +186,7 @@ void backfillee(
 
     region_map_t<binary_blob_t> start_point_blob;
     svs->do_get_metainfo(order_source.check_in("backfillee(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
-    region_map_t<version_range_t> start_point = to_version_range_map(start_point_blob);
+    region_map_t<version_t> start_point = to_version_map(start_point_blob);
 
     start_point = start_point.mask(region);
 
@@ -197,11 +197,11 @@ void backfillee(
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
     the backfill is over. */
-    promise_t<std::pair<region_map_t<version_range_t>, branch_history_t> > end_point_cond;
-    mailbox_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_mailbox(
+    promise_t<std::pair<region_map_t<version_t>, branch_history_t> > end_point_cond;
+    mailbox_t<void(region_map_t<version_t>, branch_history_t)> end_point_mailbox(
         mailbox_manager,
         [&](signal_t *,
-                const region_map_t<version_range_t> &end_point,
+                const region_map_t<version_t> &end_point,
                 const branch_history_t &associated_branch_history) {
             end_point_cond.pulse(std::make_pair(end_point, associated_branch_history));
         });
@@ -287,48 +287,23 @@ void backfillee(
         wait_interruptible(end_point_cond.get_ready_signal(), interruptor);
         guarantee(end_point_cond.get_ready_signal()->is_pulsed());
 
-        /* Indicate in the metadata that a backfill is happening. We do this by
-        marking every region as indeterminate between the current state and the
-        backfill end state, since we don't know whether the backfill has reached
-        that region yet. */
-
+        /* RSI(raft): Eventually we need to support "reversible" backfills; i.e.
+        backfilling to a version that isn't descended from the backfillee's original
+        version. Right now we just error if that's happening. */
         typedef region_map_t<version_t> version_map_t;
-
-        version_map_t end_point = end_point_cond.wait().first;
-
-        std::vector<std::pair<region_t, version_map_t> > span_parts;
-
         {
-#ifndef NDEBUG
             on_thread_t th(branch_history_manager->home_thread());
-#endif
-            for (version_map_t::const_iterator it = start_point.begin(); it != start_point.end(); ++it) {
-                for (version_map_t::const_iterator jt = end_point.begin(); jt != end_point.end(); ++jt) {
-                    region_t ixn = region_intersection(it->first, jt->first);
+            for (const auto &start_pair : start_point) {
+                for (const auto &end_pair : end_point_cond.wait().first) {
+                    region_t ixn = region_intersection(start_pair.first, end_pair.first);
                     if (!region_is_empty(ixn)) {
-                        rassert(version_is_ancestor(branch_history_manager,
-                                                             it->second.earliest,
-                                                             jt->second.latest,
-                                                             ixn),
-                                         "We're on a different timeline than the backfiller, "
-                                         "but it somehow failed to notice.");
-                        span_parts.push_back(std::make_pair(ixn,
-                                                            version_range_t(it->second.earliest, jt->second.latest)));
+                        guarantee(version_is_ancestor(branch_history_manager,
+                                start_pair.second, end_pair.second, ixn),
+                            "We don't currently support reversible backfills.");
                     }
                 }
             }
         }
-
-        write_token_t write_token;
-        svs->new_write_token(&write_token);
-
-        svs->set_metainfo(
-            region_map_transform<version_range_t, binary_blob_t>(
-                region_map_t<version_range_t>(span_parts.begin(), span_parts.end()),
-                &binary_blob_t::make<version_range_t>),
-            order_source.check_in("backfillee(B)"),
-            &write_token,
-            interruptor);
 
         chunk_callback_t chunk_callback(
             svs, &chunk_queue, mailbox_manager, allocation_mailbox, progress_out);
@@ -337,15 +312,7 @@ void backfillee(
                                                              &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
-        {
-            wait_any_t waiter(&chunk_callback.done_cond, backfiller.get_failed_signal());
-            wait_interruptible(&waiter, interruptor);
-
-            /* Throw an exception if backfiller died */
-            backfiller.access();
-
-            guarantee(chunk_callback.done_cond.is_pulsed());
-        }
+        wait_interruptible(&chunk_callback.done_cond, interruptor);
 
         /* All went well, so don't send a cancel message to the backfiller */
         backfiller_notifier.fun = 0;
@@ -356,8 +323,8 @@ void backfillee(
     svs->new_write_token(&write_token);
 
     svs->set_metainfo(
-        region_map_transform<version_range_t, binary_blob_t>(end_point_cond.wait().first,
-                                                             &binary_blob_t::make<version_range_t>),
+        region_map_transform<version_t, binary_blob_t>(end_point_cond.wait().first,
+                                                       &binary_blob_t::make<version_t>),
         order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);

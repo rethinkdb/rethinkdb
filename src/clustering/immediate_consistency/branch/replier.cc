@@ -43,12 +43,10 @@ replier_t::replier_t(listener_t *li,
 }
 
 replier_t::~replier_t() {
-    if (listener_->get_broadcaster_lost_signal()->is_pulsed()) {
-        send(mailbox_manager_,
-             listener_->registration_done_cond_value().downgrade_mailbox,
-             /* We don't want a confirmation */
-             mailbox_addr_t<void()>());
-    }
+    send(mailbox_manager_,
+         listener_->registration_done_cond_value().downgrade_mailbox,
+         /* We don't want a confirmation */
+         mailbox_addr_t<void()>());
 }
 
 replier_business_card_t replier_t::get_business_card() {

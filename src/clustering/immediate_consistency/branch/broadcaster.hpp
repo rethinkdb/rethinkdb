@@ -85,7 +85,7 @@ public:
                      write_callback_t *cb);
 
     branch_id_t get_branch_id() const;
-
+    region_t get_region();
     broadcaster_business_card_t get_business_card();
 
     MUST_USE store_view_t *release_bootstrap_svs_for_listener();
@@ -163,7 +163,7 @@ private:
     perfmon_membership_t broadcaster_membership;
 
     mailbox_manager_t *const mailbox_manager;
-
+    const region_t region;
     const branch_id_t branch_id;
 
     /* Until our initial listener has been constructed, this holds the

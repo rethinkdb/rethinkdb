@@ -6,7 +6,6 @@
 #include "containers/binary_blob.hpp"
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(version_t, branch, timestamp);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(version_range_t, earliest, latest);
 
 
 bool version_is_ancestor(
@@ -14,7 +13,7 @@ bool version_is_ancestor(
         const version_t ancestor,
         version_t descendent,
         region_t relevant_region) {
-    typedef region_map_t<version_range_t> version_map_t;
+    typedef region_map_t<version_t> version_map_t;
     // A stack of version maps and iterators pointing an the next element in the map to traverse.
     std::stack<std::pair<version_map_t *, version_map_t::const_iterator> > origin_stack;
 
@@ -55,7 +54,7 @@ bool version_is_ancestor(
         }
 
         version_map_t::const_iterator it = origin_stack.top().second;
-        descendent = it->second.earliest;
+        descendent = it->second;
         relevant_region = it->first;
 
         ++it;
@@ -87,9 +86,9 @@ bool version_is_divergent(
 }
 
 
-region_map_t<version_range_t> to_version_range_map(const region_map_t<binary_blob_t> &blob_map) {
-    return region_map_transform<binary_blob_t, version_range_t>(blob_map,
-                                                                &binary_blob_t::get<version_range_t>);
+region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map) {
+    return region_map_transform<binary_blob_t, version_t>(
+        blob_map, &binary_blob_t::get<version_t>);
 }
 
 

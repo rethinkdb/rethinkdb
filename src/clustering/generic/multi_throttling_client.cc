@@ -40,7 +40,7 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_throttling_client_t(
         mailbox_manager_t *mm,
-        const clone_ptr_t<watchable_t<boost::optional<boost::optional<mt_business_card_t> > > > &server,
+        const mt_business_card_t &server,
         const inner_client_business_card_type &inner_client_business_card,
         signal_t *interruptor) :
     mailbox_manager(mm),
@@ -63,39 +63,16 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
                                                       give_tickets_mailbox.get_address(),
                                                       reclaim_tickets_mailbox.get_address());
 
-        // We have to type out this type in order to (a) scare you and (b) compile
-        // under clang on OS X.  (Clang will crash if you try to pass the
-        // server->subview(...) expression directly to the registrant_t
-        // constructor.)  I haven't tried using "auto" for this variable, but see
-        // reason (a).  It probably helps a lot to have this type plainly visible. sitting
-        // here.
-
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t> > > > > registrar_card_view
-            = server->subview(&multi_throttling_client_t::extract_registrar_business_card);
-
         registrant.init(new registrant_t<client_business_card_t>(mailbox_manager,
-                                                                 registrar_card_view,
+                                                                 server.registrar,
                                                                  client_business_card));
     }
 
-    wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
-    waiter.wait();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-    if (registrant->get_failed_signal()->is_pulsed()) {
-        throw resource_lost_exc_t();
-    }
-    rassert(intro_promise.get_ready_signal()->is_pulsed());
+    wait_interruptible(intro_promise.get_ready_signal(), interruptor);
 }
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::~multi_throttling_client_t() { }
-
-template <class request_type, class inner_client_business_card_type>
-signal_t *multi_throttling_client_t<request_type, inner_client_business_card_type>::get_failed_signal() {
-    return registrant->get_failed_signal();
-}
 
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor) {
@@ -103,18 +80,6 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::s
     guarantee(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
     ticket_acq->state = ticket_acq_t::state_used_ticket;
     send(mailbox_manager, intro_promise.wait().request_addr, request);
-}
-
-template <class request_type, class inner_client_business_card_type>
-boost::optional<boost::optional<registrar_business_card_t<typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t> > > multi_throttling_client_t<request_type, inner_client_business_card_type>::extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard) {
-    if (bcard) {
-        if (bcard.get()) {
-            return boost::make_optional(boost::make_optional(bcard.get().get().registrar));
-        } else {
-            return boost::make_optional(boost::optional<registrar_business_card_t<client_business_card_t> >());
-        }
-    }
-    return boost::none;
 }
 
 template <class request_type, class inner_client_business_card_type>
