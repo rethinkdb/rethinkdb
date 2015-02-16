@@ -312,7 +312,15 @@ void backfillee(
                                                              &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
-        wait_interruptible(&chunk_callback.done_cond, interruptor);
+        /* RSI(raft): Eventually we need to support interruptible backfills, so we can
+        stop the backfill in the middle and it will leave the `store_view_t` in a valid
+        state. For now we just crash with a warning message if someone tries to interrupt
+        a backfill. Hopefully this is good enough for development purposes. */
+        try {
+            wait_interruptible(&chunk_callback.done_cond, interruptor);
+        } catch (const interrupted_exc_t &) {
+            crash("We don't support interruptible backfills");
+        }
 
         /* All went well, so don't send a cancel message to the backfiller */
         backfiller_notifier.fun = 0;
