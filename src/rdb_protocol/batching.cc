@@ -26,15 +26,6 @@ static const int64_t SCALE_CONSTANT = 0;
 static const int64_t SCALE_CONSTANT = 32;
 #endif // NDEBUG
 
-RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(batchspec_t,
-                                    batch_type,
-                                    min_els,
-                                    max_els,
-                                    max_size,
-                                    first_scaledown_factor,
-                                    max_dur,
-                                    start_time);
-
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,
     int64_t _min_els,
