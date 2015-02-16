@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"

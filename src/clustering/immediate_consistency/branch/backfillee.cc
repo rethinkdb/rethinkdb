@@ -171,7 +171,7 @@ void backfillee(
         const backfiller_business_card_t &backfiller_metadata,
         signal_t *interruptor,
         double *progress_out)
-        THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
+        THROWS_ONLY(interrupted_exc_t)
 {
     backfill_session_id_t backfill_session_id = generate_uuid();
 

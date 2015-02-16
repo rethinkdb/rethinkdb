@@ -22,7 +22,7 @@ public:
             mailbox_manager_t *mm,
             const master_business_card_t &master,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+            THROWS_ONLY(interrupted_exc_t);
 
     region_t get_region() {
         return region;
@@ -36,7 +36,7 @@ public:
             order_token_t otok,
             fifo_enforcer_sink_t::exit_read_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t);
+            THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void new_write_token(fifo_enforcer_sink_t::exit_write_t *out);
 
@@ -46,7 +46,7 @@ public:
             order_token_t otok,
             fifo_enforcer_sink_t::exit_write_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t);
+            THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
 private:
     typedef multi_throttling_business_card_t<

@@ -4,7 +4,6 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -33,7 +32,7 @@ void backfillee(
         /* If this is non-null, `backfillee()` will periodically update it with the
         latest progress fraction in the range [0, 1]. */
         double *progress_out)
-    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+    THROWS_ONLY(interrupted_exc_t);
 
 /* Convenience function for extracting the backfiller's peer_id_t from the
  * backfiller metadata. Returns a nil ID if no peer id exists. */

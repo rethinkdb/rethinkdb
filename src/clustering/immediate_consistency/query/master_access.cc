@@ -17,7 +17,7 @@ master_access_t::master_access_t(
         mailbox_manager_t *mm,
         const master_business_card_t &master,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
+        THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
     region(master.region),
     multi_throttling_client(
@@ -37,9 +37,7 @@ void master_access_t::read(
         order_token_t otok,
         fifo_enforcer_sink_t::exit_read_t *token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t,
-                    resource_lost_exc_t,
-                    cannot_perform_query_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     rassert(region_is_superset(region, read.get_region()));
     otok.assert_read_mode();
 
@@ -91,7 +89,7 @@ void master_access_t::write(
         order_token_t otok,
         fifo_enforcer_sink_t::exit_write_t *token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     rassert(region_is_superset(region, write.get_region()));
     otok.assert_write_mode();
 
