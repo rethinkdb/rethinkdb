@@ -5,9 +5,9 @@ $t = r.table('test')
 
 $streams = [
   $t,
-  $t.between(0, 100, index:'id'),
-  #r([$t.get(0)]),
-  #r([1, 2, 3, 4])
+  $t.between(10, 100, index:'id'),
+  r([$t.get(0)]),
+  r([1, 2, 3, 4])
 ]
 
 $infstreams = [
@@ -39,7 +39,7 @@ end
 $t.delete.run
 $t.insert((0...100).map{|i| {id: i}}).run
 
-$eager_pop = $streams
+$eager_pop = $streams*2 + $empty_streams*2 + $streams
 $eager_union_1 = flat_union($eager_pop)
 $eager_union_2 = nested_union($eager_pop)
 
@@ -63,16 +63,14 @@ def mangle stream
   stream.to_a.sort{|x,y| cmp(x, y)}
 end
 
-(0...100).each {
-  timeout(60) {
-    $eager_canon = []
-    $eager_pop.each{|pop|
-      $eager_canon += pop.run.to_a
-    }
-    $eager_canon = mangle($eager_canon)
-    $eager_res1 = mangle($eager_union_1.run)
-    assert{$eager_res1 == $eager_canon}
-    #$eager_res2 = mangle($eager_union_2.run)
-    #assert{$eager_res2 == $eager_canon}
+timeout(60) {
+  $eager_canon = []
+  $eager_pop.each{|pop|
+    $eager_canon += pop.run.to_a
   }
+  $eager_canon = mangle($eager_canon)
+  $eager_res1 = mangle($eager_union_1.run)
+  assert{$eager_res1 == $eager_canon}
+  $eager_res2 = mangle($eager_union_2.run)
+  assert{$eager_res2 == $eager_canon}
 }

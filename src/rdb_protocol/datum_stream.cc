@@ -1262,12 +1262,16 @@ union_datum_stream_t::union_datum_stream_t(
     }
 
     notify_conds = std::vector<cond_t *>(streams.size(), nullptr);
+    size_t should_be_active = 0;
     for (size_t i = 0; i < streams.size(); ++i) {
         ASSERT_FINITE_CORO_WAITING;
         // We spawn immediately so that we can safely acquire the drainer lock.
-        coro_t::spawn_now_dangerously([i, this]() { this->coro_cb(i); });
+        if (!streams[i]->is_exhausted()) {
+            coro_t::spawn_now_dangerously([i, this]() { this->coro_cb(i); });
+            should_be_active += 1;
+        }
     }
-    r_sanity_check(active == streams.size());
+    r_sanity_check(active == should_be_active);
 }
 
 std::vector<datum_t>
