@@ -285,7 +285,7 @@ private:
     feed_type_t union_type;
     bool is_infinite_union;
 
-    size_t active = 0, outstanding_notifications = 0;
+    size_t active, outstanding_notifications;
     cond_t abort;
     std::vector<cond_t *> notify_conds;
     scoped_ptr_t<cond_t> all_notified, data_available;

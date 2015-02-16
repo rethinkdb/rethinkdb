@@ -1255,7 +1255,9 @@ union_datum_stream_t::union_datum_stream_t(
     : datum_stream_t(bt_src),
       streams(_streams),
       union_type(feed_type_t::not_feed),
-      is_infinite_union(false) {
+      is_infinite_union(false),
+      active(0),
+      outstanding_notifications(0) {
 
     for (const auto &stream : streams) {
         union_type = union_of(union_type, stream->cfeed_type());
