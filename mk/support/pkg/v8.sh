@@ -31,7 +31,7 @@ pkg_install () {
     esac
     mode=release
     pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX werror=no $makeflags CXXFLAGS="${CXXFLAGS:-} -Wno-error"
-    for lib in "$build_dir/out/$arch.$mode/"*.a `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
+    for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
         name=`basename $lib`
         cp $lib "$install_dir/lib/${name/.$arch/}"
     done
