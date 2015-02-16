@@ -1283,9 +1283,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
             // *double* prefetching by prefetching on the server as well.
             while (queue.size() == 0) {
                 if (exc) std::rethrow_exception(exc);
-                if (active == 0) {
-                    return std::vector<datum_t>();
-                }
+                if (active == 0) return std::vector<datum_t>();
                 {
                     ASSERT_NO_CORO_WAITING;
                     if (!coro_info.has()) {
