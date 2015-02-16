@@ -18,7 +18,8 @@ public:
         raft_member_t<state_t> *raft,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *remote_primary_bcards,
-        const multistore_ptr_t *multistore);
+        const multistore_ptr_t *multistore,
+        branch_history_manager_t *branch_history_manager);
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *get_acks() {
         return &ack_map;
@@ -92,6 +93,7 @@ private:
     watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *const remote_primary_bcards;
     const multistore_ptr_t *const multistore;
+    branch_history_manager_t *const branch_history_manager;
 
     std::map<ongoing_key_t, ongoing_data_t> ongoings;
     bool update_coro_running;

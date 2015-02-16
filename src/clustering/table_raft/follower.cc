@@ -6,11 +6,13 @@ follower_t::follower_t(
         raft_member_t<state_t> *_raft,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *_remote_primary_bcards,
-        const multistore_ptr_t *_multistore) :
+        const multistore_ptr_t *_multistore,
+        branch_history_manager_t *_branch_history_manager) :
     server_id(_server_id),
     raft(_raft),
     remote_primary_bcards(_remote_primary_bcards),
     multistore(_multistore),
+    branch_history_manager(_branch_history_manager),
     update_coro_running(false),
     raft_state_subs(std::bind(&follower_t::on_raft_state_change, this))
 {
@@ -127,17 +129,19 @@ void follower_t::update(const state_t &new_state,
                 switch (key.role) {
                 case ongoing_key_t::role_t::primary:
                     it->second.primary.init(new primary_t(
-                        server_id, data->store_subview.get(), &local_primary_bcards,
-                        key.region, new_pair.second.second, acker));
+                        server_id, data->store_subview.get(), branch_history_manager,
+                        key.region, new_pair.second.second, acker,
+                        &local_primary_bcards));
                     break;
                 case ongoing_key_t::role_t::secondary:
                     it->second.secondary.init(new secondary_t(
-                        server_id, data->store_subview.get(), remote_primary_bcards,
-                        key.region, new_pair.second.second, acker));
+                        server_id, data->store_subview.get(), branch_history_manager,
+                        key.region, new_pair.second.second, acker,
+                        remote_primary_bcards));
                     break;
                 case ongoing_key_t::role_t::erase:
                     it->second.primary.init(new erase_t(
-                        server_id, data->store_subview.get(),
+                        server_id, data->store_subview.get(), branch_history_manager,
                         key.region, new_pair.second.second, acker));
                     break;
                 default: unreachable();

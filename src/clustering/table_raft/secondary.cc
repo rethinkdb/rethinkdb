@@ -6,11 +6,13 @@ namespace table_raft {
 secondary_t::secondary_t(
         const server_id_t &sid,
         store_view_t *s,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        branch_history_manager_t *bhm,
         const region_t &r,
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb) :
-    server_id(sid), store(s), primary_bcards(pbcs), region(r),
+        const std::function<void(contract_ack_t)> &acb,
+        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs) :
+    server_id(sid), store(s), branch_history_manager(bhm), region(r),
+    primary_bcards(pbcs),
     primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
     branch(c.branch),
     ack_cb(acb)
@@ -96,7 +98,7 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 server_id,
                 backfill_throttler, /* RSI */
                 primary_bcard.broadcaster,
-                branch_history_manager, /* RSI */
+                branch_history_manager,
                 store,
                 primary_bcard.replier,
                 backfill_stats_parent, /* RSI */

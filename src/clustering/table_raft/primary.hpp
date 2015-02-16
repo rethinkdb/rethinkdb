@@ -16,11 +16,12 @@ public:
     primary_t(
         const server_id_t &sid,
         store_view_t *s,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *primary_bcards,
+        branch_history_manager_t *bhm,
         const region_t &r,
         const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb);
+        const std::function<void(const contract_ack_t &)> &ack_cb,
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+            *primary_bcards);
     void update_contract(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &ack_cb);
@@ -97,6 +98,7 @@ private:
 
     server_id_t const server_id;
     store_view_t *const store;
+    branch_history_manager_t *const branch_history_manager;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *primary_bcards;
     region_t const region;

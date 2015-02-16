@@ -9,6 +9,7 @@ public:
     erase_t(
         const server_id_t &server_id,
         store_view_t *s,
+        UNUSED branch_history_manager_t *bhm,
         const region_t &r,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &ack_cb);

@@ -4,16 +4,18 @@
 primary_t::primary_t(
         const server_id_t &sid,
         store_view_t *s,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        branch_history_manager_t *bhm,
         const region_t &r,
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb) :
+        const std::function<void(contract_ack_t)> &acb,
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs) :
     server_id(sid),
     store(s),
-    primary_bcards(pbcs),
+    branch_history_manager(bhm),
     region(r),
     our_branch_id(generate_uuid()),
-    latest_contract(make_counted<contract_info_t>(c, acb))
+    latest_contract(make_counted<contract_info_t>(c, acb)),
+    primary_bcards(pbcs)
     { }
 
 void primary_t::update_contract(
@@ -87,6 +89,7 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
 
         broadcaster_t broadcaster(
             mailbox_manager,
+            branch_history_manager,
             store,
             parent_perfmon_collection, /* RSI */
             order_source, /* RSI */
