@@ -61,6 +61,7 @@ public:
 
     broadcaster_t(
             mailbox_manager_t *mm,
+            branch_history_manager_t *bhm,
             store_view_t *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             const branch_id_t &branch_id,

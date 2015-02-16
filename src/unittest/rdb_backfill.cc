@@ -61,6 +61,7 @@ void run_with_broadcaster(
     scoped_ptr_t<broadcaster_t> broadcaster(
         new broadcaster_t(
             cluster.get_mailbox_manager(),
+            &branch_history_manager,
             &initial_store.store,
             &get_global_perfmon_collection(),
             generate_uuid(),

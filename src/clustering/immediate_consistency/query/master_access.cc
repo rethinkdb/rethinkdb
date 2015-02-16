@@ -41,6 +41,7 @@ void master_access_t::read(
                     resource_lost_exc_t,
                     cannot_perform_query_exc_t) {
     rassert(region_is_superset(region, read.get_region()));
+    otok.assert_read_mode();
 
     promise_t<boost::variant<read_response_t, std::string> >
         result_or_failure;
@@ -92,6 +93,7 @@ void master_access_t::write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
     rassert(region_is_superset(region, write.get_region()));
+    otok.assert_write_mode();
 
     promise_t<boost::variant<write_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<write_response_t, std::string>)> result_or_failure_mailbox(

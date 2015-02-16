@@ -25,6 +25,7 @@ const size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
 
 broadcaster_t::broadcaster_t(
         mailbox_manager_t *mm,
+        branch_history_manager_t *bhm,
         store_view_t *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
         const branch_id_t &_branch_id,
@@ -54,6 +55,9 @@ broadcaster_t::broadcaster_t(
     guarantee(to_version_map(origin_blob) == branch_info.origin);
     guarantee(initial_svs->get_region() == branch_info.region);
 #endif
+
+    /* Store the new branch in the branch history manager */
+    bhm->create_branch(branch_id, branch_info, interruptor);
 
     /* Initialize the metainfo to the new branch */
     write_token_t write_token;

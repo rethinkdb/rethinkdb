@@ -101,7 +101,7 @@ TPTEST(ClusteringQuery, ReadWrite) {
         master_access.read(
             read,
             &res,
-            order_source.check_in("ClusteringQuery.ReadWrite.read"),
+            order_source.check_in("ClusteringQuery.ReadWrite.read").with_read_mode(),
             &token,
             &non_interruptor);
         EXPECT_TRUE(boost::get<dummy_read_response_t>(&res.response) != nullptr);
@@ -155,7 +155,7 @@ TPTEST(ClusteringQuery, Failure) {
             master_access.read(
                 read,
                 &res,
-                order_source.check_in("ClusteringQuery.ReadWrite.read"),
+                order_source.check_in("ClusteringQuery.ReadWrite.read").with_read_mode(),
                 &token,
                 &non_interruptor);
             ADD_FAILURE() << "Expected an exception to be thrown.";
