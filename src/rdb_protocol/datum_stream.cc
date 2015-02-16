@@ -1166,12 +1166,9 @@ datum_t union_datum_stream_t::as_array(env_t *env) {
 }
 
 bool union_datum_stream_t::is_exhausted() const {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        if (!(*it)->is_exhausted()) {
-            return false;
-        }
-    }
-    return batch_cache_exhausted();
+    return batch_cache_exhausted()
+        && active == 0
+        && queue.size() == 0;
 }
 feed_type_t union_datum_stream_t::cfeed_type() const {
     return union_type;
@@ -1194,7 +1191,7 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
     signal_t *interruptor = lock.get_drain_signal();
     bool is_first = true;
     try {
-        for (;;) {
+        while (!stream->is_exhausted()) {
             cond_t notify;
             notify_conds[i] = &notify;
             wait_interruptible(&notify, interruptor);
@@ -1222,6 +1219,7 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
                 = stream->next_batch(coro_info->env.get(), bs);
             if (batch.size() == 0) {
                 if (stream->cfeed_type() == feed_type_t::not_feed) {
+                    r_sanity_check(stream->is_exhausted());
                     break;
                 } else {
                     r_sanity_check(
@@ -1284,8 +1282,10 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
             // The client is already doing prefetching, so we don't want to do
             // *double* prefetching by prefetching on the server as well.
             while (queue.size() == 0) {
-                if (active == 0) return std::vector<datum_t>();
                 if (exc) std::rethrow_exception(exc);
+                if (active == 0) {
+                    return std::vector<datum_t>();
+                }
                 {
                     ASSERT_NO_CORO_WAITING;
                     if (!coro_info.has()) {
@@ -1309,7 +1309,6 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                         }
                     }
                     r_sanity_check(outstanding_notifications == 0);
-                    all_notified = make_scoped<cond_t>();
                     data_available = make_scoped<cond_t>();
                     for (size_t i = 0; i < notify_conds.size(); ++i) {
                         if (notify_conds[i] != NULL) {
@@ -1318,8 +1317,15 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                             notify_conds[i] = NULL;
                         }
                     }
+                    if (outstanding_notifications != 0) {
+                        all_notified = make_scoped<cond_t>();
+                    } else {
+                        all_notified.reset();
+                    }
                 }
-                wait_interruptible(all_notified.get(), &interruptor);
+                if (all_notified.has()) {
+                    wait_interruptible(all_notified.get(), &interruptor);
+                }
                 r_sanity_check(outstanding_notifications == 0);
                 wait_interruptible(data_available.get(), &interruptor);
             }
