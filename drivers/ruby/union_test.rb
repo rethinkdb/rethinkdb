@@ -13,7 +13,7 @@ $streams = [
 $infstreams = [
   $t.changes(),
   $t.between(10, 100, index: 'id').changes(),
-  $t.get(0).changes()
+  $t.get(0).changes().skip(1)
 ]
 
 $empty_streams = [
@@ -25,7 +25,7 @@ $empty_streams = [
 $empty_infstreams = [
   $t.filter{false}.changes(),
   $t.changes().filter{false},
-  $t.get(0).changes().skip(1)
+  $t.get('a').changes().skip(1)
 ]
 
 def flat_union(streams)
@@ -49,13 +49,15 @@ def assert
   res
 end
 
+def dehash x
+  x.class == Hash ? x.map{|k,v| [k, dehash(v)]} : x
+end
+
 def cmp(a, b)
   if a.class != b.class
     return a.class.to_s <=> b.class.to_s
-  elsif a.class == Hash
-    return a.to_a <=> b.to_a
   else
-    return a <=> b
+    return dehash(a) <=> dehash(b)
   end
 end
 
@@ -74,3 +76,75 @@ timeout(60) {
   $eager_res2 = mangle($eager_union_2.run)
   assert{$eager_res2 == $eager_canon}
 }
+
+$lazy_pop = $empty_infstreams + $eager_pop + $empty_infstreams
+$change_pop = $infstreams + $lazy_pop + $infstreams
+
+$lp1 = flat_union($lazy_pop).run.each
+$lp2 = nested_union($lazy_pop).run.each
+$cp1 = flat_union($change_pop).run.each
+$cp2 = nested_union($change_pop).run.each
+# TODO: .union.changes
+
+timeout(60) {
+  $lp1res = []
+  $lp2res = []
+  $cp1res = []
+  $cp2res = []
+  $eager_canon.each_index {|i|
+    $lp1res << $lp1.next
+    $lp2res << $lp2.next
+    $cp1res << $cp1.next
+    $cp2res << $cp2.next
+  }
+  $lp1res = mangle($lp1res)
+  $lp2res = mangle($lp2res)
+  $cp1res = mangle($cp1res)
+  $cp2res = mangle($cp2res)
+  assert{$lp1res == $eager_canon}
+  assert{$lp2res == $eager_canon}
+  assert{$cp1res == $eager_canon}
+  assert{$cp2res == $eager_canon}
+}
+
+timeout(60) {
+  $t.get(0).update({a: 1}).run
+  $t.get(5).update({a: 1}).run
+  $t.get(50).update({a: 1}).run
+  $expected_changes =
+    [{"new_val"=>{"a"=>1, "id"=>0}, "old_val"=>{"id"=>0}}]*4 +
+    [{"new_val"=>{"a"=>1, "id"=>5}, "old_val"=>{"id"=>5}}]*2 +
+    [{"new_val"=>{"a"=>1, "id"=>50}, "old_val"=>{"id"=>50}}]*4
+  $expected_changes = mangle($expected_changes)
+  $res1 = []
+  $res2 = []
+  $expected_changes.each_index {|i|
+    $res1 << $cp1.next
+    $res2 << $cp2.next
+  }
+  $res1 = mangle($res1)
+  $res2 = mangle($res2)
+  assert{$res1 == $expected_changes}
+  assert{$res2 == $expected_changes}
+}
+
+$timed_out = false
+begin
+  timeout(2) {
+    $lp1.next
+  }
+rescue
+  $timed_out = true
+end
+assert{$timed_out}
+
+$timed_out = false
+begin
+  timeout(2) {
+    $lp2.next
+  }
+rescue
+  $timed_out = true
+end
+assert{$timed_out}
+
