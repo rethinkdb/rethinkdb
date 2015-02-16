@@ -1184,8 +1184,7 @@ struct coro_info_t {
     coro_info_t(scoped_ptr_t<env_t> _env, batchspec_t _batchspec)
         : env(std::move(_env)), batchspec(std::move(_batchspec)) { }
     const scoped_ptr_t<env_t> env;
-    // This changes because the first batch is special.
-    batchspec_t batchspec;
+    const batchspec_t batchspec;
 };
 
 void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
