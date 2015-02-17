@@ -1170,7 +1170,7 @@ private:
                 parent->queue.push(std::move(batch));
                 parent->data_available->pulse_if_not_already_pulsed();
             }
-        } catch (const interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             // Just fall through and end; the drainer signal being pulsed
             // will interrupt `next_batch_impl` as well.
         } catch (...) {
