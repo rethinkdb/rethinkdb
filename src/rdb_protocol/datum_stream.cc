@@ -1290,25 +1290,23 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                 if (active == 0) return std::vector<datum_t>();
                 {
                     ASSERT_NO_CORO_WAITING;
+                    // We only have to do this once because we use the same optargs
+                    // etc.  for every batch.
                     if (!coro_info.has()) {
-                        // We only have to do this once because we use the same optargs
-                        // etc.  for every batch.
-                        if (!coro_info.has()) {
-                            r_sanity_check(!trace.has());
-                            r_sanity_check(!disabler.has());
-                            if (env->trace != nullptr) {
-                                trace = make_scoped<profile::trace_t>();
-                                disabler = make_scoped<profile::disabler_t>(trace.get());
-                            }
-                            coro_info = make_scoped<coro_info_t>(
-                                make_scoped<env_t>(
-                                    env->get_rdb_ctx(),
-                                    env->return_empty_normal_batches,
-                                    drainer.get_drain_signal(),
-                                    env->get_all_optargs(),
-                                    trace.has() ? trace.get() : nullptr),
-                                batchspec);
+                        r_sanity_check(!trace.has());
+                        r_sanity_check(!disabler.has());
+                        if (env->trace != nullptr) {
+                            trace = make_scoped<profile::trace_t>();
+                            disabler = make_scoped<profile::disabler_t>(trace.get());
                         }
+                        coro_info = make_scoped<coro_info_t>(
+                            make_scoped<env_t>(
+                                env->get_rdb_ctx(),
+                                env->return_empty_normal_batches,
+                                drainer.get_drain_signal(),
+                                env->get_all_optargs(),
+                                trace.has() ? trace.get() : nullptr),
+                            batchspec);
                     }
                     r_sanity_check(outstanding_notifications == 0);
                     data_available = make_scoped<cond_t>();
