@@ -1129,7 +1129,6 @@ public:
     }
     void maybe_launch_read() {
         if (!stream->is_exhausted() && !running) {
-            r_sanity_check(!stream->is_exhausted());
             running = true;
             // Has to spawn now because we acquire a drainer lock.
             coro_t::spawn_now_dangerously([this]{this->cb();});
