@@ -1,4 +1,4 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 """`driver.py` is a module for starting groups of RethinkDB cluster nodes and
 connecting them to each other. It also supports netsplits.
@@ -609,8 +609,8 @@ class _Process(object):
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
         utils.kill_process_group(self.process_group_id, shutdown_grace=0)
-        self.process = None
         self.running = False
+        self.close()
     
     def close(self):
         """Gracefully terminates the process (if possible), removes it from the cluster, and invalidates the `Process` object."""

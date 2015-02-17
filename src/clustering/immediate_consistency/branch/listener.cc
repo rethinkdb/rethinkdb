@@ -7,7 +7,6 @@
 #include <boost/bind.hpp>
 
 #include "clustering/generic/registrant.hpp"
-#include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -46,9 +45,8 @@ public:
         region_map_t<binary_blob_t> masked = metainfo.mask(region);
 
         for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
-            version_range_t range = binary_blob_t::get<version_range_t>(it->second);
-            guarantee(range.earliest.timestamp == range.latest.timestamp);
-            guarantee(range.latest.timestamp <= tstamp_);
+            version_t range = binary_blob_t::get<version_t>(it->second);
+            guarantee(range.timestamp <= tstamp_);
         }
     }
 
@@ -64,15 +62,15 @@ listener_t::listener_t(const base_path_t &base_path,
                        mailbox_manager_t *mm,
                        const server_id_t &server_id,
                        backfill_throttler_t *backfill_throttler,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
+                       broadcaster_business_card_t broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        store_view_t *svs,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
+                       replier_business_card_t replier,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
                        order_source_t *order_source,
                        double *backfill_progress_out)
-        THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
+        THROWS_ONLY(interrupted_exc_t) :
 
     mailbox_manager_(mm),
     server_id_(server_id),
@@ -93,54 +91,8 @@ listener_t::listener_t(const base_path_t &base_path,
     read_mailbox_(mailbox_manager_,
         std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
-    boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
-        broadcaster_metadata->get();
-    if (!business_card || !business_card.get()) {
-        throw broadcaster_lost_exc_t();
-    }
-
-    branch_id_ = business_card.get().get().branch_id;
-
-    branch_birth_certificate_t this_branch_history;
-
-    {
-        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
-        on_thread_t th(branch_history_manager->home_thread());
-        branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
-        this_branch_history = branch_history_manager->get_branch(branch_id_);
-    }
-
-    our_branch_region_ = this_branch_history.region;
-
-#ifndef NDEBUG
-    /* Sanity-check to make sure we're on the same timeline as the thing
-       we're trying to join. The backfiller will perform an equivalent check,
-       but if there's an error it would be nice to catch it where the action
-       was initiated. */
-
-    rassert(region_is_superset(our_branch_region_, svs_->get_region()));
-
-    read_token_t read_token;
-    svs_->new_read_token(&read_token);
-    region_map_t<binary_blob_t> start_point_blob;
-    svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
-    region_map_t<version_range_t> start_point = to_version_range_map(start_point_blob);
-
-    {
-        on_thread_t th(branch_history_manager->home_thread());
-        for (region_map_t<version_range_t>::const_iterator it = start_point.begin();
-             it != start_point.end();
-             ++it) {
-
-            version_t version = it->second.latest;
-            rassert(version.branch == branch_id_ ||
-                    version_is_ancestor(branch_history_manager,
-                                        version,
-                                        version_t(branch_id_, this_branch_history.initial_timestamp),
-                                        it->first));
-        }
-    }
-#endif  // NDEBUG
+    branch_id_ = broadcaster_metadata.branch_id;
+    our_branch_region_ = broadcaster_metadata.region;
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
@@ -150,79 +102,52 @@ listener_t::listener_t(const base_path_t &base_path,
 
     state_timestamp_t streaming_begin_point = listener_intro.broadcaster_begin_timestamp;
 
-    try {
-        /* Go through a little song and dance to make sure that the
-         * backfiller will at least get us to the point that we will being
-         * live streaming from. */
+    /* OK, now we're streaming writes into our queue, but not applying them to the B-tree
+    yet. */
 
-        cond_t backfiller_is_up_to_date;
-        mailbox_t<void()> ack_mbox(
-            mailbox_manager_,
-            [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
+    /* Block until the backfiller is at least as up-to-date as the point where we started
+    streaming writes from the broadcaster */
+    cond_t backfiller_is_up_to_date;
+    mailbox_t<void()> ack_mbox(
+        mailbox_manager_,
+        [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
+    send(mailbox_manager_, replier.synchronize_mailbox, 
+        streaming_begin_point, ack_mbox.get_address());
+    wait_interruptible(&backfiller_is_up_to_date, interruptor);
 
-        resource_access_t<replier_business_card_t> replier_access(replier);
-        send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
+    /* Backfill from the backfiller */
+    {
+        const peer_id_t peer = replier.backfiller_bcard.backfill_mailbox.get_peer();
+        backfill_throttler_t::lock_t throttler_lock(backfill_throttler, peer,
+                                                    interruptor);
+        backfillee(mailbox_manager_,
+                   branch_history_manager,
+                   svs_,
+                   svs_->get_region(),
+                   replier.backfiller_bcard,
+                   interruptor,
+                   backfill_progress_out);
+    } // Release throttler_lock
 
-        wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
-        wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
-
-        {
-            const peer_id_t peer = extract_backfiller_peer_id(
-                    get_backfiller_from_replier_bcard(replier->get()));
-            backfill_throttler_t::lock_t throttler_lock(backfill_throttler, peer,
-                                                        interruptor);
-
-            /* Backfill */
-            backfillee(mailbox_manager_,
-                       branch_history_manager,
-                       svs_,
-                       svs_->get_region(),
-                       replier->subview(&listener_t::get_backfiller_from_replier_bcard),
-                       interruptor,
-                       backfill_progress_out);
-        } // Release throttler_lock
-    } catch (const resource_lost_exc_t &) {
-        throw backfiller_lost_exc_t();
-    }
-
+    /* Figure out where the backfill left us at */
     read_token_t read_token2;
     svs_->new_read_token(&read_token2);
-
     region_map_t<binary_blob_t> backfill_end_point_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor, &backfill_end_point_blob);
+    region_map_t<version_t> backfill_end_point =
+        to_version_map(backfill_end_point_blob);
+    guarantee(backfill_end_point.get_domain() == svs_->get_region());
 
-    region_map_t<version_range_t> backfill_end_point = to_version_range_map(backfill_end_point_blob);
-
-    /* Sanity checking. */
-
-    /* Make sure the region is not empty. */
-    guarantee(backfill_end_point.begin() != backfill_end_point.end());
-
-    /* The end timestamp is the maximum of the timestamps we've seen. If you've
-    been following closely (which you probably haven't because this is
-    confusing) you should be thinking "How is that correct? If the region map
-    says that we're at timestamp 900 on region A and 901 on region B, then that
-    means we're missing the updates for the write with timestamp 900->901 on
-    region A. If the region map has different timestamps for different regions,
-    then it's not possible to boil down the current timestamp to a single
-    number, right?" But this is wrong. Our backfill was, in fact, serialized
-    with respect to all the writes. In fact, the reason why region A has
-    timestamp 900 is that the write with timestamp 900->901 didn't touch any
-    keys in region A. We didn't update the timestamp for region A because
-    regions A and B were on separate threads, and we didn't want to send the
-    operation to region A unnecessarily if we weren't actually updating any keys
-    there. That's why it's OK to just take the maximum of all the timestamps
-    that we see.
-    TODO: If we change the way we shard such that each listener_t maps to a
-    single B-tree on the same server, then replace this loop with a strict
-    assertion that requires everything to be at the same timestamp. */
-    state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
-    for (region_map_t<version_range_t>::const_iterator it = backfill_end_point.begin();
-         it != backfill_end_point.end();
-         ++it) {
-        guarantee(it->second.is_coherent());
-        guarantee(it->second.earliest.branch == branch_id_);
-        backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
+    state_timestamp_t backfill_end_timestamp;
+    bool first_chunk = true;
+    for (const auto &chunk : backfill_end_point) {
+        guarantee(chunk.second.branch == branch_id_);
+        if (first_chunk) {
+            backfill_end_timestamp = chunk.second.timestamp;
+            first_chunk = false;
+        } else {
+            guarantee(backfill_end_timestamp == chunk.second.timestamp);
+        }
     }
 
     guarantee(backfill_end_timestamp >= streaming_begin_point);
@@ -246,12 +171,11 @@ listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
                        const server_id_t &server_id,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
-                       branch_history_manager_t *branch_history_manager,
                        broadcaster_t *broadcaster,
                        perfmon_collection_t *backfill_stats_parent,
                        signal_t *interruptor,
-                       DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
+                       DEBUG_VAR order_source_t *order_source)
+        THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
     server_id_(server_id),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
@@ -270,37 +194,19 @@ listener_t::listener_t(const base_path_t &base_path,
     read_mailbox_(mailbox_manager_,
         std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
-    branch_birth_certificate_t this_branch_history;
-    {
-        on_thread_t th(branch_history_manager->home_thread());
-        this_branch_history = branch_history_manager->get_branch(branch_id_);
-    }
-
-    our_branch_region_ = this_branch_history.region;
+    our_branch_region_ = broadcaster->get_region();
 
 #ifndef NDEBUG
-    /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
-    boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
-        broadcaster_metadata->get();
-    rassert(business_card && business_card.get());
-    rassert(business_card.get().get().branch_id == broadcaster->get_branch_id());
-
-    /* Make sure the initial state of the store is sane. Note that we assume
-    that we're using the same `branch_history_manager_t` as the broadcaster, so
-    an entry should already be present for the branch we're trying to join, and
-    we skip calling `import_branch_history()`. */
-    rassert(svs_->get_region() == this_branch_history.region);
-
     /* Snapshot the metainfo before we start receiving writes */
     read_token_t read_token;
     svs_->new_read_token(&read_token);
     region_map_t<binary_blob_t> initial_metainfo_blob;
     svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
-    region_map_t<version_range_t> initial_metainfo = to_version_range_map(initial_metainfo_blob);
+    region_map_t<version_t> initial_metainfo = to_version_map(initial_metainfo_blob);
 #endif
 
     /* Attempt to register for writes */
-    try_start_receiving_writes(broadcaster_metadata, interruptor);
+    try_start_receiving_writes(broadcaster->get_business_card(), interruptor);
 
     listener_intro_t listener_intro;
     bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
@@ -311,10 +217,9 @@ listener_t::listener_t(const base_path_t &base_path,
                                          local_listener_registration_.lock());
 
 #ifndef NDEBUG
-    region_map_t<version_range_t> expected_initial_metainfo(svs_->get_region(),
-                                                                        version_range_t(version_t(branch_id_,
-                                                                                                  listener_intro.broadcaster_begin_timestamp)));
-
+    region_map_t<version_t> expected_initial_metainfo(
+        svs_->get_region(),
+        version_t(branch_id_, listener_intro.broadcaster_begin_timestamp));
     rassert(expected_initial_metainfo == initial_metainfo);
 #endif
 
@@ -335,72 +240,27 @@ listener_t::~listener_t() {
     read_mailbox_.begin_shutdown();
 }
 
-signal_t *listener_t::get_broadcaster_lost_signal() {
-    return registrant_->get_failed_signal();
-}
-
-boost::optional<boost::optional<backfiller_business_card_t> >
-listener_t::get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t> > &replier_bcard) {
-    if (!replier_bcard) {
-        return boost::optional<boost::optional<backfiller_business_card_t> >();
-    } else if (!replier_bcard.get()) {
-        return boost::optional<boost::optional<backfiller_business_card_t> >(
-            boost::optional<backfiller_business_card_t>());
-    } else {
-        return boost::optional<boost::optional<backfiller_business_card_t> >(
-            boost::optional<backfiller_business_card_t>(replier_bcard.get().get().backfiller_bcard));
-    }
-}
-
-boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > >
-listener_t::get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t> > &broadcaster_bcard) {
-    if (!broadcaster_bcard) {
-        return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > >();
-    } else if (!broadcaster_bcard.get()) {
-        return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > >(
-            boost::optional<registrar_business_card_t<listener_business_card_t> >());
-    } else {
-        return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > >(
-            boost::optional<registrar_business_card_t<listener_business_card_t> >(broadcaster_bcard.get().get().registrar));
-    }
-}
-
 void listener_t::try_start_receiving_writes(
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster,
+        broadcaster_business_card_t broadcaster,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
+        THROWS_ONLY(interrupted_exc_t)
 {
     /* `listener_intro_t` represents the introduction we expect to get from the
-   broadcaster if all goes well. */
-    listener_intro_t intro;
-    cond_t got_intro;
+    broadcaster if all goes well. */
     listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-            [&](signal_t *, const listener_intro_t &i) {
-                intro = i;
-                got_intro.pulse();
+            [&](signal_t *, const listener_intro_t &intro) {
+                registration_done_cond_.pulse(intro);
             });
 
-    try {
-        listener_business_card_t our_bcard(
-            intro_mailbox.get_address(), write_mailbox_.get_address(), server_id_);
-        registrant_.init(new registrant_t<listener_business_card_t>(
-            mailbox_manager_,
-            broadcaster->subview(&listener_t::get_registrar_from_broadcaster_bcard),
-            our_bcard));
-    } catch (const resource_lost_exc_t &) {
-        throw broadcaster_lost_exc_t();
-    }
+    listener_business_card_t our_bcard(
+        intro_mailbox.get_address(), write_mailbox_.get_address(), server_id_);
+    registrant_.init(new registrant_t<listener_business_card_t>(
+        mailbox_manager_,
+        broadcaster.registrar,
+        our_bcard));
 
-    wait_any_t waiter(&got_intro, registrant_->get_failed_signal());
-    wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
-
-    if (registrant_->get_failed_signal()->is_pulsed()) {
-        throw broadcaster_lost_exc_t();
-    } else {
-        guarantee(got_intro.is_pulsed());
-        registration_done_cond_.pulse(intro);
-    }
+    wait_interruptible(registration_done_cond_.get_ready_signal(), interruptor);
 }
 
 void listener_t::on_write(
@@ -470,7 +330,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<binary_blob_t>(svs_->get_region(),
-            binary_blob_t(version_range_t(version_t(branch_id_, qe.timestamp)))),
+            binary_blob_t(version_t(branch_id_, qe.timestamp))),
         qe.write,
         &response,
         write_durability_t::SOFT,
@@ -542,7 +402,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     write_response_t response;
     svs_->write(DEBUG_ONLY(metainfo_checker, )
                 region_map_t<binary_blob_t>(svs_->get_region(),
-                                            binary_blob_t(version_range_t(version_t(branch_id_, timestamp)))),
+                                            binary_blob_t(version_t(branch_id_, timestamp))),
                 write,
                 &response,
                 durability,

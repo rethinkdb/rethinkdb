@@ -60,7 +60,7 @@ private:
 
     watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t
         server_id_translation_table_subs;
-    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t
+    watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>::all_subs_t
         connection_subs;
 
     DISABLE_COPYING(auto_reconnector_t);

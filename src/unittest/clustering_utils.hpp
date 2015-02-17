@@ -9,6 +9,7 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
@@ -22,21 +23,20 @@
 
 namespace unittest {
 
-class fake_ack_checker_t : public ack_checker_t {
+class simple_write_callback_t : public broadcaster_t::write_callback_t, public cond_t {
 public:
-    explicit fake_ack_checker_t(int e) : expected(e) { }
-    bool is_acceptable_ack_set(const std::set<server_id_t> &ack_set) const {
-        return static_cast<int>(ack_set.size()) >= expected;
+    simple_write_callback_t() : acks(0) { }
+    write_durability_t get_default_write_durability() {
+        return write_durability_t::HARD;
     }
-    write_durability_t get_write_durability() const {
-        return write_durability_t::SOFT;
+    void on_ack(const server_id_t &, write_response_t &&) {
+        ++acks;
     }
-    int expected;
-};
-
-struct fake_fifo_enforcement_t {
-    fifo_enforcer_source_t source;
-    fifo_enforcer_sink_t sink;
+    void on_end() {
+        EXPECT_EQ(1, acks);
+        pulse();
+    }
+    int acks;
 };
 
 inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
@@ -62,7 +62,7 @@ public:
         store.new_write_token(&token);
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
-                binary_blob_t(version_range_t(version_t::zero())));
+                binary_blob_t(version_t::zero()));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 
@@ -217,6 +217,8 @@ inline std::string mc_key_gen() {
     return key;
 }
 
+peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
+
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
@@ -232,6 +234,18 @@ public:
     }
     mailbox_manager_t *get_mailbox_manager() {
         return &mailbox_manager;
+    }
+    void connect(simple_mailbox_cluster_t *other) {
+        connectivity_cluster_run.join(
+            get_cluster_local_address(&other->connectivity_cluster));
+    }
+    void disconnect(simple_mailbox_cluster_t *other) {
+        auto_drainer_t::lock_t keepalive;
+        connectivity_cluster_t::connection_t *conn = connectivity_cluster.get_connection(
+            other->connectivity_cluster.get_me(),
+            &keepalive);
+        guarantee(conn != nullptr);
+        conn->kill_connection();
     }
 private:
     connectivity_cluster_t connectivity_cluster;
@@ -258,8 +272,6 @@ private:
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
 #endif
-
-peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 
 }  // namespace unittest
 

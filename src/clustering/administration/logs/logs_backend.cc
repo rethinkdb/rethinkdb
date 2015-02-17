@@ -100,10 +100,10 @@ bool logs_artificial_table_backend_t::read_all_rows_as_vector(
             } catch (const interrupted_exc_t &) {
                 /* We'll deal with it outside the `pmap()` */
                 return;
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* The server disconnected. Ignore it. */
                 return;
-            } catch (const std::runtime_error &e) {
+            } catch (const log_read_exc_t &e) {
                 /* We'll deal with it outside the `pmap()` */
                 error = strprintf("Problem with reading log file on server `%s`: %s",
                     server_name.c_str(), e.what());
@@ -178,11 +178,11 @@ bool logs_artificial_table_backend_t::read_row(
         timestamp we're looking for, and there should be at most one such message. */
         messages = fetch_log_file(mailbox_manager, *bcard,
             entries_per_server, timestamp, timestamp, interruptor);
-    } catch (const resource_lost_exc_t &) {
+    } catch (const log_transfer_exc_t &) {
         /* Server disconnected during the query. */
         *row_out = ql::datum_t();
         return true;
-    } catch (const std::runtime_error &e) {
+    } catch (const log_read_exc_t &e) {
         *error_out = strprintf("Problem when reading log file on server `%s`: %s",
             server_name.c_str(), e.what());
         return false;
@@ -310,11 +310,11 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                     min_time,
                     max_time,
                     keepalive.get_drain_signal());
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* The server disconnected. However, to avoid race conditions, we can't
                 exit unless we see that the server is absent from the directory, which we
                 check above. So we ignore the error and go around the loop again. */
-            } catch (const std::runtime_error &) {
+            } catch (const log_read_exc_t &) {
                 /* Something went wrong reading the log file on the other server. Go
                 around the loop again. */
             }
@@ -365,10 +365,10 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                     min_time,
                     max_time,
                     keepalive.get_drain_signal());
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* Just like in the earlier loop, we ignore the error and rely on
                 `check_disconnected()` to do the work. */
-            } catch (const std::runtime_error &) {
+            } catch (const log_read_exc_t &) {
                 /* Just like in the earlier loop. */
             }
 

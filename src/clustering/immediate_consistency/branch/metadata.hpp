@@ -99,10 +99,10 @@ struct backfiller_business_card_t {
 
     typedef mailbox_t< void(
         backfill_session_id_t,
-        region_map_t<version_range_t>,
+        region_map_t<version_t>,
         branch_history_t,
         mailbox_addr_t< void(
-            region_map_t<version_range_t>,
+            region_map_t<version_t>,
             branch_history_t
             ) >,
         mailbox_addr_t< void(
@@ -135,16 +135,14 @@ It appears in the directory. */
 
 struct broadcaster_business_card_t {
 
-    broadcaster_business_card_t(branch_id_t bid,
-            const branch_history_t &bh,
-            const registrar_business_card_t<listener_business_card_t> &r) :
-        branch_id(bid), branch_id_associated_branch_history(bh), registrar(r) { }
+    broadcaster_business_card_t(branch_id_t bid, const region_t &regn,
+            const registrar_business_card_t<listener_business_card_t> &regr) :
+        branch_id(bid), region(regn), registrar(regr) { }
 
     broadcaster_business_card_t() { }
 
     branch_id_t branch_id;
-    branch_history_t branch_id_associated_branch_history;
-
+    region_t region;
     registrar_business_card_t<listener_business_card_t> registrar;
 };
 

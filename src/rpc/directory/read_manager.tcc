@@ -21,12 +21,12 @@ directory_read_manager_t<metadata_t>::directory_read_manager_t(
     cluster_message_handler_t(cm, tag),
     variable(change_tracking_map_t<peer_id_t, metadata_t>())
 {
-    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
+    guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING {
-    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
+    guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }
 
 template<class metadata_t>

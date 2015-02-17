@@ -214,7 +214,7 @@ file_based_svs_by_namespace_t::get_svs(
             mptr->set_metainfo(
                 region_map_t<binary_blob_t>(
                     mptr->get_region(),
-                    binary_blob_t(version_range_t(version_t::zero()))),
+                    binary_blob_t(version_t::zero())),
                 order_source.check_in("file_based_svs_by_namespace_t"),
                 &write_token,
                 &dummy_interruptor);

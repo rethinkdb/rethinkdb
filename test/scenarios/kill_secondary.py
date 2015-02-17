@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -42,10 +42,9 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     print("Reconfiguring table to have 1 shard but %d replicas (%.2fs)" % (numNodes, time.time() - startTime))
     
     r.db(dbName).table(tableName).reconfigure(shards=1, replicas=numNodes).run(conn)
-    assert r.db(dbName).table(tableName).config() \
-        .update({'shards':[
-            {'primary_replica':server.name, 'replicas':r.row['shards'][0]['replicas']}
-        ]}).run(conn)['errors'] == 0
+    assert r.db(dbName).table(tableName).config().update({
+        'shards':[{'primary_replica':server.name, 'replicas':r.row['shards'][0]['replicas']}]
+    }).run(conn)['errors'] == 0
     r.db(dbName).wait().run(conn)
     
     cluster.check()
@@ -72,10 +71,22 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         
         print("Declaring the server dead (%.2fs)" % (time.time() - startTime))
         
-        assert r.db('rethinkdb').table('server_config').get(secondary.uuid).delete().run(conn)['errors'] == 0
+        result = r.db('rethinkdb').table('server_config').get(secondary.uuid).delete().run(conn)
+        assert result['errors'] == 0
         time.sleep(.1)
-        issues = list(r.db('rethinkdb').table('current_issues').run(conn))
-        assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+        
+        deadline = time.time() + 5
+        last_error = None
+        while time.time() < deadline:
+            try:
+                issues = list(r.db('rethinkdb').table('current_issues').run(conn))
+                assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+                break
+            except Exception as e:
+                last_error = e
+                time.sleep(.2)
+        else:
+            raise last_error
         
         print("Running after workload (%.2fs)" % (time.time() - startTime))
         

@@ -13,7 +13,9 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/queue/limited_fifo.hpp"
 #include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
@@ -61,8 +63,9 @@ public:
 
             if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
                 Response error_response;
-                handler->unparseable_query(token, &error_response,
-                                           "Client is buggy (failed to deserialize query).");
+                handler->unparseable_query(
+                    token, &error_response,
+                    "Client is buggy (failed to deserialize query).");
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -170,18 +173,19 @@ public:
     }
 };
 
-query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
-                               const std::set<ip_address_t> &local_addresses,
-                               int port,
-                               query_handler_t *_handler,
-                               boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata) :
-        rdb_ctx(_rdb_ctx),
-        handler(_handler),
-        auth_metadata(_auth_metadata),
-        shutting_down_conds(),
-        pulse_sdc_on_shutdown(&main_shutting_down_cond),
-        next_thread(0)
-{
+query_server_t::query_server_t(
+    rdb_context_t *_rdb_ctx,
+    const std::set<ip_address_t> &local_addresses,
+    int port,
+    query_handler_t *_handler,
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        _auth_metadata)
+    : rdb_ctx(_rdb_ctx),
+      handler(_handler),
+      auth_metadata(_auth_metadata),
+      shutting_down_conds(),
+      pulse_sdc_on_shutdown(&main_shutting_down_cond),
+      next_thread(0) {
     rassert(rdb_ctx != NULL);
     for (int i = 0; i < get_num_threads(); ++i) {
         shutting_down_conds.push_back(
@@ -194,7 +198,8 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
             std::bind(&query_server_t::handle_conn,
                       this, ph::_1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
+        throw address_in_use_exc_t(
+            strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
 }
 
@@ -257,7 +262,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(rdb_ctx, &interruptor);
 
     std::string init_error;
 
@@ -265,14 +269,18 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
+        bool pre_2 = client_magic_number == VersionDummy::V0_1;
+        bool pre_3 = pre_2 || client_magic_number == VersionDummy::V0_2;
+        bool pre_4 = pre_3 || client_magic_number == VersionDummy::V0_3;
+        bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
+
         // With version 0_2 and up, the client drivers specifies the authorization key
-        if (client_magic_number == VersionDummy::V0_1) {
+        if (pre_2) {
             if (!auth_key.str().empty()) {
                 throw protob_server_exc_t(
                     "Authorization required but client does not support it.");
             }
-        } else if (client_magic_number == VersionDummy::V0_2 ||
-                   client_magic_number == VersionDummy::V0_3) {
+        } else if (legal) {
             auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
             if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
@@ -285,16 +293,25 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       "client driver version not match the server?");
         }
 
+        size_t max_concurrent_queries = pre_4 ? 1 : 1024;
+
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
-        if (client_magic_number == VersionDummy::V0_3) {
+        if (!pre_3) {
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
 
+        client_context_t client_ctx(
+            rdb_ctx,
+            pre_4 ? ql::return_empty_normal_batches_t::YES
+                  : ql::return_empty_normal_batches_t::NO);
+
         if (wire_protocol == VersionDummy::JSON) {
-            connection_loop<json_protocol_t>(conn.get(), &client_ctx);
+            connection_loop<json_protocol_t>(
+                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
-            connection_loop<protobuf_protocol_t>(conn.get(), &client_ctx);
+            connection_loop<protobuf_protocol_t>(
+                conn.get(), max_concurrent_queries, &interruptor, &client_ctx);
         } else {
             throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
                                                 wire_protocol));
@@ -320,46 +337,61 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
+                                     size_t max_concurrent_queries,
+                                     signal_t *raw_interruptor,
                                      client_context_t *client_ctx) {
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
     ip_and_port_t peer;
-    if (conn->getpeername(&peer)) {
-        for (;;) {
-            ql::protob_t<Query> query(ql::make_counted_query());
+    bool got_peer_name = conn->getpeername(&peer);
+    if (!got_peer_name) {
+        // Return early and close the connection.
+        return;
+    }
 
-            if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
+    std::exception_ptr err;
+    cond_t abort;
+    wait_any_t conn_interruptor(raw_interruptor, &abort);
+    new_mutex_t send_mutex;
+
+    std_function_callback_t<ql::protob_t<Query> > callback(
+        [&](ql::protob_t<Query> query, signal_t *coro_pool_interruptor) {
+            try {
+                wait_any_t cb_interruptor(
+                    &conn_interruptor, coro_pool_interruptor);
                 Response response;
-                if (handler->run_query(query, &response, client_ctx, peer)) {
-                    protocol_t::send_response(
-                        response, handler, conn, client_ctx->interruptor);
+                if (handler->run_query(
+                        query, &response, &cb_interruptor, client_ctx, peer)) {
+                    new_mutex_acq_t send_lock(&send_mutex);
+                    protocol_t::send_response(response, handler, conn, &cb_interruptor);
                 }
+            } catch (...) {
+                if (!err) {
+                    err = std::current_exception();
+                }
+                abort.pulse_if_not_already_pulsed();
+            }
+        });
+    // Pick a small limit so queries back up on the TCP connection.
+    limited_fifo_queue_t<ql::protob_t<Query> > coro_queue(4);
+    coro_pool_t<ql::protob_t<Query> > coro_pool(
+        max_concurrent_queries, &coro_queue, &callback);
+
+    for (;;) {
+        ql::protob_t<Query> query(ql::make_counted_query());
+        try {
+            if (protocol_t::parse_query(conn, &conn_interruptor, handler, &query)) {
+                coro_queue.push(std::move(query));
+            }
+        } catch (...) {
+            if (err) {
+                std::rethrow_exception(err);
+            } else {
+                throw;
             }
         }
     }
 }
-
-// Used in protob_server_t::handle(...) below to combine the interruptor from the
-// http_conn_cache_t with the interruptor from the http_server_t in an exception-safe
-// manner, and return it to how it was once handle(...) is complete.
-class interruptor_mixer_t {
-public:
-    interruptor_mixer_t(client_context_t *_client_ctx, signal_t *new_interruptor) :
-        client_ctx(_client_ctx), old_interruptor(client_ctx->interruptor),
-        combined_interruptor(old_interruptor, new_interruptor) {
-        // TODO: This is fucking insane.
-        client_ctx->interruptor = &combined_interruptor;
-    }
-
-    ~interruptor_mixer_t() {
-        client_ctx->interruptor = old_interruptor;
-    }
-
-private:
-    client_context_t *client_ctx;
-    signal_t *old_interruptor;
-    wait_any_t combined_interruptor;
-};
 
 class conn_acq_t {
 public:
@@ -466,9 +498,10 @@ void query_server_t::handle(const http_req_t &req,
             }
 
             client_context_t *client_ctx = conn->get_ctx();
-            interruptor_mixer_t interruptor_mixer(client_ctx, interruptor);
+            signal_t *conn_interruptor = conn->get_interruptor();
+            wait_any_t true_interruptor(interruptor, conn_interruptor);
             response_needed = handler->run_query(
-                query, &response, client_ctx, req.peer);
+                query, &response, &true_interruptor, client_ctx, req.peer);
             rassert(response_needed);
         }
     }

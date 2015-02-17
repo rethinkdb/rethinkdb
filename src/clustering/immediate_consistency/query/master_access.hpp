@@ -20,16 +20,12 @@ class master_access_t : public home_thread_mixin_debug_only_t {
 public:
     master_access_t(
             mailbox_manager_t *mm,
-            const clone_ptr_t<watchable_t<boost::optional<boost::optional<master_business_card_t> > > > &master,
+            const master_business_card_t &master,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+            THROWS_ONLY(interrupted_exc_t);
 
     region_t get_region() {
         return region;
-    }
-
-    signal_t *get_failed_signal() {
-        return multi_throttling_client.get_failed_signal();
     }
 
     void new_read_token(fifo_enforcer_sink_t::exit_read_t *out);
@@ -40,7 +36,7 @@ public:
             order_token_t otok,
             fifo_enforcer_sink_t::exit_read_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t);
+            THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void new_write_token(fifo_enforcer_sink_t::exit_write_t *out);
 
@@ -50,26 +46,13 @@ public:
             order_token_t otok,
             fifo_enforcer_sink_t::exit_write_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t);
+            THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
 private:
     typedef multi_throttling_business_card_t<
             master_business_card_t::request_t,
             master_business_card_t::inner_client_business_card_t
             > mt_business_card_t;
-    static boost::optional<boost::optional<mt_business_card_t> > extract_multi_throttling_business_card(
-            const boost::optional<boost::optional<master_business_card_t> > &bcard) {
-        if (bcard) {
-            if (bcard.get()) {
-                return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>(
-                    bcard.get().get().multi_throttling));
-            } else {
-                return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>());
-            }
-        } else {
-            return boost::optional<boost::optional<mt_business_card_t> >();
-        }
-    }
 
     void on_allocation(int);
 

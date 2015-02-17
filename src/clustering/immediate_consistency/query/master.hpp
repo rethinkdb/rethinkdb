@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "clustering/generic/multi_throttling_server.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
 /* Each shard has a `master_t` on its primary replica server. The `master_t` is
@@ -63,10 +62,9 @@ private:
         fifo_enforcer_sink_t fifo_sink;
     };
 
-    mailbox_manager_t *mailbox_manager;
-    ack_checker_t *ack_checker;
-    broadcaster_t *broadcaster;
-    region_t region;
+    mailbox_manager_t *const mailbox_manager;
+    query_callback_t *const query_callback;
+    region_t const region;
 
     /* See note in `client_t::perform_request()` for what this is about */
     cond_t shutdown_cond;

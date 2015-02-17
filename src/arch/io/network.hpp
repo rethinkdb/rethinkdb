@@ -291,7 +291,7 @@ private:
 
     /* Used to actually perform the writes. Only has one coroutine in it, which will call the
     handle_write_queue callback when operations are ready */
-    coro_pool_t<write_queue_op_t*> write_coro_pool;
+    coro_pool_t<write_queue_op_t *> write_coro_pool;
 
     /* Buffer we are currently filling up with data that we want to write. When it reaches a
     certain size, we push it onto `write_queue`. */

@@ -21,10 +21,6 @@
 // never finish.
 #define MAX_CHUNKS_OUT 64
 
-inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
-    return vr.earliest.timestamp;
-}
-
 backfiller_t::backfiller_t(mailbox_manager_t *mm,
                            branch_history_manager_t *bhm,
                            store_view_t *_svs)
@@ -42,40 +38,11 @@ backfiller_business_card_t backfiller_t::get_business_card() {
 }
 
 bool backfiller_t::confirm_and_send_metainfo(region_map_t<binary_blob_t> metainfo,
-                                             region_map_t<version_range_t> start_point,
-                                             mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont) {
+                                             region_map_t<version_t> start_point,
+                                             mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont) {
     guarantee(metainfo.get_domain() == start_point.get_domain());
-    region_map_t<version_range_t> end_point =
-        region_map_transform<binary_blob_t, version_range_t>(metainfo,
-                                                             &binary_blob_t::get<version_range_t>);
-
-#ifndef NDEBUG
-    // TODO: Should the rassert calls in this block of code be return
-    // false statements instead of assertions?  Tim doesn't know.
-    // Figure this out.
-
-    /* Confirm that `start_point` is a point in our past */
-    typedef region_map_t<version_range_t> version_map_t;
-
-    {
-        on_thread_t th(branch_history_manager->home_thread());
-        for (version_map_t::const_iterator it = start_point.begin();
-             it != start_point.end();
-             ++it) {
-            for (version_map_t::const_iterator jt = end_point.begin();
-                 jt != end_point.end();
-                 ++jt) {
-                region_t ixn = region_intersection(it->first, jt->first);
-                if (!region_is_empty(ixn)) {
-                    version_t start = it->second.latest;
-                    version_t end = jt->second.earliest;
-                    rassert(start.timestamp <= end.timestamp);
-                    rassert(version_is_ancestor(branch_history_manager, start, end, ixn));
-                }
-            }
-        }
-    }
-#endif
+    region_map_t<version_t> end_point = region_map_transform<binary_blob_t, version_t>(
+        metainfo, &binary_blob_t::get<version_t>);
 
     /* Package a subset of the branch history graph that includes every branch
     that `end_point` mentions and all their ancestors recursively */
@@ -94,8 +61,8 @@ bool backfiller_t::confirm_and_send_metainfo(region_map_t<binary_blob_t> metainf
 class backfiller_send_backfill_callback_t : public send_backfill_callback_t {
 public:
     backfiller_send_backfill_callback_t(
-            const region_map_t<version_range_t> *start_point,
-            mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+            const region_map_t<version_t> *start_point,
+            mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont,
             mailbox_manager_t *mailbox_manager,
             mailbox_addr_t<void(
                 backfill_chunk_t,
@@ -131,8 +98,8 @@ public:
             fifo_src_->enter_write());
     }
 private:
-    const region_map_t<version_range_t> *start_point_;
-    mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont_;
+    const region_map_t<version_t> *start_point_;
+    mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont_;
     mailbox_manager_t *mailbox_manager_;
     mailbox_addr_t<void(
         backfill_chunk_t,
@@ -149,9 +116,9 @@ private:
 void backfiller_t::on_backfill(
         signal_t *interruptor,
         backfill_session_id_t session_id,
-        const region_map_t<version_range_t> &start_point,
+        const region_map_t<version_t> &start_point,
         const branch_history_t &start_point_associated_branch_history,
-        mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+        mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont,
         mailbox_addr_t<void(
             backfill_chunk_t,
             double,
@@ -200,10 +167,9 @@ void backfiller_t::on_backfill(
 
         /* Actually perform the backfill */
         svs->send_backfill(
-                     region_map_transform<version_range_t, state_timestamp_t>(
-                                                      start_point,
-                                                      &get_earliest_timestamp_of_version_range
-                                                      ),
+                     region_map_transform<version_t, state_timestamp_t>(
+                         start_point,
+                         [](const version_t &v) { return v.timestamp; } ),
                      &send_backfill_cb,
                      &send_backfill_cb.progress_combiner_,
                      &send_backfill_token,

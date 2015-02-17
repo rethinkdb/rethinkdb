@@ -38,9 +38,9 @@ void in_memory_branch_history_manager_t::export_branch_history(branch_id_t branc
         branch_birth_certificate_t bc = get_branch(next);
         rassert(out->branches.count(next) == 0);
         out->branches[next] = bc;
-        for (region_map_t<version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
-            if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
-                to_process.insert(it->second.latest.branch);
+        for (region_map_t<version_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
+            if (!it->second.branch.is_nil() && out->branches.count(it->second.branch) == 0) {
+                to_process.insert(it->second.branch);
             }
         }
     }

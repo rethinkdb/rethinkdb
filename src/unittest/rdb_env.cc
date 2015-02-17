@@ -321,6 +321,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     rdb_ctx(&extproc_pool, this)
 {
     env.init(new ql::env_t(&rdb_ctx,
+                           ql::return_empty_normal_batches_t::NO,
                            &interruptor,
                            std::map<std::string, ql::wire_func_t>(),
                            nullptr /* no profile trace */));
@@ -328,7 +329,9 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     // Set up any initial datas
     databases = test_env->databases;
     primary_keys = test_env->primary_keys;
-    for (auto it = test_env->initial_datas.begin(); it != test_env->initial_datas.end(); ++it) {
+    for (auto it = test_env->initial_datas.begin();
+         it != test_env->initial_datas.end();
+         ++it) {
         scoped_ptr_t<mock_namespace_interface_t> storage(
             new mock_namespace_interface_t(env.get()));
         storage->get_data()->swap(*it->second);

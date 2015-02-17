@@ -18,11 +18,10 @@ RDB_IMPL_EQUALITY_COMPARABLE_2(backfiller_business_card_t,
                                cancel_backfill_mailbox);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
-        broadcaster_business_card_t, branch_id, branch_id_associated_branch_history,
-        registrar);
+        broadcaster_business_card_t, branch_id, region, registrar);
 RDB_IMPL_EQUALITY_COMPARABLE_3(broadcaster_business_card_t,
                                branch_id,
-                               branch_id_associated_branch_history,
+                               region,
                                registrar);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(

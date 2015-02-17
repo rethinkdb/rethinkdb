@@ -39,18 +39,14 @@ public:
 
     multi_throttling_client_t(
             mailbox_manager_t *mm,
-            const clone_ptr_t<watchable_t<boost::optional<boost::optional<mt_business_card_t> > > > &server,
+            const mt_business_card_t &server,
             const inner_client_business_card_type &inner_client_business_card,
             signal_t *interruptor);
     ~multi_throttling_client_t();
 
-    signal_t *get_failed_signal();
-
     void spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor);
 
 private:
-    static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > > extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard);
-
     void on_give_tickets(signal_t *interruptor, int count);
 
     void pump_free_tickets();

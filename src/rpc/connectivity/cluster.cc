@@ -140,15 +140,9 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
 {
     pmap(get_num_threads(), [this](int thread_id) {
         on_thread_t thread_switcher((threadnum_t(thread_id)));
-        parent->parent->connections.get()->apply_atomic_op(
-            [&](connection_map_t *value) -> bool {
-                auto res = value->insert(std::make_pair(
-                    peer_id,
-                    std::make_pair(this, auto_drainer_t::lock_t(drainers.get()))
-                    ));
-                guarantee(res.second, "Somehow we tried to insert a duplicate entry.");
-                return true;
-            });
+        parent->parent->connections.get()->set_key_no_equals(
+            peer_id,
+            std::make_pair(this, auto_drainer_t::lock_t(drainers.get())));
     });
 }
 
@@ -156,13 +150,7 @@ connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
     // Drain out any users
     pmap(get_num_threads(), [this](int thread_id) {
         on_thread_t thread_switcher((threadnum_t(thread_id)));
-        parent->parent->connections.get()->apply_atomic_op(
-            [&](connection_map_t *value) -> bool {
-                auto it = value->find(peer_id);
-                guarantee(it != value->end() && it->second.first == this);
-                value->erase(it);
-                return true;
-            });
+        parent->parent->connections.get()->delete_key(peer_id);
         drainers.get()->drain();
     });
 
@@ -1154,7 +1142,6 @@ void connectivity_cluster_t::run_t::handle(
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
-    connections(connection_map_t()),
     current_run(NULL),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
@@ -1172,22 +1159,21 @@ peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
     return me;
 }
 
-clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t> >
+watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t> *
 connectivity_cluster_t::get_connections() THROWS_NOTHING {
-    return connections.get()->get_watchable();
+    return connections.get();
 }
 
 connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(
         peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
     connectivity_cluster_t::connection_t *conn;
-    connections.get()->apply_read(
-        [&](const connection_map_t *value) {
-            auto it = value->find(peer_id);
-            if (it == value->end()) {
-                conn = NULL;
+    connections.get()->read_key(peer_id,
+        [&](const connection_pair_t *value) {
+            if (value == nullptr) {
+                conn = nullptr;
             } else {
-                conn = it->second.first;
-                *keepalive_out = it->second.second;
+                conn = value->first;
+                *keepalive_out = value->second;
             }
         });
     return conn;
