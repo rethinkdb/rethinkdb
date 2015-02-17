@@ -232,8 +232,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
             const Datum *d = &r.response(i);
             if (d->type() == Datum::R_JSON) {
                 // Just put the raw JSON onto the buffer
-                // TODO! Check length
-                char *out =buffer.Push(d->r_str().length());
+                char *out = buffer.Push(d->r_str().length());
                 memcpy(out, d->r_str().data(), d->r_str().length());
             } else if (d->type() == Datum::R_STR) {
                 writer.String(d->r_str().data(), d->r_str().length());
@@ -243,33 +242,35 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
         }
         writer.EndArray();
 
-        // TODO! Implement
-        /*if (r.has_backtrace()) {
-            *s += ",\"b\":";
+        if (r.has_backtrace()) {
+            writer.Key("b", 1);
+            writer.StartArray();
             const Backtrace *bt = &r.backtrace();
-            scoped_cJSON_t arr(cJSON_CreateArray());
             for (int i = 0; i < bt->frames_size(); ++i) {
                 const Frame *f = &bt->frames(i);
                 switch (f->type()) {
                 case Frame::POS:
-                    arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
+                    writer.Uint(f->pos());
                     break;
                 case Frame::OPT:
-                    arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
+                    writer.String(f->opt().c_str());
                     break;
                 default:
                     unreachable();
                 }
             }
-            *s += arr.PrintUnformatted();
+            writer.EndArray();
         }
 
         if (r.has_profile()) {
-            *s += ",\"p\":";
+            writer.Key("p", 1);
             const Datum *d = &r.profile();
             guarantee(d->type() == Datum::R_JSON);
-            *s += d->r_str();
-        }*/
+            // TODO! This is pretty stupid
+            Document profile;
+            profile.Parse(d->r_str().c_str());
+            profile.Accept(writer);
+        }
 
         writer.EndObject();
     } catch (...) {

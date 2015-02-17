@@ -17,7 +17,7 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
-#include "http/json.hpp" // TODO!
+#include "http/json.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
