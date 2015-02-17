@@ -14,6 +14,9 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
@@ -541,7 +544,17 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return has() ? as_json().Print() : "UNINITIALIZED";
+    if (has()) {
+        rapidjson::StringBuffer buffer;
+        // TODO: Use rapidjson::PrettyWriter (it's annoying because writer
+        //   is not a virtual type so we would need to templatize write_json()
+        //   or provide a virtual wrapper object around a writer or something).
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        write_json(&writer);
+        return std::string(buffer.GetString());
+    } else {
+        return "UNINITIALIZED";
+    }
 }
 
 std::string datum_t::trunc_print() const {
@@ -1299,39 +1312,34 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(datum_string_t(key), throw_bool);
 }
 
-cJSON *datum_t::as_json_raw() const {
+void datum_t::write_json(rapidjson::Writer<rapidjson::StringBuffer> *writer) const {
     switch (get_type()) {
-    case R_NULL: return cJSON_CreateNull();
-    case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
-    case R_BOOL: return cJSON_CreateBool(as_bool());
-    case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
+    case R_NULL: writer->Null(); break;
+    case R_BINARY: pseudo::encode_base64_ptype(as_binary(), writer); break;
+    case R_BOOL: writer->Bool(as_bool()); break;
+    case R_NUM: writer->Double(as_num()); break;
+    case R_STR: writer->String(as_str().data(), as_str().size()); break;
     case R_ARRAY: {
-        scoped_cJSON_t arr(cJSON_CreateArray());
+        writer->StartArray();
         const size_t sz = arr_size();
         for (size_t i = 0; i < sz; ++i) {
-            arr.AddItemToArray(unchecked_get(i).as_json_raw());
+            unchecked_get(i).write_json(writer);
         }
-        return arr.release();
+        writer->EndArray();
     } break;
     case R_OBJECT: {
-        scoped_cJSON_t obj(cJSON_CreateObject());
+        writer->StartObject();
         const size_t sz = obj_size();
         for (size_t i = 0; i < sz; ++i) {
             auto pair = get_pair(i);
-            obj.AddItemToObject(pair.first.data(), pair.first.size(),
-                                pair.second.as_json_raw());
+            writer->Key(pair.first.data(), pair.first.size());
+            pair.second.write_json(writer);
         }
-        return obj.release();
+        writer->EndObject();
     } break;
     case UNINITIALIZED: // fallthru
     default: unreachable();
     }
-    unreachable();
-}
-
-scoped_cJSON_t datum_t::as_json() const {
-    return scoped_cJSON_t(as_json_raw());
 }
 
 // TODO: make BINARY, STR, and OBJECT convertible to sequence?
@@ -1713,7 +1721,10 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     } break;
     case use_json_t::YES: {
         d->set_type(Datum::R_JSON);
-        d->set_r_str(as_json().PrintUnformatted());
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        write_json(&writer);
+        d->set_r_str(buffer.GetString(), buffer.GetSize());
     } break;
     default: unreachable();
     }

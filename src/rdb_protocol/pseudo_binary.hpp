@@ -5,6 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "containers/scoped.hpp"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/datum.hpp"
 
@@ -15,7 +18,9 @@ extern const char *const binary_string;
 extern const char *const data_key;
 
 // Given a raw data string, encodes it into a `r.binary` pseudotype with base64 encoding
-scoped_cJSON_t encode_base64_ptype(const datum_string_t &data);
+void encode_base64_ptype(
+        const datum_string_t &data,
+        rapidjson::Writer<rapidjson::StringBuffer> *writer);
 void write_binary_to_protobuf(Datum *d, const datum_string_t &data);
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string

@@ -2,6 +2,9 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace ql {
 class json_term_t : public op_term_t {
@@ -38,8 +41,10 @@ public:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         r_sanity_check(d.has());
-        scoped_cJSON_t json = d.as_json();
-        return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer;
+        d.write_json(&writer);
+        return new_val(datum_t(datum_string_t(buffer.GetString())));
     }
 
     virtual const char *name() const { return "to_json_string"; }

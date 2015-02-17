@@ -17,8 +17,10 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
+#include "http/json.hpp" // TODO!
 #include "rdb_protocol/datum_string.hpp"
-#include "http/json.hpp"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
@@ -265,8 +267,7 @@ public:
                   const configured_limits_t &limits,
                   std::set<std::string> *conditions) const;
 
-    cJSON *as_json_raw() const;
-    scoped_cJSON_t as_json() const;
+    void write_json(rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
