@@ -69,7 +69,7 @@ def mangle stream
   stream.to_a.sort{|x,y| cmp(x, y)}
 end
 
-timeout(60) {
+timeout(10) {
   $eager_canon = []
   $eager_pop.each{|pop|
     $eager_canon += pop.run.to_a
@@ -90,7 +90,7 @@ $cp1 = flat_union($change_pop).run.each
 $cp2 = nested_union($change_pop).run.each
 # TODO: .union.changes
 
-timeout(60) {
+timeout(10) {
   $lp1res = []
   $lp2res = []
   $cp1res = []
@@ -111,7 +111,7 @@ timeout(60) {
   assert{$cp2res == $eager_canon}
 }
 
-timeout(60) {
+timeout(10) {
   $t.get(0).update({a: 1}).run
   $t.get(5).update({a: 1}).run
   $t.get(50).update({a: 1}).run

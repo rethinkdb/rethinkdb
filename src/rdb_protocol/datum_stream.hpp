@@ -288,6 +288,10 @@ private:
     scoped_ptr_t<batchspec_t> coro_batchspec;
 
     size_t active;
+    // We recompute this only when `next_batch_impl` returns to retain the
+    // invariant that a stream won't change from unexhausted to exhausted
+    // without attempting to read more from it.
+    bool coros_exhausted;
     promise_t<std::exception_ptr> abort_exc;
     scoped_ptr_t<cond_t> data_available;
 

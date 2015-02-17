@@ -1193,7 +1193,8 @@ union_datum_stream_t::union_datum_stream_t(
     : datum_stream_t(bt_src),
       union_type(feed_type_t::not_feed),
       is_infinite_union(false),
-      active(0) {
+      active(0),
+      coros_exhausted(false) {
 
     for (const auto &stream : streams) {
         union_type = union_of(union_type, stream->cfeed_type());
@@ -1232,7 +1233,10 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
             while (queue.size() == 0) {
                 std::exception_ptr exc;
                 if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
-                if (active == 0) return std::vector<datum_t>();
+                if (active == 0) {
+                    coros_exhausted = true;
+                    return std::vector<datum_t>();
+                }
                 // We don't have the batchspec during construction.
                 if (!coro_batchspec.has()) {
                     coro_batchspec = make_scoped<batchspec_t>(batchspec);
@@ -1265,6 +1269,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                 continue;
             }
         }
+        if (active == 0 && queue.size() == 0) coros_exhausted = true;
         return data;
     }
 }
@@ -1317,9 +1322,7 @@ datum_t union_datum_stream_t::as_array(env_t *env) {
 }
 
 bool union_datum_stream_t::is_exhausted() const {
-    return batch_cache_exhausted()
-        && active == 0
-        && queue.size() == 0;
+    return batch_cache_exhausted() && coros_exhausted;
 }
 feed_type_t union_datum_stream_t::cfeed_type() const {
     return union_type;
