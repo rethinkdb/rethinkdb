@@ -116,9 +116,9 @@ private:
                 term.push_back(br);
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
-            term.push_back(make_text("\"" + ap->key() + "\":"));
-            term.push_back(br);
-            term.push_back(visit_generic(ap->mutable_val()));
+            term.push_back(make_nest(make_concat(make_text("\"" + ap->key() + "\":"),
+                                                 br,
+                                                 visit_generic(ap->mutable_val()))));
         }
         return make_concat(lbrace, make_nest(make_concat(std::move(term))), rbrace);
     }
@@ -215,7 +215,7 @@ private:
             guarantee(var->args_size() == 2);
             guarantee(var->optargs_size() == 0);
             stack->push_back(rparen);
-            stack->push_back(visit_generic(var->mutable_args(0)));
+            stack->push_back(make_nest(visit_generic(var->mutable_args(0))));
             stack->push_back(lparen);
             stack->push_back(do_st);
             stack->push_back(dot);
@@ -495,11 +495,14 @@ private:
         for (int i = 1; i < t->args_size(); ++i) {
             if (i != 1) body.push_back(br);
             if (i == t->args_size() - 1) {
-                body.push_back(return_st);
-                body.push_back(br);
+                body.push_back(make_concat(return_st,
+                                           sp,
+                                           make_nest(visit_generic(t->mutable_args(i))),
+                                           semicolon));
+            } else {
+                body.push_back(make_nest(visit_generic(t->mutable_args(i))));
+                body.push_back(semicolon);
             }
-            body.push_back(visit_generic(t->mutable_args(i)));
-            body.push_back(semicolon);
         }
         return make_concat(lambda_1,
                            make_nest(make_concat(lambda_2,
@@ -507,10 +510,10 @@ private:
                                                  std::move(arglist),
                                                  sp,
                                                  lbrace,
-                                                 br,
-                                                 make_concat(std::move(body)),
-                                                 br,
-                                                 rbrace)));
+                                                 cr,
+                                                 make_concat(std::move(body)))),
+                           cr,
+                           rbrace);
     }
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
