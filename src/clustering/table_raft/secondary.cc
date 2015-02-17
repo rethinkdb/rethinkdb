@@ -108,7 +108,7 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 branch_history_manager,
                 store,
                 primary_bcard.replier,
-                backfill_stats_parent, /* RSI */
+                perfmons,
                 &stop_signal,
                 &order_source,
                 nullptr); /* RSI(raft): Hook up backfill progress again */

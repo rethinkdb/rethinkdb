@@ -107,12 +107,14 @@ public:
 
     state_t state;
 
-    /* This is non-empty if `state` is `primary_need_branch` or `secondary_need_primary`.
-    */
+    /* This is non-empty if `state` is `secondary_need_primary`. */
     boost::optional<region_map_t<version_t> > version;
 
     /* This is non-empty if `state` is `primary_need_branch` */
     boost::optional<branch_id_t> branch;
+
+    /* This contains information about all branches mentioned in `version` or `branch` */
+    branch_history_t branch_history;
 }
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it

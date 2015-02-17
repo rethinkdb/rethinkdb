@@ -41,7 +41,7 @@ void primary_t::update_contract(
     }
 
     /* If we have a running broadcaster, then go back to acking `primary_in_progress`
-    until the new write condition takes affect */
+    until the new write condition takes effect */
     if (our_broadcaster.get_ready_signal()->is_pulsed()) {
         guarantee(static_cast<bool>(latest_ack));
         guarantee(latest_ack->state == contract_ack_t::state_t::primary_in_progress ||
@@ -63,6 +63,7 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
     try {
         /* Set our initial state to `primary_need_branch`, so that the leader will assign
         us a new branch ID. */
+        branch_birth_certificate_t branch_bc;
         {
             /* Read the initial version from disk */
             region_map_t<binary_blob_t> blobs;
@@ -72,10 +73,21 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
                 order_source.check_in("primary_t").with_read_mode(), token,
                 keepalive.get_drain_signal(), &blobs);
 
+            /* Prepare a `branch_birth_certificate_t` for the new branch */
+            branch_bc.region = region;
+            branch_bc.origin = to_version_map(blobs);
+            branch_bc.initial_timestamp = state_timestamp_t::zero();
+            for (const auto &pair : branch_birth_certificate.origin) {
+                branch_bc.initial_timestamp =
+                    std::max(pair.second.timestamp, branch_bc.initial_timestamp);
+            }
+
             /* Send a request for the leader to register our branch */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
-            ack.version = boost::make_optional(to_version_map(blobs));
             ack.branch_id = boost::make_optional(our_branch_id);
+            branch_history_manager->export_branch_history(
+                branch_bc.origin, &ack.branch_history);
+            ack.branch_history.branches.insert(std::make_pair(our_branch_id, branch_bc));
             latest_ack = boost::make_optional(ack);
             latest_contract->ack_cb(ack);
         }
@@ -90,9 +102,10 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             mailbox_manager,
             branch_history_manager,
             store,
-            parent_perfmon_collection, /* RSI */
+            perfmons,
             &order_source,
             branch_id,
+            branch_bc,
             keepalive.get_drain_signal());
 
         listener_t listener(
@@ -102,7 +115,7 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             server_id,
             branch_history_manager,
             &broadcaster,
-            backfill_stats_parent, /* RSI */
+            perfmons,
             keepalive.get_drain_signal(),
             &order_source);
 

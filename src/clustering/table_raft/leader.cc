@@ -361,7 +361,8 @@ void calculate_all_contracts(
 
 /* `calculate_branch_history()` figures out what changes need to be made to the branch
 history stored in the Raft state. In practice this means two things:
-  - When a new primary asks us to register a branch, we copy it into the branch history.
+  - When a new primary asks us to register a branch, we copy it and relevant ancestors
+    into the branch history.
   - When all of the replicas are known to be descended from a certain point in the branch
     history, we prune the history leading up to that point, since it's no longer needed.
 */
@@ -382,16 +383,7 @@ void calculate_branch_history(
             const std::pair<server_id_t, contract_id_t> &,
             const contract_ack_t *ack) {
         if (static_cast<bool>(ack->branch)) {
-            guarantee(static_cast<bool>(ack->region));
-            branch_birth_certificiate_t bc;
-            bc.region = ack->version->get_domain();
-            bc.initial_timestamp = state_timestamp_t::zero();
-            for (const auto &pair : *ack->version) {
-                bc.initial_timestamp = std::max(bc.initial_timestamp,
-                    pair.second.timestamp);
-            }
-            bc.origin = ack->version;
-            add_branches_out->branches.insert(std::make_pair(*ack->branch, bc));
+            ack->branch_history.export_branch_history(*ack->branch, &add_branches_out);
         }
     });
 }

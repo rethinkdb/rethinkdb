@@ -135,7 +135,7 @@ void follower_t::update(const state_t &new_state,
                     key.region);
 
                 /* We generate perfmon keys of the form "primary-3", "secondary-8", etc.
-                */
+                The numbers are arbitrary but unique. */
                 data->perfmon_membership = make_scoped<perfmon_membership_t>(
                     perfmons, &data->perfmon_collection,
                     strprintf("%s-%d", key.role_name().c_str(), ++perfmon_counter));
