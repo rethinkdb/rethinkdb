@@ -1130,18 +1130,18 @@ public:
     void maybe_launch_read() {
         if (!stream->is_exhausted() && !running) {
             running = true;
-            // Has to spawn now because we acquire a drainer lock.
-            coro_t::spawn_now_dangerously([this]{this->cb();});
+            auto_drainer_t::lock_t lock(&parent->drainer);
+            coro_t::spawn_sometime([this, lock]{this->cb(lock);});
         }
     }
     const counted_t<datum_stream_t> stream;
 private:
-    void cb() THROWS_NOTHING {
+    void cb(auto_drainer_t::lock_t lock) THROWS_NOTHING {
         // See `next_batch` call below.
         scoped_ptr_t<assert_no_coro_waiting_t> no_coro_waiting(
             make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__));
+        lock.assert_is_holding(&parent->drainer);
         parent->home_thread_mixin_t::assert_thread();
-        auto_drainer_t::lock_t drainer_lock(&parent->drainer);
         try {
             r_sanity_check(!stream->is_exhausted());
 
