@@ -78,7 +78,7 @@ public:
     }
     virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
         changefeed::keyspec_t::spec_t spec =
-            ql::changefeed::keyspec_t::limit_t{slice->get_change_spec(), 1};
+            ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
             env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
         return s;
@@ -164,7 +164,7 @@ table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
         tbl, std::move(_idx), sorting, std::move(_bounds));
 }
 
-ql::changefeed::keyspec_t::range_t table_slice_t::get_change_spec() {
+ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
     return ql::changefeed::keyspec_t::range_t{
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
