@@ -137,7 +137,7 @@ begin
   timeout(2) {
     $lp1.next
   }
-rescue
+rescue Timeout::Error => e
   $timed_out = true
 end
 assert{$timed_out}
@@ -147,7 +147,7 @@ begin
   timeout(2) {
     $lp2.next
   }
-rescue
+rescue Timeout::Error => e
   $timed_out = true
 end
 assert{$timed_out}
