@@ -18,10 +18,13 @@ public:
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
+        perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &ack_cb,
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *primary_bcards);
+            *primary_bcards,
+        const base_path_t &base_path,
+        io_backender_t *io_backender);
     void update_contract(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &ack_cb);
@@ -99,9 +102,12 @@ private:
     server_id_t const server_id;
     store_view_t *const store;
     branch_history_manager_t *const branch_history_manager;
-    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-        *primary_bcards;
     region_t const region;
+    perfmon_collection_t *const perfmons,
+    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+        *const primary_bcards;
+    base_path_t const base_path;
+    io_backender_t *const io_backender;
     branch_id_t const our_branch_id;
 
     /* `latest_contract` stores the latest contract we've received, along with its ack

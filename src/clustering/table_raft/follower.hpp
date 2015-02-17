@@ -19,7 +19,11 @@ public:
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *remote_primary_bcards,
         const multistore_ptr_t *multistore,
-        branch_history_manager_t *branch_history_manager);
+        branch_history_manager_t *branch_history_manager,
+        const base_path_t &base_path,
+        io_backender_t *io_backender,
+        backfill_throttler_t *backfill_throttler,
+        perfmon_collection_t *perfmons);
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *get_acks() {
         return &ack_map;
@@ -48,6 +52,14 @@ private:
         role_t role;
         server_id_t primary;
         branch_id_t branch;
+        std::string role_name() const {
+            switch (role) {
+            case role_t::primary: return "primary";
+            case role_t::secondary: return "secondary";
+            case role_t::erase: return "erase";
+            default: unreachable();
+            }
+        }
         /* This is just so we can use it as a `std::set`/`std::map` key */
         bool operator<(const ongoing_key_t &k) const {
             return std::tie(region, role, primary, branch) <
@@ -62,6 +74,9 @@ private:
     public:
         contract_id_t contract_id;
         scoped_ptr_t<store_subview_t> store_subview;
+        perfmon_collection_t perfmon_collection;
+        scoped_ptr_t<perfmon_membership_t> perfmon_membership;
+        
         /* Exactly one of these will be non-empty; which one depends on the `role` of the
         key that this is stored under */
         scoped_ptr_t<primary_t> primary;
@@ -82,10 +97,8 @@ private:
     void update_coro(auto_drainer_t::lock_t);
     void update(const state_t &new_state, std::set<region_t> *to_delete_out);
 
-    /* This will send `cid` and `ack` to the current leader. It also records them and
-    automatically re-sends if the leader changes. It's called by the `primary_t`,
-    `secondary_t`, or `erase_t` via a `std::function` that we give to them. It must not
-    block. */
+    /* This will send `cid` and `ack` to the leader. We pass it as a callback to
+    the `primary_t`, `secondary_t`, and `erase_t` constructors. */
     void send_ack(const contract_id_t &cid, const contract_ack_t &ack);
 
     const server_id_t server_id;
@@ -94,12 +107,20 @@ private:
         *const remote_primary_bcards;
     const multistore_ptr_t *const multistore;
     branch_history_manager_t *const branch_history_manager;
+    const base_path_t base_path;
+    io_backender_t *const io_backender;
+    backfill_throttler_t *const backfill_throttler;
+    perfmon_collection_t *const perfmons;
 
     std::map<ongoing_key_t, ongoing_data_t> ongoings;
     bool update_coro_running;
 
+    watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> ack_map;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         local_primary_bcards;
+
+    /* Used to generate unique names for perfmons */
+    int perfmon_counter;
 
     auto_drainer_t drainer;
     watchable_t<raft_member_t<state_t>::state_and_config_t>::subscription_t

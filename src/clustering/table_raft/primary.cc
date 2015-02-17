@@ -6,16 +6,16 @@ primary_t::primary_t(
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
+        perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &acb,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs) :
-    server_id(sid),
-    store(s),
-    branch_history_manager(bhm),
-    region(r),
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender) :
+    server_id(sid), store(s), branch_history_manager(bhm), region(r), perfmons(pms),
+    primary_bcards(pbcs), base_path(_base_path), io_backender(_io_backender),
     our_branch_id(generate_uuid()),
-    latest_contract(make_counted<contract_info_t>(c, acb)),
-    primary_bcards(pbcs)
+    latest_contract(make_counted<contract_info_t>(c, acb))
     { }
 
 void primary_t::update_contract(
@@ -59,6 +59,7 @@ void primary_t::update_contract(
 }
 
 void primary_t::run(auto_drainer_t::lock_t keepalive) {
+    order_source_t order_source;
     try {
         /* Set our initial state to `primary_need_branch`, so that the leader will assign
         us a new branch ID. */
@@ -67,7 +68,8 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             region_map_t<binary_blob_t> blobs;
             read_token_t token;
             store->new_read_token(&token);
-            store->do_get_metainfo(order_token_t::ignore, token,
+            store->do_get_metainfo(
+                order_source.check_in("primary_t").with_read_mode(), token,
                 keepalive.get_drain_signal(), &blobs);
 
             /* Send a request for the leader to register our branch */
@@ -81,9 +83,6 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
         /* Wait until we get our branch registered */
         wait_interruptible(&branch_registered, keepalive.get_drain_signal());
 
-        /* RSI: Must flush the branch history to disk before we call the broadcaster_t
-        constructor */
-
         /* Set up the `broadcaster_t`, `listener_t`, and `replier_t`, which do the
         actual important work */
 
@@ -92,25 +91,25 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             branch_history_manager,
             store,
             parent_perfmon_collection, /* RSI */
-            order_source, /* RSI */
+            &order_source,
             branch_id,
             keepalive.get_drain_signal());
 
         listener_t listener(
-            base_path, /* RSI */
-            io_backender, /* RSI */
+            base_path,
+            io_backender,
             mailbox_manager,
             server_id,
-            branch_history_manager, /* RSI */
+            branch_history_manager,
             &broadcaster,
             backfill_stats_parent, /* RSI */
             keepalive.get_drain_signal(),
-            order_source /* RSI */);
+            &order_source);
 
         replier_t replier(
             &listener,
             mailbox_manager,
-            branch_history_manager /* RSI */);
+            branch_history_manager);
 
         /* Put an entry in the minidir so the replicas can find us */
         primary_bcard_t bcard;

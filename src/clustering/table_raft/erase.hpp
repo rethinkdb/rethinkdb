@@ -11,6 +11,7 @@ public:
         store_view_t *s,
         UNUSED branch_history_manager_t *bhm,
         const region_t &r,
+        UNUSED perfmon_collection_t *perfmons,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &ack_cb);
     void update_contract(

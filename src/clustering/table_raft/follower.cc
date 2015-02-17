@@ -7,13 +7,22 @@ follower_t::follower_t(
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *_remote_primary_bcards,
         const multistore_ptr_t *_multistore,
-        branch_history_manager_t *_branch_history_manager) :
+        branch_history_manager_t *_branch_history_manager,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender,
+        backfill_throttler_t *_backfill_throttler;
+        perfmon_collection_t *_perfmons) :
     server_id(_server_id),
     raft(_raft),
     remote_primary_bcards(_remote_primary_bcards),
     multistore(_multistore),
     branch_history_manager(_branch_history_manager),
+    base_path(_base_path),
+    io_backender(_io_backender),
+    backfill_throttler(_backfill_throttler),
+    perfmons(_perfmons),
     update_coro_running(false),
+    perfmon_counter(0),
     raft_state_subs(std::bind(&follower_t::on_raft_state_change, this))
 {
     watchable_t<raft_member_t<state_t>::state_and_config_t>::freeze_t freeze(
@@ -120,9 +129,17 @@ void follower_t::update(const state_t &new_state,
             if (ok_to_create) {
                 ongoing_data_t *data = &ongoings[key];
                 data->contract_id = new_pair.first;
+
                 data->store_subview = make_scoped<store_subview_t>(
                     multistore->shards[get_cpu_shard_number(key.region)],
                     key.region);
+
+                /* We generate perfmon keys of the form "primary-3", "secondary-8", etc.
+                */
+                data->perfmon_membership = make_scoped<perfmon_membership_t>(
+                    perfmons, &data->perfmon_collection,
+                    strprintf("%s-%d", key.role_name().c_str(), ++perfmon_counter));
+
                 std::function<void(const contract_ack_t &)> acker =
                     std::bind(&follower_t::send_ack, this, new_pair.first, ph::_1);
                 /* Note that these constructors will never block. */
@@ -130,19 +147,23 @@ void follower_t::update(const state_t &new_state,
                 case ongoing_key_t::role_t::primary:
                     it->second.primary.init(new primary_t(
                         server_id, data->store_subview.get(), branch_history_manager,
-                        key.region, new_pair.second.second, acker,
-                        &local_primary_bcards));
+                        key.region, &data->perfmon_collection,
+                        new_pair.second.second, acker,
+                        &local_primary_bcards, base_path, io_backender));
                     break;
                 case ongoing_key_t::role_t::secondary:
                     it->second.secondary.init(new secondary_t(
                         server_id, data->store_subview.get(), branch_history_manager,
-                        key.region, new_pair.second.second, acker,
-                        remote_primary_bcards));
+                        key.region, &data->perfmon_collection,
+                        new_pair.second.second, acker,
+                        remote_primary_bcards, base_path, io_backender,
+                        backfill_throttler));
                     break;
                 case ongoing_key_t::role_t::erase:
-                    it->second.primary.init(new erase_t(
+                    it->second.erase.init(new erase_t(
                         server_id, data->store_subview.get(), branch_history_manager,
-                        key.region, new_pair.second.second, acker));
+                        key.region, &data->perfmon_collection,
+                        new_pair.second.second, acker));
                     break;
                 default: unreachable();
                 }
@@ -153,8 +174,13 @@ void follower_t::update(const state_t &new_state,
     of the new contracts */
     for (const auto &old_pair : ongoings) {
         if (dont_delete.count(old_pair.first) == 0) {
+            ack_map.delete_key(old_pair.first);
             to_delete_out->insert(old_pair.first);
         }
     }
+}
+
+void follower_t::send_ack(const contract_id_t &cid, const contract_ack_t &ack) {
+    ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);
 }
 

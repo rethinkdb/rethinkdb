@@ -8,11 +8,16 @@ secondary_t::secondary_t(
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
+        perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &acb,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs) :
-    server_id(sid), store(s), branch_history_manager(bhm), region(r),
-    primary_bcards(pbcs),
+        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender,
+        backfill_throttler_t *_backfill_throttler) :
+    server_id(sid), store(s), branch_history_manager(bhm), region(r), perfmons(pms),
+    primary_bcards(pbcs), base_path(_base_path), io_backender(_io_backender),
+    backfill_throttler(_backfill_throttler),
     primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
     branch(c.branch),
     ack_cb(acb)
@@ -34,6 +39,7 @@ void secondary_t::update_contract(
 }
 
 void secondary_t::run(auto_drainer_t::lock_t keepalive) {
+    order_source_t order_source;
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
             /* Set our initial state to `secondary_need_primary`. */
@@ -41,7 +47,8 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 region_map_t<binary_blob_t> blobs;
                 read_token_t token;
                 store->new_read_token(&token);
-                store->do_get_metainfo(order_token_t::ignore, token,
+                store->do_get_metainfo(
+                    order_source.check_in("secondary_t").with_read_mode(), token,
                     keepalive.get_drain_signal(), &blobs);
                 contract_ack_t ack(contract_ack_t::state_t::secondary_need_primary);
                 ack.version = boost::make_optional(to_version_map(blobs));
@@ -92,24 +99,24 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
 
             /* Backfill and start streaming from the primary. */
             listener_t listener(
-                base_path, /* RSI */
-                io_backender, /* RSI */
+                base_path,
+                io_backender,
                 mailbox_manager,
                 server_id,
-                backfill_throttler, /* RSI */
+                backfill_throttler,
                 primary_bcard.broadcaster,
                 branch_history_manager,
                 store,
                 primary_bcard.replier,
                 backfill_stats_parent, /* RSI */
                 &stop_signal,
-                order_source, /* RSI */
+                &order_source,
                 nullptr); /* RSI(raft): Hook up backfill progress again */
 
             replier_t replier(
                 &listener,
                 mailbox_manager,
-                branch_history_manager /* RSI */);
+                branch_history_manager);
 
             /* Let the leader know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));

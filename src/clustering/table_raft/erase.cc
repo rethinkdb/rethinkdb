@@ -6,6 +6,7 @@ erase_t::erase_t(
         store_view_t *s,
         UNUSED branch_history_manager_t *bhm,
         const region_t &r,
+        UNUSED perfmon_collection_t *perfmons,
         const contract_t &contract,
         const std::function<void(contract_ack_t)> &ack_cb) :
     server_id(sid), store(s), region(r)
