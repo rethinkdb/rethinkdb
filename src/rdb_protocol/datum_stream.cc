@@ -1143,8 +1143,6 @@ private:
         lock.assert_is_holding(&parent->drainer);
         parent->home_thread_mixin_t::assert_thread();
         try {
-            r_sanity_check(!stream->is_exhausted());
-
             r_sanity_check(parent->coro_batchspec.has());
             batchspec_t bs = *parent->coro_batchspec;
             if (bs.get_batch_type() == batch_type_t::NORMAL_FIRST && !is_first_batch) {
