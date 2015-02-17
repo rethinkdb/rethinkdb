@@ -1341,7 +1341,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
         r_sanity_check(queue.size() != 0);
         std::vector<datum_t> data = std::move(queue.front());
         queue.pop();
-        if (data.size() ==0) {
+        if (data.size() == 0) {
             // We should only ever get empty batches if one of our streams is a
             // changefeed.
             r_sanity_check(union_type != feed_type_t::not_feed);
