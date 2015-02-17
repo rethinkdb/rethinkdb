@@ -39,7 +39,6 @@ protected:
             doc = to_lisp_datum(t->mutable_datum());
             break;
         case Term::BRACKET:
-        case Term::GET:
             doc = string_gets_together(t);
             break;
         case Term::BRANCH:
@@ -203,8 +202,9 @@ private:
     bool should_continue_string(Term_TermType type) {
         switch (type) {
         case Term::BRACKET:
-        case Term::GET:
         case Term::TABLE:
+        case Term::GET:
+        case Term::GET_FIELD:
             return true;
         default:
             return false;
@@ -214,6 +214,10 @@ private:
         switch (type) {
         case Term::TABLE:
             return make_concat(lparen, table, sp, visit_generic(t),
+                               rparen);
+        case Term::GET:
+        case Term::GET_FIELD:
+            return make_concat(lparen, get, sp, visit_generic(t),
                                rparen);
         default:
             return visit_generic(t);
@@ -264,7 +268,8 @@ private:
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
     static counted_t<const document_t> colon, quote, sp, dotdot, dotdotdot;
-    static counted_t<const document_t> nil, true_v, false_v, json, table, cond, lambda;
+    static counted_t<const document_t> nil, true_v, false_v, json, table, get, cond,
+        lambda;
 
     const unsigned int MAX_DEPTH = 20;
 };
@@ -285,6 +290,7 @@ counted_t<const document_t> sexp_pretty_printer_t::sp = make_text(" ");
 counted_t<const document_t> sexp_pretty_printer_t::quote = make_text("\"");
 counted_t<const document_t> sexp_pretty_printer_t::json = make_text("json");
 counted_t<const document_t> sexp_pretty_printer_t::table = make_text("table");
+counted_t<const document_t> sexp_pretty_printer_t::get = make_text("get");
 counted_t<const document_t> sexp_pretty_printer_t::cond = make_text("cond");
 counted_t<const document_t> sexp_pretty_printer_t::lambda = make_text("fn"); // follow Clojure here
 
