@@ -1125,15 +1125,10 @@ public:
           running(false),
           is_first_batch(true),
           parent(_parent) {
-        if (stream->is_exhausted()) {
-            active = false;
-        } else {
-            active = true;
-            parent->active += 1;
-        }
+        if (!stream->is_exhausted()) parent->active += 1;
     }
     void maybe_launch_read() {
-        if (active && !running) {
+        if (!stream->is_exhausted() && !running) {
             r_sanity_check(!stream->is_exhausted());
             running = true;
             // Has to spawn now because we acquire a drainer lock.
@@ -1183,7 +1178,6 @@ private:
             parent->abort_exc.pulse_if_not_already_pulsed(std::current_exception());
         }
         if (stream->is_exhausted()) {
-            active = false;
             parent->active -= 1;
             if (parent->active == 0 && parent->data_available.has()) {
                 parent->data_available->pulse_if_not_already_pulsed();
@@ -1191,7 +1185,7 @@ private:
         }
         running = false;
     }
-    bool running, active, is_first_batch;
+    bool running, is_first_batch;
     union_datum_stream_t *parent;
 };
 
