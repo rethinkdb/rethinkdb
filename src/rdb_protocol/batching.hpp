@@ -91,54 +91,10 @@ private:
                 int64_t max_size, int64_t first_scaledown,
                 int64_t max_dur, microtime_t start_time);
 
-
     template<cluster_version_t W>
-    friend void serialize(write_message_t *wm, const batchspec_t &batchspec) {
-        static_assert(
-            W == cluster_version_t::CLUSTER,
-            "Tried to serialize `batchspec_t` for a version different than `CLUSTER`");
-
-        serialize<W>(wm, batchspec.batch_type);
-        serialize<W>(wm, batchspec.min_els);
-        serialize<W>(wm, batchspec.max_els);
-        serialize<W>(wm, batchspec.max_size);
-        serialize<W>(wm, batchspec.first_scaledown_factor);
-        serialize<W>(wm, batchspec.max_dur);
-
-        // Here we serialize the duration instead of the `start_time` to account for
-        // clocks being out of sync between machines.
-        microtime_t current_time = current_microtime();
-        size_t duration = current_time - std::min(batchspec.start_time, current_time);
-        serialize<cluster_version_t::CLUSTER>(wm, duration);
-    }
+    friend void serialize(write_message_t *wm, const batchspec_t &batchspec);
     template<cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec) {
-        static_assert(
-            W == cluster_version_t::CLUSTER,
-            "Tried to serialize `batchspec_t` for a version different than `CLUSTER`");
-
-        archive_result_t res = archive_result_t::SUCCESS;
-
-        res = deserialize<W>(s, deserialize_deref(batchspec->batch_type));
-        if (bad(res)) { return res; }
-        res = deserialize<W>(s, deserialize_deref(batchspec->min_els));
-        if (bad(res)) { return res; }
-        res = deserialize<W>(s, deserialize_deref(batchspec->max_els));
-        if (bad(res)) { return res; }
-        res = deserialize<W>(s, deserialize_deref(batchspec->max_size));
-        if (bad(res)) { return res; }
-        res = deserialize<W>(s, deserialize_deref(batchspec->first_scaledown_factor));
-        if (bad(res)) { return res; }
-        res = deserialize<W>(s, deserialize_deref(batchspec->max_dur));
-        if (bad(res)) { return res; }
-
-        size_t duration = 0;
-        res = deserialize<W>(s, &duration);
-        if (bad(res)) { return res; }
-        batchspec->start_time = current_microtime() - duration;
-
-        return res;
-    }
+    friend archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec);
 
     batch_type_t batch_type;
     int64_t min_els, max_els, max_size, first_scaledown_factor, max_dur;
