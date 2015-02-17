@@ -248,10 +248,12 @@ std::vector<datum_t> data;
 };
 
 struct coro_info_t;
+class coro_stream_t;
 
 class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
-    union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
+    union_datum_stream_t(env_t *env,
+                         std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src);
 
     virtual void add_transformation(transform_variant_t &&tv,
@@ -266,32 +268,29 @@ public:
     virtual bool is_infinite() const;
 
 private:
-    void coro_cb(size_t index) THROWS_NOTHING;
+    friend class coro_stream_t;
 
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
-        std::vector<changefeed::keyspec_t> specs;
-        for (auto &&stream : streams) {
-            auto subspecs = stream->get_change_specs();
-            std::move(subspecs.begin(), subspecs.end(), std::back_inserter(specs));
-        }
-        return specs;
-    }
+    virtual std::vector<changefeed::keyspec_t> get_change_specs();
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     // We need to keep these around to apply transformations to even though we
     // spawn coroutines to read from them.
-    std::vector<counted_t<datum_stream_t> > streams;
+    std::vector<scoped_ptr_t<coro_stream_t> > coro_streams;
     feed_type_t union_type;
     bool is_infinite_union;
 
-    size_t active, outstanding_notifications;
-    promise_t<std::exception_ptr> abort_exc;
-    std::vector<cond_t *> notify_conds;
-    scoped_ptr_t<cond_t> all_notified, data_available;
+    // Set during construction.
     scoped_ptr_t<profile::trace_t> trace;
     scoped_ptr_t<profile::disabler_t> disabler;
-    scoped_ptr_t<coro_info_t> coro_info;
+    scoped_ptr_t<env_t> coro_env;
+    // Set the first time `next_batch_impl` is called.
+    scoped_ptr_t<batchspec_t> coro_batchspec;
+
+    size_t active;
+    promise_t<std::exception_ptr> abort_exc;
+    scoped_ptr_t<cond_t> data_available;
+
     std::queue<std::vector<datum_t> > queue; // FIFO
 
     auto_drainer_t drainer;

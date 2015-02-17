@@ -413,8 +413,10 @@ private:
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
             } else {
-                return new_val(env->env, make_counted<union_datum_stream_t>(
-                                   std::move(streams), backtrace()));
+                return new_val(
+                    env->env,
+                    make_counted<union_datum_stream_t>(
+                        env->env, std::move(streams), backtrace()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
@@ -488,8 +490,8 @@ private:
         for (size_t i = 0; i < args->num_args(); ++i) {
             streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
-        counted_t<datum_stream_t> union_stream
-            = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
+        counted_t<datum_stream_t> union_stream = make_counted<union_datum_stream_t>(
+                env->env, std::move(streams), backtrace());
         return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }

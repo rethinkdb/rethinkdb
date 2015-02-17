@@ -1118,30 +1118,190 @@ bool slice_datum_stream_t::is_infinite() const {
 }
 
 // UNION_DATUM_STREAM_T
+class coro_stream_t {
+public:
+    coro_stream_t(counted_t<datum_stream_t> _stream, union_datum_stream_t *_parent)
+        : stream(_stream),
+          running(false),
+          is_first_batch(true),
+          parent(_parent) {
+        if (stream->is_exhausted()) {
+            active = false;
+        } else {
+            active = true;
+            parent->active += 1;
+        }
+    }
+    void maybe_launch_read() {
+        if (active && !running) {
+            r_sanity_check(!stream->is_exhausted());
+            running = true;
+            // Has to spawn now because we acquire a drainer lock.
+            coro_t::spawn_now_dangerously([this]{this->cb();});
+        }
+    }
+    const counted_t<datum_stream_t> stream;
+private:
+    void cb() THROWS_NOTHING {
+        // See `next_batch` call below.
+        scoped_ptr_t<assert_no_coro_waiting_t> no_coro_waiting(
+            make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__));
+        parent->home_thread_mixin_t::assert_thread();
+        auto_drainer_t::lock_t drainer_lock(&parent->drainer);
+        try {
+            r_sanity_check(!stream->is_exhausted());
+
+            r_sanity_check(parent->coro_batchspec.has());
+            batchspec_t bs = *parent->coro_batchspec;
+            if (bs.get_batch_type() == batch_type_t::NORMAL_FIRST && !is_first_batch) {
+                bs = bs.with_new_batch_type(batch_type_t::NORMAL);
+            }
+            is_first_batch = false;
+
+            // We want to make sure that this call to `next_batch` is the only
+            // thing in this whole function that blocks.
+            no_coro_waiting.reset();
+            std::vector<datum_t> batch = stream->next_batch(parent->coro_env.get(), bs);
+            no_coro_waiting = make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__);
+
+            if (batch.size() == 0 && stream->cfeed_type() == feed_type_t::not_feed) {
+                r_sanity_check(stream->is_exhausted());
+                // We're done, fall through and deactivate ourselves.
+            } else {
+                r_sanity_check(
+                    batch.size() != 0
+                    || (parent->coro_env->return_empty_normal_batches
+                        == return_empty_normal_batches_t::YES)
+                    || (bs.get_batch_type() == batch_type_t::NORMAL_FIRST));
+                parent->queue.push(std::move(batch));
+                parent->data_available->pulse_if_not_already_pulsed();
+            }
+        } catch (const interrupted_exc_t) {
+            // Just fall through and end; the drainer signal being pulsed
+            // will interrupt `next_batch_impl` as well.
+        } catch (...) {
+            parent->abort_exc.pulse_if_not_already_pulsed(std::current_exception());
+        }
+        if (stream->is_exhausted()) {
+            active = false;
+            parent->active -= 1;
+            if (parent->active == 0 && parent->data_available.has()) {
+                parent->data_available->pulse_if_not_already_pulsed();
+            }
+        }
+        running = false;
+    }
+    bool running, active, is_first_batch;
+    union_datum_stream_t *parent;
+};
+
+union_datum_stream_t::union_datum_stream_t(
+    env_t *env,
+    std::vector<counted_t<datum_stream_t> > &&streams,
+    const protob_t<const Backtrace> &bt_src)
+    : datum_stream_t(bt_src),
+      union_type(feed_type_t::not_feed),
+      is_infinite_union(false),
+      active(0) {
+
+    for (const auto &stream : streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_union |= stream->is_infinite();
+    }
+
+    if (env->trace != nullptr) {
+        trace = make_scoped<profile::trace_t>();
+        disabler = make_scoped<profile::disabler_t>(trace.get());
+    }
+    coro_env = make_scoped<env_t>(
+        env->get_rdb_ctx(),
+        env->return_empty_normal_batches,
+        drainer.get_drain_signal(),
+        env->get_all_optargs(),
+        trace.has() ? trace.get() : nullptr);
+
+    coro_streams.reserve(streams.size());
+    for (auto &&stream : streams) {
+        coro_streams.push_back(make_scoped<coro_stream_t>(std::move(stream), this));
+    }
+}
+
+std::vector<datum_t>
+union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+    // This needs to be on the same thread as the coroutines spawned in the
+    // constructor.
+    home_thread_mixin_t::assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(),
+                           abort_exc.get_ready_signal());
+    for (;;) {
+        try {
+            // The client is already doing prefetching, so we don't want to do
+            // *double* prefetching by prefetching on the server as well.
+            while (queue.size() == 0) {
+                std::exception_ptr exc;
+                if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
+                if (active == 0) return std::vector<datum_t>();
+                // We don't have the batchspec during construction.
+                if (!coro_batchspec.has()) {
+                    coro_batchspec = make_scoped<batchspec_t>(batchspec);
+                }
+
+                data_available = make_scoped<cond_t>();
+                for (auto &&s : coro_streams) s->maybe_launch_read();
+                r_sanity_check(active != 0 || data_available->is_pulsed());
+                wait_interruptible(data_available.get(), &interruptor);
+            }
+        } catch (...) {
+            // Prefer throwing coroutine exceptions because we might have been
+            // interrupted by `abort_exc`, and in all other cases it doesn't
+            // matter which we throw.
+            std::exception_ptr exc;
+            if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
+            throw;
+        }
+        r_sanity_check(queue.size() != 0);
+        std::vector<datum_t> data = std::move(queue.front());
+        queue.pop();
+        if (data.size() == 0) {
+            // We should only ever get empty batches if one of our streams is a
+            // changefeed.
+            r_sanity_check(union_type != feed_type_t::not_feed);
+            // If we aren't supposed to send empty normal batches, and this
+            // isn't a `NORMAL_FIRST` batch, we don't send it.
+            if ((env->return_empty_normal_batches == return_empty_normal_batches_t::NO)
+                && (batchspec.get_batch_type() != batch_type_t::NORMAL_FIRST)) {
+                continue;
+            }
+        }
+        return data;
+    }
+}
+
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                               const protob_t<const Backtrace> &bt) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(transform_variant_t(tv), bt);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->add_transformation(transform_variant_t(tv), bt);
     }
     update_bt(bt);
 }
 
 void union_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->accumulate(env, acc, tv);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->accumulate(env, acc, tv);
     }
 }
 
 void union_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->accumulate_all(env, acc);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->accumulate_all(env, acc);
     }
 }
 
 bool union_datum_stream_t::is_array() const {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        if (!(*it)->is_array()) {
+    for (auto &&coro_stream : coro_streams) {
+        if (!coro_stream->stream->is_array()) {
             return false;
         }
     }
@@ -1177,183 +1337,13 @@ bool union_datum_stream_t::is_infinite() const {
     return is_infinite_union;
 }
 
-struct coro_info_t {
-    coro_info_t(scoped_ptr_t<env_t> _env, batchspec_t _batchspec)
-        : env(std::move(_env)), batchspec(std::move(_batchspec)) { }
-    const scoped_ptr_t<env_t> env;
-    const batchspec_t batchspec;
-};
-
-void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
-    ++active;
-    auto_drainer_t::lock_t lock(&drainer);
-    counted_t<datum_stream_t> stream = streams[i];
-    signal_t *interruptor = lock.get_drain_signal();
-    bool is_first = true;
-    try {
-        while (!stream->is_exhausted()) {
-            cond_t notify;
-            notify_conds[i] = &notify;
-            wait_interruptible(&notify, interruptor);
-            // We get an erroneous "declaration shadows a local
-            // variable" error from the compiler if we use a plain
-            // `ASSERT_NO_CORO_WAITING` here, because it isn't smart
-            // enough to handle the lambda.
-            {
-                ASSERT_NO_CORO_WAITING;
-                r_sanity_check(notify_conds[i] == NULL);
-                r_sanity_check(outstanding_notifications > 0);
-                if (--outstanding_notifications == 0) {
-                    all_notified->pulse_if_not_already_pulsed();
-                }
-                r_sanity_check(coro_info.has());
-                r_sanity_check(coro_info->env->interruptor == interruptor);
-            }
-            // We need to copy this out because it isn't const.
-            batchspec_t bs = coro_info->batchspec;
-            if (bs.get_batch_type() == batch_type_t::NORMAL_FIRST && !is_first) {
-                bs = bs.with_new_batch_type(batch_type_t::NORMAL);
-            }
-            is_first = false;
-            std::vector<datum_t> batch
-                = stream->next_batch(coro_info->env.get(), bs);
-            if (batch.size() == 0) {
-                if (stream->cfeed_type() == feed_type_t::not_feed) {
-                    r_sanity_check(stream->is_exhausted());
-                    break;
-                } else {
-                    r_sanity_check(
-                        (coro_info->env->return_empty_normal_batches
-                         == return_empty_normal_batches_t::YES)
-                        || (bs.get_batch_type() == batch_type_t::NORMAL_FIRST));
-                }
-            }
-            queue.push(std::move(batch));
-            data_available->pulse_if_not_already_pulsed();
-        }
-    } catch (const interrupted_exc_t) {
-        // Just fall through and end; the drainer signal being pulsed
-        // will interrupt `next_batch_impl` as well.
-    } catch (...) {
-        ASSERT_NO_CORO_WAITING;
-        abort_exc.pulse_if_not_already_pulsed(std::current_exception());
+std::vector<changefeed::keyspec_t> union_datum_stream_t::get_change_specs() {
+    std::vector<changefeed::keyspec_t> specs;
+    for (auto &&coro_stream : coro_streams) {
+        auto subspecs = coro_stream->stream->get_change_specs();
+        std::move(subspecs.begin(), subspecs.end(), std::back_inserter(specs));
     }
-    if (--active == 0) {
-        if (data_available.has()) {
-            data_available->pulse_if_not_already_pulsed();
-        }
-    }
-}
-
-union_datum_stream_t::union_datum_stream_t(
-    std::vector<counted_t<datum_stream_t> > &&_streams,
-    const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(bt_src),
-      streams(_streams),
-      union_type(feed_type_t::not_feed),
-      is_infinite_union(false),
-      active(0),
-      outstanding_notifications(0) {
-
-    for (const auto &stream : streams) {
-        union_type = union_of(union_type, stream->cfeed_type());
-        is_infinite_union |= stream->is_infinite();
-    }
-
-    notify_conds = std::vector<cond_t *>(streams.size(), nullptr);
-    size_t should_be_active = 0;
-    for (size_t i = 0; i < streams.size(); ++i) {
-        ASSERT_FINITE_CORO_WAITING;
-        // We spawn immediately so that we can safely acquire the drainer lock.
-        if (!streams[i]->is_exhausted()) {
-            coro_t::spawn_now_dangerously([i, this]() { this->coro_cb(i); });
-            should_be_active += 1;
-        }
-    }
-    r_sanity_check(active == should_be_active);
-}
-
-std::vector<datum_t>
-union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
-    // This needs to be on the same thread as the coroutines spawned in the
-    // constructor.
-    home_thread_mixin_t::assert_thread();
-    auto_drainer_t::lock_t lock(&drainer);
-    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(),
-                           abort_exc.get_ready_signal());
-    for (;;) {
-        try {
-            // The client is already doing prefetching, so we don't want to do
-            // *double* prefetching by prefetching on the server as well.
-            while (queue.size() == 0) {
-                std::exception_ptr exc;
-                if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
-                if (active == 0) return std::vector<datum_t>();
-                {
-                    ASSERT_NO_CORO_WAITING;
-                    // We only have to do this once because we use the same optargs
-                    // etc.  for every batch.
-                    if (!coro_info.has()) {
-                        r_sanity_check(!trace.has());
-                        r_sanity_check(!disabler.has());
-                        if (env->trace != nullptr) {
-                            trace = make_scoped<profile::trace_t>();
-                            disabler = make_scoped<profile::disabler_t>(trace.get());
-                        }
-                        coro_info = make_scoped<coro_info_t>(
-                            make_scoped<env_t>(
-                                env->get_rdb_ctx(),
-                                env->return_empty_normal_batches,
-                                drainer.get_drain_signal(),
-                                env->get_all_optargs(),
-                                trace.has() ? trace.get() : nullptr),
-                            batchspec);
-                    }
-                    r_sanity_check(outstanding_notifications == 0);
-                    data_available = make_scoped<cond_t>();
-                    for (size_t i = 0; i < notify_conds.size(); ++i) {
-                        if (notify_conds[i] != NULL) {
-                            outstanding_notifications += 1;
-                            notify_conds[i]->pulse();
-                            notify_conds[i] = NULL;
-                        }
-                    }
-                    if (outstanding_notifications != 0) {
-                        all_notified = make_scoped<cond_t>();
-                    } else {
-                        all_notified.reset();
-                    }
-                }
-                if (all_notified.has()) {
-                    wait_interruptible(all_notified.get(), &interruptor);
-                }
-                r_sanity_check(outstanding_notifications == 0);
-                wait_interruptible(data_available.get(), &interruptor);
-            }
-        } catch (...) {
-            // Prefer throwing coroutine exceptions because we might have been
-            // interrupted by `abort_exc`, and in all other cases it doesn't
-            // matter which we throw.
-            std::exception_ptr exc;
-            if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
-            throw;
-        }
-        r_sanity_check(queue.size() != 0);
-        std::vector<datum_t> data = std::move(queue.front());
-        queue.pop();
-        if (data.size() == 0) {
-            // We should only ever get empty batches if one of our streams is a
-            // changefeed.
-            r_sanity_check(union_type != feed_type_t::not_feed);
-            // If we aren't supposed to send empty normal batches, and this
-            // isn't a `NORMAL_FIRST` batch, we don't send it.
-            if ((env->return_empty_normal_batches == return_empty_normal_batches_t::NO)
-                && (batchspec.get_batch_type() != batch_type_t::NORMAL_FIRST)) {
-                continue;
-            }
-        }
-        return data;
-    }
+    return specs;
 }
 
 // RANGE_DATUM_STREAM_T
