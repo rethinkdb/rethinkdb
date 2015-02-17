@@ -1236,8 +1236,7 @@ void union_datum_stream_t::coro_cb(size_t i) THROWS_NOTHING {
         // will interrupt `next_batch_impl` as well.
     } catch (...) {
         ASSERT_NO_CORO_WAITING;
-        exc = std::current_exception();
-        abort.pulse_if_not_already_pulsed();
+        abort_exc.pulse_if_not_already_pulsed(std::current_exception());
     }
     if (--active == 0) {
         if (data_available.has()) {
@@ -1280,13 +1279,15 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     // constructor.
     home_thread_mixin_t::assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
-    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(), &abort);
+    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(),
+                           abort_exc.get_ready_signal());
     for (;;) {
         try {
             // The client is already doing prefetching, so we don't want to do
             // *double* prefetching by prefetching on the server as well.
             while (queue.size() == 0) {
-                if (exc) std::rethrow_exception(exc);
+                std::exception_ptr exc;
+                if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
                 if (active == 0) return std::vector<datum_t>();
                 {
                     ASSERT_NO_CORO_WAITING;
@@ -1331,9 +1332,10 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
             }
         } catch (...) {
             // Prefer throwing coroutine exceptions because we might have been
-            // interrupted by `abort`, and in all other cases it doesn't matter
-            // which we throw.
-            if (exc) std::rethrow_exception(exc);
+            // interrupted by `abort_exc`, and in all other cases it doesn't
+            // matter which we throw.
+            std::exception_ptr exc;
+            if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
             throw;
         }
         r_sanity_check(queue.size() != 0);

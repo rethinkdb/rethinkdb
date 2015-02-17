@@ -148,3 +148,13 @@ rescue
 end
 assert{$timed_out}
 
+r.table_drop('test')
+$errored = false
+begin
+  timeout(2) {
+    $lp1.next
+  }
+rescue RethinkDB::RqlRuntimeError => e
+  $errored = true
+end
+assert{$errored}

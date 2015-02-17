@@ -286,13 +286,12 @@ private:
     bool is_infinite_union;
 
     size_t active, outstanding_notifications;
-    cond_t abort;
+    promise_t<std::exception_ptr> abort_exc;
     std::vector<cond_t *> notify_conds;
     scoped_ptr_t<cond_t> all_notified, data_available;
     scoped_ptr_t<profile::trace_t> trace;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<coro_info_t> coro_info;
-    std::exception_ptr exc;
     std::queue<std::vector<datum_t> > queue; // FIFO
 
     auto_drainer_t drainer;
