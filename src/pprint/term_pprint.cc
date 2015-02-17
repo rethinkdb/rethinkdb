@@ -1,6 +1,9 @@
 #include "pprint/pprint.hpp"
 
+#include <math.h>
+
 #include <vector>
+#include <memory>
 
 #include "rdb_protocol/ql2_extensions.pb.h"
 
@@ -11,45 +14,279 @@ class generic_term_walker_t {
 public:
     virtual ~generic_term_walker_t() {}
 
-    virtual Accumulator &&walk(Term *t) {
+    virtual Accumulator walk(Term *t) {
         return std::move(visit_generic(t));
     }
 protected:
-    virtual Accumulator &&visit_generic(Term *t) = 0;
+    virtual Accumulator visit_generic(Term *t) = 0;
 };
+
+// we know what we're doing here, and I don't think 169 random
+// Term types is going to clarify anything.
+#pragma GCC diagnostic ignored "-Wswitch-enum"
 
 class sexp_pretty_printer_t
     : public generic_term_walker_t<counted_t<const document_t> > {
+    unsigned int depth = 0;
+    typedef std::vector<counted_t<const document_t> > v;
 protected:
-    virtual counted_t<const document_t> &&visit_generic(Term *t) {
-        static counted_t<const document_t> lparen = make_text("(");
-        static counted_t<const document_t> rparen = make_text(")");
-        static counted_t<const document_t> space = make_text(" ");
+    virtual counted_t<const document_t> visit_generic(Term *t) {
+        ++depth;
+        if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
+        counted_t<const document_t> doc;
+        switch (t->type()) {
+        case Term::DATUM:
+            doc = to_lisp_datum(t->mutable_datum());
+            break;
+        case Term::BRACKET:
+        case Term::GET:
+            doc = string_gets_together(t);
+            break;
+        case Term::BRANCH:
+            doc = string_branches_together(t);
+            break;
+        case Term::FUNC:
+            doc = to_lisp_func(t);
+            break;
+        case Term::VAR:
+            guarantee(t->args_size() == 1);
+            guarantee(t->mutable_args(0)->type() == Term::DATUM);
+            doc = var_name(t->mutable_args(0)->mutable_datum());
+            break;
+        default:
+        {
+            std::vector<counted_t<const document_t> > term;
+            term.push_back(lparen);
+            term.push_back(make_text(to_lisp_name(t)));
+            if (t->args_size() > 0 || t->optargs_size() > 0) {
+                term.push_back(sp);
+                std::vector<counted_t<const document_t> > args;
+                for (int i = 0; i < t->args_size(); ++i) {
+                    // don't insert redundant space
+                    if (args.size() != 0) args.push_back(br);
+                    args.push_back(visit_generic(t->mutable_args(i)));
+                }
+                for (int i = 0; i < t->optargs_size(); ++i) {
+                    // don't insert redundant space
+                    if (args.size() != 0) args.push_back(br);
+                    Term_AssocPair *ap = t->mutable_optargs(i);
+                    args.push_back(make_text(":" + to_lisp_name(ap->key())));
+                    args.push_back(br);
+                    args.push_back(visit_generic(ap->mutable_val()));
+                }
+                term.push_back(make_nest(make_concat(std::move(args))));
+            }
+            term.push_back(rparen);
+            doc = make_nest(make_concat(std::move(term)));
+            break;
+        }
+        }
+        --depth;
+        return std::move(doc);
+    }
+private:
+    std::string to_lisp_name(Term *t) {
+        return to_lisp_name(Term_TermType_Name(t->type()));
+    }
+    std::string to_lisp_name(std::string s) {
+        for (char &c : s) {
+            c = tolower(c);
+            if (c == '_') c = '-';
+        }
+        return std::move(s);
+    }
+    // Largely follow Clojure syntax here rather than CL, mostly
+    // because it's easier to read.
+    counted_t<const document_t> to_lisp_datum(Datum *d) {
+        switch (d->type()) {
+        case Datum::R_NULL:
+            return nil;
+        case Datum::R_BOOL:
+            return d->r_bool() ? true_v : false_v;
+        case Datum::R_NUM:
+        {
+            double num = d->r_num();
+            return make_text((fabs(num - trunc(num)) < 1e-10)
+                             ? std::to_string(lrint(num))
+                             : std::to_string(num));
+        }
+        case Datum::R_STR:
+            return make_text("\"" + d->r_str() + "\"");
+        case Datum::R_ARRAY:
+        {
+            std::vector<counted_t<const document_t> > term;
+            term.push_back(lbrack);
+            for (int i = 0; i < d->r_array_size(); ++i) {
+                if (i != 0) term.push_back(br);
+                term.push_back(to_lisp_datum(d->mutable_r_array(i)));
+            }
+            term.push_back(rbrack);
+            return make_nest(make_concat(std::move(term)));
+        }
+        case Datum::R_OBJECT:
+        {
+            std::vector<counted_t<const document_t> > term;
+            term.push_back(lbrace);
+            for (int i = 0; i < d->r_object_size(); ++i) {
+                if (i != 0) term.push_back(br);
+                Datum_AssocPair *ap = d->mutable_r_object(i);
+                term.push_back(colon);
+                term.push_back(make_text(ap->key()));
+                term.push_back(sp);
+                term.push_back(to_lisp_datum(ap->mutable_val()));
+            }
+            term.push_back(rbrace);
+            return make_nest(make_concat(std::move(term)));
+        }
+        case Datum::R_JSON:
+            return make_concat(lparen, json, br, quote, make_text(d->r_str()), quote,
+                               rparen);
+        default:
+            unreachable();
+        }
+    }
+    counted_t<const document_t> string_gets_together(Term *t) {
         std::vector<counted_t<const document_t> > term;
         term.push_back(lparen);
-        term.push_back(make_text(Term_TermType_Name(t->type())));
-        if (t->args_size() > 0 || t->optargs_size() > 0) {
-            term.push_back(space);
-            std::vector<counted_t<const document_t> > args;
-            for (int i = 0; i < t->args_size(); ++i) {
-                // don't insert redundant space
-                if (args.size() != 0) args.push_back(br);
-                args.push_back(visit_generic(t->mutable_args(i)));
+        term.push_back(dotdot);
+        guarantee(t->args_size() == 2);
+        term.push_back(sp);
+        std::vector<counted_t<const document_t> > nest;
+        Term *var = t->mutable_args(0);
+        if (should_continue_string(var->type())) {
+            std::vector<counted_t<const document_t> > stack;
+            while (should_continue_string(var->type())) {
+                guarantee(var->args_size() == 2);
+                stack.push_back(visit_stringing(var->type(), var->mutable_args(1)));
+                stack.push_back(br);
+                var = var->mutable_args(0);
             }
-            for (int i = 0; i < t->optargs_size(); ++i) {
-                // don't insert redundant space
-                if (args.size() != 0) args.push_back(br);
-                Term_AssocPair *ap = t->mutable_optargs(i);
-                args.push_back(make_text(":" + ap->key()));
-                args.push_back(space); // nonbreaking; don't separate key from value
-                args.push_back(visit_generic(ap->mutable_val()));
-            }
-            term.push_back(make_nest(make_concat(std::move(args))));
+            stack.push_back(visit_generic(var));
+            nest.insert(nest.end(), stack.rbegin(), stack.rend());
+        } else {
+            nest.push_back(visit_generic(var));
+            nest.push_back(br);
+            nest.push_back(visit_generic(t->mutable_args(1)));
         }
+        term.push_back(make_nest(make_concat(std::move(nest))));
         term.push_back(rparen);
-        return std::move(make_nest(make_concat(std::move(term))));
+        return make_concat(std::move(term));
     }
+    counted_t<const document_t> string_branches_together(Term *t) {
+        std::vector<counted_t<const document_t> > term;
+        term.push_back(lparen);
+        term.push_back(cond);
+        guarantee(t->args_size() == 3);
+        term.push_back(sp);
+        std::vector<counted_t<const document_t> > branches;
+        Term *var = t;
+        while (var->type() == Term::BRANCH) {
+            std::vector<counted_t<const document_t> > branch;
+            branch.push_back(lparen);
+            branch.push_back(make_nest(make_concat(visit_generic(var->mutable_args(0)),
+                                                   br,
+                                                   visit_generic(var->mutable_args(1)))));
+            branch.push_back(rparen);
+            branches.push_back(make_concat(std::move(branch)));
+            branches.push_back(br);
+            var = var->mutable_args(2);
+        }
+        branches.push_back(make_concat(lparen,
+                                       make_nest(make_concat(true_v,
+                                                             br,
+                                                             visit_generic(var))),
+                                       rparen));
+        term.push_back(make_nest(make_concat(std::move(branches))));
+        term.push_back(rparen);
+        return make_concat(std::move(term));
+    }
+    bool should_continue_string(Term_TermType type) {
+        switch (type) {
+        case Term::BRACKET:
+        case Term::GET:
+        case Term::TABLE:
+            return true;
+        default:
+            return false;
+        }
+    }
+    counted_t<const document_t> visit_stringing(Term_TermType type, Term *t) {
+        switch (type) {
+        case Term::TABLE:
+            return make_concat(lparen, table, sp, visit_generic(t),
+                               rparen);
+        default:
+            return visit_generic(t);
+        }
+    }
+    counted_t<const document_t> var_name(Datum *d) {
+        guarantee(d->type() == Datum::R_NUM);
+        return make_text("var" + std::to_string(lrint(d->r_num())));
+    }
+    counted_t<const document_t> to_lisp_func(Term *t) {
+        guarantee(t->type() == Term::FUNC);
+        guarantee(t->args_size() >= 2);
+        std::vector<counted_t<const document_t> > nest;
+        if (t->mutable_args(0)->type() == Term::MAKE_ARRAY) {
+            Term *args_term = t->mutable_args(0);
+            std::vector<counted_t<const document_t> > args;
+            for (int i = 0; i < args_term->args_size(); ++i) {
+                if (i != 0) args.push_back(br);
+                Term *arg_term = args_term->mutable_args(i);
+                guarantee(arg_term->type() == Term::DATUM);
+                guarantee(arg_term->mutable_datum()->type() == Datum::R_NUM);
+                args.push_back(var_name(arg_term->mutable_datum()));
+            }
+            nest.push_back(make_concat(lparen,
+                                       make_nest(make_concat(std::move(args))),
+                                       rparen));
+        } else if (t->mutable_args(0)->type() == Term::DATUM &&
+                   t->mutable_args(0)->mutable_datum()->type() == Datum::R_ARRAY) {
+            Datum *arg_term = t->mutable_args(0)->mutable_datum();
+            std::vector<counted_t<const document_t> > args;
+            for (int i = 0; i < arg_term->r_array_size(); ++i) {
+                if (i != 0) args.push_back(br);
+                args.push_back(var_name(arg_term->mutable_r_array(i)));
+            }
+            nest.push_back(make_concat(lparen,
+                                       make_nest(make_concat(std::move(args))),
+                                       rparen));
+        } else {
+            nest.push_back(visit_generic(t->mutable_args(0)));
+        }
+        for (int i = 1; i < t->args_size(); ++i) {
+            nest.push_back(br);
+            nest.push_back(visit_generic(t->mutable_args(i)));
+        }
+        return make_concat(lparen, lambda, sp, make_nest(make_concat(std::move(nest))),
+                           rparen);
+    }
+
+    static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
+    static counted_t<const document_t> colon, quote, sp, dotdot, dotdotdot;
+    static counted_t<const document_t> nil, true_v, false_v, json, table, cond, lambda;
+
+    const unsigned int MAX_DEPTH = 20;
 };
+
+counted_t<const document_t> sexp_pretty_printer_t::lparen = make_text("(");
+counted_t<const document_t> sexp_pretty_printer_t::rparen = make_text(")");
+counted_t<const document_t> sexp_pretty_printer_t::lbrack = make_text("[");
+counted_t<const document_t> sexp_pretty_printer_t::rbrack = make_text("]");
+counted_t<const document_t> sexp_pretty_printer_t::lbrace = make_text("{");
+counted_t<const document_t> sexp_pretty_printer_t::rbrace = make_text("}");
+counted_t<const document_t> sexp_pretty_printer_t::colon = make_text(":");
+counted_t<const document_t> sexp_pretty_printer_t::dotdot = make_text("..");
+counted_t<const document_t> sexp_pretty_printer_t::dotdotdot = make_text("...");
+counted_t<const document_t> sexp_pretty_printer_t::nil = make_text("nil");
+counted_t<const document_t> sexp_pretty_printer_t::true_v = make_text("true");
+counted_t<const document_t> sexp_pretty_printer_t::false_v = make_text("false");
+counted_t<const document_t> sexp_pretty_printer_t::sp = make_text(" ");
+counted_t<const document_t> sexp_pretty_printer_t::quote = make_text("\"");
+counted_t<const document_t> sexp_pretty_printer_t::json = make_text("json");
+counted_t<const document_t> sexp_pretty_printer_t::table = make_text("table");
+counted_t<const document_t> sexp_pretty_printer_t::cond = make_text("cond");
+counted_t<const document_t> sexp_pretty_printer_t::lambda = make_text("fn"); // follow Clojure here
 
 counted_t<const document_t> render_as_sexp(Term *t) {
     return sexp_pretty_printer_t().walk(t);
