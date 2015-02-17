@@ -28,6 +28,7 @@ namespace pprint {
 //      http://okmij.org/ftp/continuations/PPYield/yield-pp.pdf
 
 class text_t;
+class linebreak_t;
 class cond_t;
 class concat_t;
 class group_t;
@@ -38,6 +39,7 @@ public:
     virtual ~document_visitor_t() {}
 
     virtual void operator()(const text_t &) const = 0;
+    virtual void operator()(const linebreak_t &) const = 0;
     virtual void operator()(const cond_t &) const = 0;
     virtual void operator()(const concat_t &) const = 0;
     virtual void operator()(const group_t &) const = 0;
@@ -82,6 +84,16 @@ counted_t<const document_t> make_cond(const std::string l, const std::string r,
                        const std::string t) {
     return make_counted<cond_t>(std::move(l), std::move(r), std::move(t));
 }
+
+class linebreak_t : public document_t {
+public:
+    explicit linebreak_t() {}
+    virtual ~linebreak_t() {}
+
+    virtual size_t width() const { return 0; }
+    virtual void visit(const document_visitor_t &v) const { v(*this); }
+    virtual std::string str() const { return "CR"; }
+};
 
 // concatenation of multiple documents
 class concat_t : public document_t {
@@ -173,6 +185,7 @@ counted_t<const document_t> make_nest(counted_t<const document_t> child) {
 const counted_t<const document_t> empty = make_counted<text_t>("");
 const counted_t<const document_t> br = make_counted<cond_t>(" ", "");
 const counted_t<const document_t> dot = make_counted<cond_t>(".", ".");
+const counted_t<const document_t> cr = make_counted<linebreak_t>();
 
 counted_t<const document_t>
 comma_separated(std::initializer_list<counted_t<const document_t> > init) {
@@ -261,6 +274,7 @@ r_dot(std::initializer_list<counted_t<const document_t> > args) {
 
 class text_element_t;
 class cond_element_t;
+class crlf_element_t;
 class nbeg_element_t;
 class nend_element_t;
 class gbeg_element_t;
@@ -277,6 +291,7 @@ public:
     // stored in some `counted_t`.
     virtual void operator()(text_element_t *) = 0;
     virtual void operator()(cond_element_t *) = 0;
+    virtual void operator()(crlf_element_t *) = 0;
     virtual void operator()(nbeg_element_t *) = 0;
     virtual void operator()(nend_element_t *) = 0;
     virtual void operator()(gbeg_element_t *) = 0;
@@ -336,6 +351,18 @@ public:
     }
 
     virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
+};
+
+class crlf_element_t : public stream_element_t {
+public:
+    crlf_element_t() : stream_element_t() {}
+    explicit crlf_element_t(size_t hpos) : stream_element_t(hpos) {}
+    virtual ~crlf_element_t() {}
+
+    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
+    virtual std::string str() const {
+        return "CR(" + pos_or_not() + ")";
+    }
 };
 
 class nbeg_element_t : public stream_element_t {
@@ -415,6 +442,10 @@ public:
         (*fn)(make_counted<text_element_t>(t.text));
     }
 
+    virtual void operator()(const linebreak_t &) const {
+        (*fn)(make_counted<crlf_element_t>());
+    }
+
     virtual void operator()(const cond_t &c) const {
         (*fn)(make_counted<cond_element_t>(c.small, c.tail, c.cont));
     }
@@ -460,6 +491,11 @@ public:
         position += t->payload.size();
         t->hpos = position;
         (*fn)(t->counted_from_this());
+    }
+
+    virtual void operator()(crlf_element_t *e) {
+        e->hpos = position;
+        (*fn)(e->counted_from_this());
     }
 
     virtual void operator()(cond_element_t *c) {
@@ -520,6 +556,11 @@ public:
     virtual void operator()(text_element_t *t) {
         guarantee(t->hpos);
         maybe_push(t);
+    }
+
+    virtual void operator()(crlf_element_t *e) {
+        guarantee(e->hpos);
+        maybe_push(e);
     }
 
     virtual void operator()(cond_element_t *c) {
@@ -602,6 +643,15 @@ public:
     virtual void operator()(text_element_t *t) {
         result += t->payload;
         hpos += t->payload.size();
+    }
+
+    virtual void operator()(crlf_element_t *c) {
+        size_t currentIndent = indent.empty() ? 0 : indent.back();
+        result += '\n';
+        result += std::string(currentIndent, ' ');
+        fittingElements = 0;
+        hpos = currentIndent;
+        rightEdge = (width - hpos) + *(c->hpos);
     }
 
     virtual void operator()(cond_element_t *c) {

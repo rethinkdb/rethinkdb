@@ -55,6 +55,8 @@ counted_t<const document_t> make_nest(counted_t<const document_t> doc);
 
 extern const counted_t<const document_t> empty;
 extern const counted_t<const document_t> br;
+// unconditional line break
+extern const counted_t<const document_t> cr;
 extern const counted_t<const document_t> dot;
 
 
