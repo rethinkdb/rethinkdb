@@ -182,9 +182,11 @@ private:
                 optargs.push_back(br);
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
-            optargs.push_back(make_text("\"" + to_js_name(ap->key()) + "\":"));
-            optargs.push_back(br);
-            optargs.push_back(visit_generic(ap->mutable_val()));
+            optargs.push_back(make_nest(make_concat(make_text("\"" +
+                                                              to_js_name(ap->key()) +
+                                                              "\":"),
+                                                    br,
+                                                    visit_generic(ap->mutable_val()))));
         }
         return make_concat(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
     }
