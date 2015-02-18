@@ -43,38 +43,45 @@ void master_t::client_t::perform_request(
         return;
     }
 
-    if (const master_business_card_t::read_request_t *read =
-            boost::get<master_business_card_t::read_request_t>(&request)) {
+    try {
+        if (const master_business_card_t::read_request_t *read =
+                boost::get<master_business_card_t::read_request_t>(&request)) {
 
-        read->order_token.assert_read_mode();
-        fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
-        boost::variant<read_response_t, std::string> reply = read_response_t();
-        std::string error;
-        bool ok = parent->query_callback->on_read(read->read, &exiter,
-            read->order_token, &parent->shutdown_cond,
-            boost::get<read_response_t>(&reply), &error);
-        if (!ok) {
-            reply = error;
+            read->order_token.assert_read_mode();
+            fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
+            boost::variant<read_response_t, std::string> reply = read_response_t();
+            std::string error;
+            bool ok = parent->query_callback->on_read(read->read, &exiter,
+                read->order_token, &parent->shutdown_cond,
+                boost::get<read_response_t>(&reply), &error);
+            if (!ok) {
+                reply = error;
+            }
+            send(parent->mailbox_manager, read->cont_addr, reply);
+
+        } else if (const master_business_card_t::write_request_t *write =
+                boost::get<master_business_card_t::write_request_t>(&request)) {
+
+            write->order_token.assert_write_mode();
+            fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
+            boost::variant<write_response_t, std::string> reply = write_response_t();
+            std::string error;
+            bool ok = parent->query_callback->on_write(write->write, &exiter,
+                write->order_token, &parent->shutdown_cond,
+                boost::get<write_response_t>(&reply), &error);
+            if (!ok) {
+                reply = error;
+            }
+            send(parent->mailbox_manager, write->cont_addr, reply);
+
+        } else {
+            unreachable();
         }
-        send(parent->mailbox_manager, read->cont_addr, reply);
-
-    } else if (const master_business_card_t::write_request_t *write =
-            boost::get<master_business_card_t::write_request_t>(&request)) {
-
-        write->order_token.assert_write_mode();
-        fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
-        boost::variant<write_response_t, std::string> reply = write_response_t();
-        std::string error;
-        bool ok = parent->query_callback->on_write(write->write, &exiter,
-            write->order_token, &parent->shutdown_cond,
-            boost::get<write_response_t>(&reply), &error);
-        if (!ok) {
-            reply = error;
-        }
-        send(parent->mailbox_manager, write->cont_addr, reply);
-
-    } else {
-        unreachable();
+    } catch (const interrupted_exc_t &) {
+        /* We have to trap the `interrupted_exc_t` because we're listening on
+        `parent->shutdown_cond`, not on `interruptor`. It would be illegal for us to
+        throw `interrupted_exc_t` when `interruptor` was not pulsed. So instead we just
+        return normally. */
     }
 }
 
