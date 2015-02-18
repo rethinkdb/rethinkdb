@@ -323,7 +323,12 @@ def is_port_open(port, host='localhost'):
     except Exception:
         raise ValueError('port must be a valid port, got: %s' % repr(port))
     testSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    return 0 == testSocket.connect_ex((str(host), port))
+    try:
+        testSocket.connect((str(host), port))
+        testSocket.close()
+        return True
+    except Exception:
+        return False
 
 def wait_for_port(port, host='localhost', timeout=5):
     try:
@@ -374,7 +379,8 @@ def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
     psRegex = re.compile('^\s*(%d\s|\d+\s+%d\s)' % (processGroupId, processGroupId))
     psOutput = ''
     psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pgid=', '-o', 'pid=', '-o', 'command=', '-www']
-    psFilter = lambda output: [x for x in output.splitlines() if psRegex.match(x)]
+    psFilter = lambda output: [x for x in output.decode('utf-8').splitlines() if psRegex.match(x)]
+    psLines = []
     try:
         # -- allow processes to gracefully exit
         
@@ -417,7 +423,7 @@ def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
         elif e.errno == 1: # Operation not permitted: not our process
             return
         else:
-            warnings.warn('Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), psOutput.decode('utf-8')))
+            warnings.warn('Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), '\n'.join(psLines)))
             raise
     
     # --
@@ -487,7 +493,7 @@ def nonblocking_readline(source):
         else:
             unprocessed = waitingLines.pop()
         
-        # wrap around to pass the data
+        # wrap around to pass the data back
 
 def cleanupPath(path):
     '''meant to be used with atexit, this deletes the given folder'''
@@ -569,6 +575,7 @@ class NextWithTimeout(threading.Thread):
 	
 	keepRunning = True
 	latestResult = None
+	stopOnEmpty = None
 	
 	def __enter__(self):
 		return self
@@ -576,9 +583,10 @@ class NextWithTimeout(threading.Thread):
 	def __exit__(self, exitType, value, traceback):
 		self.keepRunning = False
 	
-	def __init__(self, feed, timeout=5):
+	def __init__(self, feed, timeout=5, stopOnEmpty=True):
 		self.feed = iter(feed)
 		self.timeout = timeout
+		self.stopOnEmpty = stopOnEmpty
 		super(NextWithTimeout, self).__init__()
 		self.start()
 	
@@ -611,4 +619,5 @@ class NextWithTimeout(threading.Thread):
 				time.sleep(.5)
 			except Exception as e:
 				self.latestResult = e
-				self.keepRunning = False
+				if not self.stopOnEmpty:
+    				self.keepRunning = False
