@@ -566,58 +566,58 @@ def getShardRanges(conn, table, db='test'):
     return ranges
 
 class NextWithTimeout(threading.Thread):
-	'''Constantly tries to fetch the next item on an changefeed'''
-	
-	daemon = True
-	
-	feed = None
-	timeout = None
-	
-	keepRunning = True
-	latestResult = None
-	stopOnEmpty = None
-	
-	def __enter__(self):
-		return self
-	
-	def __exit__(self, exitType, value, traceback):
-		self.keepRunning = False
-	
-	def __init__(self, feed, timeout=5, stopOnEmpty=True):
-		self.feed = iter(feed)
-		self.timeout = timeout
-		self.stopOnEmpty = stopOnEmpty
-		super(NextWithTimeout, self).__init__()
-		self.start()
-	
-	def __iter__(self):
-		return self
-	
-	def next(self):
-		deadline = time.time() + self.timeout
-		while time.time() < deadline:
-			if self.latestResult is not None:
-				if isinstance(self.latestResult, Exception):
-					raise self.latestResult
-				result = self.latestResult
-				self.latestResult = None
-				return result
-			time.sleep(.05)
-		else:
-			raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
-	
-	def __next__(self):
-		return self.next()
-	
-	def run(self):
-		while self.keepRunning:
-			if self.latestResult is not None:
-				time.sleep(.1)
-				continue
-			try:
-				self.latestResult = next(self.feed)
-				time.sleep(.5)
-			except Exception as e:
-				self.latestResult = e
-				if not self.stopOnEmpty:
-    				self.keepRunning = False
+    '''Constantly tries to fetch the next item on an changefeed'''
+    
+    daemon = True
+    
+    feed = None
+    timeout = None
+    
+    keepRunning = True
+    latestResult = None
+    stopOnEmpty = None
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exitType, value, traceback):
+        self.keepRunning = False
+    
+    def __init__(self, feed, timeout=5, stopOnEmpty=True):
+        self.feed = iter(feed)
+        self.timeout = timeout
+        self.stopOnEmpty = stopOnEmpty
+        super(NextWithTimeout, self).__init__()
+        self.start()
+    
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        deadline = time.time() + self.timeout
+        while time.time() < deadline:
+            if self.latestResult is not None:
+                if isinstance(self.latestResult, Exception):
+                    raise self.latestResult
+                result = self.latestResult
+                self.latestResult = None
+                return result
+            time.sleep(.05)
+        else:
+            raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
+    
+    def __next__(self):
+        return self.next()
+    
+    def run(self):
+        while self.keepRunning:
+            if self.latestResult is not None:
+                time.sleep(.1)
+                continue
+            try:
+                self.latestResult = next(self.feed)
+                time.sleep(.5)
+            except Exception as e:
+                self.latestResult = e
+                if not self.stopOnEmpty:
+                    self.keepRunning = False
