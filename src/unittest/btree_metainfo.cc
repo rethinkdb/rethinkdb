@@ -82,7 +82,7 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
     for (int i = 0; i < 1000; i++) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+        get_btree_superblock_and_txn_for_writing(&cache_conn, new_semaphore_acq_t(),
                                                  write_access_t::write, 1,
                                                  repli_timestamp_t::distant_past,
                                                  write_durability_t::SOFT,

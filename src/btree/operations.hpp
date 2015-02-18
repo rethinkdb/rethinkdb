@@ -262,7 +262,7 @@ void get_btree_superblock(
 
 void get_btree_superblock_and_txn_for_writing(
         cache_conn_t *cache_conn,
-        new_semaphore_t *superblock_write_semaphore,
+        new_semaphore_acq_t &&write_sem_acq,
         write_access_t superblock_access,
         int expected_change_count,
         repli_timestamp_t tstamp,

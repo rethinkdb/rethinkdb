@@ -1389,12 +1389,20 @@ void store_t::acquire_superblock_for_write(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
-    wait_interruptible(token->main_write_token.get(), interruptor);
+    // Swap the token for a position in the write_superblock_acq_semaphore.
+    // The semaphore maintains ordering, so this will maintain all required ordering guarantees.
+    new_semaphore_acq_t sem_acq;
+    {
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
+        wait_interruptible(token->main_write_token.get(), interruptor);
+        sem_acq.init(&write_superblock_acq_semaphore, 1);
+    }
+    // Now that we have freed our position in the fifo_enforcer, wait on the semaphore.
+    sem_acq.acquisition_signal()->wait();
 
     get_btree_superblock_and_txn_for_writing(
             general_cache_conn.get(),
-            &write_superblock_acq_semaphore,
+            std::move(sem_acq),
             write_access_t::write,
             expected_change_count,
             timestamp,
