@@ -18,6 +18,7 @@ namespace pprint {
 class js_pretty_printer_t
     : public generic_term_walker_t<counted_t<const document_t> > {
     unsigned int depth = 0;
+    bool prepend_ok = true;
     typedef std::vector<counted_t<const document_t> > v;
 protected:
     virtual counted_t<const document_t> visit_generic(Term *t) {
@@ -52,7 +53,7 @@ protected:
             doc = var_name(t->mutable_args(0)->mutable_datum());
             break;
         case Term::IMPLICIT_VAR:
-            doc = make_concat(r_st, justdot, row);
+            doc = prepend_r_dot(row);
             break;
         default:
             if (should_continue_string(t)) {
@@ -153,8 +154,8 @@ private:
             return make_nest(make_concat(std::move(term)));
         }
         case Datum::R_JSON:
-            return make_concat(r_st, justdot, json, lparen, quote, make_text(d->r_str()),
-                               quote, rparen);
+            return prepend_r_dot(make_concat(json, lparen, quote, make_text(d->r_str()),
+                                             quote, rparen));
         default:
             unreachable();
         }
@@ -179,6 +180,7 @@ private:
     std::pair<bool, Term *>
     visit_stringing(Term *var, std::vector<counted_t<const document_t> > *stack) {
         bool first = true;
+        bool insert_trailing_comma = false;
         switch (var->type()) {
         case Term::BRACKET:
             stack->push_back(rparen);
@@ -218,20 +220,18 @@ private:
             return std::make_pair(false, nullptr);
         case Term::IMPLICIT_VAR:
             stack->push_back(row);
-            stack->push_back(justdot);
-            stack->push_back(r_st);
-            return std::make_pair(false, nullptr);
+            return std::make_pair(true, nullptr);
         default:
             stack->push_back(rparen);
             if (var->optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
-                first = false;
+                insert_trailing_comma = true;
             }
             switch (var->args_size()) {
             case 0:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
-                return std::make_pair(false, nullptr);
+                return std::make_pair(should_use_rdot(var), nullptr);
             case 1:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
@@ -239,7 +239,7 @@ private:
                 return std::make_pair(true, var->mutable_args(0));
             default:
                 std::vector<counted_t<const document_t> > args;
-                for (int i = 0; i < var->args_size(); ++i) {
+                for (int i = 1; i < var->args_size(); ++i) {
                     if (first) {
                         first = false;
                     } else {
@@ -247,6 +247,10 @@ private:
                         args.push_back(br);
                     }
                     args.push_back(visit_generic(var->mutable_args(i)));
+                }
+                if (insert_trailing_comma) {
+                    args.push_back(comma);
+                    args.push_back(br);
                 }
                 stack->push_back(make_nest(make_concat(std::move(args))));
 
@@ -267,12 +271,16 @@ private:
             var = pair.second;
         }
         guarantee(var != t);
-        if (var == nullptr) {
-            return reverse(std::move(stack), last_is_dot);
+        if (var == nullptr && last_is_dot) {
+            return prepend_r_dot(reverse(std::move(stack), false));
+        } else if (var == nullptr) {
+            return reverse(std::move(stack), false);
         } else if (should_use_rdot(var)) {
-            return make_concat(r_st,
-                               make_nest(make_concat(justdot, visit_generic(var),
-                                                     reverse(std::move(stack), false))));
+            bool old = prepend_ok;
+            prepend_ok = false;
+            counted_t<const document_t> subdoc = visit_generic(var);
+            prepend_ok = old;
+            return prepend_r_dot(make_concat(subdoc, reverse(std::move(stack), false)));
         } else {
             return make_nest(make_concat(visit_generic(var),
                                          reverse(std::move(stack),
@@ -292,8 +300,6 @@ private:
         guarantee(t->args_size() >= 1);
         guarantee(t->optargs_size() == 0);
         std::vector<counted_t<const document_t> > term;
-        term.push_back(r_st);
-        term.push_back(justdot);
         term.push_back(do_st);
         term.push_back(lparen);
         std::vector<counted_t<const document_t> > args;
@@ -312,7 +318,7 @@ private:
         args.push_back(visit_generic(t->mutable_args(0)));
         term.push_back(make_nest(make_concat(std::move(args))));
         term.push_back(rparen);
-        return make_concat(std::move(term));
+        return prepend_r_dot(make_concat(std::move(term)));
     }
     counted_t<const document_t> standard_funcall(Term *t) {
         std::vector<counted_t<const document_t> > term;
@@ -322,14 +328,14 @@ private:
             std::vector<counted_t<const document_t> > args;
             for (int i = 0; i < t->args_size(); ++i) {
                 // don't insert redundant space
-                if (args.size() != 0) {
+                if (!args.empty()) {
                     args.push_back(comma);
                     args.push_back(br);
                 }
                 args.push_back(visit_generic(t->mutable_args(i)));
             }
             if (t->optargs_size() > 0) {
-                if (args.size() > 0) {
+                if (!args.empty()) {
                     args.push_back(comma);
                     args.push_back(br);
                 }
@@ -338,7 +344,15 @@ private:
             term.push_back(make_nest(make_concat(std::move(args))));
         }
         term.push_back(rparen);
-        return make_nest(make_concat(std::move(term)));
+        if (should_use_rdot(t)) {
+            return prepend_r_dot(make_concat(std::move(term)));
+        } else {
+            return make_nest(make_concat(std::move(term)));
+        }
+    }
+    counted_t<const document_t> prepend_r_dot(counted_t<const document_t> doc) {
+        if (!prepend_ok) return doc;
+        return make_concat(r_st, make_nest(make_concat(justdot, doc)));
     }
     bool should_use_rdot(Term *t) {
         switch (t->type()) {
