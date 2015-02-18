@@ -347,9 +347,7 @@ private:
                     args.push_back(comma);
                     args.push_back(br);
                 }
-                args.push_back(lbrace);
                 args.push_back(render_optargs(t));
-                args.push_back(rbrace);
             }
             term.push_back(make_nest(make_concat(std::move(args))));
         }
