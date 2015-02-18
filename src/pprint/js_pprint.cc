@@ -252,15 +252,17 @@ private:
                 stack->push_back(dot);
                 return std::make_pair(true, var->mutable_args(0));
             default:
-                for (int i = var->args_size() - 1; i > 0; --i) {
+                std::vector<counted_t<const document_t> > args;
+                for (int i = 0; i < var->args_size(); ++i) {
                     if (first) {
                         first = false;
                     } else {
-                        stack->push_back(br);
-                        stack->push_back(comma);
+                        args.push_back(comma);
+                        args.push_back(br);
                     }
-                    stack->push_back(visit_generic(var->mutable_args(i)));
+                    args.push_back(visit_generic(var->mutable_args(i)));
                 }
+                stack->push_back(make_nest(make_concat(std::move(args))));
 
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
