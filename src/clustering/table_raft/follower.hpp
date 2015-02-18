@@ -2,6 +2,16 @@
 #ifndef CLUSTERING_TABLE_RAFT_FOLLOWER_HPP_
 #define CLUSTERING_TABLE_RAFT_FOLLOWER_HPP_
 
+#include "clustering/generic/raft_core.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/table_raft/cpu_sharding.hpp"
+#include "clustering/table_raft/erase.hpp"
+#include "clustering/table_raft/primary.hpp"
+#include "clustering/table_raft/secondary.hpp"
+#include "clustering/table_raft/state.hpp"
+
+class store_subview_t;
+
 namespace table_raft {
 
 /* The `follower_t` is responsible for executing the instructions contained in the
@@ -15,6 +25,7 @@ class follower_t {
 public:
     follower_t(
         const server_id_t &server_id,
+        mailbox_manager_t *const mailbox_manager,
         raft_member_t<state_t> *raft,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *remote_primary_bcards,
@@ -95,13 +106,14 @@ private:
     `to_delete_out`, and then `update_coro()` deletes them. */
     void on_raft_state_change();
     void update_coro(auto_drainer_t::lock_t);
-    void update(const state_t &new_state, std::set<region_t> *to_delete_out);
+    void update(const state_t &new_state, std::set<ongoing_key_t> *to_delete_out);
 
     /* This will send `cid` and `ack` to the leader. We pass it as a callback to
     the `primary_t`, `secondary_t`, and `erase_t` constructors. */
     void send_ack(const contract_id_t &cid, const contract_ack_t &ack);
 
     const server_id_t server_id;
+    mailbox_manager_t *const mailbox_manager;
     raft_member_t<state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *const remote_primary_bcards;
@@ -112,7 +124,7 @@ private:
     backfill_throttler_t *const backfill_throttler;
     perfmon_collection_t *const perfmons;
 
-    std::map<ongoing_key_t, ongoing_data_t> ongoings;
+    std::map<ongoing_key_t, scoped_ptr_t<ongoing_data_t> > ongoings;
     bool update_coro_running;
 
     watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> ack_map;

@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_raft/leader.hpp"
 
+#include "clustering/table_raft/cpu_sharding.hpp"
+
 namespace table_raft {
 
 /* A `contract_ack_t` is not necessarily homogeneous. It may have different `version_t`s
@@ -19,7 +21,6 @@ public:
 };
 
 region_map_t<contract_ack_frag_t> break_ack_into_fragments(
-        const server_id_t &server,
         const region_t &region,
         const contract_ack_t &ack,
         const branch_id_t &branch,
@@ -30,8 +31,8 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     if (!static_cast<bool>(ack.version)) {
         return region_map_t<contract_ack_frag_t>(region, base_frag);
     } else {
-        branch_history_combiner combined_branch_history(
-            raft_branch_history, ack.branch_history);
+        branch_history_combiner_t combined_branch_history(
+            raft_branch_history, &ack.branch_history);
         std::vector<std::pair<region_t, contract_ack_frag_t> > parts;
         for (const std::pair<region_t, version_t> &vers_pair : *ack.version) {
             region_map_t<version_t> points_on_canonical_branch =
@@ -42,7 +43,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                     region);
             for (const auto &can_pair : points_on_canonical_branch) {
                 base_frag.version = boost::make_optional(can_pair.second.timestamp);
-                pairs.push_back(std::make_pair(can_pair.first, base_frag));
+                parts.push_back(std::make_pair(can_pair.first, base_frag));
             }
         }
         return region_map_t<contract_ack_frag_t>(parts.begin(), parts.end());
@@ -80,7 +81,7 @@ contract_t calculate_contract(
         for (const server_id_t &server : config.replicas) {
             auto it = acks.find(server);
             if (it != acks.end() &&
-                    (it->second.state == contract_ack_t::secondary_streaming ||
+                    (it->second.state == contract_ack_t::state_t::secondary_streaming ||
                     (static_cast<bool>(old_c.primary) &&
                         old_c.primary->server == server))) {
                 ++num_streaming;
@@ -108,7 +109,8 @@ contract_t calculate_contract(
         can't switch voters unless the primary reports `primary_running`. */
         if (static_cast<bool>(old_c.primary) &&
                 acks.count(old_c.primary->server) == 1 &&
-                acks.at(old_c.primary->server).state == contract_ack_t::primary_ready) {
+                acks.at(old_c.primary->server).state ==
+                    contract_ack_t::state_t::primary_ready) {
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
             new_c.temp_voters = boost::none;
@@ -150,8 +152,9 @@ contract_t calculate_contract(
         std::vector<std::pair<state_timestamp_t, server_id_t> > replica_states;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
-                    contract_ack_t::secondary_need_primary) {
-                replica_states.insert(std::make_pair(*acks.at(server).version, server));
+                    contract_ack_t::state_t::secondary_need_primary) {
+                replica_states.push_back(
+                    std::make_pair(*acks.at(server).version, server));
             }
         }
         std::sort(replica_states.begin(), replica_states.end());
@@ -179,8 +182,6 @@ contract_t calculate_contract(
         if (static_cast<bool>(new_primary)) {
             contract_t::primary_t p;
             p.server = *new_primary;
-            p.warm_shutdown = false;
-            p.warm_shutdown_for = nil_uuid();
             new_c.primary = boost::make_optional(p);
         }
     }
@@ -207,11 +208,14 @@ contract_t calculate_contract(
         /* Check if we need to do an auto-failover. The precise form of this condition
         isn't important for correctness. If we do an auto-failover when the primary isn't
         actually dead, or don't do an auto-failover when the primary is actually dead,
-        the worst that will happen is we'll lose availability. */
+        the worst that will happen is we'll lose availability.
+
+        RSI(raft): Maybe wait until the primary stays down for a certain amount of time
+        before failing over. */
         size_t voters_cant_reach_primary = 0;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
-                    contract_ack::secondary_need_primary) {
+                    contract_ack_t::state_t::secondary_need_primary) {
                 ++voters_cant_reach_primary;
             }
         }
@@ -224,7 +228,7 @@ contract_t calculate_contract(
         } else if (old_c.primary->server != config.primary_replica &&
                 acks.count(config.primary_replica) == 1 &&
                 acks.at(config.primary_replica).state ==
-                    contract_ack_t::secondary_streaming) {
+                    contract_ack_t::state_t::secondary_streaming) {
             /* The old primary is still a valid replica, but it isn't equal to
             `config.primary_replica`. So we have to do a hand-over to ensure that after
             we kill the primary, `config.primary_replica` will be a valid candidate. */
@@ -232,7 +236,7 @@ contract_t calculate_contract(
             if (old_c.primary->hand_over == config.primary_replica &&
                     acks.count(old_c.primary->server) == 1 &&
                     acks.at(old_c.primary->server).state ==
-                        contract_ack_t::primary_ready) {
+                        contract_ack_t::state_t::primary_ready) {
                 /* We already did the hand over. Now it's safe to stop the old primary.
                 */
                 new_c.primary = boost::none;
@@ -243,7 +247,7 @@ contract_t calculate_contract(
             /* We're sticking with the current primary, so `hand_over` should be empty.
             In the unlikely event that we were in the middle of a hand-over and then
             changed our minds, it might not be empty, so we clear it manually. */
-            new_c.primary->hand_over = boost::none.
+            new_c.primary->hand_over = boost::none;
         }
     }
 
@@ -252,7 +256,8 @@ contract_t calculate_contract(
             static_cast<bool>(new_c.primary) &&
             old_c.primary->server == new_c.primary->server &&
             acks.count(old_c.primary->server) == 1 &&
-            acks.at(old_c.primary->server).state == primary_need_branch) {
+            acks.at(old_c.primary->server).state ==
+                contract_ack_t::state_t::primary_need_branch) {
         new_c.branch = *acks.at(old_c.primary->server).branch;
     }
 
@@ -273,11 +278,11 @@ void calculate_all_contracts(
         const state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         std::set<contract_id_t> *remove_contracts_out,
-        std::map<contract_id_t, std::pair<key_range_t, contract_t> > *add_contracts_out);
+        std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
 
     ASSERT_FINITE_CORO_WAITING;
 
-    std::vector<region_t, contract_t> new_contract_vector;
+    std::vector<std::pair<region_t, contract_t> > new_contract_vector;
 
     /* We want to break the key-space into sub-regions small enough that the contract,
     table config, and ack versions are all constant across the sub-region. First we
@@ -286,11 +291,11 @@ void calculate_all_contracts(
             old_state.contracts) {
         /* Next iterate over all shards of the table config and find the ones that
         overlap the contract in question: */
-        for (size_t si = 0; si < old_state.config.shards.size(); ++si) {
+        for (size_t si = 0; si < old_state.config.config.shards.size(); ++si) {
             region_t region = region_intersection(
                 cpair.second.first,
                 region_t(old_state.config.shard_scheme.get_shard_range(si)));
-            if (region_is_empty(ixn)) {
+            if (region_is_empty(region)) {
                 continue;
             }
             /* Now collect the acks for this contract into `ack_frags`. `ack_frags` is
@@ -305,23 +310,23 @@ void calculate_all_contracts(
                     return;
                 }
                 region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                    key.first, region, *value, cpair.second.second.branch,
+                    region, *value, cpair.second.second.branch,
                     &old_state.branch_history);
                 for (const auto &fpair : frags) {
                     auto part_of_frags_by_server = frags_by_server.mask(fpair.first);
                     for (auto &&fspair : part_of_frags_by_server) {
-                        fspair.second.insert(std::make_pair(key.first, fspair.second));
+                        fspair.second.insert(std::make_pair(key.first, fpair.second));
                     }
                     frags_by_server.update(part_of_frags_by_server);
                 }
             });
-            for (const auto &apair : ack_frags) {
+            for (const auto &apair : frags_by_server) {
                 /* We've finally collected all the inputs to `calculate_contract()` and
                 broken the key space into regions across which the inputs are
                 homogeneous. So now we can actually call it. */
                 contract_t new_contract = calculate_contract(
-                    cpair.second,
-                    old_state.config.shards[si],
+                    cpair.second.second,
+                    old_state.config.config.shards[si],
                     apair.second);
                 new_contract_vector.push_back(std::make_pair(apair.first, new_contract));
             }
@@ -337,7 +342,7 @@ void calculate_all_contracts(
     shard */
     std::map<region_t, contract_t> new_contract_map;
     for (size_t cpu = 0; cpu < CPU_SHARDING_FACTOR; ++cpu) {
-        region_t cpu_region = cpu_sharding_subspace(cpu, CPU_SHARDING_FACTOR);
+        region_t cpu_region = cpu_sharding_subspace(cpu);
         for (const auto &pair : new_contract_region_map.mask(cpu_region)) {
             guarantee(pair.first.beg == cpu_region.beg &&
                 pair.first.end == cpu_region.end);
@@ -389,7 +394,7 @@ void calculate_branch_history(
             const std::pair<server_id_t, contract_id_t> &,
             const contract_ack_t *ack) {
         if (static_cast<bool>(ack->branch)) {
-            ack->branch_history.export_branch_history(*ack->branch, &add_branches_out);
+            ack->branch_history.export_branch_history(*ack->branch, add_branches_out);
         }
     });
 }
@@ -399,7 +404,7 @@ leader_t::leader_t(
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks) :
     raft(_raft), acks(_acks), wake_pump_contracts(new cond_t),
     ack_subs(acks,
-        [this](const std::pair<server_id_t, contract_id_t> &, const contact_ack_t *)
+        [this](const std::pair<server_id_t, contract_id_t> &, const contract_ack_t *)
             { wake_pump_contracts->pulse_if_not_already_pulsed(); },
         false)
 {
@@ -419,11 +424,11 @@ boost::optional<raft_log_index_t> leader_t::change_config(
         state_t::change_t::set_table_config_t change;
         bool is_noop;
         raft->get_latest_state()->apply_read(
-        [&](const raft_member_t<state_t>::config_and_state_t &state) {
-            change.new_config = state.state.config;
+        [&](const raft_member_t<state_t>::state_and_config_t *state) {
+            change.new_config = state->state.config;
             changer(&change.new_config);
-            log_index = state.log_index;
-            is_noop = (change.new_config == state.state.config);
+            log_index = state->log_index;
+            is_noop = (change.new_config == state->state.config);
         });
         if (is_noop) {
             return boost::make_optional(log_index);
@@ -443,9 +448,9 @@ boost::optional<raft_log_index_t> leader_t::change_config(
         return boost::none;
     }
     wake_pump_contracts->pulse_if_not_already_pulsed();
-    wait_interruptible(change_token->get_ready_signal(0, interruptor));
+    wait_interruptible(change_token->get_ready_signal(), interruptor);
     if (!change_token->wait()) {
-        return boost::none();
+        return boost::none;
     }
     return boost::make_optional(log_index);
 }
@@ -459,7 +464,7 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
             /* Wait a little longer to give changes time to accumulate, because
             `calculate_all_contracts()` is potentially expensive but benefits from
             batching */
-            signal_t buffer_timer;
+            signal_timer_t buffer_timer;
             buffer_timer.start(200);
             wait_interruptible(&buffer_timer, keepalive.get_drain_signal());
 
@@ -481,10 +486,11 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
 
                 /* Calculate the proposed change */
                 state_t::change_t::new_contracts_t change;
-                raft->get_latest_state()->apply_read([&](const state_t &state) {
-                    calculate_all_contracts(state, acks,
+                raft->get_latest_state()->apply_read(
+                [&](const raft_member_t<state_t>::state_and_config_t *state) {
+                    calculate_all_contracts(state->state, acks,
                         &change.remove_contracts, &change.add_contracts);
-                    calculate_branch_history(state, acks,
+                    calculate_branch_history(state->state, acks,
                         change.remove_contracts, change.add_contracts,
                         &change.remove_branches, &change.add_branches);
                 });
@@ -493,10 +499,11 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                 if (!change.remove_contracts.empty() ||
                         !change.add_contracts.empty() ||
                         !change.remove_branches.empty() ||
-                        !change.add_branches.empty()) {
+                        !change.add_branches.branches.empty()) {
                     cond_t non_interruptor;
-                    scoped_ptr_t<change_token_t> change_token = raft->propose_change(
-                        &change_lock, state_t::change_t(change), &non_interruptor);
+                    scoped_ptr_t<raft_member_t<state_t>::change_token_t> change_token =
+                        raft->propose_change(
+                            &change_lock, state_t::change_t(change), &non_interruptor);
 
                     /* If the change failed, go back to the top of the loop and wait on
                     `get_readiness_for_change()` again. But if the change succeeded,

@@ -1,26 +1,34 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_raft/primary.hpp"
 
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
+#include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
+#include "store_view.hpp"
+
+namespace table_raft {
+
 primary_t::primary_t(
         const server_id_t &sid,
+        mailbox_manager_t *mm,
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
         perfmon_collection_t *pms,
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb,
+        const std::function<void(const contract_ack_t &)> &acb,
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
         const base_path_t &_base_path,
         io_backender_t *_io_backender) :
-    server_id(sid), store(s), branch_history_manager(bhm), region(r), perfmons(pms),
-    primary_bcards(pbcs), base_path(_base_path), io_backender(_io_backender),
-    our_branch_id(generate_uuid()),
+    server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
+    region(r), perfmons(pms), primary_bcards(pbcs), base_path(_base_path),
+    io_backender(_io_backender), our_branch_id(generate_uuid()),
     latest_contract(make_counted<contract_info_t>(c, acb))
     { }
 
 void primary_t::update_contract(
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb) {
+        const std::function<void(const contract_ack_t &)> &acb) {
     ASSERT_NO_CORO_WAITING;
 
     guarantee(static_cast<bool>(c.primary));
@@ -31,7 +39,7 @@ void primary_t::update_contract(
     latest_contract = make_counted<contract_info_t>(c, acb);
 
     /* Has our branch ID been registered yet? */
-    if (!branch_registered.is_pulsed() && c.branch_id == our_branch_id) {
+    if (!branch_registered.is_pulsed() && c.branch == our_branch_id) {
         /* This contract just issued us our initial branch ID */
         branch_registered.pulse();
         /* Change `latest_ack` immediately so we don't keep sending the branch
@@ -70,21 +78,21 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             read_token_t token;
             store->new_read_token(&token);
             store->do_get_metainfo(
-                order_source.check_in("primary_t").with_read_mode(), token,
+                order_source.check_in("primary_t").with_read_mode(), &token,
                 keepalive.get_drain_signal(), &blobs);
 
             /* Prepare a `branch_birth_certificate_t` for the new branch */
             branch_bc.region = region;
             branch_bc.origin = to_version_map(blobs);
             branch_bc.initial_timestamp = state_timestamp_t::zero();
-            for (const auto &pair : branch_birth_certificate.origin) {
+            for (const auto &pair : branch_bc.origin) {
                 branch_bc.initial_timestamp =
                     std::max(pair.second.timestamp, branch_bc.initial_timestamp);
             }
 
             /* Send a request for the leader to register our branch */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
-            ack.branch_id = boost::make_optional(our_branch_id);
+            ack.branch = boost::make_optional(our_branch_id);
             branch_history_manager->export_branch_history(
                 branch_bc.origin, &ack.branch_history);
             ack.branch_history.branches.insert(std::make_pair(our_branch_id, branch_bc));
@@ -103,9 +111,9 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             branch_history_manager,
             store,
             perfmons,
-            &order_source,
-            branch_id,
+            our_branch_id,
             branch_bc,
+            &order_source,
             keepalive.get_drain_signal());
 
         listener_t listener(
@@ -113,7 +121,6 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             io_backender,
             mailbox_manager,
             server_id,
-            branch_history_manager,
             &broadcaster,
             perfmons,
             keepalive.get_drain_signal(),
@@ -130,8 +137,8 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
         bcard.replier = replier.get_business_card();
         bcard.peer = mailbox_manager->get_me();
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            ::entry_t minidir_entry(&primary_bcards,
-                std::make_pair(server_id, our_branch_id.wait()), bcard);
+            ::entry_t minidir_entry(primary_bcards,
+                std::make_pair(server_id, our_branch_id), bcard);
 
         /* Pulse `our_broadcaster` so that `update_contract()` knows we set up a
         broadcaster */
@@ -180,12 +187,13 @@ bool primary_t::on_write(
     impossible for it to be safe, even though the user's condition is satisfiable. */
 
     /* Make sure we have contact with a quorum of replicas. If not, don't even attempt
-    the write. This is mostly to reduce user confusion. */
+    the write. This is because the user would get confused if their write returned an
+    error about "not enough acks" and then got applied anyway. */
     {
-        ack_counter_t counter;
+        ack_counter_t counter(latest_contract);
         our_broadcaster.wait()->get_readable_dispatchees()->apply_read(
-            [&](const std::set<server_id_t> &servers) {
-                for (const server_id_t &s : servers) {
+            [&](const std::set<server_id_t> *servers) {
+                for (const server_id_t &s : *servers) {
                     counter.note_ack(s);
                 }
             });
@@ -230,12 +238,12 @@ bool primary_t::on_write(
     /* It's important that we don't block between making a local copy of
     `latest_contract` (above) and calling `spawn_write()` (below) */
 
-    our_broadcaster->wait()->spawn_write(
+    our_broadcaster.wait()->spawn_write(
         request,
         order_token,
         &write_callback);
 
-    exiter->exit();
+    exiter->end();
 
     wait_interruptible(&write_callback.done, interruptor);
     return write_callback.ack_counter.is_safe();
@@ -287,12 +295,16 @@ void primary_t::sync_and_ack_contract(
         while (!interruptor.is_pulsed()) {
             /* Wait until it looks like the write could go through */
             our_broadcaster.wait()->get_readable_dispatchees()->run_until_satisfied(
-                std::bind(&primary_t::is_contract_ackable, contract, ph::_1),
+                [&](const std::set<server_id_t> &servers) {
+                    return is_contract_ackable(contract, servers);
+                },
                 &interruptor);
             /* Now try to actually put the write through */
             class safe_write_callback_t : public broadcaster_t::write_callback_t {
             public:
-                safe_write_callback_t(counted_t<contract_info_t> c) : contract(c) { }
+                write_durability_t get_default_write_durability() {
+                    return write_durability_t::HARD;
+                }
                 void on_ack(const server_id_t &server, write_response_t &&) {
                     servers.insert(server);
                     if (is_contract_ackable(contract, servers)) {
@@ -306,8 +318,9 @@ void primary_t::sync_and_ack_contract(
                 std::set<server_id_t> servers;
                 cond_t done;
             } write_callback;
+            write_callback.contract = contract;
             our_broadcaster.wait()->spawn_write(write_t::make_sync(),
-                order_token_t::ignore(), &write_callback);
+                order_token_t::ignore, &write_callback);
             wait_interruptible(&write_callback.done, &interruptor);
             if (is_contract_ackable(contract, write_callback.servers)) {
                 break;
@@ -320,4 +333,6 @@ void primary_t::sync_and_ack_contract(
         stop trying to ack the contract. */
     }
 }
+
+} /* namespace table_raft */
 

@@ -13,7 +13,6 @@
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -37,6 +36,7 @@ broadcaster_t::broadcaster_t(
       mailbox_manager(mm),
       region(branch_info.region),
       branch_id(_branch_id),
+      readable_dispatchees_as_set(std::set<server_id_t>()),
       registrar(mailbox_manager, this)
 {
     order_checkpoint.set_tagappend("broadcaster_t");
@@ -704,12 +704,16 @@ void broadcaster_t::refresh_readable_dispatchees_as_set() {
     and we'd like the code not to break if that occurs. Besides, this code only
     runs when a dispatchees are added or removed, so the performance cost is
     negligible. */
-    readable_dispatchees_as_set.clear();
-    dispatchee_t *dispatchee = readable_dispatchees.head();
-    while (dispatchee != NULL) {
-        readable_dispatchees_as_set.insert(dispatchee->server_id);
-        dispatchee = readable_dispatchees.next(dispatchee);
-    }
+    readable_dispatchees_as_set.apply_atomic_op(
+        [&](std::set<server_id_t> *rds) {
+            rds->clear();
+            dispatchee_t *dispatchee = readable_dispatchees.head();
+            while (dispatchee != NULL) {
+                rds->insert(dispatchee->server_id);
+                dispatchee = readable_dispatchees.next(dispatchee);
+            }
+            return true;
+        });
 }
 
 /* This function sanity-checks `incomplete_writes`, `current_timestamp`,

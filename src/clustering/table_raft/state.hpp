@@ -4,6 +4,8 @@
 
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
+#include "region/region_map.hpp"
 
 namespace table_raft {
 
@@ -41,20 +43,27 @@ class contract_t {
 public:
     class primary_t {
     public:
+        bool operator==(const primary_t &x) const {
+            return server == x.server && hand_over == x.hand_over;
+        }
         server_id_t server;
         boost::optional<server_id_t> hand_over;
     };
     void sanity_check() const {
         if (static_cast<bool>(primary)) {
             guarantee(replicas.count(primary->server) == 1);
-            if (static_cast<bool>(primary->hand_over) && !primary->hand_over.is_nil()) {
-                guarantee(replicas.count(primary->hand_over) == 1);
+            if (static_cast<bool>(primary->hand_over) && !primary->hand_over->is_nil()) {
+                guarantee(replicas.count(*primary->hand_over) == 1);
             }
         }
         for (const server_id_t &s : voters) {
             guarantee(replicas.count(s) == 1);
         }
         
+    }
+    bool operator==(const contract_t &x) const {
+        return replicas == x.replicas && voters == x.voters &&
+            temp_voters == x.temp_voters && primary == x.primary && branch == x.branch;
     }
     std::set<server_id_t> replicas;
     std::set<server_id_t> voters;
@@ -103,6 +112,7 @@ public:
         nothing
     };
 
+    contract_ack_t() { }
     explicit contract_ack_t(state_t s) : state(s) { }
 
     state_t state;
@@ -115,7 +125,7 @@ public:
 
     /* This contains information about all branches mentioned in `version` or `branch` */
     branch_history_t branch_history;
-}
+};
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
 gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
@@ -138,7 +148,7 @@ public:
         class new_contracts_t {
         public:
             std::set<contract_id_t> remove_contracts;
-            std::map<contract_id_t, std::pair<key_range_t, contract_t> > add_contracts;
+            std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
             std::set<branch_id_t> remove_branches;
             branch_history_t add_branches;
         };
@@ -151,7 +161,7 @@ public:
     };
 
     void apply_change(const change_t &c);
-    bool operator==(const table_raft_state_t &other) const {
+    bool operator==(const state_t &other) const {
         return config == other.config && member_ids == other.member_ids;
     }
 
@@ -161,11 +171,15 @@ public:
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
-RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
-RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);
-RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
-
 } /* namespace table_raft */
+
+RDB_DECLARE_SERIALIZABLE(table_raft::contract_t::primary_t);
+RDB_DECLARE_SERIALIZABLE(table_raft::contract_t);
+
+RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t::set_table_config_t);
+RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t::new_contracts_t);
+RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t);
+RDB_DECLARE_SERIALIZABLE(table_raft::state_t);
 
 #endif /* CLUSTERING_TABLE_RAFT_STATE_HPP_ */
 

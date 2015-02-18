@@ -1,7 +1,8 @@
 #ifndef STORE_VIEW_HPP_
 #define STORE_VIEW_HPP_
 
-#include "debug.hpp"
+#include "protocol_api.hpp"
+#include "region/region_map.hpp"
 
 /* `store_view_t` is an abstract class that represents a region of a key-value store
 for some protocol.  It covers some `region_t`, which is returned by `get_region()`.

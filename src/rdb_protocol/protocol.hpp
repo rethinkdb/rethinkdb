@@ -814,6 +814,14 @@ struct write_t {
 
     durability_requirement_t durability() const { return durability_requirement; }
 
+    static write_t make_sync() {
+        return write_t(
+            sync_t(),
+            DURABILITY_REQUIREMENT_HARD,
+            profile_bool_t::DONT_PROFILE,
+            ql::configured_limits_t());
+    }
+
     write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).

@@ -2,6 +2,15 @@
 #ifndef CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
 #define CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
 
+#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/table_raft/state.hpp"
+#include "containers/counted.hpp"
+
+class broadcaster_t;
+class io_backender_t;
+class listener_t;
+
 namespace table_raft {
 
 class primary_bcard_t {
@@ -15,6 +24,7 @@ class primary_t : private master_t::query_callback_t {
 public:
     primary_t(
         const server_id_t &sid,
+        mailbox_manager_t *const mailbox_manager,
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
@@ -33,11 +43,11 @@ private:
     /* `contract_info_t` stores a contract, its ack callback, and a condition variable
     indicating if it's obsolete. The reason this is in a struct is because we sometimes
     need to reason about old contracts, so we may keep multiple versions around. */
-    class contract_info_t : public single_threaded_countable_t {
+    class contract_info_t : public single_threaded_countable_t<contract_info_t> {
     public:
         contract_info_t(
                 const contract_t &c,
-                const std::function<void(contract_ack_t)> &acb) ;
+                const std::function<void(contract_ack_t)> &acb) :
             contract(c), ack_cb(acb) { }
         contract_t contract;
         std::function<void(contract_ack_t)> ack_cb;
@@ -51,17 +61,17 @@ private:
         ack_counter_t(counted_t<contract_info_t> c) :
             contract(c), primary_ack(false), voter_acks(0), temp_voter_acks(0) { }
         void note_ack(const server_id_t &server) {
-            primary_ack |= (server == contract->contract.primary.server);
+            primary_ack |= (server == contract->contract.primary->server);
             voter_acks += contract->contract.voters.count(server);
             if (static_cast<bool>(contract->contract.temp_voters)) {
-                temp_voter_acks += contract->contract.temp_voters.count(server);
+                temp_voter_acks += contract->contract.temp_voters->count(server);
             }
         }
         bool is_safe() const {
             return primary_ack &&
                 voter_acks * 2 > contract->contract.voters.size() &&
-                (!static_cast<bool>(contract->contract.voters) ||
-                    temp_voter_acks * 2 > contract->contract.temp_voters.size());
+                (!static_cast<bool>(contract->contract.temp_voters) ||
+                    temp_voter_acks * 2 > contract->contract.temp_voters->size());
         }
     private:
         counted_t<contract_info_t> contract;
@@ -93,17 +103,18 @@ private:
     /* These are helper functions for `update_contract()`. They check when it's safe to
     ack a contract and then ack the contract. */
     static bool is_contract_ackable(
-        counted_t<contract_t> contract,
+        counted_t<contract_info_t> contract,
         const std::set<server_id_t> &servers);
     void sync_and_ack_contract(
         counted_t<contract_info_t> contract,
         auto_drainer_t::lock_t keepalive);
 
     server_id_t const server_id;
+    mailbox_manager_t *const mailbox_manager;
     store_view_t *const store;
     branch_history_manager_t *const branch_history_manager;
     region_t const region;
-    perfmon_collection_t *const perfmons,
+    perfmon_collection_t *const perfmons;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *const primary_bcards;
     base_path_t const base_path;

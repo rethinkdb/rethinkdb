@@ -72,7 +72,7 @@ table_meta_manager_t::table_meta_manager_t(
             table->multistore_ptr = std::move(multistore_ptr);
             table->active = make_scoped<active_table_t>(this, table_id, state.epoch,
                 state.member_id, state.raft_state, table->multistore_ptr.get());
-            raft_member_t<table_raft_state_t>::state_and_config_t raft_state =
+            raft_member_t<table_raft::state_t>::state_and_config_t raft_state =
                 table->active->get_raft()->get_committed_state()->get();
             guarantee(raft_state.state.member_ids.at(server_id) == state.member_id,
                 "Somehow we persisted a state in which we were not a member of the "
@@ -99,7 +99,7 @@ table_meta_manager_t::active_table_t::active_table_t(
         const namespace_id_t &_table_id,
         const table_meta_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        const raft_persistent_state_t<table_raft::state_t> &initial_state,
         UNUSED multistore_ptr_t *multistore_ptr) :
     parent(_parent),
     table_id(_table_id),
@@ -117,7 +117,7 @@ table_meta_manager_t::active_table_t::active_table_t(
     guarantee(!epoch.id.is_unset());
     update_bcard(false);
     {
-        watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
+        watchable_t<raft_member_t<table_raft::state_t>::state_and_config_t>::freeze_t
             freeze(raft.get_raft()->get_committed_state());
         raft_committed_subs.reset(raft.get_raft()->get_committed_state(), &freeze);
     }
@@ -148,7 +148,7 @@ void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
     table_meta_bcard_t bcard;
     bcard.timestamp.epoch = epoch;
     raft.get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+        [&](const raft_member_t<table_raft::state_t>::state_and_config_t *sc) {
             bcard.timestamp.log_index = sc->log_index;
             bcard.database = sc->state.config.config.database;
             bcard.name = sc->state.config.config.name;
@@ -161,7 +161,7 @@ void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
 }
 
 void table_meta_manager_t::active_table_t::write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &inner_ps,
+        const raft_persistent_state_t<table_raft::state_t> &inner_ps,
         signal_t *interruptor) {
     table_meta_persistent_state_t outer_ps;
     outer_ps.epoch = epoch;
@@ -224,7 +224,7 @@ void table_meta_manager_t::on_action(
         const table_meta_manager_bcard_t::timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
-        const boost::optional<raft_persistent_state_t<table_raft_state_t> >
+        const boost::optional<raft_persistent_state_t<table_raft::state_t> >
             &initial_state,
         const mailbox_t<void()>::address_t &ack_addr) {
     /* Validate the incoming message */
@@ -337,9 +337,9 @@ void table_meta_manager_t::on_get_config(
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->active.has()) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
-                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[*table_id] = s->state.config;
-                    });
+                [&](const raft_member_t<table_raft::state_t>::state_and_config_t *s) {
+                    result[*table_id] = s->state.config;
+                });
             }
         }
     } else {
@@ -360,9 +360,9 @@ void table_meta_manager_t::on_get_config(
             guarantee(it != tables.end());
             if (it->second->active.has()) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
-                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[pair.first] = s->state.config;
-                    });
+                [&](const raft_member_t<table_raft::state_t>::state_and_config_t *s) {
+                    result[pair.first] = s->state.config;
+                });
             }
         }
     }
@@ -385,17 +385,18 @@ void table_meta_manager_t::on_set_config(
         wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
         if (it->second->active.has()) {
             /* OK, so we are hosting the table. Time to attempt the change. */
-            raft_member_t<table_raft_state_t> *raft =
+            raft_member_t<table_raft::state_t> *raft =
                 it->second->active->get_raft();
 
             table_config_and_shards_t old_config;
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
+            scoped_ptr_t<raft_member_t<table_raft::state_t>::change_token_t>
+                change_token;
             raft_log_index_t log_index;
 
             /* We need to make sure that `change_lock` goes out of scope before we wait
             on the token, so we construct a nested scope */
             {
-                raft_member_t<table_raft_state_t>::change_lock_t change_lock(
+                raft_member_t<table_raft::state_t>::change_lock_t change_lock(
                     raft, interruptor);
 
                 /* Record the previous value. We'll compare it to the new value to see if
@@ -405,9 +406,9 @@ void table_meta_manager_t::on_set_config(
                     old_config.config.primary_key);
 
                 /* Here's where we actually apply the change. */
-                table_raft_state_t::change_t::set_table_config_t c;
+                table_raft::state_t::change_t::set_table_config_t c;
                 c.new_config = new_config;
-                table_raft_state_t::change_t change(c);
+                table_raft::state_t::change_t change(c);
                 change_token = raft->propose_change(&change_lock, change, interruptor);
 
                 /* Record the new log index, which we'll return to the caller */
@@ -444,13 +445,13 @@ void table_meta_manager_t::do_sync(
     if (table.is_deleted && static_cast<bool>(table_bcard)) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id, table.timestamp, true, boost::optional<raft_member_id_t>(),
-            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+            boost::optional<raft_persistent_state_t<table_raft::state_t> >(),
             mailbox_t<void()>::address_t());
     } else if (table.active.has()) {
         raft_log_index_t log_index;
         boost::optional<raft_member_id_t> member_id;
         table.active->get_raft()->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
+            [&](const raft_member_t<table_raft::state_t>::state_and_config_t *st) {
                 log_index = st->log_index;
                 auto it = st->state.member_ids.find(other_server_id);
                 if (it != st->state.member_ids.end()) {
@@ -461,7 +462,7 @@ void table_meta_manager_t::do_sync(
                 (static_cast<bool>(member_id) && static_cast<bool>(table_bcard) &&
                     (table.timestamp.epoch.supersedes(table_bcard->timestamp.epoch) ||
                         *member_id != table_bcard->raft_member_id))) {
-            boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state;
+            boost::optional<raft_persistent_state_t<table_raft::state_t> > initial_state;
             if (static_cast<bool>(member_id)) {
                 initial_state = table.active->get_raft()->get_state_for_init();
             }

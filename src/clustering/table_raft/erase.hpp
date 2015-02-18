@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_TABLE_RAFT_ERASE_HPP_
 #define CLUSTERING_TABLE_RAFT_ERASE_HPP_
 
+#include "clustering/table_raft/state.hpp"
+#include "store_view.hpp"
+
 namespace table_raft {
 
 class erase_t {
@@ -23,7 +26,7 @@ private:
 
     server_id_t const server_id;
     store_view_t *const store;
-    region_t const r;
+    region_t const region;
     auto_drainer_t drainer;
 };
 

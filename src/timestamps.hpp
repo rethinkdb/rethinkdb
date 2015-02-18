@@ -4,6 +4,8 @@
 
 #include <inttypes.h>
 
+#include <limits>
+
 #include "containers/archive/archive.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"

@@ -14,6 +14,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/watchable.hpp"
 #include "timestamps.hpp"
 
 class listener_t;
@@ -88,6 +89,10 @@ public:
     branch_id_t get_branch_id() const;
     region_t get_region();
     broadcaster_business_card_t get_business_card();
+
+    clone_ptr_t<watchable_t<std::set<server_id_t> > > get_readable_dispatchees() {
+        return readable_dispatchees_as_set.get_watchable();
+    }
 
     MUST_USE store_view_t *release_bootstrap_svs_for_listener();
 
@@ -194,10 +199,9 @@ private:
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     /* This is just a set that contains the peer ID of each dispatchee in
-    `readable_dispatchees`. We keep it as a `std::set` because we need to pass it to
-    `ack_checker->is_acceptable_ack_set()` for every single write operation, and this
-    avoids the overhead of recreating the `std::set` each time. */
-    std::set<server_id_t> readable_dispatchees_as_set;
+    `readable_dispatchees`. We store it separately so we can expose it to code that needs
+    to know which replicas are available. */
+    watchable_variable_t<std::set<server_id_t> > readable_dispatchees_as_set;
 
     registrar_t<listener_business_card_t, broadcaster_t *, dispatchee_t>
         registrar;

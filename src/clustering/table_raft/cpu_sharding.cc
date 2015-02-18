@@ -17,8 +17,8 @@ region_t cpu_sharding_subspace(int subregion_number) {
 
 int get_cpu_shard_number(const region_t &region) {
     uint64_t width = HASH_REGION_HASH_SIZE / CPU_SHARDING_FACTOR;
-    guarantee(region.beg % width == 0);
     int subregion_number = region.beg / width;
+    guarantee(region.beg == subregion_number * width);
     guarantee(region.end == (
         subregion_number + 1 == CPU_SHARDING_FACTOR
             ? HASH_REGION_HASH_SIZE

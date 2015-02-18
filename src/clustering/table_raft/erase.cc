@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_raft/erase.hpp"
 
+namespace table_raft {
+
 erase_t::erase_t(
         const server_id_t &sid,
         store_view_t *s,
@@ -12,15 +14,15 @@ erase_t::erase_t(
     server_id(sid), store(s), region(r)
 {
     guarantee(s->get_region() == region);
-    guarantee(c.replicas.count(server_id) == 0);
+    guarantee(contract.replicas.count(server_id) == 0);
     ack_cb(contract_ack_t(contract_ack_t::state_t::nothing));
     coro_t::spawn_sometime(std::bind(&erase_t::run, this, drainer.lock()));
 }
 
 void erase_t::update_contract(
-        const contract_t &c,
+        const contract_t &contract,
         const std::function<void(contract_ack_t)> &ack_cb) {
-    guarantee(c.replicas.count(server_id) == 0);
+    guarantee(contract.replicas.count(server_id) == 0);
     ack_cb(contract_ack_t(contract_ack_t::state_t::nothing));
 }
 
@@ -35,4 +37,6 @@ void erase_t::run(auto_drainer_t::lock_t keepalive) {
         /* do nothing */
     }
 }
+
+} /* namespace table_raft */
 

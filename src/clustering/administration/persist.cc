@@ -204,12 +204,14 @@ void read_branch_history_blob(buf_parent_t sb_buf,
                               const cluster_metadata_superblock_t *sb,
                               branch_history_t *out) {
     cluster_version_t v = cluster_superblock_version(sb);
+    /* RSI(raft): Support branch history migration */
+    guarantee(v == cluster_version_t::LATEST_OVERALL);
     read_blob(
         sb_buf,
         sb->rdb_branch_history_blob,
         cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
         [&](read_stream_t *s) -> archive_result_t {
-            return deserialize_for_version(v, s, out);
+            return deserialize<cluster_version_t::LATEST_OVERALL>(s, out);
         });
 }
 
@@ -524,15 +526,15 @@ public:
         }
     }
 
-    branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING {
+    branch_birth_certificate_t get_branch(const branch_id_t &branch)
+            const THROWS_NOTHING {
         home_thread_mixin_t::assert_thread();
-        std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = bh.branches.find(branch);
-        guarantee(it != bh.branches.end(), "no such branch");
-        return it->second;
+        return bh.get_branch(branch);
     }
 
-    bool is_branch_known(branch_id_t branch) THROWS_NOTHING {
-        return bh.branches.count(branch) > 0;
+    bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
+        return bh.is_branch_known(branch);
     }
 
     void create_branch(branch_id_t branch_id,
@@ -543,28 +545,6 @@ public:
             insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
         guarantee(insert_res.second);
         flusher.sync();
-    }
-
-    void export_branch_history(branch_id_t branch,
-                               branch_history_t *out) THROWS_NOTHING {
-        home_thread_mixin_t::assert_thread();
-        std::set<branch_id_t> to_process;
-        if (out->branches.count(branch) == 0) {
-            to_process.insert(branch);
-        }
-        while (!to_process.empty()) {
-            branch_id_t next = *to_process.begin();
-            to_process.erase(next);
-            branch_birth_certificate_t bc = get_branch(next);
-            std::pair<std::map<branch_id_t, branch_birth_certificate_t>::iterator, bool>
-                insert_res = out->branches.insert(std::make_pair(next, bc));
-            guarantee(insert_res.second);
-            for (region_map_t<version_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
-                if (!it->second.branch.is_nil() && out->branches.count(it->second.branch) == 0) {
-                    to_process.insert(it->second.branch);
-                }
-            }
-        }
     }
 
     void import_branch_history(const branch_history_t &new_records,

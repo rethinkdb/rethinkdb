@@ -1,10 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_raft/secondary.hpp"
 
+#include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
+
 namespace table_raft {
 
 secondary_t::secondary_t(
         const server_id_t &sid,
+        mailbox_manager_t *mm,
         store_view_t *s,
         branch_history_manager_t *bhm,
         const region_t &r,
@@ -15,12 +19,11 @@ secondary_t::secondary_t(
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         backfill_throttler_t *_backfill_throttler) :
-    server_id(sid), store(s), branch_history_manager(bhm), region(r), perfmons(pms),
-    primary_bcards(pbcs), base_path(_base_path), io_backender(_io_backender),
-    backfill_throttler(_backfill_throttler),
+    server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
+    region(r), perfmons(pms), primary_bcards(pbcs), base_path(_base_path),
+    io_backender(_io_backender), backfill_throttler(_backfill_throttler),
     primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
-    branch(c.branch),
-    ack_cb(acb)
+    branch(c.branch), ack_cb(acb)
 {
     guarantee(s->get_region() == region);
     coro_t::spawn_sometime(std::bind(&secondary_t::run, this, drainer.lock()));
@@ -29,7 +32,8 @@ secondary_t::secondary_t(
 void secondary_t::update_contract(
         const contract_t &c,
         const std::function<void(contract_ack_t)> &acb) {
-    guarantee(primary == static_cast<bool>(c.primary) ? c.primary->server : nil_uuid());
+    guarantee(primary ==
+        (static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()));
     guarantee(branch == c.branch);
     guarantee(c.replicas.count(server_id) == 1);
     ack_cb = acb;
@@ -48,7 +52,7 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 read_token_t token;
                 store->new_read_token(&token);
                 store->do_get_metainfo(
-                    order_source.check_in("secondary_t").with_read_mode(), token,
+                    order_source.check_in("secondary_t").with_read_mode(), &token,
                     keepalive.get_drain_signal(), &blobs);
                 contract_ack_t ack(contract_ack_t::state_t::secondary_need_primary);
                 ack.version = boost::make_optional(to_version_map(blobs));
@@ -73,7 +77,7 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                         return false;
                     }
                 }, keepalive.get_drain_signal());
-            guarantee(primary_bcard.broadcaster.branch_id == branch_id);
+            guarantee(primary_bcard.broadcaster.branch_id == branch);
 
             /* Let the leader know we found the primary. */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_backfilling));

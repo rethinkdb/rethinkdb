@@ -23,8 +23,19 @@ void branch_history_reader_t::export_branch_history(
     if (out->branches.count(branch) == 1) {
         return;
     }
-    out->branches[branch] = get_branch(branch);
-    export_branch_history(out->branches[branch].origin, out);
+    std::set<branch_id_t> to_process {branch};
+    while (!to_process.empty()) {
+        branch_id_t next = *to_process.begin();
+        to_process.erase(to_process.begin());
+        auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
+        guarantee(res.second);
+        for (const auto &pair : res.first->second.origin) {
+            branch_id_t parent = pair.second.branch;
+            if (!parent.is_nil() && out->branches.count(parent) == 0) {
+                to_process.insert(parent);
+            }
+        }
+    }
 }
 
 void branch_history_reader_t::export_branch_history(
@@ -48,6 +59,7 @@ bool branch_history_t::is_branch_known(const branch_id_t &branch) const THROWS_N
     return branches.count(branch) != 0;
 }
 
+/* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(branch_history_t, branches);
 RDB_IMPL_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 
@@ -121,6 +133,14 @@ bool version_is_ancestor(
     return false;
 }
 
+/* Arbitrary comparison operator for `version_t`, so we can make sets of them. */
+class version_set_less_t {
+public:
+    bool operator()(const version_t &a, const version_t &b) const {
+        return std::tie(a.branch, a.timestamp) < std::tie(b.branch, b.timestamp);
+    }
+};
+
 region_map_t<version_t> version_find_common(
         const branch_history_reader_t *bh,
         const version_t &initial_v1,
@@ -142,11 +162,11 @@ region_map_t<version_t> version_find_common(
         /* Versions equivalent to `v1` and `v2` in the region, which the initial values
         of `v1` or `v2` are descended from. We need to track these to deal with an
         awkward corner case; see below. */
-        std::set<version_t> v1_equiv, v2_equiv;
+        std::set<version_t, version_set_less_t> v1_equiv, v2_equiv;
     };
     std::stack<fragment_t> stack;
-    std::vector<std::pair<region_t, state_timestamp_t> > result;
-    stack.push_back({initial_region, initial_v1, initial_v2, {}, {}});
+    std::vector<std::pair<region_t, version_t> > result;
+    stack.push({initial_region, initial_v1, initial_v2, {}, {}});
     while (!stack.empty()) {
         fragment_t x = stack.top();
         stack.pop();
@@ -155,10 +175,10 @@ region_map_t<version_t> version_find_common(
             branch, so one of them is the common ancestor of both. */
             version_t common(x.v1.branch, std::min(x.v1.timestamp, x.v2.timestamp));
             result.push_back({x.r, common});
-        } else if (x.v1_equivs.count(x.v2) == 1) {
+        } else if (x.v1_equiv.count(x.v2) == 1) {
             /* Alternative base case: `v1` and `v2` are equivalent. */
             result.push_back({x.r, x.v2});
-        } else if (x.v2_equivs.count(x.v1) == 1) {
+        } else if (x.v2_equiv.count(x.v1) == 1) {
             result.push_back({x.r, x.v1});
         } else if (x.v1 == version_t::zero() || x.v2 == version_t::zero()) {
             /* Conceptually, this case is a subset of the next case. We handle it
@@ -173,7 +193,7 @@ region_map_t<version_t> version_find_common(
             the two branches have equal start points */
             if (b1.initial_timestamp < b2.initial_timestamp) {
                 std::swap(x.v1, x.v2);
-                std::swap(x.v1_equivs, x.v2_equivs);
+                std::swap(x.v1_equiv, x.v2_equiv);
                 std::swap(b1, b2);
             }
             /* One of two things are true (we don't know which):
@@ -181,27 +201,27 @@ region_map_t<version_t> version_find_common(
                 parents will get us closer to the common ancestor without taking us past
                 it.
             2. The common ancestor is `b1`'s start point. (Or, if `v1` is `b1`'s start
-                point, the common ancestor might be in `v1_equivs`.) In this case,
+                point, the common ancestor might be in `v1_equiv`.) In this case,
                 recursing from `b1` to its parents will take `v1` past the common
                 ancestor. But this is OK, because the common ancestor will still be
-                recorded in `v1_equivs`. */
+                recorded in `v1_equiv`. */
 
-            /* Prepare the new value of `v1_equivs`. We know that `b1`'s start point
-            belongs in `v1_equivs`. And if `x.v1` is equal to `b1`'s start point, then we
-            should also include the previous values of `v1_equivs`. */
-            std::set<version_t> v1_equivs;
-            v1_equivs.insert(version_t(x.v1.branch, b1.initial_timestamp));
+            /* Prepare the new value of `v1_equiv`. We know that `b1`'s start point
+            belongs in `v1_equiv`. And if `x.v1` is equal to `b1`'s start point, then we
+            should also include the previous values of `v1_equiv`. */
+            std::set<version_t, version_set_less_t> v1_equiv;
+            v1_equiv.insert(version_t(x.v1.branch, b1.initial_timestamp));
             if (x.v1.timestamp == b1.initial_timestamp) {
-                v1_equivs.insert(x.v1_equivs.begin(), x.v1_equivs.end());
+                v1_equiv.insert(x.v1_equiv.begin(), x.v1_equiv.end());
             }
 
             /* OK, now recurse to `b1`'s parents. */
             for (const auto &pair : b1.origin.mask(x.r)) {
-                stack.push({pair.first, pair.second, x.v2, v1_equivs, x.v2_equivs});
+                stack.push({pair.first, pair.second, x.v2, v1_equiv, x.v2_equiv});
             }
         }
     }
-    return region_map_t<version_t>(std::move(result));
+    return region_map_t<version_t>(result.begin(), result.end());
 }
 
 region_map_t<version_t> version_find_branch_common(

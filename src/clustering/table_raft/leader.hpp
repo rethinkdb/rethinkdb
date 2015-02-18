@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_TABLE_RAFT_LEADER_HPP_
 #define CLUSTERING_TABLE_RAFT_LEADER_HPP_
 
+#include "clustering/generic/raft_core.hpp"
+#include "clustering/table_raft/state.hpp"
+
 namespace table_raft {
 
 class leader_t {
