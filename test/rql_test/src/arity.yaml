@@ -241,22 +241,22 @@ tests:
       ot: 10
 
     - cd: tbl.get_all(0, 1, 2).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
     - cd: tbl.get_all(r.args([]), 0, 1, 2).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
     - cd: tbl.get_all(r.args([0]), 1, 2).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
     - cd: tbl.get_all(r.args([0, 1]), 2).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
     - cd: tbl.get_all(r.args([0, 1, 2])).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
     - cd: tbl.get_all(r.args([0]), 1, r.args([2])).get_field('id')
-      ot: [0, 1, 2]
+      ot: bag([0, 1, 2])
 
       # Make sure partial-evaluation still works
 
