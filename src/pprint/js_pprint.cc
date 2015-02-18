@@ -5,22 +5,11 @@
 #include <vector>
 #include <memory>
 
+#include "pprint/generic_term_walker.hpp"
 #include "rdb_protocol/ql2_extensions.pb.h"
 #include "debug.hpp"
 
 namespace pprint {
-
-template <typename Accumulator>
-class generic_term_walker_t {
-public:
-    virtual ~generic_term_walker_t() {}
-
-    virtual Accumulator walk(Term *t) {
-        return std::move(visit_generic(t));
-    }
-protected:
-    virtual Accumulator visit_generic(Term *t) = 0;
-};
 
 // we know what we're doing here, and I don't think 169 random
 // Term types is going to clarify anything.
