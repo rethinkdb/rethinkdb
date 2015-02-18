@@ -230,6 +230,11 @@ private:
             guarantee(var->mutable_args(0)->type() == Term::DATUM);
             stack->push_back(var_name(var->mutable_args(0)->mutable_datum()));
             return std::make_pair(false, nullptr);
+        case Term::IMPLICIT_VAR:
+            stack->push_back(row);
+            stack->push_back(justdot);
+            stack->push_back(r_st);
+            return std::make_pair(false, nullptr);
         default:
             stack->push_back(rparen);
             if (var->optargs_size() > 0) {
