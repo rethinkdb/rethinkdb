@@ -753,7 +753,7 @@ void get_btree_superblock(
 
 void get_btree_superblock_and_txn_for_writing(
         cache_conn_t *cache_conn,
-        new_semaphore_acq_t &&write_sem_acq,
+        new_semaphore_t *superblock_write_semaphore,
         UNUSED write_access_t superblock_access,
         int expected_change_count,
         repli_timestamp_t tstamp,
@@ -764,7 +764,14 @@ void get_btree_superblock_and_txn_for_writing(
 
     txn_out->init(txn);
 
-    get_btree_superblock(txn, write_access_t::write, std::move(write_sem_acq), got_superblock_out);
+    /* Acquire a ticket from the superblock_write_semaphore */
+    new_semaphore_acq_t sem_acq;
+    if(superblock_write_semaphore != nullptr) {
+        sem_acq.init(superblock_write_semaphore, 1);
+        sem_acq.acquisition_signal()->wait();
+    }
+
+    get_btree_superblock(txn, write_access_t::write, std::move(sem_acq), got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(
