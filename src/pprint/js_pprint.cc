@@ -39,9 +39,6 @@ protected:
         case Term::DATUM:
             doc = to_js_datum(t->mutable_datum());
             break;
-/*        case Term::BRANCH:
-            doc = string_branches_together(t);
-            break;*/
         case Term::FUNCALL:
             // Hack here: JS users expect .do in suffix position if
             // there's only one argument.
@@ -353,34 +350,6 @@ private:
         }
         term.push_back(rparen);
         return make_nest(make_concat(std::move(term)));
-    }
-    counted_t<const document_t> string_branches_together(Term *t) {
-        std::vector<counted_t<const document_t> > term;
-        term.push_back(lparen);
-        term.push_back(cond);
-        guarantee(t->args_size() == 3);
-        term.push_back(sp);
-        std::vector<counted_t<const document_t> > branches;
-        Term *var = t;
-        while (var->type() == Term::BRANCH) {
-            std::vector<counted_t<const document_t> > branch;
-            branch.push_back(lparen);
-            branch.push_back(make_nest(make_concat(visit_generic(var->mutable_args(0)),
-                                                   br,
-                                                   visit_generic(var->mutable_args(1)))));
-            branch.push_back(rparen);
-            branches.push_back(make_concat(std::move(branch)));
-            branches.push_back(br);
-            var = var->mutable_args(2);
-        }
-        branches.push_back(make_concat(lparen,
-                                       make_nest(make_concat(true_v,
-                                                             br,
-                                                             visit_generic(var))),
-                                       rparen));
-        term.push_back(make_nest(make_concat(std::move(branches))));
-        term.push_back(rparen);
-        return make_concat(std::move(term));
     }
     bool should_use_rdot(Term *t) {
         switch (t->type()) {
