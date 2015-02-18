@@ -195,7 +195,7 @@ private:
         bool first = true;
         switch (var->type()) {
         case Term::BRACKET:
-            stack->push_back(rbrack);
+            stack->push_back(rparen);
             if (var->optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
                 first = false;
@@ -211,7 +211,7 @@ private:
                     stack->push_back(visit_generic(var->mutable_args(i)));
                 }
             }
-            stack->push_back(lbrack);
+            stack->push_back(lparen);
             return std::make_pair(false, var->mutable_args(0));
         case Term::FUNCALL:
             guarantee(var->args_size() == 2);
