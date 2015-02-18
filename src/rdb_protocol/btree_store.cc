@@ -37,7 +37,9 @@
 //  since the application has to wait on the result of the read.
 //  Thus we need to throttle writes, but can probably get away without throttling
 //  reads here.
-const int64_t WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT = 4;
+//  ... also long-running read transactions usually use a snapshot, so they don't
+//  block out writes anyway.
+const int64_t WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT = 2;
 
 // Some of this implementation is in store.cc and some in btree_store.cc for no
 // particularly good reason.  Historically it turned out that way, and for now
