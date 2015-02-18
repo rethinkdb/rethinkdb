@@ -54,10 +54,10 @@ counted_t<const document_t> make_group(counted_t<const document_t> doc);
 counted_t<const document_t> make_nest(counted_t<const document_t> doc);
 
 extern const counted_t<const document_t> empty;
-extern const counted_t<const document_t> br;
+extern const counted_t<const document_t> cond_linebreak;
 // unconditional line break
-extern const counted_t<const document_t> cr;
-extern const counted_t<const document_t> dot;
+extern const counted_t<const document_t> uncond_linebreak;
+extern const counted_t<const document_t> dot_linebreak;
 
 
 // Documents separated by commas and then a `br`.

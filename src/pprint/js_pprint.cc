@@ -88,7 +88,7 @@ private:
         for (int i = 0; i < t->args_size(); ++i) {
             if (i != 0) {
                 term.push_back(comma);
-                term.push_back(br);
+                term.push_back(cond_linebreak);
             }
             term.push_back(visit_generic(t->mutable_args(i)));
         }
@@ -100,11 +100,11 @@ private:
         for (int i = 0; i < t->optargs_size(); ++i) {
             if (i != 0) {
                 term.push_back(comma);
-                term.push_back(br);
+                term.push_back(cond_linebreak);
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
             term.push_back(make_nest(make_concat(make_text("\"" + ap->key() + "\":"),
-                                                 br,
+                                                 cond_linebreak,
                                                  visit_generic(ap->mutable_val()))));
         }
         return make_concat(lbrace, make_nest(make_concat(std::move(term))), rbrace);
@@ -130,7 +130,7 @@ private:
             for (int i = 0; i < d->r_array_size(); ++i) {
                 if (i != 0) {
                     term.push_back(comma);
-                    term.push_back(br);
+                    term.push_back(cond_linebreak);
                 }
                 term.push_back(to_js_datum(d->mutable_r_array(i)));
             }
@@ -143,11 +143,11 @@ private:
             for (int i = 0; i < d->r_object_size(); ++i) {
                 if (i != 0) {
                     term.push_back(comma);
-                    term.push_back(br);
+                    term.push_back(cond_linebreak);
                 }
                 Datum_AssocPair *ap = d->mutable_r_object(i);
                 term.push_back(make_text("\"" + ap->key() + "\":"));
-                term.push_back(br);
+                term.push_back(cond_linebreak);
                 term.push_back(to_js_datum(ap->mutable_val()));
             }
             term.push_back(rbrace);
@@ -166,13 +166,13 @@ private:
             // don't insert redundant space
             if (i != 0) {
                 optargs.push_back(comma);
-                optargs.push_back(br);
+                optargs.push_back(cond_linebreak);
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
             optargs.push_back(make_nest(make_concat(make_text("\"" +
                                                               to_js_name(ap->key()) +
                                                               "\":"),
-                                                    br,
+                                                    cond_linebreak,
                                                     visit_generic(ap->mutable_val()))));
         }
         return make_concat(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
@@ -193,7 +193,7 @@ private:
                     if (first) {
                         first = false;
                     } else {
-                        stack->push_back(br);
+                        stack->push_back(cond_linebreak);
                         stack->push_back(comma);
                     }
                     stack->push_back(visit_generic(var->mutable_args(i)));
@@ -208,7 +208,7 @@ private:
             stack->push_back(make_nest(visit_generic(var->mutable_args(0))));
             stack->push_back(lparen);
             stack->push_back(do_st);
-            stack->push_back(dot);
+            stack->push_back(dot_linebreak);
             return std::make_pair(true, var->mutable_args(1));
         case Term::DATUM:
             stack->push_back(to_js_datum(var->mutable_datum()));
@@ -235,7 +235,7 @@ private:
             case 1:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
-                stack->push_back(dot);
+                stack->push_back(dot_linebreak);
                 return std::make_pair(true, var->mutable_args(0));
             default:
                 std::vector<counted_t<const document_t> > args;
@@ -244,19 +244,19 @@ private:
                         first = false;
                     } else {
                         args.push_back(comma);
-                        args.push_back(br);
+                        args.push_back(cond_linebreak);
                     }
                     args.push_back(visit_generic(var->mutable_args(i)));
                 }
                 if (insert_trailing_comma) {
                     args.push_back(comma);
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                 }
                 stack->push_back(make_nest(make_concat(std::move(args))));
 
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
-                stack->push_back(dot);
+                stack->push_back(dot_linebreak);
                 return std::make_pair(true, var->mutable_args(0));
             }
         }
@@ -307,13 +307,13 @@ private:
             // don't insert redundant space
             if (i != 1) {
                 args.push_back(comma);
-                args.push_back(br);
+                args.push_back(cond_linebreak);
             }
             args.push_back(visit_generic(t->mutable_args(i)));
         }
         if (!args.empty()) {
             args.push_back(comma);
-            args.push_back(br);
+            args.push_back(cond_linebreak);
         }
         args.push_back(visit_generic(t->mutable_args(0)));
         term.push_back(make_nest(make_concat(std::move(args))));
@@ -330,14 +330,14 @@ private:
                 // don't insert redundant space
                 if (!args.empty()) {
                     args.push_back(comma);
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                 }
                 args.push_back(visit_generic(t->mutable_args(i)));
             }
             if (t->optargs_size() > 0) {
                 if (!args.empty()) {
                     args.push_back(comma);
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                 }
                 args.push_back(render_optargs(t));
             }
@@ -443,7 +443,7 @@ private:
             for (int i = 0; i < args_term->args_size(); ++i) {
                 if (i != 0) {
                     args.push_back(comma);
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                 }
                 Term *arg_term = args_term->mutable_args(i);
                 guarantee(arg_term->type() == Term::DATUM);
@@ -460,7 +460,7 @@ private:
             for (int i = 0; i < arg_term->r_array_size(); ++i) {
                 if (i != 0) {
                     args.push_back(comma);
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                 }
                 args.push_back(var_name(arg_term->mutable_r_array(i)));
             }
@@ -472,7 +472,7 @@ private:
         }
         std::vector<counted_t<const document_t> > body;
         for (int i = 1; i < t->args_size(); ++i) {
-            if (i != 1) body.push_back(br);
+            if (i != 1) body.push_back(cond_linebreak);
             if (i == t->args_size() - 1) {
                 body.push_back(make_concat(return_st,
                                            sp,
@@ -489,9 +489,9 @@ private:
                                                  std::move(arglist),
                                                  sp,
                                                  lbrace,
-                                                 cr,
+                                                 uncond_linebreak,
                                                  make_concat(std::move(body)))),
-                           cr,
+                           uncond_linebreak,
                            rbrace);
     }
 

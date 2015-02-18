@@ -183,9 +183,9 @@ counted_t<const document_t> make_nest(counted_t<const document_t> child) {
 }
 
 const counted_t<const document_t> empty = make_counted<text_t>("");
-const counted_t<const document_t> br = make_counted<cond_t>(" ", "");
-const counted_t<const document_t> dot = make_counted<cond_t>(".", ".");
-const counted_t<const document_t> cr = make_counted<linebreak_t>();
+const counted_t<const document_t> cond_linebreak = make_counted<cond_t>(" ", "");
+const counted_t<const document_t> dot_linebreak = make_counted<cond_t>(".", ".");
+const counted_t<const document_t> uncond_linebreak = make_counted<linebreak_t>();
 
 counted_t<const document_t>
 comma_separated(std::initializer_list<counted_t<const document_t> > init) {
@@ -195,7 +195,7 @@ comma_separated(std::initializer_list<counted_t<const document_t> > init) {
     v.push_back(*it++);
     for (; it != init.end(); it++) {
         v.push_back(make_counted<text_t>(","));
-        v.push_back(br);
+        v.push_back(cond_linebreak);
         v.push_back(*it);
     }
     return make_nest(make_concat(std::move(v)));
@@ -224,7 +224,7 @@ counted_t<const document_t> dotted_list_int(It begin, It end) {
             v.push_back(plain_dot);
             first = false;
         } else {
-            v.push_back(dot);
+            v.push_back(dot_linebreak);
         }
         v.push_back(*it);
     }

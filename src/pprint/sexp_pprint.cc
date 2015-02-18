@@ -51,15 +51,15 @@ protected:
                 std::vector<counted_t<const document_t> > args;
                 for (int i = 0; i < t->args_size(); ++i) {
                     // don't insert redundant space
-                    if (args.size() != 0) args.push_back(br);
+                    if (args.size() != 0) args.push_back(cond_linebreak);
                     args.push_back(visit_generic(t->mutable_args(i)));
                 }
                 for (int i = 0; i < t->optargs_size(); ++i) {
                     // don't insert redundant space
-                    if (args.size() != 0) args.push_back(br);
+                    if (args.size() != 0) args.push_back(cond_linebreak);
                     Term_AssocPair *ap = t->mutable_optargs(i);
                     args.push_back(make_text(":" + to_lisp_name(ap->key())));
-                    args.push_back(br);
+                    args.push_back(cond_linebreak);
                     args.push_back(visit_generic(ap->mutable_val()));
                 }
                 term.push_back(make_nest(make_concat(std::move(args))));
@@ -105,7 +105,7 @@ private:
             std::vector<counted_t<const document_t> > term;
             term.push_back(lbrack);
             for (int i = 0; i < d->r_array_size(); ++i) {
-                if (i != 0) term.push_back(br);
+                if (i != 0) term.push_back(cond_linebreak);
                 term.push_back(to_lisp_datum(d->mutable_r_array(i)));
             }
             term.push_back(rbrack);
@@ -116,7 +116,7 @@ private:
             std::vector<counted_t<const document_t> > term;
             term.push_back(lbrace);
             for (int i = 0; i < d->r_object_size(); ++i) {
-                if (i != 0) term.push_back(br);
+                if (i != 0) term.push_back(cond_linebreak);
                 Datum_AssocPair *ap = d->mutable_r_object(i);
                 term.push_back(colon);
                 term.push_back(make_text(ap->key()));
@@ -127,7 +127,8 @@ private:
             return make_nest(make_concat(std::move(term)));
         }
         case Datum::R_JSON:
-            return make_concat(lparen, json, br, quote, make_text(d->r_str()), quote,
+            return make_concat(lparen, json, cond_linebreak,
+                               quote, make_text(d->r_str()), quote,
                                rparen);
         default:
             unreachable();
@@ -146,14 +147,14 @@ private:
             while (should_continue_string(var->type())) {
                 guarantee(var->args_size() == 2);
                 stack.push_back(visit_stringing(var->type(), var->mutable_args(1)));
-                stack.push_back(br);
+                stack.push_back(cond_linebreak);
                 var = var->mutable_args(0);
             }
             stack.push_back(visit_generic(var));
             nest.insert(nest.end(), stack.rbegin(), stack.rend());
         } else {
             nest.push_back(visit_generic(var));
-            nest.push_back(br);
+            nest.push_back(cond_linebreak);
             nest.push_back(visit_generic(t->mutable_args(1)));
         }
         term.push_back(make_nest(make_concat(std::move(nest))));
@@ -172,16 +173,16 @@ private:
             std::vector<counted_t<const document_t> > branch;
             branch.push_back(lparen);
             branch.push_back(make_nest(make_concat(visit_generic(var->mutable_args(0)),
-                                                   br,
+                                                   cond_linebreak,
                                                    visit_generic(var->mutable_args(1)))));
             branch.push_back(rparen);
             branches.push_back(make_concat(std::move(branch)));
-            branches.push_back(br);
+            branches.push_back(cond_linebreak);
             var = var->mutable_args(2);
         }
         branches.push_back(make_concat(lparen,
                                        make_nest(make_concat(true_v,
-                                                             br,
+                                                             cond_linebreak,
                                                              visit_generic(var))),
                                        rparen));
         term.push_back(make_nest(make_concat(std::move(branches))));
@@ -224,7 +225,7 @@ private:
             Term *args_term = t->mutable_args(0);
             std::vector<counted_t<const document_t> > args;
             for (int i = 0; i < args_term->args_size(); ++i) {
-                if (i != 0) args.push_back(br);
+                if (i != 0) args.push_back(cond_linebreak);
                 Term *arg_term = args_term->mutable_args(i);
                 guarantee(arg_term->type() == Term::DATUM);
                 guarantee(arg_term->mutable_datum()->type() == Datum::R_NUM);
@@ -238,7 +239,7 @@ private:
             Datum *arg_term = t->mutable_args(0)->mutable_datum();
             std::vector<counted_t<const document_t> > args;
             for (int i = 0; i < arg_term->r_array_size(); ++i) {
-                if (i != 0) args.push_back(br);
+                if (i != 0) args.push_back(cond_linebreak);
                 args.push_back(var_name(arg_term->mutable_r_array(i)));
             }
             nest.push_back(make_concat(lparen,
@@ -248,7 +249,7 @@ private:
             nest.push_back(visit_generic(t->mutable_args(0)));
         }
         for (int i = 1; i < t->args_size(); ++i) {
-            nest.push_back(br);
+            nest.push_back(cond_linebreak);
             nest.push_back(visit_generic(t->mutable_args(i)));
         }
         return make_concat(lparen, lambda, sp, make_nest(make_concat(std::move(nest))),
