@@ -7,6 +7,20 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
         void operator()(const change_t::set_table_config_t &set_config_change) {
             state->config = set_config_change.new_config;
         }
+        void operator()(const change_t::new_contracts_t &new_contracts_change) {
+            for (const contract_id_t &cid : new_contracts_change.remove_contracts) {
+                state->contracts.erase(cid);
+            }
+            state->contracts.insert(
+                new_contracts_change.add_contracts.begin(),
+                new_contracts_change.add_contracts.end());
+            for (const branch_id_t &bid : new_contracts_change.remove_branches) {
+                state->branch_history.branches.erase(bid);
+            }
+            state->branch_history.branches.insert(
+                new_contracts_change.add_branches.branches.begin(),
+                new_contracts_change.add_branches.branches.end());
+        }
         table_raft_state_t *state;
     } visitor;
     visitor.state = this;

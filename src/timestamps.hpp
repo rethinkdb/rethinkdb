@@ -34,6 +34,12 @@ public:
         return t;
     }
 
+    static state_timestamp_t max() {
+        state_timestamp_t t;
+        t.num = std::numeric_limits<uint64_t>::max();
+        return t;
+    }
+
     state_timestamp_t next() const {
         state_timestamp_t t;
         t.num = num + 1;

@@ -23,20 +23,26 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const region_t &region,
         const contract_ack_t &ack,
         const branch_id_t &branch,
-        const branch_history_t &branch_history) {
+        const branch_history_reader_t *raft_branch_history) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
     base_frag.branch = ack.branch;
     if (!static_cast<bool>(ack.version)) {
         return region_map_t<contract_ack_frag_t>(region, base_frag);
     } else {
+        branch_history_combiner combined_branch_history(
+            raft_branch_history, ack.branch_history);
         std::vector<std::pair<region_t, contract_ack_frag_t> > parts;
         for (const std::pair<region_t, version_t> &vers_pair : *ack.version) {
-            region_map_t<state_timestamp_t> timestamps = version_project_to_branch(
-                vers_pair.second, branch, branch_history);
-            for (const std::pair<region_t, state_timestamp_t> &ts_pair : timestamps) {
-                base_frag.version = boost::make_optional(ts_pair.second);
-                pairs.push_back(std::make_pair(ts_pair.first, base_frag));
+            region_map_t<version_t> points_on_canonical_branch =
+                version_find_branch_common(
+                    &combined_branch_history,
+                    vers_pair.second,
+                    branch,
+                    region);
+            for (const auto &can_pair : points_on_canonical_branch) {
+                base_frag.version = boost::make_optional(can_pair.second.timestamp);
+                pairs.push_back(std::make_pair(can_pair.first, base_frag));
             }
         }
         return region_map_t<contract_ack_frag_t>(parts.begin(), parts.end());
@@ -300,7 +306,7 @@ void calculate_all_contracts(
                 }
                 region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
                     key.first, region, *value, cpair.second.second.branch,
-                    old_state.branch_history);
+                    &old_state.branch_history);
                 for (const auto &fpair : frags) {
                     auto part_of_frags_by_server = frags_by_server.mask(fpair.first);
                     for (auto &&fspair : part_of_frags_by_server) {

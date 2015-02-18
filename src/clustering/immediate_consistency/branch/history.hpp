@@ -16,20 +16,19 @@
 
 class binary_blob_t;
 
-/* The type `version_t` uniquely identifies the state of some region of a
-RethinkDB table at some point in time. Every read operation that passes through
-a `broadcaster_t` will get all its data from the version that the broadcaster is
-at at the time that the read arrives. Every write operation that passes through
-a `broadcaster_t` will transition the data from one `version_t` to the next.
+/* The type `version_t` uniquely identifies the state of some region of a RethinkDB table
+at some point in time. Every read operation that passes through a `broadcaster_t` will
+get all its data from the version that the broadcaster is at at the time that the read
+arrives. Every write operation that passes through a `broadcaster_t` will transition the
+data from one `version_t` to the next.
 
-`version_t` internally consists of two parts: a `branch_id_t` and a timestamp.
-For the `version_t::zero()`, which is the version of the initial empty database,
-the `branch_id_t` is nil and the timestamp is 0. Any other version than
-`version_t::zero()` belongs to a `broadcaster_t`. The `branch_id_t` will be
-a new UUID that the `broadcaster_t` generated when it was created, and the
-timestamp will be a number that the `broadcaster_t` increments every time a
-write operation passes through it. (Warning: The timestamp is usually not zero
-for a new `broadcaster_t`.) */
+`version_t` internally consists of two parts: a `branch_id_t` and a timestamp. For the
+`version_t::zero()`, which is the version of the initial empty database, the
+`branch_id_t` is nil and the timestamp is 0. Any other version than `version_t::zero()`
+belongs to a `broadcaster_t`. The `branch_id_t` will be a new UUID that was generated
+when the `broadcaster_t` was created, and the timestamp will be a number that the
+`broadcaster_t` increments every time a write operation passes through it. (Warning: The
+timestamp is usually not zero for a new `broadcaster_t`.) */
 
 class version_t {
 public:
@@ -63,33 +62,30 @@ inline void debug_print(printf_buffer_t *buf, const version_t& v) {
 
 region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map);
 
-/* The state of the database at the time that the `broadcaster_t` was created
-and the sequence of writes that pass through a `broadcaster_t` are collectively
-referred to as a "branch". When a new broadcaster is created, it records the
-meta-info of the store.
+/* The state of the database at the time that the `broadcaster_t` was created and the
+sequence of writes that pass through a `broadcaster_t` are collectively referred to as a
+"branch". Except for the "fake branch" identified by a nil UUID, there is a 1:1
+relationship between branches and `broadcaster_t`s.
 
-Thus, the branches form a directed acyclic graph. The branch created by the
-first primary "descends" from `version_t::zero()`. When a primary is created as
-a replacement for an unavailable primary, its branch descends from the branch of the
-unavailable primary. When shards are split or merged, the newly-created branches may
-descend from part of a single existing branch or from part of several existing
-branches.
+Thus, the branches form a directed acyclic graph. The branch created by the first primary
+"descends" from `version_t::zero()`. When a primary is created as a replacement for an
+unavailable primary, its branch descends from the branch of the unavailable primary. When
+shards are split or merged, the newly-created branches may descend from part of a single
+existing branch or from part of several existing branches.
 
-When a `broadcaster_t` is created, it publishes a `branch_birth_certificate_t`
-that describes its newly-created branch. */
+When a primary is created, it publishes a `branch_birth_certificate_t` that describes its
+newly-created branch. */
 
 class branch_birth_certificate_t {
 public:
-    /* The region that the branch applies to. This is the same as the region of
-    the `broadcaster_t` that created the branch. Every write to the branch must
-    affect only some (non-proper) subset of this region. */
+    /* The region that the branch applies to. This is the same as the region of the
+    `broadcaster_t` that corresponds to the branch. Every write to the branch must affect
+    only some (non-proper) subset of this region. */
     region_t region;
 
     /* The timestamp of the first state on the branch. `version_t(branch_id,
-    initial_timestamp)` refers to the state that the B-tree was in when it was
-    passed to the `broadcaster_t` constructor. `initial_timestamp` is chosen to
-    be greater than any timestamp that was already issued on that branch, so
-    that backfilling doesn't have to be aware of branches. */
+    initial_timestamp)` describes the same B-tree state as `origin`. `initial_timestamp`
+    is always equal to the maximum of the timestamps in `origin`. */
     state_timestamp_t initial_timestamp;
 
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
@@ -100,89 +96,120 @@ public:
 RDB_DECLARE_SERIALIZABLE(branch_birth_certificate_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(branch_birth_certificate_t);
 
-/* `branch_history_manager_t` is a repository of the all the branches' birth
-certificates. It's basically a map from `branch_id_t`s to
-`branch_birth_certificate_t`s, but with the added responsibility of
-persisting the data to disk.
+/* A `branch_history_t` is a map from `branch_id_t` to `branch_birth_certificate_t`.
+`branch_history_reader_t` is an interface that allows reading from a `branch_history_t`
+or something equivalent; this is because otherwise we might need to copy
+`branch_history_t`, which may be expensive. Note that `branch_history_t` subclasses
+from `branch_history_reader_t`. This is so we can pass `branch_history_t` to the many
+functions that take a `branch_history_reader_t *`. */
 
-The `branch_history_manager_t` does not automatically synchronize the branch
-history across the network. Automatic synchronization would be susceptible to
-race conditions: if a `version_t` were sent across the network before the
-birth certificate for the corresponding branch were sent, then the receiving end
-might try to look up the birth certificate for that branch and not find it.
-Instead, it is the responsibility of the `backfiller_t`, `broadcaster_t`, and so
-on to send the appropriate branch history information along with any
-`branch_id_t` they send across the network. They do this by calling
-`export_branch_history()`, then passing the resulting `branch_history_t` object
-along with the `branch_id_t`, then calling `import_branch_history()` at the
-destination before trying to use the `branch_id_t` for anything. */
+class branch_history_t;
 
-class branch_history_t {
+class branch_history_reader_t {
 public:
-    std::map<branch_id_t, branch_birth_certificate_t> branches;
-};
-
-RDB_DECLARE_SERIALIZABLE(branch_history_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(branch_history_t);
-
-class branch_history_manager_t : public home_thread_mixin_t {
-public:
-    virtual ~branch_history_manager_t() { }
-
     /* Returns information about one specific branch. Crashes if we don't have a
     record for this branch. */
-    virtual branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING = 0;
+    virtual branch_birth_certificate_t get_branch(const branch_id_t &branch)
+        const THROWS_NOTHING = 0;
 
     /* Checks whether a given branch id is known. This can be used with get_branch
     to prevent failures. */
-    virtual bool is_branch_known(branch_id_t branch) THROWS_NOTHING = 0;
-
-    /* Adds a new branch to the database. Blocks until it is safely on disk.
-    Blocks to avoid a race condition where we write the branch ID to a B-tree's
-    metainfo, crash before flushing the `branch_birth_certificate_t` to disk,
-    and then cannot find the `branch_birth_certificate_t` upon restarting. */
-    virtual void create_branch(branch_id_t branch_id, const branch_birth_certificate_t &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING = 0;
 
     /* Copies records related to the given branch and all its ancestors into
     `out`. The reason this mutates `out` instead of returning a
     `branch_history_t` is so that you can call it several times with different
     branches that share history; they will re-use records that they share. */
-    virtual void export_branch_history(branch_id_t branch, branch_history_t *out) THROWS_NOTHING = 0;
+    void export_branch_history(
+        const branch_id_t &branch, branch_history_t *out) const THROWS_NOTHING;
 
     /* Convenience function that finds all records related to the given version
     map and copies them into `out` */
-    void export_branch_history(const region_map_t<version_t> &region_map, branch_history_t *out) THROWS_NOTHING {
-        for (const auto &pair : region_map) {
-            if (!pair.second.branch.is_nil()) {
-                export_branch_history(pair.second.branch, out);
-            }
-        }
-    }
+    void export_branch_history(
+        const region_map_t<version_t> &region_map, branch_history_t *out)
+        const THROWS_NOTHING;
 
-    /* Stores the given branch history records. Blocks until they are safely on
-    disk. Blocking is important because if we record the `branch_id_t` in a
-    B-tree's metainfo and then crash, we had better be able to find the
-    `branch_birth_certificate_t` when we start back up. */
-    virtual void import_branch_history(const branch_history_t &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+protected:
+    virtual ~branch_history_reader_t() { }
 };
+
+class branch_history_t : public branch_history_reader_t {
+public:
+    branch_birth_certificate_t get_branch(branch_id_t branch) const THROWS_NOTHING;
+    bool is_branch_known(branch_id_t branch) const THROWS_NOTHING;
+
+    std::map<branch_id_t, branch_birth_certificate_t> branches;
+};
+RDB_DECLARE_SERIALIZABLE(branch_history_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(branch_history_t);
+
+/* These are the key functions that we use to do lookups in the branch history. */
 
 /* `version_is_ancestor()` returns `true` if every key in `relevant_region` of
 the table passed through `ancestor` version on the way to `descendent` version.
 Also returns true if `ancestor` and `descendent` are the same version. */
-
 bool version_is_ancestor(
-        branch_history_manager_t *branch_history_manager,
-        version_t ancestor,
-        version_t descendent,
-        region_t relevant_region);
+    branch_history_reader_t *bh,
+    version_t ancestor,
+    version_t descendent,
+    region_t relevant_region);
 
-/* `version_is_divergent()` returns true if neither `v1` nor `v2` is an ancestor
-of the other. */
+/* `version_find_common()` finds the last common ancestor of two other versions. The
+result may be different for different sub-regions, so it returns a `region_map_t`. */
+region_map_t<version_t> version_find_common(
+    branch_history_reader_t *bh,
+    const version_t &v1,
+    const version_t &v2,
+    const region_t &relevant_region);
 
-bool version_is_divergent(
-        branch_history_manager_t *branch_history_manager,
-        version_t v1,
-        version_t v2,
-        const region_t &relevant_region);
+/* `version_find_branch_common()` is like `version_find_common()` but in place of one of
+the versions, it uses the latest version on the given branch. */
+region_map_t<version_t> version_find_branch_common(
+    branch_history_reader_t *bh,
+    const version_t &version,
+    const branch_id_t &branch,
+    const region_t &relevant_region);
+
+/* `branch_history_combiner_t` is a `branch_history_reader_t` that reads from two or more
+other `branch_history_reader_t`s. */
+class branch_history_combiner_t : public branch_history_reader_t {
+public:
+    branch_history_combiner_t(
+        const branch_history_reader_t *_r1,
+        const branch_history_reader_t *_r2)
+        : r1(_r1), r2(_r2) { } 
+    branch_birth_certificate_t get_branch(const branch_id_t& branch)
+        const THROWS_NOTHING;
+    bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
+private:
+    const branch_history_reader_t *r1, *r2;
+};
+
+/* `branch_history_manager_t` is a `branch_history_reader_t` with the addition of methods
+to add branches to the branch history. This is used for a branch history which is backed
+to disk. */
+class branch_history_manager_t :
+    public branch_history_reader_t,    
+    public home_thread_mixin_t
+{
+public:
+    virtual ~branch_history_manager_t() { }
+
+    /* Adds a new branch to the database. Blocks until it is safely on disk. Blocks to
+    avoid a race condition where we write the branch ID to a B-tree's metainfo, crash
+    before flushing the `branch_birth_certificate_t` to disk, and then cannot find the
+    `branch_birth_certificate_t` upon restarting. */
+    virtual void create_branch(
+        branch_id_t branch_id,
+        const branch_birth_certificate_t &bc,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
+
+    /* Like `create_branch` but for all the records in a `branch_history_t`. */
+    virtual void import_branch_history(
+        const branch_history_t &new_records,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
+};
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP_ */
