@@ -16,6 +16,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/map_sentries.hpp"
 #include "containers/scoped.hpp"
@@ -424,6 +425,13 @@ private:
     namespace_id_t table_id;
 
     sindex_context_map_t sindex_context;
+
+    // Having a lot of writes queued up waiting for the superblock to become available
+    // can stall reads for unacceptably long time periods.
+    // We use this semaphore to limit the number of writes that can be in line for a
+    // superblock acquisition at a time (including the write that's currently holding
+    // the superblock, if any).
+    new_semaphore_t write_superblock_acq_semaphore;
 
 public:
     // This lock is used to pause backfills while secondary indexes are being

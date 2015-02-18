@@ -24,6 +24,21 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
+// The maximal number of writes that can be in line for a superblock acquisition
+// at a time (including the write that's currently holding the superblock, if any).
+// This is to throttle writes compared to reads.
+//
+// Note: We don't currently have a similar semaphore for reads.
+//  If we actually wanted to control the ratio between reads and writes we could
+//  add one for that purpose. For the time being a semaphore that throttles write
+//  acquisitions of the superblock is likely enough. The rationale behind this
+//  asymmetry is that writes can be fired in huge numbers in parallel (e.g. during a
+//  data import), while reads - in most applications - are pretty much serialized
+//  since the application has to wait on the result of the read.
+//  Thus we need to throttle writes, but can probably get away without throttling
+//  reads here.
+const int64_t WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT = 4;
+
 // Some of this implementation is in store.cc and some in btree_store.cc for no
 // particularly good reason.  Historically it turned out that way, and for now
 // there's not enough refactoring urgency to combine them into one.
@@ -78,7 +93,8 @@ store_t::store_t(serializer_t *serializer,
                         ? NULL
                         : new ql::changefeed::server_t(ctx->manager)),
       index_report(std::move(_index_report)),
-      table_id(_table_id)
+      table_id(_table_id),
+      write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -1376,9 +1392,15 @@ void store_t::acquire_superblock_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
     wait_interruptible(token->main_write_token.get(), interruptor);
 
-    get_btree_superblock_and_txn(general_cache_conn.get(), write_access_t::write,
-                                 expected_change_count, timestamp,
-                                 durability, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_writing(
+            general_cache_conn.get(),
+            &write_superblock_acq_semaphore,
+            write_access_t::write,
+            expected_change_count,
+            timestamp,
+            durability,
+            sb_out,
+            txn_out);
 }
 
 /* store_view_t interface */
