@@ -19,7 +19,7 @@ class sexp_pretty_printer_t
     unsigned int depth = 0;
     typedef std::vector<counted_t<const document_t> > v;
 protected:
-    virtual counted_t<const document_t> visit_generic(Term *t) {
+    counted_t<const document_t> visit_generic(Term *t) override {
         ++depth;
         if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
         counted_t<const document_t> doc;

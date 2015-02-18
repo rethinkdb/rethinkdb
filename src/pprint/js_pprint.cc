@@ -21,7 +21,7 @@ class js_pretty_printer_t
     bool prepend_ok = true;
     typedef std::vector<counted_t<const document_t> > v;
 protected:
-    virtual counted_t<const document_t> visit_generic(Term *t) {
+    counted_t<const document_t> visit_generic(Term *t) override {
         ++depth;
         if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
         counted_t<const document_t> doc;

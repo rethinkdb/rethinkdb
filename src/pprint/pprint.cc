@@ -52,11 +52,11 @@ public:
 
     explicit text_t(const std::string &str) : text(str) {}
     explicit text_t(std::string &&str) : text(str) {}
-    virtual ~text_t() {}
+    ~text_t() override {}
 
-    virtual size_t width() const { return text.length(); }
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
-    virtual std::string str() const { return "Text(\"" + text + "\")"; }
+    size_t width() const override { return text.length(); }
+    void visit(const document_visitor_t &v) const override { v(*this); }
+    std::string str() const override { return "Text(\"" + text + "\")"; }
 };
 
 counted_t<const document_t> make_text(const std::string text) {
@@ -69,15 +69,15 @@ public:
 
     cond_t(const std::string l, const std::string r, const std::string t="")
         : small(std::move(l)), cont(std::move(r)), tail(std::move(t)) {}
-    virtual ~cond_t() {}
+    ~cond_t() override {}
 
     // no linebreaks, so only `small` is relevant
-    virtual size_t width() const { return small.length(); }
-    virtual std::string str() const {
+    size_t width() const override { return small.length(); }
+    std::string str() const override {
         return "Cond(\"" + small + "\",\"" + cont + "\",\"" + tail + "\")";
     }
 
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
+    void visit(const document_visitor_t &v) const override { v(*this); }
 };
 
 counted_t<const document_t> make_cond(const std::string l, const std::string r,
@@ -88,11 +88,11 @@ counted_t<const document_t> make_cond(const std::string l, const std::string r,
 class linebreak_t : public document_t {
 public:
     explicit linebreak_t() {}
-    virtual ~linebreak_t() {}
+    ~linebreak_t() override {}
 
-    virtual size_t width() const { return 0; }
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
-    virtual std::string str() const { return "CR"; }
+    size_t width() const override { return 0; }
+    void visit(const document_visitor_t &v) const override { v(*this); }
+    std::string str() const override { return "CR"; }
 };
 
 // concatenation of multiple documents
@@ -107,16 +107,16 @@ public:
         : children(std::move(begin), std::move(end)) {}
     explicit concat_t(std::initializer_list<counted_t<const document_t> > init)
         : children(std::move(init)) {}
-    virtual ~concat_t() {}
+    ~concat_t() override {}
 
-    virtual size_t width() const {
+    size_t width() const override {
         size_t w = 0;
         for (const auto &child : children) {
             w += child->width();
         }
         return w;
     }
-    virtual std::string str() const {
+    std::string str() const override {
         std::string result = "";
         for (const auto &child : children) {
             result += child->str();
@@ -124,7 +124,7 @@ public:
         return result;
     }
 
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
+    void visit(const document_visitor_t &v) const override { v(*this); }
 };
 
 counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> > args) {
@@ -145,16 +145,16 @@ public:
     counted_t<const document_t> child;
 
     explicit group_t(counted_t<const document_t> doc) : child(doc) {}
-    virtual ~group_t() {}
+    ~group_t() override {}
 
-    virtual size_t width() const {
+    size_t width() const override {
         return child->width();
     }
-    virtual std::string str() const {
+    std::string str() const override {
         return "Group(" + child->str() + ")";
     }
 
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
+    void visit(const document_visitor_t &v) const override { v(*this); }
 };
 
 counted_t<const document_t> make_group(counted_t<const document_t> child) {
@@ -166,16 +166,16 @@ public:
     counted_t<const document_t> child;
 
     explicit nest_t(counted_t<const document_t> doc) : child(doc) {}
-    virtual ~nest_t() {}
+    ~nest_t() override {}
 
-    virtual size_t width() const {
+    size_t width() const override {
         return child->width();
     }
-    virtual std::string str() const {
+    std::string str() const override {
         return "Nest(" + child->str() + ")";
     }
 
-    virtual void visit(const document_visitor_t &v) const { v(*this); }
+    void visit(const document_visitor_t &v) const override { v(*this); }
 };
 
 counted_t<const document_t> make_nest(counted_t<const document_t> child) {
@@ -326,12 +326,12 @@ public:
         : stream_element_t(hpos), payload(text) {}
     explicit text_element_t(const std::string &text)
         : stream_element_t(), payload(text) {}
-    virtual ~text_element_t() {}
-    virtual std::string str() const {
+    ~text_element_t() override {}
+    std::string str() const override {
         return "TE(\"" + payload + "\"," + pos_or_not() + ")";
     }
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
 };
 
 class cond_element_t : public stream_element_t {
@@ -344,23 +344,23 @@ public:
     cond_element_t(std::string l, std::string t, std::string r, size_t hpos)
         : stream_element_t(hpos), small(std::move(l)), tail(std::move(t)),
           cont(std::move(r)) {}
-    virtual ~cond_element_t() {}
-    virtual std::string str() const {
+    ~cond_element_t() override {}
+    std::string str() const override {
         return "CE(\"" + small + "\",\"" + tail + "\",\"" + cont + "\","
             + pos_or_not() + ")";
     }
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
 };
 
 class crlf_element_t : public stream_element_t {
 public:
     crlf_element_t() : stream_element_t() {}
     explicit crlf_element_t(size_t hpos) : stream_element_t(hpos) {}
-    virtual ~crlf_element_t() {}
+    ~crlf_element_t() override {}
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
-    virtual std::string str() const {
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
+    std::string str() const override {
         return "CR(" + pos_or_not() + ")";
     }
 };
@@ -369,10 +369,10 @@ class nbeg_element_t : public stream_element_t {
 public:
     nbeg_element_t() : stream_element_t() {}
     explicit nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
-    virtual ~nbeg_element_t() {}
+    ~nbeg_element_t() override {}
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
-    virtual std::string str() const {
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
+    std::string str() const override {
         return "NBeg(" + pos_or_not() + ")";
     }
 };
@@ -381,10 +381,10 @@ class nend_element_t : public stream_element_t {
 public:
     nend_element_t() : stream_element_t() {}
     explicit nend_element_t(size_t hpos) : stream_element_t(hpos) {}
-    virtual ~nend_element_t() {}
+    ~nend_element_t() override {}
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
-    virtual std::string str() const {
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
+    std::string str() const override {
         return "NEnd(" + pos_or_not() + ")";
     }
 };
@@ -393,10 +393,10 @@ class gbeg_element_t : public stream_element_t {
 public:
     gbeg_element_t() : stream_element_t() {}
     explicit gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
-    virtual ~gbeg_element_t() {}
+    ~gbeg_element_t() override {}
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
-    virtual std::string str() const {
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
+    std::string str() const override {
         return "GBeg(" + pos_or_not() + ")";
     }
 };
@@ -405,10 +405,10 @@ class gend_element_t : public stream_element_t {
 public:
     gend_element_t() : stream_element_t() {}
     explicit gend_element_t(size_t hpos) : stream_element_t(hpos) {}
-    virtual ~gend_element_t() {}
+    ~gend_element_t() override {}
 
-    virtual void visit(stream_element_visitor_t *v) { (*v)(this); }
-    virtual std::string str() const {
+    void visit(stream_element_visitor_t *v) override { (*v)(this); }
+    std::string str() const override {
         return "GEnd(" + pos_or_not() + ")";
     }
 };
@@ -436,32 +436,32 @@ class generate_stream_visitor_t : public document_visitor_t {
     counted_t<fn_wrapper_t> fn;
 public:
     explicit generate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f) {}
-    virtual ~generate_stream_visitor_t() {}
+    ~generate_stream_visitor_t() override {}
 
-    virtual void operator()(const text_t &t) const {
+    void operator()(const text_t &t) const override {
         (*fn)(make_counted<text_element_t>(t.text));
     }
 
-    virtual void operator()(const linebreak_t &) const {
+    void operator()(const linebreak_t &) const override {
         (*fn)(make_counted<crlf_element_t>());
     }
 
-    virtual void operator()(const cond_t &c) const {
+    void operator()(const cond_t &c) const override {
         (*fn)(make_counted<cond_element_t>(c.small, c.tail, c.cont));
     }
 
-    virtual void operator()(const concat_t &c) const {
+    void operator()(const concat_t &c) const override {
         std::for_each(c.children.begin(), c.children.end(),
                       [this](counted_t<const document_t> d) { d->visit(*this); });
     }
 
-    virtual void operator()(const group_t &g) const {
+    void operator()(const group_t &g) const override {
         (*fn)(make_counted<gbeg_element_t>());
         g.child->visit(*this);
         (*fn)(make_counted<gend_element_t>());
     }
 
-    virtual void operator()(const nest_t &n) const {
+    void operator()(const nest_t &n) const override {
         (*fn)(make_counted<nbeg_element_t>());
         (*fn)(make_counted<gbeg_element_t>());
         n.child->visit(*this);
@@ -485,41 +485,41 @@ class annotate_stream_visitor_t : public stream_element_visitor_t {
     size_t position;
 public:
     explicit annotate_stream_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), position(0) {}
-    virtual ~annotate_stream_visitor_t() {}
+    ~annotate_stream_visitor_t() override {}
 
-    virtual void operator()(text_element_t *t) {
+    void operator()(text_element_t *t) override {
         position += t->payload.size();
         t->hpos = position;
         (*fn)(t->counted_from_this());
     }
 
-    virtual void operator()(crlf_element_t *e) {
+    void operator()(crlf_element_t *e) override {
         e->hpos = position;
         (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(cond_element_t *c) {
+    void operator()(cond_element_t *c) override {
         position += c->small.size();
         c->hpos = position;
         (*fn)(c->counted_from_this());
     }
 
-    virtual void operator()(gbeg_element_t *e) {
+    void operator()(gbeg_element_t *e) override {
         // can't do this accurately
         (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(gend_element_t *e) {
+    void operator()(gend_element_t *e) override {
         e->hpos = position;
         (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(nbeg_element_t *e) {
+    void operator()(nbeg_element_t *e) override {
         // can't do this accurately
         (*fn)(e->counted_from_this());
     }
 
-    virtual void operator()(nend_element_t *e) {
+    void operator()(nend_element_t *e) override {
         e->hpos = position;
         (*fn)(e->counted_from_this());
     }
@@ -543,7 +543,7 @@ class correct_gbeg_visitor_t : public stream_element_visitor_t {
 
 public:
     explicit correct_gbeg_visitor_t(counted_t<fn_wrapper_t> f) : fn(f), lookahead() {}
-    virtual ~correct_gbeg_visitor_t() {}
+    ~correct_gbeg_visitor_t() override {}
 
     void maybe_push(stream_element_t *e) {
         if (lookahead.empty()) {
@@ -553,37 +553,37 @@ public:
         }
     }
 
-    virtual void operator()(text_element_t *t) {
+    void operator()(text_element_t *t) override {
         guarantee(t->hpos);
         maybe_push(t);
     }
 
-    virtual void operator()(crlf_element_t *e) {
+    void operator()(crlf_element_t *e) override {
         guarantee(e->hpos);
         maybe_push(e);
     }
 
-    virtual void operator()(cond_element_t *c) {
+    void operator()(cond_element_t *c) override {
         guarantee(c->hpos);
         maybe_push(c);
     }
 
-    virtual void operator()(nbeg_element_t *e) {
+    void operator()(nbeg_element_t *e) override {
         guarantee(!e->hpos);     // don't care about `nbeg_element_t` hpos
         maybe_push(e);
     }
 
-    virtual void operator()(nend_element_t *e) {
+    void operator()(nend_element_t *e) override {
         guarantee(e->hpos);
         maybe_push(e);
     }
 
-    virtual void operator()(gbeg_element_t *e) {
+    void operator()(gbeg_element_t *e) override {
         guarantee(!e->hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
         lookahead.push_back(buffer_t(new std::list<counted_t<stream_element_t> >()));
     }
 
-    virtual void operator()(gend_element_t *e) {
+    void operator()(gend_element_t *e) override {
         guarantee(e->hpos);
         buffer_t b(std::move(lookahead.back()));
         lookahead.pop_back();
@@ -638,14 +638,14 @@ public:
     explicit output_visitor_t(size_t w)
         : width(w), fittingElements(0), rightEdge(w), hpos(0), indent(),
           result() {}
-    virtual ~output_visitor_t() {}
+    ~output_visitor_t() override {}
 
-    virtual void operator()(text_element_t *t) {
+    void operator()(text_element_t *t) override {
         result += t->payload;
         hpos += t->payload.size();
     }
 
-    virtual void operator()(crlf_element_t *c) {
+    void operator()(crlf_element_t *c) override {
         size_t currentIndent = indent.empty() ? 0 : indent.back();
         result += '\n';
         result += std::string(currentIndent, ' ');
@@ -654,7 +654,7 @@ public:
         rightEdge = (width - hpos) + *(c->hpos);
     }
 
-    virtual void operator()(cond_element_t *c) {
+    void operator()(cond_element_t *c) override {
         if (fittingElements == 0) {
             size_t currentIndent = indent.empty() ? 0 : indent.back();
             result += c->tail;
@@ -670,7 +670,7 @@ public:
         }
     }
 
-    virtual void operator()(gbeg_element_t *e) {
+    void operator()(gbeg_element_t *e) override {
         if (fittingElements != 0 || *(e->hpos) <= rightEdge) {
             ++fittingElements;
         } else {
@@ -678,17 +678,17 @@ public:
         }
     }
 
-    virtual void operator()(gend_element_t *) {
+    void operator()(gend_element_t *) override {
         if (fittingElements != 0) {
             --fittingElements;
         }
     }
 
-    virtual void operator()(nbeg_element_t *) {
+    void operator()(nbeg_element_t *) override {
         indent.push_back(hpos);
     }
 
-    virtual void operator()(nend_element_t *) { indent.pop_back(); }
+    void operator()(nend_element_t *) override { indent.pop_back(); }
 };
 
 // Here we assemble the chain whose elements we have previously forged.
