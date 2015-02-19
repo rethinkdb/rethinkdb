@@ -215,7 +215,14 @@ module RethinkDB
     end
 
     def send packet
-      @socket.write(packet)
+      written = 0
+      while written < packet.length
+        # Supposedly slice will not copy the array if it goes all the way to the end
+        # We use IO::syswrite here rather than IO::write because of incompatibilities in
+        # JRuby regarding filling up the TCP send buffer.
+        # Reference: https://github.com/rethinkdb/rethinkdb/issues/3795
+        written += @socket.syswrite(packet.slice(written, packet.length))
+      end
     end
 
     def dispatch(msg, token)
@@ -363,8 +370,8 @@ module RethinkDB
           }
         end
       end
-      @socket.write([@@magic_number, @auth_key.size].pack('L<L<') +
-                    @auth_key + [@@wire_protocol].pack('L<'))
+      send([@@magic_number, @auth_key.size].pack('L<L<') +
+            @auth_key + [@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)
