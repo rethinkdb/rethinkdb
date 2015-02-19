@@ -181,7 +181,6 @@ void store_t::read(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const read_t &read,
         read_response_t *response,
-        UNUSED order_token_t order_token,  // TODO
         read_token_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -399,7 +398,7 @@ void store_t::reset_data(
                                      &token,
                                      &txn,
                                      &superblock,
-                                     interruptor);        
+                                     interruptor);
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
@@ -1356,7 +1355,9 @@ void store_t::acquire_superblock_for_read(
     assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
-    wait_interruptible(token->main_read_token.get(), interruptor);
+    if (token->main_read_token.has()) {
+        wait_interruptible(token->main_read_token.get(), interruptor);
+    }
 
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;

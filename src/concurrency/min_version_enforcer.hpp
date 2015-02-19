@@ -41,11 +41,6 @@ public:
     /* All reads that are waiting on a timestamp <= `new_ts` can now pass. */
     void bump_version(state_timestamp_t new_ts);
 
-    /* You can take this read token and check it into a `min_version_enforcer_t`
-    on let's say another server, and it will wait until the other `min_version_enforcer_t`
-    has reached at least the same version as this `min_version_enforcer_t`. */
-    min_version_token_t make_token() const;
-
     /* Blocks until the desired version has been reached or the
     min_version_enforcer_t is destroyed (in that case it throws an
     interrupted_exc_t. */

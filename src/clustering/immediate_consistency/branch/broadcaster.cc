@@ -10,6 +10,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/min_version_enforcer.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -65,6 +66,7 @@ broadcaster_t::broadcaster_t(
         }
     }
     current_timestamp = newest_complete_timestamp = initial_timestamp;
+    most_recent_acked_write_timestamp = initial_timestamp;
 
     /* Make an entry for this branch in the global branch history
        semilattice */
@@ -233,6 +235,9 @@ public:
         /* This coroutine will send an intro message to the newly-registered
         listener. It needs to be a separate coroutine so that we don't block while
         holding `controller->mutex`. */
+        // TODO! Make sure we initialize the acked timestamp on the listener
+        //   correctly. Not sure if the newest_complete_timestamp is right for that
+        //   or if the listener has its own timestamp that it can load.
         coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
             d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
@@ -390,14 +395,14 @@ void broadcaster_t::listener_write(
 
 void broadcaster_t::listener_read(
         broadcaster_t::dispatchee_t *mirror,
-        const read_t &r, read_response_t *response, state_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_read_token_t token,
+        const read_t &r,
+        read_response_t *response,
+        min_version_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
     if (mirror->local_listener != NULL) {
-        *response = mirror->local_listener->local_read(r, ts, order_token, token,
-                                                       interruptor);
+        *response = mirror->local_listener->local_read(r, token, interruptor);
     } else {
         cond_t resp_cond;
         mailbox_t<void(read_response_t)> resp_mailbox(
@@ -407,8 +412,7 @@ void broadcaster_t::listener_read(
                 resp_cond.pulse();
             });
 
-        send(mailbox_manager, mirror->read_mailbox,
-             r, ts, order_token, token, resp_mailbox.get_address());
+        send(mailbox_manager, mirror->read_mailbox, r, token, resp_mailbox.get_address());
 
         wait_interruptible(&resp_cond, interruptor);
     }
@@ -499,6 +503,7 @@ void broadcaster_t::spawn_write(const write_t &write,
         the write to every dispatchee. In particular, it's important
         that we don't check `interruptor` until the write is on its way
         to every dispatchee. */
+        // TODO! Receive this on the listener to bump the version of the local one
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
@@ -608,6 +613,12 @@ void broadcaster_t::background_writeread(
             calling the callback multiple times, we set `callback` to `NULL`
             after the first time. This also signals `end_write()` not to call
             `on_failure()`. */
+
+            /* We can now ack the write. So make sure all reads started from now
+            on will see this write. */
+            most_recent_acked_write_timestamp
+                = std::max(most_recent_acked_write_timestamp, write_ref.get()->timestamp);
+
             if (write_ref.get()->callback != NULL) {
                 guarantee(write_ref.get()->callback->write == write_ref.get().get());
                 write_ref.get()->callback->write = NULL;
@@ -665,8 +676,7 @@ void broadcaster_t::single_read(
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
-    state_timestamp_t timestamp;
-    fifo_enforcer_read_token_t enforcer_token;
+    min_version_token_t enforcer_token;
 
     {
         wait_interruptible(lock, interruptor);
@@ -674,18 +684,16 @@ void broadcaster_t::single_read(
         lock->end();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
-        timestamp = current_timestamp;
         order_token = order_checkpoint.check_through(order_token);
 
-        /* This is safe even if `interruptor` gets pulsed because nothing
-        checks `interruptor` until after we have sent the message. */
-        enforcer_token = reader->fifo_source.enter_read();
+        /* Make sure the read runs *after* the most recent write that
+        we did already acknowledge. */
+        enforcer_token = min_version_token_t(newest_complete_timestamp);
     }
 
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
-        listener_read(reader, read, response, timestamp, order_token, enforcer_token,
-                      &interruptor2);
+        listener_read(reader, read, response, enforcer_token, &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
@@ -707,8 +715,7 @@ void broadcaster_t::all_read(
 
     std::vector<dispatchee_t *> readers;
     std::vector<auto_drainer_t::lock_t> reader_locks;
-    state_timestamp_t timestamp;
-    std::vector<fifo_enforcer_read_token_t> enforcer_tokens;
+    min_version_token_t enforcer_token;
 
     {
         wait_interruptible(lock, interruptor);
@@ -716,16 +723,12 @@ void broadcaster_t::all_read(
         lock->end();
 
         get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
-        timestamp = current_timestamp;
+        guarantee(readers.size() == reader_locks.size());
         order_token = order_checkpoint.check_through(order_token);
 
-        /* This is safe even if `interruptor` gets pulsed because nothing
-        checks `interruptor` until after we have sent the message. */
-        for (auto it = readers.begin(); it != readers.end(); ++it) {
-            enforcer_tokens.push_back((*it)->fifo_source.enter_read());
-        }
-        guarantee(readers.size() == reader_locks.size() &&
-                  readers.size() == enforcer_tokens.size());
+        /* Make sure the reads runs *after* the most recent write that
+        we did already acknowledge. */
+        enforcer_token = min_version_token_t(most_recent_acked_write_timestamp);
     }
 
     try {
@@ -736,8 +739,7 @@ void broadcaster_t::all_read(
         std::vector<read_response_t> responses;
         responses.resize(readers.size());
         for (size_t i = 0; i < readers.size(); ++i) {
-            listener_read(readers[i], read, &responses[i], timestamp, order_token,
-                          enforcer_tokens[i], &interruptor2);
+            listener_read(readers[i], read, &responses[i], enforcer_token, &interruptor2);
         }
 
         read.unshard(responses.data(), responses.size(), response,

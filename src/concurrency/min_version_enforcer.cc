@@ -14,11 +14,6 @@ void min_version_enforcer_t::bump_version(state_timestamp_t new_ts) {
     }
 }
 
-min_version_token_t min_version_enforcer_t::make_token() const {
-    assert_thread();
-    return min_version_token_t(current_timestamp);
-}
-
 void min_version_enforcer_t::wait(min_version_token_t token)
         THROWS_ONLY(interrupted_exc_t) {
     cond_t dummy_interruptor;
