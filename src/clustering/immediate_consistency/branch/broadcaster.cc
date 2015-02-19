@@ -10,7 +10,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/min_version_enforcer.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -397,7 +397,7 @@ void broadcaster_t::listener_read(
         broadcaster_t::dispatchee_t *mirror,
         const read_t &r,
         read_response_t *response,
-        min_version_token_t token,
+        min_timestamp_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -682,7 +682,7 @@ void broadcaster_t::single_read(
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
-    min_version_token_t enforcer_token;
+    min_timestamp_token_t enforcer_token;
 
     {
         wait_interruptible(lock, interruptor);
@@ -694,7 +694,7 @@ void broadcaster_t::single_read(
 
         /* Make sure the read runs *after* the most recent write that
         we did already acknowledge. */
-        enforcer_token = min_version_token_t(newest_complete_timestamp);
+        enforcer_token = min_timestamp_token_t(newest_complete_timestamp);
     }
 
     try {
@@ -721,7 +721,7 @@ void broadcaster_t::all_read(
 
     std::vector<dispatchee_t *> readers;
     std::vector<auto_drainer_t::lock_t> reader_locks;
-    min_version_token_t enforcer_token;
+    min_timestamp_token_t enforcer_token;
 
     {
         wait_interruptible(lock, interruptor);
@@ -734,7 +734,7 @@ void broadcaster_t::all_read(
 
         /* Make sure the reads runs *after* the most recent write that
         we did already acknowledge. */
-        enforcer_token = min_version_token_t(most_recent_acked_write_timestamp);
+        enforcer_token = min_timestamp_token_t(most_recent_acked_write_timestamp);
     }
 
     try {

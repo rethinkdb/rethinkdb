@@ -6,7 +6,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "concurrency/min_version_enforcer.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
@@ -128,7 +128,7 @@ public:
     /* Interface for performing local reads without going through a mailbox */
     read_response_t local_read(
             const read_t &read,
-            min_version_token_t min_version_token,
+            min_timestamp_token_t min_timestamp_token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -206,7 +206,7 @@ private:
     void on_read(
             signal_t *interruptor,
             const read_t &read,
-            min_version_token_t min_version_token,
+            min_timestamp_token_t min_timestamp_token,
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
@@ -240,7 +240,7 @@ private:
     fifo_enforcer_sink_t store_entrance_sink_;
     /* Enforces that reads see every write they need to see (as decided by
     the broadcaster, currently writes that have been acked back to the user). */
-    min_version_enforcer_t read_min_version_enforcer_;
+    min_timestamp_enforcer_t read_min_timestamp_enforcer_;
 
     // Used by the replier_t which needs to be able to tell
     // backfillees how up to date it is.

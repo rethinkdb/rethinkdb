@@ -13,7 +13,7 @@
 #include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "concurrency/min_version_enforcer.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "timestamps.hpp"
 
@@ -163,7 +163,7 @@ private:
         broadcaster_t::dispatchee_t *mirror,
         const read_t &r,
         read_response_t *response,
-        min_version_token_t token,
+        min_timestamp_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -218,7 +218,7 @@ private:
 
     /* Once we ack a write, we must make sure that every read that's initiated
     after that will see the result of the write. We use this timestamp to keep
-    track of the most recent acked write and produce `min_version_token_t`s from
+    track of the most recent acked write and produce `min_timestamp_token_t`s from
     it whenever we send a read to a listener. */
     state_timestamp_t most_recent_acked_write_timestamp;
 

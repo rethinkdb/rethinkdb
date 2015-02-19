@@ -228,7 +228,7 @@ listener_t::listener_t(const base_path_t &base_path,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp_ = backfill_end_timestamp;
-    read_min_version_enforcer_.bump_version(backfill_end_timestamp);
+    read_min_timestamp_enforcer_.bump_timestamp(backfill_end_timestamp);
     write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
@@ -321,7 +321,7 @@ listener_t::listener_t(const base_path_t &base_path,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp_ = listener_intro.broadcaster_begin_timestamp;
-    read_min_version_enforcer_.bump_version(listener_intro.broadcaster_begin_timestamp);
+    read_min_timestamp_enforcer_.bump_timestamp(listener_intro.broadcaster_begin_timestamp);
     write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
@@ -481,9 +481,9 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         &write_token,
         interruptor);
 
-    // Mark the write done with the read_min_version_enforcer_ so reads that have
+    // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
     // been waiting on this write can proceed now.
-    read_min_version_enforcer_.bump_version(qe.timestamp);
+    read_min_timestamp_enforcer_.bump_timestamp(qe.timestamp);
 }
 
 void listener_t::on_writeread(
@@ -557,9 +557,9 @@ write_response_t listener_t::local_writeread(const write_t &write,
                 &write_token,
                 &combined_interruptor);
 
-    // Mark the write done with the read_min_version_enforcer_ so reads that have
+    // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
     // been waiting on this write can proceed now.
-    read_min_version_enforcer_.bump_version(timestamp);
+    read_min_timestamp_enforcer_.bump_timestamp(timestamp);
 
     return response;
 }
@@ -567,11 +567,11 @@ write_response_t listener_t::local_writeread(const write_t &write,
 void listener_t::on_read(
         signal_t *interruptor,
         const read_t &read,
-        min_version_token_t min_version_token,
+        min_timestamp_token_t min_timestamp_token,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
     try {
-        read_response_t response = local_read(read, min_version_token, interruptor);
+        read_response_t response = local_read(read, min_timestamp_token, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -579,7 +579,7 @@ void listener_t::on_read(
 }
 
 read_response_t listener_t::local_read(const read_t &read,
-        min_version_token_t min_version_token,
+        min_timestamp_token_t min_timestamp_token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
@@ -590,11 +590,11 @@ read_response_t listener_t::local_read(const read_t &read,
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
 
     // Wait until all writes that the read needs to see have completed.
-    read_min_version_enforcer_.wait_interruptible(
-        min_version_token, &combined_interruptor);
+    read_min_timestamp_enforcer_.wait_interruptible(
+        min_timestamp_token, &combined_interruptor);
 
     // Leave the token empty. We're enforcing ordering ourselves through the
-    // min_version_token.
+    // min_timestamp_token.
     read_token_t read_token;
 
 #ifndef NDEBUG

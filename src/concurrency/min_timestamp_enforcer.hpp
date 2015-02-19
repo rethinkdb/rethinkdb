@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CONCURRENCY_MIN_VERSION_ENFORCER_HPP_
-#define CONCURRENCY_MIN_VERSION_ENFORCER_HPP_
+#ifndef CONCURRENCY_MIN_TIMESTAMP_ENFORCER_HPP_
+#define CONCURRENCY_MIN_TIMESTAMP_ENFORCER_HPP_
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cond_var.hpp"
@@ -10,42 +10,42 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-/* `min_version_enforcer_t` can be used to make sure that certain operations
-are put on hold until some entity has reached at least a certain version.
+/* `min_timestamp_enforcer_t` can be used to make sure that certain operations
+are put on hold until some entity has reached at least a certain timestamp.
 A common use case is to make sure that reads are not run before a certain
 (set of) write(s) has been performed.
-Similar to the fifo enforcer, `min_version_enforcer_t` works based on tokens
+Similar to the fifo enforcer, `min_timestamp_enforcer_t` works based on tokens
 that you can send over the network. */
 
-class min_version_token_t {
+class min_timestamp_token_t {
 public:
-    min_version_token_t() THROWS_NOTHING { }
-    explicit min_version_token_t(state_timestamp_t t) THROWS_NOTHING :
+    min_timestamp_token_t() THROWS_NOTHING { }
+    explicit min_timestamp_token_t(state_timestamp_t t) THROWS_NOTHING :
         min_timestamp(t) { }
     state_timestamp_t min_timestamp;
 };
 
-RDB_MAKE_SERIALIZABLE_1(min_version_token_t, min_timestamp);
+RDB_MAKE_SERIALIZABLE_1(min_timestamp_token_t, min_timestamp);
 
-class min_version_enforcer_t : public home_thread_mixin_debug_only_t {
+class min_timestamp_enforcer_t : public home_thread_mixin_debug_only_t {
 public:
 
-    min_version_enforcer_t()
+    min_timestamp_enforcer_t()
         : current_timestamp(state_timestamp_t::zero()),
           in_pump(false) { }
 
-    explicit min_version_enforcer_t(state_timestamp_t ts)
+    explicit min_timestamp_enforcer_t(state_timestamp_t ts)
         : current_timestamp(ts),
           in_pump(false) { }
 
     /* All reads that are waiting on a timestamp <= `new_ts` can now pass. */
-    void bump_version(state_timestamp_t new_ts);
+    void bump_timestamp(state_timestamp_t new_ts);
 
     /* Blocks until the desired version has been reached or the
-    min_version_enforcer_t is destroyed (in that case it throws an
+    min_timestamp_enforcer_t is destroyed (in that case it throws an
     interrupted_exc_t. */
-    void wait(min_version_token_t token) THROWS_ONLY(interrupted_exc_t);
-    void wait_interruptible(min_version_token_t token, const signal_t *interruptor)
+    void wait(min_timestamp_token_t token) THROWS_ONLY(interrupted_exc_t);
+    void wait_interruptible(min_timestamp_token_t token, const signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
 private:
@@ -59,18 +59,18 @@ private:
     struct internal_waiter_t
             : public intrusive_priority_queue_node_t<internal_waiter_t> {
     public:
-        internal_waiter_t(min_version_token_t t)
+        internal_waiter_t(min_timestamp_token_t t)
             : token(t) { }
 
         /* Pulsed when the operation is good to go*/
         cond_t on_runnable;
 
         /* The token of the operation */
-        min_version_token_t token;
+        min_timestamp_token_t token;
 
         friend bool left_is_higher_priority(
-                const min_version_enforcer_t::internal_waiter_t *left,
-                const min_version_enforcer_t::internal_waiter_t *right) {
+                const min_timestamp_enforcer_t::internal_waiter_t *left,
+                const min_timestamp_enforcer_t::internal_waiter_t *right) {
             return left->token.min_timestamp < right->token.min_timestamp;
         }
     };
@@ -82,8 +82,8 @@ private:
 
     auto_drainer_t drainer;
 
-    DISABLE_COPYING(min_version_enforcer_t);
+    DISABLE_COPYING(min_timestamp_enforcer_t);
 };
 
 
-#endif /* CONCURRENCY_MIN_VERSION_ENFORCER_HPP_ */
+#endif /* CONCURRENCY_MIN_TIMESTAMP_ENFORCER_HPP_ */

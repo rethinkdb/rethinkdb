@@ -1,12 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "concurrency/min_version_enforcer.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 
 #include "concurrency/signal.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/wait_any.hpp"
 
-void min_version_enforcer_t::bump_version(state_timestamp_t new_ts) {
+void min_timestamp_enforcer_t::bump_timestamp(state_timestamp_t new_ts) {
     assert_thread();
     if (new_ts > current_timestamp) {
         current_timestamp = new_ts;
@@ -14,14 +14,14 @@ void min_version_enforcer_t::bump_version(state_timestamp_t new_ts) {
     }
 }
 
-void min_version_enforcer_t::wait(min_version_token_t token)
+void min_timestamp_enforcer_t::wait(min_timestamp_token_t token)
         THROWS_ONLY(interrupted_exc_t) {
     cond_t dummy_interruptor;
     wait_interruptible(token, &dummy_interruptor);
 }
 
-void min_version_enforcer_t::wait_interruptible(
-        min_version_token_t token,
+void min_timestamp_enforcer_t::wait_interruptible(
+        min_timestamp_token_t token,
         const signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -46,7 +46,7 @@ void min_version_enforcer_t::wait_interruptible(
     }
 }
 
-void min_version_enforcer_t::internal_pump() THROWS_NOTHING {
+void min_timestamp_enforcer_t::internal_pump() THROWS_NOTHING {
     assert_thread();
     ASSERT_FINITE_CORO_WAITING;
     if (!in_pump) {

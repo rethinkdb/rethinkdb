@@ -9,7 +9,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/min_version_enforcer.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/uuid.hpp"
 #include "protocol_api.hpp"
@@ -42,7 +42,7 @@ public:
                            write_durability_t)> writeread_mailbox_t;
 
     typedef mailbox_t<void(read_t,
-                           min_version_token_t,
+                           min_timestamp_token_t,
                            mailbox_addr_t<void(read_response_t)>)> read_mailbox_t;
 
     /* The master sends a single message to `intro_mailbox` at the
