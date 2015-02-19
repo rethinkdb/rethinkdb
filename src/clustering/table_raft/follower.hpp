@@ -45,6 +45,10 @@ public:
         return &local_primary_bcards;
     }
 
+    watchable_map_t<uuid_u, replica_business_card_t> *get_replica_bcards() {
+        return &replica_bcards;
+    }
+
 private:
     /* When a contract changes, we sometimes want to create a new ongoing and we
     sometimes want to update an existing one. Specifically, we want to create a new
@@ -130,6 +134,7 @@ private:
     watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> ack_map;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         local_primary_bcards;
+    watchable_map_var_t<uuid_u, replica_business_card_t> replica_bcards;
 
     /* Used to generate unique names for perfmons */
     int perfmon_counter;

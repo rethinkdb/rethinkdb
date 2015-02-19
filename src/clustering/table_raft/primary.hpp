@@ -33,6 +33,7 @@ public:
         const std::function<void(const contract_ack_t &)> &ack_cb,
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
             *primary_bcards,
+        watchable_map_var_t<uuid_u, replica_business_card_t> *replica_bcards,
         const base_path_t &base_path,
         io_backender_t *io_backender);
     void update_contract(
@@ -117,6 +118,7 @@ private:
     perfmon_collection_t *const perfmons;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         *const primary_bcards;
+    watchable_map_var_t<uuid_u, replica_business_card_t> *const replica_bcards;
     base_path_t const base_path;
     io_backender_t *const io_backender;
     branch_id_t const our_branch_id;

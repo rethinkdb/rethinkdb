@@ -18,11 +18,12 @@ primary_t::primary_t(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &acb,
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        watchable_map_var_t<uuid_u, replica_business_card_t> *rbcs,
         const base_path_t &_base_path,
         io_backender_t *_io_backender) :
     server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
-    region(r), perfmons(pms), primary_bcards(pbcs), base_path(_base_path),
-    io_backender(_io_backender), our_branch_id(generate_uuid()),
+    region(r), perfmons(pms), primary_bcards(pbcs), replica_bcards(rbcs),
+    base_path(_base_path), io_backender(_io_backender), our_branch_id(generate_uuid()),
     latest_contract(make_counted<contract_info_t>(c, acb))
     { }
 
@@ -131,15 +132,6 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
             mailbox_manager,
             branch_history_manager);
 
-        /* Put an entry in the minidir so the replicas can find us */
-        primary_bcard_t bcard;
-        bcard.broadcaster = broadcaster.get_business_card();
-        bcard.replier = replier.get_business_card();
-        bcard.peer = mailbox_manager->get_me();
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            ::entry_t minidir_entry(primary_bcards,
-                std::make_pair(server_id, our_branch_id), bcard);
-
         /* Pulse `our_broadcaster` so that `update_contract()` knows we set up a
         broadcaster */
         our_broadcaster.pulse(&broadcaster);
@@ -150,12 +142,25 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
                 latest_contract, drainer.lock()));
         }
 
-        /* Set up the `master_t` and put an entry in the directory so we can receive
-        queries */
+        /* This has to be constructed after we pulse `our_broadcaster`, because it will
+        call `on_write()` and `on_read()`, which expect `our_broadcaster` to be valid */
         master_t master(mailbox_manager, region, this);
 
-        /* RSI(raft): Publish the `master_t` in the directory so we can receive
-        queries */
+        /* Put an entry in the minidir so the replicas can find us */
+        primary_bcard_t pbcard;
+        pbcard.broadcaster = broadcaster.get_business_card();
+        pbcard.replier = replier.get_business_card();
+        pbcard.peer = mailbox_manager->get_me();
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
+            ::entry_t minidir_entry(primary_bcards,
+                std::make_pair(server_id, our_branch_id), pbcard);
+
+        /* Put an entry in the global directory so clients can find us */
+        replica_business_card_t rbcard;
+        rbcard.region = region;
+        rbcard.master = boost::make_optional(master.get_business_card());
+        watchable_map_var_t<uuid_u, replica_business_card_t>::entry_t directory_entry(
+            replica_bcards, generate_uuid(), rbcard);
 
     } catch (const interrupted_exc_t &) {
         /* do nothing */
