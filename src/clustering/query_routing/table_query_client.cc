@@ -1,16 +1,16 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include "clustering/query_routing/table_query_client.hpp"
 
 #include <functional>
 
-#include "clustering/immediate_consistency/query/master_access.hpp"
+#include "clustering/query_routing/primary_query_client.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/env.hpp"
 
-cluster_namespace_interface_t::cluster_namespace_interface_t(
+table_query_client_t::table_query_client_t(
         mailbox_manager_t *mm,
-        watchable_map_t<std::pair<peer_id_t, uuid_u>, replica_business_card_t> *d,
+        watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t> *d,
         rdb_context_t *_ctx)
     : mailbox_manager(mm),
       directory(d),
@@ -18,7 +18,7 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
       start_count(0),
       starting_up(true),
       subs(directory,
-        std::bind(&cluster_namespace_interface_t::update_registrant,
+        std::bind(&table_query_client_t::update_registrant,
             this, ph::_1, ph::_2),
         true) {
     rassert(ctx != NULL);
@@ -28,8 +28,8 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
     }
 }
 
-bool cluster_namespace_interface_t::check_readiness(table_readiness_t readiness,
-                                                    signal_t *interruptor) {
+bool table_query_client_t::check_readiness(table_readiness_t readiness,
+                                           signal_t *interruptor) {
     rassert(readiness != table_readiness_t::finished,
             "Cannot check for the 'finished' state with namespace_interface_t.");
     try {
@@ -69,7 +69,7 @@ bool cluster_namespace_interface_t::check_readiness(table_readiness_t readiness,
     return true;
 }
 
-void cluster_namespace_interface_t::read(
+void table_query_client_t::read(
         const read_t &r,
         read_response_t *response,
         order_token_t order_token,
@@ -77,12 +77,12 @@ void cluster_namespace_interface_t::read(
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_read_mode();
     dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
-            &master_access_t::new_read_token,
-            &master_access_t::read,
+            &primary_query_client_t::new_read_token,
+            &primary_query_client_t::read,
             r, response, order_token, interruptor);
 }
 
-void cluster_namespace_interface_t::read_outdated(
+void table_query_client_t::read_outdated(
         const read_t &r,
         read_response_t *response,
         signal_t *interruptor)
@@ -93,7 +93,7 @@ void cluster_namespace_interface_t::read_outdated(
     dispatch_outdated_read(r, response, interruptor);
 }
 
-void cluster_namespace_interface_t::write(
+void table_query_client_t::write(
         const write_t &w,
         write_response_t *response,
         order_token_t order_token,
@@ -101,13 +101,12 @@ void cluster_namespace_interface_t::write(
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_write_mode();
     dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(
-        &master_access_t::new_write_token,
-        &master_access_t::write,
+        &primary_query_client_t::new_write_token,
+        &primary_query_client_t::write,
         w, response, order_token, interruptor);
 }
 
-std::set<region_t>
-cluster_namespace_interface_t::get_sharding_scheme()
+std::set<region_t> table_query_client_t::get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<region_t> s;
     for (const auto &pair : relationships) {
@@ -126,12 +125,12 @@ cluster_namespace_interface_t::get_sharding_scheme()
 }
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-void cluster_namespace_interface_t::dispatch_immediate_op(
+void table_query_client_t::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
        member-function. */
-    void (master_access_t::*how_to_make_token)(
+    void (primary_query_client_t::*how_to_make_token)(
         fifo_enforcer_token_type *),
-    void (master_access_t::*how_to_run_query)(
+    void (primary_query_client_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
@@ -146,7 +145,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
-        masters_to_contact;
+        primaries_to_contact;
     scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> >
         new_op_info(new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
     for (auto it = relationships.begin(); it != relationships.end(); ++it) {
@@ -156,7 +155,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
             for (auto jt = relationship_map->begin();
                  jt != relationship_map->end();
                  ++jt) {
-                if ((*jt)->master_access) {
+                if ((*jt)->primary_client) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t(
                             "too many primary replicas available");
@@ -169,25 +168,25 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                     strprintf("primary replica for shard %s not available",
                               key_range_to_string(it->first.inner).c_str()));
             }
-            new_op_info->master_access = chosen_relationship->master_access;
-            (new_op_info->master_access->*how_to_make_token)(
+            new_op_info->primary_client = chosen_relationship->primary_client;
+            (new_op_info->primary_client->*how_to_make_token)(
                 &new_op_info->enforcement_token);
             new_op_info->keepalive = auto_drainer_t::lock_t(
                 &chosen_relationship->drainer);
-            masters_to_contact.push_back(std::move(new_op_info));
+            primaries_to_contact.push_back(std::move(new_op_info));
             new_op_info.init(
                 new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
         }
     }
 
-    std::vector<op_response_type> results(masters_to_contact.size());
-    std::vector<std::string> failures(masters_to_contact.size());
-    pmap(masters_to_contact.size(), std::bind(
-             &cluster_namespace_interface_t::template perform_immediate_op<
+    std::vector<op_response_type> results(primaries_to_contact.size());
+    std::vector<std::string> failures(primaries_to_contact.size());
+    pmap(primaries_to_contact.size(), std::bind(
+             &table_query_client_t::template perform_immediate_op<
                  op_type, fifo_enforcer_token_type, op_response_type>,
              this,
              how_to_run_query,
-             &masters_to_contact,
+             &primaries_to_contact,
              &results,
              &failures,
              order_token,
@@ -196,7 +195,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    for (size_t i = 0; i < masters_to_contact.size(); ++i) {
+    for (size_t i = 0; i < primaries_to_contact.size(); ++i) {
         if (!failures[i].empty()) {
             throw cannot_perform_query_exc_t(failures[i]);
         }
@@ -206,16 +205,16 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
 }
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-void cluster_namespace_interface_t::perform_immediate_op(
-    void (master_access_t::*how_to_run_query)(
+void table_query_client_t::perform_immediate_op(
+    void (primary_query_client_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
         fifo_enforcer_token_type *,
         signal_t *)
     /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
-    std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *
-        masters_to_contact,
+    std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
+        *primaries_to_contact,
     std::vector<op_response_type> *results,
     std::vector<std::string> *failures,
     order_token_t order_token,
@@ -223,16 +222,16 @@ void cluster_namespace_interface_t::perform_immediate_op(
     signal_t *interruptor)
     THROWS_NOTHING
 {
-    immediate_op_info_t<op_type, fifo_enforcer_token_type> *master_to_contact
-        = (*masters_to_contact)[i].get();
+    immediate_op_info_t<op_type, fifo_enforcer_token_type> *primary_to_contact
+        = (*primaries_to_contact)[i].get();
 
     try {
-        wait_any_t waiter(master_to_contact->keepalive.get_drain_signal(), interruptor);
-        (master_to_contact->master_access->*how_to_run_query)(
-            master_to_contact->sharded_op,
+        wait_any_t waiter(primary_to_contact->keepalive.get_drain_signal(), interruptor);
+        (primary_to_contact->primary_client->*how_to_run_query)(
+            primary_to_contact->sharded_op,
             &results->at(i),
             order_token,
-            &master_to_contact->enforcement_token,
+            &primary_to_contact->enforcement_token,
             &waiter);
     } catch (const cannot_perform_query_exc_t& e) {
         failures->at(i).assign("primary replica error: " + std::string(e.what()));
@@ -249,8 +248,7 @@ void cluster_namespace_interface_t::perform_immediate_op(
     }
 }
 
-void
-cluster_namespace_interface_t::dispatch_outdated_read(
+void table_query_client_t::dispatch_outdated_read(
     const read_t &op,
     read_response_t *response,
     signal_t *interruptor)
@@ -258,7 +256,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    std::vector<scoped_ptr_t<outdated_read_info_t> > direct_readers_to_contact;
+    std::vector<scoped_ptr_t<outdated_read_info_t> > replicas_to_contact;
 
     scoped_ptr_t<outdated_read_info_t> new_op_info(new outdated_read_info_t());
     for (auto it = relationships.begin(); it != relationships.end(); ++it) {
@@ -270,7 +268,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
             for (auto jt = relationship_map->begin();
                  jt != relationship_map->end();
                  ++jt) {
-                if ((*jt)->direct_reader_bcard != nullptr) {
+                if ((*jt)->direct_bcard != nullptr) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
                         break;
@@ -289,23 +287,23 @@ cluster_namespace_interface_t::dispatch_outdated_read(
                    readers, there won't be any masters either. */
                 throw cannot_perform_query_exc_t("no replica is available");
             }
-            new_op_info->direct_reader_bcard
-                = chosen_relationship->direct_reader_bcard;
+            new_op_info->direct_bcard = chosen_relationship->direct_bcard;
             new_op_info->keepalive = auto_drainer_t::lock_t(
                 &chosen_relationship->drainer);
-            direct_readers_to_contact.push_back(std::move(new_op_info));
+            replicas_to_contact.push_back(std::move(new_op_info));
             new_op_info.init(new outdated_read_info_t());
         }
     }
 
-    std::vector<read_response_t> results(direct_readers_to_contact.size());
-    std::vector<std::string> failures(direct_readers_to_contact.size());
-    pmap(direct_readers_to_contact.size(), std::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
-                                                     &direct_readers_to_contact, &results, &failures, ph::_1, interruptor));
+    std::vector<read_response_t> results(replicas_to_contact.size());
+    std::vector<std::string> failures(replicas_to_contact.size());
+    pmap(replicas_to_contact.size(),
+        std::bind(&table_query_client_t::perform_outdated_read, this,
+            &replicas_to_contact, &results, &failures, ph::_1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    for (size_t i = 0; i < direct_readers_to_contact.size(); ++i) {
+    for (size_t i = 0; i < replicas_to_contact.size(); ++i) {
         if (!failures[i].empty()) {
             throw cannot_perform_query_exc_t(failures[i]);
         }
@@ -314,13 +312,13 @@ cluster_namespace_interface_t::dispatch_outdated_read(
     op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
-void cluster_namespace_interface_t::perform_outdated_read(
-        std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
+void table_query_client_t::perform_outdated_read(
+        std::vector<scoped_ptr_t<outdated_read_info_t> > *replicas_to_contact,
         std::vector<read_response_t> *results,
         std::vector<std::string> *failures,
         int i,
         signal_t *interruptor) THROWS_NOTHING {
-    outdated_read_info_t *direct_reader_to_contact = (*direct_readers_to_contact)[i].get();
+    outdated_read_info_t *replica_to_contact = (*replicas_to_contact)[i].get();
 
     try {
         cond_t done;
@@ -331,10 +329,10 @@ void cluster_namespace_interface_t::perform_outdated_read(
             });
 
         send(mailbox_manager,
-            direct_reader_to_contact->direct_reader_bcard->read_mailbox,
-            direct_reader_to_contact->sharded_op,
+            replica_to_contact->direct_bcard->read_mailbox,
+            replica_to_contact->sharded_op,
             cont.get_address());
-        wait_any_t waiter(direct_reader_to_contact->keepalive.get_drain_signal(), &done);
+        wait_any_t waiter(replica_to_contact->keepalive.get_drain_signal(), &done);
         wait_interruptible(&waiter, interruptor);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
@@ -349,9 +347,9 @@ void cluster_namespace_interface_t::perform_outdated_read(
     }
 }
 
-void cluster_namespace_interface_t::update_registrant(
+void table_query_client_t::update_registrant(
         const std::pair<peer_id_t, uuid_u> &key,
-        const replica_business_card_t *bcard) {
+        const table_query_bcard_t *bcard) {
     auto it = coro_stoppers.find(key);
     if (bcard == nullptr && it != coro_stoppers.end()) {
         it->second->pulse_if_not_already_pulsed();
@@ -361,7 +359,7 @@ void cluster_namespace_interface_t::update_registrant(
             start_count++;
         }
         coro_t::spawn_sometime(std::bind(
-            &cluster_namespace_interface_t::relationship_coroutine, this,
+            &table_query_client_t::relationship_coroutine, this,
             key, *bcard, starting_up, relationship_coroutine_auto_drainer.lock()));
     }
 }
@@ -390,9 +388,9 @@ private:
     value_t value;
 };
 
-void cluster_namespace_interface_t::relationship_coroutine(
+void table_query_client_t::relationship_coroutine(
         const std::pair<peer_id_t, uuid_u> &key,
-        const replica_business_card_t &bcard,
+        const table_query_bcard_t &bcard,
         bool is_start,
         auto_drainer_t::lock_t lock) THROWS_NOTHING {
     wait_any_t stop_signal(lock.get_drain_signal(), coro_stoppers.at(key).get());
@@ -402,19 +400,19 @@ void cluster_namespace_interface_t::relationship_coroutine(
             (key.first == mailbox_manager->get_connectivity_cluster()->get_me());
         relationship_record.region = bcard.region;
 
-        scoped_ptr_t<master_access_t> master_access;
-        if (static_cast<bool>(bcard.master)) {
-            master_access.init(new master_access_t(
-                mailbox_manager, *bcard.master, &stop_signal));
-            relationship_record.master_access = master_access.get();
+        scoped_ptr_t<primary_query_client_t> primary_client;
+        if (static_cast<bool>(bcard.primary)) {
+            primary_client.init(new primary_query_client_t(
+                mailbox_manager, *bcard.primary, &stop_signal));
+            relationship_record.primary_client = primary_client.get();
         } else {
-            relationship_record.master_access = nullptr;
+            relationship_record.primary_client = nullptr;
         }
 
-        if (static_cast<bool>(bcard.direct_reader)) {
-            relationship_record.direct_reader_bcard = &*bcard.direct_reader;
+        if (static_cast<bool>(bcard.direct)) {
+            relationship_record.direct_bcard = &*bcard.direct;
         } else {
-            relationship_record.direct_reader_bcard = nullptr;
+            relationship_record.direct_bcard = nullptr;
         }
 
         region_map_set_membership_t<relationship_t *> relationship_map_insertion(
@@ -451,7 +449,7 @@ void cluster_namespace_interface_t::relationship_coroutine(
     case. */
     if (!lock.get_drain_signal()->is_pulsed()) {
         directory->read_key(key,
-            [&](const replica_business_card_t *new_bcard) {
+            [&](const table_query_bcard_t *new_bcard) {
                 update_registrant(key, new_bcard);
             });
     }

@@ -1,5 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/query/master.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/query_routing/primary_query_server.hpp"
 
 #include "containers/archive/boost_types.hpp"
 
@@ -9,24 +9,25 @@
    master and a number of multi_throttling_client_t instances on the client nodes. */
 const int MAX_OUTSTANDING_MASTER_REQUESTS = 2000;
 
-master_t::master_t(mailbox_manager_t *mm, region_t r, query_callback_t *cb)
+primary_query_server_t::primary_query_server_t(
+        mailbox_manager_t *mm, region_t r, query_callback_t *cb)
     : mailbox_manager(mm),
       query_callback(cb),
       region(r),
       multi_throttling_server(mm, this, MAX_OUTSTANDING_MASTER_REQUESTS) {
 }
 
-master_t::~master_t() {
+primary_query_server_t::~primary_query_server_t() {
     shutdown_cond.pulse();
 }
 
-master_business_card_t master_t::get_business_card() {
-    return master_business_card_t(region,
-                                  multi_throttling_server.get_business_card());
+primary_query_bcard_t primary_query_server_t::get_bcard() {
+    return primary_query_bcard_t(
+        region, multi_throttling_server.get_business_card());
 }
 
-void master_t::client_t::perform_request(
-        const master_business_card_t::request_t &request,
+void primary_query_server_t::client_t::perform_request(
+        const primary_query_bcard_t::request_t &request,
         UNUSED signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -44,8 +45,8 @@ void master_t::client_t::perform_request(
     }
 
     try {
-        if (const master_business_card_t::read_request_t *read =
-                boost::get<master_business_card_t::read_request_t>(&request)) {
+        if (const primary_query_bcard_t::read_request_t *read =
+                boost::get<primary_query_bcard_t::read_request_t>(&request)) {
 
             read->order_token.assert_read_mode();
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
@@ -59,8 +60,8 @@ void master_t::client_t::perform_request(
             }
             send(parent->mailbox_manager, read->cont_addr, reply);
 
-        } else if (const master_business_card_t::write_request_t *write =
-                boost::get<master_business_card_t::write_request_t>(&request)) {
+        } else if (const primary_query_bcard_t::write_request_t *write =
+                boost::get<primary_query_bcard_t::write_request_t>(&request)) {
 
             write->order_token.assert_write_mode();
             fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);

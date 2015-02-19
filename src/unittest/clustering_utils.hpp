@@ -11,8 +11,8 @@
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/immediate_consistency/query/master.hpp"
-#include "clustering/immediate_consistency/query/master_access.hpp"
+#include "clustering/query_routing/primary_query_client.hpp"
+#include "clustering/query_routing/primary_query_server.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
@@ -72,20 +72,24 @@ public:
     store_t store;
 };
 
-inline void test_inserter_write_master_access(master_access_t *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+inline void test_inserter_write_primary_query_client(
+        primary_query_client_t *client, const std::string &key, const std::string &value,
+        order_token_t otok, signal_t *interruptor) {
     write_t w = mock_overwrite(key, value);
     write_response_t response;
     fifo_enforcer_sink_t::exit_write_t write_token;
-    ma->new_write_token(&write_token);
-    ma->write(w, &response, otok, &write_token, interruptor);
+    client->new_write_token(&write_token);
+    client->write(w, &response, otok, &write_token, interruptor);
 }
 
-inline std::string test_inserter_read_master_access(master_access_t *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
+inline std::string test_inserter_read_primary_query_client(
+        primary_query_client_t *client, const std::string &key,
+        order_token_t otok, signal_t *interruptor) {
     read_t r = mock_read(key);
     read_response_t response;
     fifo_enforcer_sink_t::exit_read_t read_token;
-    ma->new_read_token(&read_token);
-    ma->read(r, &response, otok, &read_token, interruptor);
+    client->new_read_token(&read_token);
+    client->read(r, &response, otok, &read_token, interruptor);
     return mock_parse_read_response(response);
 }
 
@@ -127,11 +131,18 @@ public:
                                          this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    test_inserter_t(master_access_t *master_access, std::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+    test_inserter_t(
+            primary_query_client_t *client,
+            std::function<std::string()> _key_gen_fun,
+            order_source_t *_osource,
+            const std::string& tag,
+            state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_master_access, master_access, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_master_access, master_access, ph::_1, ph::_2, ph::_3)),
+          wfun(std::bind(&test_inserter_t::write_primary_query_client,
+            client, ph::_1, ph::_2, ph::_3, ph::_4)),
+          rfun(std::bind(&test_inserter_t::read_primary_query_client,
+            client, ph::_1, ph::_2, ph::_3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
@@ -147,12 +158,15 @@ public:
     state_t *values_inserted;
 
 private:
-    static void write_master_access(master_access_t *ma, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
-        test_inserter_write_master_access(ma, key, value, otok, interruptor);
+    static void write_primary_query_client(primary_query_client_t *client,
+            const std::string& key, const std::string& value,
+            order_token_t otok, signal_t *interruptor) {
+        test_inserter_write_primary_query_client(client, key, value, otok, interruptor);
     }
 
-    static std::string read_master_access(master_access_t *ma, const std::string& key, order_token_t otok, signal_t *interruptor) {
-        return test_inserter_read_master_access(ma, key, otok, interruptor);
+    static std::string read_primary_query_client(primary_query_client_t *client,
+            const std::string& key, order_token_t otok, signal_t *interruptor) {
+        return test_inserter_read_primary_query_client(client, key, otok, interruptor);
     }
 
     static void write_namespace_if(namespace_interface_t *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {

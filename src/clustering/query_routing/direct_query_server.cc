@@ -1,23 +1,23 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/query/direct_reader.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/query_routing/direct_query_server.hpp"
 
 #include "protocol_api.hpp"
 #include "store_view.hpp"
 
-direct_reader_t::direct_reader_t(
+direct_query_server_t::direct_query_server_t(
         mailbox_manager_t *mm,
         store_view_t *svs_) :
     mailbox_manager(mm),
     svs(svs_),
-    read_mailbox(mm, std::bind(&direct_reader_t::on_read, this,
+    read_mailbox(mm, std::bind(&direct_query_server_t::on_read, this,
                                ph::_1, ph::_2, ph::_3))
     { }
 
-direct_reader_business_card_t direct_reader_t::get_business_card() {
-    return direct_reader_business_card_t(read_mailbox.get_address());
+direct_query_bcard_t direct_query_server_t::get_bcard() {
+    return direct_query_bcard_t(read_mailbox.get_address());
 }
 
-void direct_reader_t::on_read(
+void direct_query_server_t::on_read(
         signal_t *interruptor,
         const read_t &read,
         const mailbox_addr_t<void(read_response_t)> &cont) {

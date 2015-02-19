@@ -4,8 +4,8 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
-#include "clustering/immediate_consistency/query/master.hpp"
-#include "clustering/immediate_consistency/query/master_access.hpp"
+#include "clustering/query_routing/primary_query_client.hpp"
+#include "clustering/query_routing/primary_query_server.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -14,7 +14,7 @@
 
 namespace unittest {
 
-class query_counter_t : public master_t::query_callback_t {
+class query_counter_t : public primary_query_server_t::query_callback_t {
 public:
     query_counter_t() : should_succeed(true), num_writes(0), num_reads(0) { }
     bool on_write(
@@ -59,29 +59,30 @@ public:
 };
 
 /* The `ReadWrite` test sends some reads and writes to some shards via a
-`master_access_t`. */
+`primary_query_client_t`. */
 
 TPTEST(ClusteringQuery, ReadWrite) {
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     query_counter_t query_counter;
-    master_t master(cluster.get_mailbox_manager(), region_t::universe(), &query_counter);
+    primary_query_server_t server(
+        cluster.get_mailbox_manager(), region_t::universe(), &query_counter);
 
-    /* Set up a master access */
+    /* Set up a client */
     cond_t non_interruptor;
-    master_access_t master_access(
+    primary_query_client_t client(
         cluster.get_mailbox_manager(),
-        master.get_business_card(),
+        server.get_bcard(),
         &non_interruptor);
 
     /* Send a write to the namespace */
     {
         fifo_enforcer_sink_t::exit_write_t token;
-        master_access.new_write_token(&token);
+        client.new_write_token(&token);
         write_t write;
         write.write = dummy_write_t();
         write_response_t res;
-        master_access.write(
+        client.write(
             write,
             &res,
             order_source.check_in("ClusteringQuery.ReadWrite.write"),
@@ -94,11 +95,11 @@ TPTEST(ClusteringQuery, ReadWrite) {
     /* Send a read to the namespace */
     {
         fifo_enforcer_sink_t::exit_read_t token;
-        master_access.new_read_token(&token);
+        client.new_read_token(&token);
         read_t read;
         read.read = dummy_read_t();
         read_response_t res;
-        master_access.read(
+        client.read(
             read,
             &res,
             order_source.check_in("ClusteringQuery.ReadWrite.read").with_read_mode(),
@@ -114,24 +115,25 @@ TPTEST(ClusteringQuery, Failure) {
     simple_mailbox_cluster_t cluster;
     query_counter_t query_counter;
     query_counter.should_succeed = false;
-    master_t master(cluster.get_mailbox_manager(), region_t::universe(), &query_counter);
+    primary_query_server_t server(
+        cluster.get_mailbox_manager(), region_t::universe(), &query_counter);
 
-    /* Set up a master access */
+    /* Set up a client */
     cond_t non_interruptor;
-    master_access_t master_access(
+    primary_query_client_t client(
         cluster.get_mailbox_manager(),
-        master.get_business_card(),
+        server.get_bcard(),
         &non_interruptor);
 
     /* Send a write to the namespace */
     {
         fifo_enforcer_sink_t::exit_write_t token;
-        master_access.new_write_token(&token);
+        client.new_write_token(&token);
         write_t write;
         write.write = dummy_write_t();
         write_response_t res;
         try {
-            master_access.write(
+            client.write(
                 write,
                 &res,
                 order_source.check_in("ClusteringQuery.ReadWrite.write"),
@@ -147,12 +149,12 @@ TPTEST(ClusteringQuery, Failure) {
     /* Send a read to the namespace */
     {
         fifo_enforcer_sink_t::exit_read_t token;
-        master_access.new_read_token(&token);
+        client.new_read_token(&token);
         read_t read;
         read.read = dummy_read_t();
         read_response_t res;
         try {
-            master_access.read(
+            client.read(
                 read,
                 &res,
                 order_source.check_in("ClusteringQuery.ReadWrite.read").with_read_mode(),

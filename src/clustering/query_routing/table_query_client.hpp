@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
+#ifndef CLUSTERING_QUERY_ROUTING_TABLE_QUERY_CLIENT_HPP_
+#define CLUSTERING_QUERY_ROUTING_TABLE_QUERY_CLIENT_HPP_
 
 #include <math.h>
 
@@ -9,20 +9,24 @@
 #include <vector>
 #include <set>
 
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/query_routing/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable_map.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-class master_access_t;
+class primary_query_client_t;
 
-class cluster_namespace_interface_t : public namespace_interface_t {
+/* `table_query_client_t` is responsible for sending queries to the cluster. It
+instantiates `primary_query_client_t` and `direct_query_client_t` internally; it covers
+the entire table whereas they cover single shards. */
+
+class table_query_client_t : public namespace_interface_t {
 public:
-    cluster_namespace_interface_t(
+    table_query_client_t(
             mailbox_manager_t *mm,
-            watchable_map_t<std::pair<peer_id_t, uuid_u>, replica_business_card_t>
+            watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
                 *directory,
             rdb_context_t *);
 
@@ -50,8 +54,8 @@ private:
     public:
         bool is_local;
         region_t region;
-        master_access_t *master_access;
-        const direct_reader_business_card_t *direct_reader_bcard;
+        primary_query_client_t *primary_client;
+        const direct_query_bcard_t *direct_bcard;
         auto_drainer_t drainer;
     };
 
@@ -63,7 +67,7 @@ private:
     class immediate_op_info_t {
     public:
         op_type sharded_op;
-        master_access_t *master_access;
+        primary_query_client_t *primary_client;
         fifo_enforcer_token_type enforcement_token;
         auto_drainer_t::lock_t keepalive;
     };
@@ -71,15 +75,15 @@ private:
     class outdated_read_info_t {
     public:
         read_t sharded_op;
-        const direct_reader_business_card_t *direct_reader_bcard;
+        const direct_query_bcard_t *direct_bcard;
         auto_drainer_t::lock_t keepalive;
     };
 
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void dispatch_immediate_op(
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
-            void (master_access_t::*how_to_make_token)(fifo_enforcer_token_type *),
-            void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t),
+            void (primary_query_client_t::*how_to_make_token)(fifo_enforcer_token_type *),
+            void (primary_query_client_t::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t),
             const op_type &op,
             op_response_type *response,
             order_token_t order_token,
@@ -92,7 +96,7 @@ private:
     // dispatch_immediate_op, which still has the exception specification.
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
-            void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) */,
+            void (primary_query_client_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) */,
             std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *masters_to_contact,
             std::vector<op_response_type> *results,
             std::vector<std::string> *failures,
@@ -116,16 +120,16 @@ private:
         THROWS_NOTHING;
 
     void update_registrant(const std::pair<peer_id_t, uuid_u> &key,
-                           const replica_business_card_t *bcard);
+                           const table_query_bcard_t *bcard);
 
     void relationship_coroutine(
         const std::pair<peer_id_t, uuid_u> &key,
-        const replica_business_card_t &bcard,
+        const table_query_bcard_t &bcard,
         bool is_start,
         auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    watchable_map_t<std::pair<peer_id_t, uuid_u>, replica_business_card_t>
+    watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
         *directory;
     rdb_context_t *ctx;
 
@@ -145,10 +149,9 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    watchable_map_t<std::pair<peer_id_t, uuid_u>, replica_business_card_t>
-        ::all_subs_t subs;
+    watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>::all_subs_t subs;
 
-    DISABLE_COPYING(cluster_namespace_interface_t);
+    DISABLE_COPYING(table_query_client_t);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_ */
+#endif /* CLUSTERING_QUERY_ROUTING_TABLE_QUERY_CLIENT_HPP_ */

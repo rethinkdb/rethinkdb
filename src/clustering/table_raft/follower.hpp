@@ -45,8 +45,8 @@ public:
         return &local_primary_bcards;
     }
 
-    watchable_map_t<uuid_u, replica_business_card_t> *get_replica_bcards() {
-        return &replica_bcards;
+    watchable_map_t<uuid_u, table_query_bcard_t> *get_table_query_bcards() {
+        return &table_query_bcards;
     }
 
 private:
@@ -134,7 +134,7 @@ private:
     watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> ack_map;
     watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
         local_primary_bcards;
-    watchable_map_var_t<uuid_u, replica_business_card_t> replica_bcards;
+    watchable_map_var_t<uuid_u, table_query_bcard_t> table_query_bcards;
 
     /* Used to generate unique names for perfmons */
     int perfmon_counter;

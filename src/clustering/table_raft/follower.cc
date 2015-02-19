@@ -160,7 +160,7 @@ void follower_t::update(const state_t &new_state,
                         server_id, mailbox_manager, data->store_subview.get(),
                         branch_history_manager, key.region, &data->perfmon_collection,
                         new_pair.second.second, acker, &local_primary_bcards,
-                        &replica_bcards, base_path, io_backender));
+                        &table_query_bcards, base_path, io_backender));
                     break;
                 case ongoing_key_t::role_t::secondary:
                     data->secondary.init(new secondary_t(

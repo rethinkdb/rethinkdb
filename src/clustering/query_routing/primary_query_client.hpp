@@ -1,26 +1,26 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_QUERY_ROUTING_PRIMARY_QUERY_CLIENT_HPP_
+#define CLUSTERING_QUERY_ROUTING_PRIMARY_QUERY_CLIENT_HPP_
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "clustering/generic/multi_throttling_client.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/query_routing/metadata.hpp"
 #include "protocol_api.hpp"
 
-/* `master_access_t` is responsible for sending queries to `master_t`. It is
-instantiated by `cluster_namespace_interface_t`. The `master_access_t`
-internally contains a `multi_throttling_client_t` that works with the
-`multi_throttling_server_t` in the `master_t` to throttle read and write queries
-that are being sent to the master. */
+/* `primary_query_client_t` is responsible for sending queries to
+`primary_query_server_t`. It is instantiated by `table_query_client_t`. The
+`primary_query_client_t` internally contains a `multi_throttling_client_t` that works
+with the `multi_throttling_server_t` in the `primary_query_server_t` to throttle read and
+write queries that are being sent to the primary. */
 
-class master_access_t : public home_thread_mixin_debug_only_t {
+class primary_query_client_t : public home_thread_mixin_debug_only_t {
 public:
-    master_access_t(
+    primary_query_client_t(
             mailbox_manager_t *mm,
-            const master_business_card_t &master,
+            const primary_query_bcard_t &master,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
@@ -50,8 +50,8 @@ public:
 
 private:
     typedef multi_throttling_business_card_t<
-            master_business_card_t::request_t,
-            master_business_card_t::inner_client_business_card_t
+            primary_query_bcard_t::request_t,
+            primary_query_bcard_t::inner_client_business_card_t
             > mt_business_card_t;
 
     void on_allocation(int);
@@ -65,11 +65,11 @@ private:
     fifo_enforcer_source_t source_for_master;
 
     multi_throttling_client_t<
-            master_business_card_t::request_t,
-            master_business_card_t::inner_client_business_card_t
+            primary_query_bcard_t::request_t,
+            primary_query_bcard_t::inner_client_business_card_t
             > multi_throttling_client;
 
-    DISABLE_COPYING(master_access_t);
+    DISABLE_COPYING(primary_query_client_t);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_ */
+#endif /* CLUSTERING_QUERY_ROUTING_PRIMARY_QUERY_CLIENT_HPP_ */
