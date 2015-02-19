@@ -606,6 +606,17 @@ void broadcaster_t::background_writeread(
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
 
+        /* The write could potentially get acked now. So make sure all reads started
+        after this point will see this write. */
+        /* Note: At the moment we could move this into the `is_acceptable_ack_set`
+        `if` below and it would still be correct. However Tim mentioned that this
+        will become a little bit more difficult after some of his changes and
+        so we use this more conservative variant of increasing the timestamp
+        as soon as *the first* write comes back independent of whether that
+        actually satisfies the ack requirements or not. */
+        most_recent_acked_write_timestamp
+            = std::max(most_recent_acked_write_timestamp, write_ref.get()->timestamp);
+
         write_ref.get()->ack_set.insert(mirror->server_id);
         if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
             /* We might get here multiple times, if `is_acceptable_ack_set()`
@@ -613,11 +624,6 @@ void broadcaster_t::background_writeread(
             calling the callback multiple times, we set `callback` to `NULL`
             after the first time. This also signals `end_write()` not to call
             `on_failure()`. */
-
-            /* We can now ack the write. So make sure all reads started from now
-            on will see this write. */
-            most_recent_acked_write_timestamp
-                = std::max(most_recent_acked_write_timestamp, write_ref.get()->timestamp);
 
             if (write_ref.get()->callback != NULL) {
                 guarantee(write_ref.get()->callback->write == write_ref.get().get());
