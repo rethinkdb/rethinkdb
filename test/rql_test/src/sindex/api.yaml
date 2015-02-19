@@ -181,11 +181,11 @@ tests:
   - rb: tbl.get_all(1, :index => :id).typeof
     py: tbl.get_all(1, index='id').type_of()
     js: tbl.getAll(1, {index:'id'}).typeOf()
-    ot: ('SELECTION<ARRAY>')
+    ot: ('SELECTION<STREAM>')
   - rb: tbl.get_all(1).typeof
     py: tbl.get_all(1).type_of()
     js: tbl.getAll(1).typeOf()
-    ot: ('SELECTION<ARRAY>')
+    ot: ('SELECTION<STREAM>')
   - rb: tbl.get_all(1, :index => :id).update{null}
     py: tbl.get_all(1, index='id').update(lambda x:null)
     js: tbl.getAll(1, {index:'id'}).update(function(x) { return null; })
