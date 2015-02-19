@@ -68,7 +68,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
-            guarantee(old_val != new_val);
+            rassert(old_val != new_val);
         }
         auto it = queue.find(key);
         if (it == queue.end()) {
@@ -106,7 +106,7 @@ class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
-            guarantee(old_val != new_val);
+            rassert(old_val != new_val);
         }
         queue.emplace_back(std::move(old_val), std::move(new_val));
     }
@@ -2496,7 +2496,7 @@ void artificial_t::send_all(const msg_t &msg) {
     if (auto *change = boost::get<msg_t::change_t>(&msg.op)) {
         guarantee(change->old_val.has() || change->new_val.has());
         if (change->old_val.has() && change->new_val.has()) {
-            guarantee(change->old_val != change->new_val);
+            rassert(change->old_val != change->new_val);
         }
     }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();
