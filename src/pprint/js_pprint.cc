@@ -172,11 +172,11 @@ private:
                 optargs.push_back(cond_linebreak);
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
-            optargs.push_back(make_nest(make_concat({make_text("\"" +
-                                                              to_js_name(ap->key()) +
-                                                              "\":"),
-                                                     cond_linebreak,
-                                                     visit_generic(ap->mutable_val())})));
+            counted_t<const document_t> inner =
+                make_concat({make_text("\"" + to_js_name(ap->key()) + "\":"),
+                             cond_linebreak,
+                            visit_generic(ap->mutable_val())});
+            optargs.push_back(make_nest(std::move(inner)));
         }
         return make_concat({lbrace, make_nest(make_concat(std::move(optargs))), rbrace});
     }
