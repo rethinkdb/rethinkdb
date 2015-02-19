@@ -87,7 +87,7 @@ counted_t<const document_t> make_cond(const std::string l, const std::string r,
 
 class linebreak_t : public document_t {
 public:
-    explicit linebreak_t() {}
+    linebreak_t() {}
     ~linebreak_t() override {}
 
     size_t width() const override { return 0; }
