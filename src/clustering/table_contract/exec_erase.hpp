@@ -3,28 +3,24 @@
 #define CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_
 
 #include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/table_contract/exec.hpp"
 #include "store_view.hpp"
 
-class erase_execution_t {
+class erase_execution_t : public execution_t {
 public:
     erase_execution_t(
-        const server_id_t &server_id,
-        store_view_t *s,
-        UNUSED branch_history_manager_t *bhm,
-        const region_t &r,
-        UNUSED perfmon_collection_t *perfmons,
+        const execution_t::context_t *context,
+        const region_t &region,
+        store_view_t *store,
+        perfmon_collection_t *perfmon_collection,
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &ack_cb);
+        const std::function<void(const contract_ack_t &)> &ack_cb);
     void update_contract(
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &ack_cb);
+        const std::function<void(const contract_ack_t &)> &ack_cb);
 
 private:
     void run(auto_drainer_t::lock_t);
-
-    server_id_t const server_id;
-    store_view_t *const store;
-    region_t const region;
     auto_drainer_t drainer;
 };
 

@@ -7,25 +7,19 @@
 #include "store_view.hpp"
 
 primary_execution_t::primary_execution_t(
-        const server_id_t &sid,
-        mailbox_manager_t *mm,
-        store_view_t *s,
-        branch_history_manager_t *bhm,
-        const region_t &r,
-        perfmon_collection_t *pms,
+        const execution_t::context_t *_context,
+        const region_t &_region,
+        store_view_t *_store,
+        perfmon_collection_t *_perfmon_collection,
         const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &acb,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
-            contract_execution_bcard_t> *cebcs,
-        watchable_map_var_t<uuid_u, table_query_bcard_t> *tqbcs,
-        const base_path_t &_base_path,
-        io_backender_t *_io_backender) :
-    server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
-    region(r), perfmons(pms), contract_execution_bcards(cebcs),
-    table_query_bcards(tqbcs), base_path(_base_path), io_backender(_io_backender),
+        const std::function<void(const contract_ack_t &)> &acb) :
+    execution_t(_context, _region, _store, _perfmon_collection),
     our_branch_id(generate_uuid()),
     latest_contract(make_counted<contract_info_t>(c, acb))
-    { }
+{
+    guarantee(static_cast<bool>(c.primary));
+    guarantee(c.primary->server == context->server_id);
+}
 
 void primary_execution_t::update_contract(
         const contract_t &c,
@@ -33,7 +27,7 @@ void primary_execution_t::update_contract(
     ASSERT_NO_CORO_WAITING;
 
     guarantee(static_cast<bool>(c.primary));
-    guarantee(c.primary->server == server_id);
+    guarantee(c.primary->server == context->server_id);
 
     /* Mark the old contract as obsolete, and record the new one */
     latest_contract->obsolete.pulse();
@@ -95,7 +89,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* Send a request for the leader to register our branch */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
             ack.branch = boost::make_optional(our_branch_id);
-            branch_history_manager->export_branch_history(
+            context->branch_history_manager->export_branch_history(
                 branch_bc.origin, &ack.branch_history);
             ack.branch_history.branches.insert(std::make_pair(our_branch_id, branch_bc));
             latest_ack = boost::make_optional(ack);
@@ -109,29 +103,29 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         actual important work */
 
         broadcaster_t broadcaster(
-            mailbox_manager,
-            branch_history_manager,
+            context->mailbox_manager,
+            context->branch_history_manager,
             store,
-            perfmons,
+            perfmon_collection,
             our_branch_id,
             branch_bc,
             &order_source,
             keepalive.get_drain_signal());
 
         listener_t listener(
-            base_path,
-            io_backender,
-            mailbox_manager,
-            server_id,
+            context->base_path,
+            context->io_backender,
+            context->mailbox_manager,
+            context->server_id,
             &broadcaster,
-            perfmons,
+            perfmon_collection,
             keepalive.get_drain_signal(),
             &order_source);
 
         replier_t replier(
             &listener,
-            mailbox_manager,
-            branch_history_manager);
+            context->mailbox_manager,
+            context->branch_history_manager);
 
         /* Pulse `our_broadcaster` so that `update_contract()` knows we set up a
         broadcaster */
@@ -146,17 +140,20 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
         /* This has to be constructed after we pulse `our_broadcaster`, because it will
         call `on_write()` and `on_read()`, which expect `our_broadcaster` to be valid */
-        primary_query_server_t primary_query_server(mailbox_manager, region, this);
+        primary_query_server_t primary_query_server(
+            context->mailbox_manager,
+            region,
+            this);
 
         /* Put an entry in the minidir so the replicas can find us */
         contract_execution_bcard_t ce_bcard;
         ce_bcard.broadcaster = broadcaster.get_business_card();
         ce_bcard.replier = replier.get_business_card();
-        ce_bcard.peer = mailbox_manager->get_me();
+        ce_bcard.peer = context->mailbox_manager->get_me();
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t>::entry_t minidir_entry(
-                contract_execution_bcards,
-                std::make_pair(server_id, our_branch_id),
+                context->local_contract_execution_bcards,
+                std::make_pair(context->server_id, our_branch_id),
                 ce_bcard);
 
         /* Put an entry in the global directory so clients can find us */
@@ -164,7 +161,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         tq_bcard.region = region;
         tq_bcard.primary = boost::make_optional(primary_query_server.get_bcard());
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry(
-            table_query_bcards, generate_uuid(), tq_bcard);
+            context->local_table_query_bcards, generate_uuid(), tq_bcard);
 
         keepalive.get_drain_signal()->wait_lazily_unordered();
 

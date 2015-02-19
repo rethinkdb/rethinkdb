@@ -2,38 +2,25 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
 #define CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
 
-#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
-#include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/table_contract/exec.hpp"
 #include "containers/counted.hpp"
 
 class broadcaster_t;
 class io_backender_t;
 class listener_t;
 
-class contract_execution_bcard_t {
-public:
-    broadcaster_business_card_t broadcaster;
-    replier_business_card_t replier;
-    peer_id_t peer;
-};
-
-class primary_execution_t : private primary_query_server_t::query_callback_t {
+class primary_execution_t :
+    public execution_t,    
+    private primary_query_server_t::query_callback_t {
 public:
     primary_execution_t(
-        const server_id_t &sid,
-        mailbox_manager_t *const mailbox_manager,
-        store_view_t *s,
-        branch_history_manager_t *bhm,
-        const region_t &r,
-        perfmon_collection_t *pms,
+        const execution_t::context_t *context,
+        const region_t &region,
+        store_view_t *store,
+        perfmon_collection_t *perfmon_collection,
         const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
-            contract_execution_bcard_t> *contract_execution_bcards,
-        watchable_map_var_t<uuid_u, table_query_bcard_t> *table_query_bcards,
-        const base_path_t &base_path,
-        io_backender_t *io_backender);
+        const std::function<void(const contract_ack_t &)> &ack_cb);
     void update_contract(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &ack_cb);
@@ -108,17 +95,6 @@ private:
         counted_t<contract_info_t> contract,
         auto_drainer_t::lock_t keepalive);
 
-    server_id_t const server_id;
-    mailbox_manager_t *const mailbox_manager;
-    store_view_t *const store;
-    branch_history_manager_t *const branch_history_manager;
-    region_t const region;
-    perfmon_collection_t *const perfmons;
-    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
-        *const contract_execution_bcards;
-    watchable_map_var_t<uuid_u, table_query_bcard_t> *const table_query_bcards;
-    base_path_t const base_path;
-    io_backender_t *const io_backender;
     branch_id_t const our_branch_id;
 
     /* `latest_contract` stores the latest contract we've received, along with its ack

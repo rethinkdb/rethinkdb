@@ -2,25 +2,23 @@
 #include "clustering/table_contract/exec_erase.hpp"
 
 erase_execution_t::erase_execution_t(
-        const server_id_t &sid,
-        store_view_t *s,
-        UNUSED branch_history_manager_t *bhm,
-        const region_t &r,
-        UNUSED perfmon_collection_t *perfmons,
-        const contract_t &contract,
-        const std::function<void(contract_ack_t)> &ack_cb) :
-    server_id(sid), store(s), region(r)
+        const execution_t::context_t *_context,
+        const region_t &_region,
+        store_view_t *_store,
+        perfmon_collection_t *_perfmon_collection,
+        const contract_t &c,
+        const std::function<void(const contract_ack_t &)> &ack_cb) :
+    execution_t(_context, _region, _store, _perfmon_collection)
 {
-    guarantee(s->get_region() == region);
-    guarantee(contract.replicas.count(server_id) == 0);
+    guarantee(c.replicas.count(context->server_id) == 0);
     ack_cb(contract_ack_t(contract_ack_t::state_t::nothing));
     coro_t::spawn_sometime(std::bind(&erase_execution_t::run, this, drainer.lock()));
 }
 
 void erase_execution_t::update_contract(
-        const contract_t &contract,
-        const std::function<void(contract_ack_t)> &ack_cb) {
-    guarantee(contract.replicas.count(server_id) == 0);
+        const contract_t &c,
+        const std::function<void(const contract_ack_t &)> &ack_cb) {
+    guarantee(c.replicas.count(context->server_id) == 0);
     ack_cb(contract_ack_t(contract_ack_t::state_t::nothing));
 }
 

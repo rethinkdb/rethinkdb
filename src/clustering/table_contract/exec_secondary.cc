@@ -1,40 +1,33 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/exec_secondary.hpp"
 
+#include <utility>
+
 #include "clustering/immediate_consistency/listener.hpp"
 #include "clustering/immediate_consistency/replier.hpp"
 
 secondary_execution_t::secondary_execution_t(
-        const server_id_t &sid,
-        mailbox_manager_t *mm,
-        store_view_t *s,
-        branch_history_manager_t *bhm,
-        const region_t &r,
-        perfmon_collection_t *pms,
+        const execution_t::context_t *_context,
+        const region_t &_region,
+        store_view_t *_store,
+        perfmon_collection_t *_perfmon_collection,
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>,
-            contract_execution_bcard_t> *cebcs,
-        const base_path_t &_base_path,
-        io_backender_t *_io_backender,
-        backfill_throttler_t *_backfill_throttler) :
-    server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
-    region(r), perfmons(pms), contract_execution_bcards(cebcs), base_path(_base_path),
-    io_backender(_io_backender), backfill_throttler(_backfill_throttler),
+        const std::function<void(const contract_ack_t &)> &acb) :
+    execution_t(_context, _region, _store, _perfmon_collection),
     primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
     branch(c.branch), ack_cb(acb)
 {
-    guarantee(s->get_region() == region);
+    guarantee(c.replicas.count(context->server_id) == 1);
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
 }
 
 void secondary_execution_t::update_contract(
         const contract_t &c,
-        const std::function<void(contract_ack_t)> &acb) {
+        const std::function<void(const contract_ack_t &)> &acb) {
     guarantee(primary ==
         (static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()));
     guarantee(branch == c.branch);
-    guarantee(c.replicas.count(server_id) == 1);
+    guarantee(c.replicas.count(context->server_id) == 1);
     ack_cb = acb;
     if (static_cast<bool>(last_ack)) {
         ack_cb(*last_ack);
@@ -66,7 +59,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             /* Wait until we see the primary. */
             contract_execution_bcard_t primary_bcard;
-            contract_execution_bcards->run_key_until_satisfied(
+            context->remote_contract_execution_bcards->run_key_until_satisfied(
                 std::make_pair(primary, branch),
                 [&](const contract_execution_bcard_t *bc) {
                     if (bc != nullptr) {
@@ -86,7 +79,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             cond_t no_more_bcard_signal;
             watchable_map_t<std::pair<server_id_t, branch_id_t>,
                             contract_execution_bcard_t>::key_subs_t subs(
-                contract_execution_bcards,
+                context->remote_contract_execution_bcards,
                 std::make_pair(primary, branch),
                 [&](const contract_execution_bcard_t *bc) {
                     if (bc == nullptr) {
@@ -94,7 +87,8 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                     }
                 },
                 true);
-            disconnect_watcher_t disconnect_signal(mailbox_manager, primary_bcard.peer);
+            disconnect_watcher_t disconnect_signal(
+                context->mailbox_manager, primary_bcard.peer);
             wait_any_t stop_signal(
                 &no_more_bcard_signal,
                 &disconnect_signal,
@@ -102,24 +96,24 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             /* Backfill and start streaming from the primary. */
             listener_t listener(
-                base_path,
-                io_backender,
-                mailbox_manager,
-                server_id,
-                backfill_throttler,
+                context->base_path,
+                context->io_backender,
+                context->mailbox_manager,
+                context->server_id,
+                context->backfill_throttler,
                 primary_bcard.broadcaster,
-                branch_history_manager,
+                context->branch_history_manager,
                 store,
                 primary_bcard.replier,
-                perfmons,
+                perfmon_collection,
                 &stop_signal,
                 &order_source,
                 nullptr); /* RSI(raft): Hook up backfill progress again */
 
             replier_t replier(
                 &listener,
-                mailbox_manager,
-                branch_history_manager);
+                context->mailbox_manager,
+                context->branch_history_manager);
 
             /* Let the leader know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
