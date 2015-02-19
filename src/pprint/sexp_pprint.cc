@@ -130,8 +130,8 @@ private:
         }
         case Datum::R_JSON:
             return make_concat({lparen, json, cond_linebreak,
-                        quote, make_text(d->r_str()), quote,
-                        rparen});
+                                quote, make_text(d->r_str()), quote,
+                                rparen});
         default:
             unreachable();
         }
@@ -175,18 +175,18 @@ private:
             std::vector<counted_t<const document_t> > branch;
             branch.push_back(lparen);
             branch.push_back(make_nest(make_concat({visit_generic(var->mutable_args(0)),
-                                cond_linebreak,
-                                visit_generic(var->mutable_args(1))})));
+                                                    cond_linebreak,
+                                                    visit_generic(var->mutable_args(1))})));
             branch.push_back(rparen);
             branches.push_back(make_concat(std::move(branch)));
             branches.push_back(cond_linebreak);
             var = var->mutable_args(2);
         }
         branches.push_back(make_concat({lparen,
-                        make_nest(make_concat({true_v,
-                                        cond_linebreak,
-                                        visit_generic(var)})),
-                        rparen}));
+                                        make_nest(make_concat({true_v,
+                                                               cond_linebreak,
+                                                               visit_generic(var)})),
+                                        rparen}));
         term.push_back(make_nest(make_concat(std::move(branches))));
         term.push_back(rparen);
         return make_concat(std::move(term));
@@ -232,8 +232,8 @@ private:
                 args.push_back(var_name(arg_term->mutable_datum()));
             }
             nest.push_back(make_concat({lparen,
-                            make_nest(make_concat(std::move(args))),
-                            rparen}));
+                                        make_nest(make_concat(std::move(args))),
+                                        rparen}));
         } else if (t->mutable_args(0)->type() == Term::DATUM &&
                    t->mutable_args(0)->mutable_datum()->type() == Datum::R_ARRAY) {
             Datum *arg_term = t->mutable_args(0)->mutable_datum();
@@ -243,8 +243,8 @@ private:
                 args.push_back(var_name(arg_term->mutable_r_array(i)));
             }
             nest.push_back(make_concat({lparen,
-                            make_nest(make_concat(std::move(args))),
-                            rparen}));
+                                        make_nest(make_concat(std::move(args))),
+                                        rparen}));
         } else {
             nest.push_back(visit_generic(t->mutable_args(0)));
         }
@@ -253,7 +253,7 @@ private:
             nest.push_back(visit_generic(t->mutable_args(i)));
         }
         return make_concat({lparen, lambda, sp, make_nest(make_concat(std::move(nest))),
-                    rparen});
+                            rparen});
     }
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;

@@ -106,8 +106,8 @@ private:
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
             term.push_back(make_nest(make_concat({make_text("\"" + ap->key() + "\":"),
-                                cond_linebreak,
-                                visit_generic(ap->mutable_val())})));
+                                                  cond_linebreak,
+                                                  visit_generic(ap->mutable_val())})));
         }
         return make_concat({lbrace, make_nest(make_concat(std::move(term))), rbrace});
     }
@@ -136,7 +136,8 @@ private:
                 }
                 term.push_back(to_js_datum(d->mutable_r_array(i)));
             }
-            return make_concat({lbrack, make_nest(make_concat(std::move(term))), rbrack});
+            return make_concat({lbrack, make_nest(make_concat(std::move(term))),
+                                rbrack});
         }
         case Datum::R_OBJECT:
         {
@@ -157,7 +158,7 @@ private:
         }
         case Datum::R_JSON:
             return prepend_r_dot(make_concat({json, lparen, quote, make_text(d->r_str()),
-                            quote, rparen}));
+                                              quote, rparen}));
         default:
             unreachable();
         }
@@ -174,8 +175,8 @@ private:
             optargs.push_back(make_nest(make_concat({make_text("\"" +
                                                               to_js_name(ap->key()) +
                                                               "\":"),
-                                cond_linebreak,
-                                visit_generic(ap->mutable_val())})));
+                                                     cond_linebreak,
+                                                     visit_generic(ap->mutable_val())})));
         }
         return make_concat({lbrace, make_nest(make_concat(std::move(optargs))), rbrace});
     }
@@ -285,7 +286,7 @@ private:
             return prepend_r_dot(make_concat({subdoc, reverse(std::move(stack), false)}));
         } else {
             return make_nest(make_concat({visit_generic(var),
-                            reverse(std::move(stack), last_is_dot)}));
+                                          reverse(std::move(stack), last_is_dot)}));
         }
     }
     counted_t<const document_t>
@@ -452,8 +453,8 @@ private:
                 args.push_back(var_name(arg_term->mutable_datum()));
             }
             arglist = make_concat({lparen,
-                        make_nest(make_concat(std::move(args))),
-                        rparen});
+                                   make_nest(make_concat(std::move(args))),
+                                   rparen});
         } else if (t->mutable_args(0)->type() == Term::DATUM &&
                    t->mutable_args(0)->mutable_datum()->type() == Datum::R_ARRAY) {
             Datum *arg_term = t->mutable_args(0)->mutable_datum();
@@ -466,8 +467,8 @@ private:
                 args.push_back(var_name(arg_term->mutable_r_array(i)));
             }
             arglist = make_concat({lparen,
-                        make_nest(make_concat(std::move(args))),
-                        rparen});
+                                   make_nest(make_concat(std::move(args))),
+                                   rparen});
         } else {
             arglist = visit_generic(t->mutable_args(0));
         }
@@ -476,24 +477,24 @@ private:
             if (i != 1) body.push_back(cond_linebreak);
             if (i == t->args_size() - 1) {
                 body.push_back(make_concat({return_st,
-                                sp,
-                                make_nest(visit_generic(t->mutable_args(i))),
-                                semicolon}));
+                                            sp,
+                                            make_nest(visit_generic(t->mutable_args(i))),
+                                            semicolon}));
             } else {
                 body.push_back(make_nest(visit_generic(t->mutable_args(i))));
                 body.push_back(semicolon);
             }
         }
         return make_concat({lambda_1,
-                    make_nest(make_concat({lambda_2,
-                                    sp,
-                                    std::move(arglist),
-                                    sp,
-                                    lbrace,
-                                    uncond_linebreak,
-                                    make_concat(std::move(body))})),
-                    uncond_linebreak,
-                    rbrace});
+                            make_nest(make_concat({lambda_2,
+                                                   sp,
+                                                   std::move(arglist),
+                                                   sp,
+                                                   lbrace,
+                                                   uncond_linebreak,
+                                                   make_concat(std::move(body))})),
+                            uncond_linebreak,
+                            rbrace});
     }
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;

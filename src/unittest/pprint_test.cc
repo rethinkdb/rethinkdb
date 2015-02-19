@@ -15,9 +15,9 @@ TEST(PPrintTest, SimpleText) {
 }
 
 TEST(PPrintTest, SimpleCond) {
-    counted_t<const document_t> handle = make_concat({make_text("some text"),
-                cond_linebreak,
-                make_text("some more text")});
+    counted_t<const document_t> handle =
+        make_concat({make_text("some text"), cond_linebreak,
+                     make_text("some more text")});
 
     // Oddity of Kiselyov's algorithm is it always breaks if not in a group.
     ASSERT_EQ("some text\nsome more text", pretty_print(80, handle));
@@ -27,7 +27,7 @@ TEST(PPrintTest, SimpleCond) {
 TEST(PPrintTest, GroupedCond) {
     counted_t<const document_t> handle
         = make_group(make_concat({make_text("some text"), cond_linebreak,
-                        make_text("some more text")}));
+                                  make_text("some more text")}));
 
     ASSERT_EQ("some text some more text", pretty_print(80, handle));
     ASSERT_EQ("some text\nsome more text", pretty_print(4, handle));
@@ -36,7 +36,7 @@ TEST(PPrintTest, GroupedCond) {
 TEST(PPrintTest, GroupedCondWithTail) {
     counted_t<const document_t> handle
         = make_group(make_concat({make_text("some text"), make_cond(" ", "", " \\"),
-                        make_text("some more text")}));
+                                  make_text("some more text")}));
 
     ASSERT_EQ("some text some more text", pretty_print(80, handle));
     ASSERT_EQ("some text \\\nsome more text", pretty_print(4, handle));
@@ -44,10 +44,10 @@ TEST(PPrintTest, GroupedCondWithTail) {
 
 TEST(PPrintTest, Nest) {
     counted_t<const document_t> handle = r_dot(funcall("foo"),
-                                funcall("foo"),
-                                funcall("foo"),
-                                funcall("foo"),
-                                funcall("foo"));
+                                               funcall("foo"),
+                                               funcall("foo"),
+                                               funcall("foo"),
+                                               funcall("foo"));
 
     ASSERT_EQ("r.foo().foo().foo().foo().foo()", pretty_print(80, handle));
     // even though part of this can fit, consistent CRs mean they all break.
