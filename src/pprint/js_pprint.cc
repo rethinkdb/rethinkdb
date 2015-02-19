@@ -497,9 +497,10 @@ private:
                             rbrace});
     }
 
-    static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
-    static counted_t<const document_t> colon, quote, sp, justdot, dotdotdot, comma, semicolon;
-    static counted_t<const document_t> nil, true_v, false_v, r_st, json, row, do_st, return_st, cond, lambda_1, lambda_2;
+    static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace,
+        colon, quote, sp, justdot, dotdotdot, comma, semicolon;
+    static counted_t<const document_t> nil, true_v, false_v, r_st, json, row, do_st,
+        return_st, lambda_1, lambda_2;
 
     static const unsigned int MAX_DEPTH = 15;
 };
@@ -525,7 +526,6 @@ counted_t<const document_t> js_pretty_printer_t::json = make_text("json");
 counted_t<const document_t> js_pretty_printer_t::row = make_text("row");
 counted_t<const document_t> js_pretty_printer_t::return_st = make_text("return");
 counted_t<const document_t> js_pretty_printer_t::do_st = make_text("do");
-counted_t<const document_t> js_pretty_printer_t::cond = make_text("cond");
 counted_t<const document_t> js_pretty_printer_t::lambda_1 = make_text("func");
 counted_t<const document_t> js_pretty_printer_t::lambda_2 = make_text("tion");
 
