@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "clustering/generic/multi_throttling_server.hpp"
-#include "clustering/immediate_consistency/query/master_metadata.hpp"
+#include "clustering/immediate_consistency/query/metadata.hpp"
 
 /* Each shard has a `master_t` on its primary replica server. The `master_t` is
 responsible for receiving queries from the servers that the clients connect to

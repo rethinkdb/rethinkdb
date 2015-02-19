@@ -7,7 +7,7 @@
 
 #include "clustering/generic/multi_throttling_client.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/query/master_metadata.hpp"
+#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "protocol_api.hpp"
 
 /* `master_access_t` is responsible for sending queries to `master_t`. It is
