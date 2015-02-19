@@ -1,12 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/backfillee.hpp"
 
 #include <functional>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"

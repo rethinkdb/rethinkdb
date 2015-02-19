@@ -1,8 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_raft/secondary.hpp"
 
-#include "clustering/immediate_consistency/branch/listener.hpp"
-#include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/listener.hpp"
+#include "clustering/immediate_consistency/replier.hpp"
 
 namespace table_raft {
 

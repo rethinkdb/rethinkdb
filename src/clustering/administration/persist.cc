@@ -15,7 +15,7 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "concurrency/throttled_committer.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "serializer/config.hpp"
 
 namespace metadata_persistence {

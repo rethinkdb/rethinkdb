@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP_
 
 #include <map>
 
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
@@ -243,4 +243,4 @@ private:
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(listener_t::write_queue_entry_t);
 
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP_ */

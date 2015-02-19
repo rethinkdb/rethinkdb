@@ -3,7 +3,7 @@
 #define CLUSTERING_TABLE_RAFT_FOLLOWER_HPP_
 
 #include "clustering/generic/raft_core.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "clustering/table_raft/cpu_sharding.hpp"
 #include "clustering/table_raft/erase.hpp"
 #include "clustering/table_raft/primary.hpp"

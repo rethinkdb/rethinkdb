@@ -1,13 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/replier.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/replier.hpp"
 
-#include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/listener.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "store_view.hpp"
 
 replier_t::replier_t(listener_t *li,
-                                 mailbox_manager_t *mailbox_manager,
-                                 branch_history_manager_t *branch_history_manager) :
+                     mailbox_manager_t *mailbox_manager,
+                     branch_history_manager_t *branch_history_manager) :
     mailbox_manager_(mailbox_manager),
     listener_(li),
 

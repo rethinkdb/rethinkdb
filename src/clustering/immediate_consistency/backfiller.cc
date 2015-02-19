@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/backfiller.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/backfiller.hpp"
 
 #include <functional>
 
 #include "btree/parallel_traversal.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "rdb_protocol/protocol.hpp"

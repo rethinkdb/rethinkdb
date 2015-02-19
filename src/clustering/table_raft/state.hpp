@@ -4,7 +4,7 @@
 
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "region/region_map.hpp"
 
 namespace table_raft {

@@ -1,4 +1,5 @@
-#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/cross_thread_signal.hpp"

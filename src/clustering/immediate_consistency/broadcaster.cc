@@ -1,5 +1,5 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/broadcaster.hpp"
 
 #include <functional>
 
@@ -12,7 +12,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/listener.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"

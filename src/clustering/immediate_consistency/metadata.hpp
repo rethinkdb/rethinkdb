@@ -1,12 +1,12 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP_
 
 #include <map>
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
@@ -169,4 +169,4 @@ struct replier_business_card_t {
 RDB_DECLARE_SERIALIZABLE(replier_business_card_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(replier_business_card_t);
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP_ */

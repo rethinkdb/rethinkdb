@@ -1,5 +1,5 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/listener.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/listener.hpp"
 
 #include <functional>
 
@@ -7,10 +7,10 @@
 #include <boost/bind.hpp>
 
 #include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/broadcaster.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"

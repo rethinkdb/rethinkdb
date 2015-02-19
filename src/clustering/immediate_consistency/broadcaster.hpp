@@ -1,6 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP_
 
 #include <list>
 #include <map>
@@ -11,8 +11,8 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/generic/registrar.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/history.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/watchable.hpp"
 #include "timestamps.hpp"
@@ -209,4 +209,4 @@ private:
     DISABLE_COPYING(broadcaster_t);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP_ */

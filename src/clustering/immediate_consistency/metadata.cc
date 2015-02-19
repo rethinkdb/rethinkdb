@@ -1,5 +1,5 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/metadata.hpp"
 
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(

@@ -1,10 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
-#include "clustering/immediate_consistency/branch/listener.hpp"
-#include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/broadcaster.hpp"
+#include "clustering/immediate_consistency/listener.hpp"
+#include "clustering/immediate_consistency/replier.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/branch_history_manager.hpp"

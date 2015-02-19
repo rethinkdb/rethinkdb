@@ -1,5 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/history.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/immediate_consistency/history.hpp"
 
 #include <stack>
 

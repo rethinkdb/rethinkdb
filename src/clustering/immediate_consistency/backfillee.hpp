@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_
 
-#include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/history.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -41,4 +41,4 @@ peer_id_t extract_backfiller_peer_id(
         &backfiller_metadata);
 
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_ */

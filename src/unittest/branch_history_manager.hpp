@@ -4,7 +4,7 @@
 
 #include <set>
 
-#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 
 
 namespace unittest {

@@ -9,8 +9,8 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/broadcaster.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "buffer_cache/cache_balancer.hpp"

@@ -2,7 +2,7 @@
 #ifndef CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
 #define CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
 
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "clustering/table_raft/state.hpp"
 #include "containers/counted.hpp"

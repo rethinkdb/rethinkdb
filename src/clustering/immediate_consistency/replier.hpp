@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP_
 
-#include "clustering/immediate_consistency/branch/backfiller.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/backfiller.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 
 class listener_t;
 
@@ -51,4 +51,4 @@ private:
     DISABLE_COPYING(replier_t);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP_ */

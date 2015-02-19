@@ -1,12 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP_
 
 #include <map>
 #include <utility>
 
-#include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/history.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 
 class backfiller_send_backfill_callback_t;
 template <class> class semilattice_read_view_t;
@@ -62,4 +62,4 @@ private:
     DISABLE_COPYING(backfiller_t);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP_ */
