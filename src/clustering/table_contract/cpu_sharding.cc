@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_raft/cpu_sharding.hpp"
+#include "clustering/table_contract/cpu_sharding.hpp"
 
 region_t cpu_sharding_subspace(int subregion_number) {
     guarantee(subregion_number >= 0);

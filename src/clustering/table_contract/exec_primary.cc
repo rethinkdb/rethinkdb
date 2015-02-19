@@ -1,14 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_raft/primary.hpp"
+#include "clustering/table_contract/exec_primary.hpp"
 
 #include "clustering/immediate_consistency/broadcaster.hpp"
 #include "clustering/immediate_consistency/listener.hpp"
 #include "clustering/immediate_consistency/replier.hpp"
 #include "store_view.hpp"
 
-namespace table_raft {
-
-primary_t::primary_t(
+primary_execution_t::primary_execution_t(
         const server_id_t &sid,
         mailbox_manager_t *mm,
         store_view_t *s,
@@ -17,17 +15,19 @@ primary_t::primary_t(
         perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &acb,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t> *cebcs,
         watchable_map_var_t<uuid_u, table_query_bcard_t> *tqbcs,
         const base_path_t &_base_path,
         io_backender_t *_io_backender) :
     server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
-    region(r), perfmons(pms), primary_bcards(pbcs), table_query_bcards(tqbcs),
-    base_path(_base_path), io_backender(_io_backender), our_branch_id(generate_uuid()),
+    region(r), perfmons(pms), contract_execution_bcards(cebcs),
+    table_query_bcards(tqbcs), base_path(_base_path), io_backender(_io_backender),
+    our_branch_id(generate_uuid()),
     latest_contract(make_counted<contract_info_t>(c, acb))
     { }
 
-void primary_t::update_contract(
+void primary_execution_t::update_contract(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &acb) {
     ASSERT_NO_CORO_WAITING;
@@ -59,7 +59,8 @@ void primary_t::update_contract(
             contract_ack_t::state_t::primary_in_progress));
         /* Start a coroutine to eventually ack `primary_ready` */
         coro_t::spawn_sometime(std::bind(
-            &primary_t::sync_and_ack_contract, this, latest_contract, drainer.lock()));
+            &primary_execution_t::sync_and_ack_contract, this,
+            latest_contract, drainer.lock()));
     }
 
     if (static_cast<bool>(latest_ack)) {
@@ -67,7 +68,7 @@ void primary_t::update_contract(
     }
 }
 
-void primary_t::run(auto_drainer_t::lock_t keepalive) {
+void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source;
     try {
         /* Set our initial state to `primary_need_branch`, so that the leader will assign
@@ -138,7 +139,8 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
 
         /* Start the process of acking the current contract */
         if (!keepalive.get_drain_signal()->is_pulsed()) {
-            coro_t::spawn_sometime(std::bind(&primary_t::sync_and_ack_contract, this,
+            coro_t::spawn_sometime(std::bind(
+                &primary_execution_t::sync_and_ack_contract, this,
                 latest_contract, drainer.lock()));
         }
 
@@ -147,13 +149,15 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
         primary_query_server_t primary_query_server(mailbox_manager, region, this);
 
         /* Put an entry in the minidir so the replicas can find us */
-        primary_bcard_t pbcard;
-        pbcard.broadcaster = broadcaster.get_business_card();
-        pbcard.replier = replier.get_business_card();
-        pbcard.peer = mailbox_manager->get_me();
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            ::entry_t minidir_entry(primary_bcards,
-                std::make_pair(server_id, our_branch_id), pbcard);
+        contract_execution_bcard_t ce_bcard;
+        ce_bcard.broadcaster = broadcaster.get_business_card();
+        ce_bcard.replier = replier.get_business_card();
+        ce_bcard.peer = mailbox_manager->get_me();
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t>::entry_t minidir_entry(
+                contract_execution_bcards,
+                std::make_pair(server_id, our_branch_id),
+                ce_bcard);
 
         /* Put an entry in the global directory so clients can find us */
         table_query_bcard_t tq_bcard;
@@ -169,7 +173,7 @@ void primary_t::run(auto_drainer_t::lock_t keepalive) {
     }
 }
 
-bool primary_t::on_write(
+bool primary_execution_t::on_write(
         const write_t &request,
         fifo_enforcer_sink_t::exit_write_t *exiter,
         order_token_t order_token,
@@ -256,7 +260,7 @@ bool primary_t::on_write(
     return write_callback.ack_counter.is_safe();
 }
 
-bool primary_t::on_read(
+bool primary_execution_t::on_read(
         const read_t &request,
         fifo_enforcer_sink_t::exit_read_t *exiter,
         order_token_t order_token,
@@ -278,7 +282,7 @@ bool primary_t::on_read(
     }
 }
 
-bool primary_t::is_contract_ackable(
+bool primary_execution_t::is_contract_ackable(
         counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
     /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
     replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
@@ -294,7 +298,7 @@ bool primary_t::is_contract_ackable(
     }
 }
 
-void primary_t::sync_and_ack_contract(
+void primary_execution_t::sync_and_ack_contract(
         counted_t<contract_info_t> contract,
         auto_drainer_t::lock_t keepalive) {
     try {
@@ -340,6 +344,4 @@ void primary_t::sync_and_ack_contract(
         stop trying to ack the contract. */
     }
 }
-
-} /* namespace table_raft */
 

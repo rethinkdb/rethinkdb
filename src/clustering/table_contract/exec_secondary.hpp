@@ -1,19 +1,17 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_SECONDARY_HPP_
-#define CLUSTERING_TABLE_RAFT_SECONDARY_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_
 
-#include "clustering/table_raft/primary.hpp"
-#include "clustering/table_raft/state.hpp"
+#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "store_view.hpp"
 
 class backfill_throttler_t;
 class io_backender_t;
 
-namespace table_raft {
-
-class secondary_t {
+class secondary_execution_t {
 public:
-    secondary_t(
+    secondary_execution_t(
         const server_id_t &sid,
         mailbox_manager_t *mm,
         store_view_t *s,
@@ -22,8 +20,8 @@ public:
         perfmon_collection_t *perfmons,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &ack_cb,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *
-            primary_bcards,
+        watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
+            *contract_execution_bcards,
         const base_path_t &base_path,
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler);
@@ -41,8 +39,8 @@ private:
     branch_history_manager_t *const branch_history_manager;
     region_t const region;
     perfmon_collection_t *const perfmons;
-    watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *const
-        primary_bcards;
+    watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
+        *const contract_execution_bcards;
     const base_path_t base_path;
     io_backender_t *const io_backender;
     backfill_throttler_t *const backfill_throttler;
@@ -55,7 +53,5 @@ private:
     auto_drainer_t drainer;
 };
 
-} /* namespace table_raft */
-
-#endif /* CLUSTERING_TABLE_RAFT_SECONDARY_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_ */
 

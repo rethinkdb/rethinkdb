@@ -1,16 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_LEADER_HPP_
-#define CLUSTERING_TABLE_RAFT_LEADER_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_
+#define CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_
 
 #include "clustering/generic/raft_core.hpp"
-#include "clustering/table_raft/state.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 
-namespace table_raft {
-
-class leader_t {
+class contract_coordinator_t {
 public:
-    leader_t(
-        raft_member_t<state_t> *raft,
+    contract_coordinator_t(
+        raft_member_t<table_raft_state_t> *raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks);
 
     boost::optional<raft_log_index_t> change_config(
@@ -20,7 +18,7 @@ public:
 private:
     void pump_contracts(auto_drainer_t::lock_t keepalive);
 
-    raft_member_t<state_t> *const raft;
+    raft_member_t<table_raft_state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
 
     scoped_ptr_t<cond_t> wake_pump_contracts;
@@ -31,7 +29,5 @@ private:
         ack_subs;
 };
 
-} /* namespace table_raft */
-
-#endif /* CLUSTERING_TABLE_RAFT_LEADER_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_ */
 

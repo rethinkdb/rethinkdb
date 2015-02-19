@@ -1,17 +1,16 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_raft/leader.hpp"
+#include "clustering/table_contract/coordinator.hpp"
 
-#include "clustering/table_raft/cpu_sharding.hpp"
-
-namespace table_raft {
+#include "clustering/table_contract/cpu_sharding.hpp"
 
 /* A `contract_ack_t` is not necessarily homogeneous. It may have different `version_t`s
 for different regions, and a region with a single `version_t` may need to be split
 further depending on the branch history. Since `calculate_contract()` assumes it's
 processing a homogeneous input, we need to break the `contract_ack_t` into homogeneous
 pieces. `contract_ack_frag_t` is like a homogeneous version of `contract_ack_t`; in place
-of the `region_map_t<state_t>` it has a single `state_timestamp_t`. Use `fragment_ack()`
-to convert a `contract_ack_t` into a `region_map_t<contract_ack_frag_t>`. */
+of the `region_map_t<version_t>` it has a single `state_timestamp_t`. Use
+`break_ack_into_fragments()` to convert a `contract_ack_t` into a
+`region_map_t<contract_ack_frag_t>`. */
 
 class contract_ack_frag_t {
 public:
@@ -271,11 +270,11 @@ into small enough chunks that the inputs are homogeneous across each chunk; then
 `calculate_contract()` on each chunk.
 
 The output is in the form of a diff instead of a set of new contracts. We need a diff to
-put in the `state_t::change_t::new_contracts_t`, and we need to compute the diff anyway
-in order to reuse contract IDs for contracts that haven't changed, so it makes sense to
-combine those two diff processes. */
+put in the `table_raft_state_t::change_t::new_contracts_t`, and we need to compute the
+diff anyway in order to reuse contract IDs for contracts that haven't changed, so it
+makes sense to combine those two diff processes. */
 void calculate_all_contracts(
-        const state_t &old_state,
+        const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
@@ -378,7 +377,7 @@ history stored in the Raft state. In practice this means two things:
     history, we prune the history leading up to that point, since it's no longer needed.
 */
 void calculate_branch_history(
-        const state_t &old_state,
+        const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
@@ -399,8 +398,8 @@ void calculate_branch_history(
     });
 }
 
-leader_t::leader_t(
-        raft_member_t<state_t> *_raft,
+contract_coordinator_t::contract_coordinator_t(
+        raft_member_t<table_raft_state_t> *_raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks) :
     raft(_raft), acks(_acks), wake_pump_contracts(new cond_t),
     ack_subs(acks,
@@ -414,17 +413,17 @@ leader_t::leader_t(
 }
         
 
-boost::optional<raft_log_index_t> leader_t::change_config(
+boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
-    scoped_ptr_t<raft_member_t<state_t>::change_token_t> change_token;
+    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
     raft_log_index_t log_index;
     {
-        raft_member_t<state_t>::change_lock_t change_lock(raft, interruptor);
-        state_t::change_t::set_table_config_t change;
+        raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft, interruptor);
+        table_raft_state_t::change_t::set_table_config_t change;
         bool is_noop;
         raft->get_latest_state()->apply_read(
-        [&](const raft_member_t<state_t>::state_and_config_t *state) {
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             change.new_config = state->state.config;
             changer(&change.new_config);
             log_index = state->log_index;
@@ -441,7 +440,7 @@ boost::optional<raft_log_index_t> leader_t::change_config(
         `propose_change()`. */
         cond_t non_interruptor;
         change_token = raft->propose_change(
-            &change_lock, state_t::change_t(change), &non_interruptor);
+            &change_lock, table_raft_state_t::change_t(change), &non_interruptor);
         log_index += 1;
     }
     if (!change_token.has()) {
@@ -455,7 +454,7 @@ boost::optional<raft_log_index_t> leader_t::change_config(
     return boost::make_optional(log_index);
 }
 
-void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
+void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
     try {
         while (!keepalive.get_drain_signal()->is_pulsed()) {
             /* Wait until something changes that requires us to update the state */
@@ -476,7 +475,7 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                     [](bool is_ready) { return is_ready; },
                     keepalive.get_drain_signal());
 
-                raft_member_t<state_t>::change_lock_t change_lock(raft,
+                raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft,
                     keepalive.get_drain_signal());
 
                 /* Reset `wake_pump_contracts` here. Any changes in the inputs that
@@ -485,9 +484,9 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                 wake_pump_contracts = make_scoped<cond_t>(); 
 
                 /* Calculate the proposed change */
-                state_t::change_t::new_contracts_t change;
+                table_raft_state_t::change_t::new_contracts_t change;
                 raft->get_latest_state()->apply_read(
-                [&](const raft_member_t<state_t>::state_and_config_t *state) {
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
                     calculate_all_contracts(state->state, acks,
                         &change.remove_contracts, &change.add_contracts);
                     calculate_branch_history(state->state, acks,
@@ -501,9 +500,10 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                         !change.remove_branches.empty() ||
                         !change.add_branches.branches.empty()) {
                     cond_t non_interruptor;
-                    scoped_ptr_t<raft_member_t<state_t>::change_token_t> change_token =
-                        raft->propose_change(
-                            &change_lock, state_t::change_t(change), &non_interruptor);
+                    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
+                        change_token = raft->propose_change(
+                            &change_lock, table_raft_state_t::change_t(change),
+                            &non_interruptor);
 
                     /* If the change failed, go back to the top of the loop and wait on
                     `get_readiness_for_change()` again. But if the change succeeded,
@@ -520,5 +520,4 @@ void leader_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
     }
 }
 
-} /* namespace table_raft */
 

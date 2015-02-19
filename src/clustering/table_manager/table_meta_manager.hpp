@@ -3,7 +3,7 @@
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 
 #include "clustering/table_manager/table_metadata.hpp"
-#include "clustering/table_raft/cpu_sharding.hpp"
+#include "clustering/table_contract/cpu_sharding.hpp"
 
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -65,7 +65,7 @@ class table_meta_persistent_state_t {
 public:
     table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
     raft_member_id_t member_id;
-    raft_persistent_state_t<table_raft::state_t> raft_state;
+    raft_persistent_state_t<table_raft_state_t> raft_state;
 };
 RDB_DECLARE_SERIALIZABLE(table_meta_persistent_state_t);
 
@@ -123,7 +123,7 @@ private:
     cluster member for. We'll have a file for the table on disk if and only if we have a
     `active_table_t` for that table. */
     class active_table_t :
-        private raft_storage_interface_t<table_raft::state_t>
+        private raft_storage_interface_t<table_raft_state_t>
     {
     public:
         active_table_t(
@@ -132,7 +132,7 @@ private:
             const table_meta_manager_bcard_t::timestamp_t::epoch_t
                 &_epoch,
             const raft_member_id_t &member_id,
-            const raft_persistent_state_t<table_raft::state_t> &initial_state,
+            const raft_persistent_state_t<table_raft_state_t> &initial_state,
             multistore_ptr_t *multistore_ptr);
         ~active_table_t();
 
@@ -147,7 +147,7 @@ private:
         const table_meta_manager_bcard_t::timestamp_t::epoch_t epoch;
         const raft_member_id_t member_id;
 
-        raft_member_t<table_raft::state_t> *get_raft() {
+        raft_member_t<table_raft_state_t> *get_raft() {
             return raft.get_raft();
         }
 
@@ -155,7 +155,7 @@ private:
         /* This is a `raft_storage_interface_t` method that the `raft_member_t` calls to
         write its state to disk. */
         void write_persistent_state(
-            const raft_persistent_state_t<table_raft::state_t> &persistent_state,
+            const raft_persistent_state_t<table_raft_state_t> &persistent_state,
             signal_t *interruptor);
 
         /* This is the callback for `table_directory_subs` */
@@ -173,14 +173,14 @@ private:
         `table_meta_bcard_t`s and putting them into a map for the
         `raft_networked_member_t` to use. */
         std::map<peer_id_t, raft_member_id_t> old_peer_member_ids;
-        watchable_map_var_t<raft_member_id_t, raft_business_card_t<table_raft::state_t> >
+        watchable_map_var_t<raft_member_id_t, raft_business_card_t<table_raft_state_t> >
             raft_directory;
 
-        raft_networked_member_t<table_raft::state_t> raft;
+        raft_networked_member_t<table_raft_state_t> raft;
 
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             ::all_subs_t table_directory_subs;
-        watchable_subscription_t<raft_member_t<table_raft::state_t>::state_and_config_t>
+        watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
             raft_committed_subs;
         watchable_subscription_t<bool> raft_readiness_subs;
     };
@@ -230,7 +230,7 @@ private:
         const table_meta_manager_bcard_t::timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
-        const boost::optional<raft_persistent_state_t<table_raft::state_t> >
+        const boost::optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_state,
         const mailbox_t<void()>::address_t &ack_addr);
 

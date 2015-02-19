@@ -1,15 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_STATE_HPP_
-#define CLUSTERING_TABLE_RAFT_STATE_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
+#define CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "region/region_map.hpp"
 
-namespace table_raft {
-
-/* `table_raft::state_t` is the type of the state that is stored in each table's Raft
+/* `table_raft_state_t` is the type of the state that is stored in each table's Raft
 instance. The most important part is a collection of `contract_t`s, which describe the
 current state of the different shards. Each replica has a `follower_t` for each table,
 which watches the `contract_t`s and performs backfills, accepts queries, etc. in response
@@ -18,7 +16,7 @@ to the table's `leader_t`, which initiates Raft transactions to update the `cont
 as necessary to perform auto-failover, implement the user's configuration changes, and so
 on. */
 
-class state_t;
+class table_raft_state_t;
 class contract_t;
 class contract_ack_t;
 
@@ -136,7 +134,7 @@ CPU shard. */
 
 typedef uuid_u contract_id_t;
 
-class state_t {
+class table_raft_state_t {
 public:
     class change_t {
     public:
@@ -161,7 +159,7 @@ public:
     };
 
     void apply_change(const change_t &c);
-    bool operator==(const state_t &other) const {
+    bool operator==(const table_raft_state_t &other) const {
         return config == other.config && member_ids == other.member_ids;
     }
 
@@ -171,15 +169,13 @@ public:
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
-} /* namespace table_raft */
+RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
+RDB_DECLARE_SERIALIZABLE(contract_t);
 
-RDB_DECLARE_SERIALIZABLE(table_raft::contract_t::primary_t);
-RDB_DECLARE_SERIALIZABLE(table_raft::contract_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 
-RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t::set_table_config_t);
-RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t::new_contracts_t);
-RDB_DECLARE_SERIALIZABLE(table_raft::state_t::change_t);
-RDB_DECLARE_SERIALIZABLE(table_raft::state_t);
-
-#endif /* CLUSTERING_TABLE_RAFT_STATE_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_ */
 

@@ -184,7 +184,7 @@ bool table_meta_client_t::create(
     for (const table_config_t::shard_t &shard : initial_config.config.shards) {
         servers.insert(shard.replicas.begin(), shard.replicas.end());
     }
-    table_raft::state_t raft_state;
+    table_raft_state_t raft_state;
     raft_state.config = initial_config;
     /* RSI(raft): Initialize `raft_state.contracts` */
 
@@ -194,8 +194,8 @@ bool table_meta_client_t::create(
         raft_state.member_ids[server_id] = member_id;
         raft_config.voting_members.insert(member_id);
     }
-    raft_persistent_state_t<table_raft::state_t> raft_ps =
-        raft_persistent_state_t<table_raft::state_t>::make_initial(
+    raft_persistent_state_t<table_raft_state_t> raft_ps =
+        raft_persistent_state_t<table_raft_state_t>::make_initial(
             raft_state, raft_config);
 
     /* Find the business cards of the servers we'll be sending to */
@@ -222,7 +222,7 @@ bool table_meta_client_t::create(
                 timestamp,
                 false,
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
-                boost::optional<raft_persistent_state_t<table_raft::state_t> >(raft_ps),
+                boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, &interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
@@ -302,7 +302,7 @@ bool table_meta_client_t::drop(
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
                 table_id, drop_timestamp, true, boost::optional<raft_member_id_t>(),
-                boost::optional<raft_persistent_state_t<table_raft::state_t> >(),
+                boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, &interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);

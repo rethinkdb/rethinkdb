@@ -1,28 +1,26 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
-#define CLUSTERING_TABLE_RAFT_PRIMARY_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
 
 #include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
-#include "clustering/table_raft/state.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "containers/counted.hpp"
 
 class broadcaster_t;
 class io_backender_t;
 class listener_t;
 
-namespace table_raft {
-
-class primary_bcard_t {
+class contract_execution_bcard_t {
 public:
     broadcaster_business_card_t broadcaster;
     replier_business_card_t replier;
     peer_id_t peer;
 };
 
-class primary_t : private primary_query_server_t::query_callback_t {
+class primary_execution_t : private primary_query_server_t::query_callback_t {
 public:
-    primary_t(
+    primary_execution_t(
         const server_id_t &sid,
         mailbox_manager_t *const mailbox_manager,
         store_view_t *s,
@@ -31,8 +29,8 @@ public:
         perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &ack_cb,
-        watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *primary_bcards,
+        watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t> *contract_execution_bcards,
         watchable_map_var_t<uuid_u, table_query_bcard_t> *table_query_bcards,
         const base_path_t &base_path,
         io_backender_t *io_backender);
@@ -116,8 +114,8 @@ private:
     branch_history_manager_t *const branch_history_manager;
     region_t const region;
     perfmon_collection_t *const perfmons;
-    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-        *const primary_bcards;
+    watchable_map_var_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
+        *const contract_execution_bcards;
     watchable_map_var_t<uuid_u, table_query_bcard_t> *const table_query_bcards;
     base_path_t const base_path;
     io_backender_t *const io_backender;
@@ -139,7 +137,5 @@ private:
     auto_drainer_t drainer;
 };
 
-} /* namespace table_raft */
-
-#endif /* CLUSTERING_TABLE_RAFT_PRIMARY_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_ */
 

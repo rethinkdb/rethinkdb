@@ -1,15 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_ERASE_HPP_
-#define CLUSTERING_TABLE_RAFT_ERASE_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_
 
-#include "clustering/table_raft/state.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "store_view.hpp"
 
-namespace table_raft {
-
-class erase_t {
+class erase_execution_t {
 public:
-    erase_t(
+    erase_execution_t(
         const server_id_t &server_id,
         store_view_t *s,
         UNUSED branch_history_manager_t *bhm,
@@ -30,7 +28,5 @@ private:
     auto_drainer_t drainer;
 };
 
-} /* namespace table_raft */
-
-#endif /* CLUSTERING_TABLE_RAFT_ERASE_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_ */
 

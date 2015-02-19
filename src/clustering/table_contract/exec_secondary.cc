@@ -1,12 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_raft/secondary.hpp"
+#include "clustering/table_contract/exec_secondary.hpp"
 
 #include "clustering/immediate_consistency/listener.hpp"
 #include "clustering/immediate_consistency/replier.hpp"
 
-namespace table_raft {
-
-secondary_t::secondary_t(
+secondary_execution_t::secondary_execution_t(
         const server_id_t &sid,
         mailbox_manager_t *mm,
         store_view_t *s,
@@ -15,21 +13,22 @@ secondary_t::secondary_t(
         perfmon_collection_t *pms,
         const contract_t &c,
         const std::function<void(contract_ack_t)> &acb,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t> *pbcs,
+        watchable_map_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t> *cebcs,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         backfill_throttler_t *_backfill_throttler) :
     server_id(sid), mailbox_manager(mm), store(s), branch_history_manager(bhm),
-    region(r), perfmons(pms), primary_bcards(pbcs), base_path(_base_path),
+    region(r), perfmons(pms), contract_execution_bcards(cebcs), base_path(_base_path),
     io_backender(_io_backender), backfill_throttler(_backfill_throttler),
     primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
     branch(c.branch), ack_cb(acb)
 {
     guarantee(s->get_region() == region);
-    coro_t::spawn_sometime(std::bind(&secondary_t::run, this, drainer.lock()));
+    coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
 }
 
-void secondary_t::update_contract(
+void secondary_execution_t::update_contract(
         const contract_t &c,
         const std::function<void(contract_ack_t)> &acb) {
     guarantee(primary ==
@@ -42,7 +41,7 @@ void secondary_t::update_contract(
     }
 }
 
-void secondary_t::run(auto_drainer_t::lock_t keepalive) {
+void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source;
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
@@ -52,8 +51,8 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
                 read_token_t token;
                 store->new_read_token(&token);
                 store->do_get_metainfo(
-                    order_source.check_in("secondary_t").with_read_mode(), &token,
-                    keepalive.get_drain_signal(), &blobs);
+                    order_source.check_in("secondary_execution_t").with_read_mode(),
+                    &token, keepalive.get_drain_signal(), &blobs);
                 contract_ack_t ack(contract_ack_t::state_t::secondary_need_primary);
                 ack.version = boost::make_optional(to_version_map(blobs));
                 send_ack(ack);
@@ -66,12 +65,12 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
             }
 
             /* Wait until we see the primary. */
-            primary_bcard_t primary_bcard;
-            primary_bcards->run_key_until_satisfied(
+            contract_execution_bcard_t primary_bcard;
+            contract_execution_bcards->run_key_until_satisfied(
                 std::make_pair(primary, branch),
-                [&](const primary_bcard_t *pbc) {
-                    if (pbc != nullptr) {
-                        primary_bcard = *pbc;
+                [&](const contract_execution_bcard_t *bc) {
+                    if (bc != nullptr) {
+                        primary_bcard = *bc;
                         return true;
                     } else {
                         return false;
@@ -86,11 +85,11 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
             or we get interrupted */
             cond_t no_more_bcard_signal;
             watchable_map_t<std::pair<server_id_t, branch_id_t>,
-                            primary_bcard_t>::key_subs_t subs(
-                primary_bcards,
+                            contract_execution_bcard_t>::key_subs_t subs(
+                contract_execution_bcards,
                 std::make_pair(primary, branch),
-                [&](const primary_bcard_t *pbc) {
-                    if (pbc == nullptr) {
+                [&](const contract_execution_bcard_t *bc) {
+                    if (bc == nullptr) {
                         no_more_bcard_signal.pulse();
                     }
                 },
@@ -134,10 +133,8 @@ void secondary_t::run(auto_drainer_t::lock_t keepalive) {
     }
 }
 
-void secondary_t::send_ack(const contract_ack_t &ca) {
+void secondary_execution_t::send_ack(const contract_ack_t &ca) {
     ack_cb(ca);
     last_ack = boost::make_optional(ca);
 }
-
-} /* namespace table_raft */
 

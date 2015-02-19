@@ -1,16 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_raft/follower.hpp"
+#include "clustering/table_contract/executor.hpp"
 
 #include "store_subview.hpp"
 
-namespace table_raft {
-
-follower_t::follower_t(
+contract_executor_t::contract_executor_t(
         const server_id_t &_server_id,
         mailbox_manager_t *const _mailbox_manager,
-        raft_member_t<state_t> *_raft,
-        watchable_map_t<std::pair<server_id_t, branch_id_t>, primary_bcard_t>
-            *_remote_primary_bcards,
+        raft_member_t<table_raft_state_t> *_raft,
+        watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
+            *_remote_contract_execution_bcards,
         const multistore_ptr_t *_multistore,
         branch_history_manager_t *_branch_history_manager,
         const base_path_t &_base_path,
@@ -20,7 +18,7 @@ follower_t::follower_t(
     server_id(_server_id),
     mailbox_manager(_mailbox_manager),
     raft(_raft),
-    remote_primary_bcards(_remote_primary_bcards),
+    remote_contract_execution_bcards(_remote_contract_execution_bcards),
     multistore(_multistore),
     branch_history_manager(_branch_history_manager),
     base_path(_base_path),
@@ -29,14 +27,14 @@ follower_t::follower_t(
     perfmons(_perfmons),
     update_coro_running(false),
     perfmon_counter(0),
-    raft_state_subs(std::bind(&follower_t::on_raft_state_change, this))
+    raft_state_subs(std::bind(&contract_executor_t::on_raft_state_change, this))
 {
-    watchable_t<raft_member_t<state_t>::state_and_config_t>::freeze_t freeze(
+    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t freeze(
         raft->get_committed_state());
     raft_state_subs.reset(raft->get_committed_state(), &freeze);
 }
 
-follower_t::ongoing_key_t follower_t::get_contract_key(
+contract_executor_t::ongoing_key_t contract_executor_t::get_contract_key(
         const std::pair<region_t, contract_t> &pair) {
     ongoing_key_t key;
     key.region = pair.first;
@@ -61,21 +59,21 @@ follower_t::ongoing_key_t follower_t::get_contract_key(
     return key;
 }
 
-void follower_t::on_raft_state_change() {
+void contract_executor_t::on_raft_state_change() {
     if (!update_coro_running) {
         update_coro_running = true;
         coro_t::spawn_sometime(std::bind(
-            &follower_t::update_coro, this, drainer.lock()));
+            &contract_executor_t::update_coro, this, drainer.lock()));
     }
 }
 
-void follower_t::update_coro(auto_drainer_t::lock_t keepalive) {
+void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         std::set<ongoing_key_t> to_delete;
         {
             ASSERT_NO_CORO_WAITING;
             raft->get_committed_state()->apply_read(
-            [&](const raft_member_t<state_t>::state_and_config_t *cs) {
+            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *cs) {
                 update(cs->state, &to_delete);
             });
             if (to_delete.empty()) {
@@ -95,8 +93,8 @@ void follower_t::update_coro(auto_drainer_t::lock_t keepalive) {
     }
 }
 
-void follower_t::update(const state_t &new_state,
-                        std::set<ongoing_key_t> *to_delete_out) {
+void contract_executor_t::update(const table_raft_state_t &new_state,
+                                 std::set<ongoing_key_t> *to_delete_out) {
     /* Go through the new contracts and try to match them to existing ongoings */
     std::set<ongoing_key_t> dont_delete;
     for (const auto &new_pair : new_state.contracts) {
@@ -108,7 +106,8 @@ void follower_t::update(const state_t &new_state,
             if (it->second->contract_id != new_pair.first) {
                 it->second->contract_id = new_pair.first;
                 std::function<void(const contract_ack_t &)> acker =
-                    std::bind(&follower_t::send_ack, this, new_pair.first, ph::_1);
+                    std::bind(&contract_executor_t::send_ack, this,
+                        new_pair.first, ph::_1);
                 /* Note that `update_contract()` will never block. */
                 switch (key.role) {
                 case ongoing_key_t::role_t::primary:
@@ -152,25 +151,26 @@ void follower_t::update(const state_t &new_state,
                     strprintf("%s-%d", key.role_name().c_str(), ++perfmon_counter));
 
                 std::function<void(const contract_ack_t &)> acker =
-                    std::bind(&follower_t::send_ack, this, new_pair.first, ph::_1);
+                    std::bind(&contract_executor_t::send_ack, this,
+                        new_pair.first, ph::_1);
                 /* Note that these constructors will never block. */
                 switch (key.role) {
                 case ongoing_key_t::role_t::primary:
-                    data->primary.init(new primary_t(
+                    data->primary.init(new primary_execution_t(
                         server_id, mailbox_manager, data->store_subview.get(),
                         branch_history_manager, key.region, &data->perfmon_collection,
-                        new_pair.second.second, acker, &local_primary_bcards,
+                        new_pair.second.second, acker, &local_contract_execution_bcards,
                         &table_query_bcards, base_path, io_backender));
                     break;
                 case ongoing_key_t::role_t::secondary:
-                    data->secondary.init(new secondary_t(
+                    data->secondary.init(new secondary_execution_t(
                         server_id, mailbox_manager, data->store_subview.get(),
                         branch_history_manager, key.region, &data->perfmon_collection,
-                        new_pair.second.second, acker, remote_primary_bcards, base_path,
-                        io_backender, backfill_throttler));
+                        new_pair.second.second, acker, remote_contract_execution_bcards,
+                        base_path, io_backender, backfill_throttler));
                     break;
                 case ongoing_key_t::role_t::erase:
-                    data->erase.init(new erase_t(
+                    data->erase.init(new erase_execution_t(
                         server_id, data->store_subview.get(), branch_history_manager,
                         key.region, &data->perfmon_collection,
                         new_pair.second.second, acker));
@@ -190,9 +190,8 @@ void follower_t::update(const state_t &new_state,
     }
 }
 
-void follower_t::send_ack(const contract_id_t &cid, const contract_ack_t &ack) {
+void contract_executor_t::send_ack(const contract_id_t &cid, const contract_ack_t &ack) {
     ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);
 }
 
-} /* namespace table_raft */
 

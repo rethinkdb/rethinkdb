@@ -4,7 +4,7 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
-#include "clustering/table_raft/state.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class table_meta_manager_bcard_t {
@@ -69,7 +69,7 @@ public:
         timestamp_t timestamp,
         bool is_deletion,
         boost::optional<raft_member_id_t> member_id,
-        boost::optional<raft_persistent_state_t<table_raft::state_t> > initial_state,
+        boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state,
         mailbox_t<void()>::address_t ack_addr
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
@@ -134,7 +134,7 @@ public:
     /* The other members of the Raft cluster send Raft RPCs through
     `raft_business_card`. */
     raft_member_id_t raft_member_id;
-    raft_business_card_t<table_raft::state_t> raft_business_card;
+    raft_business_card_t<table_raft_state_t> raft_business_card;
 
     /* `true` if a message to `set_config_mailbox` for this table to this server is
     likely to succeed. */

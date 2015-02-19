@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_RAFT_CPU_SHARDING_HPP_
-#define CLUSTERING_TABLE_RAFT_CPU_SHARDING_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_
+#define CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_
 
 #include "protocol_api.hpp"
 #include "region/region.hpp"
@@ -16,5 +16,5 @@ public:
     store_view_t *shards[CPU_SHARDING_FACTOR];
 };
 
-#endif /* CLUSTERING_TABLE_RAFT_CPU_SHARDING_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_ */
 
