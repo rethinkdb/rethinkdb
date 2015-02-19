@@ -134,11 +134,6 @@ counted_t<const document_t>
 make_concat(std::initializer_list<counted_t<const document_t> > args) {
     return make_counted<concat_t>(std::move(args));
 }
-template <typename It>
-counted_t<const document_t> make_concat(It &&begin, It &&end) {
-    return make_counted<concat_t>(std::forward<It>(begin),
-                                  std::forward<It>(end));
-}
 
 class group_t : public document_t {
 public:

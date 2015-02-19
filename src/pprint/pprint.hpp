@@ -40,9 +40,11 @@ counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> 
 counted_t<const document_t>
 make_concat(std::initializer_list<counted_t<const document_t> > args);
 
-template <typename... Ts>
-inline counted_t<const document_t> make_concat(Ts &&... docs) {
-    return make_concat({std::forward<Ts>(docs)...});
+template <typename It>
+counted_t<const document_t> make_concat(It &&begin, It &&end) {
+    std::vector<counted_t<const document_t> > v(std::forward<It>(begin),
+                                                std::forward<It>(end));
+    return make_concat(std::move(v));
 }
 
 // A document enclosure where all linebreaks are interpreted consistently.

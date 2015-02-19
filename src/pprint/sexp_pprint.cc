@@ -16,8 +16,10 @@ namespace pprint {
 
 class sexp_pretty_printer_t
     : public generic_term_walker_t<counted_t<const document_t> > {
-    unsigned int depth = 0;
+    unsigned int depth;
     typedef std::vector<counted_t<const document_t> > v;
+public:
+    sexp_pretty_printer_t() : depth(0) {}
 protected:
     counted_t<const document_t> visit_generic(Term *t) override {
         ++depth;
@@ -127,9 +129,9 @@ private:
             return make_nest(make_concat(std::move(term)));
         }
         case Datum::R_JSON:
-            return make_concat(lparen, json, cond_linebreak,
-                               quote, make_text(d->r_str()), quote,
-                               rparen);
+            return make_concat({lparen, json, cond_linebreak,
+                        quote, make_text(d->r_str()), quote,
+                        rparen});
         default:
             unreachable();
         }
@@ -172,19 +174,19 @@ private:
         while (var->type() == Term::BRANCH) {
             std::vector<counted_t<const document_t> > branch;
             branch.push_back(lparen);
-            branch.push_back(make_nest(make_concat(visit_generic(var->mutable_args(0)),
-                                                   cond_linebreak,
-                                                   visit_generic(var->mutable_args(1)))));
+            branch.push_back(make_nest(make_concat({visit_generic(var->mutable_args(0)),
+                                cond_linebreak,
+                                visit_generic(var->mutable_args(1))})));
             branch.push_back(rparen);
             branches.push_back(make_concat(std::move(branch)));
             branches.push_back(cond_linebreak);
             var = var->mutable_args(2);
         }
-        branches.push_back(make_concat(lparen,
-                                       make_nest(make_concat(true_v,
-                                                             cond_linebreak,
-                                                             visit_generic(var))),
-                                       rparen));
+        branches.push_back(make_concat({lparen,
+                        make_nest(make_concat({true_v,
+                                        cond_linebreak,
+                                        visit_generic(var)})),
+                        rparen}));
         term.push_back(make_nest(make_concat(std::move(branches))));
         term.push_back(rparen);
         return make_concat(std::move(term));
@@ -203,12 +205,10 @@ private:
     counted_t<const document_t> visit_stringing(Term_TermType type, Term *t) {
         switch (type) {
         case Term::TABLE:
-            return make_concat(lparen, table, sp, visit_generic(t),
-                               rparen);
+            return make_concat({lparen, table, sp, visit_generic(t), rparen});
         case Term::GET:
         case Term::GET_FIELD:
-            return make_concat(lparen, get, sp, visit_generic(t),
-                               rparen);
+            return make_concat({lparen, get, sp, visit_generic(t), rparen});
         default:
             return visit_generic(t);
         }
@@ -231,9 +231,9 @@ private:
                 guarantee(arg_term->mutable_datum()->type() == Datum::R_NUM);
                 args.push_back(var_name(arg_term->mutable_datum()));
             }
-            nest.push_back(make_concat(lparen,
-                                       make_nest(make_concat(std::move(args))),
-                                       rparen));
+            nest.push_back(make_concat({lparen,
+                            make_nest(make_concat(std::move(args))),
+                            rparen}));
         } else if (t->mutable_args(0)->type() == Term::DATUM &&
                    t->mutable_args(0)->mutable_datum()->type() == Datum::R_ARRAY) {
             Datum *arg_term = t->mutable_args(0)->mutable_datum();
@@ -242,9 +242,9 @@ private:
                 if (i != 0) args.push_back(cond_linebreak);
                 args.push_back(var_name(arg_term->mutable_r_array(i)));
             }
-            nest.push_back(make_concat(lparen,
-                                       make_nest(make_concat(std::move(args))),
-                                       rparen));
+            nest.push_back(make_concat({lparen,
+                            make_nest(make_concat(std::move(args))),
+                            rparen}));
         } else {
             nest.push_back(visit_generic(t->mutable_args(0)));
         }
@@ -252,8 +252,8 @@ private:
             nest.push_back(cond_linebreak);
             nest.push_back(visit_generic(t->mutable_args(i)));
         }
-        return make_concat(lparen, lambda, sp, make_nest(make_concat(std::move(nest))),
-                           rparen);
+        return make_concat({lparen, lambda, sp, make_nest(make_concat(std::move(nest))),
+                    rparen});
     }
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
@@ -261,7 +261,7 @@ private:
     static counted_t<const document_t> nil, true_v, false_v, json, table, get, cond,
         lambda;
 
-    const unsigned int MAX_DEPTH = 20;
+    static const unsigned int MAX_DEPTH = 20;
 };
 
 counted_t<const document_t> sexp_pretty_printer_t::lparen = make_text("(");
