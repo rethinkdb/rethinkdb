@@ -1,6 +1,6 @@
 // Copyright 2015 RethinkDB, all rights reserved
-#ifndef PPRINT_TERM_PPRINT_HPP_
-#define PPRINT_TERM_PPRINT_HPP_
+#ifndef PPRINT_SEXP_PPRINT_HPP_
+#define PPRINT_SEXP_PPRINT_HPP_
 
 #include "pprint.hpp"
 
@@ -10,4 +10,4 @@ namespace pprint {
     counted_t<const document_t> render_as_sexp(Term *t);
 }
 
-#endif // PPRINT_TERM_PPRINT_HPP_
+#endif // PPRINT_SEXP_PPRINT_HPP_
