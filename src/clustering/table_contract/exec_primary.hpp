@@ -102,8 +102,8 @@ private:
     counted_t<contract_info_t> latest_contract;
     boost::optional<contract_ack_t> latest_ack;
 
-    /* `branch_registered` is pulsed once the leader has committed our branch ID to the
-    Raft state. */
+    /* `branch_registered` is pulsed once the coordinator has committed our branch ID to
+    the Raft state. */
     cond_t branch_registered;
 
     /* `our_broadcaster` stores the pointer to the `broadcaster_t` and `master_t` we

@@ -71,7 +71,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 }, keepalive.get_drain_signal());
             guarantee(primary_bcard.broadcaster.branch_id == branch);
 
-            /* Let the leader know we found the primary. */
+            /* Let the coordinator know we found the primary. */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_backfilling));
 
             /* Set up a signal that will get pulsed if we lose contact with the primary
@@ -115,7 +115,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 context->mailbox_manager,
                 context->branch_history_manager);
 
-            /* Let the leader know we finished backfilling */
+            /* Let the coordinator know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
 
             /* Wait until we lose contact with the primary or we get interrupted */

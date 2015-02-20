@@ -9,12 +9,12 @@
 
 /* `table_raft_state_t` is the type of the state that is stored in each table's Raft
 instance. The most important part is a collection of `contract_t`s, which describe the
-current state of the different shards. Each replica has a `follower_t` for each table,
-which watches the `contract_t`s and performs backfills, accepts queries, etc. in response
-to what the `contract_t`s say. In addition, the `follower_t` sends `contract_ack_t`s back
-to the table's `leader_t`, which initiates Raft transactions to update the `contract_t`s
-as necessary to perform auto-failover, implement the user's configuration changes, and so
-on. */
+current state of the different shards. Each replica has a `contract_executor_t` for each
+table, which watches the `contract_t`s and performs backfills, accepts queries, etc. in
+response to what the `contract_t`s say. In addition, the `contract_executor_t` sends
+`contract_ack_t`s back to the table's `contract_coordinator_t`, which initiates Raft
+transactions to update the `contract_t`s as necessary to perform auto-failover, implement
+the user's configuration changes, and so on. */
 
 class table_raft_state_t;
 class contract_t;
@@ -127,7 +127,8 @@ public:
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
 gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
-responding to. This way, the leader knows exactly which contract the follower is acking.
+responding to. This way, the coordinator knows exactly which contract the executor is
+acking.
 
 In order to facilitiate CPU sharding, each contract's region must apply to exactly one
 CPU shard. */

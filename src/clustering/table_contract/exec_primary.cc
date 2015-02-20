@@ -65,8 +65,8 @@ void primary_execution_t::update_contract(
 void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source;
     try {
-        /* Set our initial state to `primary_need_branch`, so that the leader will assign
-        us a new branch ID. */
+        /* Set our initial state to `primary_need_branch`, so that the coordinator will
+        assign us a new branch ID. */
         branch_birth_certificate_t branch_bc;
         {
             /* Read the initial version from disk */
@@ -86,7 +86,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                     std::max(pair.second.timestamp, branch_bc.initial_timestamp);
             }
 
-            /* Send a request for the leader to register our branch */
+            /* Send a request for the coordinator to register our branch */
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
             ack.branch = boost::make_optional(our_branch_id);
             context->branch_history_manager->export_branch_history(

@@ -8,7 +8,7 @@
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
 this server from the table, and changing the table configuration. It's also responsible
-for constructing the `table_raft_leader_t` and `table_raft_follower_t`, which carry out
+for constructing the `contract_coordinator_t` and `contract_executor_t`, which carry out
 the actual business of handling queries.
 
 The `table_meta_manager_t` exposes an "action mailbox", a "get config mailbox", and a
@@ -40,8 +40,8 @@ transaction to change the table's name.
 
 * When the user adds a server to the table's configuration, the `table_meta_client_t`
 will send a message to the set-config mailbox of the Raft cluster leader to update the
-table's configuration. Next, the `table_raft_leader_t` will initiate Raft transactions to
-add the new server to the Raft configuration and generate a `raft_member_id_t` for it.
+table's configuration. Next, the `contract_coordinator_t` will initiate Raft transactions
+to add the new server to the Raft configuration and generate a `raft_member_id_t` for it.
 After the transaction completes, one of the members in the Raft cluster will see that the
 new server is present in the Raft configuration, but not acting as a cluster member. So
 that member will send a message to the new server's action mailbox with the new server's

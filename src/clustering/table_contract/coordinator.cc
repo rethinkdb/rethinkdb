@@ -50,8 +50,8 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
 }
 
 /* `calculate_contract()` calculates a new contract for a region. Whenever any of the
-inputs changes, the leader will call `update_contract()` to compute a contract for each
-range of keys. The new contract will often be the same as the old, in which case it
+inputs changes, the coordinator will call `update_contract()` to compute a contract for
+each range of keys. The new contract will often be the same as the old, in which case it
 doesn't get a new contract ID. */
 contract_t calculate_contract(
         /* The old contract that contains this region. */
@@ -407,8 +407,8 @@ contract_coordinator_t::contract_coordinator_t(
             { wake_pump_contracts->pulse_if_not_already_pulsed(); },
         false)
 {
-    /* Do an initial round of pumping, in case there are any changes the previous leader
-    didn't take care of */
+    /* Do an initial round of pumping, in case there are any changes the previous
+    coordinator didn't take care of */
     wake_pump_contracts->pulse_if_not_already_pulsed();
 }
         
