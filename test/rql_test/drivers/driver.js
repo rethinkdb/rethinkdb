@@ -130,7 +130,7 @@ function le_test(a, b){
             return false;
         }
         var ka = Object.keys(a).sort();
-        var kb = Object.keys(a).sort();
+        var kb = Object.keys(b).sort();
         if (ka < kb) {
             return true;
         }
