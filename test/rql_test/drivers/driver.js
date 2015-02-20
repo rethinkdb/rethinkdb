@@ -300,24 +300,44 @@ function runTest() {
         if (test) {
             if (test instanceof Function) {
                 // -- function such as setup_table
-                TRACE("==== runTest ==== function:  " + test.name);
+                TRACE("==== runTest ==== function: " + test.name);
                 test(test);
                 return;
             
             } else {
                 // -- regular test
-                TRACE("==== runTest ==== test: " + test.src)
+                TRACE("==== runTest ==== test: " + stringValue(test.src))
+                
+                // - process/default runopts
                 
                 if (!test.runopts) {
                     test.runopts = { maxBatchRows: 3 }
                 } else {
                     for (var opt in test.runopts) {
-                        test.runopts[opt] = eval(test.runopts[opt])
+	                    try {
+	                        test.runopts[opt] = eval(test.runopts[opt])
+	                    } catch (err) {
+		                    test.runopts[opt] = test.runopts[opt]
+		                }
                     }
                     if (!("maxBatchRows" in test.runopts)) {
                         test.runopts.maxBatchRows = 3
                     }
                 }
+                // the javascript driver has all of the runopts in cammel case vs. snake form
+                for (var opt in test.runopts) {
+	                if (typeof opt == 'string' || opt instanceof String) {
+		                var newOpt = opt.replace(/([a-z]+)_([a-z]+)/, function(match, pre, post) { return pre + post.charAt(0).toUpperCase() + post.substr(1); });
+						if (newOpt != opt) {
+							test.runopts[newOpt] = test.runopts[opt];
+							delete test.runopts[opt];
+						}
+	                }
+	            }
+                TRACE("runopts: " + JSON.stringify(test.runopts))
+                
+                // - process/default testopts
+                
                 if (!test.testopts) {
                     test.testopts = {}
                 }
@@ -365,7 +385,7 @@ function runTest() {
                         // - 
                         
                         if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
-                            TRACE("processing reql query: " + result)
+                            TRACE("processing reql query: " + result + ', runopts: ' + stringValue(test.runopts))
                             with (defines) {
                                 result.run(reqlConn, test.runopts, function(err, value) { processResult(err,  value, test) } );
                                 return;
@@ -391,7 +411,7 @@ function runTest() {
                 } catch (result) {
                     TRACE("querry error - " + result.toString())
                     TRACE("stack: " + String(result.stack));
-                    processResult(null, result, test); // will go on to next test
+                    processResult(result, null, test); // will go on to next test
                     return;
                 }
             
@@ -414,7 +434,7 @@ function runTest() {
 
 function processResult(err, result, test) {
     // prepare the result to be compared (e.g.: collect feeds and cursor results)
-    TRACE('processResult result: ' + result + ', err: ' + err + ', testopts: ' +  JSON.stringify(test.testopts))
+    TRACE('processResult: ' + result + ', err: ' + err + ', testopts: ' +  stringValue(test.testopts))
     var accumulator = [];
     
     try {
@@ -428,9 +448,9 @@ function processResult(err, result, test) {
         // - store variable if called for
         
         else if (test.testopts && test.testopts.variable) {
-            TRACE('processResult string variable');
+            TRACE('processResult storing variable');
             defines[test.testopts.variable] = result;
-            runTest(); // Continue to next test.
+            compareResult(null, result, test);
         }
         
         // - pull out feeds and cursors to arrays
@@ -440,7 +460,8 @@ function processResult(err, result, test) {
                 TRACE('processResult_limitedIter collecting ' + test.testopts.result_limit + ' item(s) from cursor');
                 
                 handleError = function processResult_error(err) {
-                    unexpectedException("processResult_limitedIter", test.name, err);
+	                TRACE('processResult_limitedIter error: ' + err)
+                    compareResult(err, accumulator, test);
                 };
                 
                 limitedProcessor = function processResult_limitedIter(row) {
@@ -450,7 +471,7 @@ function processResult(err, result, test) {
                         TRACE('processResult_limitedIter final, items: ' + accumulator.length);
                         compareResult(null, accumulator, test);
                     } else {
-                        TRACE('processResult_limitedIter next, collected: ' + accumulator.length + ', item: ' + JSON.stringify(row));
+                        TRACE('processResult_limitedIter next, collected: ' + accumulator.length + ', item: ' + stringValue(row));
                         result.next().then(limitedProcessor).error(handleError);
                     }
                     
@@ -463,11 +484,11 @@ function processResult(err, result, test) {
                 TRACE('processResult collecting full cursor');
                 result.each(
                     function processResult_iter(err, row) {
-                        TRACE('processResult_iter')
                         if (err) {
-                            console.log("stack: " + String(err.stack));
-                            unexpectedException("processResult", test.name, err);
+	                        TRACE('processResult_iter err: ' + err)
+	                        compareResult(err, accumulator, test);
                         } else {
+	                        TRACE('processResult_iter value')
                             try {
                                 if (test.testopts && test.testopts.rowfilter) {
                                     filterFunction = new Function('input', test.testopts.rowfilter);
@@ -542,30 +563,18 @@ function stringValue(value) {
 
 function compareResult(error, value, test) {
     try {
-        expextedText = null
-        TRACE("compareResult - err:" + JSON.stringify(error) + ", result:" + JSON.stringify(value) + " expected function: " + test.exp_fun.toString());
+        expextedText = null;
+        TRACE("compareResult - err:" + stringValue(error) + ", result:" + stringValue(value) + " expected function: " + test.exp_fun.toString());
         if (error) {
             if (test.exp_fun.isErr) {
                 if (!test.exp_fun(error)) {
-                    printTestFailure(test.name, test.src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(error), "\n\tEXPECTED ", test.expectedSrc]);
+                    printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
                 }
             } else {
-                var info;
-                if (error.msg) {
-                    info = error.msg;
-                } else if (error.message) {
-                    info = error.message;
-                } else {
-                    info = JSON.stringify(value);
-                }
-                
-                if (error.stack) {
-                    info += "\n\nStack:\n" + error.stack.toString();
-                }
-                printTestFailure(test.name, test.src, ["Error running test on server:", "\n\tERROR: ", info]);
+                printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
             }
         } else if (!test.exp_fun(value)) {
-            printTestFailure(test.name, test.src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(value), "\n\tEXPECTED: ", test.expectedSrc]);
+            printTestFailure(test.name, test.src, test.expectedSrc, stringValue(value));
         }
     
         runTest(); // Continue to next test.
@@ -573,6 +582,37 @@ function compareResult(error, value, test) {
         console.log("stack: " + String(err.stack))
         unexpectedException("compareResult", test.name, err);
     }
+}
+
+function stringValue(value) {
+    returnValue = '<< unknown >>';
+    if (value instanceof Error) {
+	    var errStr = value.name ? value.name + ": " : '';
+	    
+	    if (value.msg) {
+			errStr += value.msg;
+		} else if (value.message) {
+			errStr += value.message;
+		} else {
+			errStr += stringValue(value);
+		}
+		
+		if (value.stack) {
+			errStr += "\nStack:\n" + value.stack.toString();
+		}
+	    return errStr;
+	} else if (value && value.name) {
+        returnValue = value.name;
+    } else {
+		try {
+			returnValue = JSON.stringify(value);
+		} catch (err) {
+			try {
+				returnValue = value.toString();
+			} catch (err) {}
+		}
+    }
+    return returnValue;
 }
 
 function unexpectedException(){
@@ -641,7 +681,7 @@ function setup_table_check() {
 // Invoked by generated code to fetch from a cursor
 function fetch(cursor, limit) {
     fun = function fetch_inner(test) {
-        TRACE("fetch_inner test: " + JSON.stringify(test))
+        TRACE("fetch_inner test: " + stringValue(test))
         try {
             if (limit) {
                 limit = parseInt(limit);
@@ -670,7 +710,7 @@ function fetch(cursor, limit) {
 // allows for a bit of time to go by
 function wait(seconds) {
     fun = function wait_inner(test) {
-        TRACE("wait_inner test: " + JSON.stringify(test))
+        TRACE("wait_inner test: " + stringValue(test))
         setTimeout(function () { runTest() }, seconds * 1000);
     };
     fun.toString = function() {

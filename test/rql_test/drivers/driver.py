@@ -315,7 +315,7 @@ class PyTestDriver:
     def connect(self):
         return r.connect(host='localhost', port=DRIVER_PORT)
 
-    def define(self, expr, variable=None):
+    def define(self, expr, variable):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
             exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
@@ -353,9 +353,16 @@ class PyTestDriver:
         try:
             result = eval(src, self.scope)
             
+            # - collect the contents of a cursor
+            
+            if isinstance(result, r.Cursor):
+                print_debug('Evaluating cursor: %s %r' % (src, runopts))
+                result = [x for x in result]
+            
             # - run as a query if it is one
             
-            if isinstance(result, r.RqlQuery):
+            elif isinstance(result, r.RqlQuery):
+                print_debug('Running query: %s %r' % (src, runopts))
                 
                 # Check pretty-printing
                 
@@ -368,11 +375,16 @@ class PyTestDriver:
                     result = result["value"]
                 # ToDo: do something reasonable with the profile
             
+            else:
+                print_debug('Running: %s' % src)
+            
             # - Save variable if requested
             
             if 'variable' in testopts:
                 # ToDo: hadnle complex variables like: a[2]
                 self.scope[testopts['variable']] = result
+                if exp_val is None:
+                    return
         
         except Exception as err:
             result = err

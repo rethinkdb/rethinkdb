@@ -16,32 +16,21 @@ tests:
     - py: 
         cd: r.expr(u'str')
         ot: u'str'
-      py3.0:
-        cd: r.expr('str')
-        ot: "'str'"
-      py3.1:
-        cd: r.expr('str')
-        ot: "'str'"
-      py3.2:
-        cd: r.expr('str')
-        ot: "'str'"
+      py3.0: r.expr('str')
+      py3.1: r.expr('str')
+      py3.2: r.expr('str')
       cd: []
+      ot: "'str'"
+      
     - py:
         cd: "r.expr(u'こんにちは')"
         ot: "u'こんにちは'"
-      py3.0:
-        cd: "r.expr('こんにちは')"
-        ot: "'こんにちは'"
-      py3.1:
-        cd: "r.expr('こんにちは')"
-        ot: "'こんにちは'"
-      py3.2:
-        cd: "r.expr('こんにちは')"
-        ot: "'こんにちは'"
-      rb:
-        cd: "r 'こんにちは'"
-        ot: "'こんにちは'"
+      py3.0: "r.expr('こんにちは')"
+      py3.1: "r.expr('こんにちは')"
+      py3.2: "r.expr('こんにちは')"
+      rb: "r 'こんにちは'"
       js: []
+      ot: "'こんにちは'"
 
     - cd: r.expr('foo').type_of()
       ot: "'STRING'"
