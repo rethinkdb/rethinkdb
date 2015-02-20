@@ -330,7 +330,7 @@ static const char *parse_object(cJSON *item,const char *value);
 static char *print_object(cJSON *item,int depth,int fmt);
 
 /* Utility to jump whitespace and cr/lf */
-static const char *skip(const char *in) {while (in && *in && (unsigned char)*in<=32) in++; return in;}
+static const char *skip(const char *in) {while (in && *in && strchr("\t\r\n ",*in)) in++; return in;}
 
 /* Parse an object - create a new root, and populate. */
 cJSON *cJSON_Parse(const char *value)
@@ -339,7 +339,8 @@ cJSON *cJSON_Parse(const char *value)
         ep=0;
         if (!c) return 0;       /* memory fail */
 
-        if (!parse_value(c,skip(value))) {cJSON_Delete(c);return 0;}
+        const char *end = parse_value(c, skip(value));
+        if (end == NULL || *skip(end) != '\0') {cJSON_Delete(c);return 0;}
         return c;
 }
 
