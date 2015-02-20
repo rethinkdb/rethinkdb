@@ -2,6 +2,7 @@
 #include <functional>
 #include <stdexcept>
 
+#include "protob/protob.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -64,12 +65,12 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     count_callback_t callback(count_out);
-    env_instance->get()->set_eval_callback(&callback);
+    env_instance->get_env()->set_eval_callback(&callback);
 
     ql::compile_env_t compile_env((ql::var_visibility_t()));
     counted_t<const ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
-    ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
+    ql::scope_env_t scope_env(env_instance->get_env(), ql::var_scope_t());
     UNUSED scoped_ptr_t<ql::val_t> result = compiled_term->eval(&scope_env);
     guarantee(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
@@ -82,13 +83,13 @@ void interrupt_test(test_rdb_env_t *test_env,
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
-    env_instance->get()->set_eval_callback(&callback);
+    env_instance->get_env()->set_eval_callback(&callback);
 
     ql::compile_env_t compile_env((ql::var_visibility_t()));
     counted_t<const ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
     try {
-        ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
+        ql::scope_env_t scope_env(env_instance->get_env(), ql::var_scope_t());
         UNUSED scoped_ptr_t<ql::val_t> result = compiled_term->eval(&scope_env);
         guarantee(false);
     } catch (const interrupted_exc_t &ex) {
@@ -237,6 +238,200 @@ TEST(RDBInterrupt, DeleteOp) {
                                                i,
                                                &verify_callback));
     }
+}
+
+class query_hanger_t : public query_handler_t {
+public:
+    bool run_query(UNUSED const ql::query_id_t &query_id,
+                   UNUSED const ql::protob_t<Query> &query,
+                   UNUSED Response *response_out,
+                   UNUSED ql::query_cache_t *query_cache,
+                   signal_t *interruptor) {
+        cond_t dummy;
+        // Need to mix in the rdb_context_t's interruptor?
+        wait_interruptible(&dummy, interruptor);
+        guarantee(false);
+        return false;
+    }
+
+    void unparseable_query(UNUSED int64_t token,
+                           UNUSED Response *response_out,
+                           UNUSED const std::string &info) {
+        guarantee(false); // This is not needed by the tests and shouldn't happen
+    }
+};
+
+// Arbitrary non-zero to check that responses are correct
+const int64_t test_token = 54;
+
+scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
+    cond_t dummy_interruptor; // TODO: have a real timeout
+    scoped_ptr_t<tcp_conn_stream_t> conn(
+        new tcp_conn_stream_t(ip_address_t("127.0.0.1"), port, &dummy_interruptor));
+
+    // Authenticate - this should probably always be the latest protocol
+    int32_t client_magic_number = VersionDummy::V0_4;
+    uint32_t auth_key_length = 0;
+
+    int64_t res;
+    res = conn->write(&client_magic_number, sizeof(client_magic_number));
+    guarantee(res == sizeof(client_magic_number));
+    res = conn->write(&auth_key_length, sizeof(auth_key_length));
+    guarantee(res == sizeof(auth_key_length));
+
+    // Read out response
+    std::string auth_response;
+    while (true) {
+        char next;
+        res = conn->read(&next, sizeof(next));
+        guarantee(res == sizeof(next));
+        if (next == '\0') {
+            break;
+        }
+        auth_response += next;
+    }
+    guarantee(auth_response == "SUCCESS"); // TODO: use gtest asserts
+
+    return conn;
+}
+
+void send_basic_query(tcp_conn_stream_t *conn) {
+    std::string json_query("[1,[169,[]],{}]"); // r.uuid()
+    uint32_t query_size = json_query.size();
+    
+    int64_t res;
+    res = conn->write(&test_token, sizeof(test_token));
+    guarantee(res == sizeof(test_token));
+    res = conn->write(&query_size, sizeof(query_size));
+    guarantee(res == sizeof(query_size));
+    res = conn->write(json_query.data(), json_query.size());
+    guarantee(res == static_cast<int64_t>(json_query.size()));
+}
+
+std::string get_query_response(tcp_conn_stream_t *conn) {
+    int64_t res;
+    int64_t token;
+    uint32_t response_size;
+    res = conn->read(&token, sizeof(token));
+    if (res == 0) {
+        return std::string();
+    }
+    guarantee(res == sizeof(token));
+    guarantee(token == test_token);
+    res = conn->read(&response_size, sizeof(response_size));
+    guarantee(res == sizeof(response_size));
+
+    scoped_array_t<char> response_data(response_size + 1);
+    res = conn->read(response_data.data(), response_size);
+    guarantee(res == response_size);
+    response_data[response_size] = '\0';
+
+    // Parse out JSON and validate the response
+    scoped_cJSON_t response(cJSON_Parse(response_data.data()));
+    guarantee(response.get() != nullptr);
+    json_array_iterator_t it(response.get());
+    cJSON *type = it.next();
+    cJSON *payload = it.next();
+    guarantee(type != nullptr);
+    guarantee(type->type == cJSON_Number);
+    guarantee(type->valueint == Response::RUNTIME_ERROR);
+    guarantee(payload != nullptr);
+    guarantee(payload->type == cJSON_String);
+
+    std::string msg(payload->string);
+    guarantee(msg.length() != 0);
+    return msg;
+}
+
+void tcp_interrupt_test(test_rdb_env_t *test_env,
+                        const std::string &expected_msg,
+                        std::function<void(scoped_ptr_t<query_server_t> *,
+                                           scoped_ptr_t<tcp_conn_stream_t> *)> interrupt_fn) {
+    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance(test_env->make_env());
+
+    query_hanger_t hanger; // Causes all queries to hang until interrupted
+    scoped_ptr_t<query_server_t> server(
+        new query_server_t(env_instance->get_rdb_context(),
+                           std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
+                           0, &hanger));
+
+    scoped_ptr_t<tcp_conn_stream_t> conn = connect_client(server->get_port());
+    send_basic_query(conn.get());
+    interrupt_fn(&server, &conn);
+    std::string msg = get_query_response(conn.get());
+    guarantee(msg == expected_msg);
+}
+
+TEST(RDBInterrupt, TcpInterrupt) {
+    // Test different types of TCP session interruptions:
+    // 1. TCP session is closed remotely
+    // 2. any drainers?
+
+    {
+        // Test destroying the server
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
+            std::string(), // Server shouldn't be allowed to respond
+            [](scoped_ptr_t<query_server_t> *serv,
+               UNUSED scoped_ptr_t<tcp_conn_stream_t> *conn) {
+                serv->reset();
+            }));
+    }
+
+    {
+        // Test closing the connection
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
+            std::string(), // No way to get a response on a closed connection
+            [](UNUSED scoped_ptr_t<query_server_t> *serv,
+               scoped_ptr_t<tcp_conn_stream_t> *conn) {
+                conn->reset();
+            }));
+    }
+
+    {
+        // Test destroying the server
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
+            "",
+            [](UNUSED scoped_ptr_t<query_server_t> *serv,
+               scoped_ptr_t<tcp_conn_stream_t> *conn) {
+                char invalid_query = ',';
+                uint32_t query_size = 1;
+                int64_t token = 99;
+
+                int64_t res;
+                res = (*conn)->write(&token, sizeof(token));
+                guarantee(res == sizeof(token));
+                res = (*conn)->write(&query_size, sizeof(query_size));
+                guarantee(res == sizeof(query_size));
+                res = (*conn)->write(&invalid_query, sizeof(invalid_query));
+                guarantee(res == sizeof(invalid_query));
+                serv->reset();
+            }));
+    }
+}
+
+void http_interrupt_test(test_rdb_env_t *test_env) {
+    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
+
+    query_hanger_t hanger; // Causes all queries to hang until interrupted
+    scoped_ptr_t<query_server_t> server(
+        new query_server_t(env_instance->get_rdb_context(),
+                           std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
+                           0, &hanger));
+    
+}
+
+TEST(RDBInterrupt, HttpInterrupt) {
+    // Test different types of HTTP session interruptions:
+    // 1. HTTP session expires
+    // 2. HTTP session closed remotely
+    // 3. HTTP session closed by another request
+    // 3. any drainers?
+
+    test_rdb_env_t test_env;
+    unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env));
 }
 
 }  // namespace unittest

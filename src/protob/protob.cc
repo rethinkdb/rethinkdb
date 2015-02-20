@@ -261,12 +261,9 @@ query_server_t::query_server_t(
     rdb_context_t *_rdb_ctx,
     const std::set<ip_address_t> &local_addresses,
     int port,
-    query_handler_t *_handler,
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        _auth_metadata)
+    query_handler_t *_handler)
     : rdb_ctx(_rdb_ctx),
       handler(_handler),
-      auth_metadata(_auth_metadata),
       shutting_down_conds(),
       pulse_sdc_on_shutdown(&main_shutting_down_cond),
       next_thread(0) {
@@ -327,7 +324,7 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
     // This must be read here because of home threads and stuff
-    auth_key_t auth_key = auth_metadata->get().auth_key.get_ref();
+    auth_key_t auth_key = rdb_ctx->auth_metadata->get().auth_key.get_ref();
 
     threadnum_t chosen_thread = threadnum_t(next_thread);
     next_thread = (next_thread + 1) % get_num_db_threads();
@@ -424,17 +421,52 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     }
 }
 
+void query_server_t::make_error_response(const tcp_conn_t &conn,
+                                         const ql::protob_t<Query> &query,
+                                         Response *response_out) {
+    response_out->Clear();
+    response_out->set_type(Response::RUNTIME_ERROR);
+    response_out->set_token(query->token());
+    Datum *msg_datum = response_out->add_response(); // Only one response, the error string
+    UNUSED Backtrace *bt = response_out->mutable_backtrace(); // Empty backtrace
+
+    msg_datum->set_type(Datum::R_STR);
+    std::string *msg = msg_datum->mutable_r_str();
+
+    // Best guess at the error that occurred
+    if (!conn.is_write_open()) {
+        // The other side closed it's socket - it won't get this message
+        msg->assign("Client closed the connection.");
+    } else if (auto_drainer.is_draining()) {
+        // The query_server_t is being destroyed - we can't even write this to the socket anyway
+        msg->assign("Server is shutting down.");
+    } else {
+        // Sort of a catch-all - there could be other reasons for this
+        msg->assign("Unhandled error on another query.");
+    }
+}
+
+template <class Callable>
+void save_exception(std::exception_ptr *err, cond_t *abort, Callable &&fn) {
+    try {
+        fn();
+    } catch (...) {
+        if (!(*err)) {
+            (*err) = std::current_exception();
+        }
+        abort->pulse_if_not_already_pulsed();
+    }
+}
+
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
                                      ql::query_cache_t *query_cache,
                                      signal_t *raw_interruptor) {
-    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
-
     std::exception_ptr err;
     cond_t abort;
     new_mutex_t send_mutex;
-
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
     // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
     // (which are RAII) are allocated and destroyed properly.  When we read a query off
@@ -458,20 +490,25 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             ql::query_id_t query_id(std::move(query_it->first));
             ql::protob_t<Query> query_pb(std::move(query_it->second));
             query_list.erase(query_it);
+            bool replied = false;
+            wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
+            Response response;
 
-            try {
-                wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
-                Response response;
-                if (handler->run_query(query_id, query_pb, &response,
-                                       query_cache, &cb_interruptor)) {
-                    new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
-                    protocol_t::send_response(response, handler, conn, &cb_interruptor);
-                }
-            } catch (...) {
-                if (!err) {
-                    err = std::current_exception();
-                }
-                abort.pulse_if_not_already_pulsed();
+            save_exception(&err, &abort, [&]() {
+                    if (handler->run_query(query_id, query_pb, &response,
+                                           query_cache, &cb_interruptor)) {
+                        new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
+                        protocol_t::send_response(response, handler, conn, &cb_interruptor);
+                        replied = true;
+                    }
+                });
+
+            if (!replied) {
+                save_exception(&err, &abort, [&]() {
+                        make_error_response(*conn, query_pb, &response);
+                        new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
+                        protocol_t::send_response(response, handler, conn, &cb_interruptor);
+                    });
             }
         });
 
@@ -482,21 +519,29 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                                                           &callback);
 
     wait_any_t loop_interruptor(raw_interruptor, &abort);
-    for (;;) {
+    while (!err) {
         ql::protob_t<Query> query(ql::make_counted_query());
-        try {
-            if (protocol_t::parse_query(conn, &loop_interruptor, handler, &query)) {
-                query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
-                                                     std::move(query)));
-                coro_queue.push(query_list.begin());
-            }
-        } catch (...) {
-            if (err) {
-                std::rethrow_exception(err);
-            } else {
-                throw;
-            }
-        }
+        save_exception(&err, &abort, [&]() {
+                if (protocol_t::parse_query(conn, &loop_interruptor, handler, &query)) {
+                    query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
+                                                         std::move(query)));
+                    coro_queue.push(query_list.begin());
+                }
+            });
+    }
+
+    // Respond to any queries still in the run queue
+    for (auto const &pair : query_list) {
+        Response response;
+        save_exception(&err, &abort, [&]() {
+                make_error_response(*conn, pair.second, &response);
+                new_mutex_acq_t send_lock(&send_mutex, raw_interruptor);
+                protocol_t::send_response(response, handler, conn, raw_interruptor);
+            });
+    }
+
+    if (err) {
+        std::rethrow_exception(err);
     }
 }
 

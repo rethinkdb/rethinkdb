@@ -92,9 +92,7 @@ public:
         rdb_context_t *rdb_ctx,
         const std::set<ip_address_t> &local_addresses,
         int port,
-        query_handler_t *_handler,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_metadata);
+        query_handler_t *_handler);
     ~query_server_t();
 
     int get_port() const;
@@ -105,6 +103,10 @@ private:
                                          const std::string &length_error_msg,
                                          signal_t *interruptor);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
+
+    void make_error_response(const tcp_conn_t &conn,
+                             const ql::protob_t<Query> &query,
+                             Response *response_out);
 
     // For the client driver socket
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
@@ -123,11 +125,7 @@ private:
                 signal_t *interruptor);
 
     rdb_context_t *const rdb_ctx;
-
     query_handler_t *const handler;
-
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        auth_metadata;
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;

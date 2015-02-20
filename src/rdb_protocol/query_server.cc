@@ -13,12 +13,9 @@
 rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                                        int port,
                                        rdb_context_t *_rdb_ctx) :
-    server(_rdb_ctx, local_addresses, port, this, _rdb_ctx->auth_metadata),
+    server(_rdb_ctx, local_addresses, port, this),
     rdb_ctx(_rdb_ctx),
-    thread_counters(0)
-{
-
-}
+    thread_counters(0) { }
 
 http_app_t *rdb_query_server_t::get_http_app() {
     return &server;
@@ -51,7 +48,7 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
          noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply.as_bool());
     try {
-        scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active);
+        scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active); // TODO: make this correct for parallelized queries
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(query_id, query, response_out, query_cache, interruptor);
