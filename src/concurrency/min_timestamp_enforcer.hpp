@@ -59,7 +59,7 @@ private:
     struct internal_waiter_t
             : public intrusive_priority_queue_node_t<internal_waiter_t> {
     public:
-        internal_waiter_t(min_timestamp_token_t t)
+        explicit internal_waiter_t(min_timestamp_token_t t)
             : token(t) { }
 
         /* Pulsed when the operation is good to go*/

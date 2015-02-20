@@ -235,9 +235,6 @@ public:
         /* This coroutine will send an intro message to the newly-registered
         listener. It needs to be a separate coroutine so that we don't block while
         holding `controller->mutex`. */
-        // TODO! Make sure we initialize the acked timestamp on the listener
-        //   correctly. Not sure if the newest_complete_timestamp is right for that
-        //   or if the listener has its own timestamp that it can load.
         coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
             d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
@@ -503,7 +500,6 @@ void broadcaster_t::spawn_write(const write_t &write,
         the write to every dispatchee. In particular, it's important
         that we don't check `interruptor` until the write is on its way
         to every dispatchee. */
-        // TODO! Receive this on the listener to bump the version of the local one
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
