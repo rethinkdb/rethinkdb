@@ -25,6 +25,11 @@ try:
 except AttributeError:
     izip_longest = itertools.zip_longest
 
+# -- global variables
+
+failure_count = 0
+passed_count = 0
+
 # -- timezone objects
 
 class UTCTimeZone(tzinfo):
@@ -54,11 +59,18 @@ class PacificTimeZone(tzinfo):
 # -- import driver
 
 r = utils.import_python_driver()
+print('Using RethinkDB client from: %s' % r.__file__)
 
 # -- get settings
 
+DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
+
+def print_debug(message):
+    if DEBUG_ENABLED:
+        sys.stderr.write('DEBUG: %s' % message.rstrip() + '\n')
+
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
-print('Using driver port: %d' % DRIVER_PORT)
+print_debug('Using driver port: %d' % DRIVER_PORT)
 
 required_external_tables = []
 if len(sys.argv) > 2 or os.environ.get('TEST_DB_AND_TABLE_NAME'):
@@ -77,11 +89,9 @@ required_external_tables.reverse() # setup for .pop()
 
 # -- utilities --
 
-failure_count = 0
-
 def print_test_failure(test_name, test_src, message):
     global failure_count
-    failure_count = failure_count + 1
+    failure_count += 1
     print('')
     print("TEST FAILURE: %s" % test_name.encode('utf-8'))
     print("TEST BODY:    %s" % test_src.encode('utf-8'))
@@ -306,12 +316,15 @@ class PyTestDriver:
         return r.connect(host='localhost', port=DRIVER_PORT)
 
     def define(self, expr, variable):
+        print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
             exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
     
     def run(self, src, expected, name, runopts, testopts):
+        global passed_count
+        
         if runopts:
             runopts["profile"] = True
         else:
@@ -340,9 +353,16 @@ class PyTestDriver:
         try:
             result = eval(src, self.scope)
             
+            # - collect the contents of a cursor
+            
+            if isinstance(result, r.Cursor):
+                print_debug('Evaluating cursor: %s %r' % (src, runopts))
+                result = [x for x in result]
+            
             # - run as a query if it is one
             
-            if isinstance(result, r.RqlQuery):
+            elif isinstance(result, r.RqlQuery):
+                print_debug('Running query: %s %r' % (src, runopts))
                 
                 # Check pretty-printing
                 
@@ -355,11 +375,16 @@ class PyTestDriver:
                     result = result["value"]
                 # ToDo: do something reasonable with the profile
             
+            else:
+                print_debug('Running: %s' % src)
+            
             # - Save variable if requested
             
             if 'variable' in testopts:
                 # ToDo: hadnle complex variables like: a[2]
                 self.scope[testopts['variable']] = result
+                if exp_val is None:
+                    return
         
         except Exception as err:
             result = err
@@ -371,8 +396,12 @@ class PyTestDriver:
                 print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (repr(result), str(result)))
             elif not eq(exp_val, **compOptions)(result):
                 print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            else:
+                passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
             print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+        else:
+            passed_count += 1
 
 driver = PyTestDriver()
 
@@ -424,7 +453,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, repr(res))
         r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
         
-        print('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
+        print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     
     globals()[table_variable_name] = r.db(db_name).table(table_name)
 
@@ -489,9 +518,10 @@ def float_cmp(expected_value):
     return Number(expected_value, explicit_type=float)
 
 def the_end():
-    global failure_count
     if failure_count > 0:
-        sys.exit("Failed %d tests" % failure_count)
+        sys.exit("Failed %d tests, passed %d" % (failure_count, passed_count))
+    else:
+        print("Passed all %d tests" % passed_count)
 
 false = False
 true = True

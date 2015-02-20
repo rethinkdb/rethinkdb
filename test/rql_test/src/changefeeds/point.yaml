@@ -107,23 +107,23 @@ tests:
     - cd: dtblPluck = dtbl.get(5).changes().pluck({'new_val':['red', 'blue']})['new_val']
       js: dtblPluck = dtbl.get(5).changes().pluck({'new_val':['red', 'blue']})('new_val')
     
-# disabled because inital value is not being reported correct, so gos missing. see #3732
+# disabled because inital value is not being reported correct, so goes missing. see #3723
 #    - cd: fetch(dtblPluck, 1)
 #      ot: [{'red':1}]
-    
-    - cd: dtbl.get(5).update({'blue':2, 'green':3})
-      ot: partial({'errors':0, 'replaced':1})
-    
-    - cd: fetch(dtblPluck, 1)
-      ot: [{'blue':2, 'red':1}]
+#    
+#    - cd: dtbl.get(5).update({'blue':2, 'green':3})
+#      ot: partial({'errors':0, 'replaced':1})
+#    
+#    - cd: fetch(dtblPluck, 1)
+#      ot: [{'blue':2, 'red':1}]
     
     # - rethinkdb.table_status bad optargs
     
-    - py: r.db('rethinkdb').table('table_status').changes(squash=False)
-      rb: r.db('rethinkdb').table('table_status').changes(squash:False)
-# disabled for JavaScript, re-enable once #3725 is done
+# disabled, re-enable once #3725 is done
+#    - py: r.db('rethinkdb').table('table_status').changes(squash=False)
+#      rb: r.db('rethinkdb').table('table_status').changes(squash:False)
 #      js: r.db('rethinkdb').table('table_status').changes({squash:False})
-      ot: err('RqlRuntimeError', 'replace with error message decided in \#3725')
+#      ot: err('RqlRuntimeError', 'replace with error message decided in \#3725')
     
     # - rethinkdb.table_status
     

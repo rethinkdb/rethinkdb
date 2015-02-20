@@ -210,17 +210,15 @@ tests:
       py: tbl.group(lambda row:row['a']).max(lambda row:row['id'])['id']
       js: tbl.group(function(row){return row('a')}).max(function(row){return row('id')})('id')
       ot:
-        py: ({0:96, 1:97, 2:98, 3:99})
+        cd: ({0:96, 1:97, 2:98, 3:99})
         js: ([{'group':0,'reduction':96},{'group':1,'reduction':97},{'group':2,'reduction':98},{'group':3,'reduction':99}])
-        rb: ({0=>96, 1=>97, 2=>98, 3=>99})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       py: tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
       js: tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
       ot:
-        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        cd: ({0:1200, 1:1225, 2:1250, 3:1275})
         js: ([{'group':0,'reduction':1200},{'group':1,'reduction':1225},{'group':2,'reduction':1250},{'group':3,'reduction':1275}])
-        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       runopts:
@@ -391,11 +389,13 @@ tests:
     - cd: tbl.distinct().count()
       ot: 100
 
-    - cd: tbl.distinct({index:'id'}).type_of()
+    - js: tbl.distinct({index:'id'}).type_of()
+      rb: tbl.distinct(:index=>'id').type_of()
       py: tbl.distinct(index='id').type_of()
       ot: ("STREAM")
 
-    - cd: tbl.distinct({index:'id'}).count()
+    - js: tbl.distinct({index:'id'}).count()
+      rb: tbl.distinct(:index=>'id').count()
       py: tbl.distinct(index='id').count()
       ot: 100
 
@@ -417,52 +417,56 @@ tests:
     - rb: tbl.index_wait('m2').pluck('index', 'ready')
       ot: ([{'index':'m2','ready':true}])
 
-    - cd: tbl.between(0, 1, {index:'a'}).distinct().count()
+    - js: tbl.between(0, 1, {index:'a'}).distinct().count()
+      rb: tbl.between(0, 1, :index=>'a').distinct().count()
       py: tbl.between(0, 1, index='a').distinct().count()
       ot: 25
 
-    - cd: tbl.between(0, 1, {index:'a'}).distinct({index:'id'}).count()
+    - js: tbl.between(0, 1, {index:'a'}).distinct({index:'id'}).count()
+      rb: tbl.between(0, 1, :index=>'a').distinct(:index=>'id').count()
       py: tbl.between(0, 1, index='a').distinct(index='id').count()
       ot: 25
 
-    - rb: tbl.between(0, 1, {index:'m'}).count()
+    - rb: tbl.between(0, 1, :index=>'m').count()
       ot: 50
 
-    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+    - rb: tbl.between(0, 1, :index=>'m').distinct().count()
       ot: 25
 
-    - rb: tbl.orderby({index:'m'}).count()
+    - rb: tbl.orderby(:index=>'m').count()
       ot: 200
 
-    - rb: tbl.orderby({index:'m'}).distinct().count()
+    - rb: tbl.orderby(:index=>'m').distinct().count()
       ot: 100
 
-    - rb: tbl.orderby({index:r.desc('m')}).count()
+    - rb: tbl.orderby(:index=>r.desc('m')).count()
       ot: 200
 
-    - rb: tbl.orderby({index:r.desc('m')}).distinct().count()
+    - rb: tbl.orderby(:index=>r.desc('m')).distinct().count()
       ot: 100
 
-    - rb: tbl.between(1, 3, {index:'m2'}).count()
+    - rb: tbl.between(1, 3, :index=>'m2').count()
       ot: 200
 
-    - rb: tbl.between(1, 3, {index:'m2'}).distinct().count()
+    - rb: tbl.between(1, 3, :index=>'m2').distinct().count()
       ot: 100
 
-    - rb: tbl.between(1, 3, {index:'m2'}).orderby(index:r.desc('m2')).distinct().count()
+    - rb: tbl.between(1, 3, :index=>'m2').orderby(index:r.desc('m2')).distinct().count()
       ot: 100
 
-    - rb: tbl.between(0, 1, {index:'m'}).count()
+    - rb: tbl.between(0, 1, :index=>'m').count()
       ot: 50
 
-    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+    - rb: tbl.between(0, 1, :index=>'m').distinct().count()
       ot: 25
 
-    - cd: tbl.distinct({index:'a'}).type_of()
+    - js: tbl.distinct({index:'a'}).type_of()
+      rb: tbl.distinct(:index=>'a').type_of()
       py: tbl.distinct(index='a').type_of()
       ot: ("STREAM")
 
-    - cd: tbl.distinct({index:'a'}).count()
+    - js: tbl.distinct({index:'a'}).count()
+      rb: tbl.distinct(:index=>'a').count()
       py: tbl.distinct(index='a').count()
       ot: 4
 
@@ -471,28 +475,28 @@ tests:
 
     - py: tbl.group(index='id').count()
       js: tbl.group({index:'id'}).count()
-      cd: tbl.group(index:'id').count
+      rb: tbl.group(:index=>'id').count
       runopts:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1], [11, 1], [12, 1], [13, 1], [14, 1], [15, 1], [16, 1], [17, 1], [18, 1], [19, 1], [20, 1], [21, 1], [22, 1], [23, 1], [24, 1], [25, 1], [26, 1], [27, 1], [28, 1], [29, 1], [30, 1], [31, 1], [32, 1], [33, 1], [34, 1], [35, 1], [36, 1], [37, 1], [38, 1], [39, 1], [40, 1], [41, 1], [42, 1], [43, 1], [44, 1], [45, 1], [46, 1], [47, 1], [48, 1], [49, 1], [50, 1], [51, 1], [52, 1], [53, 1], [54, 1], [55, 1], [56, 1], [57, 1], [58, 1], [59, 1], [60, 1], [61, 1], [62, 1], [63, 1], [64, 1], [65, 1], [66, 1], [67, 1], [68, 1], [69, 1], [70, 1], [71, 1], [72, 1], [73, 1], [74, 1], [75, 1], [76, 1], [77, 1], [78, 1], [79, 1], [80, 1], [81, 1], [82, 1], [83, 1], [84, 1], [85, 1], [86, 1], [87, 1], [88, 1], [89, 1], [90, 1], [91, 1], [92, 1], [93, 1], [94, 1], [95, 1], [96, 1], [97, 1], [98, 1], [99, 1]]})
 
     - py: tbl.group(index='a').count()
       js: tbl.group({index:'a'}).count()
-      rb: tbl.group(index:'a').count
+      rb: tbl.group(:index=>'a').count
       runopts:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     - py: tbl.group('a', index='id').count()
       js: tbl.group('a', {index:'id'}).count()
-      rb: tbl.group('a', index:'id').count
+      rb: tbl.group('a', :index=>'id').count
       runopts:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 1], [[0, 4], 1], [[0, 8], 1], [[0, 12], 1], [[0, 16], 1], [[0, 20], 1], [[0, 24], 1], [[0, 28], 1], [[0, 32], 1], [[0, 36], 1], [[0, 40], 1], [[0, 44], 1], [[0, 48], 1], [[0, 52], 1], [[0, 56], 1], [[0, 60], 1], [[0, 64], 1], [[0, 68], 1], [[0, 72], 1], [[0, 76], 1], [[0, 80], 1], [[0, 84], 1], [[0, 88], 1], [[0, 92], 1], [[0, 96], 1], [[1, 1], 1], [[1, 5], 1], [[1, 9], 1], [[1, 13], 1], [[1, 17], 1], [[1, 21], 1], [[1, 25], 1], [[1, 29], 1], [[1, 33], 1], [[1, 37], 1], [[1, 41], 1], [[1, 45], 1], [[1, 49], 1], [[1, 53], 1], [[1, 57], 1], [[1, 61], 1], [[1, 65], 1], [[1, 69], 1], [[1, 73], 1], [[1, 77], 1], [[1, 81], 1], [[1, 85], 1], [[1, 89], 1], [[1, 93], 1], [[1, 97], 1], [[2, 2], 1], [[2, 6], 1], [[2, 10], 1], [[2, 14], 1], [[2, 18], 1], [[2, 22], 1], [[2, 26], 1], [[2, 30], 1], [[2, 34], 1], [[2, 38], 1], [[2, 42], 1], [[2, 46], 1], [[2, 50], 1], [[2, 54], 1], [[2, 58], 1], [[2, 62], 1], [[2, 66], 1], [[2, 70], 1], [[2, 74], 1], [[2, 78], 1], [[2, 82], 1], [[2, 86], 1], [[2, 90], 1], [[2, 94], 1], [[2, 98], 1], [[3, 3], 1], [[3, 7], 1], [[3, 11], 1], [[3, 15], 1], [[3, 19], 1], [[3, 23], 1], [[3, 27], 1], [[3, 31], 1], [[3, 35], 1], [[3, 39], 1], [[3, 43], 1], [[3, 47], 1], [[3, 51], 1], [[3, 55], 1], [[3, 59], 1], [[3, 63], 1], [[3, 67], 1], [[3, 71], 1], [[3, 75], 1], [[3, 79], 1], [[3, 83], 1], [[3, 87], 1], [[3, 91], 1], [[3, 95], 1], [[3, 99], 1]]})
 
     - py: tbl.group('a', index='a').count()
       js: tbl.group('a', {index:'a'}).count()
-      rb: tbl.group('a', index:'a').count
+      rb: tbl.group('a', :index=>'a').count
       runopts:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
@@ -513,7 +517,7 @@ tests:
 
     - py: tbl.order_by(index='id').limit(16).group('a','a').map(r.row['id']).sum().ungroup()
       js: tbl.order_by({index:'id'}).limit(16).group('a','a').map(r.row('id')).sum().ungroup()
-      rb: tbl.order_by(index:'id').limit(16).group('a','a').map{|row| row['id']}.sum().ungroup()
+      rb: tbl.order_by(:index=>'id').limit(16).group('a','a').map{|row| row['id']}.sum().ungroup()
       ot: ([{'group':[0,0],'reduction':24},{'group':[1,1],'reduction':28},{'group':[2,2],'reduction':32},{'group':[3,3],'reduction':36}])
 
     - cd: tbl.group('a', null).count().ungroup()
@@ -528,8 +532,8 @@ tests:
     - cd: tbl.count()
       ot: 100
 
-    - rb: tbl.filter{|row| row['a'].ne(1).and(row['id'].gt(10))}.update{|row| {b:row['a'] * 10}}['replaced']
-      ot: 67
+    - rb: tbl.filter{|row| row['a'].ne(1).and(row['id'].gt(10))}.update{|row| {'b'=>row['a'] * 10}}
+      ot: partial({'errors':0, 'replaced':67})
 
     - rb: tbl.group('b').count
       ot: ({null=>33, 0=>22, 20=>22, 30=>23})
@@ -552,21 +556,21 @@ tests:
     - cd: tbl.min()
       ot: ({'a':0,'id':0})
     - py: tbl.min(index='id')
-      rb: tbl.min(index:'id')
+      rb: tbl.min(:index=>'id')
       js: tbl.min({index:'id'})
       ot: ({'a':0,'id':0})
     - py: tbl.min(index='a')
-      rb: tbl.min(index:'a')
+      rb: tbl.min(:index=>'a')
       js: tbl.min({index:'a'})
       ot: ({'a':0,'id':0})
 
     - cd: tbl.max().without('b')
       ot: ({'a':3,'id':99})
     - py: tbl.max(index='id').without('b')
-      rb: tbl.max(index:'id').without('b')
+      rb: tbl.max(:index=>'id').without('b')
       js: tbl.max({index:'id'}).without('b')
       ot: ({'a':3,'id':99})
     - py: tbl.max(index='a').without('b')
-      rb: tbl.max(index:'a').without('b')
+      rb: tbl.max(:index=>'a').without('b')
       js: tbl.max({index:'a'}).without('b')
       ot: ({'a':3,'id':99})

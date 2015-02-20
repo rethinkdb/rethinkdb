@@ -12,7 +12,7 @@ tests:
     
     - cd: tbl.insert([{'id':1}, {'id':2}])
       ot: partial({'errors':0, 'inserted':2})
-    - cd: fetch(all, 1)
+    - cd: fetch(all, 2)
       ot: bag([{'old_val':null, 'new_val':{'id':1}}, {'old_val':null, 'new_val':{'id':2}}])
     
     # - updates
@@ -31,8 +31,12 @@ tests:
     
     # - pluck on values
     
+    - cd: pluck = tbl.get(2).changes().pluck({'new_val':['id']})
+    - cd: tbl.get(2).update({'update':True})
+      ot: partial({'errors':0, 'replaced':1})
+    - cd: fetch(pluck, 2)
+      ot: [{'new_val':{'id':2}}, {'new_val':{'id':2}}]
     
-
     # - changes overflow
 #      
 # ToDo: enable this when we can reduce the number of items to generate the overflow

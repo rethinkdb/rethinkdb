@@ -1,18 +1,19 @@
 desc: Test duplicate indexes with squashing
 table_variable_name: tbl
 tests:
-    - rb: tbl.index_create('a')['created']
-      ot: 1
-    
+    - rb: tbl.index_create('a')
+      ot: partial({'created':1})
+      
     - rb: changes = tbl.orderby(index:'a').limit(10).changes.limit(9)
+    - rb: tbl.insert((0...12).map{|i| {id:i, a:5}})
+      ot: partial({'inserted':12, 'errors':0})
     
-    - rb: tbl.insert((0...12).map{|i| {id:i, a:5}})['inserted']
-      ot: 12
-    
-    - rb: tbl.get_all(0, 1, 8, index:'id').delete['deleted']
-      ot: 3
-    - rb: fetch(changes)
-      ot: bag([{"new_val"=>{"a"=>5, "id"=>2}, "old_val"=>nil},
+    - rb: tbl.get_all(0, 1, 8, index:'id').delete
+      ot: partial({'deleted':3, 'errors':0})
+      
+    - rb: changes
+      ot: bag([
+            {"new_val"=>{"a"=>5, "id"=>2}, "old_val"=>nil},
             {"new_val"=>{"a"=>5, "id"=>3}, "old_val"=>nil},
             {"new_val"=>{"a"=>5, "id"=>4}, "old_val"=>nil},
             {"new_val"=>{"a"=>5, "id"=>5}, "old_val"=>nil},
@@ -21,5 +22,3 @@ tests:
             {"new_val"=>{"a"=>5, "id"=>9}, "old_val"=>nil},
             {"new_val"=>{"a"=>5, "id"=>10}, "old_val"=>nil},
             {"new_val"=>{"a"=>5, "id"=>11}, "old_val"=>nil}])
-      testopts:
-        reql-query: False

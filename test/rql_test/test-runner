@@ -63,9 +63,7 @@ signal.signal(signal.SIGINT, setCancelRun)
 
 # --
 
-# A test script src language
-# This class attempts to abstract some of the details that
-# separate our source languages.
+# This class attempts to abstract some of the details that separate our source languages.
 class SrcLang(object):
     test_types = None
     display_name = None
@@ -87,14 +85,18 @@ class SrcLang(object):
     none_string = 'None'
     line_comment = '#'
     
-    quote_regex = re.compile(r'^(?P<quoteChar>[\'\"]?)(?P<content>.+?)(?P=quoteChar)(?P<extra>.*)$')
-    none_regex = re.compile(r"(?<!\"|')(?:\b)(None|null|nil)(?:\b)(?<!\"|')")
+    lang_replaces = {}
+    lang_regex = None # set in __new__
     
     # -- class variables
     
     _singletons = {}
     
     def __new__(cls, version=''):
+        
+        if cls.lang_regex == None:
+            cls.lang_regex = re.compile(r'''(?P<quoteChar>["']?)\b(?P<target>%s)\b(?P=quoteChar)''' % '|'.join(cls.lang_replaces.keys()))
+        
         singletonName = cls.__name__
         if version not in (None, ''):
             singletonName = "%s-%s" % (cls.__name__, str(version))
@@ -105,48 +107,38 @@ class SrcLang(object):
     def __init__(self):
         self.instance_setup = True
 
-    # Converts input value into the appropriate string
-    # representation for this language.
-    def langrepr(self, val):
-        return repr(str(val))
-
     # Translates names from canonical name representation
     # (underscores) to the convention for this language
     def nametranslate(self, name):
-        return name
+        return name.replace('__', '_')
 
     # Translates dictionary (object) representation from canonical
     # form (e.g. "{'a':1}") to the appropriate representation for this
     # language
-    def dicttranslate(self, dic):
+    def dict_translate(self, dic):
         return dic
 
-    # Translates 'null' from YAML (including pre-translated to 'None') to language equivalents
-    def nulltranslate(self, content):
+    @classmethod
+    def term_translate(cls, content):
+        '''translate language-specific terms, unless alone in quotes or part of a word'''
         
-        # pull it out of the outermost quote strings to prevent mis-matches on quoted items
-        
-        quoteChar = ''
-        
-        match = self.quote_regex.match(content)
-        if match is not None and match.group('extra') == '':
-            quoteChar = match.group('quoteChar')
-            content = match.group('content')
-        
-        # translate None or null, unless it is alone in quotes, or part of a word
-        
-        return quoteChar + self.none_regex.sub(self.none_string, content) + quoteChar
+        def nullReplaceFunction(match):
+            if match.group('quoteChar') in (None, ''):
+                return cls.lang_replaces.get(match.group('target')) or match.group('target')
+            else:
+                return match.group()
+        return cls.lang_regex.sub(nullReplaceFunction, content)
     
     # Translate a generic code string using the rules defined by `self`
-    def translate_query(self, src, encode=True):
-        encoded = src
-        if encode is True:
-             encoded = self.langrepr(src)
-        return self.dicttranslate(self.nametranslate(self.nulltranslate(encoded)))
-
-    # Translate an expected value
-    def translate_expected(self, src):
-        return self.dicttranslate(self.nulltranslate(self.langrepr(src)))
+    def translate_query(self, src, quote=True, name=False):
+        result = self.dict_translate(self.term_translate(unicode(src).strip()))
+        if name:
+            result = self.nametranslate(result)
+        if quote:
+            result = repr(result)
+            if len(result) > 1 and result[:2] in ('u"', "u'"):
+                result = result[1:]
+        return result
     
     @property
     def interpreter_path(self):
@@ -222,6 +214,11 @@ class PyLang(SrcLang):
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
     
+    lang_replaces = {
+        'null': 'None',
+        'nil': 'None'
+    }
+    
     def __init__(self, version, interpreter_env_name='PYTHON'):
         if self.instance_setup is True:
             return
@@ -249,17 +246,6 @@ class PyLang(SrcLang):
                 workingVersion = os.path.splitext(workingVersion)[0]
         self.test_types.append('py')
         self.interpreter_name_exe_names.append('python')
-    
-    def langrepr(self, val):
-        encoded = None
-        if not isinstance(val, unicode):
-            encoded = repr(str(val))
-        else:
-            encoded = repr(unicode(val))
-        if distutils.version.LooseVersion('3.0') <= self.interpreter_version and self.interpreter_version < distutils.version.LooseVersion('3.3'):
-            if len(encoded) > 2 and encoded[:2] in ('u"', "u'"):
-                encoded = encoded[1:]
-        return encoded
     
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -289,24 +275,37 @@ class JsLang(SrcLang):
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
-    none_string = 'null'
+    lang_replaces = {
+        'None': 'null',
+        'nil': 'null',
+        'True': 'true',
+        'False': 'false'
+    }
     line_comment = '//'
     
-    nametranslate_regex = re.compile(r"(?<!\"|')(?:\b)(?P<pre>[a-z]+)_(?P<post>[a-z]+)(?:\b)(?<!\"|')")
-
-    def langrepr(self, val):
-        if isinstance(val, str):
-            return repr(val)
-        elif isinstance(val, unicode):
-            return repr(val)[1:] # Get rid of the 'u'
-        elif isinstance(val, bool):
-            return ("true" if val else "false")
-        else:
-            return repr(str(val))
-
+    nametranslate_regex = re.compile(r"(?P<quoteChar>[\"\'\`]?)\$?\b[a-z$]+(_[a-z$]+)+\b\$?(?P=quoteChar)")
+    
     # Converts canonical form (underscore separation) to camel case
-    def nametranslate(self, name):
-        name = re.sub(self.nametranslate_regex, lambda x: x.group('pre') + x.group('post').title(), name)
+    @classmethod
+    def nametranslate(cls, name):
+        def replaceFnct(match):
+            if match.group('quoteChar') not in (None, ''):
+                return match.group()
+            returnStr = ''
+            upCase = False
+            for char in match.group():
+                if upCase:
+                    upCase = False
+                    returnStr += char.upper()
+                else:
+                    if char == '_':
+                        upCase = True
+                    else:
+                        upCase = False
+                        returnStr += char
+            return returnStr
+        
+        name = re.sub(cls.nametranslate_regex, replaceFnct, name)
         return re.sub('__', '_', name)
     
     def get_interpreter_version(self, executablePath):
@@ -332,7 +331,13 @@ class RbLang(SrcLang):
     driver_build_env_name = 'RUBY_DRIVER_DIR'
     driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
-    none_string = 'nil'
+    lang_replaces = {
+        'None': 'nil',
+        'null': 'nil',
+        'True': 'true',
+        'False': 'false'
+    }
+    
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
     
     def __init__(self, version, interpreter_env_name='RUBY'):
@@ -362,24 +367,96 @@ class RbLang(SrcLang):
                 workingVersion = os.path.splitext(workingVersion)[0]
         self.test_types.append('rb')
         self.interpreter_name_exe_names.append('ruby')
-    
-    def rb_str_repr(self, string):
-        return ('"' + re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string)) + '"')
 
-    def langrepr(self, val):
-        if isinstance(val, str):
-            return self.rb_str_repr(val)
-        elif isinstance(val, unicode):
-            return re.sub("\\$", "\\$", repr(val)[1:]) # Get rid of the 'u'
-        elif isinstance(val, bool):
-            return ("true" if val else "false")
-        else:
-            return repr(str(val))
-
-    def dicttranslate(self, dic):
-        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':", ":\'\\1\'=>", dic)
-        dicnew = re.sub("\\\\n$", "\n", dicnew)
-        return dicnew
+    @classmethod
+    def dict_translate(cls, source):
+        '''Given a string, find things that look like Python-esque dicts and translate them to ruby syntax'''
+        
+        levelChars = {
+            '}':'{',
+            ']':'[',
+            ')':'(',
+            '"':'"',
+            "'":"'"
+        }
+        
+        stateStack = []
+        escaped = False
+        source = list(unicode(source))
+        length = len(source)
+        for pos, char in enumerate(source):
+            
+            # in a quote
+            if len(stateStack) > 0 and stateStack[-1] in ('"', "'"):
+                if escaped == True:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == stateStack[-1]:
+                    stateStack.pop()
+            
+            # start of level
+            elif char in levelChars.values():
+                stateStack.append(char)
+            
+            # skip everything not in a level
+            elif len(stateStack) == 0:
+                continue
+            
+            # end of non-dict level
+            elif char in levelChars.keys() and stateStack[-1] == levelChars[char]:
+                stateStack.pop()
+            
+            # canidate points
+            elif char == ':' and stateStack[-1] == '{':
+                
+                # check that to the right and left look good
+                validPreChars = tuple(string.letters)
+                validPostChars = validPreChars + tuple(string.digits) + tuple(levelChars.values()) + ('+', '-')
+                try:
+                    # look at the preceding characters to see if this looks valid
+                    startedWord = False
+                    for i in xrange(1, pos):
+                        checkChar = source[pos - i]
+                        
+                        if checkChar in string.whitespace:
+                            if startedWord:
+                                break
+                            continue
+                        elif checkChar in string.digits: # {a0:4} is valid, {5:4} is not
+                            startedWord = True
+                            continue
+                        elif checkChar in ('"', "'"):
+                            break # this we need to translate
+                        elif checkChar in validPreChars:
+                            raise Exception() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
+                        else:
+                            if startedWord:
+                                break
+                            raise Exception()
+                    else:
+                        raise Exception()
+                    
+                    # look at the following characters to make sure that looks good too
+                    for i in xrange(pos + 1, length):
+                        checkChar = source[i]
+                        if checkChar in string.whitespace:
+                            continue
+                        elif checkChar in validPostChars:
+                            break
+                        else:
+                            raise Exception()
+                    else:
+                        raise Exception()
+                    
+                    # passed both tests, replace it
+                    source[pos] = '=>'
+                    
+                except Exception: pass
+        
+        # - return the string
+        
+        return ''.join(source)
     
     def get_interpreter_version(self, executablePath):
         '''Return the version string for this interpreter'''
@@ -420,10 +497,10 @@ interpreters = {
 class TestGroup(object):
     
     testLanguageEntry = collections.namedtuple('testLanguageEntry', ['command', 'expected', 'definition', 'runopts', 'testopts'])
-    variableRegex = re.compile('^\s*(?P<quoteChar>[\'\"]*)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)$')
+    variableRegex = re.compile(r'^\s*(?P<quoteChar>[\'\"]?)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)(?P=quoteChar)\s*$', flags=re.DOTALL | re.MULTILINE)
     
     @classmethod
-    def buildYamlTest(cls, testName, sourceFile, language, outputPath, shards=1, useSpecificTable=False):
+    def buildYamlTest(cls, testName, sourceFile, lang, outputPath, shards=1, useSpecificTable=False):
     
         # -- input validation
         
@@ -440,12 +517,12 @@ class TestGroup(object):
         if not os.path.isfile(sourceFile):
             raise ValueError('buildYamlTest requires a sourceFile, got: %s' % str(sourceFile))
         
-        # language
+        # lang
         
-        if language is None:
-            raise ValueError('buildYamlTest requires a language, got None')
-        if not isinstance(language, SrcLang):
-            raise ValueError('buildYamlTest requires a subclass of SrcLang, got %s' % language)
+        if lang is None:
+            raise ValueError('buildYamlTest requires a lang, got None')
+        if not isinstance(lang, SrcLang):
+            raise ValueError('buildYamlTest requires a subclass of SrcLang, got %s' % lang)
         
         # outputPath
         
@@ -475,27 +552,27 @@ class TestGroup(object):
             
             # - write the shebang line
             
-            outputFile.write('#!%s\n' % language.interpreter_path)
+            outputFile.write('#!%s\n' % lang.interpreter_path)
             
             # - write in the encoding (mostly for Python2.6)
             
-            outputFile.write('%s -*- coding: utf-8 -*-\n\n' % language.line_comment)
+            outputFile.write('%s -*- coding: utf-8 -*-\n\n' % lang.line_comment)
             
             # - mark start of the header/driver
             
-            outputFile.write('%s ========== Start of common test functions ==========\n\n' % language.line_comment)
+            outputFile.write('%s ========== Start of common test functions ==========\n\n' % lang.line_comment)
             
             # - insert a marker telling what test this is
             
-            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (language.line_comment, testName, language.display_name, parsed_data.get('desc', ''), sourceFile))
+            outputFile.write('\n%s Tests %s (%s): %s (%s)\n\n' % (lang.line_comment, testName, lang.display_name, parsed_data.get('desc', ''), sourceFile))
             
             # - write the header
             
-            outputFile.write(language.polyglot_language_header)
+            outputFile.write(lang.polyglot_language_header)
             
             # - generate the table setup lines
             
-            outputFile.write('%s -- Table Creation\n\n' % language.line_comment)
+            outputFile.write('%s -- Table Creation\n\n' % lang.line_comment)
             
             if "table_variable_name" in parsed_data:
                 variableNames = parsed_data['table_variable_name']
@@ -505,22 +582,22 @@ class TestGroup(object):
                 for index, variableName in enumerate(variableNames):
                     db_name, table_name = utils.get_test_db_table(tableName=testName, index=index)
                     outputFile.write("setup_table(%s, %s, %s)\n" % (
-                        language.langrepr(variableName),
-                        language.langrepr(table_name),
-                        language.langrepr(db_name)
+                        lang.translate_query(variableName, name=True),
+                        lang.translate_query(table_name),
+                        lang.translate_query(db_name)
                     ))
                 outputFile.write('\n')
             else:
-               outputFile.write('%s No auto-created tables' % language.line_comment)
+               outputFile.write('%s No auto-created tables\n\n' % lang.line_comment)
             
             # - mark end of the header/driver
             
-            outputFile.write('%s ========== End of common test functions ==========\n\n' % language.line_comment)
+            outputFile.write('%s ========== End of common test functions ==========\n\n' % lang.line_comment)
             
             # - add the body of the tests
             
             for testNumber, test in enumerate(parsed_data['tests'], start=0):
-                cls.write_test(testName, outputFile, test, language, str(testNumber), shards=shards)
+                cls.write_test(testName, outputFile, test, lang, str(testNumber), shards=shards)
             
             outputFile.write('\n\n')
             
@@ -541,11 +618,12 @@ class TestGroup(object):
         try:
             testCode = cls.get_lang_entries(test, lang)
         except Exception as e:
+            debug(traceback.format_exc())
             raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
         
         # Does this test define a variable?
         if testCode.definition:
-            cls.write_def(testName, out, testCode.definition)
+            cls.write_def(testName, lang, out, testCode.definition)
         
         # Write the commands
         if testCode.command:
@@ -553,16 +631,16 @@ class TestGroup(object):
                 
                 variableMatch = cls.variableRegex.match(test_case)
                 if variableMatch:
-                    testCode.testopts['variable'] = variableMatch.group('variableName')
-                    test_case = variableMatch.group('quoteChar') + variableMatch.group('expression')
+                    testCode.testopts['variable'] = lang.nametranslate(variableMatch.group('variableName'))
+                    test_case = variableMatch.group('expression')
                 
                 try:
-                    out.write("test(%(code)s, %(expected)s, '%(name)s', %(driveropts)s, %(testopts)s)\n" % {
-                        'code': test_case,
-                        'expected': testCode.expected or '""',
-                        'name': testName,
-                        'driveropts': lang.translate_query(repr(testCode.runopts), encode=False),
-                        'testopts': lang.translate_query(repr(testCode.testopts), encode=False)
+                    out.write("test(%(code)s, %(expected)s, %(name)s, %(driveropts)s, %(testopts)s)\n" % {
+                        'code': lang.translate_query(test_case, name=True),
+                        'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
+                        'name': repr(testName),
+                        'driveropts': lang.translate_query(testCode.runopts, quote=False),
+                        'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })
                     
                     # We want to auto-shard tables that we create. There is still no
@@ -575,10 +653,11 @@ class TestGroup(object):
                             table_name = mo.group(1)
                             out.write('shard("%s")\n' % table_name)
                 except Exception as e:
+                    debug(traceback.format_exc())
                     raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(testCode.command), str(e)))
 
     @classmethod
-    def write_def(cls, testName, out, defs):
+    def write_def(cls, testName, lang, out, defs):
         for definition in defs:
             variableString = ''
             
@@ -588,19 +667,19 @@ class TestGroup(object):
             if not variableMatch:
                 raise Exception('Error while processing test %s: def entry missing variable name: %s' % (testName, str(definition)))
             
-            variableString = variableMatch.group('variableName')
-            definition = variableMatch.group('quoteChar') + variableMatch.group('expression')
+            variableString = lang.translate_query(variableMatch.group('variableName'), name=True)
+            definition = lang.translate_query(variableMatch.group('expression'), name=True)
             
             # write the output
             
-            out.write('define(%s, "%s")\n' % (definition, variableString))
+            out.write('define(%s, %s)\n' % (definition, variableString))
     
     # Tests may specify generic test strings valid for all languages or language specific versions
     @classmethod
     def get_lang_entries(cls, source, lang, default='command'):
         assert default in ('command', 'expected', 'definition'), 'get_lang_entries requires that default be one of : command, expected, or definition'
         
-        results = { 'command': None, 'definition': None, 'expected': None, 'runopts': {}, 'testopts':{} }
+        results = { 'command':None, 'definition':None, 'expected':None, 'runopts':{}, 'testopts':{} }
         
         if source is None:
             pass
@@ -615,12 +694,12 @@ class TestGroup(object):
             if default != 'expected' and hasattr(source, '__iter__') and not hasattr(source, 'capitalize'):
                 results[default] = []
                 for item in source:
-                    results[default].append(string.Template(lang.translate_query(item)).safe_substitute({'langcode': langcode}))
+                    results[default].append(item)
             else:
                 if default == 'expected':
-                    results['expected'] = string.Template(lang.translate_expected(source)).safe_substitute({'langcode': langcode})
+                    results['expected'] = source
                 else:
-                    results[default] = [string.Template(lang.translate_query(source)).safe_substitute({'langcode': langcode})]
+                    results[default] = [source]
         else:
             if default == 'command':
                 
@@ -630,18 +709,17 @@ class TestGroup(object):
                 if 'testopts' in source:
                     results['testopts'].update(source['testopts'])
                 
-                # command
-                
-                for langCode in lang.test_types + ['cd']:
-                    if langCode in source:
-                        results = cls.combineLangEntries(results, cls.get_lang_entries(source[langCode], lang, 'command'))
-                        break
-                
                 # def and ot
                 if 'def' in source:
                     results = cls.combineLangEntries(results, cls.get_lang_entries(source['def'], lang, 'definition'))
                 if 'ot' in source:
                     results = cls.combineLangEntries(results, cls.get_lang_entries(source['ot'], lang, 'expected'))
+                
+                # command
+                for langCode in lang.test_types + ['cd']:
+                    if langCode in source:
+                        results = cls.combineLangEntries(results, cls.get_lang_entries(source[langCode], lang, 'command'))
+                        break
                     
             elif default == 'expected':
                 for langCode in lang.test_types + ['cd']:
@@ -678,12 +756,13 @@ class TestGroup(object):
         # combine them, keeping any non-None entries from right
         returnDict = {}
         for key in set(right.keys() + left.keys()): # should be the same, but...
-            if key in ('runopts', 'testopts') and any([left.get(key), right.get(key)]):
-                returnValue = left.get(key) or {}
-                returnValue.update(right.get(key) or {})
-                returnDict[key] = returnValue
-            else:
-                returnDict[key] = right.get(key) or left.get(key)
+            val = right.get(key)
+            if val in (None, [], {}):
+                val = left.get(key)
+            if key in ('runopts', 'testopts') and val is None:
+                val = {}
+            returnDict[key] = val
+        
         return returnDict
 
 class RethinkDBRunningServer(object):
@@ -993,7 +1072,7 @@ class YamlTest(Test):
         
         self.path = os.path.join(self.buildFolder, self.name.replace('/', '.'))
         
-        TestGroup.buildYamlTest(testName=self.name, sourceFile=self.srcPath, language=self.driverLang, outputPath=self.path, shards=self.shards)
+        TestGroup.buildYamlTest(testName=self.name, sourceFile=self.srcPath, lang=self.driverLang, outputPath=self.path, shards=self.shards)
         
 def getTestList(rootPath, languages, testFilters=None, shards=0):
     '''Get a list of Test objects for tests found in the given folder'''
@@ -1189,6 +1268,10 @@ class WorkerThread(threading.Thread):
             else:
                 r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
             
+            # -- clean rethinkdb._debug_scratch
+            
+            r.db('rethinkdb').table('_debug_scratch').delete().run(self.reqlConnection)
+            
             # -- remove any other connected servers
             
             r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
@@ -1238,7 +1321,7 @@ class WorkerThread(threading.Thread):
                 try:
                     test.setupTest()
                 except Exception as e:
-                    traceback.print_exc()
+                    debug(traceback.format_exc())
                     test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
                     self.outputQueue.put((test.status, test))
                     continue
@@ -1249,6 +1332,7 @@ class WorkerThread(threading.Thread):
                     self.outputQueue.put(('running', test))
                     test.startTest(server=self.server)
                 except Exception as e:
+                    debug(traceback.format_exc())
                     test.endTest(errorMessage='Failed starting test', errorDetails=traceback.format_exc())
                     self.outputQueue.put((test.status, test))
                     continue
@@ -1278,6 +1362,7 @@ class WorkerThread(threading.Thread):
                                 break
                             time.sleep(.1)
                         except Exception as e:
+                            debug(traceback.format_exc())
                             test.endTest(errorMessage='Exception while monitoring', errorDetails=traceback.format_exc())
                             self.outputQueue.put((test.status, test))
                             break
@@ -1324,7 +1409,7 @@ class WorkerThread(threading.Thread):
                 self.server = None
         
         except Exception as e:
-            traceback.print_exc()
+            debug(traceback.format_exc())
             raise Warning("Worker failure: " + unicode(e))
 
 def main():
