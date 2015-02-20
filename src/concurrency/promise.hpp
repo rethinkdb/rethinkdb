@@ -20,6 +20,12 @@ public:
         cond.pulse();
     }
 
+    void pulse_if_not_already_pulsed(const val_t &v) {
+        if (!is_pulsed()) {
+            pulse(v);
+        }
+    }
+
     const val_t &wait() const {
         assert_thread();
         cond.wait_lazily_unordered();

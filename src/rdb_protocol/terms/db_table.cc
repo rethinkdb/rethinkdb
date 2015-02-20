@@ -637,35 +637,21 @@ private:
         return datum_arg;
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
-        std::string index_str = index ? index->as_str().to_std() : "";
-        if (index && index_str != table->get_pkey()) {
-            std::vector<counted_t<datum_stream_t> > streams;
-            for (size_t i = 1; i < args->num_args(); ++i) {
-                datum_t key = get_key_arg(args->arg(env, i));
-                counted_t<datum_stream_t> seq =
-                    table->get_all(env->env, key, index_str, backtrace());
-                streams.push_back(seq);
-            }
-            counted_t<datum_stream_t> stream
-                = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
-            return new_val(make_counted<selection_t>(table, stream));
-        } else {
-            datum_array_builder_t arr(env->env->limits());
-            for (size_t i = 1; i < args->num_args(); ++i) {
-                datum_t key = get_key_arg(args->arg(env, i));
-                datum_t row = table->get_row(env->env, key);
-                if (row.get_type() != datum_t::R_NULL) {
-                    arr.add(row);
-                }
-            }
-            counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(std::move(arr).to_datum(),
-                                                     backtrace());
-            return new_val(make_counted<selection_t>(table, stream));
+        std::string index_str = index ? index->as_str().to_std() : table->get_pkey();
+        std::vector<counted_t<datum_stream_t> > streams;
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            datum_t key = get_key_arg(args->arg(env, i));
+            counted_t<datum_stream_t> seq =
+                table->get_all(env->env, key, index_str, backtrace());
+            streams.push_back(seq);
         }
+        counted_t<datum_stream_t> stream = make_counted<union_datum_stream_t>(
+            env->env, std::move(streams), backtrace());
+        return new_val(make_counted<selection_t>(table, stream));
     }
     virtual const char *name() const { return "get_all"; }
 };

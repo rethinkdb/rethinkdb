@@ -2,94 +2,15 @@
 #include <functional>
 #include <stdexcept>
 
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/rdb_env.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
-
-void add_string_arg(Term *term, const std::string &str) {
-    Term *arg = term->add_args();
-    arg->set_type(Term::DATUM);
-    Datum *datum = arg->mutable_datum();
-    datum->set_type(Datum::R_STR);
-    datum->set_r_str(str);
-}
-
-void add_db_arg(Term *term, const std::string &db_name) {
-    Term *arg = term->add_args();
-    arg->set_type(Term::DB);
-    add_string_arg(arg, db_name);
-}
-
-void add_table_arg(Term *term, const std::string &db_name, const std::string &table_name) {
-    Term *arg = term->add_args();
-    arg->set_type(Term::TABLE);
-    add_db_arg(arg, db_name);
-    add_string_arg(arg, table_name);
-}
-
-Term *add_term_arg(Term *term, Term::TermType type) {
-    Term *new_term = term->add_args();
-    new_term->set_type(type);
-    return new_term;
-}
-
-Datum *add_object_arg(Term *term) {
-    Term *arg = term->add_args();
-    arg->set_type(Term::DATUM);
-    Datum *datum = arg->mutable_datum();
-    datum->set_type(Datum::R_OBJECT);
-    return datum;
-}
-
-void add_object_str(Datum *datum, const std::string &key, const std::string &value) {
-    guarantee(datum->type() == Datum::R_OBJECT);
-    Datum_AssocPair *pair = datum->add_r_object();
-    pair->set_key(key);
-    Datum *pair_value = pair->mutable_val();
-    pair_value->set_type(Datum::R_STR);
-    pair_value->set_r_str(value);
-}
-
-void add_object_bool(Datum *datum, const std::string &key, bool value) {
-    guarantee(datum->type() == Datum::R_OBJECT);
-    Datum_AssocPair *pair = datum->add_r_object();
-    pair->set_key(key);
-    Datum *pair_value = pair->mutable_val();
-    pair_value->set_type(Datum::R_BOOL);
-    pair_value->set_r_bool(value);
-}
-
-void add_object_num(Datum *datum, const std::string &key, double value) {
-    guarantee(datum->type() == Datum::R_OBJECT);
-    Datum_AssocPair *pair = datum->add_r_object();
-    pair->set_key(key);
-    Datum *pair_value = pair->mutable_val();
-    pair_value->set_type(Datum::R_NUM);
-    pair_value->set_r_num(value);
-}
-
-Datum *add_object_array_item(Datum *datum, const std::string &key, Datum::DatumType item_type) {
-    guarantee(datum->type() == Datum::R_OBJECT);
-    Datum_AssocPair *pair = datum->add_r_object();
-    pair->set_key(key);
-    Datum *pair_value = pair->mutable_val();
-    pair_value->set_type(item_type);
-    return pair_value;
-}
-
-Datum *add_object_object(Datum *datum, const std::string &key) {
-    guarantee(datum->type() == Datum::R_OBJECT);
-    Datum_AssocPair *pair = datum->add_r_object();
-    pair->set_key(key);
-    Datum *pair_value = pair->mutable_val();
-    pair_value->set_type(Datum::R_OBJECT);
-    return pair_value;
-}
 
 class count_callback_t : public ql::env_t::eval_callback_t {
 public:
@@ -150,7 +71,7 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
 
     ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
     UNUSED scoped_ptr_t<ql::val_t> result = compiled_term->eval(&scope_env);
-    rassert(*count_out > 0);
+    guarantee(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
 }
 
@@ -169,60 +90,56 @@ void interrupt_test(test_rdb_env_t *test_env,
     try {
         ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
         UNUSED scoped_ptr_t<ql::val_t> result = compiled_term->eval(&scope_env);
+        guarantee(false);
     } catch (const interrupted_exc_t &ex) {
-        guarantee(verify_callback->verify(env_instance.get()));
-        return;
+        // Do nothing
     }
-    guarantee(false);
+    guarantee(verify_callback->verify(env_instance.get()));
 }
 
 class exists_verify_callback_t : public verify_callback_t {
 public:
-    exists_verify_callback_t(const database_id_t &_db_id, const std::string &_table_name,
-            bool _should_exist, const std::string& _key) :
-        key("S" + _key),
-        db_id(_db_id),
-        should_exist(_should_exist)
-    {
-        if (!table_name.assign_value(_table_name)) {
-            throw invalid_name_exc_t(_table_name);
-        }
-    }
+    exists_verify_callback_t(const std::string &_db_name,
+                             const std::string &_table_name,
+                             const ql::datum_t &_key,
+                             bool _should_exist) :
+        key(_key.print_primary()),
+        db_name(name_string_t::guarantee_valid(_db_name.c_str())),
+        table_name(name_string_t::guarantee_valid(_table_name.c_str())),
+        should_exist(_should_exist) { }
+
     virtual ~exists_verify_callback_t() { }
 
     bool verify(test_rdb_env_t::instance_t *env_instance) {
-        const std::map<store_key_t, scoped_cJSON_t *> *data =
-            env_instance->get_data(db_id, table_name);
+        const std::map<store_key_t, ql::datum_t> *data =
+            env_instance->get_data(db_name, table_name);
         bool exists = data->find(key) != data->end();
         return should_exist == exists;
     }
 
 private:
     const store_key_t key;
-    const database_id_t db_id;
-    name_string_t table_name;
+    const name_string_t db_name;
+    const name_string_t table_name;
     const bool should_exist;
 };
 
 TEST(RDBInterrupt, InsertOp) {
-    ql::protob_t<Term> insert_proto = ql::make_counted_term();
     uint32_t eval_count;
 
-    insert_proto->set_type(Term::INSERT);
-    add_table_arg(insert_proto.get(), "db", "table");
+    ql::datum_object_builder_t row;
+    row.overwrite("id", ql::datum_t(datum_string_t("key")));
+    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
 
-    {
-        Datum *object = add_object_arg(insert_proto.get());
-        add_object_str(object, "id", "key");
-        add_object_str(object, "value", "stuff");
-    }
+    ql::protob_t<const Term> insert_proto =
+        ql::r::db("db").table("table").insert(std::move(row).to_datum()).release_counted();
 
     {
         test_rdb_env_t test_env;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id",
-            std::set<std::map<std::string, std::string> >());
-        exists_verify_callback_t verify_callback(db_id, "table", true, "key");
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id");
+        exists_verify_callback_t verify_callback(
+            "db", "table", ql::datum_t(datum_string_t("key")), true);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
                                                insert_proto,
@@ -231,10 +148,10 @@ TEST(RDBInterrupt, InsertOp) {
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id",
-            std::set<std::map<std::string, std::string> >());
-        exists_verify_callback_t verify_callback(db_id, "table", false, "key");
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id");
+        exists_verify_callback_t verify_callback(
+            "db", "table", ql::datum_t(datum_string_t("key")), false);
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
                                                insert_proto,
@@ -252,24 +169,22 @@ public:
 };
 
 TEST(RDBInterrupt, GetOp) {
-    ql::protob_t<Term> get_proto = ql::make_counted_term();
     uint32_t eval_count;
-    std::set<std::map<std::string, std::string> > initial_data;
+    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
 
-    std::map<std::string, std::string> target_object;
-    target_object["id"] = std::string("key");
-    target_object["value"] = std::string("stuff");
-    initial_data.insert(target_object);
+    ql::datum_object_builder_t row;
+    row.overwrite("id", ql::datum_t(datum_string_t("key")));
+    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
+    initial_data.insert(std::move(row).to_datum());
 
-    get_proto->set_type(Term::GET);
-    add_table_arg(get_proto.get(), "db", "table");
-    add_string_arg(get_proto.get(), "key");
+    ql::protob_t<const Term> get_proto =
+        ql::r::db("db").table("table").get_("key").release_counted();
 
     {
         test_rdb_env_t test_env;
         dummy_callback_t dummy_callback;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id", initial_data);
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id", initial_data);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
                                                get_proto,
@@ -279,35 +194,31 @@ TEST(RDBInterrupt, GetOp) {
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         dummy_callback_t dummy_callback;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id", initial_data);
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id", initial_data);
         unittest::run_in_thread_pool(std::bind(interrupt_test, &test_env, get_proto, i,
                                                &dummy_callback));
     }
 }
 
 TEST(RDBInterrupt, DeleteOp) {
-    ql::protob_t<Term> delete_proto = ql::make_counted_term();
     uint32_t eval_count;
-    std::set<std::map<std::string, std::string> > initial_data;
+    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
 
-    std::map<std::string, std::string> target_object;
-    target_object["id"] = std::string("key");
-    target_object["value"] = std::string("stuff");
-    initial_data.insert(target_object);
+    ql::datum_object_builder_t row;
+    row.overwrite("id", ql::datum_t(datum_string_t("key")));
+    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
+    initial_data.insert(std::move(row).to_datum());
 
-    delete_proto->set_type(Term::DELETE);
-    {
-        Term *get_term = add_term_arg(delete_proto.get(), Term::GET);
-        add_table_arg(get_term, "db", "table");
-        add_string_arg(get_term, "key");
-    }
+    ql::protob_t<const Term> delete_proto =
+        ql::r::db("db").table("table").get_("key").delete_().release_counted();
 
     {
         test_rdb_env_t test_env;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id", initial_data);
-        exists_verify_callback_t verify_callback(db_id, "table", false, "key");
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id", initial_data);
+        exists_verify_callback_t verify_callback(
+            "db", "table", ql::datum_t(datum_string_t("key")), false);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
                                                delete_proto,
@@ -316,9 +227,10 @@ TEST(RDBInterrupt, DeleteOp) {
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
-        database_id_t db_id = test_env.add_database("db");
-        test_env.add_table("table", db_id, "id", initial_data);
-        exists_verify_callback_t verify_callback(db_id, "table", true, "key");
+        test_env.add_database("db");
+        test_env.add_table("db", "table", "id", initial_data);
+        exists_verify_callback_t verify_callback(
+            "db", "table", ql::datum_t(datum_string_t("key")), true);
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
                                                delete_proto,
