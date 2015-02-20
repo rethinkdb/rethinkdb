@@ -107,7 +107,7 @@ tests:
     - cd: dtblPluck = dtbl.get(5).changes().pluck({'new_val':['red', 'blue']})['new_val']
       js: dtblPluck = dtbl.get(5).changes().pluck({'new_val':['red', 'blue']})('new_val')
     
-# disabled because inital value is not being reported correct, so goes missing. see #3723
+# disabled because inital value is not being reported correctly, so goes missing. see #3723
 #    - cd: fetch(dtblPluck, 1)
 #      ot: [{'red':1}]
 #    
