@@ -23,15 +23,21 @@ public:
         const std::function<void(const contract_ack_t &)> &ack_cb);
 
 private:
+    /* `run()` does the actual work of setting up the `listener_t`, etc. */
     void run(auto_drainer_t::lock_t);
     void send_ack(const contract_ack_t &ca);
 
     server_id_t const primary;
     branch_id_t const branch;
 
+    /* `ack_cb` contains the last callback we got from either the constructor or from
+    `update_contract()`. `last_ack` contains the last ack we've sent via `ack_cb`, if
+    any. */
     std::function<void(const contract_ack_t &)> ack_cb;
     boost::optional<contract_ack_t> last_ack;
 
+    /* `drainer` ensures that `run` is stopped before the other member variables are
+    destroyed. */
     auto_drainer_t drainer;
 };
 

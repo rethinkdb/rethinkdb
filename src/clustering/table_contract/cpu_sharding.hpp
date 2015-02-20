@@ -5,11 +5,21 @@
 #include "protocol_api.hpp"
 #include "region/region.hpp"
 
+/* Changing this number would break backwards compatibility in the disk format. */
 #define CPU_SHARDING_FACTOR 8
 
+/* `cpu_sharding_subspace()` returns a `region_t` that contains the full key-range space
+but only 1/CPU_SHARDING_FACTOR of the shard space. */
 region_t cpu_sharding_subspace(int subregion_number);
+
+/* `get_cpu_shard_number()` is the reverse of `cpu_sharding_subspace()`; it returns the
+subregion number for `region`'s hash subspace. It ignores `region`'s key boundaries. If
+`region`'s hash subspace doesn't exactly correspond to a specific CPU sharding region, it
+crashes. */
 int get_cpu_shard_number(const region_t &region);
 
+/* `multistore_ptr_t` is a bundle of `store_view_t`s, one for each CPU shard. The rule
+is that `shards[i]->get_region() == cpu_sharding_subspace(i)`. */
 class multistore_ptr_t {
 public:
     virtual ~multistore_ptr_t() { }

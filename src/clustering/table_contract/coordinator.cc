@@ -59,9 +59,8 @@ contract_t calculate_contract(
         /* The user-specified configuration for the shard containing this region. */
         const table_config_t::shard_t &config,
         /* Contract acks from replicas regarding `old_c`. If a replica hasn't sent us an
-        ack *specifically* for `old_c`, it won't appear in this map. Note that the acks
-        are preprocessed by projecting `version` onto `old_c.branch` and then doing one
-        call to `calculate_contract()` for each of the resulting regions. */
+        ack *specifically* for `old_c`, it won't appear in this map; we don't include
+        acks for contracts that were in the same region before `old_c`. */
         const std::map<server_id_t, contract_ack_frag_t> &acks) {
 
     contract_t new_c = old_c;
@@ -461,8 +460,8 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
             wait_interruptible(wake_pump_contracts.get(), keepalive.get_drain_signal());
 
             /* Wait a little longer to give changes time to accumulate, because
-            `calculate_all_contracts()` is potentially expensive but benefits from
-            batching */
+            `calculate_all_contracts()` needs to examine every shard of the table even if
+            nothing about them has changed, and that might be expensive. */
             signal_timer_t buffer_timer;
             buffer_timer.start(200);
             wait_interruptible(&buffer_timer, keepalive.get_drain_signal());

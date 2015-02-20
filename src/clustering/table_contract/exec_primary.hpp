@@ -86,14 +86,16 @@ private:
         read_response_t *response_out,
         std::string *error_out);
 
-    /* These are helper functions for `update_contract()`. They check when it's safe to
-    ack a contract and then ack the contract. */
-    static bool is_contract_ackable(
-        counted_t<contract_info_t> contract,
-        const std::set<server_id_t> &servers);
+    /* `sync_and_ack_contract()` is a helper function for `update_contract`. It sends a
+    sync write to all of the replicas, and when enough of them have acknowledged the
+    write, it sends an ack to the coordinator. `is_contract_ackable()` is a helper
+    function that decides when enough replicas have acked the sync. */
     void sync_and_ack_contract(
         counted_t<contract_info_t> contract,
         auto_drainer_t::lock_t keepalive);
+    static bool is_contract_ackable(
+        counted_t<contract_info_t> contract,
+        const std::set<server_id_t> &servers);
 
     branch_id_t const our_branch_id;
 
@@ -110,6 +112,8 @@ private:
     constructed. `run()` pulses it after it finishes constructing them. */
     promise_t<broadcaster_t *> our_broadcaster;
 
+    /* `drainer` ensures that `run` is stopped before the other member variables are
+    destroyed. */
     auto_drainer_t drainer;
 };
 

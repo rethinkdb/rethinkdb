@@ -5,6 +5,9 @@ region_t cpu_sharding_subspace(int subregion_number) {
     guarantee(subregion_number >= 0);
     guarantee(subregion_number < CPU_SHARDING_FACTOR);
 
+    /* Changing this implementation would break backwards compatibility in the disk
+    format. */
+
     // We have to be careful with the math here, to avoid overflow.
     uint64_t width = HASH_REGION_HASH_SIZE / CPU_SHARDING_FACTOR;
 

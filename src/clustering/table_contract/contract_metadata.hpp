@@ -14,11 +14,17 @@ table, which watches the `contract_t`s and performs backfills, accepts queries, 
 response to what the `contract_t`s say. In addition, the `contract_executor_t` sends
 `contract_ack_t`s back to the table's `contract_coordinator_t`, which initiates Raft
 transactions to update the `contract_t`s as necessary to perform auto-failover, implement
-the user's configuration changes, and so on. */
+the user's configuration changes, and so on.
 
-class table_raft_state_t;
+The name `contract_t` comes from the fact that it controls the future behavior of the
+`contract_coordinator_t` and the `contract_executor_t`, so it's like a "contract" between
+them. The user can also be thought of as a party to the "contract", because the contract
+guarantees that writes won't be discarded once they've been acked to the user. The
+analogy is a bit of a stretch. */
+
 class contract_t;
 class contract_ack_t;
+class table_raft_state_t;
 
 /* We provide the following consistency guarantee: Suppose the client sends a write W
 which affects some region R of the table, and the cluster acknowledges that W has been
@@ -44,7 +50,10 @@ public:
         bool operator==(const primary_t &x) const {
             return server == x.server && hand_over == x.hand_over;
         }
+        /* The server that's supposed to be primary. */
         server_id_t server;
+        /* If we're switching to another primary, then `hand_over` is the server ID of
+        the server we're switching to. */
         boost::optional<server_id_t> hand_over;
     };
     void sanity_check() const {
@@ -63,15 +72,25 @@ public:
         return replicas == x.replicas && voters == x.voters &&
             temp_voters == x.temp_voters && primary == x.primary && branch == x.branch;
     }
+
+    /* `replicas` is all the servers that are replicas for this table, whether voting or
+    non-voting. `voters` is a subset of `replicas` that just contains the voting
+    replicas. If we're in the middle of a transition between two sets of voters, then
+    `temp_voters` will contain the new set. */
     std::set<server_id_t> replicas;
     std::set<server_id_t> voters;
     boost::optional<std::set<server_id_t> > temp_voters;
+
+    /* `primary` contains the server that's supposed to be primary. If we're in the
+    middle of a transition between two primaries, then `primary` will be empty. */
     boost::optional<primary_t> primary;
+
+    /* `branch` tracks what's the "canonical" version of the data. */
     branch_id_t branch;
 };
 
-/* Each replica looks at what each `contract_t` says about its server ID, and reacts
-according to the following rules:
+/* The `contract_executor_t` looks at what each `contract_t` says about its server ID,
+and reacts according to the following rules:
 
 If `server_id == contract.primary->server`:
 - Serve backfills to servers that request them
@@ -135,6 +154,10 @@ CPU shard. */
 
 typedef uuid_u contract_id_t;
 
+/* `table_raft_state_t` is the datum that each table's Raft cluster manages. The
+`raft_member_t` type is templatized on a template paramter called `state_t`, and
+`table_raft_state_t` is the concrete value that it's instantiated to. */
+
 class table_raft_state_t {
 public:
     class change_t {
@@ -153,8 +176,7 @@ public:
         };
 
         change_t() { }
-        template<class T>
-        change_t(T &&t) : v(t) { }
+        template<class T> change_t(T &&t) : v(t) { }
 
         boost::variant<set_table_config_t, new_contracts_t> v;
     };
@@ -164,9 +186,24 @@ public:
         return config == other.config && member_ids == other.member_ids;
     }
 
+    /* `config` is the latest user-specified config. The user can freely read and modify
+    this at any time. */
     table_config_and_shards_t config;
+
+    /* `contracts` is the `contract_t`s for the table, along with the region each one
+    applies to. `contract_coordinator_t` reads and writes it; `contract_executor_t` reads
+    it. */
     std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
+
+    /* `branch_history` contains branch history information for any branch that appears
+    in the `branch` field of any contract in `contracts`.
+    RSI(raft): We should prune branches if they no longer meet this condition. */
     branch_history_t branch_history;
+
+    /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
+    the Raft cluster for this table. `contract_coordinator_t` writes it;
+    `table_meta_manager_t` reads it and uses that information to add and remove servers
+    to the Raft cluster. */
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 

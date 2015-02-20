@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor.hpp"
 
+#include "clustering/table_contract/exec_erase.hpp"
+#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_contract/exec_secondary.hpp"
 #include "store_subview.hpp"
 
 contract_executor_t::contract_executor_t(

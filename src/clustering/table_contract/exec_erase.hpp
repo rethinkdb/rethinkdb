@@ -20,7 +20,11 @@ public:
         const std::function<void(const contract_ack_t &)> &ack_cb);
 
 private:
+    /* `run()` does the actual work of erasing the data. */
     void run(auto_drainer_t::lock_t);
+
+    /* `drainer` makes sure that `run()` stops before the `erase_execution_t` is
+    destroyed. */
     auto_drainer_t drainer;
 };
 

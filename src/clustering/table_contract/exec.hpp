@@ -10,6 +10,9 @@
 class backfill_throttler_t;
 class io_backender_t;
 
+/* `contract_execution_bcard_t`s are passed around between the `contract_executor_t`s for
+the same table on different servers. They allow servers to request backfills from one
+another and subscribe to `broadcaster_t`s. */
 class contract_execution_bcard_t {
 public:
     broadcaster_business_card_t broadcaster;
@@ -17,8 +20,12 @@ public:
     peer_id_t peer;
 };
 
+/* `execution_t` is a base class for `primary_execution_t`, `secondary_execution_t`, and
+`erase_execution_t`. */
 class execution_t {
 public:
+    /* There is one `context_t` for each `contract_executor_t`; it holds the global
+    and per-table objects that the `execution_t`s will need. */
     class context_t {
     public:
         server_id_t server_id;
@@ -33,6 +40,14 @@ public:
             contract_execution_bcard_t> *local_contract_execution_bcards;
         watchable_map_var_t<uuid_u, table_query_bcard_t> *local_table_query_bcards;
     };
+
+    /* All subclasses of `execution_t` have the following things in common:
+    - A constructor that takes the same parameters as `execution_t` plus a `contract_t`
+        and a `std::function<void(const contract_ack_t &)>`. The constructor cannot throw
+        exceptions or block.
+    - A destructor which may block
+    - A method `update_contract` that takes a new `contract_t` and callback.
+    */ 
     execution_t(
             const context_t *_context,
             const region_t &_region,

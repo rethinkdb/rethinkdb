@@ -163,6 +163,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry(
             context->local_table_query_bcards, generate_uuid(), tq_bcard);
 
+        /* Wait until we are no longer the primary, or it's time to shut down */
         keepalive.get_drain_signal()->wait_lazily_unordered();
 
     } catch (const interrupted_exc_t &) {
@@ -212,6 +213,7 @@ bool primary_execution_t::on_write(
         }
     }
 
+    /* `write_callback_t` waits until the query is safe to ack, then pulses `done`. */
     class write_callback_t : public broadcaster_t::write_callback_t {
     public:
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
@@ -251,6 +253,7 @@ bool primary_execution_t::on_write(
         order_token,
         &write_callback);
 
+    /* This will allow other calls to `on_write()` to happen. */
     exiter->end();
 
     wait_interruptible(&write_callback.done, interruptor);
@@ -276,22 +279,6 @@ bool primary_execution_t::on_read(
     } catch (const cannot_perform_query_exc_t &e) {
         *error_out = e.what();
         return false;
-    }
-}
-
-bool primary_execution_t::is_contract_ackable(
-        counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
-    /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
-    replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
-    the new primary. */
-    if (!static_cast<bool>(contract->contract.primary->hand_over)) {
-        ack_counter_t ack_counter(contract);
-        for (const server_id_t &s : servers) {
-            ack_counter.note_ack(s);
-        }
-        return ack_counter.is_safe();
-    } else {
-        return servers.count(*contract->contract.primary->hand_over) == 1;
     }
 }
 
@@ -339,6 +326,22 @@ void primary_execution_t::sync_and_ack_contract(
     } catch (const interrupted_exc_t &) {
         /* Either the contract is obsolete or we are being destroyed. In either case,
         stop trying to ack the contract. */
+    }
+}
+
+bool primary_execution_t::is_contract_ackable(
+        counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
+    /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
+    replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
+    the new primary. */
+    if (!static_cast<bool>(contract->contract.primary->hand_over)) {
+        ack_counter_t ack_counter(contract);
+        for (const server_id_t &s : servers) {
+            ack_counter.note_ack(s);
+        }
+        return ack_counter.is_safe();
+    } else {
+        return servers.count(*contract->contract.primary->hand_over) == 1;
     }
 }
 
