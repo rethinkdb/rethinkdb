@@ -264,16 +264,8 @@ query_server_t::query_server_t(
     query_handler_t *_handler)
     : rdb_ctx(_rdb_ctx),
       handler(_handler),
-      shutting_down_conds(),
-      pulse_sdc_on_shutdown(&main_shutting_down_cond),
       next_thread(0) {
     rassert(rdb_ctx != NULL);
-    for (int i = 0; i < get_num_threads(); ++i) {
-        shutting_down_conds.push_back(
-                make_scoped<cross_thread_signal_t>(&main_shutting_down_cond,
-                                                   threadnum_t(i)));
-    }
-
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
             std::bind(&query_server_t::handle_conn,
@@ -339,9 +331,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #ifdef __linux
     linux_event_watcher_t *ew = conn->get_event_watcher();
     linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-    wait_any_t interruptor(&conn_interrupted, shutdown_signal(), &ct_keepalive);
+    wait_any_t interruptor(&conn_interrupted, &ct_keepalive);
 #else
-    wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
+    wait_any_t interruptor(&ct_keepalive);
 #endif  // __linux
     ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
     UNUSED bool peer_res = conn->getpeername(&client_addr_port);

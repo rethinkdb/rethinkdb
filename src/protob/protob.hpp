@@ -128,23 +128,8 @@ private:
     query_handler_t *const handler;
 
     /* WARNING: The order here is fragile. */
-    cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() {
-        return shutting_down_conds[get_thread_id().threadnum].get();
-    }
-
-    std::vector<scoped_ptr_t<cross_thread_signal_t> > shutting_down_conds;
-
     auto_drainer_t auto_drainer;
-
-    struct pulse_on_destruct_t {
-        explicit pulse_on_destruct_t(cond_t *_cond) : cond(_cond) { }
-        ~pulse_on_destruct_t() { cond->pulse(); }
-        cond_t *cond;
-    } pulse_sdc_on_shutdown;
-
     http_conn_cache_t http_conn_cache;
-
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     int next_thread;
