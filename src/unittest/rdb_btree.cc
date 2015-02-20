@@ -23,7 +23,7 @@
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
-#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
+#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 20
 
 namespace unittest {
 
