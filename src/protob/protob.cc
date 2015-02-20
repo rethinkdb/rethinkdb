@@ -404,6 +404,10 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());
+    } catch (const interrupted_exc_t &ex) {
+        // If we have been interrupted, we can't write a message to the client, as that
+        // may block (and we would just be interrupted again anyway), just close.
+        return;
     } catch (const tcp_conn_read_closed_exc_t &) {
         return;
     } catch (const tcp_conn_write_closed_exc_t &) {
@@ -570,10 +574,17 @@ void query_server_t::handle(const http_req_t &req,
 
             wait_any_t true_interruptor(interruptor, conn->get_interruptor());
             ql::query_id_t query_id(conn->get_query_cache());
-            response_needed = handler->run_query(query_id,
-                                                 query, &response,
-                                                 conn->get_query_cache(),
-                                                 &true_interruptor);
+            try {
+                response_needed = handler->run_query(query_id,
+                                                     query, &response,
+                                                     conn->get_query_cache(),
+                                                     &true_interruptor);
+            } catch (const interrupted_exc_t &ex) {
+                // This will only be sent back if this was interrupted by a http conn
+                // cache timeout.
+                ql::fill_error(&response, Response::RUNTIME_ERROR,
+                               "Query timed out after 5 minutes.");
+            }
             rassert(response_needed);
         }
     }
