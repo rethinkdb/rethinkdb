@@ -19,8 +19,9 @@ crashes. */
 int get_cpu_shard_number(const region_t &region);
 
 /* `multistore_ptr_t` is a bundle of `store_view_t`s, one for each CPU shard. The rule
-is that `shards[i]->get_region() == cpu_sharding_subspace(i)`. */
-class multistore_ptr_t {
+is that `shards[i]->get_region() == cpu_sharding_subspace(i)`. The individual stores'
+home threads may be different from the `multistore_ptr_t`'s home thread. */
+class multistore_ptr_t : public home_thread_mixin_t {
 public:
     virtual ~multistore_ptr_t() { }
     store_view_t *shards[CPU_SHARDING_FACTOR];

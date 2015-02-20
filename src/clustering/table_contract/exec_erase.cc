@@ -24,6 +24,9 @@ void erase_execution_t::update_contract(
 
 void erase_execution_t::run(auto_drainer_t::lock_t keepalive) {
     try {
+        /* RSI(raft): This function needs to work even if `store->home_thread` is not
+        equal to our home thread. */
+
         store->reset_data(
             binary_blob_t(version_t::zero()),
             region,

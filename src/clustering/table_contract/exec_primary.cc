@@ -65,6 +65,9 @@ void primary_execution_t::update_contract(
 void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source;
     try {
+        /* RSI(raft): This function needs to work even if `store->home_thread` is not
+        equal to our home thread. */
+
         /* Set our initial state to `primary_need_branch`, so that the coordinator will
         assign us a new branch ID. */
         branch_birth_certificate_t branch_bc;

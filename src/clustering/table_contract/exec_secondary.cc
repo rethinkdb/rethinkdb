@@ -38,6 +38,9 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source;
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
+            /* RSI(raft): This function needs to work even if `store->home_thread` is not
+            equal to our home thread. */
+
             /* Set our initial state to `secondary_need_primary`. */
             {
                 region_map_t<binary_blob_t> blobs;
