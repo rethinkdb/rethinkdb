@@ -497,9 +497,9 @@ class TestGroup(object):
                 for index, variableName in enumerate(variableNames):
                     db_name, table_name = utils.get_test_db_table(tableName=testName, index=index)
                     tableCreateLines += ["setup_table(%s, %s, %s)" % (
-                        language.langrepr(variableName),
-                        language.langrepr(table_name),
-                        language.langrepr(db_name))]
+                        lang.langrepr(variableName),
+                        lang.langrepr(table_name),
+                        lang.langrepr(db_name))]
             if len(tableCreateLines) > 0:
                 tableCreateLines = '\n'.join(tableCreateLines)
             else:
@@ -507,8 +507,8 @@ class TestGroup(object):
             
             # - add the header/driver
             
-            tableCreationTag = '%s REPLACE WITH TABLE CREATION LINES' % language.line_comment
-            outputFile.write(language.polyglot_language_header.replace(tableCreationTag, tableCreateLines))
+            tableCreationTag = '%s REPLACE WITH TABLE CREATION LINES' % lang.line_comment
+            outputFile.write(lang.polyglot_language_header.replace(tableCreationTag, tableCreateLines))
             
             # - mark end of the header/driver
             

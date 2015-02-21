@@ -5,6 +5,22 @@ var Promise = require(Path.resolve(__dirname, '..', '..', '..', 'build', 'packag
 
 var r = require(Path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
+// -- global variables
+
+// Tests are stored in list until they can be sequentially evaluated
+var tests = []
+
+var failure_count = 0;
+var tests_run = 0;
+
+// Provides a context for variables
+var defines = {}
+
+var reqlConn = null; // set as testing begins
+
+var tables_to_cleanup = [] // pre-existing tables
+var tables_to_delete = [] // created by this script
+
 // -- input validation
 
 // all argument numbers are +1 because the script is #1
@@ -13,7 +29,7 @@ var required_external_tables = [];
 if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
     rawValues = (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME).split(',');
     for (i in rawValues) {
-        rawValue = rawValues[i].trim;
+        rawValue = rawValues[i].trim();
         if (rawValue == '') {
             continue;
         }
@@ -23,21 +39,22 @@ if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
         } else if (splitValue.length == 2) {
             required_external_tables.push([splitValue[0], splitValue[1]]);
         } else {
-            throw 'Unusable value for external tables:' + JSON.stringify(rawValue);
+            throw 'Unusable value for external tables:' + stringValue(rawValue);
         }
     }
 }
-required_external_tables.reverse()
+required_external_tables.reverse() // so pop'ing them gets the right order
 
 var TRACE_ENABLED = process.env.VERBOSE || false;
 
 // -- utilities --
 
-failure_count = 0;
-
-function printTestFailure(name, src, messages) {
+function printTestFailure(name, src, expected, result) {
     failure_count += 1;
-    console.log.apply(console,["\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"].concat(messages).concat(["\n"]));
+    console.log("TEST FAILURE:  " + name + "\n" +
+    			"     SOURCE:   " + src + "\n" +
+    			"     EXPECTED: " + expected + "\n" +
+    			"     RESULT:   " + result + "\n");
 }
 
 function clone(source) {
@@ -49,9 +66,11 @@ function clone(source) {
 }
 
 function eq_test(expected, result, compOpts, partial) {
-    TRACE("eq_test: " + JSON.stringify(expected) + " | == | " + JSON.stringify(result) + " | == | " + partial);
+    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " | == | " + partial);
+    
     if (expected instanceof Function) {
         return expected(result);
+    
     } else if (result instanceof Function) {
         return result(expected);
 
@@ -159,7 +178,7 @@ function le_test(a, b){
 
 // Equality comparison
 function eq(exp, compOpts) {
-    var fun = function(val) {
+    var fun = function eq_inner (val) {
         if (!eq_test(val, exp, compOpts)) {
             return false;
         } else {
@@ -173,7 +192,7 @@ function eq(exp, compOpts) {
 }
 
 function returnTrue() {
-    var fun = function(val) {
+    var fun = function returnTrue_inner (val) {
         return True;
     }
     fun.toString = function() {
@@ -181,12 +200,6 @@ function returnTrue() {
     }
     return fun;
 }
-
-// Tests are stored in list until they can be sequentially evaluated
-var tests = []
-
-// Any variables defined by the tests are stored here
-var defines = {}
 
 function TRACE(){
     if (TRACE_ENABLED) {
@@ -196,31 +209,31 @@ function TRACE(){
 
 // -- Setup atexit handler for cleanup
 
-var connection = null; // set as testing begins
-
-var tables_to_cleanup = [] // pre-existing tables
-var tables_to_delete = [] // created by this script
-
 function atexitCleanup(exitCode) {
     
-    promisesToKeep = [];
-    
-    if (connection) {
-        
+    if (!reqlConn) {
+        console.warn('Unable to clean up as there is no open ReQL connection')
+    } else {
         console.log('Cleaning up')
+        
+        promisesToKeep = [];
         
         // - cleanup tables
         
         cleanTable = function(dbName, tableName, fullName) {
-            return r.db(dbName).tableList().count(tableName).eq(1).run(connection, function(err, value) {
+            return r.db(dbName).tableList().count(tableName).eq(1).run(reqlConn, function(err, value) {
                 if (err) { throw 'In cleanup there was no table "' + fullName + '" to clean'; }
             }).then(function() {
-                return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(connection, function(err, value) {
-                    throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
+                return r.db(dbName).table(tableName).indexList().forEach(r.db(dbName).table(tableName).indexDrop(r.row)).run(reqlConn, function(err, value) {
+                    if (err) {
+                        throw 'In cleanup failure to remove indexes from table "' + fullName + '": ' + err;
+                    }
                 });
             }).then(function() {
-                return r.db(dbName).table(tableName).delete().run(connection, function(err, value) {
-                    throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
+                return r.db(dbName).table(tableName).delete().run(reqlConn, function(err, value) {
+                    if (err) {
+                        throw 'In cleanup failure to remove data from table "' + fullName + '": ' + err;
+                    }
                 });
             }).error(function (e) {
                 if (exitCode == 0) { exitCode = 1; }
@@ -239,7 +252,7 @@ function atexitCleanup(exitCode) {
         // - remove tables
         
         deleteTable = function(dbName, tableName, fullName) {
-            return r.db(dbName).tableDrop(tableName).run(connection, function(err, value) {
+            return r.db(dbName).tableDrop(tableName).run(reqlConn, function(err, value) {
                 if (err) {
                     if (exitCode == 0) { exitCode = 1; }
                     console.error('In cleanup there was no table "' + fullName + '" to delete: ' + err);
@@ -254,14 +267,14 @@ function atexitCleanup(exitCode) {
             
             promisesToKeep.push(deleteTable(dbName, tableName, fullName));
         }
-    }
-    
-    if(promisesToKeep.length > 0) {
-        Promise.all(promisesToKeep).then(function () {
+        
+        if(promisesToKeep.length > 0) {
+            Promise.all(promisesToKeep).then(function () {
+                process.exit(exitCode);
+            });
+        } else {
             process.exit(exitCode);
-        });
-    } else {
-        process.exit(exitCode);
+        }
     }
 }
 
@@ -276,13 +289,13 @@ process.on('unexpectedException',
 )
 
 // Connect first to cpp server
-r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
+r.connect({port:DRIVER_PORT}, function(error, conn) {
 
-    if(cpp_conn_err){
-        console.error("Failed to connect to server:", cpp_conn_err);
+    if(error){
+        console.error("Failed to connect to server:", error);
         process.exit(1);
     }
-    connection = cpp_conn;
+    reqlConn = conn;
 
     // Pull a test off the queue and run it
     function runTest() { try {
@@ -290,8 +303,9 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
         if (testPair) {
             if (testPair instanceof Function) {
                 TRACE("==== runTest == function");
-                testPair(runTest, cpp_conn);
+                testPair(runTest, reqlConn);
                 return;
+            
             } else {
                 var src = testPair[0]
                 var exp_val = testPair[1]
@@ -317,11 +331,12 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                 if ('precision' in testopts) {
                     compOpts['precision'] = testopts['precision']
                 }
-
+                
                 // - convert expected value into a function for comparison
+                var exp_fun = null;
                 try {
                     with (defines) {
-                        var exp_fun = eval(exp_val);
+                       exp_fun = eval(exp_val);
                     }
                 } catch (err) {
                     // Oops, this shouldn't have happened
@@ -346,11 +361,10 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                     TRACE("build error")
                     if (exp_fun.isErr) {
                         if (!exp_fun(bld_err)) {
-                            printTestFailure(testName, src,
-                                ["Error eval'ing test src not equal to expected err:\n\tERROR: ", bld_err, "\n\tExpected: ", exp_fun]);
+                            printTestFailure(testName, src, exp_val, bld_err);
                         }
                     } else {
-                        printTestFailure(testName, src, ["Error eval'ing test src:\n\t", bld_err]);
+                        printTestFailure(testName, src, exp_val, bld_err);
                     }
 
                     // continue to next test
@@ -372,17 +386,17 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                         var clone_runopts = runopts ? clone(runopts) : {};
                         var clone_testopts = testopts ? clone(testopts) : {};
                         with (defines) {
-                            test.run(cpp_conn, clone_runopts, function(err, cursor) {run_callback(err, cursor, clone_testopts)} );
+                            test.run(reqlConn, clone_runopts, function(err, cursor) {run_callback(err, cursor, clone_testopts)} );
                         }
 
                     } catch(err) {
                         TRACE("querry error - " + err)
                         if (exp_fun.isErr) {
                             if (!exp_fun(err)) {
-                                printTestFailure(testName, src, ["Error running test not equal to expected err:\n\tERROR: ", err, "\n\tEXPECTED: ", exp_val]);
+                                printTestFailure(testName, src, exp_val, err);
                             }
                         } else {
-                            printTestFailure(testName, src, ["Error running test:\n\t", err]);
+                            printTestFailure(testName, src, exp_val, err);
                         }
 
                         // Continue to next test
@@ -396,7 +410,7 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                     if (cpp_err) {
                         if (exp_fun.isErr) {
                             if (!exp_fun(cpp_err)) {
-                                printTestFailure(testName, src, ["Error running test on server not equal to expected err:", "\n\tERROR: ", JSON.stringify(cpp_err), "\n\tEXPECTED ", exp_val]);
+                                printTestFailure(testName, src, exp_val, stringValue(cpp_err));
                             }
                         } else {
                             var info;
@@ -411,10 +425,10 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
                             if (cpp_err.stack) {
                                 info += "\n\nStack:\n" + cpp_err.stack.toString();
                             }
-                            printTestFailure(testName, src, ["Error running test on server:", "\n\tERROR: ", info]);
+                            printTestFailure(testName, src, exp_val, info);
                         }
                     } else if (!exp_fun(cpp_res)) {
-                        printTestFailure(testName, src, ["CPP result is not equal to expected result:", "\n\tVALUE: ", JSON.stringify(cpp_res), "\n\tEXPECTED: ", exp_val]);
+                        printTestFailure(testName, src, exp_val, stringValue(cpp_res));
                     }
 
                     // Continue to next test. Tests are fully sequential
@@ -505,8 +519,39 @@ r.connect({port:DRIVER_PORT}, function(cpp_conn_err, cpp_conn) {
     } }
 
     // Start the recursion though all the tests
-    r.dbCreate('test').run(cpp_conn, runTest);
+    r.dbCreate('test').run(reqlConn, runTest);
 });
+
+function stringValue(value) {
+    returnValue = '<< unknown >>';
+    if (value instanceof Error) {
+	    var errStr = value.name ? value.name + ": " : '';
+	    
+	    if (value.msg) {
+			errStr += value.msg;
+		} else if (value.message) {
+			errStr += value.message;
+		} else {
+			errStr += stringValue(value);
+		}
+		
+		if (value.stack) {
+			errStr += "\nStack:\n" + value.stack.toString();
+		}
+	    return errStr;
+	} else if (value && value.name) {
+        returnValue = value.name;
+    } else {
+		try {
+			returnValue = JSON.stringify(value);
+		} catch (err) {
+			try {
+				returnValue = value.toString();
+			} catch (err) {}
+		}
+    }
+    return returnValue;
+}
 
 function unexpectedException(){
     console.log("Oops, this shouldn't have happened:");
@@ -555,7 +600,7 @@ function setup_table(table_variable_name, table_name, db_name) {
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr) {
-    tests.push(function(next, cpp_conn) {
+    tests.push(function define_inner (next, cpp_conn) {
         with (defines) {
             eval("defines."+expr);
         }
@@ -566,20 +611,22 @@ function define(expr) {
 // Invoked by generated code to support bag comparison on this expected value
 function bag(expected, compOpts, partial) {
     var bag = eval(expected).sort(le_test);
-    var fun = function(other) {
+    var fun = function bag_inner(other) {
         other = other.sort(le_test);
         return eq_test(bag, other, compOpts, true);
     };
     fun.toString = function() {
         return "bag(" + expected + ")";
     };
+    return fun;
 }
 
+// Invoked by generated code to ensure at least these contents are in the result
 function partial(expected, compOpts) {
     if (Array.isArray(expected)) {
         return bag(expected, compOpts, true);
     } else if (expected instanceof Object) {
-        var fun = function(result) {
+        var fun = function partial_inner(result) {
             return eq_test(expected, result, compOpts, true);
         };
         fun.toString = function() {
@@ -594,19 +641,26 @@ function partial(expected, compOpts) {
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
     return err_predicate(
-        err_name, function(msg) { return (!err_msg || (err_msg === msg)); },
-        err_frames, err_name+"(\""+err_msg+"\")");
+        err_name,
+        function(msg) { return (!err_msg || (err_msg === msg)); },
+        err_frames || [],
+        err_name+"(\""+err_msg+"\")"
+    );
 }
 
 function err_regex(err_name, err_pat, err_frames) {
     return err_predicate(
-        err_name, function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
-        err_frames, err_name + "(\""+err_pat+"\")");
+        err_name,
+        function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
+        err_frames,
+        err_name + "(\""+err_pat+"\")"
+    );
 }
+errRegex = err_regex
 
 function err_predicate(err_name, err_pred, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
-    var fun = function(other) {
+    var fun = function err_predicate_return (other) {
         if (!(other instanceof Error)) return false;
         if (err_name && !(other.name === err_name)) return false;
 
@@ -626,7 +680,7 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
 }
 
 function builtin_err(err_name, err_msg) {
-    var fun = function(other) {
+    var fun = function builtin_err_test (other) {
         if (!(other.name === err_name)) return false;
         if (!(other.message === err_msg)) return false;
         return true;
@@ -639,7 +693,7 @@ function builtin_err(err_name, err_msg) {
 }
 
 function arrlen(length, eq_fun) {
-    var fun = function(thing) {
+    var fun = function arrlen_test (thing) {
         if (!thing.length || thing.length !== length) return false;
         return !eq_fun || thing.every(eq_fun);
     };
@@ -650,7 +704,7 @@ function arrlen(length, eq_fun) {
 }
 
 function uuid() {
-    var fun = function(thing) {
+    var fun = function uuid_test (thing) {
         return thing.match && thing.match(/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/);
     };
     fun.toString = function() {
