@@ -25,8 +25,8 @@ bool ends_with(const std::string& str, const std::string& end) {
 }
 
 void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *) {
-    if (req.method != GET) {
-        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    if (req.method != http_method_t::GET) {
+        *result = http_res_t(http_status_code_t::METHOD_NOT_ALLOWED);
         return;
     }
 
@@ -48,7 +48,7 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
                                   resource.length());
         logNTC("Someone asked for the nonwhitelisted file %s.  If this should be "
                "accessible, add it to the static web assets.", resource_buffer.c_str());
-        *result = http_res_t(HTTP_FORBIDDEN);
+        *result = http_res_t(http_status_code_t::FORBIDDEN);
         return;
     }
 
@@ -95,11 +95,11 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
 
     if (asset_dir.empty()) {
         result->body.assign(resource_data.begin(), resource_data.end());
-        result->code = 200;
+        result->code = http_status_code_t::OK;
     } else {
         thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
 
-        if (result->code == 404) {
+        if (result->code == http_status_code_t::NOT_FOUND) {
             logNTC("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
         }
     }
@@ -112,7 +112,7 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     bool initialized = stream.init((asset_dir + filename).c_str());
 
     if (!initialized) {
-        res_out->code = 404;
+        res_out->code = http_status_code_t::NOT_FOUND;
         return;
     }
 
@@ -128,11 +128,11 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
         } else if (res == 0) {
             break;
         } else {
-            res_out->code = 500;
+            res_out->code = http_status_code_t::INTERNAL_SERVER_ERROR;
             return;
         }
     }
 
     res_out->body.assign(body.begin(), body.end());
-    res_out->code = 200;
+    res_out->code = http_status_code_t::OK;
 }

@@ -19,7 +19,7 @@
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
 
-enum http_method_t {
+enum class http_method_t {
     HEAD = 0,
     GET,
     POST,
@@ -81,22 +81,22 @@ struct http_req_t {
 
 int content_length(const http_req_t&);
 
-enum http_status_code_t {
-    HTTP_OK = 200,
-    HTTP_NO_CONTENT = 204,
-    HTTP_BAD_REQUEST = 400,
-    HTTP_FORBIDDEN = 403,
-    HTTP_NOT_FOUND = 404,
-    HTTP_METHOD_NOT_ALLOWED = 405,
-    HTTP_GONE = 410,
-    HTTP_UNSUPPORTED_MEDIA_TYPE = 415,
-    HTTP_INTERNAL_SERVER_ERROR = 500
+enum class http_status_code_t {
+    OK = 200,
+    NO_CONTENT = 204,
+    BAD_REQUEST = 400,
+    FORBIDDEN = 403,
+    NOT_FOUND = 404,
+    METHOD_NOT_ALLOWED = 405,
+    GONE = 410,
+    UNSUPPORTED_MEDIA_TYPE = 415,
+    INTERNAL_SERVER_ERROR = 500
 };
 
 class http_res_t {
 public:
     std::string version;
-    int code;
+    http_status_code_t code;
     std::map<std::string, std::string> header_lines;
     std::string body;
 
@@ -113,7 +113,7 @@ public:
 bool maybe_gzip_response(const http_req_t &req, http_res_t *res);
 
 http_res_t http_error_res(const std::string &content,
-                          http_status_code_t rescode = HTTP_BAD_REQUEST);
+    http_status_code_t rescode = http_status_code_t::BAD_REQUEST);
 
 class tcp_http_msg_parser_t {
 public:

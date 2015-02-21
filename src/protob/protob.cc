@@ -541,20 +541,20 @@ void query_server_t::handle(const http_req_t &req,
                             http_res_t *result,
                             signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
-    if (req.method == POST &&
+    if (req.method == http_method_t::POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
         int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         result->set_body("application/octet-stream", body_data);
-        result->code = HTTP_OK;
+        result->code = http_status_code_t::OK;
         return;
     }
 
     boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
     if (!optional_conn_id) {
-        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+        *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Required parameter \"conn_id\" missing\n");
         return;
     }
@@ -562,10 +562,10 @@ void query_server_t::handle(const http_req_t &req,
     std::string string_conn_id = *optional_conn_id;
     int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
-    if (req.method == POST &&
+    if (req.method == http_method_t::POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
         http_conn_cache.erase(conn_id);
-        result->code = HTTP_OK;
+        result->code = http_status_code_t::OK;
         return;
     }
 
@@ -574,14 +574,14 @@ void query_server_t::handle(const http_req_t &req,
     int64_t token;
 
     if (req.body.size() < sizeof(token)) {
-        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+        *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Client is buggy (request too small).");
         return;
     }
 
     // Parse the token out from the start of the request
     const char *data = req.body.c_str();
-    token = *reinterpret_cast<const uint64_t *>(data);
+    token = *reinterpret_cast<const int64_t *>(data);
     data += sizeof(token);
 
     const bool parse_succeeded =
@@ -604,7 +604,8 @@ void query_server_t::handle(const http_req_t &req,
                                      noreply.as_bool());
 
             if (!response_needed) {
-                *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                *result = http_res_t(http_status_code_t::BAD_REQUEST,
+                                     "application/text",
                                      "noreply queries are not supported over HTTP\n");
                 return;
             }
@@ -641,5 +642,5 @@ void query_server_t::handle(const http_req_t &req,
     body_data.append(&header_buffer[0], sizeof(header_buffer));
     body_data.append(str);
     result->set_body("application/octet-stream", body_data);
-    result->code = HTTP_OK;
+    result->code = http_status_code_t::OK;
 }

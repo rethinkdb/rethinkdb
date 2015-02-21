@@ -9,7 +9,7 @@
 class cyanide_http_app_t : public http_app_t {
     void handle(const http_req_t &, http_res_t *result, signal_t *) {
         crash("Goodbye sweet world\n");
-        *result = http_res_t(HTTP_OK);
+        *result = http_res_t(http_status_code_t::OK);
     }
 };
 

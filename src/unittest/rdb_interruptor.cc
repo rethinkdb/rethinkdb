@@ -240,18 +240,30 @@ TEST(RDBInterrupt, DeleteOp) {
     }
 }
 
-class query_hanger_t : public query_handler_t {
+class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
 public:
     bool run_query(UNUSED const ql::query_id_t &query_id,
                    UNUSED const ql::protob_t<Query> &query,
                    UNUSED Response *response_out,
                    UNUSED ql::query_cache_t *query_cache,
                    signal_t *interruptor) {
-        cond_t dummy;
-        // Need to mix in the rdb_context_t's interruptor?
-        wait_interruptible(&dummy, interruptor);
-        guarantee(false);
-        return false;
+        assert_thread();
+        cond_t dummy_cond;
+        cond_t local_interruptor;
+        wait_any_t final_interruptor(&local_interruptor, interruptor);
+        map_insertion_sentry_t<int64_t, cond_t *> sentry(&interruptors,
+                                                         query->token(),
+                                                         &local_interruptor);
+
+        if (query->type() != Query::STOP) {
+            wait_interruptible(&dummy_cond, &final_interruptor);
+            guarantee(false); // We should never wake up without an interrupted exception
+        }
+
+        auto interruptor_it = interruptors.find(query->token());
+        guarantee(interruptor_it != interruptors.end());
+        interruptor_it->second->pulse_if_not_already_pulsed();
+        return true;
     }
 
     void unparseable_query(UNUSED int64_t token,
@@ -259,10 +271,14 @@ public:
                            UNUSED const std::string &info) {
         guarantee(false); // This is not needed by the tests and shouldn't happen
     }
+private:
+    std::map<int64_t, cond_t *> interruptors;
 };
 
 // Arbitrary non-zero to check that responses are correct
 const int64_t test_token = 54;
+const std::string r_uuid_json(strprintf("[%d,[%d,[]],{}]", Query::START, Term::UUID));
+const std::string stop_json(strprintf("[%d,%" PRIi64 "]", Query::STOP, test_token));
 
 scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
     cond_t dummy_interruptor; // TODO: have a real timeout
@@ -295,17 +311,33 @@ scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
     return conn;
 }
 
-void send_basic_query(tcp_conn_stream_t *conn) {
-    std::string json_query("[1,[169,[]],{}]"); // r.uuid()
-    uint32_t query_size = json_query.size();
+void send_query(const std::string &query_json, tcp_conn_stream_t *conn) {
+    uint32_t query_size = query_json.size();
     
     int64_t res;
     res = conn->write(&test_token, sizeof(test_token));
     guarantee(res == sizeof(test_token));
     res = conn->write(&query_size, sizeof(query_size));
     guarantee(res == sizeof(query_size));
-    res = conn->write(json_query.data(), json_query.size());
-    guarantee(res == static_cast<int64_t>(json_query.size()));
+    res = conn->write(query_json.data(), query_json.size());
+    guarantee(res == static_cast<int64_t>(query_json.size()));
+}
+
+std::string parse_json_error_message(const char *json) {
+    scoped_cJSON_t response(cJSON_Parse(json));
+    guarantee(response.get() != nullptr);
+    json_array_iterator_t it(response.get());
+    cJSON *type = it.next();
+    cJSON *payload = it.next();
+    guarantee(type != nullptr);
+    guarantee(type->type == cJSON_Number);
+    guarantee(type->valueint == Response::RUNTIME_ERROR);
+    guarantee(payload != nullptr);
+    guarantee(payload->type == cJSON_String);
+
+    std::string msg(payload->string);
+    guarantee(msg.length() != 0);
+    return msg;
 }
 
 std::string get_query_response(tcp_conn_stream_t *conn) {
@@ -326,21 +358,7 @@ std::string get_query_response(tcp_conn_stream_t *conn) {
     guarantee(res == response_size);
     response_data[response_size] = '\0';
 
-    // Parse out JSON and validate the response
-    scoped_cJSON_t response(cJSON_Parse(response_data.data()));
-    guarantee(response.get() != nullptr);
-    json_array_iterator_t it(response.get());
-    cJSON *type = it.next();
-    cJSON *payload = it.next();
-    guarantee(type != nullptr);
-    guarantee(type->type == cJSON_Number);
-    guarantee(type->valueint == Response::RUNTIME_ERROR);
-    guarantee(payload != nullptr);
-    guarantee(payload->type == cJSON_String);
-
-    std::string msg(payload->string);
-    guarantee(msg.length() != 0);
-    return msg;
+    return parse_json_error_message(response_data.data());
 }
 
 void tcp_interrupt_test(test_rdb_env_t *test_env,
@@ -356,7 +374,7 @@ void tcp_interrupt_test(test_rdb_env_t *test_env,
                            0, &hanger));
 
     scoped_ptr_t<tcp_conn_stream_t> conn = connect_client(server->get_port());
-    send_basic_query(conn.get());
+    send_query(r_uuid_json, conn.get());
     interrupt_fn(&server, &conn);
     std::string msg = get_query_response(conn.get());
     guarantee(msg == expected_msg);
@@ -390,7 +408,7 @@ TEST(RDBInterrupt, TcpInterrupt) {
     }
 
     {
-        // Test destroying the server
+        // Test corrupting the stream
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
             "",
@@ -410,9 +428,64 @@ TEST(RDBInterrupt, TcpInterrupt) {
                 serv->reset();
             }));
     }
+
+    {
+        // Test sending a STOP query
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
+            "This query was terminated by another query",
+            [](UNUSED scoped_ptr_t<query_server_t> *serv,
+               scoped_ptr_t<tcp_conn_stream_t> *conn) {
+                send_query(stop_json, conn->get());
+            }));
+    }
 }
 
-void http_interrupt_test(test_rdb_env_t *test_env) {
+http_res_t run_http_req(const http_req_t &req, http_app_t *query_app, cond_t *interruptor) {
+    http_res_t result;
+    query_app->handle(req, &result, interruptor);
+    return result;
+}
+
+int32_t create_http_session(http_app_t *query_app) {
+    http_req_t create_req("query/open-new-connection");
+    create_req.method = http_method_t::POST;
+
+    cond_t dummy_interruptor;
+    http_res_t result = run_http_req(create_req, query_app, &dummy_interruptor);
+    guarantee(result.body.size() == sizeof(int32_t));
+    return *reinterpret_cast<const int32_t *>(result.body.data());
+}
+
+http_req_t make_http_close(int32_t conn_id) {
+    http_req_t close_req("query/close-connection");
+    close_req.method = http_method_t::POST;
+    close_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
+    return close_req;
+}
+
+http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
+    http_req_t query_req("query");
+    query_req.method = http_method_t::POST;
+    query_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
+    query_req.body.append(reinterpret_cast<const char *>(&test_token), sizeof(test_token));
+    query_req.body.append(query_json);
+    return query_req;
+}
+
+std::string parse_http_result(const http_res_t &http_res) {
+    guarantee(http_res.body.size() > sizeof(int64_t));
+    const char *data = http_res.body.data();
+    int64_t token = *reinterpret_cast<const int64_t *>(data);
+    data += sizeof(token);
+
+    return parse_json_error_message(data);
+}
+
+void http_interrupt_test(test_rdb_env_t *test_env,
+                         const std::string &expected_msg,
+                         std::function<void(scoped_ptr_t<query_server_t> *,
+                                            cond_t *, int32_t)> interrupt_fn) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     query_hanger_t hanger; // Causes all queries to hang until interrupted
@@ -420,18 +493,87 @@ void http_interrupt_test(test_rdb_env_t *test_env) {
         new query_server_t(env_instance->get_rdb_context(),
                            std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
                            0, &hanger));
-    
+
+    cond_t http_app_interruptor;
+    http_res_t result;
+    cond_t http_done;
+
+    int32_t conn_id = create_http_session(server.get());
+
+    coro_t::spawn_now_dangerously([&]() {
+            result = run_http_req(make_http_query(conn_id, r_uuid_json),
+                                  server.get(), &http_app_interruptor);
+            http_done.pulse();
+        });
+
+    let_stuff_happen(); // Let the query get into its 'run' phase
+    interrupt_fn(&server, &http_app_interruptor, conn_id);
+    http_done.wait();
+
+    std::string msg = parse_http_result(result);
+    guarantee(msg == expected_msg);
 }
 
 TEST(RDBInterrupt, HttpInterrupt) {
-    // Test different types of HTTP session interruptions:
-    // 1. HTTP session expires
-    // 2. HTTP session closed remotely
-    // 3. HTTP session closed by another request
-    // 3. any drainers?
+    // Test different types of HTTP session interruptions
+    {
+        // HTTP socket closed by the client
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
+            "",
+            [](UNUSED scoped_ptr_t<query_server_t> *server,
+               cond_t *interruptor, UNUSED int32_t conn_id) {
+                // We don't have a real socket here, use the fake interruptor
+                interruptor->pulse_if_not_already_pulsed();
+            }));
+    }
 
-    test_rdb_env_t test_env;
-    unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env));
+    {
+        // HTTP session closed by another request
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
+            "",
+            [](scoped_ptr_t<query_server_t> *server,
+               cond_t *interruptor, int32_t conn_id) {
+                http_res_t result = run_http_req(make_http_close(conn_id),
+                                                 server->get(), interruptor);
+            }));
+    }
+
+    {
+        // Query server destroyed
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
+            "",
+            [](scoped_ptr_t<query_server_t> *server,
+               UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
+                server->reset();
+            }));
+    }
+
+    {
+        // STOP query
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
+            "",
+            [](scoped_ptr_t<query_server_t> *server,
+               cond_t *interruptor, int32_t conn_id) {
+                http_res_t result = run_http_req(make_http_query(conn_id, stop_json),
+                                                 server->get(), interruptor);
+            }));
+    }
+
+    {
+        // HTTP session expires
+        test_rdb_env_t test_env;
+        unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
+            "",
+            [](UNUSED scoped_ptr_t<query_server_t> *server,
+               UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
+                // Don't actually have to do anything here, the test should
+                // wait for the timeout
+            }));
+    }
 }
 
 }  // namespace unittest

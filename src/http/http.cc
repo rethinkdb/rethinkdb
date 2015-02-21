@@ -365,8 +365,8 @@ int http_server_t::get_port() const {
 
 http_server_t::~http_server_t() { }
 
-std::string human_readable_status(int code) {
-    switch (code) {
+std::string human_readable_status(http_status_code_t code) {
+    switch (static_cast<int>(code)) {
     case 100:
         return "Continue";
     case 101:
@@ -454,7 +454,8 @@ std::string human_readable_status(int code) {
 }
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
-    conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
+    conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code,
+                 human_readable_status(res.code).c_str());
     for (auto const &line: res.header_lines) {
         conn->writef(closer, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     }
@@ -479,7 +480,7 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             res.version = req.version;
             maybe_gzip_response(req, &res);
         } else {
-            res = http_res_t(HTTP_BAD_REQUEST);
+            res = http_res_t(http_status_code_t::BAD_REQUEST);
         }
         write_http_msg(conn.get(), res, keepalive.get_drain_signal());
     } catch (const interrupted_exc_t &) {
@@ -499,23 +500,23 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
 
     std::string method = parser.readWord(closer);
     if (method == "HEAD") {
-        req->method = HEAD;
+        req->method = http_method_t::HEAD;
     } else if (method == "GET") {
-        req->method = GET;
+        req->method = http_method_t::GET;
     } else if (method == "POST") {
-        req->method = POST;
+        req->method = http_method_t::POST;
     } else if (method == "PUT") {
-        req->method = PUT;
+        req->method = http_method_t::PUT;
     } else if (method == "DELETE") {
-        req->method = DELETE;
+        req->method = http_method_t::DELETE;
     } else if (method == "TRACE") {
-        req->method = TRACE;
+        req->method = http_method_t::TRACE;
     } else if (method == "OPTIONS") {
-        req->method = OPTIONS;
+        req->method = http_method_t::OPTIONS;
     } else if (method == "CONNECT") {
-        req->method = CONNECT;
+        req->method = http_method_t::CONNECT;
     } else if (method == "PATCH") {
-        req->method = PATCH;
+        req->method = http_method_t::PATCH;
     } else {
         return false;
     }

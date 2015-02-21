@@ -255,9 +255,6 @@ void run(const query_id_t &query_id,
         fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
     } catch (const query_cache_exc_t &e) {
         fill_error(res, e.type, e.message, e.bt);
-    } catch (const interrupted_exc_t &e) {
-        fill_error(res, Response::RUNTIME_ERROR,
-                   "Query interrupted.  Did you shut down the server?");
     }
 }
 
