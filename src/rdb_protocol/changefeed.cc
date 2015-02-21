@@ -137,7 +137,7 @@ boost::optional<datum_t> apply_ops(
     env_t *env,
     const datum_t &key) THROWS_NOTHING {
     try {
-        groups_t groups{optional_datum_less_t(reql_version_t::LATEST)};
+        groups_t groups{optional_datum_less_t(env->reql_version())};
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
             (*op)(env, &groups, key);
