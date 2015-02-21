@@ -1138,8 +1138,8 @@ public:
 private:
     void cb(auto_drainer_t::lock_t lock) THROWS_NOTHING {
         // See `next_batch` call below.
-        scoped_ptr_t<assert_no_coro_waiting_t> no_coro_waiting(
-            make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__));
+        DEBUG_ONLY(scoped_ptr_t<assert_no_coro_waiting_t> no_coro_waiting(
+                       make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__)));
         lock.assert_is_holding(&parent->drainer);
         parent->home_thread_mixin_t::assert_thread();
         try {
@@ -1152,9 +1152,10 @@ private:
 
             // We want to make sure that this call to `next_batch` is the only
             // thing in this whole function that blocks.
-            no_coro_waiting.reset();
+            DEBUG_ONLY(no_coro_waiting.reset());
             std::vector<datum_t> batch = stream->next_batch(parent->coro_env.get(), bs);
-            no_coro_waiting = make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__);
+            DEBUG_ONLY(no_coro_waiting
+                       = make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__));
 
             if (batch.size() == 0 && stream->cfeed_type() == feed_type_t::not_feed) {
                 r_sanity_check(stream->is_exhausted());
