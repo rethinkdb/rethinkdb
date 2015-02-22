@@ -44,7 +44,7 @@ public:
         signal_t *get_interruptor();
 
         void pulse();
-        bool is_expired();
+        time_t last_accessed_time() const;
 
     private:
         cond_t interruptor;
@@ -54,7 +54,7 @@ public:
         DISABLE_COPYING(http_conn_t);
     };
 
-    http_conn_cache_t();
+    http_conn_cache_t(uint32_t _http_timeout_sec);
     ~http_conn_cache_t();
 
     counted_t<http_conn_t> find(int32_t key);
@@ -62,13 +62,16 @@ public:
     void erase(int32_t key);
 
     void on_ring();
+    bool is_expired(const http_conn_t &conn) const;
+
+    std::string expired_error_message() const;
 private:
-    static const time_t TIMEOUT_SEC = 5*60;
     static const int64_t TIMER_RESOLUTION_MS = 5000;
 
     std::map<int32_t, counted_t<http_conn_t> > cache;
     int32_t next_id;
     repeating_timer_t http_timeout_timer;
+    uint32_t http_timeout_sec;
 };
 
 class query_handler_t {
@@ -92,7 +95,8 @@ public:
         rdb_context_t *rdb_ctx,
         const std::set<ip_address_t> &local_addresses,
         int port,
-        query_handler_t *_handler);
+        query_handler_t *_handler,
+        uint32_t http_timeout_sec);
     ~query_server_t();
 
     int get_port() const;
@@ -129,7 +133,7 @@ private:
     query_handler_t *const handler;
 
     /* WARNING: The order here is fragile. */
-    auto_drainer_t auto_drainer;
+    auto_drainer_t drainer;
     http_conn_cache_t http_conn_cache;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 

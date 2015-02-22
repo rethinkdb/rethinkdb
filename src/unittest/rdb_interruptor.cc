@@ -405,7 +405,7 @@ void tcp_interrupt_test(test_rdb_env_t *test_env,
     scoped_ptr_t<query_server_t> server(
         new query_server_t(env_instance->get_rdb_context(),
                            std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
-                           0, &hanger));
+                           0, &hanger, 2));
 
     scoped_ptr_t<tcp_conn_stream_t> conn = connect_client(server->get_port());
     send_query(test_token, r_uuid_json, conn.get());
@@ -527,7 +527,7 @@ void http_interrupt_test(test_rdb_env_t *test_env,
     scoped_ptr_t<query_server_t> server(
         new query_server_t(env_instance->get_rdb_context(),
                            std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
-                           0, &hanger));
+                           0, &hanger, 2));
 
     cond_t http_app_interruptor;
     http_res_t result;
@@ -555,7 +555,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP socket closed by the client
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "Client closed the connection.",
+            "This ReQL connection has been terminated.", // Technically we can't send this back
             [](UNUSED scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, UNUSED int32_t conn_id) {
                 // We don't have a real socket here, use the fake interruptor
@@ -579,7 +579,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // Query server destroyed
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "Server is shutting down.",
+            "Server is shutting down.", // Technically we can't send this message back
             [](scoped_ptr_t<query_server_t> *server,
                UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
                 server->reset();
@@ -602,7 +602,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP session expires
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "HTTP ReQL query timed out after 5 minutes.",
+            "HTTP ReQL query timed out after 2 seconds.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
                UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
                 // Don't actually have to do anything here, the test should

@@ -357,7 +357,8 @@ bool do_serve(io_backender_t *io_backender,
                 rdb_query_server_t rdb_query_server(
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
-                    &rdb_ctx);
+                    &rdb_ctx,
+                    HTTP_REQL_TIMEOUT_SECONDS);
                 logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a

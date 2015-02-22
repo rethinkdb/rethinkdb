@@ -23,8 +23,10 @@ Query *underlying_protob_value(ql::protob_t<Query> *request);
 
 class rdb_query_server_t : public query_handler_t {
 public:
-    rdb_query_server_t(const std::set<ip_address_t> &local_addresses, int port,
-                       rdb_context_t *_rdb_ctx);
+    rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
+                       int port,
+                       rdb_context_t *_rdb_ctx,
+                       uint32_t http_timeout_sec);
 
     http_app_t *get_http_app();
     int get_port() const;

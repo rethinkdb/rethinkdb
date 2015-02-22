@@ -51,15 +51,26 @@ void http_conn_cache_t::http_conn_t::pulse() {
     interruptor.pulse();
 }
 
-bool http_conn_cache_t::http_conn_t::is_expired() {
-    return difftime(time(0), last_accessed) > TIMEOUT_SEC;
+time_t http_conn_cache_t::http_conn_t::last_accessed_time() const {
+    return last_accessed;
 }
 
-http_conn_cache_t::http_conn_cache_t() :
-    next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
+http_conn_cache_t::http_conn_cache_t(uint32_t _http_timeout_sec) :
+    next_id(0),
+    http_timeout_timer(TIMER_RESOLUTION_MS, this),
+    http_timeout_sec(_http_timeout_sec) { }
 
 http_conn_cache_t::~http_conn_cache_t() {
     for (auto &pair : cache) pair.second->pulse();
+}
+
+std::string http_conn_cache_t::expired_error_message() const {
+    return strprintf("HTTP ReQL query timed out after %" PRIu32 " seconds.",
+                     http_timeout_sec);
+}
+
+bool http_conn_cache_t::is_expired(const http_conn_t &conn) const {
+    return difftime(time(0), conn.last_accessed_time()) > http_timeout_sec;
 }
 
 counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(int32_t key) {
@@ -91,7 +102,7 @@ void http_conn_cache_t::on_ring() {
     assert_thread();
     for (auto it = cache.begin(); it != cache.end();) {
         auto tmp = it++;
-        if (tmp->second->is_expired()) {
+        if (is_expired(*tmp->second)) {
             // We go through some rigmarole to make sure we erase from the
             // cache immediately and call the possibly-blocking destructor
             // in a separate coroutine to satisfy the
@@ -258,19 +269,20 @@ public:
     }
 };
 
-query_server_t::query_server_t(
-    rdb_context_t *_rdb_ctx,
-    const std::set<ip_address_t> &local_addresses,
-    int port,
-    query_handler_t *_handler)
-    : rdb_ctx(_rdb_ctx),
-      handler(_handler),
-      next_thread(0) {
+query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
+                               const std::set<ip_address_t> &local_addresses,
+                               int port,
+                               query_handler_t *_handler,
+                               uint32_t http_timeout_sec) :
+        rdb_ctx(_rdb_ctx),
+        handler(_handler),
+        http_conn_cache(http_timeout_sec),
+        next_thread(0) {
     rassert(rdb_ctx != NULL);
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
             std::bind(&query_server_t::handle_conn,
-                      this, ph::_1, auto_drainer_t::lock_t(&auto_drainer))));
+                      this, ph::_1, auto_drainer_t::lock_t(&drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(
             strprintf("Could not bind to RDB protocol port: %s", ex.what()));
@@ -430,7 +442,7 @@ void query_server_t::make_error_response(const tcp_conn_t &conn,
         // The other side closed it's socket - it won't get this message
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Client closed the connection.");
-    } else if (auto_drainer.is_draining()) {
+    } else if (drainer.is_draining()) {
         // The query_server_t is being destroyed - we can't even write this to the socket anyway
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Server is shutting down.");
@@ -542,7 +554,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
 void query_server_t::handle(const http_req_t &req,
                             http_res_t *result,
                             signal_t *interruptor) {
-    auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
+    auto_drainer_t::lock_t auto_drainer_lock(&drainer);
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
         int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
@@ -612,7 +624,8 @@ void query_server_t::handle(const http_req_t &req,
                 return;
             }
 
-            wait_any_t true_interruptor(interruptor, conn->get_interruptor());
+            wait_any_t true_interruptor(interruptor, conn->get_interruptor(),
+                                        drainer.get_drain_signal());
             ql::query_id_t query_id(conn->get_query_cache());
             try {
                 response_needed = handler->run_query(query_id,
@@ -620,14 +633,29 @@ void query_server_t::handle(const http_req_t &req,
                                                      conn->get_query_cache(),
                                                      &true_interruptor);
             } catch (const interrupted_exc_t &ex) {
-                // This will only be sent back if this was interrupted by a http conn
-                // cache timeout.
-                ql::fill_error(&response, Response::RUNTIME_ERROR,
-                               "Query timed out after 5 minutes.");
+                if (http_conn_cache.is_expired(*conn)) {
+                    // This will only be sent back if this was interrupted by a http conn
+                    // cache timeout.
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   http_conn_cache.expired_error_message());
+                } else if (interruptor->is_pulsed()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "This ReQL connection has been terminated.");
+                } else if (drainer.is_draining()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "Server is shutting down.");
+                } else if (conn->get_interruptor()->is_pulsed()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "This ReQL connection has been terminated.");
+                } else {
+                    throw;
+                }
             }
             rassert(response_needed);
         }
     }
+
+    response.set_token(token);
 
     uint32_t size;
     std::string str;
