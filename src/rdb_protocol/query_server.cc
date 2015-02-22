@@ -42,7 +42,6 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
                                    signal_t *interruptor) {
     guarantee(query_cache != NULL);
     guarantee(interruptor != NULL);
-    response_out->set_token(query->token());
 
     ql::datum_t noreply = static_optarg("noreply", query);
     bool response_needed = !(noreply.has() &&
@@ -70,11 +69,3 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
     ++rdb_ctx->stats.queries_total;
     return response_needed;
 }
-
-void rdb_query_server_t::unparseable_query(int64_t token,
-                                           Response *response_out,
-                                           const std::string &info) {
-    response_out->set_token(token);
-    ql::fill_error(response_out, Response::CLIENT_ERROR, info);
-}
-

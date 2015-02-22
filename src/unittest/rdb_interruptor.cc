@@ -280,13 +280,6 @@ public:
                        "Query terminated by a STOP query."); // TODO: make this a constant
         return true;
     }
-
-    void unparseable_query(UNUSED int64_t token,
-                           UNUSED Response *response_out,
-                           UNUSED const std::string &info) {
-        response_out->set_token(token);
-        ql::fill_error(response_out, Response::CLIENT_ERROR, info);
-    }
 private:
     std::map<int64_t, cond_t *> interruptors;
 };

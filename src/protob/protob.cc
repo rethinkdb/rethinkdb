@@ -130,15 +130,20 @@ private:
     std::string info;
 };
 
-const uint32_t MAX_QUERY_SIZE = 64 * MEGABYTE;
-const size_t MAX_RESPONSE_SIZE = std::numeric_limits<uint32_t>::max();
+const uint32_t TOO_LARGE_QUERY_SIZE = 64 * MEGABYTE;
+const uint32_t TOO_LARGE_RESPONSE_SIZE = std::numeric_limits<uint32_t>::max();
 
-const std::string unparsable_query_message =
+const std::string unparseable_query_message =
     "Client is buggy (failed to deserialize query).";
 
 std::string too_large_query_message(uint32_t size) {
-    return strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
-                     size, MAX_QUERY_SIZE);
+    return strprintf("Query size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                     size, TOO_LARGE_QUERY_SIZE - 1);
+}
+
+std::string too_large_response_message(uint32_t size) {
+    return strprintf("Response size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                     size, TOO_LARGE_RESPONSE_SIZE - 1);
 }
 
 class json_protocol_t {
@@ -152,10 +157,11 @@ public:
         conn->read(&token, sizeof(token), interruptor);
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > MAX_QUERY_SIZE) {
+        if (size > TOO_LARGE_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(token, &error_response,
-                                       too_large_query_message(size));
+            error_response.set_token(token);
+            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                           too_large_query_message(size));
             send_response(error_response, handler, conn, interruptor);
             throw tcp_conn_read_closed_exc_t();
         } else {
@@ -165,10 +171,11 @@ public:
 
             if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
                 Response error_response;
-                handler->unparseable_query(token, &error_response,
-                                           unparsable_query_message);
+                error_response.set_token(token);
+                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                               unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
-                throw std::runtime_error(unparsable_query_message);
+                throw std::runtime_error(unparseable_query_message);
             }
         }
     }
@@ -179,20 +186,20 @@ public:
                               signal_t *interruptor) {
         const int64_t token = response.token();
 
-        uint32_t data_size_32; // filled in below
-        const size_t prefix_size = sizeof(token) + sizeof(data_size_32);
+        uint32_t data_size; // filled in below
+        const size_t prefix_size = sizeof(token) + sizeof(data_size);
         // Reserve space for the token and the size
         std::string str(prefix_size, '\0');
 
         json_shim::write_json_pb(response, &str);
         guarantee(str.size() >= prefix_size);
-        const size_t data_size = str.size() - prefix_size;
+        data_size = static_cast<uint32_t>(str.size() - prefix_size);
 
-        if (data_size > MAX_RESPONSE_SIZE) {
+        if (data_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
-            handler->unparseable_query(token, &error_response,
-                strprintf("Response size (%zu) is greater than maximum (%zu).",
-                          data_size, MAX_RESPONSE_SIZE));
+            error_response.set_token(response.token());
+            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                           too_large_response_message(data_size));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
@@ -203,9 +210,8 @@ public:
         for (size_t i = 0; i < sizeof(token); ++i) {
             str[i] = reinterpret_cast<const char *>(&token)[i];
         }
-        data_size_32 = static_cast<uint32_t>(data_size);
-        for (size_t i = 0; i < sizeof(data_size_32); ++i) {
-            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size_32)[i];
+        for (size_t i = 0; i < sizeof(data_size); ++i) {
+            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
         }
 
         conn->write(str.data(), str.size(), interruptor);
@@ -221,10 +227,11 @@ public:
         uint32_t size;
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > MAX_QUERY_SIZE) {
+        if (size > TOO_LARGE_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(0, &error_response,
-                                       too_large_query_message(size));
+            error_response.set_token(0); // We don't actually know the token
+            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                           too_large_query_message(size));
             send_response(error_response, handler, conn, interruptor);
             throw std::runtime_error(too_large_query_message(size));
         } else {
@@ -233,11 +240,12 @@ public:
 
             if (!query_out->get()->ParseFromArray(data.data(), size)) {
                 Response error_response;
-                int64_t token = query_out->get()->has_token() ? query_out->get()->token() : 0;
-                handler->unparseable_query(token, &error_response,
-                                           unparsable_query_message);
+                error_response.set_token(query_out->get()->has_token() ?
+                                         query_out->get()->token() : 0);
+                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                               unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
-                throw std::runtime_error(unparsable_query_message);
+                throw std::runtime_error(unparseable_query_message);
             }
         }
     }
@@ -246,23 +254,20 @@ public:
                               query_handler_t *handler,
                               tcp_conn_t *conn,
                               signal_t *interruptor) {
-        const size_t data_size = response.ByteSize();
-        if (data_size > MAX_RESPONSE_SIZE) {
+        const uint32_t data_size = static_cast<uint32_t>(response.ByteSize());
+        if (data_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
-            handler->unparseable_query(
-                response.token(),
-                &error_response,
-                strprintf("Response size (%zu) is greater than maximum (%zu).",
-                          data_size, MAX_RESPONSE_SIZE));
+            error_response.set_token(response.token());
+            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                           too_large_response_message(data_size));
             send_response(error_response, handler, conn, interruptor);
         } else {
-            const uint32_t data_size_32 = static_cast<uint32_t>(data_size);
-            const size_t prefix_size = sizeof(data_size_32);
+            const size_t prefix_size = sizeof(data_size);
             const size_t total_size = prefix_size + data_size;
 
             scoped_array_t<char> scoped_array(total_size);
-            memcpy(scoped_array.data(), &data_size_32, sizeof(data_size_32));
-            response.SerializeToArray(scoped_array.data() + prefix_size, data_size_32);
+            memcpy(scoped_array.data(), &data_size, sizeof(data_size));
+            response.SerializeToArray(scoped_array.data() + prefix_size, data_size);
 
             conn->write(scoped_array.data(), total_size, interruptor);
         }
@@ -602,13 +607,12 @@ void query_server_t::handle(const http_req_t &req,
         json_shim::parse_json_pb(query.get(), token, data);
 
     if (!parse_succeeded) {
-        handler->unparseable_query(token, &response,
-                                   "Client is buggy (failed to deserialize query).");
+        ql::fill_error(&response, Response::CLIENT_ERROR, unparseable_query_message);
     } else {
         counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
         if (!conn.has()) {
-            handler->unparseable_query(token, &response,
-                                       "This HTTP connection is not open.");
+            ql::fill_error(&response, Response::CLIENT_ERROR,
+                           "This HTTP connection is not open.");
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption

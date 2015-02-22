@@ -36,10 +36,6 @@ public:
                             Response *response_out,
                             ql::query_cache_t *query_cache,
                             signal_t *interruptor);
-
-    void unparseable_query(int64_t token,
-                           Response *response_out,
-                           const std::string &info);
 public:
     query_server_t server;
     rdb_context_t *rdb_ctx;

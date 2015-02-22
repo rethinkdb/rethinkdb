@@ -83,10 +83,6 @@ public:
                                     Response *response_out,
                                     ql::query_cache_t *query_cache,
                                     signal_t *interruptor) = 0;
-
-    virtual void unparseable_query(int64_t token,
-                                   Response *response_out,
-                                   const std::string &info) = 0;
 };
 
 class query_server_t : public http_app_t {
