@@ -241,7 +241,8 @@ void run(const query_id_t &query_id,
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->get(token, use_json, interruptor);
             query_ref->terminate();
-            res->set_type(Response::SUCCESS_SEQUENCE);
+            ql::fill_error(res, Response::RUNTIME_ERROR,
+                           "Query terminated by a STOP query.");
         } break;
         case Query_QueryType_NOREPLY_WAIT: {
             query_cache->noreply_wait(query_id, token, interruptor);

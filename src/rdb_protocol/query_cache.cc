@@ -176,7 +176,7 @@ query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
         drainer_lock(&entry->drainer),
         combined_interruptor(interruptor, &entry->persistent_interruptor),
         mutex_lock(&entry->mutex) {
-    wait_interruptible(mutex_lock.acq_signal(), &combined_interruptor);
+    wait_interruptible(mutex_lock.acq_signal(), interruptor);
 }
 
 void query_cache_t::async_destroy_entry(query_cache_t::entry_t *entry) {
@@ -247,10 +247,10 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         if (entry->persistent_interruptor.is_pulsed()) {
             if (entry->state == entry_t::state_t::DONE) {
                 throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                    "Query interrupted by a STOP query.", backtrace_t());
+                    "Query terminated by a STOP query.", backtrace_t());
             }
             throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                "Query interrupted through the `rethinkdb.jobs` table.", backtrace_t());
+                "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
         }
         terminate();
         throw;

@@ -2,6 +2,9 @@
 #include <functional>
 #include <stdexcept>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "protob/protob.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
@@ -240,36 +243,49 @@ TEST(RDBInterrupt, DeleteOp) {
     }
 }
 
+// This is a simple drop-in mock of query_server_t - it will not handle
+// concurrent queries for the same token - aside from a STOP query.
 class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
 public:
     bool run_query(UNUSED const ql::query_id_t &query_id,
-                   UNUSED const ql::protob_t<Query> &query,
-                   UNUSED Response *response_out,
+                   const ql::protob_t<Query> &query,
+                   Response *res,
                    UNUSED ql::query_cache_t *query_cache,
                    signal_t *interruptor) {
         assert_thread();
-        cond_t dummy_cond;
-        cond_t local_interruptor;
-        wait_any_t final_interruptor(&local_interruptor, interruptor);
-        map_insertion_sentry_t<int64_t, cond_t *> sentry(&interruptors,
-                                                         query->token(),
-                                                         &local_interruptor);
 
         if (query->type() != Query::STOP) {
-            wait_interruptible(&dummy_cond, &final_interruptor);
-            guarantee(false); // We should never wake up without an interrupted exception
+            cond_t dummy_cond;
+            cond_t local_interruptor;
+            wait_any_t final_interruptor(&local_interruptor, interruptor);
+            map_insertion_sentry_t<int64_t, cond_t *> sentry(&interruptors,
+                                                             query->token(),
+                                                             &local_interruptor);
+
+            try {
+                wait_interruptible(&dummy_cond, &final_interruptor);
+            } catch (const interrupted_exc_t &ex) {
+                if (!local_interruptor.is_pulsed()) {
+                    throw;
+                }
+            }
+        } else {
+            auto interruptor_it = interruptors.find(query->token());
+            guarantee(interruptor_it != interruptors.end());
+            interruptor_it->second->pulse_if_not_already_pulsed();
         }
 
-        auto interruptor_it = interruptors.find(query->token());
-        guarantee(interruptor_it != interruptors.end());
-        interruptor_it->second->pulse_if_not_already_pulsed();
+        res->set_token(query->token());
+        ql::fill_error(res, Response::RUNTIME_ERROR,
+                       "Query terminated by a STOP query."); // TODO: make this a constant
         return true;
     }
 
     void unparseable_query(UNUSED int64_t token,
                            UNUSED Response *response_out,
                            UNUSED const std::string &info) {
-        guarantee(false); // This is not needed by the tests and shouldn't happen
+        response_out->set_token(token);
+        ql::fill_error(response_out, Response::CLIENT_ERROR, info);
     }
 private:
     std::map<int64_t, cond_t *> interruptors;
@@ -277,67 +293,83 @@ private:
 
 // Arbitrary non-zero to check that responses are correct
 const int64_t test_token = 54;
+const int64_t unparsable_query_token = 99;
 const std::string r_uuid_json(strprintf("[%d,[%d,[]],{}]", Query::START, Term::UUID));
 const std::string stop_json(strprintf("[%d,%" PRIi64 "]", Query::STOP, test_token));
+const std::string invalid_json(",");
+
+template <class T>
+void append_to_message(const T& item, std::string *message) {
+    message->append(reinterpret_cast<const char *>(&item), sizeof(item));
+}
+
+void append_to_message(const std::string &item, std::string *message) {
+    message->append(item);
+}
+
+template <class... Args>
+void send_tcp_message(tcp_conn_stream_t *conn, Args... args) {
+    std::string message;
+    UNUSED int _[] = { (append_to_message(args, &message), 1)... };
+    int64_t res = conn->write(message.data(), message.size());
+    guarantee(static_cast<size_t>(res) == message.size());
+}
 
 scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
     cond_t dummy_interruptor; // TODO: have a real timeout
     scoped_ptr_t<tcp_conn_stream_t> conn(
         new tcp_conn_stream_t(ip_address_t("127.0.0.1"), port, &dummy_interruptor));
 
-    // Authenticate - this should probably always be the latest protocol
-    int32_t client_magic_number = VersionDummy::V0_4;
-    uint32_t auth_key_length = 0;
+    send_tcp_message(conn.get(),
+        static_cast<int32_t>(VersionDummy::V0_4),    // Protocol version
+        static_cast<uint32_t>(0),                             // Auth key length
+        static_cast<uint32_t>(VersionDummy::JSON)); // Wire protocol
 
-    int64_t res;
-    res = conn->write(&client_magic_number, sizeof(client_magic_number));
-    guarantee(res == sizeof(client_magic_number));
-    res = conn->write(&auth_key_length, sizeof(auth_key_length));
-    guarantee(res == sizeof(auth_key_length));
-
-    // Read out response
     std::string auth_response;
     while (true) {
         char next;
-        res = conn->read(&next, sizeof(next));
-        guarantee(res == sizeof(next));
+        guarantee(conn->read(&next, sizeof(next)) == sizeof(next));
         if (next == '\0') {
             break;
         }
         auth_response += next;
     }
-    guarantee(auth_response == "SUCCESS"); // TODO: use gtest asserts
+    guarantee(auth_response == "SUCCESS");
 
     return conn;
 }
 
-void send_query(const std::string &query_json, tcp_conn_stream_t *conn) {
-    uint32_t query_size = query_json.size();
-    
-    int64_t res;
-    res = conn->write(&test_token, sizeof(test_token));
-    guarantee(res == sizeof(test_token));
-    res = conn->write(&query_size, sizeof(query_size));
-    guarantee(res == sizeof(query_size));
-    res = conn->write(query_json.data(), query_json.size());
-    guarantee(res == static_cast<int64_t>(query_json.size()));
+void send_query(int64_t token, const std::string &query_json, tcp_conn_stream_t *conn) {
+    send_tcp_message(conn, token, static_cast<uint32_t>(query_json.size()), query_json);
 }
 
-std::string parse_json_error_message(const char *json) {
+std::string parse_json_error_message(const char *json,
+                                     int32_t expected_type) {
     scoped_cJSON_t response(cJSON_Parse(json));
     guarantee(response.get() != nullptr);
-    json_array_iterator_t it(response.get());
-    cJSON *type = it.next();
-    cJSON *payload = it.next();
-    guarantee(type != nullptr);
-    guarantee(type->type == cJSON_Number);
-    guarantee(type->valueint == Response::RUNTIME_ERROR);
-    guarantee(payload != nullptr);
-    guarantee(payload->type == cJSON_String);
 
-    std::string msg(payload->string);
-    guarantee(msg.length() != 0);
-    return msg;
+    json_object_iterator_t it(response.get());
+    boost::optional<Response::ResponseType> type;
+    boost::optional<std::string> msg;
+
+    while (!type || !msg) {
+        cJSON *item = it.next();
+        std::string item_name(item->string);
+
+        if (item_name == "t") {
+            guarantee(item->type == cJSON_Number);
+            type = static_cast<Response::ResponseType>(item->valueint);
+        } else if (item_name == "r") {
+            json_array_iterator_t rit(item);
+            item = rit.next();
+            guarantee(item->type == cJSON_String);
+            msg = std::string(item->valuestring);
+            guarantee(rit.next() == nullptr);
+        }
+    }
+    guarantee(type.get() == expected_type);
+    guarantee(msg->length() != 0);
+    return msg.get();
 }
 
 std::string get_query_response(tcp_conn_stream_t *conn) {
@@ -349,7 +381,8 @@ std::string get_query_response(tcp_conn_stream_t *conn) {
         return std::string();
     }
     guarantee(res == sizeof(token));
-    guarantee(token == test_token);
+    guarantee(token == unparsable_query_token || token == test_token);
+
     res = conn->read(&response_size, sizeof(response_size));
     guarantee(res == sizeof(response_size));
 
@@ -358,7 +391,8 @@ std::string get_query_response(tcp_conn_stream_t *conn) {
     guarantee(res == response_size);
     response_data[response_size] = '\0';
 
-    return parse_json_error_message(response_data.data());
+    return parse_json_error_message(response_data.data(),
+        token == test_token ?  Response::RUNTIME_ERROR : Response::CLIENT_ERROR);
 }
 
 void tcp_interrupt_test(test_rdb_env_t *test_env,
@@ -374,10 +408,16 @@ void tcp_interrupt_test(test_rdb_env_t *test_env,
                            0, &hanger));
 
     scoped_ptr_t<tcp_conn_stream_t> conn = connect_client(server->get_port());
-    send_query(r_uuid_json, conn.get());
+    send_query(test_token, r_uuid_json, conn.get());
+
+    let_stuff_happen();
+
     interrupt_fn(&server, &conn);
-    std::string msg = get_query_response(conn.get());
-    guarantee(msg == expected_msg);
+    if (conn.has()) {
+        ASSERT_EQ(expected_msg, get_query_response(conn.get()));
+    } else {
+        ASSERT_EQ(expected_msg, std::string());
+    }
 }
 
 TEST(RDBInterrupt, TcpInterrupt) {
@@ -411,21 +451,11 @@ TEST(RDBInterrupt, TcpInterrupt) {
         // Test corrupting the stream
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
-            "",
+            "Fatal error on another query: Client is buggy (failed to deserialize query).",
             [](UNUSED scoped_ptr_t<query_server_t> *serv,
                scoped_ptr_t<tcp_conn_stream_t> *conn) {
-                char invalid_query = ',';
-                uint32_t query_size = 1;
-                int64_t token = 99;
-
-                int64_t res;
-                res = (*conn)->write(&token, sizeof(token));
-                guarantee(res == sizeof(token));
-                res = (*conn)->write(&query_size, sizeof(query_size));
-                guarantee(res == sizeof(query_size));
-                res = (*conn)->write(&invalid_query, sizeof(invalid_query));
-                guarantee(res == sizeof(invalid_query));
-                serv->reset();
+                send_query(unparsable_query_token, invalid_json, conn->get());
+                get_query_response(conn->get()); // TODO: Race condition on which query reply happens first?
             }));
     }
 
@@ -433,10 +463,11 @@ TEST(RDBInterrupt, TcpInterrupt) {
         // Test sending a STOP query
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
-            "This query was terminated by another query",
+            "Query terminated by a STOP query.",
             [](UNUSED scoped_ptr_t<query_server_t> *serv,
                scoped_ptr_t<tcp_conn_stream_t> *conn) {
-                send_query(stop_json, conn->get());
+                send_query(test_token, stop_json, conn->get());
+                get_query_response(conn->get()); // TODO: Race condition on which query reply happens first?
             }));
     }
 }
@@ -448,7 +479,7 @@ http_res_t run_http_req(const http_req_t &req, http_app_t *query_app, cond_t *in
 }
 
 int32_t create_http_session(http_app_t *query_app) {
-    http_req_t create_req("query/open-new-connection");
+    http_req_t create_req("/query/open-new-connection");
     create_req.method = http_method_t::POST;
 
     cond_t dummy_interruptor;
@@ -458,14 +489,14 @@ int32_t create_http_session(http_app_t *query_app) {
 }
 
 http_req_t make_http_close(int32_t conn_id) {
-    http_req_t close_req("query/close-connection");
+    http_req_t close_req("/query/close-connection");
     close_req.method = http_method_t::POST;
     close_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
     return close_req;
 }
 
 http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
-    http_req_t query_req("query");
+    http_req_t query_req("/query");
     query_req.method = http_method_t::POST;
     query_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
     query_req.body.append(reinterpret_cast<const char *>(&test_token), sizeof(test_token));
@@ -473,13 +504,17 @@ http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
     return query_req;
 }
 
-std::string parse_http_result(const http_res_t &http_res) {
+std::string parse_http_result(const http_res_t &http_res, int32_t expected_type) {
     guarantee(http_res.body.size() > sizeof(int64_t));
     const char *data = http_res.body.data();
+
     int64_t token = *reinterpret_cast<const int64_t *>(data);
     data += sizeof(token);
 
-    return parse_json_error_message(data);
+    uint32_t data_size = *reinterpret_cast<const uint32_t *>(data);
+    data += sizeof(data_size);
+
+    return parse_json_error_message(data, expected_type);
 }
 
 void http_interrupt_test(test_rdb_env_t *test_env,
@@ -510,8 +545,8 @@ void http_interrupt_test(test_rdb_env_t *test_env,
     interrupt_fn(&server, &http_app_interruptor, conn_id);
     http_done.wait();
 
-    std::string msg = parse_http_result(result);
-    guarantee(msg == expected_msg);
+    std::string msg = parse_http_result(result, Response::RUNTIME_ERROR);
+    ASSERT_EQ(expected_msg, msg);
 }
 
 TEST(RDBInterrupt, HttpInterrupt) {
@@ -520,7 +555,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP socket closed by the client
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "",
+            "Client closed the connection.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, UNUSED int32_t conn_id) {
                 // We don't have a real socket here, use the fake interruptor
@@ -532,7 +567,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP session closed by another request
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "",
+            "This ReQL connection has been terminated.",
             [](scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, int32_t conn_id) {
                 http_res_t result = run_http_req(make_http_close(conn_id),
@@ -544,7 +579,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // Query server destroyed
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "",
+            "Server is shutting down.",
             [](scoped_ptr_t<query_server_t> *server,
                UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
                 server->reset();
@@ -555,7 +590,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // STOP query
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "",
+            "Query terminated by a STOP query.",
             [](scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, int32_t conn_id) {
                 http_res_t result = run_http_req(make_http_query(conn_id, stop_json),
@@ -567,7 +602,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP session expires
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "",
+            "HTTP ReQL query timed out after 5 minutes.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
                UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
                 // Don't actually have to do anything here, the test should

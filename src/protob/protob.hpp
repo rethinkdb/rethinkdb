@@ -106,6 +106,7 @@ private:
 
     void make_error_response(const tcp_conn_t &conn,
                              const ql::protob_t<Query> &query,
+                             const std::string &err,
                              Response *response_out);
 
     // For the client driver socket
