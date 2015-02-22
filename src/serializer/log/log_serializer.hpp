@@ -241,7 +241,6 @@ private:
         shutdown_waiting_on_block_tokens,
         shutdown_waiting_on_dbfile_destruction,
     } shutdown_state;
-    bool shutdown_in_one_shot;
 
     enum state_t {
         state_unstarted,

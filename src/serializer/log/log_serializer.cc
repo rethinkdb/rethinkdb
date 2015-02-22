@@ -792,7 +792,6 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
-    shutdown_in_one_shot = true;
 
     // We must shutdown the LBA GC before we shut down
     // the data_block_manager or metablock_manager, because the LBA GC
@@ -812,7 +811,6 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_serializer;
         if (!metablock_waiter_queue.empty() || active_write_count > 0) {
             state = state_shutting_down;
-            shutdown_in_one_shot = false;
             return false;
         }
         state = state_shutting_down;
@@ -821,7 +819,6 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
         if (!data_block_manager->shutdown(this)) {
-            shutdown_in_one_shot = false;
             return false;
         }
     }
@@ -830,7 +827,6 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
         if (!offset_tokens.empty()) {
-            shutdown_in_one_shot = false;
             return false;
         } else {
 #ifndef NDEBUG
@@ -861,9 +857,6 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_dbfile_destruction;
         coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
                                          this));
-        // TODO: Get rid of the useless shutdown_in_one_shot variable -- we never
-        // shut down in one shot.
-        shutdown_in_one_shot = false;
         return false;
     }
 
@@ -874,7 +867,7 @@ bool log_serializer_t::next_shutdown_step() {
 
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
-        if (!shutdown_in_one_shot && shutdown_callback) {
+        if (shutdown_callback) {
             shutdown_callback->pulse();
         }
 
