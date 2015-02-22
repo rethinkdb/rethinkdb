@@ -505,6 +505,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             bool replied = false;
             wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
             Response response;
+            response.set_token(query_pb->token());
 
             save_exception(&err, &abort, [&]() {
                     if (handler->run_query(query_id, query_pb, &response,
