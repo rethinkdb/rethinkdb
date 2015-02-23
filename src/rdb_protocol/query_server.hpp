@@ -31,11 +31,11 @@ public:
     http_app_t *get_http_app();
     int get_port() const;
 
-    MUST_USE bool run_query(const ql::query_id_t &query_id,
-                            const ql::protob_t<Query> &query,
-                            Response *response_out,
-                            ql::query_cache_t *query_cache,
-                            signal_t *interruptor);
+    void run_query(const ql::query_id_t &query_id,
+                   const ql::protob_t<Query> &query,
+                   Response *response_out,
+                   ql::query_cache_t *query_cache,
+                   signal_t *interruptor);
 public:
     query_server_t server;
     rdb_context_t *rdb_ctx;

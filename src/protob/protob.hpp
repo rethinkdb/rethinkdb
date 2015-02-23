@@ -78,11 +78,11 @@ class query_handler_t {
 public:
     virtual ~query_handler_t() { }
 
-    virtual MUST_USE bool run_query(const ql::query_id_t &query_id,
-                                    const ql::protob_t<Query> &query,
-                                    Response *response_out,
-                                    ql::query_cache_t *query_cache,
-                                    signal_t *interruptor) = 0;
+    virtual void run_query(const ql::query_id_t &query_id,
+                           const ql::protob_t<Query> &query,
+                           Response *response_out,
+                           ql::query_cache_t *query_cache,
+                           signal_t *interruptor) = 0;
 };
 
 class query_server_t : public http_app_t {
@@ -104,7 +104,8 @@ private:
                                          signal_t *interruptor);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
-    void make_error_response(const tcp_conn_t &conn,
+    void make_error_response(bool is_draining,
+                             const tcp_conn_t &conn,
                              const ql::protob_t<Query> &query,
                              const std::string &err,
                              Response *response_out);

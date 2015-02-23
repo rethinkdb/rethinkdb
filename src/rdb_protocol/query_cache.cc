@@ -245,15 +245,16 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         }
     } catch (const interrupted_exc_t &ex) {
         if (entry->persistent_interruptor.is_pulsed()) {
-            if (entry->state == entry_t::state_t::DONE) {
+            if (entry->state != entry_t::state_t::DONE) {
                 throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                    "Query terminated by a STOP query.", backtrace_t());
+                    "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
             }
-            throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
+            // For compatibility, we return a SUCCESS_SEQUENCE in this case
+            res->set_type(Response::SUCCESS_SEQUENCE);
+        } else {
+            terminate();
+            throw;
         }
-        terminate();
-        throw;
     } catch (...) {
         terminate();
         throw;

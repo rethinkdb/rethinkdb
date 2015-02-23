@@ -247,7 +247,9 @@ TEST(RDBInterrupt, DeleteOp) {
 // concurrent queries for the same token - aside from a STOP query.
 class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
 public:
-    bool run_query(UNUSED const ql::query_id_t &query_id,
+    static const std::string stop_query_message;
+
+    void run_query(UNUSED const ql::query_id_t &query_id,
                    const ql::protob_t<Query> &query,
                    Response *res,
                    UNUSED ql::query_cache_t *query_cache,
@@ -275,14 +277,15 @@ public:
             interruptor_it->second->pulse_if_not_already_pulsed();
         }
 
+        // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
         res->set_token(query->token());
-        ql::fill_error(res, Response::RUNTIME_ERROR,
-                       "Query terminated by a STOP query."); // TODO: make this a constant
-        return true;
+        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message);
     }
 private:
     std::map<int64_t, cond_t *> interruptors;
 };
+
+const std::string query_hanger_t::stop_query_message("Query terminated by a STOP query.");
 
 // Arbitrary non-zero to check that responses are correct
 const int64_t test_token = 54;
@@ -309,7 +312,7 @@ void send_tcp_message(tcp_conn_stream_t *conn, Args... args) {
 }
 
 scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
-    cond_t dummy_interruptor; // TODO: have a real timeout
+    cond_t dummy_interruptor;
     scoped_ptr_t<tcp_conn_stream_t> conn(
         new tcp_conn_stream_t(ip_address_t("127.0.0.1"), port, &dummy_interruptor));
 
@@ -441,22 +444,10 @@ TEST(RDBInterrupt, TcpInterrupt) {
     }
 
     {
-        // Test corrupting the stream
-        test_rdb_env_t test_env;
-        unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
-            "Fatal error on another query: Client is buggy (failed to deserialize query).",
-            [](UNUSED scoped_ptr_t<query_server_t> *serv,
-               scoped_ptr_t<tcp_conn_stream_t> *conn) {
-                send_query(unparsable_query_token, invalid_json, conn->get());
-                get_query_response(conn->get()); // TODO: Race condition on which query reply happens first?
-            }));
-    }
-
-    {
         // Test sending a STOP query
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(tcp_interrupt_test, &test_env,
-            "Query terminated by a STOP query.",
+            query_hanger_t::stop_query_message,
             [](UNUSED scoped_ptr_t<query_server_t> *serv,
                scoped_ptr_t<tcp_conn_stream_t> *conn) {
                 send_query(test_token, stop_json, conn->get());
@@ -583,7 +574,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // STOP query
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "Query terminated by a STOP query.",
+            query_hanger_t::stop_query_message,
             [](scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, int32_t conn_id) {
                 http_res_t result = run_http_req(make_http_query(conn_id, stop_json),

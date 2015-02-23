@@ -148,7 +148,7 @@ std::string too_large_response_message(uint32_t size) {
 
 class json_protocol_t {
 public:
-    static void parse_query(tcp_conn_t *conn,
+    static bool parse_query(tcp_conn_t *conn,
                             signal_t *interruptor,
                             query_handler_t *handler,
                             ql::protob_t<Query> *query_out) {
@@ -175,9 +175,10 @@ public:
                 ql::fill_error(&error_response, Response::CLIENT_ERROR,
                                unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
-                throw std::runtime_error(unparseable_query_message);
+                return false;
             }
         }
+        return true;
     }
 
     static void send_response(const Response &response,
@@ -220,7 +221,7 @@ public:
 
 class protobuf_protocol_t {
 public:
-    static void parse_query(tcp_conn_t *conn,
+    static bool parse_query(tcp_conn_t *conn,
                             signal_t *interruptor,
                             query_handler_t *handler,
                             ql::protob_t<Query> *query_out) {
@@ -245,9 +246,10 @@ public:
                 ql::fill_error(&error_response, Response::CLIENT_ERROR,
                                unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
-                throw std::runtime_error(unparseable_query_message);
+                return false;
             }
         }
+        return true;
     }
 
     static void send_response(const Response &response,
@@ -346,13 +348,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     nconn->make_overcomplicated(&conn);
     conn->enable_keepalive();
 
-#ifdef __linux
-    linux_event_watcher_t *ew = conn->get_event_watcher();
-    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-    wait_any_t interruptor(&conn_interrupted, &ct_keepalive);
-#else
-    wait_any_t interruptor(&ct_keepalive);
-#endif  // __linux
     ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
     UNUSED bool peer_res = conn->getpeername(&client_addr_port);
 
@@ -360,7 +355,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
     try {
         int32_t client_magic_number;
-        conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
+        conn->read(&client_magic_number, sizeof(client_magic_number), &ct_keepalive);
 
         bool pre_2 = client_magic_number == VersionDummy::V0_1;
         bool pre_3 = pre_2 || client_magic_number == VersionDummy::V0_2;
@@ -374,7 +369,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     "Authorization required but client does not support it.");
             }
         } else if (legal) {
-            auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
+            auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
             if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
             }
@@ -389,7 +384,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
         if (!pre_3) {
-            conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
+            conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
         }
 
         ql::query_cache_t query_cache(rdb_ctx, client_addr_port,
@@ -397,14 +392,14 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                               ql::return_empty_normal_batches_t::NO);
 
         const char *success_msg = "SUCCESS";
-        conn->write(success_msg, strlen(success_msg) + 1, &interruptor);
+        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
-                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
+                conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
             connection_loop<protobuf_protocol_t>(
-                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
+                conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else {
             throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
                                                 wire_protocol));
@@ -415,29 +410,26 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     } catch (const interrupted_exc_t &ex) {
         // If we have been interrupted, we can't write a message to the client, as that
         // may block (and we would just be interrupted again anyway), just close.
-        return;
     } catch (const tcp_conn_read_closed_exc_t &) {
-        return;
     } catch (const tcp_conn_write_closed_exc_t &) {
-        return;
     } catch (const std::exception &ex) {
         logERR("Unexpected exception in client handler: %s", ex.what());
-        return;
     }
 
-    try {
-        if (!init_error.empty()) {
-            conn->write(init_error.c_str(), init_error.length() + 1, &interruptor);
+    if (!init_error.empty()) {
+        try {
+            conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
             conn->shutdown_write();
+        } catch (const tcp_conn_write_closed_exc_t &) {
+            // Do nothing
         }
-    } catch (const tcp_conn_write_closed_exc_t &) {
-        // Do nothing
     }
 }
 
-void query_server_t::make_error_response(const tcp_conn_t &conn,
+void query_server_t::make_error_response(bool is_draining,
+                                         const tcp_conn_t &conn,
                                          const ql::protob_t<Query> &query,
-                                         const std::string &err,
+                                         const std::string &err_str,
                                          Response *response_out) {
     response_out->Clear();
     response_out->set_token(query->token());
@@ -447,38 +439,58 @@ void query_server_t::make_error_response(const tcp_conn_t &conn,
         // The other side closed it's socket - it won't get this message
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Client closed the connection.");
-    } else if (drainer.is_draining()) {
+    } else if (is_draining) {
         // The query_server_t is being destroyed - we can't even write this to the socket anyway
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Server is shutting down.");
     } else {
         // Sort of a catch-all - there could be other reasons for this
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       strprintf("Fatal error on another query: %s", err.c_str()));
+                       strprintf("Fatal error on another query: %s", err_str.c_str()));
     }
 }
 
 template <class Callable>
-void save_exception(std::string *err, cond_t *abort, Callable &&fn) {
+void save_exception(std::exception_ptr *err,
+                    std::string *err_str,
+                    cond_t *abort,
+                    Callable &&fn) {
     try {
         fn();
     } catch (const std::exception &ex) {
-        if (err->empty()) {
-            err->assign(ex.what());
+        if (!(*err)) {
+            *err = std::current_exception();
+            err_str->assign(ex.what());
         }
         abort->pulse_if_not_already_pulsed();
     }
+}
+
+bool should_reply(const ql::protob_t<Query> &query) {
+    ql::datum_t noreply = static_optarg("noreply", query);
+    return !(noreply.has() &&
+             noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
+             noreply.as_bool());
 }
 
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
                                      ql::query_cache_t *query_cache,
-                                     signal_t *raw_interruptor) {
-    std::string err;
+                                     signal_t *drain_signal) {
+    std::exception_ptr err;
+    std::string err_str;
     cond_t abort;
     new_mutex_t send_mutex;
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
+
+#ifdef __linux
+    linux_event_watcher_t *ew = conn->get_event_watcher();
+    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+    wait_any_t interruptor(drain_signal, &abort, &conn_interrupted);
+#else 
+    wait_any_t interruptor(drain_signal, &abort);
+#endif  // __linux
 
     // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
     // (which are RAII) are allocated and destroyed properly.  When we read a query off
@@ -502,25 +514,26 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             ql::query_id_t query_id(std::move(query_it->first));
             ql::protob_t<Query> query_pb(std::move(query_it->second));
             query_list.erase(query_it);
-            bool replied = false;
-            wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
+            wait_any_t cb_interruptor(pool_interruptor, &interruptor);
             Response response;
             response.set_token(query_pb->token());
+            bool replied = false;
 
-            save_exception(&err, &abort, [&]() {
-                    if (handler->run_query(query_id, query_pb, &response,
-                                           query_cache, &cb_interruptor)) {
+            save_exception(&err, &err_str, &abort, [&]() {
+                    handler->run_query(query_id, query_pb, &response,
+                                       query_cache, &cb_interruptor);
+                    if (should_reply(query_pb)) {
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                         protocol_t::send_response(response, handler, conn, &cb_interruptor);
                         replied = true;
                     }
                 });
 
-            if (!replied) {
-                save_exception(&err, &abort, [&]() {
-                        make_error_response(*conn, query_pb, err, &response);
-                        new_mutex_acq_t send_lock(&send_mutex, raw_interruptor);
-                        protocol_t::send_response(response, handler, conn, raw_interruptor);
+            if (!replied && should_reply(query_pb)) {
+                save_exception(&err, &err_str, &abort, [&]() {
+                        make_error_response(drain_signal->is_pulsed(), *conn, query_pb, err_str, &response);
+                        new_mutex_acq_t send_lock(&send_mutex, drain_signal);
+                        protocol_t::send_response(response, handler, conn, drain_signal);
                     });
             }
         });
@@ -531,29 +544,31 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                                                           &coro_queue,
                                                           &callback);
 
-    wait_any_t loop_interruptor(raw_interruptor, &abort);
-    while (err.empty()) {
+    while (!err) {
         ql::protob_t<Query> query(ql::make_counted_query());
-        save_exception(&err, &abort, [&]() {
-                protocol_t::parse_query(conn, &loop_interruptor, handler, &query);
-                query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
-                                                     std::move(query)));
-                coro_queue.push(query_list.begin());
+        save_exception(&err, &err_str, &abort, [&]() {
+                if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
+                    query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
+                                                         std::move(query)));
+                    coro_queue.push(query_list.begin());
+                }
             });
     }
 
     // Respond to any queries still in the run queue
     for (auto const &pair : query_list) {
-        Response response;
-        save_exception(&err, &abort, [&]() {
-                make_error_response(*conn, pair.second, err, &response);
-                new_mutex_acq_t send_lock(&send_mutex, raw_interruptor);
-                protocol_t::send_response(response, handler, conn, raw_interruptor);
-            });
+        if (should_reply(pair.second)) {
+            Response response;
+            save_exception(&err, &err_str, &abort, [&]() {
+                    make_error_response(drain_signal->is_pulsed(), *conn, pair.second, err_str, &response);
+                    new_mutex_acq_t send_lock(&send_mutex, drain_signal);
+                    protocol_t::send_response(response, handler, conn, drain_signal);
+                });
+        }
     }
 
-    if (!err.empty()) {
-        throw std::runtime_error(err);
+    if (err) {
+        std::rethrow_exception(err);
     }
 }
 
@@ -617,12 +632,7 @@ void query_server_t::handle(const http_req_t &req,
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            ql::datum_t noreply = static_optarg("noreply", query);
-            bool response_needed = !(noreply.has() &&
-                                     noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-                                     noreply.as_bool());
-
-            if (!response_needed) {
+            if (!should_reply(query)) {
                 *result = http_res_t(http_status_code_t::BAD_REQUEST,
                                      "application/text",
                                      "noreply queries are not supported over HTTP\n");
@@ -633,10 +643,8 @@ void query_server_t::handle(const http_req_t &req,
                                         drainer.get_drain_signal());
             ql::query_id_t query_id(conn->get_query_cache());
             try {
-                response_needed = handler->run_query(query_id,
-                                                     query, &response,
-                                                     conn->get_query_cache(),
-                                                     &true_interruptor);
+                handler->run_query(query_id, query, &response,
+                                   conn->get_query_cache(), &true_interruptor);
             } catch (const interrupted_exc_t &ex) {
                 if (http_conn_cache.is_expired(*conn)) {
                     // This will only be sent back if this was interrupted by a http conn
@@ -656,7 +664,6 @@ void query_server_t::handle(const http_req_t &req,
                     throw;
                 }
             }
-            rassert(response_needed);
         }
     }
 

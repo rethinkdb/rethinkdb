@@ -35,18 +35,13 @@ namespace ql {
              signal_t *interruptor);
 }
 
-bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
+void rdb_query_server_t::run_query(const ql::query_id_t &query_id,
                                    const ql::protob_t<Query> &query,
                                    Response *response_out,
                                    ql::query_cache_t *query_cache,
                                    signal_t *interruptor) {
     guarantee(query_cache != NULL);
     guarantee(interruptor != NULL);
-
-    ql::datum_t noreply = static_optarg("noreply", query);
-    bool response_needed = !(noreply.has() &&
-         noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-         noreply.as_bool());
     try {
         scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active); // TODO: make this correct for parallelized queries
         guarantee(rdb_ctx->cluster_interface);
@@ -67,5 +62,4 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
 
     rdb_ctx->stats.queries_per_sec.record();
     ++rdb_ctx->stats.queries_total;
-    return response_needed;
 }
