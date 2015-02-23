@@ -157,7 +157,7 @@ public:
         conn->read(&token, sizeof(token), interruptor);
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > TOO_LARGE_QUERY_SIZE) {
+        if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
             error_response.set_token(token);
             ql::fill_error(&error_response, Response::CLIENT_ERROR,
@@ -228,7 +228,7 @@ public:
         uint32_t size;
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > TOO_LARGE_QUERY_SIZE) {
+        if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
             error_response.set_token(0); // We don't actually know the token
             ql::fill_error(&error_response, Response::CLIENT_ERROR,
