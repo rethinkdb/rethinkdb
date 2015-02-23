@@ -54,7 +54,7 @@ public:
         DISABLE_COPYING(http_conn_t);
     };
 
-    http_conn_cache_t(uint32_t _http_timeout_sec);
+    explicit http_conn_cache_t(uint32_t _http_timeout_sec);
     ~http_conn_cache_t();
 
     counted_t<http_conn_t> find(int32_t key);

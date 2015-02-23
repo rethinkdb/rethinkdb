@@ -321,7 +321,8 @@ std::string query_server_t::read_sized_string(tcp_conn_t *conn,
 
 auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
                                          signal_t *interruptor) {
-    const std::string length_error_msg("Client provided an authorization key that is too long.");
+    const std::string length_error_msg =
+        "Client provided an authorization key that is too long.";
     std::string auth_key = read_sized_string(conn, auth_key_t::max_length,
                                              length_error_msg, interruptor);
     auth_key_t ret;
@@ -440,7 +441,7 @@ void query_server_t::make_error_response(bool is_draining,
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Client closed the connection.");
     } else if (is_draining) {
-        // The query_server_t is being destroyed - we can't even write this to the socket anyway
+        // The query_server_t is being destroyed so this wan't actually be written 
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Server is shutting down.");
     } else {
@@ -498,13 +499,15 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     // put it into the coro pool.  Once it is in the coro pool, all ordering guarantees
     // are lost, so it must be done as soon as we receive the query.
     //
-    // The nascent_query_list_t holds ownership of the query_info_t until it is successfully
-    // handed over to the coroutine that will run the query.  This allows us to guarantee
-    // proper destruction of query_id_ts in exceptional interruption or error cases.
+    // The nascent_query_list_t holds ownership of the query_info_t until it is
+    // successfully handed over to the coroutine that will run the query.  This allows us
+    // to guarantee proper destruction of query_id_ts in exceptional interruption or
+    // error cases.
     //
-    // A ql::query_id_t is used to provide an absolute ordering of queries, and is necessary
-    // for proper NOREPLY_WAIT semantics.
-    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > > nascent_query_list_t;
+    // A ql::query_id_t is used to provide an absolute ordering of queries, and is
+    // necessary for proper NOREPLY_WAIT semantics.
+    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > >
+        nascent_query_list_t;
     nascent_query_list_t query_list;
 
     std_function_callback_t<nascent_query_list_t::iterator> callback(
@@ -524,14 +527,16 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                                        query_cache, &cb_interruptor);
                     if (should_reply(query_pb)) {
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
-                        protocol_t::send_response(response, handler, conn, &cb_interruptor);
+                        protocol_t::send_response(response, handler,
+                                                  conn, &cb_interruptor);
                         replied = true;
                     }
                 });
 
             if (!replied && should_reply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
-                        make_error_response(drain_signal->is_pulsed(), *conn, query_pb, err_str, &response);
+                        make_error_response(drain_signal->is_pulsed(), *conn,
+                                            query_pb, err_str, &response);
                         new_mutex_acq_t send_lock(&send_mutex, drain_signal);
                         protocol_t::send_response(response, handler, conn, drain_signal);
                     });
@@ -560,7 +565,8 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
         if (should_reply(pair.second)) {
             Response response;
             save_exception(&err, &err_str, &abort, [&]() {
-                    make_error_response(drain_signal->is_pulsed(), *conn, pair.second, err_str, &response);
+                    make_error_response(drain_signal->is_pulsed(), *conn,
+                                        pair.second, err_str, &response);
                     new_mutex_acq_t send_lock(&send_mutex, drain_signal);
                     protocol_t::send_response(response, handler, conn, drain_signal);
                 });

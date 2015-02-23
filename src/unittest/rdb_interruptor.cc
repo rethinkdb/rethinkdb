@@ -34,7 +34,8 @@ private:
 
 class interrupt_callback_t : public ql::env_t::eval_callback_t {
 public:
-    interrupt_callback_t(uint32_t _delay, test_rdb_env_t::instance_t *_test_env_instance) :
+    interrupt_callback_t(uint32_t _delay,
+                         test_rdb_env_t::instance_t *_test_env_instance) :
         delay(_delay),
         test_env_instance(_test_env_instance)
     {
@@ -63,7 +64,9 @@ public:
     virtual bool verify(test_rdb_env_t::instance_t *) = 0;
 };
 
-void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
+void count_evals(test_rdb_env_t *test_env,
+                 ql::protob_t<const Term> term,
+                 uint32_t *count_out,
                  verify_callback_t *verify_callback) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
@@ -136,7 +139,8 @@ TEST(RDBInterrupt, InsertOp) {
     row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
 
     ql::protob_t<const Term> insert_proto =
-        ql::r::db("db").table("table").insert(std::move(row).to_datum()).release_counted();
+        ql::r::db("db").table("table")
+                       .insert(std::move(row).to_datum()).release_counted();
 
     {
         test_rdb_env_t test_env;
@@ -285,7 +289,8 @@ private:
     std::map<int64_t, cond_t *> interruptors;
 };
 
-const std::string query_hanger_t::stop_query_message("Query terminated by a STOP query.");
+const std::string query_hanger_t::stop_query_message =
+    "Query terminated by a STOP query.";
 
 // Arbitrary non-zero to check that responses are correct
 const int64_t test_token = 54;
@@ -345,8 +350,10 @@ std::string parse_json_error_message(const char *json,
     guarantee(response.get() != nullptr);
 
     json_object_iterator_t it(response.get());
-    boost::optional<Response::ResponseType> type;
-    boost::optional<std::string> msg;
+    // The `make_optional` call works around an incorrect warning in old versions of GCC
+    boost::optional<Response::ResponseType> type =
+        boost::make_optional(false, Response::COMPILE_ERROR);
+    boost::optional<std::string> msg = boost::make_optional(false, std::string());
 
     while (!type || !msg) {
         cJSON *item = it.next();
@@ -391,10 +398,11 @@ std::string get_query_response(tcp_conn_stream_t *conn) {
         token == test_token ?  Response::RUNTIME_ERROR : Response::CLIENT_ERROR);
 }
 
-void tcp_interrupt_test(test_rdb_env_t *test_env,
-                        const std::string &expected_msg,
-                        std::function<void(scoped_ptr_t<query_server_t> *,
-                                           scoped_ptr_t<tcp_conn_stream_t> *)> interrupt_fn) {
+void tcp_interrupt_test(
+        test_rdb_env_t *test_env,
+        const std::string &expected_msg,
+        std::function<void(scoped_ptr_t<query_server_t> *,
+                           scoped_ptr_t<tcp_conn_stream_t> *)> interrupt_fn) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance(test_env->make_env());
 
     query_hanger_t hanger; // Causes all queries to hang until interrupted
@@ -451,12 +459,14 @@ TEST(RDBInterrupt, TcpInterrupt) {
             [](UNUSED scoped_ptr_t<query_server_t> *serv,
                scoped_ptr_t<tcp_conn_stream_t> *conn) {
                 send_query(test_token, stop_json, conn->get());
-                get_query_response(conn->get()); // TODO: Race condition on which query reply happens first?
+                get_query_response(conn->get());
             }));
     }
 }
 
-http_res_t run_http_req(const http_req_t &req, http_app_t *query_app, cond_t *interruptor) {
+http_res_t run_http_req(const http_req_t &req,
+                        http_app_t *query_app,
+                        cond_t *interruptor) {
     http_res_t result;
     query_app->handle(req, &result, interruptor);
     return result;
@@ -483,7 +493,8 @@ http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
     http_req_t query_req("/query");
     query_req.method = http_method_t::POST;
     query_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
-    query_req.body.append(reinterpret_cast<const char *>(&test_token), sizeof(test_token));
+    query_req.body.append(reinterpret_cast<const char *>(&test_token),
+                          sizeof(test_token));
     query_req.body.append(query_json);
     return query_req;
 }
@@ -539,7 +550,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         // HTTP socket closed by the client
         test_rdb_env_t test_env;
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
-            "This ReQL connection has been terminated.", // Technically we can't send this back
+            "This ReQL connection has been terminated.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
                cond_t *interruptor, UNUSED int32_t conn_id) {
                 // We don't have a real socket here, use the fake interruptor
