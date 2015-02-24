@@ -18,18 +18,22 @@ namespace pprint {
 class js_pretty_printer_t
     : public generic_term_walker_t<counted_t<const document_t> > {
     unsigned int depth;
-    bool prepend_ok;
+    bool prepend_ok, in_r_expr;
     typedef std::vector<counted_t<const document_t> > v;
 public:
-    js_pretty_printer_t() : depth(0), prepend_ok(true) {}
+    js_pretty_printer_t() : depth(0), prepend_ok(true), in_r_expr(false) {}
 protected:
     counted_t<const document_t> visit_generic(Term *t) override {
+        bool old_r_expr = in_r_expr;
         ++depth;
         if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
         counted_t<const document_t> doc;
         switch (t->type()) {
         case Term::DATUM:
             doc = to_js_datum(t->mutable_datum());
+            if (!in_r_expr) {
+                doc = prepend_r_expr(doc);
+            }
             break;
         case Term::FUNCALL:
             // Hack here: JS users expect .do in suffix position if
@@ -40,11 +44,27 @@ protected:
                 doc = toplevel_funcall(t);
             }
             break;
+        case Term::DB:
+        case Term::TABLE:
+            guarantee(t->args_size() == 1);
+            guarantee(t->mutable_args(0)->type() == Term::DATUM);
+            doc = prepend_r_dot(make_concat({make_text(to_js_name(t)),
+                            wrap_parens(to_js_datum(t->mutable_args(0)->mutable_datum()))}));
+            break;
         case Term::MAKE_ARRAY:
+            in_r_expr = true;
             doc = to_js_array(t);
+            if (!old_r_expr) {
+                doc = prepend_r_expr(doc);
+            }
             break;
         case Term::MAKE_OBJ:
-            doc = to_js_object(t);
+            in_r_expr = true;
+            if (old_r_expr) {
+                doc = to_js_natural_object(t);
+            } else {
+                doc = to_js_wrapped_object(t);
+            }
             break;
         case Term::FUNC:
             doc = to_js_func(t);
@@ -65,6 +85,7 @@ protected:
             }
             break;
         }
+        in_r_expr = old_r_expr;
         --depth;
         return std::move(doc);
     }
@@ -86,6 +107,8 @@ private:
     }
     counted_t<const document_t> to_js_array(Term *t) {
         guarantee(t->optargs_size() == 0);
+        bool old_r_expr = in_r_expr;
+        in_r_expr = true;
         std::vector<counted_t<const document_t> > term;
         for (int i = 0; i < t->args_size(); ++i) {
             if (i != 0) {
@@ -94,10 +117,14 @@ private:
             }
             term.push_back(visit_generic(t->mutable_args(i)));
         }
+        in_r_expr = old_r_expr;
         return make_concat({lbrack, make_nest(make_concat(std::move(term))), rbrack});
     }
     counted_t<const document_t> to_js_object(Term *t) {
         guarantee(t->args_size() == 0);
+        return in_r_expr ? to_js_natural_object(t) : to_js_wrapped_object(t);
+    }
+    counted_t<const document_t> to_js_natural_object(Term *t) {
         std::vector<counted_t<const document_t> > term;
         for (int i = 0; i < t->optargs_size(); ++i) {
             if (i != 0) {
@@ -110,6 +137,20 @@ private:
                                                   visit_generic(ap->mutable_val())})));
         }
         return make_concat({lbrace, make_nest(make_concat(std::move(term))), rbrace});
+    }
+    counted_t<const document_t> to_js_wrapped_object(Term *t) {
+        std::vector<counted_t<const document_t> > term;
+        for (int i = 0; i < t->optargs_size(); ++i) {
+            if (i != 0) {
+                term.push_back(comma);
+                term.push_back(cond_linebreak);
+            }
+            Term_AssocPair *ap = t->mutable_optargs(i);
+            term.push_back(make_text("\"" + ap->key() + "\""));
+            term.push_back(cond_linebreak);
+            term.push_back(visit_generic(ap->mutable_val()));
+        }
+        return prepend_r_obj(make_nest(make_concat(std::move(term))));
     }
     counted_t<const document_t> to_js_datum(Datum *d) {
         switch (d->type()) {
@@ -184,9 +225,11 @@ private:
     visit_stringing(Term *var, std::vector<counted_t<const document_t> > *stack) {
         bool first = true;
         bool insert_trailing_comma = false;
+        bool old_r_expr = in_r_expr;
         switch (var->type()) {
         case Term::BRACKET:
             stack->push_back(rparen);
+            in_r_expr = true;
             if (var->optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
                 first = false;
@@ -202,19 +245,29 @@ private:
                     stack->push_back(visit_generic(var->mutable_args(i)));
                 }
             }
+            in_r_expr = old_r_expr;
             stack->push_back(lparen);
             return std::make_pair(false, var->mutable_args(0));
         case Term::FUNCALL:
             guarantee(var->args_size() == 2);
             guarantee(var->optargs_size() == 0);
             stack->push_back(rparen);
+            in_r_expr = true;
             stack->push_back(make_nest(visit_generic(var->mutable_args(0))));
+            in_r_expr = old_r_expr;
             stack->push_back(lparen);
             stack->push_back(do_st);
             stack->push_back(dot_linebreak);
             return std::make_pair(true, var->mutable_args(1));
         case Term::DATUM:
-            stack->push_back(to_js_datum(var->mutable_datum()));
+            in_r_expr = true;
+            stack->push_back(prepend_r_expr(to_js_datum(var->mutable_datum())));
+            in_r_expr = old_r_expr;
+            return std::make_pair(false, nullptr);
+        case Term::MAKE_OBJ:
+            in_r_expr = true;
+            stack->push_back(to_js_wrapped_object(var));
+            in_r_expr = old_r_expr;
             return std::make_pair(false, nullptr);
         case Term::VAR:
             guarantee(var->args_size() == 1);
@@ -226,16 +279,19 @@ private:
             return std::make_pair(true, nullptr);
         default:
             stack->push_back(rparen);
+            in_r_expr = true;
             if (var->optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
                 insert_trailing_comma = true;
             }
             switch (var->args_size()) {
             case 0:
+                in_r_expr = old_r_expr;
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 return std::make_pair(should_use_rdot(var), nullptr);
             case 1:
+                in_r_expr = old_r_expr;
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
@@ -257,6 +313,7 @@ private:
                 }
                 stack->push_back(make_nest(make_concat(std::move(args))));
 
+                in_r_expr = old_r_expr;
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
@@ -304,6 +361,8 @@ private:
         std::vector<counted_t<const document_t> > term;
         term.push_back(do_st);
         term.push_back(lparen);
+        bool old_r_expr = in_r_expr;
+        in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
         for (int i = 1; i < t->args_size(); ++i) {
             // don't insert redundant space
@@ -317,6 +376,7 @@ private:
             args.push_back(comma);
             args.push_back(cond_linebreak);
         }
+        in_r_expr = old_r_expr;
         args.push_back(visit_generic(t->mutable_args(0)));
         term.push_back(make_nest(make_concat(std::move(args))));
         term.push_back(rparen);
@@ -325,7 +385,8 @@ private:
     counted_t<const document_t> standard_funcall(Term *t) {
         std::vector<counted_t<const document_t> > term;
         term.push_back(make_text(to_js_name(t)));
-        term.push_back(lparen);
+        bool old_r_expr = in_r_expr;
+        in_r_expr = true;
         if (t->args_size() > 0 || t->optargs_size() > 0) {
             std::vector<counted_t<const document_t> > args;
             for (int i = 0; i < t->args_size(); ++i) {
@@ -343,9 +404,9 @@ private:
                 }
                 args.push_back(render_optargs(t));
             }
-            term.push_back(make_nest(make_concat(std::move(args))));
+            term.push_back(wrap_parens(make_concat(std::move(args))));
         }
-        term.push_back(rparen);
+        in_r_expr = old_r_expr;
         if (should_use_rdot(t)) {
             return prepend_r_dot(make_concat(std::move(term)));
         } else {
@@ -355,6 +416,20 @@ private:
     counted_t<const document_t> prepend_r_dot(counted_t<const document_t> doc) {
         if (!prepend_ok) return doc;
         return make_concat({r_st, make_nest(make_concat({justdot, doc}))});
+    }
+    counted_t<const document_t> wrap_with(counted_t<const document_t> left,
+                                          counted_t<const document_t> doc,
+                                          counted_t<const document_t> right) {
+        return make_concat({left, make_nest(doc), right});
+    }
+    counted_t<const document_t> wrap_parens(counted_t<const document_t> doc) {
+        return wrap_with(lparen, doc, rparen);
+    }
+    counted_t<const document_t> prepend_r_expr(counted_t<const document_t> doc) {
+        return prepend_r_dot(make_concat({expr, wrap_parens(doc)}));
+    }
+    counted_t<const document_t> prepend_r_obj(counted_t<const document_t> doc) {
+        return prepend_r_dot(make_concat({object, wrap_parens(doc)}));
     }
     bool should_use_rdot(Term *t) {
         switch (t->type()) {
@@ -424,6 +499,8 @@ private:
         case Term::CIRCLE:
         case Term::DATUM:
         case Term::VAR:
+        case Term::MAKE_ARRAY:
+        case Term::MAKE_OBJ:
             return false;
         case Term::FUNCALL:
             return t->args_size() == 2;
@@ -500,7 +577,7 @@ private:
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace,
         colon, quote, sp, justdot, dotdotdot, comma, semicolon;
     static counted_t<const document_t> nil, true_v, false_v, r_st, json, row, do_st,
-        return_st, lambda_1, lambda_2;
+        return_st, lambda_1, lambda_2, expr, object;
 
     static const unsigned int MAX_DEPTH = 15;
 };
@@ -528,6 +605,8 @@ counted_t<const document_t> js_pretty_printer_t::return_st = make_text("return")
 counted_t<const document_t> js_pretty_printer_t::do_st = make_text("do");
 counted_t<const document_t> js_pretty_printer_t::lambda_1 = make_text("func");
 counted_t<const document_t> js_pretty_printer_t::lambda_2 = make_text("tion");
+counted_t<const document_t> js_pretty_printer_t::expr = make_text("expr");
+counted_t<const document_t> js_pretty_printer_t::object = make_text("object");
 
 counted_t<const document_t> render_as_javascript(Term *t) {
     return js_pretty_printer_t().walk(t);
