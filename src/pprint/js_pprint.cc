@@ -87,7 +87,7 @@ protected:
         }
         in_r_expr = old_r_expr;
         --depth;
-        return std::move(doc);
+        return doc;
     }
 private:
     std::string to_js_name(Term *t) {
@@ -107,7 +107,7 @@ private:
                 result += tolower(*it);
             }
         }
-        return std::move(result);
+        return result;
     }
     counted_t<const document_t> to_js_array(Term *t) {
         guarantee(t->optargs_size() == 0);
@@ -151,6 +151,7 @@ private:
             }
             Term_AssocPair *ap = t->mutable_optargs(i);
             term.push_back(make_text("\"" + ap->key() + "\""));
+            term.push_back(comma);
             term.push_back(cond_linebreak);
             term.push_back(visit_generic(ap->mutable_val()));
         }

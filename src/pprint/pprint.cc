@@ -466,7 +466,7 @@ public:
 };
 
 void generate_stream(counted_t<const document_t> doc, counted_t<fn_wrapper_t> fn) {
-    generate_stream_visitor_t v(std::move(fn));
+    generate_stream_visitor_t v(fn);
     doc->visit(v);
 }
 
@@ -692,8 +692,8 @@ std::string pretty_print(size_t width, counted_t<const document_t> doc) {
         make_counted<output_visitor_t>(width);
     counted_t<fn_wrapper_t> corr_gbeg =
         correct_gbeg_stream(make_counted<fn_wrapper_t>(output, "output"));
-    counted_t<fn_wrapper_t> annotate = annotate_stream(std::move(corr_gbeg));
-    generate_stream(doc, std::move(annotate));
+    counted_t<fn_wrapper_t> annotate = annotate_stream(corr_gbeg);
+    generate_stream(doc, annotate);
     return output->result;
 }
 
