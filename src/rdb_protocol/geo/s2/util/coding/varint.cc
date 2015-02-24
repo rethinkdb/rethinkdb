@@ -140,7 +140,7 @@ const char* Varint::Parse64WithLimit(const char* p,
   }
 }
 
-const char* Varint::Skip32BackwardSlow(const char* p, const char* b) {
+const char* Varint::SkipBackwardSlow(const char* p, const char* b, int skipVal) {
   const unsigned char* ptr = reinterpret_cast<const unsigned char*>(p);
   const unsigned char* base = reinterpret_cast<const unsigned char*>(b);
   assert(ptr >= base);
@@ -150,30 +150,20 @@ const char* Varint::Skip32BackwardSlow(const char* p, const char* b) {
   if (ptr == base) return NULL;
   if (*(--ptr) > 127) return NULL;
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < skipVal; i++) {
     if (ptr == base)    return reinterpret_cast<const char*>(ptr);
     if (*(--ptr) < 128) return reinterpret_cast<const char*>(ptr + 1);
   }
 
-  return NULL; // value is too long to be a varint32
+  return NULL; // value is too long to be a varint32/varint64
+}
+
+const char* Varint::Skip32BackwardSlow(const char* p, const char* b) {
+  Varint::SkipBackwardSlow(p, b, 5);
 }
 
 const char* Varint::Skip64BackwardSlow(const char* p, const char* b) {
-  const unsigned char* ptr = reinterpret_cast<const unsigned char*>(p);
-  const unsigned char* base = reinterpret_cast<const unsigned char*>(b);
-  assert(ptr >= base);
-
-  // If the initial pointer is at the base or if the previous byte is not
-  // the last byte of a varint, we return NULL since there is nothing to skip.
-  if (ptr == base) return NULL;
-  if (*(--ptr) > 127) return NULL;
-
-  for (int i = 0; i < 10; i++) {
-    if (ptr == base)    return reinterpret_cast<const char*>(ptr);
-    if (*(--ptr) < 128) return reinterpret_cast<const char*>(ptr + 1);
-  }
-
-  return NULL; // value is too long to be a varint64
+  Varint::SkipBackwardSlow(p, b, 10);
 }
 
 void Varint::Append32Slow(std::string* s, uint32 value) {
