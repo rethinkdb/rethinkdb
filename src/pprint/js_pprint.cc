@@ -589,16 +589,17 @@ private:
                 body.push_back(semicolon);
             }
         }
-        return make_c(lambda_1,
-                      make_nc(lambda_2,
-                              sp,
-                              std::move(arglist),
-                              sp,
-                              lbrace,
-                              uncond_linebreak,
-                              make_concat(std::move(body))),
-                      uncond_linebreak,
-                      rbrace);
+        in_r_expr = old_r_expr;
+        return make_nc(lambda_1,
+                       make_nc(lambda_2,
+                               sp,
+                               std::move(arglist),
+                               sp,
+                               lbrace,
+                               uncond_linebreak,
+                               make_concat(std::move(body))),
+                       uncond_linebreak,
+                       rbrace);
     }
 
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace,
