@@ -1,7 +1,9 @@
 
+VERSION = $(error please set the VERSION variable)
+
 .PHONY: ami
 ami: build-ami-files/static-web
-	./build-ami.sh --ami-name rethinkdb-`../../scripts/gen-version.sh`
+	./build-ami.sh --ami-name rethinkdb-$(VERSION)
 
 .PHONY: web
 web: build-ami-files/static-web

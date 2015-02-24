@@ -330,7 +330,7 @@ static const char *parse_object(cJSON *item,const char *value);
 static char *print_object(cJSON *item,int depth,int fmt);
 
 /* Utility to jump whitespace and cr/lf */
-static const char *skip(const char *in) {while (in && *in && (unsigned char)*in<=32) in++; return in;}
+static const char *skip(const char *in) {while (in && *in && strchr("\t\r\n ",*in)) in++; return in;}
 
 /* Parse an object - create a new root, and populate. */
 cJSON *cJSON_Parse(const char *value)
@@ -339,7 +339,8 @@ cJSON *cJSON_Parse(const char *value)
         ep=0;
         if (!c) return 0;       /* memory fail */
 
-        if (!parse_value(c,skip(value))) {cJSON_Delete(c);return 0;}
+        const char *end = parse_value(c, skip(value));
+        if (end == NULL || *skip(end) != '\0') {cJSON_Delete(c);return 0;}
         return c;
 }
 
@@ -714,10 +715,10 @@ cJSON *cJSON_CreateArray()                                                {cJSON
 cJSON *cJSON_CreateObject()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}
 
 /* Create Arrays: */
-cJSON *cJSON_CreateIntArray(int *numbers,int count) {
-    int i;
+template<typename T>
+cJSON *cJSON_CreateNumArray(T numbers,int count) {
     cJSON *n=0,*p=0,*a=cJSON_CreateArray();
-    for (i=0;a && i<count;i++) {
+    for (int i=0;a && i<count;i++) {
         n=cJSON_CreateNumber(numbers[i]);
         if(!i) {
             a->head=n;
@@ -731,21 +732,12 @@ cJSON *cJSON_CreateIntArray(int *numbers,int count) {
     return a;
 }
 
-cJSON *cJSON_CreateDoubleArray(double *numbers,int count) {
-    int i;
-    cJSON *n=0,*p=0,*a=cJSON_CreateArray();
-    for (i=0;a && i<count;i++) {
-        n=cJSON_CreateNumber(numbers[i]);
-        if(!i) {
-            a->head=n;
-        } else {
-            suffix_object(p,n);
-        }
-        p=n;
-    }
-    a->tail = p;
+cJSON *cJSON_CreateIntArray(int *numbers,int count) {
+    return cJSON_CreateNumArray(numbers,count);
+}
 
-    return a;
+cJSON *cJSON_CreateDoubleArray(double *numbers,int count) {
+    return cJSON_CreateNumArray(numbers,count);
 }
 
 cJSON *cJSON_CreateStringArray(const char **strings,int count) {

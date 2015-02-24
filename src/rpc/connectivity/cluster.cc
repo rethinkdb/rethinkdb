@@ -747,7 +747,7 @@ void connectivity_cluster_t::run_t::handle(
     // Get the name of our peer, for error reporting.
     ip_and_port_t peer_addr;
     std::string peerstr = "(unknown)";
-    if (!conn->get_underlying_conn()->getpeername(&peer_addr))
+    if (conn->get_underlying_conn()->getpeername(&peer_addr))
         peerstr = peer_addr.to_string();
     const char *peername = peerstr.c_str();
 
