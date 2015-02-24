@@ -32,6 +32,16 @@ void rget_response_reader_t::add_transformation(transform_variant_t &&tv) {
     transforms.push_back(std::move(tv));
 }
 
+bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
+    stamp = std::move(_stamp);
+    return true;
+}
+
+boost::optional<active_state_t> rget_response_reader_t::get_active_state() const {
+    if (!stamp || !active_range || shard_stamps.size() == 0) return boost::none;
+    return active_state_t{*active_range, shard_stamps};
+}
+
 void rget_response_reader_t::accumulate(env_t *env, eager_acc_t *acc,
                                         const terminal_variant_t &tv) {
     r_sanity_check(!started);
@@ -171,6 +181,15 @@ std::vector<rget_item_t> rget_reader_t::do_range_read(
         }
     } else {
         rng = rr->region.inner;
+    }
+
+    if (stamp) {
+        r_sanity_check(rr->stamp);
+        r_sanity_check(res.stamp_response);
+        for (const auto &pair : (*res.stamp_response).stamps) {
+            // It's OK to blow away old values.
+            shard_stamps[pair.first] = pair.second;
+        }
     }
 
     // We need to do some adjustments to the last considered key so that we
@@ -715,6 +734,15 @@ key_range_t intersecting_readgen_t::sindex_keyrange(
 
 boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
     return sindex;
+}
+
+bool datum_stream_t::add_stamp(changefeed_stamp_t) {
+    // By default most datum streams can't stamp their responses.
+    return false;
+}
+
+boost::optional<active_state_t> datum_stream_t::get_active_state() const {
+    return boost::none;
 }
 
 scoped_ptr_t<val_t> datum_stream_t::run_terminal(

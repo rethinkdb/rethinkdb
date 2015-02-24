@@ -57,6 +57,11 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
     unreachable();
 }
 
+struct active_state_t {
+    key_range_t active_range;
+    std::map<uuid_u, uint64_t> shard_stamps;
+};
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -65,6 +70,8 @@ public:
     virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
+    virtual bool add_stamp(changefeed_stamp_t stamp);
+    virtual boost::optional<active_state_t> get_active_state() const;
     void add_grouping(transform_variant_t &&tv,
                       const protob_t<const Backtrace> &bt);
 
@@ -573,6 +580,8 @@ class reader_t {
 public:
     virtual ~reader_t() { }
     virtual void add_transformation(transform_variant_t &&tv) = 0;
+    virtual bool add_stamp(changefeed_stamp_t stamp) = 0;
+    virtual boost::optional<active_state_t> get_active_state() const = 0;
     virtual void accumulate(env_t *env, eager_acc_t *acc,
                             const terminal_variant_t &tv) = 0;
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
@@ -590,11 +599,13 @@ public:
         const counted_t<real_table_t> &table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
-    void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void add_transformation(transform_variant_t &&tv);
+    virtual bool add_stamp(changefeed_stamp_t stamp);
+    virtual boost::optional<active_state_t> get_active_state() const;
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
-    std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
-    bool is_finished() const;
+    virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_finished() const;
 
     virtual changefeed::keyspec_t get_change_spec() const {
         return changefeed::keyspec_t(
@@ -603,9 +614,6 @@ public:
             readgen->get_table_name());
     }
 
-    // Whoever owns this is welcome to reset it, for the same reason they're
-    // allowed to call `add_transformation`.
-    boost::optional<changefeed_stamp_t> stamp;
 protected:
     // Returns `true` if there's data in `items`.
     // Overwrite this in an implementation
@@ -615,10 +623,12 @@ protected:
     counted_t<real_table_t> table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
+    boost::optional<changefeed_stamp_t> stamp;
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
     boost::optional<key_range_t> active_range;
+    std::map<uuid_u, uint64_t> shard_stamps;
 
     // We need this to handle the SINDEX_CONSTANT case.
     std::vector<rget_item_t> items;
@@ -680,6 +690,13 @@ public:
     virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
+    virtual bool add_stamp(changefeed_stamp_t stamp) {
+        return reader->add_stamp(std::move(stamp));
+    }
+    virtual boost::optional<active_state_t> get_active_state() const {
+        return reader->get_active_state();
+    }
+
 private:
     virtual std::vector<changefeed::keyspec_t> get_change_specs() {
         return std::vector<changefeed::keyspec_t>{reader->get_change_spec()};
@@ -702,8 +719,7 @@ private:
     scoped_ptr_t<reader_t> reader;
 };
 
-class vector_datum_stream_t : public eager_datum_stream_t
-{
+class vector_datum_stream_t : public eager_datum_stream_t {
 public:
     vector_datum_stream_t(
             const protob_t<const Backtrace> &bt_source,
