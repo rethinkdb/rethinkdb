@@ -45,7 +45,7 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
     return strprintf("shard_%d", hash_shard_number);
 }
 
-void do_store(
+void do_construct_store(
     const std::vector<threadnum_t> &threads,
     int thread_offset,
     store_args_t store_args,
@@ -83,7 +83,7 @@ void do_construct_existing_store(
     scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
     store_view_t **store_views) {
 
-    do_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
+    do_construct_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
     store_views, false);
 }
 
@@ -95,7 +95,7 @@ void do_create_new_store(
     scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
     store_view_t **store_views) {
 
-    do_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
+    do_construct_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
     store_views, true);
 }
 
