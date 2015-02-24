@@ -193,9 +193,9 @@ private:
                     term.push_back(cond_linebreak);
                 }
                 Datum_AssocPair *ap = d->mutable_r_object(i);
-                term.push_back(make_text("\"" + ap->key() + "\":"));
-                term.push_back(cond_linebreak);
-                term.push_back(to_js_datum(ap->mutable_val()));
+                term.push_back(make_nc(make_text("\"" + ap->key() + "\":"),
+                                       cond_linebreak,
+                                       to_js_datum(ap->mutable_val())));
             }
             term.push_back(rbrace);
             return make_nest(make_concat(std::move(term)));
