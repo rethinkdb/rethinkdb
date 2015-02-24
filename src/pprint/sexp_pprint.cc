@@ -72,7 +72,7 @@ protected:
         }
         }
         --depth;
-        return std::move(doc);
+        return doc;
     }
 private:
     std::string to_lisp_name(Term *t) {
@@ -83,7 +83,7 @@ private:
             c = tolower(c);
             if (c == '_') c = '-';
         }
-        return std::move(s);
+        return s;
     }
     // Largely follow Clojure syntax here rather than CL, mostly
     // because it's easier to read.

@@ -12,7 +12,7 @@ public:
     virtual ~generic_term_walker_t() {}
 
     virtual Accumulator walk(Term *t) {
-        return std::move(visit_generic(t));
+        return visit_generic(t);
     }
 protected:
     virtual Accumulator visit_generic(Term *t) = 0;
