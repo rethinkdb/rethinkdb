@@ -44,13 +44,6 @@ protected:
                 doc = toplevel_funcall(t);
             }
             break;
-        case Term::DB:
-        case Term::TABLE:
-            guarantee(t->args_size() == 1);
-            guarantee(t->mutable_args(0)->type() == Term::DATUM);
-            doc = prepend_r_dot(make_c(make_text(to_js_name(t)),
-                                       wrap_parens(to_js_datum(t->mutable_args(0)->mutable_datum()))));
-            break;
         case Term::MAKE_ARRAY:
             in_r_expr = true;
             doc = to_js_array(t);
