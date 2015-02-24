@@ -11,8 +11,13 @@ permalink: settings/
     </div>
     <div class="step-content step-two">
         <form name="form" method="POST" action="/action/set_password" onsubmit="return validate()">
+            <p>Please enter the ID of this EC2 instance to confirm your identity.</p>
+            <div class="infobox infobox-error" style="display:none" id="wrong_instance_id">
+              Please enter the correct instance ID.
+            </div>
+            <p><label for="password">Instance ID:</label> <input type="text" name="instanceid" id="instanceid" /></p>
             <p>Please chose a password to initialize the AMI. This password will be used to access the web UI and as an authentication key for client drivers.</p>
-            <p><label for="password">Chose a password:</label> <input type="password" name="password" id="password" /></p>
+            <p><label for="password">Choose a password:</label> <input type="password" name="password" id="password" /></p>
             <p><label for="password2">Repeat password:</label> <input type="password" name="password2" id="password2" /></p>
             <!--
             <p>If you want this instance to connect to an existing cluster, enter one or more host:port values here, separated by spaces. Otherwise leave this field blank.</p>
@@ -31,5 +36,10 @@ permalink: settings/
             alert("The passwords don't match.");
             return false;
         }
+    }
+
+    if (location.search === '?wrong_instance_id') {
+        var div = document.getElementById('wrong_instance_id');
+        div.style.display = 'block';
     }
 </script>
