@@ -653,15 +653,18 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(state_timestamp_t t
 void listener_t::mark_write_done(
         state_timestamp_t timestamp,
         const fifo_enforcer_write_token_t &mark_done_fifo_token) {
-    // Place the write timestamp on the queue and finish it immediately.
+    // Place the write timestamp on the queue.
     // This makes sure that we only mark a write done if all previous writes
     // have been marked done as well.
-    mark_done_timestamps_queue_.push(mark_done_fifo_token, timestamp);
-    mark_done_timestamps_queue_.finish_write(mark_done_fifo_token);
+    mark_done_timestamps_queue_.push(
+        mark_done_fifo_token,
+        std::make_pair(timestamp, mark_done_fifo_token));
 
     // Mark as many writes done as we can.
     while (mark_done_timestamps_queue_.available->get()) {
-        read_min_timestamp_enforcer_.bump_timestamp(mark_done_timestamps_queue_.pop());
+        auto first_done_write = mark_done_timestamps_queue_.pop();
+        read_min_timestamp_enforcer_.bump_timestamp(first_done_write.first);
+        mark_done_timestamps_queue_.finish_write(first_done_write.second);
     }
 }
 

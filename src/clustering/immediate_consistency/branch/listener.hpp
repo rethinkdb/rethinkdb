@@ -3,6 +3,7 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_
 
 #include <map>
+#include <utility>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -258,7 +259,8 @@ private:
     the timestamp in read_min_timestamp_enforcer_, but which are still waiting
     for an earlier write to complete. Used by `mark_write_done()`. */
     fifo_enforcer_source_t mark_done_fifo_source_;
-    fifo_enforcer_queue_t<state_timestamp_t> mark_done_timestamps_queue_;
+    fifo_enforcer_queue_t<std::pair<state_timestamp_t, fifo_enforcer_write_token_t> >
+        mark_done_timestamps_queue_;
 
 
     // Used by the replier_t which needs to be able to tell
