@@ -1,15 +1,6 @@
-
     <form class="form">
-        <label for="name">Name</label>
-        <input class="xlarge" id="focus_table_name" name="name" size="30" type="text" />
-
-        <label for="primary_datacenter">Select a database</label>
-        <select class="database" name="database">
-            {{#each databases}}
-            <option value="{{name}}">{{name}}</option>
-            {{/each}}
-        </select>
-
+      <label for="name">Name</label>
+        <input class="xlarge focus-table-name" name="name" size="30" type="text" />
         <p class="show_advanced_settings-link_container"><a href="#" class="show_advanced_settings-link">Show optional settings</a></p>
         <p class="hide_advanced_settings-link_container"><a href="#" class="hide_advanced_settings-link">Hide optional settings</a></p>
 
@@ -28,5 +19,3 @@
             </div>
         </div>
     </form>
-
-

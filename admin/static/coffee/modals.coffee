@@ -122,14 +122,12 @@ module 'Modals', ->
 
         initialize: (data) =>
             super
-            @databases = data.databases
+            @db_id = data.db_id
+            @db_name = data.db_name
+            @tables = data.tables
             @container = data.container
 
-            @listenTo @databases, 'all', @check_if_can_create_table
-
-            @can_create_table_status = true
             @delegateEvents()
-
 
         show_advanced_settings: (event) =>
             event.preventDefault()
@@ -143,35 +141,15 @@ module 'Modals', ->
                 $('.show_advanced_settings-link_container').fadeIn 'fast'
             @$('.advanced_settings').slideUp 'fast'
 
-        # Check if we have a database (if not, we cannot create a table)
-        check_if_can_create_table: =>
-            if @databases.length is 0
-                if @can_create_table_status
-                    @$('.btn-primary').prop 'disabled', true
-                    @$('.alert_modal').html @templates.error
-                        create_db_first: true
-                    $('.alert_modal_content').slideDown 'fast'
-            else
-                if @can_create_table_status is false
-                    @$('.alert_modal').empty()
-                    @$('.btn-primary').prop 'disabled', false
-
-
         render: =>
-            ordered_databases = @databases.map (d) ->
-                name: d.get('name')
-            ordered_databases = _.sortBy ordered_databases, (d) -> d.db
-
             super
-                modal_title: 'Add table'
-                btn_primary_text: 'Add'
-                databases: ordered_databases
+                modal_title: "Add table to #{@db_name}"
+                btn_primary_text: 'Create table'
 
-            @check_if_can_create_table()
             @$('.show_advanced_settings-link').click @show_advanced_settings
             @$('.hide_advanced_settings-link').click @hide_advanced_settings
 
-            @$('#focus_table_name').focus()
+            @$('.focus-table-name').focus()
 
         on_submit: =>
             super
@@ -188,17 +166,8 @@ module 'Modals', ->
                 input_error = true
                 template_error.special_char_detected = true
                 template_error.type = 'table'
-            else if not @formdata.database? or @formdata.database is ''
-                input_error = true
-                template_error.no_database = true
             else # And a name that doesn't exist
-                database_used = null
-                for database in @databases.models
-                    if database.get('name') is @formdata.database
-                        database_used = database
-                        break
-
-                for table in database_used.get('tables')
+                for table in @tables
                     if table.name is @formdata.name
                         input_error = true
                         template_error.table_exists = true
@@ -227,16 +196,17 @@ module 'Modals', ->
                         servers.isEmpty(),
                         r.error("No server is connected"),
                         servers.sample(1).nth(0)("name").do( (server) =>
-                            r.db(system_db).table("table_config").insert
-                                db: @formdata.database
+                            r.db(system_db)
+                             .table("table_config")
+                             .insert({
+                                db: @db_name
                                 name: @formdata.name
                                 primary_key: primary_key
                                 shards: [
                                     primary_replica: server
                                     replicas: [server]
                                 ]
-                            ,
-                                returnChanges: true
+                             }, returnChanges: true)
                         )
                     )
 
@@ -245,25 +215,13 @@ module 'Modals', ->
                         @on_error(err)
                     else
                         if result?.errors is 0
-                            db = @databases.filter( (database) => database.get('name') is @formdata.database)[0]
-                            db.set
-                                tables: db.get('tables').concat _.extend result.changes[0].new_val,
-                                    shards: 1
-                                    replicas: 1
-                                    ready_completely: "N/A"
-                                    id: result.generated_keys[0]
-
-                            # We suppose that after one second, the data will be available
-                            # So the yellow light will be replaced with a green one
-                            setTimeout @container.fetch_data_once, 1000
-
                             @on_success()
                         else
                             @on_error(new Error("The returned result was not `{created: 1}`"))
 
         on_success: (response) =>
             super
-            window.app.current_view.render_message "The table #{@formdata.database}.#{@formdata.name} was successfully created."
+            window.app.current_view.render_message "The table #{@db_name}.#{@formdata.name} was successfully created."
 
         remove: =>
             @stopListening()
