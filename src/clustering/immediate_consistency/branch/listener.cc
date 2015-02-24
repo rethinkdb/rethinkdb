@@ -449,6 +449,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     }
 
     write_token_t write_token;
+    fifo_enforcer_write_token_t mark_write_done_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.timestamp <= backfill_end_timestamp) {
@@ -456,7 +457,12 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.timestamp);
+
+        // To make sure that writes get processed by the store in the right order.
         svs_->new_write_token(&write_token);
+
+        // To make sure that we mark writes done in the right order
+        mark_write_done_token = mark_done_fifo_source_.enter_write();
     }
 
 #ifndef NDEBUG
@@ -483,7 +489,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
 
     // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
     // been waiting on this write can proceed now.
-    read_min_timestamp_enforcer_.bump_timestamp(qe.timestamp);
+    mark_write_done(qe.timestamp, mark_write_done_token);
 }
 
 void listener_t::on_writeread(
@@ -520,6 +526,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     auto_drainer_t::lock_t keepalive(&drainer_);
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
     write_token_t write_token;
+    fifo_enforcer_write_token_t mark_write_done_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -532,7 +539,11 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
         advance_current_timestamp_and_pulse_waiters(timestamp);
 
+        // To make sure that writes get processed by the store in the right order.
         svs_->new_write_token(&write_token);
+
+        // To make sure that we mark writes done in the right order
+        mark_write_done_token = mark_done_fifo_source_.enter_write();
     }
 
     // Make sure we can serve the entire operation without masking it.
@@ -559,7 +570,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
     // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
     // been waiting on this write can proceed now.
-    read_min_timestamp_enforcer_.bump_timestamp(timestamp);
+    mark_write_done(timestamp, mark_write_done_token);
 
     return response;
 }
@@ -636,6 +647,21 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(state_timestamp_t t
             // TODO: What if something's waiting eagerly?
             it->second->pulse();
         }
+    }
+}
+
+void listener_t::mark_write_done(
+        state_timestamp_t timestamp,
+        const fifo_enforcer_write_token_t &mark_done_fifo_token) {
+    // Place the write timestamp on the queue and finish it immediately.
+    // This makes sure that we only mark a write done if all previous writes
+    // have been marked done as well.
+    mark_done_timestamps_queue_.push(mark_done_fifo_token, timestamp);
+    mark_done_timestamps_queue_.finish_write(mark_done_fifo_token);
+
+    // Mark as many writes done as we can.
+    while (mark_done_timestamps_queue_.available->get()) {
+        read_min_timestamp_enforcer_.bump_timestamp(mark_done_timestamps_queue_.pop());
     }
 }
 
