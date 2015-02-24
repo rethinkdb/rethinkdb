@@ -7,7 +7,7 @@ import urllib2
 
 def check_instance_id(pwd):
     iid = urllib2.urlopen('http://169.254.169.254/latest/meta-data/instance-id').read()
-    # The instance id is ‘i-’ followed by some hex digits
+    # The instance id is 'i-' followed by some hex digits
     return (          pwd == iid
             or "i-" + pwd == iid)
 
