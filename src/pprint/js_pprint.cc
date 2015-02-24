@@ -225,8 +225,9 @@ private:
         }
         return make_c(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
     }
-    std::pair<bool, Term *>
-    visit_stringing(Term *var, std::vector<counted_t<const document_t> > *stack) {
+    void
+    visit_stringing(Term *var, std::vector<counted_t<const document_t> > *stack,
+                    Term **next_out, bool *last_is_dot, bool *last_should_r_wrap) {
         bool first = true;
         bool insert_trailing_comma = false;
         bool old_r_expr = in_r_expr;
@@ -251,7 +252,10 @@ private:
             }
             in_r_expr = old_r_expr;
             stack->push_back(lparen);
-            return std::make_pair(false, var->mutable_args(0));
+            *next_out = var->mutable_args(0);
+            *last_is_dot = false;
+            *last_should_r_wrap = false;
+            return;
         case Term::FUNCALL:
             guarantee(var->args_size() == 2);
             guarantee(var->optargs_size() == 0);
@@ -262,25 +266,40 @@ private:
             stack->push_back(lparen);
             stack->push_back(do_st);
             stack->push_back(dot_linebreak);
-            return std::make_pair(true, var->mutable_args(1));
+            *next_out = var->mutable_args(1);
+            *last_is_dot = true;
+            *last_should_r_wrap = true;
+            return;
         case Term::DATUM:
             in_r_expr = true;
             stack->push_back(prepend_r_expr(to_js_datum(var->mutable_datum())));
             in_r_expr = old_r_expr;
-            return std::make_pair(false, nullptr);
+            *next_out = nullptr;
+            *last_is_dot = false;
+            *last_should_r_wrap = false;
+            return;
         case Term::MAKE_OBJ:
             in_r_expr = true;
             stack->push_back(to_js_wrapped_object(var));
             in_r_expr = old_r_expr;
-            return std::make_pair(false, nullptr);
+            *next_out = nullptr;
+            *last_is_dot = false;
+            *last_should_r_wrap = false;
+            return;
         case Term::VAR:
             guarantee(var->args_size() == 1);
             guarantee(var->mutable_args(0)->type() == Term::DATUM);
             stack->push_back(var_name(var->mutable_args(0)->mutable_datum()));
-            return std::make_pair(false, nullptr);
+            *next_out = nullptr;
+            *last_is_dot = false;
+            *last_should_r_wrap = false;
+            return;
         case Term::IMPLICIT_VAR:
             stack->push_back(row);
-            return std::make_pair(true, nullptr);
+            *next_out = nullptr;
+            *last_is_dot = false;
+            *last_should_r_wrap = true;
+            return;
         default:
             stack->push_back(rparen);
             in_r_expr = true;
@@ -293,13 +312,19 @@ private:
                 in_r_expr = old_r_expr;
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
-                return std::make_pair(should_use_rdot(var), nullptr);
+                *next_out = nullptr;
+                *last_is_dot = false;
+                *last_should_r_wrap = should_use_rdot(var);
+                return;
             case 1:
                 in_r_expr = old_r_expr;
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
-                return std::make_pair(true, var->mutable_args(0));
+                *next_out = var->mutable_args(0);
+                *last_is_dot = true;
+                *last_should_r_wrap = should_use_rdot(var);
+                return;
             default:
                 std::vector<counted_t<const document_t> > args;
                 for (int i = 1; i < var->args_size(); ++i) {
@@ -321,7 +346,10 @@ private:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
-                return std::make_pair(true, var->mutable_args(0));
+                *next_out = var->mutable_args(0);
+                *last_is_dot = true;
+                *last_should_r_wrap = should_use_rdot(var);
+                return;
             }
         }
     }
@@ -329,13 +357,12 @@ private:
         std::vector<counted_t<const document_t> > stack;
         Term *var = t;
         bool last_is_dot = false;
+        bool last_should_r_wrap = false;
         while (var != nullptr && should_continue_string(var)) {
-            auto pair = visit_stringing(var, &stack);
-            last_is_dot = pair.first;
-            var = pair.second;
+            visit_stringing(var, &stack, &var, &last_is_dot, &last_should_r_wrap);
         }
         guarantee(var != t);
-        if (var == nullptr && last_is_dot) {
+        if (var == nullptr && last_should_r_wrap) {
             return prepend_r_dot(reverse(std::move(stack), false));
         } else if (var == nullptr) {
             return reverse(std::move(stack), false);
