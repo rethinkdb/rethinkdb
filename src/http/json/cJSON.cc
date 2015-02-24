@@ -716,9 +716,8 @@ cJSON *cJSON_CreateObject()                                                {cJSO
 /* Create Arrays: */
 template<typename T>
 cJSON *cJSON_CreateNumArray(T numbers,int count) {
-    int i;
     cJSON *n=0,*p=0,*a=cJSON_CreateArray();
-    for (i=0;a && i<count;i++) {
+    for (int i=0;a && i<count;i++) {
         n=cJSON_CreateNumber(numbers[i]);
         if(!i) {
             a->head=n;
