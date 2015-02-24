@@ -39,13 +39,13 @@ typedef std::vector<ql::datum_t> datums_t;
 typedef std::map<ql::datum_t, datums_t, optional_datum_less_t> groups_t;
 
 struct rget_item_t {
-    rget_item_t() { }
-    // Works for both rvalue and lvalue references.
-    template<class T>
-    rget_item_t(T &&_key,
-                const ql::datum_t &_sindex_key,
-                const ql::datum_t &_data)
-        : key(std::forward<T>(_key)), sindex_key(_sindex_key), data(_data) { }
+    rget_item_t() = default;
+    rget_item_t(store_key_t _key,
+                ql::datum_t _sindex_key,
+                ql::datum_t _data)
+        : key(std::move(_key)),
+          sindex_key(std::move(_sindex_key)),
+          data(std::move(_data)) { }
     store_key_t key;
     ql::datum_t sindex_key, data;
 };

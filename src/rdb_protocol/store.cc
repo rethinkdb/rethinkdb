@@ -345,12 +345,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    void operator()(const changefeed_stamp_t &s) {
+    void do_stamp(const changefeed_stamp_t &s, changefeed_stamp_response_t *out) {
         guarantee(store->changefeed_server.has());
-        response->response = changefeed_stamp_response_t();
-        auto res = boost::get<changefeed_stamp_response_t>(&response->response);
-        res->stamps[store->changefeed_server->get_uuid()]
+        out->stamps[store->changefeed_server->get_uuid()]
             = store->changefeed_server->get_stamp(s.addr);
+    }
+
+    void operator()(const changefeed_stamp_t &s) {
+        response->response = changefeed_stamp_response_t();
+        do_stamp(s, boost::get<changefeed_stamp_response_t>(&response->response));
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
@@ -471,19 +474,24 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
+        response->response = rget_read_response_t();
+        auto *res = boost::get<rget_read_response_t>(&response->response);
+
+        // RSI: Make sure to avoid race conditions by having this error
+        // gracefully if there's no matching subscription.
+        if (rget.stamp) {
+            res->stamp_response = changefeed_stamp_response_t();
+            do_stamp(*rget.stamp, &*res->stamp_response);
+        }
+
         if (rget.transforms.size() != 0 || rget.terminal) {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.size() != 0);
         }
-
         ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
                          interruptor, rget.optargs, trace);
-
-        response->response = rget_read_response_t();
-        rget_read_response_t *res =
-            boost::get<rget_read_response_t>(&response->response);
         do_read(&ql_env, store, btree, superblock, rget, res,
                 release_superblock_t::RELEASE);
     }

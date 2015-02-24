@@ -614,19 +614,30 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
         changefeed_limit_subscribe_response_t(shards, std::move(limit_addrs));
 }
 
+void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
+                    changefeed_stamp_response_t *out) {
+    for (auto &&resp : resps) {
+        for (auto &&stamp : resp->stamps) {
+            // Previously conflicts were resolved with `it_out->second =
+            // std::max(it->second, it_out->second)`, but I don't think that
+            // should ever happen and it isn't correct for `return_initial`
+            // changefeeds.
+            guarantee(out->stamps.find(stamp.first) == out->stamps.end());
+            out->stamps[stamp.first] = stamp.second;
+        }
+    }
+}
+
 void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
     response_out->response = changefeed_stamp_response_t();
-    auto out = boost::get<changefeed_stamp_response_t>(&response_out->response);
+    auto *out = boost::get<changefeed_stamp_response_t>(&response_out->response);
+    guarantee(out);
+    std::vector<changefeed_stamp_response_t *> resps;
+    resps.reserve(count);
     for (size_t i = 0; i < count; ++i) {
-        auto res = boost::get<changefeed_stamp_response_t>(&responses[i].response);
-        for (auto it = res->stamps.begin(); it != res->stamps.end(); ++it) {
-            auto it_out = out->stamps.find(it->first);
-            if (it_out == out->stamps.end()) {
-                out->stamps[it->first] = it->second;
-            } else {
-                it_out->second = std::max(it->second, it_out->second);
-            }
-        }
+        auto *resp = boost::get<changefeed_stamp_response_t>(&responses[i].response);
+        guarantee(resp);
+        resps.push_back(resp);
     }
 }
 
@@ -727,6 +738,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
+    std::vector<changefeed_stamp_response_t *> stamp_resps(count);
     store_key_t *best = NULL;
     key_le_t key_le(sorting);
     for (size_t i = 0; i < count; ++i) {
@@ -748,8 +760,16 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             return;
         }
         results[i] = &resp->result;
+        if (q.stamp) {
+            guarantee(resp->stamp_response);
+            stamp_resps.push_back(&*resp->stamp_response);
+        }
     }
     out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
+    if (q.stamp) {
+        out->stamp_response = changefeed_stamp_response_t();
+        unshard_stamps(stamp_resps, &*out->stamp_response);
+    }
 
     // Unshard and finish up.
     try {

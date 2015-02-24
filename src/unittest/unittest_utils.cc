@@ -34,6 +34,7 @@ struct make_sindex_read_t {
         ql::datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
         return read_t(
             rget_read_t(
+                boost::optional<changefeed_stamp_t>(),
                 region_t::universe(),
                 std::map<std::string, ql::wire_func_t>(),
                 "",

@@ -375,7 +375,8 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
@@ -384,7 +385,8 @@ public:
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
 
     virtual boost::optional<key_range_t> original_keyrange() const = 0;
@@ -422,7 +424,8 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
@@ -433,7 +436,8 @@ public:
 private:
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
 
 protected:
@@ -456,12 +460,14 @@ private:
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -481,7 +487,8 @@ public:
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -497,7 +504,8 @@ private:
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
@@ -520,13 +528,15 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -551,7 +561,8 @@ private:
     // geo read.
     intersecting_geo_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transforms,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transforms,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
@@ -591,6 +602,10 @@ public:
             table,
             readgen->get_table_name());
     }
+
+    // Whoever owns this is welcome to reset it, for the same reason they're
+    // allowed to call `add_transformation`.
+    boost::optional<changefeed_stamp_t> stamp;
 protected:
     // Returns `true` if there's data in `items`.
     // Overwrite this in an implementation
