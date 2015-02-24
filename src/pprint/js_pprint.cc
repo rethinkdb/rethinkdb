@@ -417,25 +417,23 @@ private:
         term.push_back(make_text(to_js_name(t)));
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
-        if (t->args_size() > 0 || t->optargs_size() > 0) {
-            std::vector<counted_t<const document_t> > args;
-            for (int i = 0; i < t->args_size(); ++i) {
-                // don't insert redundant space
-                if (!args.empty()) {
-                    args.push_back(comma);
-                    args.push_back(cond_linebreak);
-                }
-                args.push_back(visit_generic(t->mutable_args(i)));
+        std::vector<counted_t<const document_t> > args;
+        for (int i = 0; i < t->args_size(); ++i) {
+            // don't insert redundant space
+            if (!args.empty()) {
+                args.push_back(comma);
+                args.push_back(cond_linebreak);
             }
-            if (t->optargs_size() > 0) {
-                if (!args.empty()) {
-                    args.push_back(comma);
-                    args.push_back(cond_linebreak);
-                }
-                args.push_back(render_optargs(t));
-            }
-            term.push_back(wrap_parens(make_concat(std::move(args))));
+            args.push_back(visit_generic(t->mutable_args(i)));
         }
+        if (t->optargs_size() > 0) {
+            if (!args.empty()) {
+                args.push_back(comma);
+                args.push_back(cond_linebreak);
+            }
+            args.push_back(render_optargs(t));
+        }
+        term.push_back(wrap_parens(make_concat(std::move(args))));
         in_r_expr = old_r_expr;
         if (should_use_rdot(t)) {
             return prepend_r_dot(make_concat(std::move(term)));
