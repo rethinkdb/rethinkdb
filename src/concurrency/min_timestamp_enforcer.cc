@@ -48,14 +48,10 @@ void min_timestamp_enforcer_t::wait_interruptible(
 
 void min_timestamp_enforcer_t::internal_pump() THROWS_NOTHING {
     assert_thread();
-    ASSERT_FINITE_CORO_WAITING;
-    if (!in_pump) {
-        in_pump = true;
-        while (!waiter_queue.empty() &&
-               waiter_queue.peek()->token.min_timestamp <= current_timestamp) {
-            internal_waiter_t *waiter = waiter_queue.pop();
-            waiter->on_runnable.pulse();
-        }
-        in_pump = false;
+    ASSERT_NO_CORO_WAITING;
+    while (!waiter_queue.empty() &&
+           waiter_queue.peek()->token.min_timestamp <= current_timestamp) {
+        internal_waiter_t *waiter = waiter_queue.pop();
+        waiter->on_runnable.pulse();
     }
 }

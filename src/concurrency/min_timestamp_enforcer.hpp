@@ -31,12 +31,10 @@ class min_timestamp_enforcer_t : public home_thread_mixin_debug_only_t {
 public:
 
     min_timestamp_enforcer_t()
-        : current_timestamp(state_timestamp_t::zero()),
-          in_pump(false) { }
+        : current_timestamp(state_timestamp_t::zero()) { }
 
     explicit min_timestamp_enforcer_t(state_timestamp_t ts)
-        : current_timestamp(ts),
-          in_pump(false) { }
+        : current_timestamp(ts) { }
 
     /* All reads that are waiting on a timestamp <= `new_ts` can now pass. */
     void bump_timestamp(state_timestamp_t new_ts);
@@ -76,9 +74,6 @@ private:
     };
 
     intrusive_priority_queue_t<internal_waiter_t> waiter_queue;
-
-    /* `in_pump` avoids recursive calls to `internal_pump()`. */
-    bool in_pump;
 
     auto_drainer_t drainer;
 

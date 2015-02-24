@@ -690,7 +690,7 @@ void broadcaster_t::single_read(
 
         /* Make sure the read runs *after* the most recent write that
         we did already acknowledge. */
-        enforcer_token = min_timestamp_token_t(newest_complete_timestamp);
+        enforcer_token = min_timestamp_token_t(most_recent_acked_write_timestamp);
     }
 
     try {
