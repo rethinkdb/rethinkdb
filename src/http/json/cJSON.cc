@@ -715,10 +715,10 @@ cJSON *cJSON_CreateArray()                                                {cJSON
 cJSON *cJSON_CreateObject()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}
 
 /* Create Arrays: */
-cJSON *cJSON_CreateIntArray(int *numbers,int count) {
-    int i;
+template<typename T>
+cJSON *cJSON_CreateNumArray(T numbers,int count) {
     cJSON *n=0,*p=0,*a=cJSON_CreateArray();
-    for (i=0;a && i<count;i++) {
+    for (int i=0;a && i<count;i++) {
         n=cJSON_CreateNumber(numbers[i]);
         if(!i) {
             a->head=n;
@@ -732,21 +732,12 @@ cJSON *cJSON_CreateIntArray(int *numbers,int count) {
     return a;
 }
 
-cJSON *cJSON_CreateDoubleArray(double *numbers,int count) {
-    int i;
-    cJSON *n=0,*p=0,*a=cJSON_CreateArray();
-    for (i=0;a && i<count;i++) {
-        n=cJSON_CreateNumber(numbers[i]);
-        if(!i) {
-            a->head=n;
-        } else {
-            suffix_object(p,n);
-        }
-        p=n;
-    }
-    a->tail = p;
+cJSON *cJSON_CreateIntArray(int *numbers,int count) {
+    return cJSON_CreateNumArray(numbers,count);
+}
 
-    return a;
+cJSON *cJSON_CreateDoubleArray(double *numbers,int count) {
+    return cJSON_CreateNumArray(numbers,count);
 }
 
 cJSON *cJSON_CreateStringArray(const char **strings,int count) {
