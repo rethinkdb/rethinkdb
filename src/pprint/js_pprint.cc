@@ -530,6 +530,7 @@ private:
         case Term::VAR:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::ARGS:
             return false;
         case Term::FUNCALL:
             return t->args_size() == 2;
