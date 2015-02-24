@@ -98,6 +98,10 @@ private:
         for (auto it = s.begin(); it != s.end(); ++it) {
             if (*it == '_') {
                 ++it;
+                if (it == s.end()) {
+                    result += '_';
+                    break;
+                }
                 result += toupper(*it);
             } else {
                 result += tolower(*it);
