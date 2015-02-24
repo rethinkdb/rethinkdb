@@ -575,6 +575,8 @@ private:
             arglist = visit_generic(t->mutable_args(0));
         }
         std::vector<counted_t<const document_t> > body;
+        bool old_r_expr = in_r_expr;
+        in_r_expr = false;
         for (int i = 1; i < t->args_size(); ++i) {
             if (i != 1) body.push_back(cond_linebreak);
             if (i == t->args_size() - 1) {
