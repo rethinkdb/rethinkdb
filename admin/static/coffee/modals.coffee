@@ -67,9 +67,9 @@ module 'Modals', ->
             super()
             window.app.current_view.render_message "The database #{@formdata.name} was successfully created."
 
-    class @RemoveDatabaseModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['remove_database-modal-template']
-        class: 'remove_database-dialog'
+    class @DeleteDatabaseModal extends UIComponents.AbstractModal
+        template: Handlebars.templates['delete-database-modal']
+        class: 'delete_database-dialog'
 
         render: (database_to_delete) ->
             @database_to_delete = database_to_delete

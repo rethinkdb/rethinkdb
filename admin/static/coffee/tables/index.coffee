@@ -1,4 +1,4 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB
 
 module 'TablesView', ->
     class @DatabasesContainer extends Backbone.View
@@ -65,7 +65,7 @@ module 'TablesView', ->
             else
                 @$('.remove-tables').prop 'disabled', true
 
-        initialize: =>        
+        initialize: =>
             if not window.view_data_backup.tables_view_databases?
                 window.view_data_backup.tables_view_databases = new Databases
                 @loading = true
@@ -208,13 +208,13 @@ module 'TablesView', ->
             empty: Handlebars.templates['empty_list-template']
 
         events:
-           'click button.remove-database': 'remove_database'
+           'click button.delete-database': 'delete_database'
 
-        remove_database: =>
-            if @remove_database_dialog?
-                @remove_database_dialog.remove()
-            @remove_database_dialog = new Modals.RemoveDatabaseModal
-            @remove_database_dialog.render @model
+        delete_database: =>
+            if @delete_database_dialog?
+                @delete_database_dialog.remove()
+            @delete_database_dialog = new Modals.DeleteDatabaseModal
+            @delete_database_dialog.render @model
 
 
         initialize: =>
@@ -287,8 +287,8 @@ module 'TablesView', ->
             @stopListening()
             for view in @tables_views
                 view.remove()
-            if @remove_database_dialog?
-                @remove_database_dialog.remove()
+            if @delete_database_dialog?
+                @delete_database_dialog.remove()
             super()
 
     class @TableView extends Backbone.View
