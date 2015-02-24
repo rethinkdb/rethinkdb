@@ -736,7 +736,6 @@ cJSON *cJSON_CreateIntArray(int *numbers,int count) {
 }
 
 cJSON *cJSON_CreateDoubleArray(double *numbers,int count) {
-    int i;
     return cJSON_CreateNumArray(numbers,count);
 }
 
