@@ -1102,7 +1102,7 @@ cubism_contextPrototype.axis = function(_height, _metrics, _scale) {
     if(vertical) {
         width = Math.max(35, -axis.tickSize());
         height = height + 27;
-        translation = "translate(" + (axis_.orient() === "left" ? 34 : 4) + ", 0)";
+        translation = "translate(" + (axis_.orient() === "left" ? 40 : 4) + ", 0)";
     } else {
         width = Math.max(context.size(), axis.tickSize());
         height = Math.max(28, axis.tickSize());
