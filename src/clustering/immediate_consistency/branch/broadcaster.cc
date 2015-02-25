@@ -215,6 +215,7 @@ public:
         background_write_workers(DISPATCH_WRITES_CORO_POOL_SIZE, &background_write_queue,
                                  &background_write_caller),
         controller(c),
+        latest_acked_write(state_timestamp_t::zero()),
         upgrade_mailbox(controller->mailbox_manager,
             boost::bind(&dispatchee_t::upgrade, this, _1, _2, _3)),
         downgrade_mailbox(controller->mailbox_manager,
@@ -258,8 +259,16 @@ public:
         controller->assert_thread();
     }
 
-    bool is_local() {
+    bool is_local() const {
         return local_listener != nullptr;
+    }
+
+    state_timestamp_t get_latest_acked_write() const {
+        return latest_acked_write;
+    }
+
+    void bump_latest_acked_write(state_timestamp_t ts) {
+        latest_acked_write = std::max(latest_acked_write, ts);
     }
 
 private:
@@ -269,6 +278,8 @@ private:
                     auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING {
         keepalive.assert_is_holding(&drainer);
+
+        bump_latest_acked_write(intro_timestamp);
 
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
              listener_intro_t(intro_timestamp,
@@ -342,6 +353,8 @@ private:
     coro_pool_t<std::function<void()> > background_write_workers;
     broadcaster_t *controller;
 
+    state_timestamp_t latest_acked_write;
+
     auto_drainer_t drainer;
     listener_business_card_t::upgrade_mailbox_t upgrade_mailbox;
     listener_business_card_t::downgrade_mailbox_t downgrade_mailbox;
@@ -387,6 +400,10 @@ void broadcaster_t::listener_write(
              w, ts, order_token, token, ack_mailbox.get_address());
 
         wait_interruptible(&ack_cond, interruptor);
+
+        /* Update latest acked write on the distpatchee so we can route queries
+        to the fastest replica and avoid blocking there. */
+        mirror->bump_latest_acked_write(ts);
     }
 }
 
@@ -523,23 +540,26 @@ void broadcaster_t::pick_a_readable_dispatchee(
             "the primary replica mirror should be always readable.");
     }
 
-    /* Prefer a local dispatchee (at the moment there always should be exactly one) */
-    dispatchee_t *selected_dispatchee = NULL;
+    /* Prefer the dispatchee with the highest acknowledged write version
+    (to reduce the risk that the read has to wait for a write). If multiple ones
+    are equal, use the local dispatchee. */
+    dispatchee_t *most_uptodate_dispatchee = nullptr;
+    state_timestamp_t most_uptodate_dispatchee_ts(state_timestamp_t::zero());
     for (dispatchee_t *d = readable_dispatchees.head();
          d != NULL;
          d = readable_dispatchees.next(d)) {
-        if (d->is_local()) {
-            selected_dispatchee = d;
-            break;
+        if (d->get_latest_acked_write() >= most_uptodate_dispatchee_ts
+            && (most_uptodate_dispatchee == nullptr
+                || !most_uptodate_dispatchee->is_local())) {
+
+            most_uptodate_dispatchee = d;
+            most_uptodate_dispatchee_ts = d->get_latest_acked_write();
         }
     }
-    if (selected_dispatchee == NULL) {
-        /* If we don't have a local one, just pick the first one we can get */
-        selected_dispatchee = readable_dispatchees.head();
-    }
+    guarantee(most_uptodate_dispatchee != nullptr);
 
-    *dispatchee_out = selected_dispatchee;
-    *lock_out = dispatchees[selected_dispatchee];
+    *dispatchee_out = most_uptodate_dispatchee;
+    *lock_out = dispatchees[most_uptodate_dispatchee];
 }
 
 void broadcaster_t::get_all_readable_dispatchees(
@@ -601,6 +621,10 @@ void broadcaster_t::background_writeread(
 
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
+
+        /* Update latest acked write on the distpatchee so we can route queries
+        to the fastest replica and avoid blocking there. */
+        mirror->bump_latest_acked_write(write_ref.get()->timestamp);
 
         /* The write could potentially get acked now. So make sure all reads started
         after this point will see this write. */
