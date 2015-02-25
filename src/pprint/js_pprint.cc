@@ -408,7 +408,11 @@ private:
     }
     counted_t<const document_t> standard_funcall(Term *t) {
         std::vector<counted_t<const document_t> > term;
-        term.push_back(make_text(to_js_name(t)));
+        if (t->type() == Term::JAVASCRIPT) {
+            term.push_back(js);
+        } else {
+            term.push_back(make_text(to_js_name(t)));
+        }
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
@@ -532,6 +536,7 @@ private:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
         case Term::ARGS:
+        case Term::JAVASCRIPT:
             return false;
         case Term::TABLE:
         case Term::FUNCALL:
@@ -608,7 +613,7 @@ private:
     static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace,
         colon, quote, sp, justdot, dotdotdot, comma, semicolon;
     static counted_t<const document_t> nil, true_v, false_v, r_st, json, row, do_st,
-        return_st, lambda_1, lambda_2, expr, object;
+        return_st, lambda_1, lambda_2, expr, object, js;
 
     static const unsigned int MAX_DEPTH = 15;
 };
@@ -638,6 +643,7 @@ counted_t<const document_t> js_pretty_printer_t::lambda_1 = make_text("func");
 counted_t<const document_t> js_pretty_printer_t::lambda_2 = make_text("tion");
 counted_t<const document_t> js_pretty_printer_t::expr = make_text("expr");
 counted_t<const document_t> js_pretty_printer_t::object = make_text("object");
+counted_t<const document_t> js_pretty_printer_t::js = make_text("js");
 
 counted_t<const document_t> render_as_javascript(Term *t) {
     return js_pretty_printer_t().walk(t);
