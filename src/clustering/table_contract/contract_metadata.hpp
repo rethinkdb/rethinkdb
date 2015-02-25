@@ -89,6 +89,9 @@ public:
     branch_id_t branch;
 };
 
+RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
+RDB_DECLARE_SERIALIZABLE(contract_t);
+
 /* The `contract_executor_t` looks at what each `contract_t` says about its server ID,
 and reacts according to the following rules:
 
@@ -207,13 +210,15 @@ public:
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
-RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
-RDB_DECLARE_SERIALIZABLE(contract_t);
-
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
+
+/* Returns a `table_raft_state_t` for a newly-created table with the given configuration.
+*/
+table_raft_state_t make_new_table_raft_state(
+    const table_config_and_shards_t &config);
 
 #endif /* CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_ */
 

@@ -1,4 +1,5 @@
-
+/* RSI(raft): Finish these unit tests */
+#if 0
 
 /* `dummy_contract_executor_group_t` watches the contracts in the given Raft cluster
 state, executes them for a collection of fake storage engines, and generates plausible
@@ -154,3 +155,9 @@ private:
         raft_state_subs;
     repeating_timer_t timer;
 }
+
+TPTEST(ClusteringContractCoordinator, Static) {
+    
+}
+
+#endif
