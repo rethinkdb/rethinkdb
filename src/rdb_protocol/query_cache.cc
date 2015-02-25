@@ -250,6 +250,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
                     "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
             }
             // For compatibility, we return a SUCCESS_SEQUENCE in this case
+            res->Clear();
             res->set_type(Response::SUCCESS_SEQUENCE);
         } else {
             terminate();

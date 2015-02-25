@@ -83,13 +83,10 @@ int content_length(const http_req_t&);
 
 enum class http_status_code_t {
     OK = 200,
-    NO_CONTENT = 204,
     BAD_REQUEST = 400,
     FORBIDDEN = 403,
     NOT_FOUND = 404,
     METHOD_NOT_ALLOWED = 405,
-    GONE = 410,
-    UNSUPPORTED_MEDIA_TYPE = 415,
     INTERNAL_SERVER_ERROR = 500
 };
 

@@ -222,7 +222,5 @@
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
 #define CORO_PRIORITY_LBA_GC                    (-2)
 
-#define HTTP_REQL_TIMEOUT_SECONDS               300
-
 #endif  // CONFIG_ARGS_HPP_
 

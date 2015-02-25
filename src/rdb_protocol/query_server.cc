@@ -12,9 +12,8 @@
 
 rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                                        int port,
-                                       rdb_context_t *_rdb_ctx,
-                                       uint32_t http_timeout_sec) :
-    server(_rdb_ctx, local_addresses, port, this, http_timeout_sec),
+                                       rdb_context_t *_rdb_ctx) :
+    server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec),
     rdb_ctx(_rdb_ctx),
     thread_counters(0) { }
 

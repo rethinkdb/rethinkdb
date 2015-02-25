@@ -194,9 +194,8 @@ public:
 
         json_shim::write_json_pb(response, &str);
         guarantee(str.size() >= prefix_size);
-        data_size = static_cast<uint32_t>(str.size() - prefix_size);
 
-        if (data_size >= TOO_LARGE_RESPONSE_SIZE) {
+        if (str.size() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
             error_response.set_token(response.token());
             ql::fill_error(&error_response, Response::RUNTIME_ERROR,
@@ -204,6 +203,8 @@ public:
             send_response(error_response, handler, conn, interruptor);
             return;
         }
+
+        data_size = static_cast<uint32_t>(str.size() - prefix_size);
 
         // Fill in the prefix.
         // std::string::operator[] has unspecified complexity, but in practice
@@ -234,7 +235,7 @@ public:
             ql::fill_error(&error_response, Response::CLIENT_ERROR,
                            too_large_query_message(size));
             send_response(error_response, handler, conn, interruptor);
-            throw std::runtime_error(too_large_query_message(size));
+            return false;
         } else {
             scoped_array_t<char> data(size);
             conn->read(data.data(), size, interruptor);
@@ -429,11 +430,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
 void query_server_t::make_error_response(bool is_draining,
                                          const tcp_conn_t &conn,
-                                         const ql::protob_t<Query> &query,
                                          const std::string &err_str,
                                          Response *response_out) {
     response_out->Clear();
-    response_out->set_token(query->token());
 
     // Best guess at the error that occurred
     if (!conn.is_write_open()) {
@@ -519,13 +518,13 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             query_list.erase(query_it);
             wait_any_t cb_interruptor(pool_interruptor, &interruptor);
             Response response;
-            response.set_token(query_pb->token());
             bool replied = false;
 
             save_exception(&err, &err_str, &abort, [&]() {
                     handler->run_query(query_id, query_pb, &response,
                                        query_cache, &cb_interruptor);
                     if (should_reply(query_pb)) {
+                        response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                         protocol_t::send_response(response, handler,
                                                   conn, &cb_interruptor);
@@ -536,7 +535,8 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             if (!replied && should_reply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
                         make_error_response(drain_signal->is_pulsed(), *conn,
-                                            query_pb, err_str, &response);
+                                            err_str, &response);
+                        response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, drain_signal);
                         protocol_t::send_response(response, handler, conn, drain_signal);
                     });
@@ -566,7 +566,8 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             Response response;
             save_exception(&err, &err_str, &abort, [&]() {
                     make_error_response(drain_signal->is_pulsed(), *conn,
-                                        pair.second, err_str, &response);
+                                        err_str, &response);
+                    response.set_token(pair.second->token());
                     new_mutex_acq_t send_lock(&send_mutex, drain_signal);
                     protocol_t::send_response(response, handler, conn, drain_signal);
                 });

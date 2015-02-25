@@ -295,9 +295,11 @@ const std::string query_hanger_t::stop_query_message =
 // Arbitrary non-zero to check that responses are correct
 const int64_t test_token = 54;
 const int64_t unparsable_query_token = 99;
-const std::string r_uuid_json(strprintf("[%d,[%d,[]],{}]", Query::START, Term::UUID));
-const std::string stop_json(strprintf("[%d,%" PRIi64 "]", Query::STOP, test_token));
-const std::string invalid_json(",");
+const std::string r_uuid_json(strprintf("[%" PRIi32 ",[%" PRIi32 ",[]],{}]",
+                                        Query::START, Term::UUID));
+const std::string stop_json(strprintf("[%" PRIi32 "]",
+                                      Query::STOP));
+const std::string invalid_json("]");
 
 template <class T>
 void append_to_message(const T& item, std::string *message) {
@@ -322,9 +324,9 @@ scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
         new tcp_conn_stream_t(ip_address_t("127.0.0.1"), port, &dummy_interruptor));
 
     send_tcp_message(conn.get(),
-        static_cast<int32_t>(VersionDummy::V0_4),    // Protocol version
-        static_cast<uint32_t>(0),                             // Auth key length
-        static_cast<uint32_t>(VersionDummy::JSON)); // Wire protocol
+        static_cast<int32_t>(VersionDummy::V0_4),  // Protocol version
+        static_cast<uint32_t>(0),                  // Auth key length
+        static_cast<int32_t>(VersionDummy::JSON)); // Wire protocol
 
     std::string auth_response;
     while (true) {
@@ -357,6 +359,7 @@ std::string parse_json_error_message(const char *json,
 
     while (!type || !msg) {
         cJSON *item = it.next();
+        guarantee(item != nullptr);
         std::string item_name(item->string);
 
         if (item_name == "t") {
@@ -365,6 +368,7 @@ std::string parse_json_error_message(const char *json,
         } else if (item_name == "r") {
             json_array_iterator_t rit(item);
             item = rit.next();
+            guarantee(item != nullptr);
             guarantee(item->type == cJSON_String);
             msg = std::string(item->valuestring);
             guarantee(rit.next() == nullptr);
@@ -485,14 +489,16 @@ int32_t create_http_session(http_app_t *query_app) {
 http_req_t make_http_close(int32_t conn_id) {
     http_req_t close_req("/query/close-connection");
     close_req.method = http_method_t::POST;
-    close_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
+    close_req.query_params.insert(std::make_pair("conn_id",
+                                                 strprintf("%" PRIi32, conn_id)));
     return close_req;
 }
 
 http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
     http_req_t query_req("/query");
     query_req.method = http_method_t::POST;
-    query_req.query_params.insert(std::make_pair("conn_id", strprintf("%d", conn_id)));
+    query_req.query_params.insert(std::make_pair("conn_id",
+                                                 strprintf("%" PRIi32, conn_id)));
     query_req.body.append(reinterpret_cast<const char *>(&test_token),
                           sizeof(test_token));
     query_req.body.append(query_json);
@@ -500,7 +506,7 @@ http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
 }
 
 std::string parse_http_result(const http_res_t &http_res, int32_t expected_type) {
-    guarantee(http_res.body.size() > sizeof(int64_t));
+    guarantee(http_res.body.size() > sizeof(int64_t) + sizeof(uint32_t));
     const char *data = http_res.body.data();
 
     int64_t token = *reinterpret_cast<const int64_t *>(data);

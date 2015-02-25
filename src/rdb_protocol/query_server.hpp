@@ -25,8 +25,7 @@ class rdb_query_server_t : public query_handler_t {
 public:
     rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                        int port,
-                       rdb_context_t *_rdb_ctx,
-                       uint32_t http_timeout_sec);
+                       rdb_context_t *_rdb_ctx);
 
     http_app_t *get_http_app();
     int get_port() const;
@@ -37,6 +36,8 @@ public:
                    ql::query_cache_t *query_cache,
                    signal_t *interruptor);
 public:
+    static const uint32_t default_http_timeout_sec = 300;
+
     query_server_t server;
     rdb_context_t *rdb_ctx;
     one_per_thread_t<int> thread_counters;
