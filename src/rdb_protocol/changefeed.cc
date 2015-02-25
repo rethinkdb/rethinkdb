@@ -46,42 +46,49 @@ std::string print(const msg_t::limit_change_t &change) {
 }
 } // namespace debug
 
-enum class pop_type_t { RANGE, POINT };
-class maybe_squashing_queue_t {
-public:
-    virtual ~maybe_squashing_queue_t() { }
-    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) = 0;
-    virtual size_t size() const = 0;
-    virtual void clear() = 0;
-    virtual datum_t pop() {
-        std::pair<datum_t, datum_t> pair = pop_impl();
-        std::map<datum_string_t, datum_t> ret;
-        if (pair.first.has()) ret[datum_string_t("old_val")] = pair.first;
-        if (pair.second.has()) ret[datum_string_t("new_val")] = pair.second;
-        return datum_t(std::move(ret));
-    }
-private:
-    virtual std::pair<datum_t, datum_t> pop_impl() = 0;
-};
-
-class squashing_queue_t : public maybe_squashing_queue_t {
-    virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
+struct change_val_t {
+    change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
+                 datum_t _old_val, datum_t _new_val)
+        : source_stamp(std::move(_source_stamp)),
+          old_val(std::move(_old_val)),
+          new_val(std::move(_new_val)) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
             rassert(old_val != new_val);
         }
+    }
+    std::pair<uuid_u, uint64_t> source_stamp;
+    datum_t old_val, new_val;
+};
+
+datum_t change_val_to_change(const change_val_t &change) {
+    std::map<datum_string_t, datum_t> ret;
+    if (change.old_val.has()) ret[datum_string_t("old_val")] = change.old_val;
+    if (change.new_val.has()) ret[datum_string_t("new_val")] = change.new_val;
+    guarantee(ret.size() != 0);
+    return datum_t(std::move(ret));
+}
+
+enum class pop_type_t { RANGE, POINT };
+class maybe_squashing_queue_t {
+public:
+    virtual ~maybe_squashing_queue_t() { }
+    virtual void add(store_key_t key, change_val_t change_val) = 0;
+    virtual size_t size() const = 0;
+    virtual void clear() = 0;
+    virtual change_val_t pop() = 0;
+};
+
+class squashing_queue_t : public maybe_squashing_queue_t {
+    virtual void add(store_key_t key, change_val_t change_val) {
         auto it = queue.find(key);
         if (it == queue.end()) {
-            auto pair = std::make_pair(std::move(key),
-                                       std::make_pair(std::move(old_val),
-                                                      std::move(new_val)));
+            auto pair = std::make_pair(std::move(key), std::move(change_val));
             it = queue.insert(std::move(pair)).first;
         } else {
-            if (!it->second.first.has()) {
-                it->second.first = std::move(old_val);
-            }
-            it->second.second = std::move(new_val);
-            if (it->second.first == it->second.second) {
+            change_val.old_val = std::move(it->second.old_val);
+            it->second = std::move(change_val);
+            if (it->second.old_val == it->second.new_val) {
                 queue.erase(it);
             }
         }
@@ -92,23 +99,19 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void clear() {
         queue.clear();
     }
-    virtual std::pair<datum_t, datum_t> pop_impl() {
+    virtual change_val_t pop() {
         guarantee(size() != 0);
         auto it = queue.begin();
         auto ret = std::move(it->second);
         queue.erase(it);
         return ret;
     }
-    std::map<store_key_t, std::pair<datum_t, datum_t> > queue;
+    std::map<store_key_t, change_val_t> queue;
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
-    virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
-        guarantee(old_val.has() || new_val.has());
-        if (old_val.has() && new_val.has()) {
-            rassert(old_val != new_val);
-        }
-        queue.emplace_back(std::move(old_val), std::move(new_val));
+    virtual void add(store_key_t, change_val_t change_val) {
+        queue.push_back(std::move(change_val));
     }
     virtual size_t size() const {
         return queue.size();
@@ -116,13 +119,13 @@ class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void clear() {
         queue.clear();
     }
-    virtual std::pair<datum_t, datum_t> pop_impl() {
+    virtual change_val_t pop() {
         guarantee(size() != 0);
         auto ret = std::move(queue.front());
         queue.pop_front();
         return ret;
     }
-    std::deque<std::pair<datum_t, datum_t> > queue;
+    std::deque<change_val_t> queue;
 };
 
 scoped_ptr_t<maybe_squashing_queue_t> make_maybe_squashing_queue(bool squash) {
@@ -997,10 +1000,11 @@ class feed_t;
 class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
-    std::vector<datum_t>
-    get_els(batcher_t *batcher,
-            return_empty_normal_batches_t return_empty_normal_batches,
-            const signal_t *interruptor);
+    std::vector<datum_t> get_els(
+        batcher_t *batcher,
+        return_empty_normal_batches_t return_empty_normal_batches,
+        const signal_t *interruptor);
+    std::vector<datum_t> purge_and_return_remaining(active_state_t active_state);
     virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
@@ -1026,6 +1030,7 @@ private:
     const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
+    virtual change_val_t pop_change_val() = 0;
     virtual void note_data_wait() = 0;
     virtual bool active() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
@@ -1048,7 +1053,7 @@ public:
         datum_t new_val,
         const configured_limits_t &limits) {
         if (update_stamp(uuid, stamp)) {
-            queue->add(key, std::move(old_val), std::move(new_val));
+            queue->add(key, change_val_t(std::make_pair(uuid, stamp), old_val, new_val));
             if (queue->size() > limits.array_size_limit()) {
                 skipped += queue->size();
                 queue->clear();
@@ -1060,7 +1065,8 @@ protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
-    virtual datum_t pop_el() { return queue->pop(); }
+    virtual datum_t pop_el() { return change_val_to_change(pop_change_val()); }
+    virtual change_val_t pop_change_val() { return queue->pop(); }
     virtual bool has_el() { return queue->size() != 0; }
     virtual void note_data_wait() { }
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
@@ -1325,7 +1331,7 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(key, datum_t(), resp->initial_val);
+            queue->add(key, change_val_t(resp->stamp, datum_t(), resp->initial_val));
         }
         started = true;
     }
@@ -1725,6 +1731,13 @@ public:
         return ret;
     }
 
+    // This should never be called on `limit` changefeeds because they already
+    // support `return_initial` in their own way.
+    virtual change_val_t pop_change_val() {
+        r_sanity_check(false);
+        unreachable();
+    }
+
     uuid_u uuid;
     int64_t need_init, got_init;
     keyspec_t::limit_t spec;
@@ -2056,6 +2069,11 @@ subscription_t::get_els(batcher_t *batcher,
     guarantee(v.size() != 0);
     return std::move(v);
 }
+
+// std::vector<datum_t> subscription_t::purge_and_return_remaining(
+//     active_state_t active_state) {
+//     // RSI: do this
+// }
 
 void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
     assert_thread();
