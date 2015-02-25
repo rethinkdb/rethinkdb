@@ -400,11 +400,11 @@ void broadcaster_t::listener_write(
              w, ts, order_token, token, ack_mailbox.get_address());
 
         wait_interruptible(&ack_cond, interruptor);
-
-        /* Update latest acked write on the distpatchee so we can route queries
-        to the fastest replica and avoid blocking there. */
-        mirror->bump_latest_acked_write(ts);
     }
+
+    /* Update latest acked write on the distpatchee so we can route queries
+    to the fastest replica and avoid blocking there. */
+    mirror->bump_latest_acked_write(ts);
 }
 
 void broadcaster_t::listener_read(
