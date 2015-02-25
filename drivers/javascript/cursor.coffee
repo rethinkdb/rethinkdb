@@ -165,17 +165,19 @@ class IterableResult
             @_cbQueue.push cb
             @_promptNext()
 
-        if cb? and typeof cb isnt 'function'
+        if typeof cb is "function"
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
             throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
-
-        new Promise( (resolve, reject) ->
-            nextCb = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            fn(nextCb)
-        ).nodeify cb
 
 
     close: varar 0, 1, (cb) ->
