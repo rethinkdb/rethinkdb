@@ -418,8 +418,10 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
 
 log_serializer_t::~log_serializer_t() {
     assert_thread();
+
     cond_t cond;
-    if (!shutdown(&cond)) cond.wait();
+    shutdown(&cond);
+    cond.wait();
 
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(metablock_waiter_queue.empty());
@@ -783,7 +785,7 @@ log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     return lba_index->get_block_recencies(first, step);
 }
 
-bool log_serializer_t::shutdown(cond_t *cb) {
+void log_serializer_t::shutdown(cond_t *cb) {
     assert_thread();
     rassert(coro_t::self());
 
@@ -800,10 +802,10 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     // to most of the remaining shutdown process which is still FSM-based.
     lba_index->shutdown_gc();
 
-    return next_shutdown_step();
+    next_shutdown_step();
 }
 
-bool log_serializer_t::next_shutdown_step() {
+void log_serializer_t::next_shutdown_step() {
     assert_thread();
 
     if (shutdown_state == shutdown_begin) {
@@ -811,7 +813,7 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_serializer;
         if (!metablock_waiter_queue.empty() || active_write_count > 0) {
             state = state_shutting_down;
-            return false;
+            return;
         }
         state = state_shutting_down;
     }
@@ -819,7 +821,7 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
         if (!data_block_manager->shutdown(this)) {
-            return false;
+            return;
         }
     }
 
@@ -827,7 +829,7 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
         if (!offset_tokens.empty()) {
-            return false;
+            return;
         } else {
 #ifndef NDEBUG
             expecting_no_more_tokens = true;
@@ -857,7 +859,7 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_dbfile_destruction;
         coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
                                          this));
-        return false;
+        return;
     }
 
     rassert(dbfile == NULL);
@@ -865,17 +867,13 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
 
-        // Don't call the callback if we went through the entire
-        // shutdown process in one synchronous shot.
         if (shutdown_callback) {
             shutdown_callback->pulse();
         }
-
-        return true;
+        return;
     }
 
     unreachable("Invalid state.");
-    return true; // make compiler happy
 }
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {

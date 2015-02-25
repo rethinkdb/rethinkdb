@@ -187,8 +187,8 @@ private:
                             file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
-    bool shutdown(cond_t *cb);
-    bool next_shutdown_step();
+    void shutdown(cond_t *cb);
+    void next_shutdown_step();
 
     void delete_dbfile_and_continue_shutdown();
 
