@@ -30,12 +30,6 @@ void min_timestamp_enforcer_t::wait_interruptible(
         return;
     } else {
         // Put a waiter on the queue and wait for it to be pulsed
-        // Note: The drainer_lock is here just to avoid race conditions between
-        // the time `internal_pump()` pops the waiter from the queue and the time
-        // where execution in here gets resumed.
-        // Generally `min_timestamp_enforcer_t` crashes if it's destructed
-        // while there are still waiters on the queue.
-        auto drainer_lock = drainer.lock();
         internal_waiter_t waiter(token);
         waiter_queue.push(&waiter);
 

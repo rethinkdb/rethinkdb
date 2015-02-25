@@ -74,8 +74,6 @@ private:
 
     intrusive_priority_queue_t<internal_waiter_t> waiter_queue;
 
-    auto_drainer_t drainer;
-
     DISABLE_COPYING(min_timestamp_enforcer_t);
 };
 
