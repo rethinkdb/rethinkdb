@@ -4,7 +4,12 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/interruptor.hpp"
-#include "concurrency/wait_any.hpp"
+#include "errors.hpp"
+
+min_timestamp_enforcer_t::~min_timestamp_enforcer_t() {
+    assert_thread();
+    guarantee(waiter_queue.empty());
+}
 
 void min_timestamp_enforcer_t::bump_timestamp(state_timestamp_t new_ts) {
     assert_thread();
@@ -14,8 +19,7 @@ void min_timestamp_enforcer_t::bump_timestamp(state_timestamp_t new_ts) {
     }
 }
 
-void min_timestamp_enforcer_t::wait(min_timestamp_token_t token)
-        THROWS_ONLY(interrupted_exc_t) {
+void min_timestamp_enforcer_t::wait(min_timestamp_token_t token) THROWS_NOTHING {
     cond_t dummy_interruptor;
     wait_interruptible(token, &dummy_interruptor);
 }
@@ -31,13 +35,17 @@ void min_timestamp_enforcer_t::wait_interruptible(
         return;
     } else {
         // Put a waiter on the queue and wait for it to be pulsed
+        // Note: The drainer_lock is here just to avoid race conditions between
+        // the time `internal_pump()` pops the waiter from the queue and the time
+        // where execution in here gets resumed.
+        // Generally `min_timestamp_enforcer_t` crashes if it's destructed
+        // while there are still waiters on the queue.
         auto drainer_lock = drainer.lock();
         internal_waiter_t waiter(token);
         waiter_queue.push(&waiter);
 
         try {
-            wait_any_t any_interruptor(interruptor, drainer_lock.get_drain_signal());
-            ::wait_interruptible(&waiter.on_runnable, &any_interruptor);
+            ::wait_interruptible(&waiter.on_runnable, interruptor);
         } catch (const interrupted_exc_t &) {
             // Remove waiter from the queue
             waiter_queue.remove(&waiter);

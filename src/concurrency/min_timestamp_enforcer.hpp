@@ -29,20 +29,19 @@ RDB_MAKE_SERIALIZABLE_1(min_timestamp_token_t, min_timestamp);
 
 class min_timestamp_enforcer_t : public home_thread_mixin_debug_only_t {
 public:
-
     min_timestamp_enforcer_t()
         : current_timestamp(state_timestamp_t::zero()) { }
 
     explicit min_timestamp_enforcer_t(state_timestamp_t ts)
         : current_timestamp(ts) { }
 
+    ~min_timestamp_enforcer_t();
+
     /* All reads that are waiting on a timestamp <= `new_ts` can now pass. */
     void bump_timestamp(state_timestamp_t new_ts);
 
-    /* Blocks until the desired version has been reached or the
-    min_timestamp_enforcer_t is destroyed (in that case it throws an
-    interrupted_exc_t. */
-    void wait(min_timestamp_token_t token) THROWS_ONLY(interrupted_exc_t);
+    /* Blocks until the desired version has been reached. */
+    void wait(min_timestamp_token_t token) THROWS_NOTHING;
     void wait_interruptible(min_timestamp_token_t token, const signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
