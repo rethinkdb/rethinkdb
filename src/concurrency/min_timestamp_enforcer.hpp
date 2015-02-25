@@ -40,8 +40,8 @@ public:
     /* All reads that are waiting on a timestamp <= `new_ts` can now pass. */
     void bump_timestamp(state_timestamp_t new_ts);
 
-    /* Blocks until the desired version has been reached. */
-    void wait(min_timestamp_token_t token) THROWS_NOTHING;
+    /* Blocks until the desired version has been reached (or the interruptor
+    gets pulsed). */
     void wait_interruptible(min_timestamp_token_t token, const signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 

@@ -19,11 +19,6 @@ void min_timestamp_enforcer_t::bump_timestamp(state_timestamp_t new_ts) {
     }
 }
 
-void min_timestamp_enforcer_t::wait(min_timestamp_token_t token) THROWS_NOTHING {
-    cond_t dummy_interruptor;
-    wait_interruptible(token, &dummy_interruptor);
-}
-
 void min_timestamp_enforcer_t::wait_interruptible(
         min_timestamp_token_t token,
         const signal_t *interruptor)
