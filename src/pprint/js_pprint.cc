@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "pprint/generic_term_walker.hpp"
+#include "errors.hpp"
 #include "rdb_protocol/ql2_extensions.pb.h"
 #include "debug.hpp"
 
