@@ -47,8 +47,11 @@ void min_timestamp_enforcer_t::wait_interruptible(
         try {
             ::wait_interruptible(&waiter.on_runnable, interruptor);
         } catch (const interrupted_exc_t &) {
-            // Remove waiter from the queue
-            waiter_queue.remove(&waiter);
+            // Remove waiter from the queue if it hasn't been pulsed
+            // (otherwise internal_pump will have removed it already).
+            if (!waiter.on_runnable.is_pulsed()) {
+                waiter_queue.remove(&waiter);
+            }
             throw;
         }
     }
