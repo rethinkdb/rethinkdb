@@ -537,6 +537,8 @@ private:
         case Term::MAKE_OBJ:
         case Term::ARGS:
         case Term::JAVASCRIPT:
+        case Term::ASC:
+        case Term::DESC:
             return false;
         case Term::TABLE:
         case Term::FUNCALL:
