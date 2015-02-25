@@ -549,7 +549,8 @@ void broadcaster_t::pick_a_readable_dispatchee(
          d != NULL;
          d = readable_dispatchees.next(d)) {
         if (d->get_latest_acked_write() >= most_uptodate_dispatchee_ts
-            && (most_uptodate_dispatchee == nullptr
+            && (d->get_latest_acked_write() > most_uptodate_dispatchee_ts
+                || most_uptodate_dispatchee == nullptr
                 || !most_uptodate_dispatchee->is_local())) {
 
             most_uptodate_dispatchee = d;
