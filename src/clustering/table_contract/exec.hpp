@@ -20,6 +20,8 @@ public:
     peer_id_t peer;
 };
 
+RDB_DECLARE_SERIALIZABLE(contract_execution_bcard_t);
+
 /* `execution_t` is a base class for `primary_execution_t`, `secondary_execution_t`, and
 `erase_execution_t`. */
 class execution_t {

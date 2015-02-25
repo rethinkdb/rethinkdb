@@ -7,8 +7,7 @@
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/exec.hpp"
-
-class store_subview_t;
+#include "store_subview.hpp"
 
 /* The `contract_executor_t` is responsible for executing the instructions contained in
 the `contract_t`s in the `table_raft_state_t`. Each server has one `contract_executor_t`
@@ -28,7 +27,6 @@ public:
         watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
             *remote_contract_execution_bcards,
         const multistore_ptr_t *multistore,
-        branch_history_manager_t *branch_history_manager,
         const base_path_t &base_path,
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,

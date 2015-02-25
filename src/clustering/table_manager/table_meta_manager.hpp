@@ -2,8 +2,10 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 
-#include "clustering/table_manager/table_metadata.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
+#include "clustering/table_contract/executor.hpp"
+#include "clustering/table_manager/table_metadata.hpp"
 
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -102,7 +104,9 @@ public:
             *_table_meta_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             *_table_meta_directory,
-        table_meta_persistence_interface_t *_persistence_interface);
+        table_meta_persistence_interface_t *_persistence_interface,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender);
 
     table_meta_manager_bcard_t get_table_meta_manager_bcard() {
         table_meta_manager_bcard_t bcard;
@@ -119,6 +123,11 @@ public:
     }
 
 private:
+    /* This is a `watchable_map_transform_t` subclass, a helper class for taking the
+    `minidir_bcard_t`s from the `table_meta_directory` and putting them into a format
+    that the `minidir_write_manager_t` can handle. */
+    class execution_bcard_minidir_bcard_finder_t;
+
     /* We store a `active_table_t` for every table that we're currently acting as a Raft
     cluster member for. We'll have a file for the table on disk if and only if we have a
     `active_table_t` for that table. */
@@ -169,6 +178,9 @@ private:
         /* This is the callback for `raft_readiness_subs` */
         void on_raft_readiness_change();
 
+        perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_membership;
+
         /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
         `table_meta_bcard_t`s and putting them into a map for the
         `raft_networked_member_t` to use. */
@@ -177,6 +189,21 @@ private:
             raft_directory;
 
         raft_networked_member_t<table_raft_state_t> raft;
+
+        /* Every server constructs a `contract_executor_t` for every table it's a replica
+        of. There's a lot of support machinery required here. The
+        `execution_bcard_*_manager`s pass `contract_execution_bcard_t`s between different
+        replicas of the same table, via the `execution_bcard_minidir_bcard` field of the
+        `table_meta_bcard_t`. The `execution_minidir_bcard_finder` is responsible for
+        finding the `execution_bcard_minidir_bcard`s in a form suitable for passing to
+        `execution_bcard_write_manager_t`. */
+        minidir_read_manager_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t> execution_bcard_read_manager;
+        contract_executor_t contract_executor;
+        scoped_ptr_t<execution_bcard_minidir_bcard_finder_t>
+            execution_bcard_minidir_bcard_finder;
+        minidir_write_manager_t<std::pair<server_id_t, branch_id_t>,
+            contract_execution_bcard_t> execution_bcard_write_manager;
 
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             ::all_subs_t table_directory_subs;
@@ -284,6 +311,11 @@ private:
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
         * const table_meta_directory;
     table_meta_persistence_interface_t * const persistence_interface;
+
+    const base_path_t base_path;
+    io_backender_t * const io_backender;
+
+    backfill_throttler_t backfill_throttler;
 
     /* This map describes the table business cards that we show to other servers via the
     directory. `active_table_t` creates and deletes entries in this map. */

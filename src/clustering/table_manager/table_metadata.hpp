@@ -2,9 +2,11 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 
+#include "clustering/generic/minidir.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class table_meta_manager_bcard_t {
@@ -135,6 +137,11 @@ public:
     `raft_business_card`. */
     raft_member_id_t raft_member_id;
     raft_business_card_t<table_raft_state_t> raft_business_card;
+
+    /* `contract_executor_t`s for this table on other servers send messages to the
+    `contract_executor_t` on this server via this minidir bcard. */
+    minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
+        execution_bcard_minidir_bcard;
 
     /* `true` if a message to `set_config_mailbox` for this table to this server is
     likely to succeed. */

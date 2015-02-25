@@ -81,7 +81,7 @@ bool service_address_ports_t::is_bind_all() const {
 // safe to run in general.
 std::string run_uname(const std::string &flags);
 
-bool do_serve(UNUSED io_backender_t *io_backender,
+bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
               const base_path_t &base_path,
@@ -169,7 +169,9 @@ bool do_serve(UNUSED io_backender_t *io_backender,
                 &mailbox_manager,
                 &table_meta_manager_directory,
                 table_directory_read_manager.get_root_view(),
-                &dummy_persistence));
+                &dummy_persistence,
+                base_path,
+                io_backender));
         }
 
         table_meta_client_t table_meta_client(

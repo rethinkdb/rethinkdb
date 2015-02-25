@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_meta_manager.hpp"
 
+#include "clustering/generic/minidir.tcc"
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.tcc"
 
@@ -15,12 +16,16 @@ table_meta_manager_t::table_meta_manager_t(
             *_table_meta_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             *_table_meta_directory,
-        table_meta_persistence_interface_t *_persistence_interface) :
+        table_meta_persistence_interface_t *_persistence_interface,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender) :
     server_id(_server_id),
     mailbox_manager(_mailbox_manager),
     table_meta_manager_directory(_table_meta_manager_directory),
     table_meta_directory(_table_meta_directory),
     persistence_interface(_persistence_interface),
+    base_path(_base_path),
+    io_backender(_io_backender),
     /* Whenever a server connects, we need to sync all of our tables to it. */
     table_meta_manager_directory_subs(
         table_meta_manager_directory,
@@ -94,18 +99,73 @@ table_meta_manager_t::table_meta_manager_t(
         &non_interruptor);
 }
 
+/* `execution_bcard_minidir_bcard_finder_t` finds the `minidir_bcard_t`s for the minidir
+that distributes the `contract_execution_bcard_t`s. Each server has a `minidir_bcard_t`
+for each table that it's a replica for; these are published in the directory. This class
+is responsible for extracting them from the directory and putting them into a format that
+can be passed to `minidir_write_manager_t`. */
+class table_meta_manager_t::execution_bcard_minidir_bcard_finder_t :
+    public watchable_map_transform_t<
+        std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t,
+        uuid_u, minidir_bcard_t<
+            std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t> >
+{
+public:
+    execution_bcard_minidir_bcard_finder_t(
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t> *w,
+        const namespace_id_t &tid) :
+            watchable_map_transform_t(w),
+            table_id(tid) { }
+    bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1, uuid_u *key2_out) {
+        if (key1.second == table_id) {
+            *key2_out = key1.first.get_uuid();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    void value_1_to_2(
+            const table_meta_bcard_t *value1,
+            const minidir_bcard_t<std::pair<server_id_t, branch_id_t>,
+                                  contract_execution_bcard_t> **value2_out) {
+        *value2_out = &value1->execution_bcard_minidir_bcard;
+    }
+    bool key_2_to_1(const uuid_u &key2, std::pair<peer_id_t, namespace_id_t> *key1_out) {
+        key1_out->first = peer_id_t(key2);
+        key1_out->second = table_id;
+        return true;
+    }
+private:
+    namespace_id_t table_id;
+};
+
 table_meta_manager_t::active_table_t::active_table_t(
         table_meta_manager_t *_parent,
         const namespace_id_t &_table_id,
         const table_meta_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
-        UNUSED multistore_ptr_t *multistore_ptr) :
+        multistore_ptr_t *multistore_ptr) :
     parent(_parent),
     table_id(_table_id),
     epoch(_epoch),
     member_id(_member_id),
+    perfmon_membership(
+        &get_global_perfmon_collection(), &perfmon_collection, uuid_to_str(_table_id)),
     raft(member_id, parent->mailbox_manager, &raft_directory, this, initial_state),
+    execution_bcard_read_manager(
+        parent->mailbox_manager),
+    contract_executor(
+        parent->server_id, parent->mailbox_manager, raft.get_raft(),
+        execution_bcard_read_manager.get_values(), multistore_ptr, parent->base_path,
+        parent->io_backender, &parent->backfill_throttler, &perfmon_collection),
+    execution_bcard_minidir_bcard_finder(
+        new execution_bcard_minidir_bcard_finder_t(
+            parent->table_meta_directory, table_id)),
+    execution_bcard_write_manager(
+        parent->mailbox_manager,
+        contract_executor.get_local_contract_execution_bcards(),
+        execution_bcard_minidir_bcard_finder.get()),
     table_directory_subs(
         parent->table_meta_directory,
         std::bind(&active_table_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -155,6 +215,7 @@ void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
         });
     bcard.raft_member_id = member_id;
     bcard.raft_business_card = raft.get_business_card();
+    bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
     bcard.is_leader = raft.get_raft()->get_readiness_for_change()->get();
     bcard.server_id = parent->server_id;
     parent->table_meta_bcards.set_key_no_equals(table_id, bcard);

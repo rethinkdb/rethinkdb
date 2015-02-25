@@ -13,7 +13,6 @@ contract_executor_t::contract_executor_t(
         watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
             *_remote_contract_execution_bcards,
         const multistore_ptr_t *_multistore,
-        branch_history_manager_t *_branch_history_manager,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         backfill_throttler_t *_backfill_throttler,
@@ -22,7 +21,8 @@ contract_executor_t::contract_executor_t(
     raft(_raft),
     multistore(_multistore),
     perfmons(_perfmons),
-    execution_context { _server_id, _mailbox_manager, _branch_history_manager,
+    execution_context {
+        _server_id, _mailbox_manager, multistore->get_branch_history_manager(),
         _base_path, _io_backender, _backfill_throttler,
         _remote_contract_execution_bcards, &local_contract_execution_bcards,
         &local_table_query_bcards },
@@ -128,7 +128,7 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
                 data->contract_id = new_pair.first;
 
                 data->store_subview = make_scoped<store_subview_t>(
-                    multistore->shards[get_cpu_shard_number(key.region)],
+                    multistore->get_cpu_sharded_store(get_cpu_shard_number(key.region)),
                     key.region);
 
                 /* We generate perfmon keys of the form "primary-3", "secondary-8", etc.

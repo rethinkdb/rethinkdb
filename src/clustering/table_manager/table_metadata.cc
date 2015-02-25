@@ -8,8 +8,8 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     table_meta_manager_bcard_t,
     action_mailbox, get_config_mailbox, set_config_mailbox, server_id);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     table_meta_bcard_t,
     timestamp, database, name, primary_key, raft_member_id, raft_business_card,
-    is_leader, server_id);
+    execution_bcard_minidir_bcard, is_leader, server_id);
 
