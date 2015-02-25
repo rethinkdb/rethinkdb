@@ -160,7 +160,7 @@ private:
         case Datum::R_NUM:
         {
             double num = d->r_num();
-            return make_text((fabs(num - trunc(num)) < 1e-10)
+            return make_text(trunc(num) == num
                              ? std::to_string(lrint(num))
                              : std::to_string(num));
         }
