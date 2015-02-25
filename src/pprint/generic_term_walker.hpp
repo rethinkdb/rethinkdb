@@ -11,11 +11,11 @@ class generic_term_walker_t {
 public:
     virtual ~generic_term_walker_t() {}
 
-    virtual Accumulator walk(Term *t) {
+    virtual Accumulator walk(const Term &t) {
         return visit_generic(t);
     }
 protected:
-    virtual Accumulator visit_generic(Term *t) = 0;
+    virtual Accumulator visit_generic(const Term &t) = 0;
 };
 
 } // namespace pprint

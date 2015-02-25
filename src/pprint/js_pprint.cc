@@ -24,14 +24,14 @@ class js_pretty_printer_t
 public:
     js_pretty_printer_t() : depth(0), prepend_ok(true), in_r_expr(false) {}
 protected:
-    counted_t<const document_t> visit_generic(Term *t) override {
+    counted_t<const document_t> visit_generic(const Term &t) override {
         bool old_r_expr = in_r_expr;
         ++depth;
         if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
         counted_t<const document_t> doc;
-        switch (t->type()) {
+        switch (t.type()) {
         case Term::DATUM:
-            doc = to_js_datum(t->mutable_datum());
+            doc = to_js_datum(t.datum());
             if (!in_r_expr) {
                 doc = prepend_r_expr(doc);
             }
@@ -39,7 +39,7 @@ protected:
         case Term::FUNCALL:
             // Hack here: JS users expect .do in suffix position if
             // there's only one argument.
-            if (t->args_size() == 2) {
+            if (t.args_size() == 2) {
                 doc = string_dots_together(t);
             } else {
                 doc = toplevel_funcall(t);
@@ -64,9 +64,9 @@ protected:
             doc = to_js_func(t);
             break;
         case Term::VAR:
-            guarantee(t->args_size() == 1);
-            guarantee(t->mutable_args(0)->type() == Term::DATUM);
-            doc = var_name(t->mutable_args(0)->mutable_datum());
+            guarantee(t.args_size() == 1);
+            guarantee(t.args(0).type() == Term::DATUM);
+            doc = var_name(t.args(0).datum());
             break;
         case Term::IMPLICIT_VAR:
             doc = prepend_r_dot(row);
@@ -84,8 +84,8 @@ protected:
         return doc;
     }
 private:
-    std::string to_js_name(Term *t) {
-        return to_js_name(Term_TermType_Name(t->type()));
+    std::string to_js_name(const Term &t) {
+        return to_js_name(Term_TermType_Name(t.type()));
     }
     std::string to_js_name(std::string s) {
         std::string result = "";
@@ -103,78 +103,78 @@ private:
         }
         return result;
     }
-    counted_t<const document_t> to_js_array(Term *t) {
-        guarantee(t->optargs_size() == 0);
+    counted_t<const document_t> to_js_array(const Term &t) {
+        guarantee(t.optargs_size() == 0);
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > term;
-        for (int i = 0; i < t->args_size(); ++i) {
+        for (int i = 0; i < t.args_size(); ++i) {
             if (i != 0) {
                 term.push_back(comma);
                 term.push_back(cond_linebreak);
             }
-            term.push_back(visit_generic(t->mutable_args(i)));
+            term.push_back(visit_generic(t.args(i)));
         }
         in_r_expr = old_r_expr;
         return make_c(lbrack, make_nest(make_concat(std::move(term))), rbrack);
     }
-    counted_t<const document_t> to_js_object(Term *t) {
-        guarantee(t->args_size() == 0);
+    counted_t<const document_t> to_js_object(const Term &t) {
+        guarantee(t.args_size() == 0);
         return in_r_expr ? to_js_natural_object(t) : to_js_wrapped_object(t);
     }
-    counted_t<const document_t> to_js_natural_object(Term *t) {
+    counted_t<const document_t> to_js_natural_object(const Term &t) {
         std::vector<counted_t<const document_t> > term;
-        for (int i = 0; i < t->optargs_size(); ++i) {
+        for (int i = 0; i < t.optargs_size(); ++i) {
             if (i != 0) {
                 term.push_back(comma);
                 term.push_back(cond_linebreak);
             }
-            Term_AssocPair *ap = t->mutable_optargs(i);
-            term.push_back(make_nc(make_text("\"" + ap->key() + "\":"),
+            const Term_AssocPair &ap = t.optargs(i);
+            term.push_back(make_nc(make_text("\"" + ap.key() + "\":"),
                                    cond_linebreak,
-                                   visit_generic(ap->mutable_val())));
+                                   visit_generic(ap.val())));
         }
         return make_c(lbrace, make_nest(make_concat(std::move(term))), rbrace);
     }
-    counted_t<const document_t> to_js_wrapped_object(Term *t) {
+    counted_t<const document_t> to_js_wrapped_object(const Term &t) {
         std::vector<counted_t<const document_t> > term;
-        for (int i = 0; i < t->optargs_size(); ++i) {
+        for (int i = 0; i < t.optargs_size(); ++i) {
             if (i != 0) {
                 term.push_back(comma);
                 term.push_back(cond_linebreak);
             }
-            Term_AssocPair *ap = t->mutable_optargs(i);
-            term.push_back(make_text("\"" + ap->key() + "\""));
+            const Term_AssocPair &ap = t.optargs(i);
+            term.push_back(make_text("\"" + ap.key() + "\""));
             term.push_back(comma);
             term.push_back(cond_linebreak);
-            term.push_back(visit_generic(ap->mutable_val()));
+            term.push_back(visit_generic(ap.val()));
         }
         return prepend_r_obj(make_nest(make_concat(std::move(term))));
     }
-    counted_t<const document_t> to_js_datum(Datum *d) {
-        switch (d->type()) {
+    counted_t<const document_t> to_js_datum(const Datum &d) {
+        switch (d.type()) {
         case Datum::R_NULL:
             return nil;
         case Datum::R_BOOL:
-            return d->r_bool() ? true_v : false_v;
+            return d.r_bool() ? true_v : false_v;
         case Datum::R_NUM:
         {
-            double num = d->r_num();
+            double num = d.r_num();
             return make_text(trunc(num) == num
                              ? std::to_string(lrint(num))
                              : std::to_string(num));
         }
         case Datum::R_STR:
-            return make_text("\"" + d->r_str() + "\"");
+            return make_text("\"" + d.r_str() + "\"");
         case Datum::R_ARRAY:
         {
             std::vector<counted_t<const document_t> > term;
-            for (int i = 0; i < d->r_array_size(); ++i) {
+            for (int i = 0; i < d.r_array_size(); ++i) {
                 if (i != 0) {
                     term.push_back(comma);
                     term.push_back(cond_linebreak);
                 }
-                term.push_back(to_js_datum(d->mutable_r_array(i)));
+                term.push_back(to_js_datum(d.r_array(i)));
             }
             return make_c(lbrack, make_nest(make_concat(std::move(term))), rbrack);
         }
@@ -182,91 +182,91 @@ private:
         {
             std::vector<counted_t<const document_t> > term;
             term.push_back(lbrace);
-            for (int i = 0; i < d->r_object_size(); ++i) {
+            for (int i = 0; i < d.r_object_size(); ++i) {
                 if (i != 0) {
                     term.push_back(comma);
                     term.push_back(cond_linebreak);
                 }
-                Datum_AssocPair *ap = d->mutable_r_object(i);
-                term.push_back(make_nc(make_text("\"" + ap->key() + "\":"),
+                const Datum_AssocPair &ap = d.r_object(i);
+                term.push_back(make_nc(make_text("\"" + ap.key() + "\":"),
                                        cond_linebreak,
-                                       to_js_datum(ap->mutable_val())));
+                                       to_js_datum(ap.val())));
             }
             term.push_back(rbrace);
             return make_nest(make_concat(std::move(term)));
         }
         case Datum::R_JSON:
-            return prepend_r_dot(make_c(json, lparen, quote, make_text(d->r_str()),
+            return prepend_r_dot(make_c(json, lparen, quote, make_text(d.r_str()),
                                         quote, rparen));
         default:
             unreachable();
         }
     }
-    counted_t<const document_t> render_optargs(Term *t) {
+    counted_t<const document_t> render_optargs(const Term &t) {
         std::vector<counted_t<const document_t> > optargs;
-        for (int i = 0; i < t->optargs_size(); ++i) {
+        for (int i = 0; i < t.optargs_size(); ++i) {
             // don't insert redundant space
             if (i != 0) {
                 optargs.push_back(comma);
                 optargs.push_back(cond_linebreak);
             }
-            Term_AssocPair *ap = t->mutable_optargs(i);
+            const Term_AssocPair &ap = t.optargs(i);
             counted_t<const document_t> inner =
-                make_c(make_text("\"" + to_js_name(ap->key()) + "\":"),
+                make_c(make_text("\"" + to_js_name(ap.key()) + "\":"),
                        cond_linebreak,
-                       visit_generic(ap->mutable_val()));
+                       visit_generic(ap.val()));
             optargs.push_back(make_nest(std::move(inner)));
         }
         return make_c(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
     }
     void
-    visit_stringing(Term *var, std::vector<counted_t<const document_t> > *stack,
-                    Term **next_out, bool *last_is_dot, bool *last_should_r_wrap) {
+    visit_stringing(const Term &var, std::vector<counted_t<const document_t> > *stack,
+                    const Term **next_out, bool *last_is_dot, bool *last_should_r_wrap) {
         bool first = true;
         bool insert_trailing_comma = false;
         bool old_r_expr = in_r_expr;
-        switch (var->type()) {
+        switch (var.type()) {
         case Term::BRACKET:
             stack->push_back(rparen);
             in_r_expr = true;
-            if (var->optargs_size() > 0) {
+            if (var.optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
                 first = false;
             }
-            if (var->args_size() > 1) { // arg 0 is the base
-                for (int i = var->args_size() - 1; i > 0; --i) {
+            if (var.args_size() > 1) { // arg 0 is the base
+                for (int i = var.args_size() - 1; i > 0; --i) {
                     if (first) {
                         first = false;
                     } else {
                         stack->push_back(cond_linebreak);
                         stack->push_back(comma);
                     }
-                    stack->push_back(visit_generic(var->mutable_args(i)));
+                    stack->push_back(visit_generic(var.args(i)));
                 }
             }
             in_r_expr = old_r_expr;
             stack->push_back(lparen);
-            *next_out = var->mutable_args(0);
+            *next_out = &(var.args(0));
             *last_is_dot = false;
             *last_should_r_wrap = false;
             return;
         case Term::FUNCALL:
-            guarantee(var->args_size() == 2);
-            guarantee(var->optargs_size() == 0);
+            guarantee(var.args_size() == 2);
+            guarantee(var.optargs_size() == 0);
             stack->push_back(rparen);
             in_r_expr = true;
-            stack->push_back(make_nest(visit_generic(var->mutable_args(0))));
+            stack->push_back(make_nest(visit_generic(var.args(0))));
             in_r_expr = old_r_expr;
             stack->push_back(lparen);
             stack->push_back(do_st);
             stack->push_back(dot_linebreak);
-            *next_out = var->mutable_args(1);
+            *next_out = &(var.args(1));
             *last_is_dot = true;
             *last_should_r_wrap = true;
             return;
         case Term::DATUM:
             in_r_expr = true;
-            stack->push_back(prepend_r_expr(to_js_datum(var->mutable_datum())));
+            stack->push_back(prepend_r_expr(to_js_datum(var.datum())));
             in_r_expr = old_r_expr;
             *next_out = nullptr;
             *last_is_dot = false;
@@ -281,9 +281,9 @@ private:
             *last_should_r_wrap = false;
             return;
         case Term::VAR:
-            guarantee(var->args_size() == 1);
-            guarantee(var->mutable_args(0)->type() == Term::DATUM);
-            stack->push_back(var_name(var->mutable_args(0)->mutable_datum()));
+            guarantee(var.args_size() == 1);
+            guarantee(var.args(0).type() == Term::DATUM);
+            stack->push_back(var_name(var.args(0).datum()));
             *next_out = nullptr;
             *last_is_dot = false;
             *last_should_r_wrap = false;
@@ -297,11 +297,11 @@ private:
         default:
             stack->push_back(rparen);
             in_r_expr = true;
-            if (var->optargs_size() > 0) {
+            if (var.optargs_size() > 0) {
                 stack->push_back(render_optargs(var));
                 insert_trailing_comma = true;
             }
-            switch (var->args_size()) {
+            switch (var.args_size()) {
             case 0:
                 in_r_expr = old_r_expr;
                 stack->push_back(lparen);
@@ -315,20 +315,20 @@ private:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
-                *next_out = var->mutable_args(0);
+                *next_out = &(var.args(0));
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
                 return;
             default:
                 std::vector<counted_t<const document_t> > args;
-                for (int i = 1; i < var->args_size(); ++i) {
+                for (int i = 1; i < var.args_size(); ++i) {
                     if (first) {
                         first = false;
                     } else {
                         args.push_back(comma);
                         args.push_back(cond_linebreak);
                     }
-                    args.push_back(visit_generic(var->mutable_args(i)));
+                    args.push_back(visit_generic(var.args(i)));
                 }
                 if (insert_trailing_comma) {
                     args.push_back(comma);
@@ -340,34 +340,34 @@ private:
                 stack->push_back(lparen);
                 stack->push_back(make_text(to_js_name(var)));
                 stack->push_back(dot_linebreak);
-                *next_out = var->mutable_args(0);
+                *next_out = &(var.args(0));
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
                 return;
             }
         }
     }
-    counted_t<const document_t> string_dots_together(Term *t) {
+    counted_t<const document_t> string_dots_together(const Term &t) {
         std::vector<counted_t<const document_t> > stack;
-        Term *var = t;
+        const Term *var = &t;
         bool last_is_dot = false;
         bool last_should_r_wrap = false;
-        while (var != nullptr && should_continue_string(var)) {
-            visit_stringing(var, &stack, &var, &last_is_dot, &last_should_r_wrap);
+        while (var != nullptr && should_continue_string(*var)) {
+            visit_stringing(*var, &stack, &var, &last_is_dot, &last_should_r_wrap);
         }
-        guarantee(var != t);
+        guarantee(var != &t);
         if (var == nullptr && last_should_r_wrap) {
             return prepend_r_dot(reverse(std::move(stack), false));
         } else if (var == nullptr) {
             return reverse(std::move(stack), false);
-        } else if (should_use_rdot(var)) {
+        } else if (should_use_rdot(*var)) {
             bool old = prepend_ok;
             prepend_ok = false;
-            counted_t<const document_t> subdoc = visit_generic(var);
+            counted_t<const document_t> subdoc = visit_generic(*var);
             prepend_ok = old;
             return prepend_r_dot(make_c(subdoc, reverse(std::move(stack), false)));
         } else {
-            return make_nc(visit_generic(var), reverse(std::move(stack), last_is_dot));
+            return make_nc(visit_generic(*var), reverse(std::move(stack), last_is_dot));
         }
     }
     counted_t<const document_t>
@@ -379,36 +379,36 @@ private:
         }
         return make_concat(stack.rbegin(), stack.rend());
     }
-    counted_t<const document_t> toplevel_funcall(Term *t) {
-        guarantee(t->args_size() >= 1);
-        guarantee(t->optargs_size() == 0);
+    counted_t<const document_t> toplevel_funcall(const Term &t) {
+        guarantee(t.args_size() >= 1);
+        guarantee(t.optargs_size() == 0);
         std::vector<counted_t<const document_t> > term;
         term.push_back(do_st);
         term.push_back(lparen);
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
-        for (int i = 1; i < t->args_size(); ++i) {
+        for (int i = 1; i < t.args_size(); ++i) {
             // don't insert redundant space
             if (i != 1) {
                 args.push_back(comma);
                 args.push_back(cond_linebreak);
             }
-            args.push_back(visit_generic(t->mutable_args(i)));
+            args.push_back(visit_generic(t.args(i)));
         }
         if (!args.empty()) {
             args.push_back(comma);
             args.push_back(cond_linebreak);
         }
         in_r_expr = old_r_expr;
-        args.push_back(visit_generic(t->mutable_args(0)));
+        args.push_back(visit_generic(t.args(0)));
         term.push_back(make_nest(make_concat(std::move(args))));
         term.push_back(rparen);
         return prepend_r_dot(make_concat(std::move(term)));
     }
-    counted_t<const document_t> standard_funcall(Term *t) {
+    counted_t<const document_t> standard_funcall(const Term &t) {
         std::vector<counted_t<const document_t> > term;
-        if (t->type() == Term::JAVASCRIPT) {
+        if (t.type() == Term::JAVASCRIPT) {
             term.push_back(js);
         } else {
             term.push_back(make_text(to_js_name(t)));
@@ -416,15 +416,15 @@ private:
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
-        for (int i = 0; i < t->args_size(); ++i) {
+        for (int i = 0; i < t.args_size(); ++i) {
             // don't insert redundant space
             if (!args.empty()) {
                 args.push_back(comma);
                 args.push_back(cond_linebreak);
             }
-            args.push_back(visit_generic(t->mutable_args(i)));
+            args.push_back(visit_generic(t.args(i)));
         }
-        if (t->optargs_size() > 0) {
+        if (t.optargs_size() > 0) {
             if (!args.empty()) {
                 args.push_back(comma);
                 args.push_back(cond_linebreak);
@@ -465,8 +465,8 @@ private:
     counted_t<const document_t> make_c(Ts &&... docs) {
         return make_concat({std::forward<Ts>(docs)...});
     }
-    bool should_use_rdot(Term *t) {
-        switch (t->type()) {
+    bool should_use_rdot(const Term &t) {
+        switch (t.type()) {
         case Term::VAR:
         case Term::DATUM:
             return false;
@@ -474,8 +474,8 @@ private:
             return true;
         }
     }
-    bool should_continue_string(Term *t) {
-        switch (t->type()) {
+    bool should_continue_string(const Term &t) {
+        switch (t.type()) {
         case Term::ERROR:
         case Term::UUID:
         case Term::HTTP:
@@ -540,60 +540,60 @@ private:
             return false;
         case Term::TABLE:
         case Term::FUNCALL:
-            return t->args_size() == 2;
+            return t.args_size() == 2;
         default:
             return true;
         }
     }
-    counted_t<const document_t> var_name(Datum *d) {
-        guarantee(d->type() == Datum::R_NUM);
-        return make_text("var" + std::to_string(lrint(d->r_num())));
+    counted_t<const document_t> var_name(const Datum &d) {
+        guarantee(d.type() == Datum::R_NUM);
+        return make_text("var" + std::to_string(lrint(d.r_num())));
     }
-    counted_t<const document_t> to_js_func(Term *t) {
-        guarantee(t->type() == Term::FUNC);
-        guarantee(t->args_size() >= 2);
+    counted_t<const document_t> to_js_func(const Term &t) {
+        guarantee(t.type() == Term::FUNC);
+        guarantee(t.args_size() >= 2);
         counted_t<const document_t> arglist;
-        if (t->mutable_args(0)->type() == Term::MAKE_ARRAY) {
-            Term *args_term = t->mutable_args(0);
+        if (t.args(0).type() == Term::MAKE_ARRAY) {
+            const Term &args_term = t.args(0);
             std::vector<counted_t<const document_t> > args;
-            for (int i = 0; i < args_term->args_size(); ++i) {
+            for (int i = 0; i < args_term.args_size(); ++i) {
                 if (i != 0) {
                     args.push_back(comma);
                     args.push_back(cond_linebreak);
                 }
-                Term *arg_term = args_term->mutable_args(i);
-                guarantee(arg_term->type() == Term::DATUM);
-                guarantee(arg_term->mutable_datum()->type() == Datum::R_NUM);
-                args.push_back(var_name(arg_term->mutable_datum()));
+                const Term &arg_term = args_term.args(i);
+                guarantee(arg_term.type() == Term::DATUM);
+                guarantee(arg_term.datum().type() == Datum::R_NUM);
+                args.push_back(var_name(arg_term.datum()));
             }
             arglist = make_c(lparen, make_nest(make_concat(std::move(args))), rparen);
-        } else if (t->mutable_args(0)->type() == Term::DATUM &&
-                   t->mutable_args(0)->mutable_datum()->type() == Datum::R_ARRAY) {
-            Datum *arg_term = t->mutable_args(0)->mutable_datum();
+        } else if (t.args(0).type() == Term::DATUM &&
+                   t.args(0).datum().type() == Datum::R_ARRAY) {
+            const Datum &arg_term = t.args(0).datum();
             std::vector<counted_t<const document_t> > args;
-            for (int i = 0; i < arg_term->r_array_size(); ++i) {
+            for (int i = 0; i < arg_term.r_array_size(); ++i) {
                 if (i != 0) {
                     args.push_back(comma);
                     args.push_back(cond_linebreak);
                 }
-                args.push_back(var_name(arg_term->mutable_r_array(i)));
+                args.push_back(var_name(arg_term.r_array(i)));
             }
             arglist = make_c(lparen, make_nest(make_concat(std::move(args))), rparen);
         } else {
-            arglist = visit_generic(t->mutable_args(0));
+            arglist = visit_generic(t.args(0));
         }
         std::vector<counted_t<const document_t> > body;
         bool old_r_expr = in_r_expr;
         in_r_expr = false;
-        for (int i = 1; i < t->args_size(); ++i) {
+        for (int i = 1; i < t.args_size(); ++i) {
             if (i != 1) body.push_back(cond_linebreak);
-            if (i == t->args_size() - 1) {
+            if (i == t.args_size() - 1) {
                 body.push_back(make_c(return_st,
                                       sp,
-                                      make_nest(visit_generic(t->mutable_args(i))),
+                                      make_nest(visit_generic(t.args(i))),
                                       semicolon));
             } else {
-                body.push_back(make_nest(visit_generic(t->mutable_args(i))));
+                body.push_back(make_nest(visit_generic(t.args(i))));
                 body.push_back(semicolon);
             }
         }
@@ -645,7 +645,7 @@ counted_t<const document_t> js_pretty_printer_t::expr = make_text("expr");
 counted_t<const document_t> js_pretty_printer_t::object = make_text("object");
 counted_t<const document_t> js_pretty_printer_t::js = make_text("js");
 
-counted_t<const document_t> render_as_javascript(Term *t) {
+counted_t<const document_t> render_as_javascript(const Term &t) {
     return js_pretty_printer_t().walk(t);
 }
 

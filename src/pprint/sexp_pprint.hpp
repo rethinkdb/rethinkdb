@@ -7,7 +7,7 @@
 class Term;
 
 namespace pprint {
-    counted_t<const document_t> render_as_sexp(Term *t);
+    counted_t<const document_t> render_as_sexp(const Term &t);
 }
 
 #endif // PPRINT_SEXP_PPRINT_HPP_

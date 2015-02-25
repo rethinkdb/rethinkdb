@@ -7,7 +7,7 @@
 class Term;
 
 namespace pprint {
-    counted_t<const document_t> render_as_javascript(Term *t);
+    counted_t<const document_t> render_as_javascript(const Term &t);
 }
 
 #endif // PPRINT_JS_PPRINT_HPP_
