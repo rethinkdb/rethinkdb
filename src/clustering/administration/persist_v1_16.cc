@@ -1,5 +1,5 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/persist.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "clustering/administration/persist_v1_16.hpp"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -18,7 +18,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
 
-namespace metadata_persistence {
+namespace persist_v1_16 {
 
 struct auth_metadata_superblock_t {
     block_magic_t magic;
@@ -653,4 +653,5 @@ void semilattice_watching_persister_t<metadata_t>::on_change() {
 template class semilattice_watching_persister_t<cluster_semilattice_metadata_t>;
 template class semilattice_watching_persister_t<auth_semilattice_metadata_t>;
 
-}  // namespace metadata_persistence
+}  // namespace persist_v1_16
+

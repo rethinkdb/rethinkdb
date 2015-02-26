@@ -1,6 +1,6 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
-#define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_ADMINISTRATION_PERSIST_V1_16_HPP_
+#define CLUSTERING_ADMINISTRATION_PERSIST_V1_16_HPP_
 
 #include <string>
 
@@ -19,7 +19,7 @@ class txn_t;
 class branch_history_manager_t;
 class io_backender_t;
 
-namespace metadata_persistence {
+namespace persist_v1_16 {
 
 class file_in_use_exc_t : public std::exception {
 public:
@@ -127,37 +127,6 @@ private:
     DISABLE_COPYING(semilattice_watching_persister_t);
 };
 
-class dummy_table_meta_persistence_interface_t :
-    public table_meta_persistence_interface_t {
-public:
-    void read_all_tables(
-            UNUSED const std::function<void(
-                const namespace_id_t &table_id,
-                const table_meta_persistent_state_t &state,
-                scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
-            UNUSED signal_t *interruptor) {
-        /* do nothing */
-    }
-    void add_table(
-            UNUSED const namespace_id_t &table,
-            UNUSED const table_meta_persistent_state_t &state,
-            UNUSED scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-            UNUSED signal_t *interruptor) {
-        /* do nothing */
-    }
-    void update_table(
-            UNUSED const namespace_id_t &table,
-            UNUSED const table_meta_persistent_state_t &state,
-            UNUSED signal_t *interruptor) {
-        /* do nothing */
-    }
-    void remove_table(
-            UNUSED const namespace_id_t &table,
-            UNUSED signal_t *interruptor) {
-        /* do nothing */
-    }
-};
+}   /* namespace persist_v1_16 */
 
-}   /* namespace metadata_persistence */
-
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_PERSIST_V1_16_HPP_ */
