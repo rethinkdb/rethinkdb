@@ -16,11 +16,8 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
     def test_simple(self):
         '''Make simple changes and ensure a single changefeed sees them'''
         
-        server = self.cluster[0]
-        conn = self.r.connect(host=server.host, port=server.driver_port)
-        
-        expectedCount = self.samplesPerShard * len(utils.getShardRanges(conn, self.tableName))
-        with utils.NextWithTimeout(self.table.changes().limit(expectedCount).run(conn)) as changefeed:
+        expectedCount = self.samplesPerShard * len(utils.getShardRanges(self.conn, self.tableName))
+        with utils.NextWithTimeout(self.table.changes().limit(expectedCount).run(self.conn)) as changefeed:
             expectedChangedIds = self.makeChanges()
             self.assertEqual(expectedChangedIds, sorted([x['new_val']['id'] for x in changefeed]))
     

@@ -9,7 +9,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
 #include "rdb_protocol/terms/terms.hpp"
@@ -58,7 +58,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::SET_DIFFERENCE:     return make_set_difference_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
     case Term::GET_FIELD:          return make_get_field_term(env, t);
-    case Term::INDEXES_OF:         return make_indexes_of_term(env, t);
+    case Term::OFFSETS_OF:         return make_offsets_of_term(env, t);
     case Term::KEYS:               return make_keys_term(env, t);
     case Term::OBJECT:             return make_object_term(env, t);
     case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
@@ -123,8 +123,8 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::INDEX_RENAME:       return make_sindex_rename_term(env, t);
     case Term::FUNCALL:            return make_funcall_term(env, t);
     case Term::BRANCH:             return make_branch_term(env, t);
-    case Term::ANY:                return make_any_term(env, t);
-    case Term::ALL:                return make_all_term(env, t);
+    case Term::OR:                 return make_or_term(env, t);
+    case Term::AND:                return make_and_term(env, t);
     case Term::FOR_EACH:            return make_foreach_term(env, t);
     case Term::FUNC:               return make_counted<func_term_t>(env, t);
     case Term::ASC:                return make_asc_term(env, t);
@@ -200,12 +200,11 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     unreachable();
 }
 
-void run(protob_t<Query> q,
-         rdb_context_t *ctx,
-         signal_t *interruptor,
-         stream_cache_t *stream_cache,
-         ip_and_port_t const &peer,
-         Response *res) {
+void run(const query_id_t &query_id,
+         protob_t<Query> q,
+         Response *res,
+         query_cache_t *query_cache,
+         signal_t *interruptor) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -223,167 +222,42 @@ void run(protob_t<Query> q,
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
 
-    cond_t job_interruptor;
-    map_insertion_sentry_t<uuid_u, query_job_t> job_sentry(
-        ctx->get_query_jobs_for_this_thread(),
-        generate_uuid(),
-        query_job_t(current_microtime(), peer, &job_interruptor));
-
     int64_t token = q->token();
     use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
 
-    wait_any_t combined_interruptor(interruptor, &job_interruptor);
-
-    switch (q->type()) {
-    case Query_QueryType_START: {
-        const profile_bool_t profile = profile_bool_optarg(q);
-        const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx,
-                  stream_cache->get_return_empty_normal_batches(),
-                  &combined_interruptor,
-                  global_optargs(q),
-                  trace.get_or_null());
-
-        counted_t<const term_t> root_term;
-        try {
-            Term *t = q->mutable_query();
-            compile_env_t compile_env((var_visibility_t()));
-            root_term = compile_term(&compile_env, q.make_child(t));
-        } catch (const exc_t &e) {
-            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
-            return;
-        }
-
-        try {
-            scope_env_t scope_env(&env, var_scope_t());
-            scoped_ptr_t<val_t> val = root_term->eval(&scope_env);
-            if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
-                res->set_type(Response::SUCCESS_ATOM);
-                datum_t d = val->as_datum();
-                d.write_to_protobuf(res->add_response(), use_json);
-                if (trace.has()) {
-                    trace->as_datum().write_to_protobuf(
-                        res->mutable_profile(), use_json);
-                }
-            } else if (counted_t<grouped_data_t> gd
-                       = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
-                res->set_type(Response::SUCCESS_ATOM);
-                datum_t d = to_datum_for_client_serialization(std::move(*gd),
-                                                              env.reql_version(),
-                                                              env.limits());
-                d.write_to_protobuf(res->add_response(), use_json);
-                if (env.trace != nullptr) {
-                    env.trace->as_datum().write_to_protobuf(
-                        res->mutable_profile(), use_json);
-                }
-            } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                counted_t<datum_stream_t> seq = val->as_seq(&env);
-                const datum_t arr = seq->as_array(&env);
-                if (arr.has()) {
-                    res->set_type(Response::SUCCESS_ATOM);
-                    arr.write_to_protobuf(res->add_response(), use_json);
-                    if (trace.has()) {
-                        trace->as_datum().write_to_protobuf(
-                            res->mutable_profile(), use_json);
-                    }
-                } else {
-                    bool inserted = stream_cache->insert(
-                        token, use_json, env.get_all_optargs(), profile, seq);
-                    try {
-                        rcheck_toplevel(
-                            inserted, base_exc_t::GENERIC,
-                            strprintf("ERROR: duplicate token %" PRIi64, token));
-                    } catch (const exc_t &e) {
-                        fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
-                        return;
-                    } catch (const datum_exc_t &e) {
-                        fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
-                        return;
-                    }
-
-                    // TODO: it kinda sucks that we throw away our `env` and
-                    // build a new one from scratch in `serve`.
-                    bool b = stream_cache->serve(token, res, &combined_interruptor);
-                    r_sanity_check(b);
-                }
-            } else {
-                rfail_toplevel(base_exc_t::GENERIC,
-                               "Query result must be of type "
-                               "DATUM, GROUPED_DATA, or STREAM (got %s).",
-                               val->get_type().name());
-            }
-        } catch (const exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
-            return;
-        } catch (const interrupted_exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR,
-                job_interruptor.is_pulsed()
-                    ? "Query interrupted through the `rethinkdb.jobs` table."
-                    : "Query interrupted.  Did you shut down the server?");
-        }
-    } break;
-    case Query_QueryType_CONTINUE: {
-        try {
-            bool b = stream_cache->serve(token, res, &combined_interruptor);
-            if (!b) {
-                auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
-                fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
-            }
-        } catch (const exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
-            return;
-        } catch (const interrupted_exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR,
-                job_interruptor.is_pulsed()
-                    ? "Query interrupted through the `rethinkdb.jobs` table."
-                    : "Query interrupted.  Did you shut down the server?");
-        }
-    } break;
-    case Query_QueryType_STOP: {
-        try {
-            bool erased = stream_cache->erase(token);
-            rcheck_toplevel(erased, base_exc_t::GENERIC,
-                            strprintf("Token %" PRIi64 " not in stream cache.", token));
+    try {
+        switch (q->type()) {
+        case Query_QueryType_START: {
+            scoped_ptr_t<query_cache_t::ref_t> query_ref =
+                query_cache->create(token, q, use_json, interruptor);
+            query_ref->fill_response(res);
+        } break;
+        case Query_QueryType_CONTINUE: {
+            scoped_ptr_t<query_cache_t::ref_t> query_ref =
+                query_cache->get(token, use_json, interruptor);
+            query_ref->fill_response(res);
+        } break;
+        case Query_QueryType_STOP: {
+            scoped_ptr_t<query_cache_t::ref_t> query_ref =
+                query_cache->get(token, use_json, interruptor);
+            query_ref->terminate();
             res->set_type(Response::SUCCESS_SEQUENCE);
-        } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
-            return;
+        } break;
+        case Query_QueryType_NOREPLY_WAIT: {
+            query_cache->noreply_wait(query_id, token, interruptor);
+            res->set_type(Response::WAIT_COMPLETE);
+        } break;
+        default: unreachable();
         }
-    } break;
-    case Query_QueryType_NOREPLY_WAIT: {
-        try {
-            rcheck_toplevel(!stream_cache->contains(token),
-                            base_exc_t::GENERIC,
-                            strprintf("ERROR: duplicate token %" PRIi64, token));
-        } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
-            return;
-        } catch (const datum_exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
-            return;
-        }
-
-        // NOREPLY_WAIT is just a no-op.
-        // This works because we only evaluate one Query at a time
-        // on the connection level. Once we get to the NOREPLY_WAIT Query
-        // we know that all previous Queries have completed processing.
-
-        // Send back a WAIT_COMPLETE response.
-        res->set_type(Response::WAIT_COMPLETE);
-    } break;
-    default: unreachable();
+    } catch (const exc_t &e) {
+        fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
+    } catch (const datum_exc_t &e) {
+        fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
+    } catch (const query_cache_exc_t &e) {
+        fill_error(res, e.type, e.message, e.bt);
+    } catch (const interrupted_exc_t &e) {
+        fill_error(res, Response::RUNTIME_ERROR,
+                   "Query interrupted.  Did you shut down the server?");
     }
 }
 

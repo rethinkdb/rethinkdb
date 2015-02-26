@@ -10,6 +10,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/alt.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
@@ -58,6 +59,7 @@ private:
 class real_superblock_t : public superblock_t {
 public:
     explicit real_superblock_t(buf_lock_t &&sb_buf);
+    real_superblock_t(buf_lock_t &&sb_buf, new_semaphore_acq_t &&write_semaphore_acq);
 
     void release();
     buf_lock_t *get() { return &sb_buf_; }
@@ -74,6 +76,13 @@ public:
     buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
 private:
+    /* The write_semaphore_acq_ is empty for reads.
+    For writes it locks the write superblock acquisition semaphore until the
+    sb_buf_ is released.
+    Note that this is used to throttle writes compared to reads, but not required
+    for correctness. */    
+    new_semaphore_acq_t write_semaphore_acq_;
+
     buf_lock_t sb_buf_;
 };
 
@@ -240,26 +249,38 @@ void insert_root(block_id_t root_id, superblock_t *sb);
 /* Create a stat block for the superblock. */
 void create_stat_block(superblock_t *sb);
 
-void get_btree_superblock(txn_t *txn, access_t access,
-                          scoped_ptr_t<real_superblock_t> *got_superblock_out);
+void get_btree_superblock(
+        txn_t *txn,
+        access_t access,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out);
+/* Variant for writes that go through a superblock write semaphore */
+void get_btree_superblock(
+        txn_t *txn,
+        write_access_t access,
+        new_semaphore_acq_t &&write_sem_acq,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
-                                  write_access_t superblock_access,
-                                  int expected_change_count,
-                                  repli_timestamp_t tstamp,
-                                  write_durability_t durability,
-                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<txn_t> *txn_out);
+void get_btree_superblock_and_txn_for_writing(
+        cache_conn_t *cache_conn,
+        new_semaphore_t *superblock_write_semaphore,
+        write_access_t superblock_access,
+        int expected_change_count,
+        repli_timestamp_t tstamp,
+        write_durability_t durability,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
-                                                  cache_account_t *backfill_account,
-                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<txn_t> *txn_out);
+void get_btree_superblock_and_txn_for_backfilling(
+        cache_conn_t *cache_conn,
+        cache_account_t *backfill_account,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
-                                              cache_snapshotted_t snapshotted,
-                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<txn_t> *txn_out);
+void get_btree_superblock_and_txn_for_reading(
+        cache_conn_t *cache_conn,
+        cache_snapshotted_t snapshotted,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out);
 
 /* Note that there's no guarantee that `pass_back_superblock` will have been
  * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,

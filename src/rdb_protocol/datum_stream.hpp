@@ -6,6 +6,7 @@
 #include <deque>
 #include <list>
 #include <map>
+#include <queue>
 #include <set>
 #include <string>
 #include <utility>
@@ -14,6 +15,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/math_utils.hpp"
@@ -60,7 +62,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
-    virtual changefeed::keyspec_t get_change_spec() = 0;
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -71,7 +73,7 @@ public:
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
-    counted_t<datum_stream_t> indexes_of(counted_t<const func_t> f);
+    counted_t<datum_stream_t> offsets_of(counted_t<const func_t> f);
     counted_t<datum_stream_t> ordered_distinct();
 
     // Returns false or NULL respectively if stream is lazy.
@@ -117,7 +119,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 protected:
-    virtual changefeed::keyspec_t get_change_spec() {
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
@@ -167,9 +169,9 @@ protected:
     const counted_t<datum_stream_t> source;
 };
 
-class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
+class offsets_of_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    indexes_of_datum_stream_t(counted_t<const func_t> _f, counted_t<datum_stream_t> _source);
+    offsets_of_datum_stream_t(counted_t<const func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
     std::vector<datum_t>
@@ -216,7 +218,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual changefeed::keyspec_t get_change_spec();
+    virtual std::vector<changefeed::keyspec_t> get_change_specs();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -245,18 +247,14 @@ size_t index;
 std::vector<datum_t> data;
 };
 
-class union_datum_stream_t : public datum_stream_t {
+struct coro_info_t;
+class coro_stream_t;
+
+class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
-    union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
-                         const protob_t<const Backtrace> &bt_src)
-        : datum_stream_t(bt_src), streams(_streams), streams_index(0),
-          union_type(feed_type_t::not_feed),
-          is_infinite_union(false) {
-        for (auto const &stream : streams) {
-            union_type = union_of(union_type, stream->cfeed_type());
-            is_infinite_union |= stream->is_infinite();
-        }
-    }
+    union_datum_stream_t(env_t *env,
+                         std::vector<counted_t<datum_stream_t> > &&_streams,
+                         const protob_t<const Backtrace> &bt_src);
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt);
@@ -270,16 +268,36 @@ public:
     virtual bool is_infinite() const;
 
 private:
-    virtual changefeed::keyspec_t get_change_spec() {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
-    }
+    friend class coro_stream_t;
+
+    virtual std::vector<changefeed::keyspec_t> get_change_specs();
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-    std::vector<counted_t<datum_stream_t> > streams;
-    size_t streams_index;
+    // We need to keep these around to apply transformations to even though we
+    // spawn coroutines to read from them.
+    std::vector<scoped_ptr_t<coro_stream_t> > coro_streams;
     feed_type_t union_type;
     bool is_infinite_union;
+
+    // Set during construction.
+    scoped_ptr_t<profile::trace_t> trace;
+    scoped_ptr_t<profile::disabler_t> disabler;
+    scoped_ptr_t<env_t> coro_env;
+    // Set the first time `next_batch_impl` is called.
+    scoped_ptr_t<batchspec_t> coro_batchspec;
+
+    size_t active;
+    // We recompute this only when `next_batch_impl` returns to retain the
+    // invariant that a stream won't change from unexhausted to exhausted
+    // without attempting to read more from it.
+    bool coros_exhausted;
+    promise_t<std::exception_ptr> abort_exc;
+    scoped_ptr_t<cond_t> data_available;
+
+    std::queue<std::vector<datum_t> > queue; // FIFO
+
+    auto_drainer_t drainer;
 };
 
 class range_datum_stream_t : public eager_datum_stream_t {
@@ -377,7 +395,7 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const = 0;
 
     const std::string &get_table_name() const { return table_name; }
@@ -407,7 +425,7 @@ public:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t> transforms) const {
         return changefeed::keyspec_t::range_t{
             std::move(transforms), sindex_name(), sorting, original_datum_range};
@@ -515,7 +533,7 @@ public:
     virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
-    virtual changefeed::keyspec_t::range_t get_change_spec(
+    virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const {
         rfail_datum(base_exc_t::GENERIC,
                     "%s", "Cannot call `changes` on an intersection read.");
@@ -569,7 +587,7 @@ public:
 
     virtual changefeed::keyspec_t get_change_spec() const {
         return changefeed::keyspec_t(
-            readgen->get_change_spec(transforms),
+            readgen->get_range_spec(transforms),
             table,
             readgen->get_table_name());
     }
@@ -648,8 +666,8 @@ public:
     virtual bool is_infinite() const;
 
 private:
-    virtual changefeed::keyspec_t get_change_spec() {
-        return reader->get_change_spec();
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
+        return std::vector<changefeed::keyspec_t>{reader->get_change_spec()};
     }
 
     std::vector<datum_t >
@@ -689,7 +707,7 @@ private:
     bool is_array() const;
     bool is_infinite() const;
 
-    changefeed::keyspec_t get_change_spec();
+    std::vector<changefeed::keyspec_t> get_change_specs();
 
     std::vector<datum_t> rows;
     size_t index;

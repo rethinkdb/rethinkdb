@@ -177,7 +177,7 @@ struct rget_read_response_t {
 
     rget_read_response_t()
         : skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
-    rget_read_response_t(const ql::exc_t &ex)
+    explicit rget_read_response_t(const ql::exc_t &ex)
         : result(ex), skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);

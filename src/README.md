@@ -39,9 +39,6 @@ B-tree operations on top of buffer caches, btree slice, secondary indexes, etc..
 
 
 ### buffer_cache/
-Typedefs for main buffer classes, buf_lock_t, cache_t, transaction_t, etc..
-
-#### buffer_cache/alt
 Memory page/block eviction, replacement and flush policies, txn and snapshots, etc..
 
 
@@ -120,19 +117,6 @@ HTTP server/parser and request router.
 
 #### http/json
 Custom cJSON wrapper with iterators, etc.
-
-
-
-### memcached/
-Memcached protocol server, parser, etc.. (abandoned and replaced with reql)
-
-#### memcached/memcached_btree
-Memcached wrapper for btree operations.
-
-
-
-### mock/
-Dummy protocol and serializer implementation for testing.
 
 
 

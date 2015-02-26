@@ -43,7 +43,7 @@ class JobsTestCase(rdb_unittest.RdbTestCase):
         test_duration = 2
         time.sleep(test_duration)
 
-        host, port, _, _ = conn.socket.getsockname()
+        host, port, _, _ = conn._socket._socket.getsockname()
         response = self.r.db("rethinkdb") \
                          .table("jobs") \
                          .filter({"type": "query",

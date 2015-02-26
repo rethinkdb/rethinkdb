@@ -5,8 +5,16 @@ $test_count = 0
 $failure_count = 0
 $success_count = 0
 
+DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
+
+def print_debug(message)
+    if DEBUG_ENABLED
+        puts('DEBUG: ' + message)
+    end
+end
+
 DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
-puts('Using driver port #{DRIVER_PORT}')
+print_debug("Using driver port #{DRIVER_PORT}")
 
 $required_external_tables = []
 if ARGV[1] || ENV['TEST_DB_AND_TABLE_NAME']
@@ -35,7 +43,17 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-def show x
+$reql_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
+begin
+  r.db_create('test').run($reql_conn)
+rescue
+end
+
+$defines = binding
+
+# --
+
+def show(x)
   if x.class == Err
     name = x.type.sub(/^RethinkDB::/, "")
     return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
@@ -43,7 +61,7 @@ def show x
   return (PP.pp x, "").chomp
 end
 
-NoError = "nope"
+NoError = "<no error>"
 AnyUUID = "<any uuid>"
 Err = Struct.new(:type, :message, :backtrace, :regex)
 Bag = Struct.new(:items, :partial)
@@ -54,15 +72,15 @@ def bag(list, partial=false)
 end
 
 def partial(expected)
-    if expected.kind_of?(Array)
-        bag(expected, true)
-    elsif expected.kind_of?(Bag)
-        bag(expected.items, true)
-    elsif expected.kind_of?(Hash)
-        PartitalHash.new(expected)
-    else
-        raise("partial can only handle Hashs, Arrays, or Bags. Got: #{expected.class}")
-    end
+  if expected.kind_of?(Array)
+    bag(expected, true)
+  elsif expected.kind_of?(Bag)
+    bag(expected.items, true)
+  elsif expected.kind_of?(Hash)
+    PartitalHash.new(expected)
+  else
+    raise("partial can only handle Hashs, Arrays, or Bags. Got: #{expected.class}")
+  end
 end
 
 def arrlen(len, x)
@@ -122,7 +140,11 @@ end
 
 def cmp_test(expected, result, testopts={}, partial=false)
   if expected.object_id == NoError.object_id
-    return -1 if result.class == Err
+    if result.class == Err
+      puts result
+      puts result.backtrace
+      return -1
+    end
     return 0
   end
   
@@ -258,15 +280,6 @@ def cmp_test(expected, result, testopts={}, partial=false)
   end
 end
 
-def eval_env; binding; end
-$defines = eval_env
-
-$cpp_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
-begin
-  r.db_create('test').run($cpp_conn)
-rescue
-end
-
 def test(src, expected, name, opthash=nil, testopts=nil)
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, v.is_a?(String) ? eval(v, $defines) : v]}]
@@ -298,9 +311,9 @@ def test(src, expected, name, opthash=nil, testopts=nil)
     queryString += '(' + src + ')' # handle cases like: r(1) + 3
     if opthash
       opthash.each{ |key, value| opthash[key] = eval(value.to_s)}
-      queryString += '.run($cpp_conn, ' + opthash.to_s + ')'
+      queryString += '.run($reql_conn, ' + opthash.to_s + ')'
     else
-      queryString += '.run($cpp_conn)'
+      queryString += '.run($reql_conn)'
     end
   else
     queryString += src
@@ -321,30 +334,29 @@ def setup_table(table_variable_name, table_name, db_name="test")
   if $required_external_tables.count > 0
     # use one of the required tables
     table_name, db_name = $required_external_tables.pop
-    raise "External table #{db_name}.#{table_name} did not exist" unless r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($cpp_conn)
+    raise "External table #{db_name}.#{table_name} did not exist" unless r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
     
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     
     at_exit do
-      res = r.db(db_name).table(table_name).delete().run($cpp_conn)
+      res = r.db(db_name).table(table_name).delete().run($reql_conn)
       raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
-      res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run($cpp_conn)
-      raise "Failed to remove table indexes from #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0 
+      r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run($reql_conn)
     end
   else
     # create a new table
-    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($cpp_conn)
-      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
+    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
+      res = r.db(db_name).table_drop(table_name).run($reql_conn)
       raise "Unable to delete table before use #{db_name}.#{table_name}: #{res}" unless res['errors'] == 0
     end
-    res = r.db(db_name).table_create(table_name).run($cpp_conn)
+    res = r.db(db_name).table_create(table_name).run($reql_conn)
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
     
-    puts("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
+    print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush
     
     at_exit do
-      res = r.db(db_name).table_drop(table_name).run($cpp_conn)
+      res = r.db(db_name).table_drop(table_name).run($reql_conn)
       raise "Failed to delete table #{db_name}.#{table_name}: #{res}" unless res["tables_dropped"] == 1
     end
   end
@@ -398,11 +410,15 @@ def check_result(name, src, result, expected, testopts={})
   end
 end
 
-def fail_test(name, src, res, expected)
+def fail_test(name, src, result, expected, type="TEST")
   $stderr.puts "TEST FAILURE: #{name}"
   $stderr.puts "\tBODY: #{src}"
-  $stderr.puts "\tVALUE: #{show res}"
+  $stderr.puts "\tVALUE: #{show result}"
   $stderr.puts "\tEXPECTED: #{show expected}"
+  if result && result.kind_of?(Exception)
+    $stderr.puts "\tEXCEPTION: #{result.message}"
+    $stderr.puts result.backtrace.join("\n")
+  end
   $stderr.puts ""
 end
 
@@ -412,8 +428,12 @@ def the_end
   end
 end
 
-def define expr
-  eval expr, $defines
+def define(expr, variable=nil)
+  if variable
+    $defines.eval("#{variable} = #{expr}")
+  else
+    $defines.eval(expr)
+  end
 end
 
 True=true

@@ -72,7 +72,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
             {'primary_replica': serverB1.name, 'replicas':[serverB1.name, serverB2.name]}  # unchanged
         ]}).run(self.conn)
         self.assertTrue(result['errors'] == 0, msg='Failed updating table config: %s' % repr(result))
-        self.table.wait(timeout=5).run(self.conn)
+        self.table.wait(timeout=20).run(self.conn)
         
         print("Check that feeds are indeed disconnected on a changed shard (%.2fs)" % (time.time() - startTime))
         

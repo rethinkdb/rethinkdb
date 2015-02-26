@@ -333,7 +333,7 @@ message Term {
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
-        INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
+        OFFSETS_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
         CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
 
         // Stream/Object Ops
@@ -521,11 +521,9 @@ message Term {
         // statement).
         BRANCH  = 65; // BOOL, Top, Top -> Top
         // Returns true if any of its arguments returns true (short-circuits).
-        // (Like `or` in most languages.)
-        ANY     = 66; // BOOL... -> BOOL
+        OR      = 66; // BOOL... -> BOOL
         // Returns true if all of its arguments return true (short-circuits).
-        // (Like `and` in most languages.)
-        ALL     = 67; // BOOL... -> BOOL
+        AND     = 67; // BOOL... -> BOOL
         // Calls its Function with each entry in the sequence
         // and executes the array of terms that Function returns.
         FOR_EACH = 68; // Sequence, Function(1) -> OBJECT

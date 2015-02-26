@@ -3,9 +3,13 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP_
 
 #include <map>
+#include <utility>
 
 #include "clustering/immediate_consistency/metadata.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/fifo_enforcer_queue.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
@@ -93,14 +97,14 @@ public:
     }
 
     /* Interface for performing local reads without going through a mailbox */
-    read_response_t local_read(const read_t &read,
-            state_timestamp_t expected_timestamp,
-            order_token_t order_token,
-            fifo_enforcer_read_token_t fifo_token,
+    read_response_t local_read(
+            const read_t &read,
+            min_timestamp_token_t min_timestamp_token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    write_response_t local_writeread(const write_t &write,
+    write_response_t local_writeread(
+            const write_t &write,
             state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -108,7 +112,8 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void local_write(const write_t &write,
+    void local_write(
+            const write_t &write,
             state_timestamp_t timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -166,13 +171,20 @@ private:
     void on_read(
             signal_t *interruptor,
             const read_t &read,
-            state_timestamp_t expected_timestamp,
-            order_token_t order_token,
-            fifo_enforcer_read_token_t fifo_token,
+            min_timestamp_token_t min_timestamp_token,
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
+    /* Must be called while holding an exit_write_t on the store_entrance_sink_ */
     void advance_current_timestamp_and_pulse_waiters(state_timestamp_t timestamp);
+
+    /* Must be called after a write has completed to unblock reads.
+    Updates `read_min_timestamp_enforcer_`.
+    Needs an order token from `mark_done_fifo_source_` that must have been
+    acquired in the same order in which writes are getting processed. */
+    void mark_write_done(
+            state_timestamp_t timestamp,
+            const fifo_enforcer_write_token_t &mark_done_fifo_token);
 
     mailbox_manager_t *const mailbox_manager_;
 
@@ -200,6 +212,18 @@ private:
 
     state_timestamp_t current_timestamp_;
     fifo_enforcer_sink_t store_entrance_sink_;
+
+    /* Enforces that reads see every write they need to see (as decided by
+    the broadcaster, currently writes that have been acked back to the user). */
+    min_timestamp_enforcer_t read_min_timestamp_enforcer_;
+
+    /* Keeps track of completed writes for which we still need to bump up
+    the timestamp in read_min_timestamp_enforcer_, but which are still waiting
+    for an earlier write to complete. Used by `mark_write_done()`. */
+    fifo_enforcer_source_t mark_done_fifo_source_;
+    fifo_enforcer_queue_t<std::pair<state_timestamp_t, fifo_enforcer_write_token_t> >
+        mark_done_timestamps_queue_;
+
 
     // Used by the replier_t which needs to be able to tell
     // backfillees how up to date it is.

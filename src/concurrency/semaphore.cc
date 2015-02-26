@@ -28,9 +28,8 @@ void static_semaphore_t::co_lock(int64_t count) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, count);
-    cb.wait_eagerly_deprecated();
+    cb.wait_ordered();
     // TODO: Remove the need for in_callback checks.
-    coro_t::yield_ordered();
 }
 
 void static_semaphore_t::co_lock_interruptible(signal_t *interruptor, int64_t count) {
@@ -107,9 +106,8 @@ void adjustable_semaphore_t::co_lock(int64_t count) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, count);
-    cb.wait_eagerly_deprecated();
+    cb.wait_ordered();
     // TODO: remove need for in_callback checks
-    coro_t::yield_ordered();
 }
 
 void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor, int64_t count) {

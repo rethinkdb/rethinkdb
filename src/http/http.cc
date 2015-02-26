@@ -90,10 +90,13 @@ const char* http_req_t::resource_t::token_start_position(const http_req_t::resou
     }
 }
 
-http_req_t::http_req_t() {
+http_req_t::http_req_t() :
+    peer(ip_address_t::any(AF_INET), port_t(0)) {
 }
 
-http_req_t::http_req_t(const std::string &resource_path) : resource(resource_path) {
+http_req_t::http_req_t(const std::string &resource_path) :
+    resource(resource_path),
+    peer(ip_address_t::any(AF_INET), port_t(0)) {
 }
 
 http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
@@ -469,8 +472,9 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     // Parse the request
     try {
         http_res_t res;
-        if (conn->getpeername(&(req.peer)) &&
-            http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
+        UNUSED bool peer_res = conn->getpeername(&req.peer);
+
+        if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
             application->handle(req, &res, keepalive.get_drain_signal());
             res.version = req.version;
             maybe_gzip_response(req, &res);

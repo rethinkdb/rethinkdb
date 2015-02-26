@@ -119,7 +119,7 @@ public:
     REQL_METHOD(operator <, LT)
     REQL_METHOD(operator >=, GE)
     REQL_METHOD(operator <=, LE)
-    REQL_METHOD(operator &&, ALL)
+    REQL_METHOD(operator &&, AND)
     REQL_METHOD(count, COUNT)
     REQL_METHOD(map, MAP)
     REQL_METHOD(concat_map, CONCAT_MAP)
@@ -129,13 +129,17 @@ public:
     REQL_METHOD(pluck, PLUCK)
     REQL_METHOD(has_fields, HAS_FIELDS)
     REQL_METHOD(coerce_to, COERCE_TO)
+    REQL_METHOD(get_, GET)
     REQL_METHOD(get_all, GET_ALL)
     REQL_METHOD(replace, REPLACE)
+    REQL_METHOD(insert, INSERT)
+    REQL_METHOD(delete_, DELETE)
     REQL_METHOD(slice, SLICE)
     REQL_METHOD(filter, FILTER)
     REQL_METHOD(contains, CONTAINS)
     REQL_METHOD(merge, MERGE)
     REQL_METHOD(default_, DEFAULT)
+    REQL_METHOD(table, TABLE)
 
     reql_t operator !() RVALUE_THIS;
     reql_t do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS;

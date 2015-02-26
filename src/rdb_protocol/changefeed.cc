@@ -68,7 +68,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t key, datum_t old_val, datum_t new_val) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
-            guarantee(old_val != new_val);
+            rassert(old_val != new_val);
         }
         auto it = queue.find(key);
         if (it == queue.end()) {
@@ -106,7 +106,7 @@ class nonsquashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(store_key_t, datum_t old_val, datum_t new_val) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
-            guarantee(old_val != new_val);
+            rassert(old_val != new_val);
         }
         queue.emplace_back(std::move(old_val), std::move(new_val));
     }
@@ -137,7 +137,7 @@ boost::optional<datum_t> apply_ops(
     env_t *env,
     const datum_t &key) THROWS_NOTHING {
     try {
-        groups_t groups{optional_datum_less_t(reql_version_t::LATEST)};
+        groups_t groups{optional_datum_less_t(env->reql_version())};
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
             (*op)(env, &groups, key);
@@ -1428,7 +1428,9 @@ private:
         // This is to support fake environments from the unit tests that don't
         // actually have a context.
         return outer_env->get_rdb_ctx() == NULL
-            ? make_scoped<env_t>(outer_env->interruptor, outer_env->reql_version())
+            ? make_scoped<env_t>(outer_env->interruptor,
+                                 outer_env->return_empty_normal_batches,
+                                 outer_env->reql_version())
             : make_scoped<env_t>(
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,
@@ -1476,10 +1478,14 @@ public:
                     datum_t(std::map<datum_string_t, datum_t> {
                             { datum_string_t("new_val"), (*it)->second.second } }));
             }
-            decltype(queued_changes) changes;
-            changes.swap(queued_changes);
-            for (const auto &pair : changes) {
-                note_change(pair.first, pair.second);
+            if (squash) {
+                note_data_wait();
+            } else {
+                decltype(queued_changes) changes;
+                changes.swap(queued_changes);
+                for (const auto &pair : changes) {
+                    note_change(pair.first, pair.second);
+                }
             }
             guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
@@ -1623,11 +1629,16 @@ public:
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
-        // If we aren't done initializing yet, just queue up the change.  It
-        // will be sent in `maybe_start`.  We also queue up changes in the case
-        // where we're squashing.
+        // If we aren't done initializing, or if we're squashing, just queue up
+        // the change.  If we're initializing, we're done; the change will be
+        // sent in `maybe_start`.  If we're squashing and we're done
+        // initializing, there might be a coroutine blocking on more data in
+        // `get_els`, so we call `maybe_signal_cond` to possibly wake it up.
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
+            if (need_init == got_init) {
+                maybe_signal_cond();
+            }
         } else {
             std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
             if (pair.first.has() || pair.second.has()) {
@@ -1982,9 +1993,11 @@ subscription_t::get_els(batcher_t *batcher,
         // that if we're squashing, we started the timeout *before* waiting
         // on `min_timer`.)
         if (!has_el()) {
-            note_data_wait();
             cond_t wait_for_data;
             cond = &wait_for_data;
+            // This has to come after the `cond` because it might pulse it if
+            // we're squashing and need to.
+            note_data_wait();
             try {
                 // We don't need to wait on the drain signal because the interruptor
                 // will be pulsed if we're shutting down.  Not that `cond` might
@@ -1996,6 +2009,9 @@ subscription_t::get_els(batcher_t *batcher,
                 } else {
                     wait_interruptible(&wait_for_data, interruptor);
                 }
+                // We might have been woken up by `note_change`, in which case
+                // we should try to squash down again.
+                note_data_wait();
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
                 if (timer.has() && timer->is_pulsed()) {
@@ -2480,7 +2496,7 @@ void artificial_t::send_all(const msg_t &msg) {
     if (auto *change = boost::get<msg_t::change_t>(&msg.op)) {
         guarantee(change->old_val.has() || change->new_val.has());
         if (change->old_val.has() && change->new_val.has()) {
-            guarantee(change->old_val != change->new_val);
+            rassert(change->old_val != change->new_val);
         }
     }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();

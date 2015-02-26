@@ -49,13 +49,14 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
     return strprintf("shard_%d", hash_shard_number);
 }
 
-void do_construct_existing_store(
+void do_construct_store(
     const std::vector<threadnum_t> &threads,
     int thread_offset,
     store_args_t store_args,
     serializer_multiplexer_t *multiplexer,
     scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
-    store_view_t **store_views) {
+    store_view_t **store_views,
+    bool create) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
@@ -71,11 +72,23 @@ void do_construct_existing_store(
     store_t *store = new store_t(
         multiplexer->proxies[thread_offset], store_args.balancer,
         hash_shard_perfmon_name(thread_offset),
-        false, store_args.serializers_perfmon_collection,
+        create, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
         std::move(index_report), store_args.ns_id);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
+}
+
+void do_construct_existing_store(
+    const std::vector<threadnum_t> &threads,
+    int thread_offset,
+    store_args_t store_args,
+    serializer_multiplexer_t *multiplexer,
+    scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
+    store_view_t **store_views) {
+
+    do_construct_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
+    store_views, false);
 }
 
 void do_create_new_store(
@@ -86,22 +99,8 @@ void do_create_new_store(
     scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
     store_view_t **store_views) {
 
-    on_thread_t th(threads[thread_offset]);
-
-    // Only pass this down to the first store
-    scoped_ptr_t<outdated_index_report_t> index_report;
-    if (thread_offset == 0) {
-        index_report = store_args.outdated_index_tracker->create_report(store_args.ns_id);
-    }
-
-    store_t *store = new store_t(
-        multiplexer->proxies[thread_offset], store_args.balancer,
-        hash_shard_perfmon_name(thread_offset),
-        true, store_args.serializers_perfmon_collection,
-        store_args.ctx, store_args.io_backender, store_args.base_path,
-        std::move(index_report), store_args.ns_id);
-    (*stores_out_stores)[thread_offset].init(store);
-    store_views[thread_offset] = store;
+    do_construct_store(threads, thread_offset, store_args, multiplexer, stores_out_stores,
+    store_views, true);
 }
 
 void

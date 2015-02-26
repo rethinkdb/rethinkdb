@@ -24,7 +24,6 @@ class datum_t;
 class env_t;
 template <class> class protob_t;
 class scope_env_t;
-class stream_cache_t;
 class term_t;
 class val_t;
 
@@ -133,7 +132,7 @@ public:
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
     const counted_t<table_t> &get_tbl() const { return tbl; }
     const boost::optional<std::string> &get_idx() const { return idx; }
-    ql::changefeed::keyspec_t::range_t get_change_spec();
+    ql::changefeed::keyspec_t::range_t get_range_spec();
 private:
     friend class distinct_term_t;
     const counted_t<table_t> tbl;
@@ -190,9 +189,6 @@ public:
     // to another.
     class type_t {
         friend class val_t;
-        friend void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
-                        Response *res, stream_cache_t *stream_cache,
-                        bool *response_needed_out);
     public:
         enum raw_type_t {
             DB               = 1, // db

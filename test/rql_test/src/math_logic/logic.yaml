@@ -18,10 +18,6 @@ tests:
         - r.and(true,true)
         - r(true).and(true)
       ot: true
-    - cd:
-        - r.expr(true).all(true)
-        - r.all(true,true)
-      ot: true
     - py:
         - r.expr(true) & false
         - r.expr(false) & false
@@ -45,12 +41,6 @@ tests:
         - r.and(false,false)
         - r(true).and(false)
         - r(false).and(false)
-      ot: false
-    - cd:
-        - r.expr(false).all(false)
-        - r.expr(true).all(false)
-        - r.all(false,false)
-        - r.all(true,false)
       ot: false
 
     # Python overloads '|' for 'or'
@@ -78,12 +68,6 @@ tests:
         - r(true).or(true)
         - r(true).or(false)
       ot: true
-    - cd:
-        - r.expr(true).any(true)
-        - r.expr(true).any(false)
-        - r.any(true,true)
-        - r.any(true,false)
-      ot: true
     - py:
         - r.expr(false) | false
         - false | r.expr(false)
@@ -97,10 +81,6 @@ tests:
       js:
         - r.and(false,false)
         - r(false).and(false)
-      ot: false
-    - cd:
-        - r.expr(false).any(false)
-        - r.any(false,false)
       ot: false
 
     # Python overloads '~' for 'not'

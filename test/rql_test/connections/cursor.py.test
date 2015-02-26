@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import os, random, re, subprocess, sys, tempfile, unittest
+import os, random, re, subprocess, sys, tempfile, time, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
 
@@ -17,7 +17,7 @@ r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
 rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
-   
+
 # -- make sure a server is avalible
 
 server = None
@@ -31,7 +31,7 @@ if None in (serverHost, serverPort):
     serverPort = server.driver_port
 
 # -- tests
-    
+
 class TestRangeCursor(unittest.TestCase):
     def setUp(self):
         self.conn = r.connect(host=serverHost, port=serverPort)
@@ -97,34 +97,34 @@ class TestRangeCursor(unittest.TestCase):
         self.assertEqual(count, range_size, "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
 
 class TestCursor(unittest.TestCase):
-    
+
     conn = None
     num_rows = random.randint(1111, 2222)
-    
+
     def setupTable(self):
-        
+
         # - ensure a clean table
-        
+
         if dbName not in r.db_list().run(self.conn):
             r.db_create(dbName).run(self.conn)
-        
+
         if tableName in r.db(dbName).table_list().run(self.conn):
             r.db(dbName).table_drop(tableName).run(self.conn)
         r.db(dbName).table_create(tableName).run(self.conn)
-        
+
         # - populate the table with the requested data
-        
+
         res = r.db(dbName).table(tableName).insert(r.range(self.num_rows).map(lambda x: {})).run(self.conn)
         assert res['inserted'] == self.num_rows
-    
+
     def setUp(self):
-        
+
         if self.conn is None:
             self.conn = r.connect(host=serverHost, port=serverPort)
             self.setupTable()
 
         # - supply a cursor to the full table
-        
+
         self.cur = r.db(dbName).table(tableName).run(self.conn)
 
     def test_type(self):
@@ -141,12 +141,80 @@ class TestCursor(unittest.TestCase):
         # This excercises a code path at the root of #650
         self.conn.close()
 
+class TestCursorWait(unittest.TestCase):
+
+    conn = None
+    num_cursors = 3
+
+    def setUp(self):
+        if self.conn is None:
+            self.conn = r.connect(host=serverHost, port=serverPort)
+
+    def do_test(self, wait_time):
+        cursors = [ ]
+        cursor_counts = [ ]
+        cursor_timeouts = [ ]
+        for i in xrange(self.num_cursors):
+            cursors.append(r.range().run(self.conn))
+            cursor_counts.append(0)
+            cursor_timeouts.append(0)
+
+        def get_next(cursor_index):
+            try:
+                if wait_time is None: # Special case to use the default
+                    cursors[cursor_index].next()
+                else:
+                    # To avoid complete deadlock with 0 wait, occasionally allow more data through
+                    if (wait_time == False or wait_time == 0) and random.random() > 0.99:
+                        cursors[cursor_index].next(wait=0.0001)
+                    cursors[cursor_index].next(wait=wait_time)
+                cursor_counts[cursor_index] += 1
+            except r.RqlDriverError as e:
+                if e.message != 'Timed out waiting for cursor response.':
+                    raise
+                cursor_timeouts[cursor_index] += 1
+
+        # We need to get ahead of pre-fetching for this to get the error we want
+        while sum(cursor_counts) < 150000:
+            for cursor_index in xrange(self.num_cursors):
+                for read_count in xrange(random.randint(0, 10)):
+                    get_next(cursor_index)
+
+        [cursor.close() for cursor in cursors]
+
+        return (sum(cursor_counts), sum(cursor_timeouts))
+
+    def test_false_wait(self):
+        reads, timeouts = self.do_test(False)
+        self.assertNotEqual(timeouts, 0, "Did not get timeouts using zero (false) wait.")
+
+    def test_zero_wait(self):
+        reads, timeouts = self.do_test(0)
+        self.assertNotEqual(timeouts, 0, "Did not get timeouts using zero wait.")
+
+    def test_short_wait(self):
+        reads, timeouts = self.do_test(0.0001)
+        self.assertNotEqual(timeouts, 0, "Did not get timeouts using short (100 microsecond) wait.")
+
+    def test_long_wait(self):
+        reads, timeouts = self.do_test(10)
+        self.assertEqual(timeouts, 0, "Got timeouts using long (10 second) wait.")
+
+    def test_infinite_wait(self):
+        reads, timeouts = self.do_test(True)
+        self.assertEqual(timeouts, 0, "Got timeouts using infinite wait.")
+
+    def test_default_wait(self):
+        reads, timeouts = self.do_test(None)
+        self.assertEqual(timeouts, 0, "Got timeouts using default (infinite) wait.")
+
 if __name__ == '__main__':
     print("Testing cursor for %d rows" % TestCursor.num_rows)
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestCursor))
     suite.addTest(loader.loadTestsFromTestCase(TestRangeCursor))
-    
+    suite.addTest(loader.loadTestsFromTestCase(TestCursorWait))
+
     if not unittest.TextTestRunner(verbosity=2).run(suite):
         sys.exit(1)

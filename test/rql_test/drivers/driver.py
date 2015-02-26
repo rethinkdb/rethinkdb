@@ -25,6 +25,11 @@ try:
 except AttributeError:
     izip_longest = itertools.zip_longest
 
+# -- global variables
+
+failure_count = 0
+passed_count = 0
+
 # -- timezone objects
 
 class UTCTimeZone(tzinfo):
@@ -54,16 +59,23 @@ class PacificTimeZone(tzinfo):
 # -- import driver
 
 r = utils.import_python_driver()
+print('Using RethinkDB client from: %s' % r.__file__)
 
 # -- get settings
 
+DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
+
+def print_debug(message):
+    if DEBUG_ENABLED:
+        sys.stderr.write('DEBUG: %s' % message.rstrip() + '\n')
+
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
-print('Using driver port: %d' % DRIVER_PORT)
+print_debug('Using driver port: %d' % DRIVER_PORT)
 
 required_external_tables = []
 if len(sys.argv) > 2 or os.environ.get('TEST_DB_AND_TABLE_NAME'):
     for rawValue in (sys.argv[2] if len(sys.argv) > 3 else os.environ.get('TEST_DB_AND_TABLE_NAME')).split(','):
-        rawValue = rawValue.stip()
+        rawValue = rawValue.strip()
         if rawValue == '':
             continue
         splitValue = rawValue.split('.')
@@ -77,11 +89,9 @@ required_external_tables.reverse() # setup for .pop()
 
 # -- utilities --
 
-failure_count = 0
-
 def print_test_failure(test_name, test_src, message):
     global failure_count
-    failure_count = failure_count + 1
+    failure_count += 1
     print('')
     print("TEST FAILURE: %s" % test_name.encode('utf-8'))
     print("TEST BODY:    %s" % test_src.encode('utf-8'))
@@ -300,21 +310,21 @@ class PyTestDriver:
     def __init__(self):
         print('Creating default connection to server on port %d\n' % DRIVER_PORT)
         self.cpp_conn = self.connect()
-        self.scope = {}
-        
-        if 'test' not in r.db_list().run(self.cpp_conn):
-            r.db_create('test').run(self.cpp_conn)
+        self.scope = globals()
     
     def connect(self):
         return r.connect(host='localhost', port=DRIVER_PORT)
 
-    def define(self, expr):
+    def define(self, expr, variable=None):
+        print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
-            exec(expr, globals(), self.scope)
+            exec(expr, self.scope)
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
-
+    
     def run(self, src, expected, name, runopts, testopts):
+        global passed_count
+        
         if runopts:
             runopts["profile"] = True
         else:
@@ -330,9 +340,10 @@ class PyTestDriver:
         else:
             conn = self.cpp_conn
         
-        # Try to build the expected result
+        # -- build the expected result
+        
         if expected:
-            exp_val = eval(expected, dict(list(globals().items()) + list(self.scope.items())))
+            exp_val = eval(expected, self.scope)
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
@@ -340,13 +351,13 @@ class PyTestDriver:
         # Run the test
         if 'reql-query' in testopts and str(testopts['reql-query']).lower() == 'false':
             try:
-                result = eval(src, globals(), self.scope)
+                result = eval(src, self.scope)
             except Exception as err:
                 result = err
         else:
             # Try to build the test
             try:
-                query = eval(src, dict(list(globals().items()) + list(self.scope.items())))
+                query = eval(src, self.scope)
             except Exception as err:
                 if not isinstance(exp_val, Err):
                     print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
@@ -379,8 +390,12 @@ class PyTestDriver:
                 print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (repr(result), str(result)))
             elif not eq(exp_val, **compOptions)(result):
                 print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            else:
+                passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
-            print_test_failure(name, src, "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+        else:
+            passed_count += 1
 
 driver = PyTestDriver()
 
@@ -414,8 +429,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         '''Used for pre-existing tables'''
         res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
         assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, repr(res))
-        res = r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
-        assert res["errors"] == 0, 'Failed to remove table indexes from %s.%s: %s' % (db_name, table_name, repr(res))
+        r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
     
     if len(required_external_tables) > 0:
         table_name, db_name = required_external_tables.pop()
@@ -430,7 +444,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, repr(res))
         r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
         
-        print('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
+        print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     
     globals()[table_variable_name] = r.db(db_name).table(table_name)
 
@@ -438,8 +452,8 @@ def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
         raise ValueError("This test isn't meant to be run against a specific table")
 
-def define(expr):
-    driver.define(expr)
+def define(expr, variable=None):
+    driver.define(expr, variable=variable)
 
 def bag(lst):
     return Bag(lst)
@@ -471,9 +485,10 @@ def float_cmp(expected_value):
     return Number(expected_value, explicit_type=float)
 
 def the_end():
-    global failure_count
     if failure_count > 0:
-        sys.exit("Failed %d tests" % failure_count)
+        sys.exit("Failed %d tests, passed %d" % (failure_count, passed_count))
+    else:
+        print("Passed all %d tests" % passed_count)
 
 false = False
 true = True

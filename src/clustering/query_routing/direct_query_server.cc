@@ -23,8 +23,8 @@ void direct_query_server_t::on_read(
         const mailbox_addr_t<void(read_response_t)> &cont) {
 
     try {
+        /* Leave the token empty. We're not actually interested in ordering here. */
         read_token_t token;
-        svs->new_read_token(&token);
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t metainfo_checker_callback;
@@ -35,7 +35,6 @@ void direct_query_server_t::on_read(
         svs->read(DEBUG_ONLY(metainfo_checker, )
                   read,
                   &response,
-                  order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
                   &token,
                   interruptor);
         send(mailbox_manager, cont, response);

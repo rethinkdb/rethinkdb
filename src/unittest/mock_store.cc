@@ -48,7 +48,6 @@ std::string mock_lookup(store_view_t *store, std::string key) {
     store->read(DEBUG_ONLY(checker, )
                 r,
                 &rr,
-                order_token_t::ignore,
                 &token,
                 &dummy_cond);
     return mock_parse_read_response(rr);
@@ -115,7 +114,6 @@ void mock_store_t::read(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const read_t &read,
         read_response_t *response,
-        order_token_t order_token,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -125,8 +123,9 @@ void mock_store_t::read(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t
             destroyer(&token->main_read_token);
 
-        wait_interruptible(token->main_read_token.get(), interruptor);
-        order_sink_.check_out(order_token);
+        if (token->main_read_token.has()) {
+            wait_interruptible(token->main_read_token.get(), interruptor);
+        }
 
 #ifndef NDEBUG
         metainfo_checker.check_metainfo(metainfo_.mask(metainfo_checker.get_domain()));
