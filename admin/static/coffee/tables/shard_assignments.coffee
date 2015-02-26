@@ -1,89 +1,95 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-module 'TableView', ->
-    class @ShardAssignmentsView extends Backbone.View
-        template: Handlebars.templates['shard_assignments-template']
+# Copyright 2010-2015 RethinkDB
 
-        initialize: (data) =>
-            @listenTo @model, 'change:info_unavailable', @set_warnings
-            if data.collection?
-                @collection = data.collection
-            @assignments_view = []
+models = require('../models.coffee')
 
-        set_warnings: ->
-            if @model.get('info_unavailable')
-                @$('.unavailable-error').show()
-            else
-                @$('.unavailable-error').hide()
+class ShardAssignmentsView extends Backbone.View
+    template: Handlebars.templates['shard_assignments-template']
 
-        set_assignments: (assignments) =>
-            @collection = assignments
-            @render()
+    initialize: (data) =>
+        @listenTo @model, 'change:info_unavailable', @set_warnings
+        if data.collection?
+            @collection = data.collection
+        @assignments_view = []
 
-        render: =>
-            @$el.html @template @model.toJSON()
-            if @collection?
-                @collection.each (assignment) =>
-                    view = new TableView.ShardAssignmentView
-                        model: assignment
-                        container: @
-                    # The first time, the collection is sorted
-                    @assignments_view.push view
-                    @$('.assignments_list').append view.render().$el
+    set_warnings: ->
+        if @model.get('info_unavailable')
+            @$('.unavailable-error').show()
+        else
+            @$('.unavailable-error').hide()
 
-                @listenTo @collection, 'add', (assignment) =>
-                    new_view = new TableView.ShardAssignmentView
-                        model: assignment
-                        container: @
+    set_assignments: (assignments) =>
+        @collection = assignments
+        @render()
 
-                    if @assignments_view.length is 0
-                        @assignments_view.push new_view
-                        @$('.assignments_list').html new_view.render().$el
-                    else
-                        added = false
-                        for view, position in @assignments_view
-                            if ShardAssignments.prototype.comparator(view.model, assignment) > 0
-                                added = true
-                                @assignments_view.splice position, 0, new_view
-                                if position is 0
-                                    @$('.assignments_list').prepend new_view.render().$el
-                                else
-                                    @$('.assignment_container').eq(position-1).after new_view.render().$el
-                                break
-                        if added is false
-                            @assignments_view.push new_view
-                            @$('.assignments_list').append new_view.render().$el
+    render: =>
+        @$el.html @template @model.toJSON()
+        if @collection?
+            @collection.each (assignment) =>
+                view = new ShardAssignmentView
+                    model: assignment
+                    container: @
+                # The first time, the collection is sorted
+                @assignments_view.push view
+                @$('.assignments_list').append view.render().$el
 
+            @listenTo @collection, 'add', (assignment) =>
+                new_view = new ShardAssignmentView
+                    model: assignment
+                    container: @
 
-                @listenTo @collection, 'remove', (assignment) =>
+                if @assignments_view.length is 0
+                    @assignments_view.push new_view
+                    @$('.assignments_list').html new_view.render().$el
+                else
+                    added = false
                     for view, position in @assignments_view
-                        if view.model is assignment
-                            assignment.destroy()
-                            view.remove()
-                            @assignments_view.splice position, 1
+                        if models.ShardAssignments.prototype.comparator(view.model, assignment) > 0
+                            added = true
+                            @assignments_view.splice position, 0, new_view
+                            if position is 0
+                                @$('.assignments_list').prepend new_view.render().$el
+                            else
+                                @$('.assignment_container').eq(position-1).after new_view.render().$el
                             break
-            @set_warnings()
-            @
-
-        remove: =>
-            @stopListening()
-
-            for view in @assignments_view
-                view.model.destroy()
-                view.remove()
-            super()
+                    if added is false
+                        @assignments_view.push new_view
+                        @$('.assignments_list').append new_view.render().$el
 
 
-    class @ShardAssignmentView extends Backbone.View
-        template: Handlebars.templates['shard_assignment-template']
-        className: 'assignment_container'
+            @listenTo @collection, 'remove', (assignment) =>
+                for view, position in @assignments_view
+                    if view.model is assignment
+                        assignment.destroy()
+                        view.remove()
+                        @assignments_view.splice position, 1
+                        break
+        @set_warnings()
+        @
 
-        initialize: =>
-            @listenTo @model, 'change', @render
+    remove: =>
+        @stopListening()
 
-        render: =>
-            @$el.html @template @model.toJSON()
-            @
+        for view in @assignments_view
+            view.model.destroy()
+            view.remove()
+        super()
 
-        remove: =>
-            @stopListening()
-            super()
+
+class ShardAssignmentView extends Backbone.View
+    template: Handlebars.templates['shard_assignment-template']
+    className: 'assignment_container'
+
+    initialize: =>
+        @listenTo @model, 'change', @render
+
+    render: =>
+        @$el.html @template @model.toJSON()
+        @
+
+    remove: =>
+        @stopListening()
+        super()
+
+module.exports =
+    ShardAssignmentsView: ShardAssignmentsView
+    ShardAssignmentView: ShardAssignmentView

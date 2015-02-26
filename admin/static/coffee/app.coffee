@@ -1,32 +1,14 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-# The system database
-window.system_db = 'rethinkdb'
+body = require('./body.coffee')
+data_explorer_view = require('./dataexplorer.coffee')
+system_db = 'rethinkdb'
 
-$ ->
-    # Load the raw driver
-    window.r = require('rethinkdb')
+r = require('rethinkdb')
 
-    # Create a driver - providing sugar on top of the raw driver
-    window.driver = new Driver
+is_disconnected = null
 
-    # Some views backup their data here so that when you return to them
-    # the latest data can be retrieved quickly.
-    window.view_data_backup = {}
-
-    window.main_view = new MainView.MainContainer()
-    $('body').html main_view.render().$el
-
-
-    # We need to start the router after the main view is bound to the DOM
-    main_view.start_router()
-
-    Backbone.sync = (method, model, success, error) ->
-        return 0
-
-    DataExplorerView.Container.prototype.set_docs reql_docs
-
-class @Driver
+class Driver
     constructor: (args) ->
         if window.location.port is ''
             if window.location.protocol is 'https:'
@@ -46,7 +28,7 @@ class @Driver
         @state = 'ok'
         @timers = {}
         @index = 0
-
+t
     # Hack the driver: remove .run() and add private_run()
     # We want run() to throw an error, in case a user write .run() in a query.
     # We'll internally run a query with the method `private_run`
@@ -72,11 +54,11 @@ class @Driver
             if error?
                 # If we cannot open a connection, we blackout the whole interface
                 # And do not call the callback
-                if window.is_disconnected?
+                if is_disconnected?
                     if @state is 'ok'
-                        window.is_disconnected.display_fail()
+                        is_disconnected.display_fail()
                 else
-                    window.is_disconnected = new IsDisconnected
+                    is_disconnected = new body.IsDisconnected
                 @state = 'fail'
             else
                 if @state is 'fail'
@@ -105,11 +87,11 @@ class @Driver
                 if error?
                     # If we cannot open a connection, we blackout the whole interface
                     # And do not call the callback
-                    if window.is_disconnected?
+                    if is_disconnected?
                         if @state is 'ok'
-                            window.is_disconnected.display_fail()
+                            is_disconnected.display_fail()
                     else
-                        window.is_disconnected = new IsDisconnected
+                        is_disconnected = new body.IsDisconnected
                     @state = 'fail'
                 else
                     if @state is 'fail'
@@ -387,3 +369,27 @@ class @Driver
 
         num_sindexes_constructing: (jobs=driver.admin().jobs) ->
             jobs.count((job) -> job('type').eq('index_construction'))
+
+main_container = new body.MainContainer()
+
+$ ->
+    $('body').html(main_container.render().$el)
+    # We need to start the router after the main view is bound to the DOM
+    main_container.start_router()
+
+    Backbone.sync = (method, model, success, error) ->
+        return 0
+
+    data_explorer_view.Container.prototype.set_docs reql_docs
+
+# Create a driver - providing sugar on top of the raw driver
+driver = new Driver
+
+module.exports =
+    driver: driver
+    # Some views backup their data here so that when you return to them
+    # the latest data can be retrieved quickly.
+    view_data_backup: {}
+    main_container: main_container
+    # The system database
+    system_db: system_db

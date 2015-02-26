@@ -124,35 +124,30 @@ class Stats extends Backbone.Model
     get_stats: =>
         @toJSON()
 
-# This module contains utility functions that compute and massage
-# commonly used data.
-module 'DataUtils', ->
-    # The equivalent of a database view, but for our Backbone models.
-    # Our models and collections have direct representations on the server. For
-    # convenience, it's useful to pick data from several of these models: these
-    # are computed models (and computed collections).
+# The equivalent of a database view, but for our Backbone models.
+# Our models and collections have direct representations on the server. For
+# convenience, it's useful to pick data from several of these models: these
+# are computed models (and computed collections).
 
-    @stripslashes = (str) ->
-        str=str.replace(/\\'/g,'\'')
-        str=str.replace(/\\"/g,'"')
-        str=str.replace(/\\0/g,"\x00")
-        str=str.replace(/\\\\/g,'\\')
-        return str
-
-    @is_integer = (data) ->
-        return data.search(/^\d+$/) isnt -1
-
-    # Deep copy. We do not copy prototype.
-    @deep_copy = (data) ->
-        if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
-            return data
-        else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
-            result = []
-            for value in data
-                result.push @deep_copy value
-            return result
-        else if typeof data is 'object'
-            result = {}
-            for key, value of data
-                result[key] = @deep_copy value
-            return result
+module.exports =
+    Servers: Servers
+    Server: Server
+    Tables: Tables
+    Table: Table
+    Reconfigure: Reconfigure
+    Databases: Databases
+    Database: Database
+    Indexes: Indexes
+    Index: Index
+    Distribution: Distribution
+    Shard: Shard
+    ShardAssignments: ShardAssignments
+    ShardAssignment: ShardAssignment
+    Responsibilities: Responsibilities
+    Responsibility: Responsibility
+    Dashboard: Dashboard
+    Issue: Issue
+    Issues: Issues
+    Logs: Logs
+    Log: Log
+    Stats: Stats

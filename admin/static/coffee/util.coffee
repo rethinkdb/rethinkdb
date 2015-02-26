@@ -180,38 +180,36 @@ form_data_as_object = (form) ->
         formdata[x.name] = x.value
     return formdata
 
-###
-    Taken from "Namespacing and modules with Coffeescript"
-    https://github.com/jashkenas/coffee-script/wiki/Easy-modules-with-coffeescript
 
-    Introduces module function that allows namespaces by enclosing classes in anonymous functions.
+stripslashes = (str) ->
+    str=str.replace(/\\'/g,'\'')
+    str=str.replace(/\\"/g,'"')
+    str=str.replace(/\\0/g,"\x00")
+    str=str.replace(/\\\\/g,'\\')
+    return str
 
-    Usage:
-    ------------------------------
-        @module "foo", ->
-          @module "bar", ->
-            class @Amazing
-              toString: "ain't it"
-    ------------------------------
+is_integer = (data) ->
+    return data.search(/^\d+$/) isnt -1
 
-    Or, more simply:
-    ------------------------------
-        @module "foo.bar", ->
-          class @Amazing
-            toString: "ain't it"
-    ------------------------------
+# Deep copy. We do not copy prototype.
+deep_copy = (data) ->
+    if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
+        return data
+    else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
+        result = []
+        for value in data
+            result.push deep_copy value
+        return result
+    else if typeof data is 'object'
+        result = {}
+        for key, value of data
+            result[key] = deep_copy value
+        return result
 
-    Which can then be accessed with:
-    ------------------------------
-        x = new foo.bar.Amazing
-    ------------------------------
-###
-
-@module = (names, fn) ->
-    names = names.split '.' if typeof names is 'string'
-    space = @[names.shift()] ||= {}
-    space.module ||= @module
-    if names.length
-        space.module names, fn
-    else
-        fn.call space
+module.exports =
+    capitalize: capitalize
+    humanize_table_status: humanize_table_status
+    form_data_as_object: form_data_as_object
+    stripslashes: stripslashes
+    is_integer: is_integer
+    deep_copy: deep_copy
