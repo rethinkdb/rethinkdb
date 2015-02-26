@@ -91,7 +91,7 @@ listener_t::listener_t(const base_path_t &base_path,
     writeread_mailbox_(mailbox_manager_,
         std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4))
 {
     boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
         broadcaster_metadata->get();
@@ -228,6 +228,7 @@ listener_t::listener_t(const base_path_t &base_path,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp_ = backfill_end_timestamp;
+    read_min_timestamp_enforcer_.bump_timestamp(backfill_end_timestamp);
     write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
@@ -268,7 +269,7 @@ listener_t::listener_t(const base_path_t &base_path,
     writeread_mailbox_(mailbox_manager_,
         std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4))
 {
     branch_birth_certificate_t this_branch_history;
     {
@@ -320,6 +321,7 @@ listener_t::listener_t(const base_path_t &base_path,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp_ = listener_intro.broadcaster_begin_timestamp;
+    read_min_timestamp_enforcer_.bump_timestamp(listener_intro.broadcaster_begin_timestamp);
     write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
@@ -447,6 +449,7 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
     }
 
     write_token_t write_token;
+    fifo_enforcer_write_token_t mark_write_done_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.timestamp <= backfill_end_timestamp) {
@@ -454,7 +457,12 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.timestamp);
+
+        // To make sure that writes get processed by the store in the right order.
         svs_->new_write_token(&write_token);
+
+        // To make sure that we mark writes done in the right order
+        mark_write_done_token = mark_done_fifo_source_.enter_write();
     }
 
 #ifndef NDEBUG
@@ -478,6 +486,10 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         qe.order_token,
         &write_token,
         interruptor);
+
+    // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
+    // been waiting on this write can proceed now.
+    mark_write_done(qe.timestamp, mark_write_done_token);
 }
 
 void listener_t::on_writeread(
@@ -514,6 +526,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     auto_drainer_t::lock_t keepalive(&drainer_);
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
     write_token_t write_token;
+    fifo_enforcer_write_token_t mark_write_done_token;
     {
         {
             /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -526,7 +539,11 @@ write_response_t listener_t::local_writeread(const write_t &write,
 
         advance_current_timestamp_and_pulse_waiters(timestamp);
 
+        // To make sure that writes get processed by the store in the right order.
         svs_->new_write_token(&write_token);
+
+        // To make sure that we mark writes done in the right order
+        mark_write_done_token = mark_done_fifo_source_.enter_write();
     }
 
     // Make sure we can serve the entire operation without masking it.
@@ -550,20 +567,22 @@ write_response_t listener_t::local_writeread(const write_t &write,
                 order_token,
                 &write_token,
                 &combined_interruptor);
+
+    // Mark the write done with the read_min_timestamp_enforcer_ so reads that have
+    // been waiting on this write can proceed now.
+    mark_write_done(timestamp, mark_write_done_token);
+
     return response;
 }
 
 void listener_t::on_read(
         signal_t *interruptor,
         const read_t &read,
-        state_timestamp_t expected_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_read_token_t fifo_token,
+        min_timestamp_token_t min_timestamp_token,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
     try {
-        read_response_t response = local_read(read, expected_timestamp, order_token,
-                                              fifo_token, interruptor);
+        read_response_t response = local_read(read, min_timestamp_token, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -571,39 +590,26 @@ void listener_t::on_read(
 }
 
 read_response_t listener_t::local_read(const read_t &read,
-        state_timestamp_t expected_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_read_token_t fifo_token,
+        min_timestamp_token_t min_timestamp_token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
-    order_token.assert_read_mode();
 
     auto_drainer_t::lock_t keepalive = drainer_.lock();
     wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
+
+    // Wait until all writes that the read needs to see have completed.
+    read_min_timestamp_enforcer_.wait_interruptible(
+        min_timestamp_token, &combined_interruptor);
+
+    // Leave the token empty. We're enforcing ordering ourselves through the
+    // min_timestamp_token.
     read_token_t read_token;
-    {
-        {
-            /* Briefly pass through `write_queue_entrance_sink_` in case we
-            are receiving a mix of writes and write-reads */
-            fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
-                &write_queue_entrance_sink_, fifo_token);
-        }
-
-        fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
-            &store_entrance_sink_, fifo_token);
-        wait_interruptible(&fifo_exit_2, &combined_interruptor);
-
-        guarantee(current_timestamp_ == expected_timestamp);
-
-        svs_->new_read_token(&read_token);
-    }
 
 #ifndef NDEBUG
-    version_leq_metainfo_checker_callback_t metainfo_checker_callback(
-        expected_timestamp);
+    trivial_metainfo_checker_callback_t metainfo_checker_callback;
     metainfo_checker_t metainfo_checker(
         &metainfo_checker_callback, svs_->get_region());
 #endif
@@ -614,7 +620,6 @@ read_response_t listener_t::local_read(const read_t &read,
         DEBUG_ONLY(metainfo_checker, )
         read,
         &response,
-        order_token,
         &read_token,
         &combined_interruptor);
     return response;
@@ -642,6 +647,24 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(state_timestamp_t t
             // TODO: What if something's waiting eagerly?
             it->second->pulse();
         }
+    }
+}
+
+void listener_t::mark_write_done(
+        state_timestamp_t timestamp,
+        const fifo_enforcer_write_token_t &mark_done_fifo_token) {
+    // Place the write timestamp on the queue.
+    // This makes sure that we only mark a write done if all previous writes
+    // have been marked done as well.
+    mark_done_timestamps_queue_.push(
+        mark_done_fifo_token,
+        std::make_pair(timestamp, mark_done_fifo_token));
+
+    // Mark as many writes done as we can.
+    while (mark_done_timestamps_queue_.available->get()) {
+        auto first_done_write = mark_done_timestamps_queue_.pop();
+        read_min_timestamp_enforcer_.bump_timestamp(first_done_write.first);
+        mark_done_timestamps_queue_.finish_write(first_done_write.second);
     }
 }
 

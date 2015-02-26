@@ -22,7 +22,6 @@ public:
     void read(const read_t &read,
               read_response_t *response,
               DEBUG_VAR state_timestamp_t expected_timestamp,
-              order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read_outdated(const read_t &read,
