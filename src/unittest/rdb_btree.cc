@@ -5,6 +5,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/operations.hpp"
+#include "btree/reql_specific.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -216,7 +217,7 @@ void _check_keys_are_present(store_t *store,
                 &token, &txn, &super_block,
                 &dummy_interruptor, true);
 
-        scoped_ptr_t<real_superblock_t> sindex_sb;
+        scoped_ptr_t<sindex_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
         {
@@ -296,7 +297,7 @@ void _check_keys_are_NOT_present(store_t *store,
                 &token, &txn, &super_block,
                 &dummy_interruptor, true);
 
-        scoped_ptr_t<real_superblock_t> sindex_sb;
+        scoped_ptr_t<sindex_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
         {
