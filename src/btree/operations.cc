@@ -10,8 +10,6 @@
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/store.hpp"
 
-// TODO: consider B#/B* trees to improve space efficiency
-
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }

@@ -10,6 +10,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/alt.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"

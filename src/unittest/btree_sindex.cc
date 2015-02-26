@@ -51,10 +51,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
@@ -76,10 +77,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
@@ -90,10 +92,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
