@@ -89,14 +89,13 @@ public:
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const read_t &read,
             read_response_t *response,
-            order_token_t order_token,
             read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token, interruptor);
     }
 
     void write(

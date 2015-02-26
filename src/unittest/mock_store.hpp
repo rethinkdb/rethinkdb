@@ -42,7 +42,6 @@ public:
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
             const read_t &read,
             read_response_t *response,
-            order_token_t order_token,
             read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);

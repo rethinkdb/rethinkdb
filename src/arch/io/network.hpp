@@ -95,7 +95,7 @@ public:
     void shutdown_read();
 
     /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
-    bool is_read_open();
+    bool is_read_open() const;
 
     /* Writing */
 
@@ -120,7 +120,7 @@ public:
     void shutdown_write();
 
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
-    bool is_write_open();
+    bool is_write_open() const;
 
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */

@@ -40,9 +40,11 @@ counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> 
 counted_t<const document_t>
 make_concat(std::initializer_list<counted_t<const document_t> > args);
 
-template <typename... Ts>
-inline counted_t<const document_t> make_concat(Ts &&... docs) {
-    return make_concat({std::forward<Ts>(docs)...});
+template <typename It>
+counted_t<const document_t> make_concat(It &&begin, It &&end) {
+    std::vector<counted_t<const document_t> > v(std::forward<It>(begin),
+                                                std::forward<It>(end));
+    return make_concat(std::move(v));
 }
 
 // A document enclosure where all linebreaks are interpreted consistently.
@@ -54,8 +56,10 @@ counted_t<const document_t> make_group(counted_t<const document_t> doc);
 counted_t<const document_t> make_nest(counted_t<const document_t> doc);
 
 extern const counted_t<const document_t> empty;
-extern const counted_t<const document_t> br;
-extern const counted_t<const document_t> dot;
+extern const counted_t<const document_t> cond_linebreak;
+// unconditional line break
+extern const counted_t<const document_t> uncond_linebreak;
+extern const counted_t<const document_t> dot_linebreak;
 
 
 // Documents separated by commas and then a `br`.

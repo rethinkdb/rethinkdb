@@ -19,7 +19,7 @@ std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_unformatted_std_st
 #endif
 
 void http_json_res(cJSON *json, http_res_t *result) {
-    result->code = HTTP_OK;
+    result->code = http_status_code_t::OK;
     result->set_body("application/json", cJSON_default_print(json));
 }
 

@@ -40,8 +40,6 @@ doc_dir := $(prefix)/share/doc/$(VERSIONED_PACKAGE_NAME)
 man_dir := $(prefix)/share/man
 man1_dir := $(man_dir)/man1
 share_dir := $(prefix)/share/$(VERSIONED_PACKAGE_NAME)
-bash_completion_dir := $(etc_dir)/bash_completion.d
-internal_bash_completion_dir := $(share_dir)/etc/bash_completion.d
 scripts_dir := $(share_dir)/scripts
 init_dir := $(etc_dir)/init.d
 conf_dir := $(etc_dir)/rethinkdb
@@ -90,20 +88,8 @@ install-manpages: $(BUILD_DIR)/assets/rethinkdb.1.gz
 	umask 022 && install -m755 -d $(DESTDIR)$(man1_dir)
 	install -m644 $< $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
 
-$(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUILD_DIR)/assets/.
-	m4 -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
-	   -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	   $< > $@
-
-.PHONY: install-tools
-install-tools: $(BUILD_DIR)/assets/rethinkdb.bash
-	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) $(DESTDIR)$(bash_completion_dir)
-	umask 022 && install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
-	umask 022 && install -m755 -d $(DESTDIR)$(bash_completion_dir)
-	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
-	   $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
-	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
-           $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+.PHONY: install-init
+install-init:
 	$P INSTALL $(INIT_SCRIPTS) $(DESTDIR)$(init_dir)
 	umask 022 && install -m755 -d $(DESTDIR)$(init_dir)
 	for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done
@@ -127,4 +113,4 @@ install-docs:
 	install -m644 $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 .PHONY: install
-install: install-binaries install-manpages install-docs install-tools install-data install-config
+install: install-binaries install-manpages install-docs install-init install-data install-config

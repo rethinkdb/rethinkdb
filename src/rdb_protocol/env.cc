@@ -198,5 +198,4 @@ void env_t::maybe_yield() {
     }
 }
 
-
 } // namespace ql
