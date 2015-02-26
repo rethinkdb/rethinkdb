@@ -13,9 +13,11 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
-#include "perfmon/core.hpp"
+#include "perfmon/perfmon.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
+
+/* This is the main entry point for performing B-tree operations. */
 
 namespace profile {
 class trace_t;
@@ -25,7 +27,10 @@ class value_deleter_t;
 
 enum cache_snapshotted_t { CACHE_SNAPSHOTTED_NO, CACHE_SNAPSHOTTED_YES };
 
-/* An abstract superblock provides the starting point for performing btree operations */
+/* An abstract superblock provides the starting point for performing B-tree operations.
+This makes it so that the B-tree code doesn't actually have to know about the format of
+the superblock, or about anything else that might be contained in the superblock besides
+the root block ID and the stat block ID. */
 class superblock_t {
 public:
     superblock_t() { }
@@ -183,7 +188,7 @@ void create_stat_block(superblock_t *sb);
 
 /* Note that there's no guarantee that `pass_back_superblock` will have been
  * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,
- * the superblock is returned only when `*kevaluey_location_out` gets destructed. */
+ * the superblock is returned only when `*keyvalue_location_out` gets destructed. */
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,

@@ -21,6 +21,7 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
+class refcount_superblock_t;
 struct sindex_disk_info_t;
 
 class parallel_traversal_progress_t;
@@ -60,7 +61,7 @@ class rdb_modification_report_cb_t;
 void rdb_get(
     const store_key_t &key,
     btree_slice_t *slice,
-    real_superblock_t *superblock,
+    superblock_t *superblock,
     point_read_response_t *response,
     profile::trace_t *trace);
 
@@ -116,12 +117,12 @@ batched_replace_response_t rdb_batched_replace(
 void rdb_set(const store_key_t &key, ql::datum_t data,
              bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             real_superblock_t *superblock,
+             superblock_t *superblock,
              const deletion_context_t *deletion_context,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
-             promise_t<real_superblock_t *> *pass_back_superblock = NULL);
+             promise_t<superblock_t *> *pass_back_superblock = NULL);
 
 class rdb_backfill_callback_t {
 public:
@@ -145,7 +146,7 @@ protected:
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-                  real_superblock_t *superblock,
+                  refcount_superblock_t *superblock,
                   buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
@@ -161,7 +162,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
-    real_superblock_t *superblock,
+    superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
@@ -174,7 +175,7 @@ void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const ql::datum_range_t &datum_range,
     const region_t &sindex_region,
-    real_superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
@@ -189,7 +190,7 @@ void rdb_get_intersecting_slice(
     btree_slice_t *slice,
     const ql::datum_t &query_geometry,
     const region_t &sindex_region,
-    real_superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
@@ -204,7 +205,7 @@ void rdb_get_nearest_slice(
     double max_dist,
     uint64_t max_results,
     const ellipsoid_spec_t &geo_system,
-    real_superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,

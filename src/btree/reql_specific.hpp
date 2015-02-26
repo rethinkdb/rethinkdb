@@ -4,10 +4,19 @@
 
 #include "btree/operations.hpp"
 
+/* Most of the code in the `btree/` directory doesn't "know" about the format of the
+superblock; instead it manipulates the superblock using the abstract `superblock_t`. This
+file provides the concrete superblock implementation used for ReQL primary and sindex
+B-trees. It also provides functions for working with the secondary index block and the
+metainfo, which are unrelated to the B-tree but stored on the ReQL primary superblock. 
+
+`btree/secondary_operations.*` and `btree/reql_specific.*` are the only files in the
+`btree/` directory that know about ReQL-specific concepts such as metainfo and sindexes.
+They should probably be moved out of the `btree/` directory. */
+
 class binary_blob_t;
 
-/* real_superblock_t implements superblock_t in terms of an actual on-disk block
-   structure. */
+/* `real_superblock_t` represents the superblock for the primary B-tree of a table. */
 class real_superblock_t : public superblock_t {
 public:
     explicit real_superblock_t(buf_lock_t &&sb_buf);
@@ -30,20 +39,40 @@ private:
     buf_lock_t sb_buf_;
 };
 
+/* `sindex_superblock_t` represents the superblock for a sindex B-tree. */
+class sindex_superblock_t : public superblock_t {
+public:
+    explicit sindex_superblock_t(buf_lock_t &&sb_buf);
+
+    void release();
+    buf_lock_t *get() { return &sb_buf_; }
+
+    block_id_t get_root_block_id();
+    void set_root_block_id(block_id_t new_root_block);
+
+    block_id_t get_stat_block_id();
+    void set_stat_block_id(block_id_t new_stat_block);
+
+    buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
+
+private:
+    buf_lock_t sb_buf_;
+};
+
 enum class index_type_t {
     PRIMARY,
     SECONDARY
 };
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
-cache for the purpose of storing a btree. There are many btree_slice_ts per
-btree_key_value_store_t. */
+cache for the purpose of storing a B-tree. It is specific to ReQL primary and secondary
+index B-trees. */
 
 class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
     // Initializes a superblock (presumably, a buf_lock_t constructed with
     // alt_create_t::create) for use with btrees, setting the initial value of the
-    // metainfo (with a single key/value pair).
+    // metainfo (with a single key/value pair). Not for use with sindex superblocks.
     static void init_superblock(buf_lock_t *superblock,
                                 const std::vector<char> &metainfo_key,
                                 const binary_blob_t &metainfo_value);
@@ -137,6 +166,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key);
 void clear_superblock_metainfo(buf_lock_t *superblock);
 
+// Convenience functions for accessing the superblock
 void get_btree_superblock(txn_t *txn, access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 

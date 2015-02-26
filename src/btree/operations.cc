@@ -7,7 +7,6 @@
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "containers/binary_blob.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -359,57 +358,6 @@ void check_and_handle_underfull(value_sizer_t *sizer,
                                           replacement_key);
             }
         }
-    }
-}
-
-void get_btree_superblock(txn_t *txn, access_t access,
-                          scoped_ptr_t<real_superblock_t> *got_superblock_out) {
-    buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
-    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
-    *got_superblock_out = std::move(tmp_sb);
-}
-
-void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
-                                  UNUSED write_access_t superblock_access,
-                                  int expected_change_count,
-                                  repli_timestamp_t tstamp,
-                                  write_durability_t durability,
-                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
-
-    txn_out->init(txn);
-
-    get_btree_superblock(txn, access_t::write, got_superblock_out);
-}
-
-void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
-                                                  cache_account_t *backfill_account,
-                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
-    txn_out->init(txn);
-    txn->set_account(backfill_account);
-
-    get_btree_superblock(txn, access_t::read, got_superblock_out);
-    (*got_superblock_out)->get()->snapshot_subdag();
-}
-
-// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
-// cache being snapshotted -- we want some subtree to be snapshotted, at least.
-// However, if you quickly release the superblock, you'll release any snapshotting of
-// secondary index nodes that you could not possibly access.
-void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
-                                              cache_snapshotted_t snapshotted,
-                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<txn_t> *txn_out) {
-    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
-    txn_out->init(txn);
-
-    get_btree_superblock(txn, access_t::read, got_superblock_out);
-
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        (*got_superblock_out)->get()->snapshot_subdag();
     }
 }
 

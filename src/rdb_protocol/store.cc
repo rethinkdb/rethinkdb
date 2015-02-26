@@ -156,7 +156,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     }
 }
 
-scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
+scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     store_t *store,
     real_superblock_t *superblock,
     const std::string &table_name,
@@ -166,7 +166,7 @@ scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
     rassert(sindex_info_out != NULL);
     rassert(sindex_uuid_out != NULL);
 
-    scoped_ptr_t<real_superblock_t> sindex_sb;
+    scoped_ptr_t<sindex_superblock_t> sindex_sb;
     std::vector<char> sindex_mapping_data;
 
     uuid_u sindex_uuid;
@@ -217,7 +217,7 @@ void do_read(ql::env_t *env,
     } else {
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
-        scoped_ptr_t<real_superblock_t> sindex_sb;
+        scoped_ptr_t<sindex_superblock_t> sindex_sb;
         region_t true_region;
         try {
             sindex_sb =
@@ -382,7 +382,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
-        scoped_ptr_t<real_superblock_t> sindex_sb;
+        scoped_ptr_t<sindex_superblock_t> sindex_sb;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -432,7 +432,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
-        scoped_ptr_t<real_superblock_t> sindex_sb;
+        scoped_ptr_t<sindex_superblock_t> sindex_sb;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -948,7 +948,7 @@ private:
 void call_rdb_backfill(int i, btree_slice_t *btree,
                        const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
                        rdb_backfill_callback_t *callback,
-                       superblock_t *superblock,
+                       refcount_superblock_t *superblock,
                        buf_lock_t *sindex_block,
                        traversal_progress_combiner_t *progress,
                        signal_t *interruptor) THROWS_NOTHING {

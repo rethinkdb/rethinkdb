@@ -1,8 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "btree/reql_specific.hpp"
 
-/* This is the actual structure stored on disk for the superblock of a table's B-tree or
-a secondary index's B-tree. */
+#include "btree/secondary_operations.hpp"
+#include "buffer_cache/blob.hpp"
+#include "containers/binary_blob.hpp"
+
+/* This is the actual structure stored on disk for the superblock of a table's primary or
+sindex B-tree. Both of them use the exact same format, but the sindex B-trees don't make
+use of the `sindex_block` or `metainfo_blob` fields. */
 struct reql_btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
@@ -21,60 +26,109 @@ struct reql_btree_superblock_t {
 } __attribute__((__packed__));
 static const uint32_t REQL_BTREE_SUPERBLOCK_SIZE = sizeof(reql_btree_superblock_t);
 
-reql_superblock_t::reql_superblock_t(buf_lock_t &&sb_buf)
+const block_magic_t reql_btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
+
+void btree_superblock_ct_asserts() {
+    // Just some place to put the CT_ASSERTs
+    CT_ASSERT(reql_btree_superblock_t::METAINFO_BLOB_MAXREFLEN > 0);
+    CT_ASSERT(from_cache_block_size_t<sizeof(reql_btree_superblock_t)>::ser_size
+              == DEVICE_BLOCK_SIZE);
+}
+
+real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}
 
-void reql_superblock_t::release() {
+void real_superblock_t::release() {
     sb_buf_.reset_buf_lock();
 }
 
-block_id_t reql_superblock_t::get_root_block_id() {
+block_id_t real_superblock_t::get_root_block_id() {
     buf_read_t read(&sb_buf_);
     uint32_t sb_size;
     const reql_btree_superblock_t *sb_data
         = static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
-    guarantee(sb_size == BTREE_SUPERBLOCK_SIZE);
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
     return sb_data->root_block;
 }
 
-void reql_superblock_t::set_root_block_id(const block_id_t new_root_block) {
+void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     buf_write_t write(&sb_buf_);
     reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
         write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
     sb_data->root_block = new_root_block;
 }
 
-block_id_t reql_superblock_t::get_stat_block_id() {
+block_id_t real_superblock_t::get_stat_block_id() {
     buf_read_t read(&sb_buf_);
     uint32_t sb_size;
     const reql_btree_superblock_t *sb_data =
         static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
-    guarantee(sb_size == BTREE_SUPERBLOCK_SIZE);
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
     return sb_data->stat_block;
 }
 
-void reql_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
+void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     buf_write_t write(&sb_buf_);
     reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
         write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
     sb_data->stat_block = new_stat_block;
 }
 
-block_id_t reql_superblock_t::get_sindex_block_id() {
+block_id_t real_superblock_t::get_sindex_block_id() {
     buf_read_t read(&sb_buf_);
     uint32_t sb_size;
     const reql_btree_superblock_t *sb_data =
         static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
-    guarantee(sb_size == BTREE_SUPERBLOCK_SIZE);
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
     return sb_data->sindex_block;
 }
 
-void reql_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
+void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
     buf_write_t write(&sb_buf_);
     reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
         write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
     sb_data->sindex_block = new_sindex_block;
 }
+
+sindex_superblock_t::sindex_superblock_t(buf_lock_t &&sb_buf)
+    : sb_buf_(std::move(sb_buf)) {}
+
+void sindex_superblock_t::release() {
+    sb_buf_.reset_buf_lock();
+}
+
+block_id_t sindex_superblock_t::get_root_block_id() {
+    buf_read_t read(&sb_buf_);
+    uint32_t sb_size;
+    const reql_btree_superblock_t *sb_data
+        = static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
+    return sb_data->root_block;
+}
+
+void sindex_superblock_t::set_root_block_id(const block_id_t new_root_block) {
+    buf_write_t write(&sb_buf_);
+    reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
+        write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
+    sb_data->root_block = new_root_block;
+}
+
+block_id_t sindex_superblock_t::get_stat_block_id() {
+    buf_read_t read(&sb_buf_);
+    uint32_t sb_size;
+    const reql_btree_superblock_t *sb_data =
+        static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
+    return sb_data->stat_block;
+}
+
+void sindex_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
+    buf_write_t write(&sb_buf_);
+    reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
+        write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
+    sb_data->stat_block = new_stat_block;
+}
+
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
@@ -104,7 +158,8 @@ void btree_slice_t::init_superblock(buf_lock_t *superblock,
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
                              const std::string &identifier,
                              index_type_t index_type)
-    : stats(parent, identifier, index_type),
+    : stats(parent,
+            (index_type == index_type_t::SECONDARY ? "index-" : "") + identifier),
       cache_(c),
       backfill_account_(cache()->create_cache_account(BACKFILL_CACHE_PRIORITY)) { }
 
@@ -417,5 +472,57 @@ void clear_superblock_metainfo(buf_lock_t *superblock) {
                 data->metainfo_blob,
                 reql_btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(buf_parent_t(superblock));
+}
+
+
+void get_btree_superblock(txn_t *txn, access_t access,
+                          scoped_ptr_t<real_superblock_t> *got_superblock_out) {
+    buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
+    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
+    *got_superblock_out = std::move(tmp_sb);
+}
+
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
+                                  UNUSED write_access_t superblock_access,
+                                  int expected_change_count,
+                                  repli_timestamp_t tstamp,
+                                  write_durability_t durability,
+                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                  scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
+
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, access_t::write, got_superblock_out);
+}
+
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
+                                                  cache_account_t *backfill_account,
+                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                                  scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
+    txn_out->init(txn);
+    txn->set_account(backfill_account);
+
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
+    (*got_superblock_out)->get()->snapshot_subdag();
+}
+
+// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
+// cache being snapshotted -- we want some subtree to be snapshotted, at least.
+// However, if you quickly release the superblock, you'll release any snapshotting of
+// secondary index nodes that you could not possibly access.
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
+                                              cache_snapshotted_t snapshotted,
+                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                              scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
+
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
+        (*got_superblock_out)->get()->snapshot_subdag();
+    }
 }
 
