@@ -282,9 +282,11 @@ metadata_file_t::metadata_file_t(
 
     /* Migrate data if necessary */
     write_txn_t write_txn(this, interruptor);
-    buf_lock_t sb_lock(buf_parent_t(&write_txn.txn), SUPERBLOCK_ID, access_t::write);
-    buf_write_t sb_write(&sb_lock);
-    void *sb_data = sb_write.get_data_write();
+    object_buffer_t<buf_lock_t> sb_lock;
+    sb_lock.create(buf_parent_t(&write_txn.txn), SUPERBLOCK_ID, access_t::write);
+    object_buffer_t<buf_write_t> sb_write;
+    sb_write.create(sb_lock.get());
+    void *sb_data = sb_write->get_data_write();
     cluster_version_t metadata_version =
         magic_to_version(*static_cast<block_magic_t *>(sb_data));
     switch (metadata_version) {
@@ -300,8 +302,10 @@ metadata_file_t::metadata_file_t(
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
+            sb_write.reset();
+            sb_lock.reset();
             migrate_v1_16::migrate_cluster_metadata(
-                &write_txn.txn, buf_parent_t(&sb_lock), sb_copy.get(), &write_txn);
+                &write_txn.txn, buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn);
             break;
         }
         case cluster_version_t::raft_is_latest: {
@@ -337,10 +341,12 @@ metadata_file_t::metadata_file_t(
 
     {
         write_txn_t write_txn(this, interruptor);
-        buf_lock_t sb_lock(&write_txn.txn, SUPERBLOCK_ID, alt_create_t::create);
-        buf_write_t sb_write(&sb_lock);
-        void *sb_data = sb_write.get_data_write();
-        init_metadata_superblock(sb_data, cache->max_block_size().value());
+        {
+            buf_lock_t sb_lock(&write_txn.txn, SUPERBLOCK_ID, alt_create_t::create);
+            buf_write_t sb_write(&sb_lock);
+            void *sb_data = sb_write.get_data_write();
+            init_metadata_superblock(sb_data, cache->max_block_size().value());
+        }
         initializer(&write_txn, interruptor);
     }
 

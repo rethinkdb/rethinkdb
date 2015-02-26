@@ -768,7 +768,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             /* The `metadata_file_t` constructor will migrate the main metadata if it
             exists, but we need to migrate the auth metadata separately */
             serializer_filepath_t auth_path(base_path, "auth_metadata");
-            if (access(auth_path.permanent_path().c_str(), F_OK)) {
+            if (access(auth_path.permanent_path().c_str(), F_OK) == 0) {
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
