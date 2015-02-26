@@ -13,22 +13,26 @@ enum class cluster_version_t {
     v1_15 = 3,
     v1_16 = 4,
 
+    /* RSI(raft): This is temporary; eventually `raft` will be renamed to something of
+    the form `v2_N`. */
+    raft = 5,
+
     // This is used in places where _something_ needs to change when a new cluster
     // version is created.  (Template instantiations, switches on version number,
     // etc.)
-    v1_16_is_latest = v1_16,
+    raft_is_latest = raft,
 
     // Like the *_is_latest version, but for code that's only concerned with disk
     // serialization. Must be changed whenever LATEST_DISK gets changed.
-    v1_16_is_latest_disk = v1_16,
+    raft_is_latest_disk = raft,
 
     // The latest version, max of CLUSTER and LATEST_DISK
-    LATEST_OVERALL = v1_16_is_latest,
+    LATEST_OVERALL = raft_is_latest,
 
     // The latest version for disk serialization can sometimes be different from the
     // version we use for cluster serialization.  This is also the latest version of
     // ReQL deterministic function behavior.
-    LATEST_DISK = v1_16,
+    LATEST_DISK = raft,
 
     // This exists as long as the clustering code only supports the use of one
     // version.  It uses cluster_version_t::CLUSTER wherever it uses this.
