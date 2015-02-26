@@ -10,8 +10,7 @@ erase_execution_t::erase_execution_t(
         const std::function<void(const contract_ack_t &)> &ack_cb) :
     execution_t(_context, _region, _store, _perfmon_collection)
 {
-    guarantee(c.replicas.count(context->server_id) == 0);
-    ack_cb(contract_ack_t(contract_ack_t::state_t::nothing));
+    update_contract(c, ack_cb);
     coro_t::spawn_sometime(std::bind(&erase_execution_t::run, this, drainer.lock()));
 }
 

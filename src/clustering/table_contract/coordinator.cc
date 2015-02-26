@@ -66,11 +66,7 @@ contract_t calculate_contract(
     contract_t new_c = old_c;
 
     /* If there are new servers in `config.replicas`, add them to `c.replicas` */
-    for (const server_id_t &server : config.replicas) {
-        if (new_c.replicas.count(server) == 0) {
-            new_c.replicas.insert(server);
-        }
-    }
+    new_c.replicas.insert(config.replicas.begin(), config.replicas.end());
 
     /* If there is a mismatch between `config.replicas` and `c.voters`, then correct
     it */
@@ -152,7 +148,7 @@ contract_t calculate_contract(
             if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::state_t::secondary_need_primary) {
                 replica_states.push_back(
-                    std::make_pair(*acks.at(server).version, server));
+                    std::make_pair(*(acks.at(server).version), server));
             }
         }
         std::sort(replica_states.begin(), replica_states.end());

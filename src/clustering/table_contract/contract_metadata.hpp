@@ -179,7 +179,7 @@ public:
         };
 
         change_t() { }
-        template<class T> change_t(T &&t) : v(t) { }
+        template<class T> change_t(T &&t) : v(std::move(t)) { }
 
         boost::variant<set_table_config_t, new_contracts_t> v;
     };

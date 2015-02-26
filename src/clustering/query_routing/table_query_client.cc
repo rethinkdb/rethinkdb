@@ -121,7 +121,9 @@ std::set<region_t> table_query_client_t::get_sharding_scheme()
                                          "because primary replicas are "
                                          "unavailable or duplicated");
     }
-    return std::set<region_t>(s.begin(), s.end());
+    return std::set<region_t>(
+        std::make_move_iterator(s.begin()),
+        std::make_move_iterator(s.end()));
 }
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
