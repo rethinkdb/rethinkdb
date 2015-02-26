@@ -141,8 +141,8 @@ std::string too_large_query_message(uint32_t size) {
                      size, TOO_LARGE_QUERY_SIZE - 1);
 }
 
-std::string too_large_response_message(uint32_t size) {
-    return strprintf("Response size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+std::string too_large_response_message(size_t size) {
+    return strprintf("Response size (%zu) greater than maximum (%" PRIu32 ").",
                      size, TOO_LARGE_RESPONSE_SIZE - 1);
 }
 
@@ -199,7 +199,7 @@ public:
             Response error_response;
             error_response.set_token(response.token());
             ql::fill_error(&error_response, Response::RUNTIME_ERROR,
-                           too_large_response_message(data_size));
+                           too_large_response_message(str.size() - prefix_size));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
