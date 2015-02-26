@@ -230,7 +230,7 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
+            real_superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)
@@ -239,7 +239,7 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_write(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
+            real_superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
@@ -293,13 +293,13 @@ public:
 
     void protocol_read(const read_t &read,
                        read_response_t *response,
-                       superblock_t *superblock,
+                       real_superblock_t *superblock,
                        signal_t *interruptor);
 
     void protocol_write(const write_t &write,
                         write_response_t *response,
                         state_timestamp_t timestamp,
-                        scoped_ptr_t<superblock_t> *superblock,
+                        scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
     void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
@@ -310,7 +310,7 @@ public:
                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void protocol_receive_backfill(scoped_ptr_t<superblock_t> &&superblock,
+    void protocol_receive_backfill(scoped_ptr_t<real_superblock_t> &&superblock,
                                    signal_t *interruptor,
                                    const backfill_chunk_t &chunk);
 

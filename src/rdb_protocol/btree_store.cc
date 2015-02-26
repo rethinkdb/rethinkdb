@@ -7,8 +7,8 @@
 #include "btree/depth_first_traversal.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
+#include "btree/reql_specific.hpp"
 #include "btree/secondary_operations.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
@@ -202,7 +202,7 @@ void store_t::write(
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
                               real_superblock.get());
-    scoped_ptr_t<superblock_t> superblock(real_superblock.release());
+    scoped_ptr_t<real_superblock_t> superblock(real_superblock.release());
     protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
@@ -299,7 +299,7 @@ void store_t::receive_backfill(
                                  &real_superblock,
                                  interruptor);
 
-    scoped_ptr_t<superblock_t> superblock(real_superblock.release());
+    scoped_ptr_t<real_superblock_t> superblock(real_superblock.release());
     protocol_receive_backfill(std::move(superblock),
                               interruptor,
                               chunk);
@@ -666,7 +666,7 @@ void store_t::clear_sindex(
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
-        scoped_ptr_t<superblock_t> sindex_superblock
+        scoped_ptr_t<real_superblock_t> sindex_superblock
             = make_scoped<real_superblock_t>(std::move(sindex_superblock_lock));
 
         /* 1. Collect a bunch of keys to delete */
@@ -680,7 +680,7 @@ void store_t::clear_sindex(
         /* 2. Actually delete them */
         const std::vector<store_key_t> &keys = traversal_cb.get_keys();
         for (size_t i = 0; i < keys.size(); ++i) {
-            promise_t<superblock_t *> superblock_promise;
+            promise_t<real_superblock_t *> superblock_promise;
             {
                 keyvalue_location_t kv_location;
                 find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
@@ -1004,7 +1004,7 @@ MUST_USE bool store_t::mark_secondary_index_deleted(
 MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const sindex_name_t &name,
         const std::string &table_name,
-        superblock_t *superblock,
+        real_superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out,
         uuid_u *sindex_uuid_out)
@@ -1040,7 +1040,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         const sindex_name_t &name,
         const std::string &table_name,
-        superblock_t *superblock,
+        real_superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {

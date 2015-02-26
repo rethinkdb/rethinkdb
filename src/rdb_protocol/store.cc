@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
-#include "btree/slice.hpp"
+#include "btree/reql_specific.hpp"
 #include "btree/superblock.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
@@ -158,7 +158,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
 scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
     store_t *store,
-    superblock_t *superblock,
+    real_superblock_t *superblock,
     const std::string &table_name,
     const std::string &sindex_id,
     sindex_disk_info_t *sindex_info_out,
@@ -205,7 +205,7 @@ scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
 void do_read(ql::env_t *env,
              store_t *store,
              btree_slice_t *btree,
-             superblock_t *superblock,
+             real_superblock_t *superblock,
              const rget_read_t &rget,
              rget_read_response_t *res,
              release_superblock_t release_superblock) {
@@ -591,7 +591,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     rdb_read_visitor_t(btree_slice_t *_btree,
                        store_t *_store,
-                       superblock_t *_superblock,
+                       real_superblock_t *_superblock,
                        rdb_context_t *_ctx,
                        read_response_t *_response,
                        profile::trace_t *_trace,
@@ -611,7 +611,7 @@ private:
     signal_t *const interruptor;
     btree_slice_t *const btree;
     store_t *const store;
-    superblock_t *const superblock;
+    real_superblock_t *const superblock;
     profile::trace_t *const trace;
 
     DISABLE_COPYING(rdb_read_visitor_t);
@@ -619,7 +619,7 @@ private:
 
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
-                            superblock_t *superblock,
+                            real_superblock_t *superblock,
                             signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
 
@@ -828,7 +828,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     rdb_write_visitor_t(btree_slice_t *_btree,
                         store_t *_store,
                         txn_t *_txn,
-                        scoped_ptr_t<superblock_t> *_superblock,
+                        scoped_ptr_t<real_superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
                         rdb_context_t *_ctx,
                         profile::trace_t *_trace,
@@ -864,7 +864,7 @@ private:
     write_response_t *const response;
     rdb_context_t *const ctx;
     signal_t *const interruptor;
-    scoped_ptr_t<superblock_t> *const superblock;
+    scoped_ptr_t<real_superblock_t> *const superblock;
     const repli_timestamp_t timestamp;
     profile::trace_t *const trace;
     buf_lock_t sindex_block;
@@ -876,7 +876,7 @@ private:
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              state_timestamp_t timestamp,
-                             scoped_ptr_t<superblock_t> *superblock,
+                             scoped_ptr_t<real_superblock_t> *superblock,
                              signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
 
@@ -967,7 +967,7 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
 
 void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
                                      chunk_fun_callback_t *chunk_fun_cb,
-                                     superblock_t *superblock,
+                                     real_superblock_t *superblock,
                                      buf_lock_t *sindex_block,
                                      traversal_progress_combiner_t *progress,
                                      signal_t *interruptor)
@@ -989,7 +989,7 @@ void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &star
 }
 
 void backfill_chunk_single_rdb_set(const backfill_atom_t &bf_atom,
-                                   btree_slice_t *btree, superblock_t *superblock,
+                                   btree_slice_t *btree, real_superblock_t *superblock,
                                    UNUSED auto_drainer_t::lock_t drainer_acq,
                                    rdb_modification_report_t *mod_report_out,
                                    promise_t<superblock_t *> *superblock_promise_out) {
@@ -1006,7 +1006,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(store_t *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
-                                   scoped_ptr_t<superblock_t> &&_superblock,
+                                   scoped_ptr_t<real_superblock_t> &&_superblock,
                                    signal_t *_interruptor) :
         store(_store), btree(_btree), txn(_txn), superblock(std::move(_superblock)),
         interruptor(_interruptor),
@@ -1060,7 +1060,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                         auto_drainer_t::lock_t(&drainer),
                                                         &mod_reports[i],
                                                         &superblock_promise));
-                superblock.init(superblock_promise.wait());
+                superblock.init(static_cast<real_superblock_t *>(
+                    superblock_promise.wait()));
             }
             superblock.reset();
         }
@@ -1112,17 +1113,17 @@ private:
     store_t *store;
     btree_slice_t *btree;
     txn_t *txn;
-    scoped_ptr_t<superblock_t> superblock;
+    scoped_ptr_t<real_superblock_t> superblock;
     signal_t *interruptor;
     buf_lock_t sindex_block;
 
     DISABLE_COPYING(rdb_receive_backfill_visitor_t);
 };
 
-void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock,
+void store_t::protocol_receive_backfill(scoped_ptr_t<real_superblock_t> &&_superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
+    scoped_ptr_t<real_superblock_t> superblock(std::move(_superblock));
     rdb_receive_backfill_visitor_t v(this, btree.get(),
                                      superblock->expose_buf().txn(),
                                      std::move(superblock),
