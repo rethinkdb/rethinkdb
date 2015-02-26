@@ -23,6 +23,12 @@ public:
     class key_t {
     public:
         key_t(const std::string &s) : key(s) { }
+        key_t suffix(const std::string &s) const {
+            key_t copy = *this;
+            copy.key.set_size(key.size() + s.size());
+            memcpy(copy.key.contents() + key.size(), s.c_str(), s.size());
+            return copy;
+        }
     private:
         friend class metadata_file_t;
         store_key_t key;
