@@ -667,7 +667,7 @@ function setup_table(table_variable_name, table_name, db_name) {
 
 // check that all of the requested tables have been setup
 function setup_table_check() {
-    tests.push(function setup_table_check_innter() {
+    tests.push(function setup_table_check_inner() {
         if (required_external_tables.length > 0) {
             tableNames = []
             for (i in required_external_tables) {
@@ -675,6 +675,7 @@ function setup_table_check() {
             }
             throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
         }
+        runTest();
     });
 }
 
