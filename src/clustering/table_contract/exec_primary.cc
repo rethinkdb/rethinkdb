@@ -317,7 +317,7 @@ void primary_execution_t::sync_and_ack_contract(
                 cond_t done;
             } write_callback;
             write_callback.contract = contract;
-            our_broadcaster.wait()->spawn_write(write_t::make_sync(),
+            our_broadcaster.wait()->spawn_write(write_t::make_sync(region),
                 order_token_t::ignore, &write_callback);
             wait_interruptible(&write_callback.done, &interruptor);
             if (is_contract_ackable(contract, write_callback.servers)) {
