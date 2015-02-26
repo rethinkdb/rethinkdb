@@ -152,7 +152,7 @@ private:
         case Term::SET_UNION:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
-        case Term::INDEXES_OF:
+        case Term::OFFSETS_OF:
         case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
@@ -193,8 +193,8 @@ private:
         case Term::TYPE_OF:
         case Term::FUNCALL:
         case Term::BRANCH:
-        case Term::ANY:
-        case Term::ALL:
+        case Term::OR:
+        case Term::AND:
         case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:
@@ -345,7 +345,7 @@ private:
         case Term::SET_UNION:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
-        case Term::INDEXES_OF:
+        case Term::OFFSETS_OF:
         case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
@@ -391,8 +391,8 @@ private:
         case Term::INDEX_RENAME:
         case Term::FUNCALL:
         case Term::BRANCH:
-        case Term::ANY:
-        case Term::ALL:
+        case Term::OR:
+        case Term::AND:
         case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:

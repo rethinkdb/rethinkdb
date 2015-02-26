@@ -705,8 +705,8 @@ scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
 }
-counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<const func_t> f) {
-    return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
+counted_t<datum_stream_t> datum_stream_t::offsets_of(counted_t<const func_t> f) {
+    return make_counted<offsets_of_datum_stream_t>(f, counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
     return make_counted<ordered_distinct_datum_stream_t>(counted_from_this());
@@ -987,17 +987,17 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
     return ret;
 }
 
-// INDEXES_OF_DATUM_STREAM_T
-indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<const func_t> _f,
+// OFFSETS_OF_DATUM_STREAM_T
+offsets_of_datum_stream_t::offsets_of_datum_stream_t(counted_t<const func_t> _f,
                                                      counted_t<datum_stream_t> _source)
     : wrapper_datum_stream_t(_source), f(_f), index(0) {
     guarantee(f.has() && source.has());
 }
 
 std::vector<datum_t>
-indexes_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
+offsets_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
     std::vector<datum_t> ret;
-    profile::sampler_t sampler("Finding indexes_of eagerly.", env->trace);
+    profile::sampler_t sampler("Finding offsets_of eagerly.", env->trace);
     while (ret.size() == 0) {
         std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) {
@@ -1018,9 +1018,12 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
-changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
+std::vector<changefeed::keyspec_t> slice_datum_stream_t::get_change_specs() {
     if (left == 0) {
-        changefeed::keyspec_t subspec = source->get_change_spec();
+        auto subspecs = source->get_change_specs();
+        rcheck(subspecs.size() == 1, base_exc_t::GENERIC,
+               "Cannot call `changes` on a slice of a union.");
+        auto subspec = subspecs[0];
         auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
         if (rspec != NULL) {
             std::copy(transforms.begin(), transforms.end(),
@@ -1031,15 +1034,15 @@ changefeed::keyspec_t slice_datum_stream_t::get_change_spec() {
                              "with size > %zu (got %" PRIu64 ").",
                              std::numeric_limits<size_t>::max(),
                              right));
-            return changefeed::keyspec_t(
+            return std::vector<changefeed::keyspec_t>{changefeed::keyspec_t(
                 changefeed::keyspec_t::limit_t{
                     std::move(*rspec),
                     static_cast<size_t>(right)},
                 std::move(subspec.table),
-                std::move(subspec.table_name));
+                std::move(subspec.table_name))};
         }
     }
-    return wrapper_datum_stream_t::get_change_spec();
+    return wrapper_datum_stream_t::get_change_specs();
 }
 
 std::vector<datum_t>
@@ -1076,7 +1079,9 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
         }
     }
 
-    while (index < right && !batcher.should_send_batch()) {
+    while (index < right) {
+        if (batcher.should_send_batch()) break;
+        if (source->cfeed_type() != feed_type_t::not_feed && ret.size() > 0) break;
         sampler.new_sample();
         std::vector<datum_t> v =
             source->next_batch(env, batchspec.with_at_most(right - index));
@@ -1113,30 +1118,187 @@ bool slice_datum_stream_t::is_infinite() const {
 }
 
 // UNION_DATUM_STREAM_T
+class coro_stream_t {
+public:
+    coro_stream_t(counted_t<datum_stream_t> _stream, union_datum_stream_t *_parent)
+        : stream(_stream),
+          running(false),
+          is_first_batch(true),
+          parent(_parent) {
+        if (!stream->is_exhausted()) parent->active += 1;
+    }
+    void maybe_launch_read() {
+        if (!stream->is_exhausted() && !running) {
+            running = true;
+            auto_drainer_t::lock_t lock(&parent->drainer);
+            coro_t::spawn_sometime([this, lock]{this->cb(lock);});
+        }
+    }
+    const counted_t<datum_stream_t> stream;
+private:
+    void cb(auto_drainer_t::lock_t lock) THROWS_NOTHING {
+        // See `next_batch` call below.
+        DEBUG_ONLY(scoped_ptr_t<assert_no_coro_waiting_t> no_coro_waiting(
+                       make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__)));
+        lock.assert_is_holding(&parent->drainer);
+        parent->home_thread_mixin_t::assert_thread();
+        try {
+            r_sanity_check(parent->coro_batchspec.has());
+            batchspec_t bs = *parent->coro_batchspec;
+            if (bs.get_batch_type() == batch_type_t::NORMAL_FIRST && !is_first_batch) {
+                bs = bs.with_new_batch_type(batch_type_t::NORMAL);
+            }
+            is_first_batch = false;
+
+            // We want to make sure that this call to `next_batch` is the only
+            // thing in this whole function that blocks.
+            DEBUG_ONLY(no_coro_waiting.reset());
+            std::vector<datum_t> batch = stream->next_batch(parent->coro_env.get(), bs);
+            DEBUG_ONLY(no_coro_waiting
+                       = make_scoped<assert_no_coro_waiting_t>(__FILE__, __LINE__));
+
+            if (batch.size() == 0 && stream->cfeed_type() == feed_type_t::not_feed) {
+                r_sanity_check(stream->is_exhausted());
+                // We're done, fall through and deactivate ourselves.
+            } else {
+                r_sanity_check(
+                    batch.size() != 0
+                    || (parent->coro_env->return_empty_normal_batches
+                        == return_empty_normal_batches_t::YES)
+                    || (bs.get_batch_type() == batch_type_t::NORMAL_FIRST));
+                parent->queue.push(std::move(batch));
+                parent->data_available->pulse_if_not_already_pulsed();
+            }
+        } catch (const interrupted_exc_t &) {
+            // Just fall through and end; the drainer signal being pulsed
+            // will interrupt `next_batch_impl` as well.
+        } catch (...) {
+            parent->abort_exc.pulse_if_not_already_pulsed(std::current_exception());
+        }
+        if (stream->is_exhausted()) {
+            parent->active -= 1;
+            if (parent->active == 0 && parent->data_available.has()) {
+                parent->data_available->pulse_if_not_already_pulsed();
+            }
+        }
+        running = false;
+    }
+    bool running, is_first_batch;
+    union_datum_stream_t *parent;
+};
+
+union_datum_stream_t::union_datum_stream_t(
+    env_t *env,
+    std::vector<counted_t<datum_stream_t> > &&streams,
+    const protob_t<const Backtrace> &bt_src)
+    : datum_stream_t(bt_src),
+      union_type(feed_type_t::not_feed),
+      is_infinite_union(false),
+      active(0),
+      coros_exhausted(false) {
+
+    for (const auto &stream : streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_union |= stream->is_infinite();
+    }
+
+    if (env->trace != nullptr) {
+        trace = make_scoped<profile::trace_t>();
+        disabler = make_scoped<profile::disabler_t>(trace.get());
+    }
+    coro_env = make_scoped<env_t>(
+        env->get_rdb_ctx(),
+        env->return_empty_normal_batches,
+        drainer.get_drain_signal(),
+        env->get_all_optargs(),
+        trace.has() ? trace.get() : nullptr);
+
+    coro_streams.reserve(streams.size());
+    for (auto &&stream : streams) {
+        coro_streams.push_back(make_scoped<coro_stream_t>(std::move(stream), this));
+    }
+}
+
+std::vector<datum_t>
+union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+    // This needs to be on the same thread as the coroutines spawned in the
+    // constructor.
+    home_thread_mixin_t::assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    wait_any_t interruptor(env->interruptor, lock.get_drain_signal(),
+                           abort_exc.get_ready_signal());
+    for (;;) {
+        try {
+            // The client is already doing prefetching, so we don't want to do
+            // *double* prefetching by prefetching on the server as well.
+            while (queue.size() == 0) {
+                std::exception_ptr exc;
+                if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
+                if (active == 0) {
+                    coros_exhausted = true;
+                    return std::vector<datum_t>();
+                }
+                // We don't have the batchspec during construction.
+                if (!coro_batchspec.has()) {
+                    coro_batchspec = make_scoped<batchspec_t>(batchspec);
+                }
+
+                data_available = make_scoped<cond_t>();
+                for (auto &&s : coro_streams) s->maybe_launch_read();
+                r_sanity_check(active != 0 || data_available->is_pulsed());
+                wait_interruptible(data_available.get(), &interruptor);
+            }
+        } catch (...) {
+            // Prefer throwing coroutine exceptions because we might have been
+            // interrupted by `abort_exc`, and in all other cases it doesn't
+            // matter which we throw.
+            std::exception_ptr exc;
+            if (abort_exc.try_get_value(&exc)) std::rethrow_exception(exc);
+            throw;
+        }
+        r_sanity_check(queue.size() != 0);
+        std::vector<datum_t> data = std::move(queue.front());
+        queue.pop();
+        if (data.size() == 0) {
+            // We should only ever get empty batches if one of our streams is a
+            // changefeed.
+            r_sanity_check(union_type != feed_type_t::not_feed);
+            // If we aren't supposed to send empty normal batches, and this
+            // isn't a `NORMAL_FIRST` batch, we don't send it.
+            if ((env->return_empty_normal_batches == return_empty_normal_batches_t::NO)
+                && (batchspec.get_batch_type() != batch_type_t::NORMAL_FIRST)) {
+                continue;
+            }
+        }
+        if (active == 0 && queue.size() == 0) coros_exhausted = true;
+        return data;
+    }
+}
+
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                               const protob_t<const Backtrace> &bt) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(transform_variant_t(tv), bt);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->add_transformation(transform_variant_t(tv), bt);
     }
     update_bt(bt);
 }
 
 void union_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->accumulate(env, acc, tv);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->accumulate(env, acc, tv);
     }
 }
 
 void union_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->accumulate_all(env, acc);
+    for (auto &&coro_stream : coro_streams) {
+        coro_stream->stream->accumulate_all(env, acc);
     }
 }
 
 bool union_datum_stream_t::is_array() const {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        if (!(*it)->is_array()) {
+    for (auto &&coro_stream : coro_streams) {
+        if (!coro_stream->stream->is_array()) {
             return false;
         }
     }
@@ -1161,12 +1323,7 @@ datum_t union_datum_stream_t::as_array(env_t *env) {
 }
 
 bool union_datum_stream_t::is_exhausted() const {
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-        if (!(*it)->is_exhausted()) {
-            return false;
-        }
-    }
-    return batch_cache_exhausted();
+    return batch_cache_exhausted() && coros_exhausted;
 }
 feed_type_t union_datum_stream_t::cfeed_type() const {
     return union_type;
@@ -1175,17 +1332,13 @@ bool union_datum_stream_t::is_infinite() const {
     return is_infinite_union;
 }
 
-std::vector<datum_t>
-union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
-    for (; streams_index < streams.size(); ++streams_index) {
-        std::vector<datum_t> batch
-            = streams[streams_index]->next_batch(env, batchspec);
-        if (batch.size() != 0 ||
-            streams[streams_index]->cfeed_type() != feed_type_t::not_feed) {
-            return batch;
-        }
+std::vector<changefeed::keyspec_t> union_datum_stream_t::get_change_specs() {
+    std::vector<changefeed::keyspec_t> specs;
+    for (auto &&coro_stream : coro_streams) {
+        auto subspecs = coro_stream->stream->get_change_specs();
+        std::move(subspecs.begin(), subspecs.end(), std::back_inserter(specs));
     }
-    return std::vector<datum_t>();
+    return specs;
 }
 
 // RANGE_DATUM_STREAM_T
@@ -1209,7 +1362,9 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
     std::vector<datum_t> batch;
     // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
     // think strongly it should be something else you're probably right.
-    batcher_t batcher = batchspec.with_at_most(500).to_batcher();
+    batcher_t batcher = batchspec.get_batch_type() == batch_type_t::TERMINAL ?
+                            batchspec.to_batcher() :
+                            batchspec.with_at_most(500).to_batcher();
 
     while (!is_exhausted()) {
         double next = safe_to_double(start++);
@@ -1355,9 +1510,9 @@ bool vector_datum_stream_t::is_infinite() const {
     return false;
 }
 
-changefeed::keyspec_t vector_datum_stream_t::get_change_spec() {
+std::vector<changefeed::keyspec_t> vector_datum_stream_t::get_change_specs() {
     if (changespec) {
-        return *changespec;
+        return std::vector<changefeed::keyspec_t>{*changespec};
     } else {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
     }

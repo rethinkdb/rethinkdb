@@ -2,6 +2,21 @@ desc: Test changefeed squashing
 table_variable_name: tbl
 tests:
 
+    # Bad Squash Values
+    - py: tbl.changes(squash=None)
+      rb: tbl.changes(squash:nil)
+      js: tbl.changes({squash:null})
+      ot: err('RqlRuntimeError', 'Expected BOOL or NUMBER but found NULL.')
+
+    - py: tbl.changes(squash=-10)
+      rb: tbl.changes(squash:-10)
+      js: tbl.changes({squash:-10})
+      ot: err('RqlRuntimeError', 'Expected BOOL or a positive NUMBER but found a negative NUMBER.')
+    - py: tbl.changes(squash=true).type_of()
+      rb: tbl.changes(squash:true).type_of()
+      js: tbl.changes({squash:true}).typeOf()
+      ot: ("STREAM")
+
     - py: tbl.changes(squash=true).type_of()
       rb: tbl.changes(squash:true).type_of()
       js: tbl.changes({squash:true}).typeOf()
@@ -29,8 +44,13 @@ tests:
       js: tbl.get(100).update({'a':1})('replaced')
       ot: 1
 
-    - cd: normal_changes
-      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+    - rb: normal_changes
+      ot: ([{'new_val':{'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+    - py: normal_changes
+      js: normal_changes
+      ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False
 
@@ -45,7 +65,12 @@ tests:
       testopts:
         reql-query: False
 
-    - cd: squash_changes
-      ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+    - rb: squash_changes
+      ot: ([{'new_val':{'id':100}, 'old_val':null}])
+      testopts:
+        reql-query: False
+    - py: squash_changes
+      js: squash_changes
+      ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False

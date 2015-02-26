@@ -131,7 +131,9 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyva
     try {
         // Post-filter the geometry based on an actual intersection test
         // with query_geometry
-        ql::env_t sindex_env(env->interruptor, sindex.func_reql_version);
+        ql::env_t sindex_env(env->interruptor,
+                             ql::return_empty_normal_batches_t::NO,
+                             sindex.func_reql_version);
         ql::datum_t sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI

@@ -84,16 +84,17 @@ public:
     batcher_t to_batcher() const;
 
 private:
-    template<cluster_version_t W>
-    friend void serialize(write_message_t *, const batchspec_t &);
-    template<cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *, batchspec_t *);
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
     batchspec_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
                 int64_t max_size, int64_t first_scaledown,
                 int64_t max_dur, microtime_t start_time);
+
+    template<cluster_version_t W>
+    friend void serialize(write_message_t *wm, const batchspec_t &batchspec);
+    template<cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec);
 
     batch_type_t batch_type;
     int64_t min_els, max_els, max_size, first_scaledown_factor, max_dur;

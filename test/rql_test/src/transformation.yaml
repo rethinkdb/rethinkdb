@@ -494,22 +494,22 @@ tests:
     - cd: r.expr([1,2,3]).union(tbl2).count()
       ot: 103
 
-    ## Indexes Of
+    ## Offsets Of
     - def: ord = tbl.order_by('id')
-      js: ord.indexesOf(r.row('id').lt(2))
-      py: ord.indexes_of(r.row['id'] < 2)
-      rb: ord.indexes_of{ |row| row['id'] < 2 }
+      js: ord.offsetsOf(r.row('id').lt(2))
+      py: ord.offsets_of(r.row['id'] < 2)
+      rb: ord.offsets_of{ |row| row['id'] < 2 }
       ot: [0,1]
 
-    - cd: r.expr([1,2,3,4]).indexes_of(3)
+    - cd: r.expr([1,2,3,4]).offsets_of(3)
       ot: [2]
 
-    - cd: r.expr([1]).indexes_of(tbl)
+    - cd: r.expr([1]).offsets_of(tbl)
       ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [])
 
-    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).indexes_of(x))"
-      js: r.expr(1).do(function(x){ return r.expr([2,1,0]).indexes_of(x); })
-      rb: r(1).do{ |x| r([2,1,0]).indexes_of x }
+    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).offsets_of(x))"
+      js: r.expr(1).do(function(x){ return r.expr([2,1,0]).offsets_of(x); })
+      rb: r(1).do{ |x| r([2,1,0]).offsets_of x }
       ot: [1]
 
     # Contains

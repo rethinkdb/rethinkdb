@@ -8,7 +8,6 @@ namespace unittest {
 void dummy_performer_t::read(const read_t &read,
                              read_response_t *response,
                              DEBUG_VAR state_timestamp_t expected_timestamp,
-                             order_token_t order_token,
                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     read_token_t token;
     store->new_read_token(&token);
@@ -18,7 +17,7 @@ void dummy_performer_t::read(const read_t &read,
     metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token, interruptor);
+    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, &token, interruptor);
 }
 
 void dummy_performer_t::read_outdated(const read_t &read,
@@ -33,7 +32,6 @@ void dummy_performer_t::read_outdated(const read_t &read,
 #endif
 
     return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
-                       bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
                        &token,
                        interruptor);
 }
@@ -85,7 +83,7 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
 
 void dummy_timestamper_t::read(const read_t &read, read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     order_sink.check_out(otok);
-    next->read(read, response, current_timestamp, otok, interruptor);
+    next->read(read, response, current_timestamp, interruptor);
 }
 
 void dummy_timestamper_t::write(const write_t &write, write_response_t *response, order_token_t otok) THROWS_NOTHING {

@@ -6,17 +6,17 @@
 
 namespace unittest {
 
-mock_namespace_interface_t::mock_namespace_interface_t(ql::env_t *_env) :
-    env(_env) {
+mock_namespace_interface_t::mock_namespace_interface_t(
+            datum_string_t _primary_key,
+            std::map<store_key_t, ql::datum_t> &&_data,
+            ql::env_t *_env) :
+        primary_key(_primary_key),
+        data(std::move(_data)),
+        env(_env) {
     ready_cond.pulse();
 }
 
-mock_namespace_interface_t::~mock_namespace_interface_t() {
-    while (!data.empty()) {
-        delete data.begin()->second;
-        data.erase(data.begin());
-    }
-}
+mock_namespace_interface_t::~mock_namespace_interface_t() { }
 
 void mock_namespace_interface_t::read(const read_t &query,
                                       read_response_t *response,
@@ -31,7 +31,7 @@ void mock_namespace_interface_t::read_outdated(const read_t &query,
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
-    read_visitor_t v(&data, response);
+    read_visitor_t v(this, response);
     boost::apply_visitor(v, query.read);
 }
 
@@ -42,12 +42,16 @@ void mock_namespace_interface_t::write(const write_t &query,
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
-    write_visitor_t v(&data, env, response);
+    write_visitor_t v(this, response);
     boost::apply_visitor(v, query.write);
 }
 
-std::map<store_key_t, scoped_cJSON_t *> *mock_namespace_interface_t::get_data() {
+std::map<store_key_t, ql::datum_t> *mock_namespace_interface_t::get_data() {
     return &data;
+}
+
+std::string mock_namespace_interface_t::get_primary_key() const {
+    return primary_key.to_std();
 }
 
 std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
@@ -66,9 +70,8 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     response->response = point_read_response_t();
     point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
-    if (data->find(get.key) != data->end()) {
-        res.data = ql::to_datum(data->at(get.key)->get(), limits,
-                                reql_version_t::LATEST);
+    if (parent->data.find(get.key) != parent->data.end()) {
+        res.data = parent->data.at(get.key);
     } else {
         res.data = ql::datum_t::null();
     }
@@ -129,9 +132,9 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
 }
 
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(
-        std::map<store_key_t, scoped_cJSON_t *> *_data,
+        mock_namespace_interface_t *_parent,
         read_response_t *_response) :
-    data(_data), response(_response) {
+    parent(_parent), response(_response) {
     // Do nothing
 }
 
@@ -141,27 +144,26 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
+        auto data_it = parent->data.find(*it);
         ql::datum_object_builder_t resp;
-        ql::datum_t old_val;
-        if (data->find(*it) != data->end()) {
-            old_val = ql::to_datum(data->at(*it)->get(), limits, reql_version_t::LATEST);
-        } else {
-            old_val = ql::datum_t::null();
-        }
+        ql::datum_t old_val = data_it == parent->data.end() ?
+            data_it->second : ql::datum_t::null();
 
         ql::datum_t new_val
-            = r.f.compile_wire_func()->call(env, old_val)->as_datum();
-        data->erase(*it);
+            = r.f.compile_wire_func()->call(parent->env, old_val)->as_datum();
+        parent->data.erase(*it);
 
         bool err;
         if (new_val.get_type() == ql::datum_t::R_OBJECT) {
-            data->insert(std::make_pair(*it, new scoped_cJSON_t(new_val.as_json())));
             if (old_val.get_type() == ql::datum_t::R_NULL) {
+                parent->data.insert(std::make_pair(*it, new_val));
                 err = resp.add("inserted", ql::datum_t(1.0));
             } else {
                 if (old_val == new_val) {
                     err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
+                    parent->data.erase(*it);
+                    parent->data.insert(std::make_pair(*it, new_val));
                     err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
@@ -169,6 +171,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
             if (old_val.get_type() == ql::datum_t::R_NULL) {
                 err = resp.add("skipped", ql::datum_t(1.0));
             } else {
+                parent->data.erase(*it);
                 err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
@@ -191,26 +194,25 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
         store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
+        auto data_it = parent->data.find(key);
         ql::datum_object_builder_t resp;
-        ql::datum_t old_val;
-        if (data->find(key) != data->end()) {
-            old_val = ql::to_datum(data->at(key)->get(), limits, reql_version_t::LATEST);
-        } else {
-            old_val = ql::datum_t::null();
-        }
+        ql::datum_t old_val = data_it == parent->data.end() ?
+            data_it->second : ql::datum_t::null();
 
         ql::datum_t new_val = *it;
-        data->erase(key);
+        parent->data.erase(key);
 
         bool err;
         if (new_val.get_type() == ql::datum_t::R_OBJECT) {
-            data->insert(std::make_pair(key, new scoped_cJSON_t(new_val.as_json())));
             if (old_val.get_type() == ql::datum_t::R_NULL) {
+                parent->data.insert(std::make_pair(key, new_val));
                 err = resp.add("inserted", ql::datum_t(1.0));
             } else {
                 if (old_val == new_val) {
                     err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
+                    parent->data.erase(key);
+                    parent->data.insert(std::make_pair(key, new_val));
                     err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
@@ -218,6 +220,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
             if (old_val.get_type() == ql::datum_t::R_NULL) {
                 err = resp.add("skipped", ql::datum_t(1.0));
             } else {
+                parent->data.erase(key);
                 err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
@@ -260,63 +263,53 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sync
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
-                                                             ql::env_t *_env,
-                                                             write_response_t *_response) :
-    data(_data), env(_env), response(_response) {
+mock_namespace_interface_t::write_visitor_t::write_visitor_t(
+            mock_namespace_interface_t *_parent,
+            write_response_t *_response) :
+        parent(_parent), response(_response) {
     // Do nothing
 }
 
 test_rdb_env_t::test_rdb_env_t() { }
 
-test_rdb_env_t::~test_rdb_env_t() {
-    // Clean up initial datas (if there was no instance constructed, this may happen
-    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {
-        delete it->second;
+test_rdb_env_t::~test_rdb_env_t() { }
+
+void test_rdb_env_t::add_table(const std::string &db_name,
+                               const std::string &table_name,
+                               const std::string &primary_key) {
+    std::set<ql::datum_t, latest_version_optional_datum_less_t> empty_data;
+    add_table(db_name, table_name, primary_key, empty_data);
+}
+
+void test_rdb_env_t::add_table(
+        const std::string &db_name,
+        const std::string &table_name,
+        const std::string &primary_key,
+        const std::set<ql::datum_t, latest_version_optional_datum_less_t> &initial_data) {
+    std::pair<name_string_t, name_string_t> db_table(
+        { name_string_t::guarantee_valid(db_name.c_str()),
+          name_string_t::guarantee_valid(table_name.c_str()) });
+
+    auto table_it = tables.insert(std::make_pair(db_table, table_data_t())).first;
+    guarantee(table_it != tables.end()); 
+
+    table_it->second.primary_key = datum_string_t(primary_key);
+
+    for (auto const &row : initial_data) {
+        store_key_t key(row.get_field(table_it->second.primary_key).print_primary());
+        table_it->second.initial_data.insert(std::make_pair(key, row));
     }
 }
 
-void test_rdb_env_t::add_table(const std::string &table_name,
-                               const uuid_u &db_id,
-                               const std::string &primary_key,
-                               const std::set<std::map<std::string, std::string> > &initial_data) {
-    name_string_t table_name_string;
-    if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
-
-    primary_keys.insert(std::make_pair(std::make_pair(db_id, table_name_string),
-                                       primary_key));
-
-    // Set up initial data
-    std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();
-
-    for (auto it = initial_data.begin(); it != initial_data.end(); ++it) {
-        guarantee(it->find(primary_key) != it->end());
-        store_key_t key("S" + it->at(primary_key));
-        scoped_cJSON_t *item = new scoped_cJSON_t(cJSON_CreateObject());
-
-        for (auto jt = it->begin(); jt != it->end(); ++jt) {
-            cJSON* strvalue = cJSON_CreateString(jt->second.c_str());
-            item->AddItemToObject(jt->first.c_str(), strvalue);
-        }
-        data->insert(std::make_pair(key, item));
-    }
-
-    initial_datas.insert(std::make_pair(std::make_pair(db_id, table_name_string), data));
-}
-
-database_id_t test_rdb_env_t::add_database(const std::string &db_name) {
-    name_string_t db_name_string;
-    if (!db_name_string.assign_value(db_name)) throw invalid_name_exc_t(db_name);
-    database_id_t id = generate_uuid();
-    databases[db_name_string] = id;
-    return id;
+void test_rdb_env_t::add_database(const std::string &db_name) {
+    databases.insert(name_string_t::guarantee_valid(db_name.c_str()));
 }
 
 scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
-    return make_scoped<instance_t>(this);
+    return make_scoped<instance_t>(std::move(*this));
 }
 
-test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
+test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
     rdb_ctx(&extproc_pool, this)
 {
@@ -326,30 +319,39 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            std::map<std::string, ql::wire_func_t>(),
                            nullptr /* no profile trace */));
 
-    // Set up any initial datas
-    databases = test_env->databases;
-    primary_keys = test_env->primary_keys;
-    for (auto it = test_env->initial_datas.begin();
-         it != test_env->initial_datas.end();
-         ++it) {
-        scoped_ptr_t<mock_namespace_interface_t> storage(
-            new mock_namespace_interface_t(env.get()));
-        storage->get_data()->swap(*it->second);
-        auto res = tables.insert(std::make_pair(it->first, std::move(storage)));
-        guarantee(res.second == true);
-        delete it->second;
+    // Set up any databases, tables, and data
+    for (auto const &db_name : test_env.databases) {
+        databases[db_name] = generate_uuid();
     }
-    test_env->initial_datas.clear();
+
+    for (auto &&db_table_pair : test_env.tables) {
+        auto db_it = databases.find(db_table_pair.first.first);
+        guarantee(db_it != databases.end());
+
+        scoped_ptr_t<mock_namespace_interface_t> storage(
+            new mock_namespace_interface_t(
+                db_table_pair.second.primary_key,
+                std::move(db_table_pair.second.initial_data),
+                env.get()));
+        tables[std::make_pair(db_it->second, db_table_pair.first.second)] =
+            std::move(storage);
+    }
+
+    test_env.databases.clear();
+    test_env.tables.clear();
 }
 
 ql::env_t *test_rdb_env_t::instance_t::get() {
     return env.get();
 }
 
-std::map<store_key_t, scoped_cJSON_t *> *test_rdb_env_t::instance_t::get_data(
-        database_id_t db, name_string_t table) {
-    guarantee(tables.count(std::make_pair(db, table)) == 1);
-    return tables.at(std::make_pair(db, table))->get_data();
+std::map<store_key_t, ql::datum_t> *test_rdb_env_t::instance_t::get_data(
+        name_string_t db, name_string_t table) {
+    auto db_it = databases.find(db);
+    guarantee(db_it != databases.end());
+    auto table_it = tables.find(std::make_pair(db_it->second, table));
+    guarantee(table_it != tables.end());
+    return table_it->second->get_data();
 }
 
 void test_rdb_env_t::instance_t::interrupt() {
@@ -458,7 +460,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
         table_out->reset(new real_table_t(nil_uuid(), table_access,
-            primary_keys.at(std::make_pair(db->id, name)), NULL));
+                                          it->second->get_primary_key(), NULL));
         return true;
     }
 }

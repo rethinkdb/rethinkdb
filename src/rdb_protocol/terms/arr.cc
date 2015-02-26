@@ -551,9 +551,9 @@ private:
     const char *name() const { return "change_at"; }
 };
 
-class indexes_of_term_t : public op_term_t {
+class offsets_of_term_t : public op_term_t {
 public:
-    indexes_of_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    offsets_of_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 1);
@@ -563,9 +563,9 @@ private:
         } else {
             fun = new_eq_comparison_func(v->as_datum(), backtrace());
         }
-        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->indexes_of(fun));
+        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->offsets_of(fun));
     }
-    virtual const char *name() const { return "indexes_of"; }
+    virtual const char *name() const { return "offsets_of"; }
 };
 
 class contains_term_t : public op_term_t {
@@ -718,9 +718,9 @@ counted_t<term_t> make_splice_at_term(
     return make_counted<splice_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_indexes_of_term(
+counted_t<term_t> make_offsets_of_term(
     compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<indexes_of_term_t>(env, term);
+    return make_counted<offsets_of_term_t>(env, term);
 }
 
 

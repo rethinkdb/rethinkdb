@@ -151,7 +151,7 @@ public:
     bool is_infinite() const { return false; }
 
 private:
-    virtual changefeed::keyspec_t get_change_spec() {
+    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
     }
     std::vector<datum_t> next_page(env_t *env);

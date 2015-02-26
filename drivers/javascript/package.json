@@ -14,5 +14,5 @@
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"
     }
 , "engines" : { "node": ">= 0.10.0" }
-, "dependencies" : { "bluebird": ">= 2.3.2" }
+, "dependencies" : { "bluebird": ">= 2.3.2 < 3" }
 }

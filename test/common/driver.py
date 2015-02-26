@@ -353,7 +353,7 @@ class _Process(object):
     
     logfilePortRegex = re.compile('Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
     logfileServerIDRegex = re.compile('Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
-    logfileReadyRegex = re.compile('Server ready, "(?P<name>\w+)" (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
+    logfileReadyRegex = re.compile('(Server|Proxy) ready(, "(?P<name>\w+)" (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
     
     def __init__(self, cluster, options, console_output=None, executable_path=None, command_prefix=None):
         global runningServers
@@ -497,7 +497,7 @@ class _Process(object):
     def wait_until_started_up(self, timeout=30):
         deadline = time.time() + timeout
         while deadline > time.time():
-            if not self._check_all_ports_known():
+            if not self.ready:
                 self.check()
                 time.sleep(0.05)
             else:
@@ -505,9 +505,6 @@ class _Process(object):
                 return
         else:
             raise RuntimeError("Timed out after waiting %d seconds for startup." % timeout)
-    
-    def _check_all_ports_known(self):
-        return all((self._cluster_port, self._driver_port, self._http_port, self._uuid, self._name))
     
     def read_ports_from_log(self, timeout=30):
         deadline = time.time() + timeout
@@ -531,8 +528,7 @@ class _Process(object):
             
             # - bail out if we have everything
             
-            if self._check_all_ports_known():
-                self.ready = True
+            if self.ready:
                 return
             
             # - get a new line or sleep
@@ -564,6 +560,7 @@ class _Process(object):
             
             parsedLine = self.logfileReadyRegex.search(logLine)
             if parsedLine:
+                self.ready = True
                 self._name = parsedLine.group('name')
                 self._uuid = parsedLine.group('uuid')
         else:
@@ -751,9 +748,6 @@ class ProxyProcess(_Process):
         options = ["proxy", "--log-file", self.logfile_path] + extra_options
 
         _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
-    
-    def _check_all_ports_known(self):
-        return all((self._driver_port, self._http_port, self._uuid))
 
 if __name__ == "__main__":
     with Metacluster() as mc:
