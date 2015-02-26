@@ -318,7 +318,7 @@ class PyTestDriver:
     def define(self, expr, variable):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
-            exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle thinkgs like: a['b'] = b
+            exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle things like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
     
@@ -381,7 +381,7 @@ class PyTestDriver:
             # - Save variable if requested
             
             if 'variable' in testopts:
-                # ToDo: hadnle complex variables like: a[2]
+                # ToDo: handle complex variables like: a[2]
                 self.scope[testopts['variable']] = result
                 if exp_val is None:
                     return
