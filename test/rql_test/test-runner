@@ -589,6 +589,10 @@ class TestGroup(object):
             else:
                outputFile.write('%s No auto-created tables\n\n' % lang.line_comment)
             
+            # - test that all external tables are claimed
+            
+            outputFile.write('setup_table_check()\n\n')
+            
             # - mark end of the header/driver
             
             outputFile.write('%s ========== End of common test functions ==========\n\n' % lang.line_comment)
