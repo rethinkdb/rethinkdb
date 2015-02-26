@@ -2,8 +2,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_
 
+#include "btree/operations.hpp"
+#include "buffer_cache/alt.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/rwlock.hpp"
 #include "serializer/types.hpp"
+
+class io_backender_t;
 
 class file_in_use_exc_t : public std::exception {
 public:
@@ -19,6 +24,7 @@ public:
     public:
         key_t(const std::string &s) : key(s) { }
     private:
+        friend class metadata_file_t;
         store_key_t key;
     };
 
@@ -37,8 +43,7 @@ public:
                 [&](read_stream_t *bin_value) {
                     archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
                         bin_value, value_out);
-                    guarantee_deserialization(res,
-                        "persistent_file_t::read key='%s'", key.c_str());
+                    guarantee_deserialization(res, "persistent_file_t::read");
                     found = true;
                 },
                 interruptor);
@@ -57,9 +62,7 @@ public:
                     T value;
                     archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
                         bin_value, &value);
-                    guarantee_deserialization(res,
-                        "persistent_file_t::read_many key_prefix='%s'",
-                        key_prefix.c_str());
+                    guarantee_deserialization(res, "persistent_file_t::read_many");
                     cb(key_suffix, value);
                 },
                 interruptor);
@@ -72,7 +75,8 @@ public:
         read_txn_t(metadata_file_t *file, write_access_t, signal_t *interruptor);
 
         void blob_to_stream(
-            void *ref,
+            buf_parent_t parent,
+            const void *ref,
             const std::function<void(read_stream_t *)> &callback);
 
         void read_bin(
@@ -83,7 +87,7 @@ public:
         void read_many_bin(
             const store_key_t &key_prefix,
             const std::function<void(
-                const store_key_t &key_suffix, read_stream_t *)> &cb,
+                const std::string &key_suffix, read_stream_t *)> &cb,
             signal_t *interruptor);
 
         metadata_file_t *file;
@@ -114,7 +118,7 @@ public:
         friend class metadata_file_t;
 
         void write_bin(
-            const std::string &key,
+            const store_key_t &key,
             const write_message_t *msg,
             signal_t *interruptor);
     };
@@ -130,6 +134,7 @@ public:
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
         signal_t *interruptor);
+    ~metadata_file_t();
 
 private:
     scoped_ptr_t<standard_serializer_t> serializer;

@@ -38,7 +38,9 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/path.hpp"
-#include "clustering/administration/persist.hpp"
+#include "clustering/administration/persist/file.hpp"
+#include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/migrate_v1_16.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -680,13 +682,13 @@ void run_rethinkdb_create(const base_path_t &base_path,
             &io_backender,
             get_cluster_metadata_filename(base_path),
             &metadata_perfmon_collection,
-            [&](metadata_file_t::write_txn_t *write_txn, signal_t *) {
+            [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                 write_txn->write(mdkey_server_id(),
-                    our_server_id);
+                    our_server_id, interruptor);
                 write_txn->write(mdkey_cluster_semilattices(),
-                    cluster_metadata);
+                    cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
-                    auth_semilattice_metadata_t());
+                    auth_semilattice_metadata_t(), interruptor);
             },
             &non_interruptor);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
@@ -741,20 +743,20 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     try {
         scoped_ptr_t<metadata_file_t> metadata_file;
         cond_t non_interruptor;
-        if (our_server_id && cluster_metadata) {
+        if (our_server_id != nullptr && cluster_metadata != nullptr) {
             metadata_file.init(new metadata_file_t(
                 &io_backender,
                 get_cluster_metadata_filename(base_path),
                 &metadata_perfmon_collection,
-                [&](metadata_file_t::write_txn_t *write_txn, signal_t *) {
+                [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                     write_txn->write(mdkey_server_id(),
-                        our_server_id);
+                        *our_server_id, interruptor);
                     write_txn->write(mdkey_cluster_semilattices(),
-                        cluster_metadata);
+                        *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
-                        auth_semilattice_metadata_t());
+                        auth_semilattice_metadata_t(), interruptor);
                 },
-                &non_interruptor);
+                &non_interruptor));
             guarantee(!static_cast<bool>(total_cache_size), "rethinkdb porcelain should "
                 "have already set up total_cache_size");
         } else {
@@ -774,7 +776,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }
-                remove(auth_path.permanent_path());
+                remove(auth_path.permanent_path().c_str());
             }
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */

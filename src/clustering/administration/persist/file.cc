@@ -1,6 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/file.hpp"
 
+#include "btree/depth_first_traversal.hpp"
+#include "btree/types.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/cache_balancer.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
+#include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "serializer/log/log_serializer.hpp"
+
 struct metadata_disk_superblock_t {
     block_magic_t magic;
     
@@ -70,35 +78,43 @@ private:
 
 class metadata_value_sizer_t : public value_sizer_t {
 public:
-    explicit metadata_sizer_t(max_block_size_t bs) : block_size(bs) { }
+    explicit metadata_value_sizer_t(max_block_size_t _bs) : bs(_bs) { }
     int size(const void *value) const {
-        return blob::ref_size(block_size, value, blob::btree_maxreflen);
+        return blob::ref_size(
+            bs,
+            static_cast<const char *>(value),
+            blob::btree_maxreflen);
     }
     bool fits(const void *value, int length_available) const {
         return blob::ref_fits(
-            block_size, length_available, value, blob::btree_maxreflen);
+            bs,
+            length_available,
+            static_cast<const char *>(value),
+            blob::btree_maxreflen);
     }
     int max_possible_size() const {
         return blob::btree_maxreflen;
     }
-    block_magic_t btree_leaf_magic() {
-        return block_magic_t { 'R', 'D', 'l', 'n' };
+    block_magic_t btree_leaf_magic() const {
+        return block_magic_t { { 'R', 'D', 'l', 'n' } };
     }
     max_block_size_t block_size() const {
-        return block_size;
+        return bs;
     }
 private:
-    max_block_size_t block_size;
+    max_block_size_t bs;
 };
 
 class metadata_value_deleter_t : public value_deleter_t {
 public:
-    void delete_value(buf_parent_t leaf_node, const void *value) const {
+    void delete_value(buf_parent_t parent, const void *value) const {
         // To not destroy constness, we operate on a copy of the value
         metadata_value_sizer_t sizer(parent.cache()->max_block_size());
         scoped_malloc_t<void> value_copy(sizer.max_possible_size());
         memcpy(value_copy.get(), value, sizer.size(value));
-        blob_t blob(parent.cache()->max_block_size(), value_copy.get(),
+        blob_t blob(
+            parent.cache()->max_block_size(),
+            static_cast<char *>(value_copy.get()),
             blob::btree_maxreflen);
         blob.clear(parent);
     }
@@ -123,13 +139,19 @@ metadata_file_t::read_txn_t::read_txn_t(
     { }
 
 void metadata_file_t::read_txn_t::blob_to_stream(
-        void *ref,
+        buf_parent_t parent,
+        const void *ref,
         const std::function<void(read_stream_t *)> &callback) {
-    blob_t blob(file->cache->max_block_size(), ref, blob::btree_maxreflen);
+    blob_t blob(
+        file->cache->max_block_size(),
+        /* `blob_t` requires a non-const pointer because it has functions that mutate the
+        blob. But we're not using those functions. That's why there's a `const_cast`
+        here. */
+        static_cast<char *>(const_cast<void *>(ref)),
+        blob::btree_maxreflen);
     blob_acq_t acq_group;
     buffer_group_t buf_group;
-    blob.expose_all(buf_parent_t(&kvloc.buf), access_t::read,
-        &buf_group, &acq_group);
+    blob.expose_all(parent, access_t::read, &buf_group, &acq_group);
     buffer_group_read_stream_t read_stream(const_view(&buf_group));
     callback(&read_stream);
 }
@@ -139,7 +161,7 @@ void metadata_file_t::read_txn_t::read_bin(
         const std::function<void(read_stream_t *)> &callback,
         signal_t *interruptor) {
     metadata_value_sizer_t sizer(file->cache->max_block_size());
-    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, read_access_t::read);
+    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, access_t::read);
     wait_interruptible(sb_lock.read_acq_signal(), interruptor);
     metadata_superblock_t superblock(std::move(sb_lock));
     keyvalue_location_t kvloc;
@@ -151,7 +173,7 @@ void metadata_file_t::read_txn_t::read_bin(
         &file->btree_stats,
         nullptr);
     if (kvloc.there_originally_was_value) {
-        blob_to_stream(kvloc.value.get(), callback);
+        blob_to_stream(buf_parent_t(&kvloc.buf), kvloc.value.get(), callback);
     }
 }
 
@@ -159,30 +181,40 @@ void metadata_file_t::read_txn_t::read_many_bin(
         const store_key_t &key_prefix,
         const std::function<void(const std::string &key_suffix, read_stream_t *)> &cb,
         signal_t *interruptor) {
-    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, read_access_t::read);
+    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, access_t::read);
     wait_interruptible(sb_lock.read_acq_signal(), interruptor);
     metadata_superblock_t superblock(std::move(sb_lock));
     class : public depth_first_traversal_callback_t {
     public:
         done_traversing_t handle_pair(scoped_key_value_t &&kv) {
-            guarantee(memcmp(kv.key()->contents, prefix.contents(), prefix.size()) == 0);
+            guarantee(memcmp(
+                kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
             std::string suffix(
-                reinterpret_cast<char *>(kv.key()->contents + prefix.size()),
-                kv.key()->size - prefix.size());
-            blob_to_stream(kv.value(), [&](const read_stream_t *s) { cb(suffix, s); });
+                reinterpret_cast<const char *>(kv.key()->contents + key_prefix.size()),
+                kv.key()->size - key_prefix.size());
+            txn->blob_to_stream(
+                kv.expose_buf(),
+                kv.value(),
+                [&](read_stream_t *s) { (*cb)(suffix, s); });
             return interruptor->is_pulsed()
                 ? done_traversing_t::YES
                 : done_traversing_t::NO;
         }
-        store_key_t prefix;
+        read_txn_t *txn;
+        store_key_t key_prefix;
         const std::function<void(const std::string &key_suffix, read_stream_t *)> *cb;
         signal_t *interruptor;
     } dftcb;
-    dftcb.prefix = prefix;
+    dftcb.txn = this;
+    dftcb.key_prefix = key_prefix;
     dftcb.cb = &cb;
     dftcb.interruptor = interruptor;
-    btree_depth_first_traversal(&superblock, key_range_t::with_prefix(prefix), &dftcb,
-        FORWARD, release_superblock_t::RELEASE);
+    btree_depth_first_traversal(
+        &superblock,
+        key_range_t::with_prefix(key_prefix),
+        &dftcb,
+        FORWARD,
+        release_superblock_t::RELEASE);
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -191,7 +223,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
 metadata_file_t::write_txn_t::write_txn_t(
         metadata_file_t *file,
         signal_t *interruptor) :
-    metadata_read_txn_t(file, interruptor, write_access_t::write)
+    read_txn_t(file, write_access_t::write, interruptor)
     { }
 
 void metadata_file_t::write_txn_t::write_bin(
@@ -200,7 +232,7 @@ void metadata_file_t::write_txn_t::write_bin(
         signal_t *interruptor) {
     metadata_value_sizer_t sizer(file->cache->max_block_size());
     metadata_value_deleter_t deleter;
-    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, write_access_t::write);
+    buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, access_t::write);
     wait_interruptible(sb_lock.write_acq_signal(), interruptor);
     metadata_superblock_t superblock(std::move(sb_lock));
     keyvalue_location_t kvloc;
@@ -213,19 +245,19 @@ void metadata_file_t::write_txn_t::write_bin(
         &file->btree_stats,
         nullptr);
     if (kvloc.there_originally_was_value) {
-        deleter.delete_value(buf_parent_t(kvloc.buf), kvloc.value.get());
+        deleter.delete_value(buf_parent_t(&kvloc.buf), kvloc.value.get());
         kvloc.value.reset();
     }
     if (msg != nullptr) {
         kvloc.value = scoped_malloc_t<void>(blob::btree_maxreflen);
         memset(kvloc.value.get(), 0, blob::btree_maxreflen);
         blob_t blob(file->cache->max_block_size(),
-                    kvloc.value.get(),
+                    static_cast<char *>(kvloc.value.get()),
                     blob::btree_maxreflen);
-        write_onto_blob(buf_parent_t(kvloc.buf), &blob, *msg);
+        write_onto_blob(buf_parent_t(&kvloc.buf), &blob, *msg);
     }
     null_key_modification_callback_t null_cb;
-    apply_keyvalue_change(&sizer, kvloc, key.btree_key(), repli_timestamp_t::invalid,
+    apply_keyvalue_change(&sizer, &kvloc, key.btree_key(), repli_timestamp_t::invalid,
         &deleter, &null_cb, delete_or_erase_t::ERASE);
 }
 
@@ -233,7 +265,9 @@ metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
         const serializer_filepath_t &filename,
         perfmon_collection_t *perfmon_parent,
-        UNUSED signal_t *interruptor) {
+        signal_t *interruptor) :
+    btree_stats(perfmon_parent, "metadata")
+{
     filepath_file_opener_t file_opener(filename, io_backender);
     serializer.init(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
@@ -265,12 +299,12 @@ metadata_file_t::metadata_file_t(
         case cluster_version_t::v1_16: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
-            init_metadata_superblock(sb_data);
+            init_metadata_superblock(sb_data, cache->max_block_size().value());
             migrate_v1_16::migrate_cluster_metadata(
-                &write_txn.txn, buf_parent_t(sb_lock), sb_copy.geet(), &write_txn);
+                &write_txn.txn, buf_parent_t(&sb_lock), sb_copy.get(), &write_txn);
             break;
         }
-        case raft_is_latest: {
+        case cluster_version_t::raft_is_latest: {
             /* No need to do any migration */
             break;
         }
@@ -283,7 +317,9 @@ metadata_file_t::metadata_file_t(
         const serializer_filepath_t &filename,
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
-        signal_t *interruptor) {
+        signal_t *interruptor) :
+    btree_stats(perfmon_parent, "metadata")
+{
     filepath_file_opener_t file_opener(filename, io_backender);
     standard_serializer_t::create(
         &file_opener,
@@ -301,13 +337,18 @@ metadata_file_t::metadata_file_t(
 
     {
         write_txn_t write_txn(this, interruptor);
-        buf_lock_t sb_lock(&write_txn.txn, SUPERBLOOCK_ID, alt_create_t::create);
+        buf_lock_t sb_lock(&write_txn.txn, SUPERBLOCK_ID, alt_create_t::create);
         buf_write_t sb_write(&sb_lock);
-        void *sb_data = sb_write.get_data_write(cache->max_block_size().value());
-        init_metadata_superblock(sb_data);
+        void *sb_data = sb_write.get_data_write();
+        init_metadata_superblock(sb_data, cache->max_block_size().value());
         initializer(&write_txn, interruptor);
     }
 
     file_opener.move_serializer_file_to_permanent_location();
+}
+
+metadata_file_t::~metadata_file_t() {
+    /* This is defined in the `.cc` file so the `.hpp` file doesn't need to see the
+    definitions of `log_serializer_t` and `cache_balancer_t`. */
 }
 

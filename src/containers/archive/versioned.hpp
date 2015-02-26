@@ -150,11 +150,11 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(typ)                                  \
-    template size_t serialized_size<cluster_version_t::v1_13>(const typ &)            \
-    template size_t serialized_size<cluster_version_t::v1_13_2>(const typ &)          \
-    template size_t serialized_size<cluster_version_t::v1_14>(const typ &)            \
-    template size_t serialized_size<cluster_version_t::v1_15>(const typ &)            \
-    template size_t serialized_size<cluster_version_t::v1_16>(const typ &)            \
+    template size_t serialized_size<cluster_version_t::v1_13>(const typ &);           \
+    template size_t serialized_size<cluster_version_t::v1_13_2>(const typ &);         \
+    template size_t serialized_size<cluster_version_t::v1_14>(const typ &);           \
+    template size_t serialized_size<cluster_version_t::v1_15>(const typ &);           \
+    template size_t serialized_size<cluster_version_t::v1_16>(const typ &);           \
     template size_t serialized_size<cluster_version_t::raft_is_latest>(const typ &)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_13(typ)        \
@@ -163,12 +163,12 @@ size_t serialized_size_for_version(cluster_version_t version,
 
 #define INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)                                 \
     template archive_result_t deserialize<cluster_version_t::v1_16>(             \
-            read_stream_t *, typ *)                                              \
+            read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::raft_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_16(typ)                                  \
-    template size_t serialized_size<cluster_version_t::v1_16>(const typ &)            \
+    template size_t serialized_size<cluster_version_t::v1_16>(const typ &);           \
     template size_t serialized_size<cluster_version_t::raft_is_latest>(const typ &)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_16(typ)        \

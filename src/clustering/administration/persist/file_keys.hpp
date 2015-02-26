@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_FILE_KEYS_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_FILE_KEYS_HPP_
 
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file.hpp"
 
 /* This file defines the keys that are used to index the `metadata_file_t`. Changing

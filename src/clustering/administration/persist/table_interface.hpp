@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
+#include "clustering/table_manager/table_meta_manager.hpp"
+
 class dummy_table_meta_persistence_interface_t :
     public table_meta_persistence_interface_t {
 public:

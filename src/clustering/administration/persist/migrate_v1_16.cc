@@ -1,22 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/administration/persist_v1_16.hpp"
+#include "clustering/administration/persist/migrate_v1_16.hpp"
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <functional>
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
-#include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
-#include "buffer_cache/cache_balancer.hpp"
-#include "concurrency/throttled_committer.hpp"
-#include "containers/archive/buffer_group_stream.hpp"
-#include "clustering/immediate_consistency/history.hpp"
-#include "serializer/config.hpp"
 
 namespace migrate_v1_16 {
 
@@ -40,11 +26,18 @@ struct cluster_metadata_superblock_t {
     char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 };
 
-void migrate_cluster_metadata(
-        txn_t *txn,
-        buf_parent_t buf_parent,
-        const void *old_superblock,
-        metadata_file_t::write_txn_t *new_output) {
+NORETURN void migrate_cluster_metadata (
+        UNUSED txn_t *txn,
+        UNUSED buf_parent_t buf_parent,
+        UNUSED const void *old_superblock,
+        UNUSED metadata_file_t::write_txn_t *new_output) {
+    /* RSI(raft): Support migration. */
+    crash("Migration from v1.16 is not implemented.");
+}
+
+NORETURN void migrate_auth_file(
+        UNUSED const serializer_filepath_t &path,
+        UNUSED metadata_file_t::write_txn_t *destination) {
     /* RSI(raft): Support migration. */
     crash("Migration from v1.16 is not implemented.");
 }

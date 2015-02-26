@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_PERSIST_SEMILATTICE_HPP_
 
 #include "clustering/administration/persist/file.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template <class metadata_t>
 class semilattice_persister_t {
@@ -36,7 +37,7 @@ private:
 
     typename semilattice_read_view_t<metadata_t>::subscription_t subs;
 
-    DISABLE_COPYING(semilattice_watching_persister_t);
+    DISABLE_COPYING(semilattice_persister_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_PERSIST_SEMILATTICE_HPP_ */

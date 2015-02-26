@@ -1,16 +1,19 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/semilattice.hpp"
 
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/wait_any.hpp"
+
 template <class metadata_t>
-semilattice_persister_t<metadata_t>::semilattice_watching_persister_t(
+semilattice_persister_t<metadata_t>::semilattice_persister_t(
         metadata_file_t *f,
         const metadata_file_t::key_t<metadata_t> &k,
         boost::shared_ptr<semilattice_read_view_t<metadata_t> > v) :
     file(f), key(k), view(v),
     flush_again(new cond_t),
-    subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)
+    subs(std::bind(&semilattice_persister_t::on_change, this), v)
 {
-    coro_t::spawn_sometime(std::bind(&semilattice_watching_persister_t::dump_loop,
+    coro_t::spawn_sometime(std::bind(&semilattice_persister_t::dump_loop,
         this, auto_drainer_t::lock_t(&drainer)));
 }
 
@@ -20,7 +23,7 @@ void semilattice_persister_t<metadata_t>::dump_loop(
     try {
         for (;;) {
             {
-                metadata_write_txn_t txn(file, keepalive.get_drain_signal());
+                metadata_file_t::write_txn_t txn(file, keepalive.get_drain_signal());
                 txn.write(key, view->get(), keepalive.get_drain_signal());
             }
             wait_any_t c(flush_again.get(), &stop);
