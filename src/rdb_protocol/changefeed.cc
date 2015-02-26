@@ -48,17 +48,25 @@ std::string print(const msg_t::limit_change_t &change) {
 
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
-                 datum_t _old_val, datum_t _new_val)
+                 store_key_t _key,
+                 datum_t _old_val,
+                 datum_t _new_val,
+                 DEBUG_ONLY(boost::optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
+          key(std::move(_key)),
           old_val(std::move(_old_val)),
-          new_val(std::move(_new_val)) {
+          new_val(std::move(_new_val)),
+          DEBUG_ONLY(sindex(std::move(_sindex))) {
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
             rassert(old_val != new_val);
         }
     }
     std::pair<uuid_u, uint64_t> source_stamp;
+    store_key_t key;
     datum_t old_val, new_val;
+
+    DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
 datum_t change_val_to_change(const change_val_t &change) {
@@ -1004,7 +1012,7 @@ public:
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
         const signal_t *interruptor);
-    std::vector<datum_t> purge_and_return_remaining(active_state_t active_state);
+    std::vector<datum_t> pop_needed_changes(active_state_t active_state);
     virtual void start_artificial(env_t *, const uuid_u &) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
@@ -2070,10 +2078,30 @@ subscription_t::get_els(batcher_t *batcher,
     return std::move(v);
 }
 
-// std::vector<datum_t> subscription_t::purge_and_return_remaining(
-//     active_state_t active_state) {
-//     // RSI: do this
-// }
+std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_state) {
+    std::vector<datum_t> ret;
+    while (has_el()) {
+        change_val_t change_val = pop_change_val();
+        // In debug mode, make sure we're receiving changes for the right index.
+        rassert(active_state.sindex
+                ? (change_val.sindex && *active_state.sindex == *change_val.sindex)
+                : !change_val.sindex);
+        bool add = false;
+        if (active_state.old_range.contains_key(change_val.key)) {
+            ret.push_back(change_val_to_change(std::move(change_val)));
+        } else if (active_state.last_range.contains_key(change_val.key)) {
+            auto it = active_state.shard_stamps.find(change_val.source_stamp.first);
+            if (it != active_state.shard_stamps.end()) {
+                if (it->second <= change_val.source_stamp.second) {
+                    ret.push_back(change_val_to_change(std::move(change_val)));
+                }
+            }
+        } else {
+            guarantee(active_state.active_range.contains_key(change_val.key));
+        }
+    }
+    return ret;
+}
 
 void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
     assert_thread();

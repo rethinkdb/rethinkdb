@@ -58,8 +58,9 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 }
 
 struct active_state_t {
-    key_range_t active_range;
+    key_range_t old_range, last_range, active_range;
     std::map<uuid_u, uint64_t> shard_stamps;
+    DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
