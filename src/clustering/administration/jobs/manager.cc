@@ -14,6 +14,8 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
                                     get_job_reports_mailbox_address,
                                     job_interrupt_mailbox_address);
 
+const size_t jobs_manager_t::printed_query_columns = 89;
+
 const uuid_u jobs_manager_t::base_sindex_id =
     str_to_uuid("74d855a5-0c40-4930-a451-d1ce508ef2d2");
 
@@ -111,7 +113,7 @@ void jobs_manager_t::on_get_job_reports(
                             time - std::min(pair.second->start_time, time),
                             server_id,
                             query_cache->get_client_addr_port(),
-                            pretty_print(89, render));
+                            pretty_print(printed_query_columns, render));
                     }
                 }
             }

@@ -50,6 +50,8 @@ public:
     void unset_rdb_context_and_reactor_driver();
 
 private:
+    static const size_t printed_query_columns;
+
     static const uuid_u base_sindex_id;
     static const uuid_u base_disk_compaction_id;
     static const uuid_u base_backfill_id;
