@@ -547,7 +547,7 @@ check_cxx () {
             error "unable to run $force_CXX"
             return
         fi
-        CXX=$(which c++ 2>/dev/null || which g++ 2>/dev/null || which clang 2>/dev/null || which icc 2>/dev/null)
+        CXX=$(command -v c++ 2>/dev/null || command -v g++ 2>/dev/null || command -v clang 2>/dev/null || command -v icc 2>/dev/null)
         if [[ -z "$CXX" ]]; then
             not_found CXX
             return
@@ -722,7 +722,7 @@ check_bin () {
     fi
     local ucbin=$(uc $1)
     local bin=${force_bin:-${!ucbin:-$1}}
-    bin=$(which "$bin" 2>/dev/null)
+    bin=$(command -v "$bin" 2>/dev/null)
     if [[ ! -x "$bin" ]]; then
         if [[ -n "${force_bin:-}" ]]; then
             bin=$force_bin
@@ -868,7 +868,7 @@ tcmalloc:tcmalloc_minimal'
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
     cc_paths=$($CXX -print-search-dirs 2>/dev/null | grep ^libraries | sed -e 's/^libraries[: =]*//; s/:/ /g')
-    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig 2>/dev/null)
+    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" command -v ldconfig 2>/dev/null)
     if [[ -n "$LDCONFIG" ]]; then
         ld_paths=$($LDCONFIG -v -N -X 2>/dev/null | grep -v '^	' | sed -e 's/:$//' )
     else

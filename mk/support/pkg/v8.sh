@@ -11,7 +11,7 @@ pkg_install () {
         pybin=$build_dir/pybin
         mkdir -p "$pybin"
         rm -f "$pybin/python"
-        ln -s "$(which python2)" "$pybin/python"
+        ln -s "$(command -v python2)" "$pybin/python"
         export PATH=$pybin:$PATH
     fi
     mkdir -p "$install_dir/lib"
