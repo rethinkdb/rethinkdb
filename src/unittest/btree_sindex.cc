@@ -3,7 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
-#include "btree/slice.hpp"
+#include "btree/reql_specific.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
@@ -207,7 +207,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     &token, &txn, &super_block,
                     &dummy_interruptor);
 
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
@@ -238,7 +238,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> main_sb;
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             store.acquire_superblock_for_read(

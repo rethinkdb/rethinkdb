@@ -12,6 +12,13 @@
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
+/* This file contains code for working with the sindex block, which is a child of the
+table's primary superblock.
+
+`btree/secondary_operations.*` and `btree/reql_specific.*` are the only files in the
+`btree/` directory that know about ReQL-specific concepts such as metainfo and sindexes.
+They should probably be moved out of the `btree/` directory. */
+
 class buf_lock_t;
 
 struct secondary_index_t {

@@ -20,7 +20,9 @@
 #include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
-#include "clustering/administration/persist.hpp"
+#include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/semilattice.hpp"
+#include "clustering/administration/persist/table_interface.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/config_server.hpp"
@@ -85,8 +87,7 @@ bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
               const base_path_t &base_path,
-              metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
-              metadata_persistence::auth_persistent_file_t *auth_metadata_file,
+              metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
     // Do this here so we don't block on popen while pretending to serve.
@@ -101,13 +102,12 @@ bool do_serve(io_backender_t *io_backender,
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
         server_id_t server_id = generate_uuid();
-
-        if (cluster_metadata_file != NULL) {
-            server_id = cluster_metadata_file->read_server_id();
-            cluster_metadata = cluster_metadata_file->read_metadata();
-        }
-        if (auth_metadata_file != NULL) {
-            auth_metadata = auth_metadata_file->read_metadata();
+        if (metadata_file != NULL) {
+            cond_t non_interruptor;
+            metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
+            txn.read(mdkey_cluster_semilattices(), &cluster_metadata, &non_interruptor);
+            txn.read(mdkey_auth_semilattices(), &auth_metadata, &non_interruptor);
+            txn.read(mdkey_server_id(), &server_id, &non_interruptor);
         }
 
 #ifndef NDEBUG
@@ -159,7 +159,7 @@ bool do_serve(io_backender_t *io_backender,
                     return cluster_md->table_meta_manager_bcard.get_ptr();
                 });
 
-        metadata_persistence::dummy_table_meta_persistence_interface_t dummy_persistence;
+        dummy_table_meta_persistence_interface_t table_meta_persistence_interface;
         scoped_ptr_t<table_meta_manager_t> table_meta_manager;
         if (i_am_a_server) {
             // RSI(raft): Actually hook up base path
@@ -169,7 +169,7 @@ bool do_serve(io_backender_t *io_backender,
                 &mailbox_manager,
                 &table_meta_manager_directory,
                 table_directory_read_manager.get_root_view(),
-                &dummy_persistence,
+                &table_meta_persistence_interface,
                 base_path,
                 io_backender));
         }
@@ -378,18 +378,22 @@ bool do_serve(io_backender_t *io_backender,
                         return (md->reql_port != serve_info.ports.reql_port);
                     });
 
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
+                scoped_ptr_t<semilattice_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> >
+                scoped_ptr_t<semilattice_persister_t<auth_semilattice_metadata_t> >
                     auth_metadata_persister;
 
                 if (i_am_a_server) {
-                    cluster_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
-                        cluster_metadata_file,
-                        semilattice_manager_cluster.get_root_view()));
-                    auth_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
-                        auth_metadata_file,
-                        semilattice_manager_auth.get_root_view()));
+                    cluster_metadata_persister.init(
+                        new semilattice_persister_t<cluster_semilattice_metadata_t>(
+                            metadata_file,
+                            mdkey_cluster_semilattices(),
+                            semilattice_manager_cluster.get_root_view()));
+                    auth_metadata_persister.init(
+                        new semilattice_persister_t<auth_semilattice_metadata_t>(
+                            metadata_file,
+                            mdkey_auth_semilattices(),
+                            semilattice_manager_auth.get_root_view()));
                 }
 
                 {
@@ -506,15 +510,13 @@ bool do_serve(io_backender_t *io_backender,
 
 bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
-           metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
-           metadata_persistence::auth_persistent_file_t *auth_persistent_file,
+           metadata_file_t *metadata_file,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
                     true,
                     base_path,
-                    cluster_persistent_file,
-                    auth_persistent_file,
+                    metadata_file,
                     serve_info,
                     stop_cond);
 }
@@ -526,8 +528,7 @@ bool serve_proxy(const serve_info_t &serve_info,
     return do_serve(NULL,
                     false,
                     base_path_t(""),
-                    NULL,
-                    NULL,
+                    nullptr,
                     serve_info,
                     stop_cond);
 }

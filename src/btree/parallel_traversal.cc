@@ -2,7 +2,6 @@
 #include "btree/parallel_traversal.hpp"
 
 #include "arch/runtime/runtime.hpp"
-#include "btree/slice.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"

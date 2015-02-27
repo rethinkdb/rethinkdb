@@ -235,6 +235,19 @@ struct key_range_t {
         return key_range_t(key_range_t::none, k, key_range_t::none, k);
     }
 
+    static key_range_t with_prefix(const store_key_t &prefix) THROWS_NOTHING {
+        if (prefix.size() == 0) {
+            return key_range_t::universe();
+        } else {
+            store_key_t right = prefix;
+            right.set_size(MAX_KEY_SIZE);
+            for (size_t i = prefix.size(); i < MAX_KEY_SIZE; ++i) {
+                right.contents()[i] = 0xFF;
+            }
+            return key_range_t(closed, prefix, closed, right);
+        }
+    }
+
     bool is_empty() const {
         if (right.unbounded) {
             return false;

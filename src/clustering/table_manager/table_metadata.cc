@@ -1,9 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_metadata.hpp"
 
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
+/* RSI(raft): These should be `SINCE_v2_N`, where `N` is the version when Raft is
+released. */
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     table_meta_manager_bcard_t::timestamp_t::epoch_t, timestamp, id);
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     table_meta_manager_bcard_t::timestamp_t, epoch, log_index);
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     table_meta_manager_bcard_t,
