@@ -46,26 +46,30 @@ std::string print(const msg_t::limit_change_t &change) {
 }
 } // namespace debug
 
+struct keyed_datum_t {
+    keyed_datum_t(store_key_t _key, datum_t _datum)
+        : key(std::move(_key)), datum(std::move(_datum)) {
+        guarantee(datum.has());
+    }
+    store_key_t key;
+    datum_t datum;
+};
+
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
-                 store_key_t _key,
-                 datum_t _old_val,
-                 datum_t _new_val,
+                 boost::optional<keyed_datum_t> _old_val,
+                 boost::optional<keyed_datum_t> _new_val,
                  DEBUG_ONLY(boost::optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
           key(std::move(_key)),
           old_val(std::move(_old_val)),
           new_val(std::move(_new_val)),
           DEBUG_ONLY(sindex(std::move(_sindex))) {
-        guarantee(old_val.has() || new_val.has());
-        if (old_val.has() && new_val.has()) {
-            rassert(old_val != new_val);
-        }
+        guarantee(old_val || new_val);
+        if (old_val && new_val) rassert(old_val.datum != new_val.datum);
     }
     std::pair<uuid_u, uint64_t> source_stamp;
-    store_key_t key;
-    datum_t old_val, new_val;
-
+    boost::optional<keyed_datum_t> old_val, new_val;
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
@@ -1061,7 +1065,9 @@ public:
         datum_t new_val,
         const configured_limits_t &limits) {
         if (update_stamp(uuid, stamp)) {
-            queue->add(key, change_val_t(std::make_pair(uuid, stamp), old_val, new_val));
+            queue->add(key, change_val_t(std::make_pair(uuid, stamp),
+                                         old_val,
+                                         new_val));
             if (queue->size() > limits.array_size_limit()) {
                 skipped += queue->size();
                 queue->clear();
@@ -1829,45 +1835,50 @@ public:
             }
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                size_t old_vals = 0, new_vals = 0;
+                std::vector<datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
-                        if (sub->contains(idx)) {
-                            old_vals += 1;
-                        }
+                        if (sub->contains(idx)) old_idxs.push_back(idx);
                     }
                 }
                 auto new_it = change.new_indexes.find(*sindex);
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
-                        if (sub->contains(idx)) {
-                            new_vals += 1;
-                        }
+                        if (sub->contains(idx)) new_idxs.push_back(idx);
                     }
                 }
-                while (new_vals > 0 && old_vals > 0) {
-                    sub->add_el(server_uuid, stamp, change.pkey,
-                                old_val, new_val, default_limits);
-                    --new_vals;
-                    --old_vals;
+                while (old_idxs.size() > 0 && new_idxs.size() > 0) {
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                old_val, *old_idxs.end(),
+                                new_val, *new_idxs.end(),
+                                default_limits);
+                    old_idxs.pop_back();
+                    new_idxs.pop_back();
                 }
-                while (old_vals > 0) {
-                    guarantee(new_vals == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey,
-                                old_val, null, default_limits);
-                    --old_vals;
+                while (old_idxs.size() > 0) {
+                    guarantee(new_idxs.size() == 0);
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                old_val, *old_idxs.end(),
+                                datum_t(), datum_t(),
+                                default_limits);
+                    old_idxs.pop_back();
                 }
-                while (new_vals > 0) {
-                    guarantee(old_vals == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey,
-                                null, new_val, default_limits);
-                    --new_vals;
+                while (new_idxs.size() > 0) {
+                    guarantee(old_idxs.size() == 0);
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                new_val, *new_idxs.end(),
+                                datum_t(), datum_t(),
+                                default_limits);
+                    new_idxs.pop_back();
                 }
             } else {
+                // RSI: sindex or pkey type passed to `add_el`.
                 if (sub->contains(change.pkey)) {
-                    sub->add_el(server_uuid, stamp, change.pkey,
-                                old_val, new_val, default_limits);
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex
+                                old_val, datum_t(),
+                                new_val, datum_t(),
+                                default_limits);
                 }
             }
         });
@@ -2086,7 +2097,6 @@ std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_st
         rassert(active_state.sindex
                 ? (change_val.sindex && *active_state.sindex == *change_val.sindex)
                 : !change_val.sindex);
-        bool add = false;
         if (active_state.old_range.contains_key(change_val.key)) {
             ret.push_back(change_val_to_change(std::move(change_val)));
         } else if (active_state.last_range.contains_key(change_val.key)) {

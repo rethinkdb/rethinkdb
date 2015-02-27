@@ -24,6 +24,7 @@ rget_response_reader_t::rget_response_reader_t(
       use_outdated(_use_outdated),
       started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
+      last_read_start(store_key_t::min()),
       active_range(readgen->original_keyrange()),
       items_index(0) { }
 
@@ -39,7 +40,11 @@ bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
 
 boost::optional<active_state_t> rget_response_reader_t::get_active_state() const {
     if (!stamp || !active_range || shard_stamps.size() == 0) return boost::none;
-    return active_state_t{*active_range, shard_stamps};
+    return active_state_t{
+        *active_range,
+        last_read_start,
+        shard_stamps,
+        DEBUG_ONLY(readgen->sindex_name())};
 }
 
 void rget_response_reader_t::accumulate(env_t *env, eager_acc_t *acc,
@@ -138,6 +143,17 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
+
+    auto *rr = boost::get<rget_read_t>(&read.read);
+    guarantee(rr != NULL);
+    if (rr->sindex) {
+        if (rr->sindex->region) {
+            last_read_start = rr->sindex->region->inner.left;
+        }
+    } else {
+        last_read_start = rr->region.inner.left;
+    }
+
     return std::move(*rget_res);
 }
 
@@ -154,7 +170,7 @@ void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     read_t read = readgen->next_read(active_range, stamp, transforms, batchspec);
     rget_read_response_t resp = do_read(env, std::move(read));
 
-    auto rr = boost::get<rget_read_t>(&read.read);
+    auto *rr = boost::get<rget_read_t>(&read.read);
     auto final_key = !reversed(rr->sorting) ? store_key_t::max() : store_key_t::min();
     r_sanity_check(resp.last_key == final_key);
     r_sanity_check(!resp.truncated);
@@ -163,11 +179,10 @@ void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     acc->add_res(env, &resp.result);
 }
 
-std::vector<rget_item_t> rget_reader_t::do_range_read(
-        env_t *env, const read_t &read) {
+std::vector<rget_item_t>
+rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
-
-    auto rr = boost::get<rget_read_t>(&read.read);
+    auto *rr = boost::get<rget_read_t>(&read.read);
     r_sanity_check(rr);
 
     key_range_t rng;

@@ -58,7 +58,8 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 }
 
 struct active_state_t {
-    key_range_t old_range, last_range, active_range;
+    key_range_t active_range;
+    store_key_t last_read_start;
     std::map<uuid_u, uint64_t> shard_stamps;
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
@@ -593,7 +594,7 @@ public:
     virtual changefeed::keyspec_t get_change_spec() const = 0;
 };
 
-// For reads that generate read_response_t results
+// For reads that generate read_response_t results.
 class rget_response_reader_t : public reader_t {
 public:
     rget_response_reader_t(
@@ -628,6 +629,7 @@ protected:
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
+    store_key_t last_read_start;
     boost::optional<key_range_t> active_range;
     std::map<uuid_u, uint64_t> shard_stamps;
 
