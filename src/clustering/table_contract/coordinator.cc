@@ -255,7 +255,9 @@ contract_t calculate_contract(
                     acks.at(old_c.primary->server).state ==
                         contract_ack_t::state_t::primary_ready) {
                 /* We already did the hand over. Now it's safe to stop the old primary.
-                */
+                The new primary will be started later, after a majority of the replicas
+                acknowledge that they are no longer listening for writes from the old
+                primary. */
                 new_c.primary = boost::none;
             } else {
                 new_c.primary->hand_over = boost::make_optional(config.primary_replica);
