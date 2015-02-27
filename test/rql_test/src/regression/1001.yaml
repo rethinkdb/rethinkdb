@@ -1,15 +1,20 @@
 desc: 1001 (null + between + sindexes)
 table_variable_name: tbl
 tests:
-  - rb: tbl.insert({:a => null})
-  - rb: tbl.index_create('a')
-  - rb: tbl.index_create('b')
-  - rb: tbl.index_wait().pluck('index', 'ready')
+  - cd: tbl.insert({'a':null})
+    rb: tbl.insert({:a => null})
+  - cd: tbl.index_create('a')
+  - cd: tbl.index_create('b')
+  - cd: tbl.index_wait().pluck('index', 'ready')
 
-  - rb: tbl.between(null, null).count
+  - cd: tbl.between(r.minval, r.maxval).count()
     ot: 1
-  - rb: tbl.between(null, null, :index => :a).count
+  - py: tbl.between(r.minval, r.maxval, index='a').count()
+    js: tbl.between(r.minval, r.maxval, {index:'a'}).count()
+    rb: tbl.between(r.minval, r.maxval, :index => 'a').count()
     ot: 0
-  - rb: tbl.between(null, null, :index => :b).count
+  - py: tbl.between(r.minval, r.maxval, index='b').count()
+    js: tbl.between(r.minval, r.maxval, {index:'b'}).count()
+    rb: tbl.between(r.minval, r.maxval, :index => 'b').count()
     ot: 0
 

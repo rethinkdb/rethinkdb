@@ -660,6 +660,12 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
     v8::Isolate *isolate = js_instance_t::isolate();
 
     switch (datum.get_type()) {
+    case ql::datum_t::type_t::MINVAL:
+        err_out->assign("`r.minval` cannot be passed to `r.js`.");
+        return v8::Handle<v8::Value>();
+    case ql::datum_t::type_t::MAXVAL:
+        err_out->assign("`r.maxval` cannot be passed to `r.js`.");
+        return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BINARY:
         // TODO: In order to support this, we need to link against a static version of
         // V8, which provides an ArrayBuffer API.
@@ -709,7 +715,6 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
             return obj;
         }
     }
-
     case ql::datum_t::type_t::UNINITIALIZED: // fallthru
     default:
         err_out->assign("bad datum value in js extproc");

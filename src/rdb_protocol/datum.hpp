@@ -67,6 +67,10 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 
+// When getting the typename of a datum, this should be YES if the name will be
+// used for sorting datums by type, and NO if the name is to be given to a user.
+enum class name_for_sorting_t { NO = 0, YES = 1};
+
 void debug_print(printf_buffer_t *, const datum_t &);
 
 // The serialization for this is defined in `protocol.cc` and needs to be
@@ -92,6 +96,7 @@ private:
     // type_t must appear in here.
     enum class internal_type_t {
         UNINITIALIZED,
+        MINVAL,
         R_ARRAY,
         R_BINARY,
         R_BOOL,
@@ -100,20 +105,23 @@ private:
         R_OBJECT,
         R_STR,
         BUF_R_ARRAY,
-        BUF_R_OBJECT
+        BUF_R_OBJECT,
+        MAXVAL
     };
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
     enum type_t {
         UNINITIALIZED = 0,
-        R_ARRAY = 1,
-        R_BINARY = 2,
-        R_BOOL = 3,
-        R_NULL = 4,
-        R_NUM = 5,
-        R_OBJECT = 6,
-        R_STR = 7
+        MINVAL = 1,
+        R_ARRAY = 2,
+        R_BINARY = 3,
+        R_BOOL = 4,
+        R_NULL = 5,
+        R_NUM = 6,
+        R_OBJECT = 7,
+        R_STR = 8,
+        MAXVAL = 9
     };
 
     static datum_t empty_array();
@@ -124,6 +132,9 @@ public:
     static datum_t binary(datum_string_t &&value);
     static datum_t binary(const datum_string_t &value);
 
+    static datum_t minval();
+    static datum_t maxval();
+
     // Construct an uninitialized datum_t. This is to ease the transition from
     // counted_t<const datum_t>
     datum_t();
@@ -133,6 +144,14 @@ public:
     // to the data buffer *without* the serialized type tag, but *with* the
     // prefixed serialized size.
     datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref);
+
+    // Strongly prefer datum_t::minval().
+    enum class construct_minval_t { };
+    explicit datum_t(construct_minval_t);
+
+    // Strongly prefer datum_t::maxval().
+    enum class construct_maxval_t { };
+    explicit datum_t(construct_maxval_t);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -192,11 +211,13 @@ public:
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
     std::string get_reql_type() const;
-    std::string get_type_name() const;
+    std::string get_type_name(
+        name_for_sorting_t for_sorting = name_for_sorting_t::NO) const;
     std::string print() const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
+    std::string print_primary_internal() const;
     /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
     static std::string compose_secondary(skey_version_t skey_version,
@@ -343,6 +364,7 @@ private:
     void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
     void binary_to_str_key(std::string *str_out) const;
+    void extrema_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const;
     bool pseudo_compares_as_obj() const;
@@ -364,6 +386,8 @@ private:
 
         // Mirror the same constructors of datum_t
         data_wrapper_t();
+        explicit data_wrapper_t(construct_minval_t);
+        explicit data_wrapper_t(construct_maxval_t);
         explicit data_wrapper_t(construct_null_t);
         data_wrapper_t(construct_boolean_t, bool _bool);
         data_wrapper_t(construct_binary_t, datum_string_t data);

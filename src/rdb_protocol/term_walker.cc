@@ -159,6 +159,7 @@ private:
         case Term::WITHOUT:
         case Term::MERGE:
         case Term::LITERAL:
+        case Term::BETWEEN_DEPRECATED:
         case Term::BETWEEN:
         case Term::CHANGES:
         case Term::REDUCE:
@@ -271,6 +272,8 @@ private:
         case Term::GET_NEAREST:
         case Term::UUID:
         case Term::POLYGON_SUB:
+        case Term::MINVAL:
+        case Term::MAXVAL:
             return false;
         default: unreachable();
         }
@@ -353,6 +356,7 @@ private:
         case Term::MERGE:
         case Term::ARGS:
         case Term::LITERAL:
+        case Term::BETWEEN_DEPRECATED:
         case Term::BETWEEN:
         case Term::CHANGES:
         case Term::ORDER_BY:
@@ -463,6 +467,8 @@ private:
         case Term::GET_NEAREST:
         case Term::UUID:
         case Term::POLYGON_SUB:
+        case Term::MINVAL:
+        case Term::MAXVAL:
             return false;
         default: unreachable();
         }
