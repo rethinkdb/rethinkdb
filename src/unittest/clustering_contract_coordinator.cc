@@ -340,6 +340,14 @@ struct coordinator_tester_t {
         }
     }
 
+    /* `remove_ack()` removes the given server's acknowledgement of the given contract.
+    This can be used to simulate e.g. server failures. */
+    void remove_ack(const server_id_t &server, const cpu_contract_ids_t &contracts) {
+        for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+            acks.delete_key(std::make_pair(server, contracts.contract_ids[i]));
+        }
+    }
+
     /* Call `coordinate()` to run the contract coordinator logic on the inputs you've
     created. */
     void coordinate() {
@@ -352,6 +360,17 @@ struct coordinator_tester_t {
             &remove_branches, &add_branches);
         for (const contract_id_t &id : remove_contracts) {
             state.contracts.erase(id);
+            /* Clean out acks for obsolete contract */
+            std::set<server_id_t> servers;
+            acks.read_all(
+            [&](const std::pair<server_id_t, contract_id_t> &k, const contract_ack_t *) {
+                if (k.second == id) {
+                    servers.insert(k.first);
+                }
+            });
+            for (const server_id_t &s : servers) {
+                acks.delete_key(std::make_pair(s, id));
+            }
         }
         state.contracts.insert(add_contracts.begin(), add_contracts.end());
         for (const branch_id_t &id : remove_branches) {
@@ -618,6 +637,58 @@ TPTEST(ClusteringContractCoordinator, Split) {
     test.check_same_contract(cid3ABC);
     test.check_contract("DE: Billy primary new branch", "DE",
         quick_contract_simple({billy}, billy, &branch3DE));
+}
+
+/* In the `Failover` test, we check that a new primary is elected if the old primary
+fails. */
+TPTEST(ClusteringContractCoordinator, Failover) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(),
+                billy = generate_uuid(),
+                carol = generate_uuid();
+    test.set_config({ {"ABCDE", {alice, billy, carol}, alice} });
+    cpu_branch_ids_t branch1 = quick_branch(
+        &test.state.branch_history,
+        { {"ABCDE", nullptr, 0} });
+    cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
+        quick_contract_simple({alice, billy, carol}, alice, &branch1));
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_streaming);
+    test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.remove_ack(alice, cid1);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"ABCDE", &branch1, 100} });
+
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"ABC", &branch1, 101}, {"DE", &branch1, 99} });
+
+    test.coordinate();
+    cpu_contract_ids_t cid2ABC = test.check_contract("ABC: No primary", "ABC",
+        quick_contract_no_primary({alice, billy, carol}, &branch1));
+    cpu_contract_ids_t cid2DE = test.check_contract("DE: No primary", "DE",
+        quick_contract_no_primary({alice, billy, carol}, &branch1));
+
+    test.add_ack(billy, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"ABC", &branch1, 100} });
+    test.add_ack(carol, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"ABC", &branch1, 101} });
+    test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"DE", &branch1, 100} });
+    test.add_ack(carol, cid2DE, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"DE", &branch1, 99} });
+
+    test.coordinate();
+    test.check_contract("ABC: Failover", "ABC",
+        quick_contract_simple({alice, billy, carol}, carol, &branch1));
+    test.check_contract("DE: Failover", "DE",
+        quick_contract_simple({alice, billy, carol}, billy, &branch1));
 }
 
 } /* namespace unittest */

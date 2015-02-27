@@ -39,7 +39,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                     &combined_branch_history,
                     vers_pair.second,
                     branch,
-                    region);
+                    vers_pair.first);
             for (const auto &can_pair : points_on_canonical_branch) {
                 base_frag.version = boost::make_optional(can_pair.second.timestamp);
                 parts.push_back(std::make_pair(can_pair.first, base_frag));

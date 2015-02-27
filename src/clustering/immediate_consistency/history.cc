@@ -183,7 +183,7 @@ region_map_t<version_t> version_find_common(
         } else if (x.v1 == version_t::zero() || x.v2 == version_t::zero()) {
             /* Conceptually, this case is a subset of the next case. We handle it
             separately because `bh->get_branch()` crashes on a nil branch ID, so we'd
-            have to make the third case implementation more complicated. */
+            have to make the next case implementation more complicated. */
             result.push_back({x.r, version_t::zero()});
         } else {
             /* The versions are on two separate branches. */
@@ -216,6 +216,7 @@ region_map_t<version_t> version_find_common(
             }
 
             /* OK, now recurse to `b1`'s parents. */
+            guarantee(region_is_superset(b1.origin.get_domain(), x.r));
             for (const auto &pair : b1.origin.mask(x.r)) {
                 stack.push({pair.first, pair.second, x.v2, v1_equiv, x.v2_equiv});
             }
