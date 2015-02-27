@@ -1,0 +1,2 @@
+# These are the build arguments used for a 64-bit Linux build:
+use_ozone=true symbol_level=0 is_official_build=true is_debug=false is_chrome_branded=true cpu_arch="x64"

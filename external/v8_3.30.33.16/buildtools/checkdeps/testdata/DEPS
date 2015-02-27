@@ -1,0 +1,8 @@
+include_rules = [
+  "-checkdeps/testdata/disallowed",
+  "+checkdeps/testdata/allowed",
+  "-third_party/explicitly_disallowed",
+]
+skip_child_includes = [
+  "checkdeps_test",
+]

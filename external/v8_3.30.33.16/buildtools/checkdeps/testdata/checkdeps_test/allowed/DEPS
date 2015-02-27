@@ -1,0 +1,11 @@
+include_rules = [
+  "+disallowed/allowed",
+  "!disallowed/temporarily_allowed.h",
+  "+third_party/allowed_may_use",
+]
+
+specific_include_rules = {
+  ".*_unittest\.cc": [
+    "+disallowed/teststuff",
+  ]
+}
