@@ -96,21 +96,15 @@ struct msg_t {
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
-    template<class T>
-    explicit msg_t(T &&_op) : op(std::move(_op)) { }
+    msg_t(const msg_t &msg) = default;
 
-    // We need to define the copy constructor.  GCC 4.4 doesn't let us use `=
-    // default`, and SRH is uncomfortable violating the rule of 3, so we define
-    // the destructor and assignment operator as well.
-    msg_t(const msg_t &msg) : op(msg.op) { }
-    ~msg_t() { }
-    const msg_t &operator=(const msg_t &msg) {
-        op = msg.op;
-        return *this;
-    }
+    boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
+
+    // Accursed reference collapsing!
+    template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
+    explicit msg_t(T &&_op) : op(decltype(op)(std::move(_op))) { }
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 };
 
 RDB_DECLARE_SERIALIZABLE(msg_t);

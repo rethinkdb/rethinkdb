@@ -7,14 +7,17 @@
 static const int machinery_expiration_secs = 60;
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
-        const store_key_t &key,
-        const ql::datum_t &old_val,
-        const ql::datum_t &new_val) {
-    ql::changefeed::msg_t::change_t change;
-    change.pkey = key;
-    change.old_val = old_val;
-    change.new_val = new_val;
-    send_all(ql::changefeed::msg_t(change));
+    const store_key_t &pkey,
+    const ql::datum_t &old_val,
+    const ql::datum_t &new_val) {
+    send_all(
+        ql::changefeed::msg_t(
+            ql::changefeed::msg_t::change_t{
+                std::map<std::string, std::vector<ql::datum_t> >(),
+                std::map<std::string, std::vector<ql::datum_t> >(),
+                pkey,
+                old_val,
+                new_val}));
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_stop() {

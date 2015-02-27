@@ -46,37 +46,38 @@ std::string print(const msg_t::limit_change_t &change) {
 }
 } // namespace debug
 
-struct keyed_datum_t {
-    keyed_datum_t(store_key_t _key, datum_t _datum)
-        : key(std::move(_key)), datum(std::move(_datum)) {
-        guarantee(datum.has());
+struct indexed_datum_t {
+    indexed_datum_t(datum_t _val, datum_t _index)
+        : val(std::move(_val)), index(std::move(_index)) {
+        guarantee(val.has());
     }
-    store_key_t key;
-    datum_t datum;
+    datum_t val, index;
 };
 
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
-                 boost::optional<keyed_datum_t> _old_val,
-                 boost::optional<keyed_datum_t> _new_val,
+                 boost::optional<indexed_datum_t> _old_val,
+                 boost::optional<indexed_datum_t> _new_val,
                  DEBUG_ONLY(boost::optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
-          key(std::move(_key)),
           old_val(std::move(_old_val)),
           new_val(std::move(_new_val)),
           DEBUG_ONLY(sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
-        if (old_val && new_val) rassert(old_val.datum != new_val.datum);
+        if (old_val && new_val) {
+            guarantee(old_val->index.has() == new_val->index.has());
+            rassert(old_val->val != new_val->val);
+        }
     }
     std::pair<uuid_u, uint64_t> source_stamp;
-    boost::optional<keyed_datum_t> old_val, new_val;
+    boost::optional<indexed_datum_t> old_val, new_val;
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
 datum_t change_val_to_change(const change_val_t &change) {
     std::map<datum_string_t, datum_t> ret;
-    if (change.old_val.has()) ret[datum_string_t("old_val")] = change.old_val;
-    if (change.new_val.has()) ret[datum_string_t("new_val")] = change.new_val;
+    if (change.old_val) ret[datum_string_t("old_val")] = change.old_val->val;
+    if (change.new_val) ret[datum_string_t("new_val")] = change.new_val->val;
     guarantee(ret.size() != 0);
     return datum_t(std::move(ret));
 }
@@ -1060,14 +1061,16 @@ public:
     virtual void add_el(
         const uuid_u &uuid,
         uint64_t stamp,
-        const store_key_t &key,
-        datum_t old_val,
-        datum_t new_val,
+        const store_key_t &pkey,
+        const boost::optional<std::string> & DEBUG_ONLY(sindex),
+        boost::optional<indexed_datum_t> old_val,
+        boost::optional<indexed_datum_t> new_val,
         const configured_limits_t &limits) {
         if (update_stamp(uuid, stamp)) {
-            queue->add(key, change_val_t(std::make_pair(uuid, stamp),
-                                         old_val,
-                                         new_val));
+            queue->add(pkey, change_val_t(std::make_pair(uuid, stamp),
+                                          old_val,
+                                          new_val,
+                                          DEBUG_ONLY(sindex)));
             if (queue->size() > limits.array_size_limit()) {
                 skipped += queue->size();
                 queue->clear();
@@ -1850,8 +1853,8 @@ public:
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                old_val, *old_idxs.end(),
-                                new_val, *new_idxs.end(),
+                                indexed_datum_t{*old_idxs.end(), old_val},
+                                indexed_datum_t{*new_idxs.end(), new_val},
                                 default_limits);
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -1859,25 +1862,24 @@ public:
                 while (old_idxs.size() > 0) {
                     guarantee(new_idxs.size() == 0);
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                old_val, *old_idxs.end(),
-                                datum_t(), datum_t(),
+                                indexed_datum_t{old_val, *old_idxs.end()},
+                                boost::none,
                                 default_limits);
                     old_idxs.pop_back();
                 }
                 while (new_idxs.size() > 0) {
                     guarantee(old_idxs.size() == 0);
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                new_val, *new_idxs.end(),
-                                datum_t(), datum_t(),
+                                boost::none,
+                                indexed_datum_t{new_val, *new_idxs.end()},
                                 default_limits);
                     new_idxs.pop_back();
                 }
             } else {
-                // RSI: sindex or pkey type passed to `add_el`.
                 if (sub->contains(change.pkey)) {
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex
-                                old_val, datum_t(),
-                                new_val, datum_t(),
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                indexed_datum_t{old_val, datum_t()},
+                                indexed_datum_t{new_val, datum_t()},
                                 default_limits);
                 }
             }
