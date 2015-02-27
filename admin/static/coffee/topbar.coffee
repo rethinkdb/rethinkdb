@@ -1,7 +1,8 @@
 # TopBar view
 
 resolve_issues = require('./resolve_issues.coffee')
-driver = require('./app.coffee').driver
+app = require('./app.coffee')
+driver = app.driver
 
 class Container extends Backbone.View
     className: 'sidebar-container'

@@ -18,6 +18,7 @@
   "homepage": "https://github.com/rethinkdb/rethinkdb",
   "devDependencies": {
     "browserify": "^9.0.3",
+    "browserify-handlebars": "^1.0.0",
     "gulp": "^3.8.11",
     "gulp-coffee": "^2.3.1",
     "gulp-concat": "^2.5.2",
@@ -27,6 +28,7 @@
     "gulp-util": "^3.0.4",
     "handlebars": "^3.0.0",
     "less": "^2.4.0",
+    "uglifyify": "^3.0.1",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.0.0"
   }
