@@ -73,13 +73,6 @@ block_id_t real_superblock_t::get_stat_block_id() {
     return sb_data->stat_block;
 }
 
-void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
-    buf_write_t write(&sb_buf_);
-    reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
-        write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
-    sb_data->stat_block = new_stat_block;
-}
-
 block_id_t real_superblock_t::get_sindex_block_id() {
     buf_read_t read(&sb_buf_);
     uint32_t sb_size;
@@ -94,6 +87,14 @@ void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
     reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
         write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
     sb_data->sindex_block = new_sindex_block;
+}
+
+void real_superblock_t::create_stat_block() {
+    buf_write_t write(&sb_buf_);
+    reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
+        write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
+    guarantee(sb_data->stat_block == NULL_BLOCK_ID);
+    sb_data->stat_block = ::create_stat_block(buf_parent_t(sb_buf_.txn()));
 }
 
 sindex_superblock_t::sindex_superblock_t(buf_lock_t &&sb_buf)
@@ -127,14 +128,6 @@ block_id_t sindex_superblock_t::get_stat_block_id() {
     guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
     return sb_data->stat_block;
 }
-
-void sindex_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
-    buf_write_t write(&sb_buf_);
-    reql_btree_superblock_t *sb_data = static_cast<reql_btree_superblock_t *>(
-        write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
-    sb_data->stat_block = new_stat_block;
-}
-
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10

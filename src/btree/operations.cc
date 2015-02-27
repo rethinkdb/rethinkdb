@@ -14,17 +14,13 @@ void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }
 
-void create_stat_block(superblock_t *sb) {
-    guarantee(sb->get_stat_block_id() == NULL_BLOCK_ID);
-
-    buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
-                          alt_create_t::create);
+block_id_t create_stat_block(buf_parent_t parent) {
+    buf_lock_t stats_block(parent, alt_create_t::create);
     buf_write_t write(&stats_block);
     // Make the stat block be the default constructed stats block.
-
     *static_cast<btree_statblock_t *>(write.get_data_write(BTREE_STATBLOCK_SIZE))
         = btree_statblock_t();
-    sb->set_stat_block_id(stats_block.block_id());
+    return stats_block.block_id();
 }
 
 buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb) {

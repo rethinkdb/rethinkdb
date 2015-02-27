@@ -29,12 +29,13 @@ public:
     void set_root_block_id(block_id_t new_root_block);
 
     block_id_t get_stat_block_id();
-    void set_stat_block_id(block_id_t new_stat_block);
 
     block_id_t get_sindex_block_id();
     void set_sindex_block_id(block_id_t new_block_id);
 
     buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
+
+    void create_stat_block();
 
 private:
     /* The write_semaphore_acq_ is empty for reads.
@@ -59,7 +60,6 @@ public:
     void set_root_block_id(block_id_t new_root_block);
 
     block_id_t get_stat_block_id();
-    void set_stat_block_id(block_id_t new_stat_block);
 
     buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 

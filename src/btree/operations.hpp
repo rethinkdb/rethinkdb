@@ -42,8 +42,11 @@ public:
     virtual block_id_t get_root_block_id() = 0;
     virtual void set_root_block_id(block_id_t new_root_block) = 0;
 
+    /* If stats collection is desired, create a stat block with `create_stat_block()` and
+    store its ID on the superblock, then return it from `get_stat_block_id()`. If stats
+    collection is not desired, `get_stat_block_id()` can always return `NULL_BLOCK_ID`.
+    */
     virtual block_id_t get_stat_block_id() = 0;
-    virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
 
     virtual buf_parent_t expose_buf() = 0;
 
@@ -184,8 +187,9 @@ void check_and_handle_underfull(value_sizer_t *sizer,
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t *sb);
 
-/* Create a stat block for the superblock. */
-void create_stat_block(superblock_t *sb);
+/* Create a stat block suitable for storing in a superblock and returning from
+`get_stat_block_id()`. */
+block_id_t create_stat_block(buf_parent_t parent);
 
 /* Note that there's no guarantee that `pass_back_superblock` will have been
  * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,

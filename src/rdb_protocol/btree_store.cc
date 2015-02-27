@@ -119,7 +119,7 @@ store_t::store_t(serializer_t *serializer,
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
         real_superblock_t sb(std::move(superblock));
-        create_stat_block(&sb);
+        sb.create_stat_block();
     }
 
     btree.init(new btree_slice_t(cache.get(),
