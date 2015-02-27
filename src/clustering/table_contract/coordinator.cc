@@ -140,42 +140,67 @@ contract_t calculate_contract(
         as up to date, according to that metric, as more than half of the voters
         (including itself) is eligible. */
 
-        /* First, collect and sort the states from the servers. Note that we use the
-        server ID as a secondary sorting key. This mean we tend to pick the same server
-        if we run the algorithm twice; this helps to reduce unnecessary fragmentation. */
-        std::vector<std::pair<state_timestamp_t, server_id_t> > replica_states;
+        /* First, collect the states from the servers, and sort them by how up-to-date
+        they are. Note that we use the server ID as a secondary sorting key. This mean we
+        tend to pick the same server if we run the algorithm twice; this helps to reduce
+        unnecessary fragmentation. */
+        std::vector<std::pair<state_timestamp_t, server_id_t> > sorted_candidates;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::state_t::secondary_need_primary) {
-                replica_states.push_back(
+                sorted_candidates.push_back(
                     std::make_pair(*(acks.at(server).version), server));
             }
         }
-        std::sort(replica_states.begin(), replica_states.end());
+        std::sort(sorted_candidates.begin(), sorted_candidates.end());
 
-        /* Second, select a new one. This loop is a little convoluted; it will set
-        `new_primary` to `config.primary_replica` if eligible, otherwise the most
-        up-to-date other server if there is one, otherwise nothing. */
-        boost::optional<server_id_t> new_primary;
-        for (size_t i = new_c.voters.size() / 2; i < replica_states.size(); ++i) {
-            new_primary = replica_states[i].second;
-            if (replica_states[i].second == config.primary_replica) {
-                break;
+        /* Second, determine which servers are eligible to become primary. */
+        std::vector<server_id_t> eligible_candidates;
+        for (size_t i = 0; i < sorted_candidates.size(); ++i) {
+            server_id_t server = sorted_candidates[i].second;
+            /* `up_to_date_count` is the number of servers that `server` is at least as
+            up-to-date as. We know `server` must be at least as up-to-date as itself and
+            all of the servers that are earlier in the list. */
+            size_t up_to_date_count = i + 1;
+            /* If there are several servers with the same timestamp, they will appear
+            together in the list. So `server` may be at least as up-to-date as some of
+            the servers that appear after it in the list. */
+            while (up_to_date_count < sorted_candidates.size() &&
+                    sorted_candidates[up_to_date_count].first ==
+                        sorted_candidates[i].first) {
+                ++up_to_date_count;
+            }
+            /* OK, now `up_to_date_count` is the number of servers that this server is
+            at least as up-to-date as. */
+            if (up_to_date_count * 2 > new_c.voters.size()) {
+                eligible_candidates.push_back(server);
             }
         }
 
-        /* RSI(raft): If `config.primary_replica` isn't connected or isn't ready, we
-        should elect a different primary. If `config.primary_replica` is connected but
-        just takes a little bit longer to reply to our contracts than the other replicas,
-        we should wait for it to reply to our contracts and then elect it. Under the
-        current implementation, we don't wait. This could lead to an awkward loop, where
-        we elect the wrong primary, then un-elect it because we realize
-        `config.primary_replica` is ready, and then re-elect the wrong primary instead of
-        electing `config.primary_replica`. */
-
-        if (static_cast<bool>(new_primary)) {
+        if (!eligible_candidates.empty()) {
             contract_t::primary_t p;
-            p.server = *new_primary;
+
+            /* Select the primary. It's safe for us to pick any eligible candidate, but
+            we should always pick `config.primary_replica` if it's available. Otherwise,
+            we just pick the most up-to-date one. */
+            auto it = std::find(eligible_candidates.begin(), eligible_candidates.end(),
+                config.primary_replica);
+            if (it != eligible_candidates.end()) {
+                p.server = config.primary_replica;
+            } else {
+                /* `eligible_candidates` is ordered by how up-to-date they are */
+                p.server = eligible_candidates.back();
+            }
+
+            /* RSI(raft): If `config.primary_replica` isn't connected or isn't ready, we
+            should elect a different primary. If `config.primary_replica` is connected
+            but just takes a little bit longer to reply to our contracts than the other
+            replicas, we should wait for it to reply to our contracts and then elect it.
+            Under the current implementation, we don't wait. This could lead to an
+            awkward loop, where we elect the wrong primary, then un-elect it because we
+            realize `config.primary_replica` is ready, and then re-elect the wrong
+            primary instead of electing `config.primary_replica`. */
+
             new_c.primary = boost::make_optional(p);
         }
     }
