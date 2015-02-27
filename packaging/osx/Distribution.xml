@@ -10,15 +10,6 @@
 
 <background file="installer_background.png" mime-type="image/png" alignment="topleft" scaling="none" />
 
-<installation-check script="(function(){
-  if(system.sysctl('hw.machine') != 'x86_64'){
-    my.result.type = 'Fatal';
-    my.result.message = 'x86_64 system required';
-    return false;
-  }
-  return true;
-})()" />
-
 <volume-check>
   <allowed-os-versions>
     <os-version min="10.7" />

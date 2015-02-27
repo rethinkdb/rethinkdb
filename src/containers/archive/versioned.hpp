@@ -115,6 +115,10 @@ size_t serialized_size_for_version(cluster_version_t version,
     template void serialize<cluster_version_t::CLUSTER>( \
             write_message_t *, const typ &)
 
+#define INSTANTIATE_DESERIALIZE_FOR_CLUSTER(typ)                       \
+    template archive_result_t deserialize<cluster_version_t::CLUSTER>( \
+                            read_stream_t *, typ *)
+
 #ifdef CLUSTER_AND_DISK_VERSIONS_ARE_SAME
 #define INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ)  \
     template void serialize<cluster_version_t::CLUSTER>( \

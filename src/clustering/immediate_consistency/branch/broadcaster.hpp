@@ -13,6 +13,7 @@
 #include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "concurrency/min_timestamp_enforcer.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "timestamps.hpp"
 
@@ -127,7 +128,9 @@ private:
     dispatchee is "readable" if a `replier_t` exists for it on the remote
     server.) */
     void pick_a_readable_dispatchee(
-        dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
+        const read_t &read,
+        dispatchee_t **dispatchee_out,
+        mutex_assertion_t::acq_t *proof,
         auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
     void get_all_readable_dispatchees(
         std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
@@ -160,8 +163,9 @@ private:
 
     void listener_read(
         broadcaster_t::dispatchee_t *mirror,
-        const read_t &r, read_response_t *response, state_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_read_token_t token,
+        const read_t &r,
+        read_response_t *response,
+        min_timestamp_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -213,6 +217,12 @@ private:
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;
     order_checkpoint_t order_checkpoint;
+
+    /* Once we ack a write, we must make sure that every read that's initiated
+    after that will see the result of the write. We use this timestamp to keep
+    track of the most recent acked write and produce `min_timestamp_token_t`s from
+    it whenever we send a read to a listener. */
+    state_timestamp_t most_recent_acked_write_timestamp;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;

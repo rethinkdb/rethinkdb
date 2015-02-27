@@ -12,13 +12,19 @@
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/store.hpp"
 
-// TODO: consider B#/B* trees to improve space efficiency
 
 real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}
 
+real_superblock_t::real_superblock_t(
+        buf_lock_t &&sb_buf,
+        new_semaphore_acq_t &&write_semaphore_acq)
+    : write_semaphore_acq_(std::move(write_semaphore_acq)),
+      sb_buf_(std::move(sb_buf)) {}
+
 void real_superblock_t::release() {
     sb_buf_.reset_buf_lock();
+    write_semaphore_acq_.reset();
 }
 
 block_id_t real_superblock_t::get_root_block_id() {
@@ -724,31 +730,55 @@ void check_and_handle_underfull(value_sizer_t *sizer,
     }
 }
 
-void get_btree_superblock(txn_t *txn, access_t access,
-                          scoped_ptr_t<real_superblock_t> *got_superblock_out) {
+void get_btree_superblock(
+        txn_t *txn,
+        access_t access,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
     *got_superblock_out = std::move(tmp_sb);
 }
 
-void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
-                                  UNUSED write_access_t superblock_access,
-                                  int expected_change_count,
-                                  repli_timestamp_t tstamp,
-                                  write_durability_t durability,
-                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<txn_t> *txn_out) {
+/* Variant for writes that go through a superblock write semaphore */
+void get_btree_superblock(
+        txn_t *txn,
+        UNUSED write_access_t access,
+        new_semaphore_acq_t &&write_sem_acq,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out) {
+    buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access_t::write);
+    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf),
+                                                                 std::move(write_sem_acq)));
+    *got_superblock_out = std::move(tmp_sb);
+}
+
+void get_btree_superblock_and_txn_for_writing(
+        cache_conn_t *cache_conn,
+        new_semaphore_t *superblock_write_semaphore,
+        UNUSED write_access_t superblock_access,
+        int expected_change_count,
+        repli_timestamp_t tstamp,
+        write_durability_t durability,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out) {
     txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
 
     txn_out->init(txn);
 
-    get_btree_superblock(txn, access_t::write, got_superblock_out);
+    /* Acquire a ticket from the superblock_write_semaphore */
+    new_semaphore_acq_t sem_acq;
+    if(superblock_write_semaphore != nullptr) {
+        sem_acq.init(superblock_write_semaphore, 1);
+        sem_acq.acquisition_signal()->wait();
+    }
+
+    get_btree_superblock(txn, write_access_t::write, std::move(sem_acq), got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
-                                                  cache_account_t *backfill_account,
-                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<txn_t> *txn_out) {
+void get_btree_superblock_and_txn_for_backfilling(
+        cache_conn_t *cache_conn,
+        cache_account_t *backfill_account,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out) {
     txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
     txn->set_account(backfill_account);
@@ -761,10 +791,11 @@ void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
 // However, if you quickly release the superblock, you'll release any snapshotting of
 // secondary index nodes that you could not possibly access.
-void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
-                                              cache_snapshotted_t snapshotted,
-                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<txn_t> *txn_out) {
+void get_btree_superblock_and_txn_for_reading(
+        cache_conn_t *cache_conn,
+        cache_snapshotted_t snapshotted,
+        scoped_ptr_t<real_superblock_t> *got_superblock_out,
+        scoped_ptr_t<txn_t> *txn_out) {
     txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
 

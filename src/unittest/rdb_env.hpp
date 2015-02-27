@@ -35,12 +35,10 @@ namespace unittest {
 //  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
 //  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t {
-private:
-    std::map<store_key_t, scoped_cJSON_t *> data;
-    ql::env_t *env;
-
 public:
-    explicit mock_namespace_interface_t(ql::env_t *env);
+    explicit mock_namespace_interface_t(datum_string_t _primary_key,
+                                        std::map<store_key_t, ql::datum_t> &&_data,
+                                        ql::env_t *_env);
     virtual ~mock_namespace_interface_t();
 
     void read(const read_t &query,
@@ -57,14 +55,19 @@ public:
                UNUSED order_token_t tok,
                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    std::map<store_key_t, scoped_cJSON_t *> *get_data();
-
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
     bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
+    std::map<store_key_t, ql::datum_t> *get_data();
+
+    std::string get_primary_key() const;
+
 private:
     cond_t ready_cond;
+    datum_string_t primary_key;
+    std::map<store_key_t, ql::datum_t> data;
+    ql::env_t *env;
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const point_read_t &get);
@@ -80,9 +83,9 @@ private:
         void NORETURN operator()(UNUSED const sindex_list_t &sl);
         void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
-        read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data, read_response_t *_response);
+        read_visitor_t(mock_namespace_interface_t *parent, read_response_t *_response);
 
-        std::map<store_key_t, scoped_cJSON_t *> *data;
+        mock_namespace_interface_t *parent;
         read_response_t *response;
     };
 
@@ -97,10 +100,9 @@ private:
         void NORETURN operator()(UNUSED const sindex_rename_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
-        write_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data, ql::env_t *_env, write_response_t *_response);
+        write_visitor_t(mock_namespace_interface_t *parent, write_response_t *_response);
 
-        std::map<store_key_t, scoped_cJSON_t *> *data;
-        ql::env_t *env;
+        mock_namespace_interface_t *parent;
         write_response_t *response;
     };
 };
@@ -130,25 +132,32 @@ public:
     test_rdb_env_t();
     ~test_rdb_env_t();
 
+    void add_database(const std::string &db_name);
+    void add_table(const std::string &db_name,
+                   const std::string &table_name,
+                   const std::string &primary_key);
+
     // The initial_data parameter allows a test to provide a starting dataset.  At
     // the moment, it just takes a set of maps of strings to strings, which will be
     // converted into a set of JSON structures.  This means that the JSON values will
     // only be strings, but if a test needs different properties in their objects,
     // this call should be modified.
-    void add_table(const std::string &table_name,
-                   const uuid_u &db_id,
+    void add_table(const std::string &db_name,
+                   const std::string &table_name,
                    const std::string &primary_key,
-                   const std::set<std::map<std::string, std::string> > &initial_data);
-    database_id_t add_database(const std::string &db_name);
+                   const std::set<ql::datum_t, latest_version_optional_datum_less_t> &initial_data);
 
     class instance_t : private reql_cluster_interface_t {
     public:
-        explicit instance_t(test_rdb_env_t *test_env);
+        explicit instance_t(test_rdb_env_t &&test_env);
 
-        ql::env_t *get();
+        ql::env_t *get_env();
+        rdb_context_t *get_rdb_context();
         void interrupt();
 
-        std::map<store_key_t, scoped_cJSON_t *> *get_data(database_id_t, name_string_t);
+        std::map<store_key_t, ql::datum_t> *get_data(name_string_t db,
+                                                     name_string_t table);
+
 
         bool db_create(const name_string_t &name, signal_t *interruptor,
                 ql::datum_t *result_out, std::string *error_out);
@@ -246,8 +255,8 @@ public:
     private:
         extproc_pool_t extproc_pool;
         rdb_context_t rdb_ctx;
+        dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
         std::map<name_string_t, database_id_t> databases;
-        std::map<std::pair<database_id_t, name_string_t>, std::string> primary_keys;
         std::map<std::pair<database_id_t, name_string_t>,
                  scoped_ptr_t<mock_namespace_interface_t> > tables;
         scoped_ptr_t<ql::env_t> env;
@@ -259,13 +268,16 @@ public:
 private:
     extproc_spawner_t extproc_spawner;
 
-    std::map<name_string_t, database_id_t> databases;
-    std::map<std::pair<database_id_t, name_string_t>, std::string> primary_keys;
+    struct table_data_t {
+        datum_string_t primary_key;
+        std::map<store_key_t, ql::datum_t> initial_data;
+    };
+
+    std::set<name_string_t> databases;
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.
-    std::map<std::pair<database_id_t, name_string_t>,
-             std::map<store_key_t, scoped_cJSON_t *> *> initial_datas;
+    std::map<std::pair<name_string_t, name_string_t>, table_data_t> tables;
 };
 
 }  // namespace unittest

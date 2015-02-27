@@ -39,6 +39,11 @@ int compare_and_delete(cJSON *l, cJSON *r) {
     return res;
 }
 
+bool valid_json(const char* str) {
+    scoped_cJSON_t res(cJSON_Parse(str));
+    return res.get() != NULL;
+}
+
 namespace unittest {
 TEST(JSON, ArrayInsertDelete) {
     cJSON *array = cJSON_CreateArray();
@@ -236,6 +241,21 @@ TEST(JSON, Compare) {
             }
         }
     }
+}
+
+TEST(JSON, Parse) {
+    EXPECT_FALSE(valid_json("1a"));
+    EXPECT_FALSE(valid_json("[],"));
+    EXPECT_FALSE(valid_json("]"));
+    EXPECT_FALSE(valid_json("["));
+    EXPECT_FALSE(valid_json("a"));
+    EXPECT_FALSE(valid_json("1e2e3"));
+    EXPECT_FALSE(valid_json(""));
+    EXPECT_FALSE(valid_json(" "));
+    EXPECT_FALSE(valid_json("\x01[]"));
+    EXPECT_FALSE(valid_json("\v[]"));
+
+    EXPECT_TRUE(valid_json("\t\r\n [] \t\r\n"));
 }
 
 }  // namespace unittest

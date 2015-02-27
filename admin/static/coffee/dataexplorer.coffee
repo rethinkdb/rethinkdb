@@ -1474,7 +1474,7 @@ module 'DataExplorerView', ->
         # Extract information from the current query
         # Regex used
         regex:
-            anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
+            anonymous:/^(\s)*function\s*\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z0-9]*)\(/ # forEach( merge( filter(
             row: /^(\s)*row\(/

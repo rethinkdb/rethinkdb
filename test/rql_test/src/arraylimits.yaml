@@ -3,10 +3,10 @@ table_variable_name: tbl
 tests:
 
   # test simplistic array limits
-  - cd: r.expr([1,2,3,4]).union([5, 6, 7, 8])
+  - cd: r.expr([1,1,1,1]).union([1, 1, 1, 1])
     runopts:
       array_limit: '8'
-    ot: [1,2,3,4,5,6,7,8]
+    ot: [1,1,1,1,1,1,1,1]
   - cd: r.expr([1,2,3,4]).union([5, 6, 7, 8])
     runopts:
       array_limit: '4'

@@ -21,7 +21,7 @@ void routing_http_app_t::handle(const http_req_t &req, http_res_t *result, signa
         if (defaultroute) {
             defaultroute->handle(req, result, interruptor);
         } else {
-            *result = http_res_t(HTTP_NOT_FOUND);
+            *result = http_res_t(http_status_code_t::NOT_FOUND);
         }
     } else {
         std::string route(*it);

@@ -327,7 +327,7 @@ void linux_tcp_conn_t::on_shutdown_read() {
     read_closed.pulse();
 }
 
-bool linux_tcp_conn_t::is_read_open() {
+bool linux_tcp_conn_t::is_read_open() const {
     assert_thread();
     return !read_closed.is_pulsed();
 }
@@ -545,7 +545,7 @@ void linux_tcp_conn_t::on_shutdown_write() {
     no-ops, so in practice the write queue empties. */
 }
 
-bool linux_tcp_conn_t::is_write_open() {
+bool linux_tcp_conn_t::is_write_open() const {
     assert_thread();
     return !write_closed.is_pulsed();
 }

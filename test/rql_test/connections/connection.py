@@ -167,7 +167,7 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            self.assertRaisesRegexp(r.RqlDriverError, "Connection interrupted during handshake with %s:%d - timed out" % (host, port), r.connect, host=host, port=port, timeout=2)
+            self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to %s:%d. Error: timed out" % (host, port), r.connect, host=host, port=port, timeout=2)
         finally:
             useSocket.close()
 

@@ -1,10 +1,11 @@
+# # AST
+
 util = require('./util')
 err = require('./errors')
 net = require('./net')
 protoTermType = require('./proto-def').Term.TermType
 Promise = require('bluebird')
-
-# Import some names to this namespace for convienience
+# Import some names to this namespace for convenience
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
@@ -13,7 +14,7 @@ aropt = util.aropt
 # and a function that shortcuts `r.expr`.
 rethinkdb = (args...) -> rethinkdb.expr(args...)
 
-# Utilities
+# ## Utilities
 
 funcWrap = (val) ->
     if val is undefined

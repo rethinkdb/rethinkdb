@@ -18,7 +18,8 @@ private:
         case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
-        case reql_version_t::v1_16_is_latest:
+        case reql_version_t::v1_16:
+        case reql_version_t::v2_0_is_latest:
             rcheck_target(v,
                           d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
                           base_exc_t::GENERIC,

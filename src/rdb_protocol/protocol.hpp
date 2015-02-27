@@ -565,6 +565,9 @@ struct read_t {
     // table, so that they don't block writes.
     bool use_snapshot() const THROWS_NOTHING;
 
+    // At the moment changefeed reads must be routed to the primary replica.
+    bool route_to_primary() const THROWS_NOTHING;
+
     // Returns true if this read should be sent to every replica.
     bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
 };

@@ -205,6 +205,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,
-        reql_version_t::v1_13, reql_version_t::v1_16_is_latest);
+        reql_version_t::EARLIEST, reql_version_t::LATEST);
 
 #endif /* PROTOCOL_API_HPP_ */
