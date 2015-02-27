@@ -120,24 +120,16 @@ void extract(const Value *, const Value &json, Term *t) {
 
 template<>
 void extract(const Value *, const Value &json, Datum *d) {
-    // TODO (daniel): Maybe use an enum here again, using json.GetType()?
-    if (json.IsBool()) {
+    switch(json.GetType()) {
+    case kNullType:
+        d->set_type(Datum::R_NULL);
+        break;
+    case kFalseType: // fallthru
+    case kTrueType:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(json.GetBool());
-    } else if (json.IsNull()) {
-        d->set_type(Datum::R_NULL);
-    } else if (json.IsNumber()) {
-        d->set_type(Datum::R_NUM);
-        d->set_r_num(json.GetDouble());
-    } else if (json.IsString()) {
-        d->set_type(Datum::R_STR);
-        d->set_r_str(json.GetString());
-    } else if (json.IsArray()) {
-        d->set_type(Datum::R_ARRAY);
-        for (Value::ConstValueIterator it = json.Begin(); it != json.End(); ++it) {
-            extract(nullptr, *it, d->add_r_array());
-        }
-    } else if (json.IsObject()) {
+        break;
+    case kObjectType:
         d->set_type(Datum::R_OBJECT);
         for (Value::ConstMemberIterator it = json.MemberBegin();
              it != json.MemberEnd();
@@ -146,7 +138,22 @@ void extract(const Value *, const Value &json, Datum *d) {
             ap->set_key(it->name.GetString());
             extract(nullptr, it->value, ap->mutable_val());
         }
-    } else {
+        break;
+    case kArrayType:
+        d->set_type(Datum::R_ARRAY);
+        for (Value::ConstValueIterator it = json.Begin(); it != json.End(); ++it) {
+            extract(nullptr, *it, d->add_r_array());
+        }
+        break;
+    case kStringType:
+        d->set_type(Datum::R_STR);
+        d->set_r_str(json.GetString());
+        break;
+    case kNumberType:
+        d->set_type(Datum::R_NUM);
+        d->set_r_num(json.GetDouble());
+        break;
+    default:
         unreachable();
     }
 }

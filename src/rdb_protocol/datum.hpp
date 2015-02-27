@@ -19,6 +19,7 @@
 #include "containers/counted.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/datum_string.hpp"
+#include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "rdb_protocol/configured_limits.hpp"
@@ -443,7 +444,12 @@ private:
 };
 
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
+// TODO! Remove
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
+datum_t to_datum(
+    const rapidjson::Value &json,
+    const configured_limits_t &,
+    reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,

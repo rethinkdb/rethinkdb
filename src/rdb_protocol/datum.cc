@@ -427,6 +427,54 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
     }
 }
 
+datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
+    switch(json.GetType()) {
+    case rapidjson::kNullType: {
+        return datum_t::null();
+    } break;
+    case rapidjson::kFalseType: {
+        return datum_t::boolean(false);
+    } break;
+    case rapidjson::kTrueType: {
+        return datum_t::boolean(true);
+    } break;
+    case rapidjson::kObjectType: {
+        datum_object_builder_t builder;
+        for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
+             it != json.MemberEnd();
+             ++it) {
+            fail_if_invalid(reql_version, it->name.GetString());
+            bool dup = builder.add(it->name.GetString(),
+                                   to_datum(it->value, limits, reql_version));
+            rcheck_datum(!dup, base_exc_t::GENERIC,
+                         strprintf("Duplicate key `%s` in JSON.",
+                                   it->name.GetString()));
+        }
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return std::move(builder).to_datum(pts);
+    } break;
+    case rapidjson::kArrayType: {
+        std::vector<datum_t> array;
+        array.reserve(json.Size());
+        for (rapidjson::Value::ConstValueIterator it = json.Begin();
+             it != json.End();
+             ++it) {
+            array.push_back(to_datum(*it, limits, reql_version));
+        }
+        return datum_t(std::move(array), limits);
+    } break;
+    case rapidjson::kStringType: {
+        fail_if_invalid(reql_version, json.GetString());
+        return datum_t(json.GetString());
+    } break;
+    case rapidjson::kNumberType: {
+        return datum_t(json.GetDouble());
+    } break;
+    default: unreachable();
+    }
+}
+
 datum_t to_datum(cJSON *json, const configured_limits_t &limits,
                  reql_version_t reql_version) {
     switch (json->type) {

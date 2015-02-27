@@ -2,6 +2,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
+#include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -14,18 +15,18 @@ public:
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         const datum_string_t &data = args->arg(env, 0)->as_str();
-        // TODO (daniel): This causes copying, which might reduce performance and
-        // wastes memory. Change the cJSON interface to take a length.
-        // Or maybe store datum_string_ts with a null byte appended, though that
-        // would suck.
-        const std::string std_data = data.to_std();
-        scoped_cJSON_t cjson(cJSON_Parse(std_data.c_str()));
-        rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
+        // TODO! Can we avoid this copy?
+        std::string std_data = data.to_std();
+        rapidjson::Document json;
+        json.Parse(std_data.c_str());
+
+        // TODO! Fetch the actual parsing error from rapidjson
+        rcheck(!json.HasParseError(), base_exc_t::GENERIC,
                strprintf("Failed to parse \"%s\" as JSON.",
                  (data.size() > 40
                   ? (std_data.substr(0, 37) + "...").c_str()
                   : std_data.c_str())));
-        return new_val(to_datum(cjson.get(), env->env->limits(),
+        return new_val(to_datum(json, env->env->limits(),
                                 env->env->reql_version()));
     }
 

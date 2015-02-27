@@ -13,6 +13,8 @@ class http_res_t;
 
 void http_json_res(cJSON *json, http_res_t *result);
 
+// TODO! Remove this whole file (except *maybe* for serialization)
+
 //TODO: do we both merge and cJSON_merge?
 //Merge two cJSON objects, crashes if there are overlapping keys
 cJSON *merge(cJSON *, cJSON *);
