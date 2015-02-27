@@ -129,6 +129,15 @@ block_id_t sindex_superblock_t::get_stat_block_id() {
     return sb_data->stat_block;
 }
 
+block_id_t sindex_superblock_t::get_sindex_block_id() {
+    buf_read_t read(&sb_buf_);
+    uint32_t sb_size;
+    const reql_btree_superblock_t *sb_data =
+        static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
+    guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
+    return sb_data->sindex_block;
+}
+
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 

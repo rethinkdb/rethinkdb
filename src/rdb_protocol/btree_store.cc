@@ -787,12 +787,23 @@ void store_t::clear_sindex(
                 root_node.write_acq_signal()->wait_lazily_unordered();
                 root_node.mark_deleted();
             }
+            /* Under normal circumstances, sindex superblocks do not have stat or sindex
+            blocks. However, we used to create stat and sindex blocks, so some very old
+            secondary indexes may still have them. Here we check for them and delete them
+            if they are present. */
             if (sindex_superblock.get_stat_block_id() != NULL_BLOCK_ID) {
                 buf_lock_t stat_block(sindex_superblock.expose_buf(),
                                       sindex_superblock.get_stat_block_id(),
                                       access_t::write);
                 stat_block.write_acq_signal()->wait_lazily_unordered();
                 stat_block.mark_deleted();
+            }
+            if (sindex_superblock.get_sindex_block_id() != NULL_BLOCK_ID) {
+                buf_lock_t sind_block(sindex_superblock.expose_buf(),
+                                      sindex_superblock.get_sindex_block_id(),
+                                      access_t::write);
+                sind_block.write_acq_signal()->wait_lazily_unordered();
+                sind_block.mark_deleted();
             }
         }
         /* Now it's safe to completely delete the index */
