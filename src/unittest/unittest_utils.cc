@@ -109,4 +109,27 @@ void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 
+key_range_t quick_range(const char *zones) {
+    char min = zones[0];
+    guarantee(min >= 'A' && min <= 'E');
+    while (zones[1] != '\0') {
+        guarantee(zones[1] == zones[0] + 1);
+        ++zones;
+    }
+    char max = zones[0] + 1;
+    key_range_t r;
+    if (min == 'A') {
+        r.left = store_key_t();
+    } else {
+        r.left = store_key_t(std::string(1, (min - 'A') * 50));
+    }
+    if (max == 'E') {
+        r.right = key_range_t::right_bound_t();
+    } else {
+        r.right = key_range_t::right_bound_t(
+            store_key_t(std::string(1, (max - 'A') * 50)));
+    }
+    return r;
+}
+
 }  // namespace unittest

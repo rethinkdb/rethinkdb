@@ -39,6 +39,11 @@ void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 read_t make_sindex_read(
     ql::datum_t key, const std::string &id);
 
+/* Easy way to make shard ranges. `quick_range("ABCDE")` is `key_range_t::universe()`,
+and any substring produces a subrange. For example, `quick_range("ABC")` is approximately
+the first half of the key-space. */
+key_range_t quick_range(const char *zones);
+
 }  // namespace unittest
 
 
