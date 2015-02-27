@@ -10,10 +10,10 @@ test because the inputs and outputs are complicated, and we want to test many di
 scenarios. So we have a bunch of helper functions and types for constructing test
 scenarios.
 
-The general outline of a test is as follows: Construct a `quick_coordinator_tester_t`.
-Use its `set_config()`, `add_contract()`, and `add_ack()` methods to set up the scenario.
-Call `coordinate()` and then use `check_contract()` to make sure the newly-created
-contracts make sense. If desired, adjust the inputs and repeat. */
+The general outline of a test is as follows: Construct a `coordinator_tester_t`. Use its
+`set_config()`, `add_contract()`, and `add_ack()` methods to set up the scenario. Call
+`coordinate()` and then use `check_contract()` to make sure the newly-created contracts
+make sense. If desired, adjust the inputs and repeat. */
 
 /* These functions are defined internally in `clustering/table_contract/coordinator.cc`,
 and not declared in the header, so we have to declare them here. */
@@ -33,7 +33,7 @@ void calculate_branch_history(
 namespace unittest {
 
 /* The `contract_coordinator_t` assumes none of its contracts span multiple CPU shards.
-To reduce verbosity, the `quick_coordinator_tester_t` automatically sets up many parallel
+To reduce verbosity, the `coordinator_tester_t` automatically sets up many parallel
 contracts/branches/acks/etc., one for each CPU shard. `cpu_branch_ids_t` and
 `cpu_contract_ids_t` are sets of branch or contract IDs, one for each CPU shard. */
 class cpu_branch_ids_t {
@@ -137,9 +137,9 @@ cpu_branch_ids_t quick_branch(
     return res;
 }
 
-/* `quick_contracts_*()` are convenience functions to create collections of CPU-sharded
+/* `quick_contract_*()` are convenience functions to create collections of CPU-sharded
 contracts. */
-cpu_contracts_t quick_contracts_simple(
+cpu_contracts_t quick_contract_simple(
         const std::set<server_id_t> &voters,
         const server_id_t &primary,
         const cpu_branch_ids_t *branch) {
@@ -152,7 +152,7 @@ cpu_contracts_t quick_contracts_simple(
     }
     return res;
 }
-cpu_contracts_t quick_contracts_extra_replicas(
+cpu_contracts_t quick_contract_extra_replicas(
         const std::set<server_id_t> &voters,
         const std::set<server_id_t> &extras,
         const server_id_t &primary,
@@ -168,7 +168,7 @@ cpu_contracts_t quick_contracts_extra_replicas(
     return res;
 }
         
-cpu_contracts_t quick_contracts_no_primary(
+cpu_contracts_t quick_contract_no_primary(
         const std::set<server_id_t> &voters,   /* first voter is primary */
         const cpu_branch_ids_t *branch) {
     cpu_contracts_t res;
@@ -179,7 +179,7 @@ cpu_contracts_t quick_contracts_no_primary(
     }
     return res;
 }
-cpu_contracts_t quick_contracts_handover(
+cpu_contracts_t quick_contract_handover(
         const std::set<server_id_t> &voters,
         const server_id_t &primary,
         const server_id_t &handover,
@@ -194,7 +194,7 @@ cpu_contracts_t quick_contracts_handover(
     }
     return res;
 }
-cpu_contracts_t quick_contracts_temp_voters(
+cpu_contracts_t quick_contract_temp_voters(
         const std::set<server_id_t> &voters,
         const std::set<server_id_t> &temp_voters,
         const server_id_t &primary,
@@ -202,6 +202,7 @@ cpu_contracts_t quick_contracts_temp_voters(
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
+        res.contracts[i].replicas.insert(temp_voters.begin(), temp_voters.end());
         res.contracts[i].temp_voters = boost::make_optional(temp_voters);
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
@@ -210,7 +211,7 @@ cpu_contracts_t quick_contracts_temp_voters(
     return res;
 }
 
-struct quick_coordinator_tester_t {
+struct coordinator_tester_t {
     table_raft_state_t state;
     watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> acks;
 
@@ -218,17 +219,18 @@ struct quick_coordinator_tester_t {
     this:
 
         tester.set_config({
-            {"A", {s1, s2} },
-            {"BC", {s2, s3} },
-            {"DE", {s3, s1} }
+            {"A", {s1, s2}, s1 },
+            {"BC", {s2, s3}, s2 },
+            {"DE", {s3, s1}, s3 }
             });
 
     This makes a config with three shards, each of which has a different primary and
-    secondary. The first server in the list is always the primary. */
+    secondary. */
     struct quick_shard_args_t {
     public:
         const char *quick_range_spec;
         std::vector<server_id_t> replicas;
+        server_id_t primary;
     };
     void set_config(std::initializer_list<quick_shard_args_t> qss) {
         table_config_and_shards_t cs;
@@ -242,7 +244,7 @@ struct quick_coordinator_tester_t {
         for (const quick_shard_args_t &qs : qss) {
             table_config_t::shard_t s;
             s.replicas.insert(qs.replicas.begin(), qs.replicas.end());
-            s.primary_replica = qs.replicas.front();
+            s.primary_replica = qs.primary;
             cs.config.shards.push_back(s);
 
             key_range_t range = quick_range(qs.quick_range_spec);
@@ -344,10 +346,13 @@ struct quick_coordinator_tester_t {
 
     /* Use `check_contract()` to make sure that `coordinate()` produced reasonable
     contracts. Its interface mirrors that of `add_contract()`. */
-    void check_contract(
+    cpu_contract_ids_t check_contract(
+            const std::string &context,
             const char *quick_range_spec,
             const cpu_contracts_t &contracts) {
+        SCOPED_TRACE("checking contract: " + context);
         key_range_t range = quick_range(quick_range_spec);
+        cpu_contract_ids_t res;
         bool found[CPU_SHARDING_FACTOR];
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             found[i] = false;
@@ -355,37 +360,99 @@ struct quick_coordinator_tester_t {
         for (const auto &pair : state.contracts) {
             if (pair.second.first.inner == range) {
                 size_t i = get_cpu_shard_number(pair.second.first);
-                ASSERT_FALSE(found[i]);
+                EXPECT_FALSE(found[i]);
                 found[i] = true;
+                res.contract_ids[i] = pair.first;
                 const contract_t &expect = contracts.contracts[i];
                 const contract_t &actual = pair.second.second;
-                ASSERT_EQ(expect.replicas, actual.replicas);
-                ASSERT_EQ(expect.voters, actual.voters);
-                ASSERT_EQ(expect.temp_voters, actual.temp_voters);
-                ASSERT_EQ(static_cast<bool>(expect.primary),
+                EXPECT_EQ(expect.replicas, actual.replicas);
+                EXPECT_EQ(expect.voters, actual.voters);
+                EXPECT_EQ(expect.temp_voters, actual.temp_voters);
+                EXPECT_EQ(static_cast<bool>(expect.primary),
                     static_cast<bool>(actual.primary));
-                if (static_cast<bool>(expect.primary)) {
-                    ASSERT_EQ(expect.primary->server, actual.primary->server);
-                    ASSERT_EQ(expect.primary->hand_over, actual.primary->hand_over);
+                if (static_cast<bool>(expect.primary) &&
+                        static_cast<bool>(actual.primary)) {
+                    EXPECT_EQ(expect.primary->server, actual.primary->server);
+                    EXPECT_EQ(expect.primary->hand_over, actual.primary->hand_over);
                 }
-                ASSERT_EQ(expect.branch, actual.branch);
+                EXPECT_EQ(expect.branch, actual.branch);
             }
         }
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            ASSERT_TRUE(found[i]);
+            EXPECT_TRUE(found[i]);
         }
+        return res;
     }
 
     /* `check_same_contract()` checks that the same contract is still present, with the
     exact same ID. */
     void check_same_contract(const cpu_contract_ids_t &contract_ids) {
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            ASSERT_TRUE(state.contracts.count(contract_ids.contract_ids[i]) == 1);
+            EXPECT_TRUE(state.contracts.count(contract_ids.contract_ids[i]) == 1);
         }
     }
 };
 
-TPTEST(ClusteringContractCoordinator, Static) {
+/* In the `AddReplica` test, we add a single replica to a table. */
+TPTEST(ClusteringContractCoordinator, AddReplica) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    test.set_config({ {"ABCDE", {alice}, alice} });
+    cpu_branch_ids_t branch = quick_branch(
+        &test.state.branch_history,
+        { { "ABCDE", nullptr, 0 } });
+    cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
+        quick_contract_simple({alice}, alice, &branch));
+
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::nothing);
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.set_config({ {"ABCDE", {alice, billy}, alice} });
+    test.coordinate();
+    cpu_contract_ids_t cid2 = test.check_contract("Billy in replicas", "ABCDE",
+        quick_contract_extra_replicas({alice}, {billy}, alice, &branch));
+
+    test.add_ack(alice, cid2, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_streaming);
+    test.coordinate();
+    cpu_contract_ids_t cid3 = test.check_contract("Billy in temp_voters", "ABCDE",
+        quick_contract_temp_voters({alice}, {alice, billy}, alice, &branch));
+
+    test.add_ack(alice, cid3, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid3, contract_ack_t::state_t::secondary_streaming);
+    test.coordinate();
+    test.check_contract("Billy in voters", "ABCDE",
+        quick_contract_simple({alice, billy}, alice, &branch));
+}
+
+/* In the `RemoveReplica` test, we remove a single replica from a table. */
+TPTEST(ClusteringContractCoordinator, RemoveReplica) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    test.set_config({ {"ABCDE", {alice, billy}, alice} });
+    cpu_branch_ids_t branch = quick_branch(
+        &test.state.branch_history,
+        { { "ABCDE", nullptr, 0 } });
+    cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
+        quick_contract_simple({alice, billy}, alice, &branch));
+
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_streaming);
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.set_config({ {"ABCDE", {alice}, alice} });
+    test.coordinate();
+    cpu_contract_ids_t cid2 = test.check_contract("Billy not in temp_voters", "ABCDE",
+        quick_contract_temp_voters({alice, billy}, {alice}, alice, &branch));
+
+    test.add_ack(alice, cid2, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_streaming);
+    test.coordinate();
+    test.check_contract("Billy removed", "ABCDE",
+        quick_contract_simple({alice}, alice, &branch));
 }
 
 } /* namespace unittest */

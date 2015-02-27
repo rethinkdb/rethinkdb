@@ -116,7 +116,7 @@ key_range_t quick_range(const char *zones) {
         guarantee(zones[1] == zones[0] + 1);
         ++zones;
     }
-    char max = zones[0] + 1;
+    char max = zones[0];
     key_range_t r;
     if (min == 'A') {
         r.left = store_key_t();
@@ -127,7 +127,7 @@ key_range_t quick_range(const char *zones) {
         r.right = key_range_t::right_bound_t();
     } else {
         r.right = key_range_t::right_bound_t(
-            store_key_t(std::string(1, (max - 'A') * 50)));
+            store_key_t(std::string(1, (max + 1 - 'A') * 50)));
     }
     return r;
 }

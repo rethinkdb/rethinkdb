@@ -117,9 +117,9 @@ contract_t calculate_contract(
     bool should_kill_primary = false;
     for (const server_id_t &server : old_c.replicas) {
         if (config.replicas.count(server) == 0 &&
-                old_c.voters.count(server) == 0 &&
-                (!static_cast<bool>(old_c.temp_voters) ||
-                    old_c.temp_voters->count(server) == 0)) {
+                new_c.voters.count(server) == 0 &&
+                (!static_cast<bool>(new_c.temp_voters) ||
+                    new_c.temp_voters->count(server) == 0)) {
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
                 /* We'll process this case further down. */
                 should_kill_primary = true;
