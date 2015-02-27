@@ -6,7 +6,10 @@ from .errors import *
 from .ast import *
 from . import docs
 
-class r(__builtins__['object']): # defends against re-importing obscuring object
+
+# The __builtins__ here defends against re-importing something
+# obscuring `object`.
+class r(__builtins__['object']):
     pass
 
 for module in (net, query, ast, errors):
