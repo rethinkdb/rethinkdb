@@ -901,6 +901,27 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 }
 
 
+struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
+    bool operator()(const point_read_t &) const {                 return false; }
+    bool operator()(const dummy_read_t &) const {                 return false; }
+    bool operator()(const rget_read_t &) const {                  return false; }
+    bool operator()(const intersecting_geo_read_t &) const {      return false; }
+    bool operator()(const nearest_geo_read_t &) const {           return false; }
+    bool operator()(const changefeed_subscribe_t &) const {       return true;  }
+    bool operator()(const changefeed_limit_subscribe_t &) const { return true;  }
+    bool operator()(const changefeed_stamp_t &) const {           return true;  }
+    bool operator()(const changefeed_point_stamp_t &) const {     return true;  }
+    bool operator()(const distribution_read_t &) const {          return false; }
+    bool operator()(const sindex_list_t &) const {                return false; }
+    bool operator()(const sindex_status_t &) const {              return false; }
+};
+
+// Route changefeed reads to the primary replica. For other reads we don't care.
+bool read_t::route_to_primary() const THROWS_NOTHING {
+    return boost::apply_visitor(route_to_primary_visitor_t(), read);
+}
+
+
 
 /* write_t::get_region() implementation */
 
