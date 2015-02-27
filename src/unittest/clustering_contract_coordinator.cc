@@ -179,17 +179,17 @@ cpu_contracts_t quick_contract_no_primary(
     }
     return res;
 }
-cpu_contracts_t quick_contract_handover(
+cpu_contracts_t quick_contract_hand_over(
         const std::set<server_id_t> &voters,
         const server_id_t &primary,
-        const server_id_t &handover,
+        const server_id_t &hand_over,
         const cpu_branch_ids_t *branch) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t {
-                primary, boost::make_optional(handover) } );
+                primary, boost::make_optional(hand_over) } );
         res.contracts[i].branch = branch->branch_ids[i];
     }
     return res;
@@ -206,6 +206,24 @@ cpu_contracts_t quick_contract_temp_voters(
         res.contracts[i].temp_voters = boost::make_optional(temp_voters);
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
+        res.contracts[i].branch = branch->branch_ids[i];
+    }
+    return res;
+}
+cpu_contracts_t quick_contract_temp_voters_hand_over(
+        const std::set<server_id_t> &voters,
+        const std::set<server_id_t> &temp_voters,
+        const server_id_t &primary,
+        const server_id_t &hand_over,
+        const cpu_branch_ids_t *branch) {
+    cpu_contracts_t res;
+    for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+        res.contracts[i].replicas = res.contracts[i].voters = voters;
+        res.contracts[i].replicas.insert(temp_voters.begin(), temp_voters.end());
+        res.contracts[i].temp_voters = boost::make_optional(temp_voters);
+        res.contracts[i].primary =
+            boost::make_optional(contract_t::primary_t {
+                primary, boost::make_optional(hand_over) } );
         res.contracts[i].branch = branch->branch_ids[i];
     }
     return res;
@@ -400,28 +418,31 @@ TPTEST(ClusteringContractCoordinator, AddReplica) {
     test.set_config({ {"ABCDE", {alice}, alice} });
     cpu_branch_ids_t branch = quick_branch(
         &test.state.branch_history,
-        { { "ABCDE", nullptr, 0 } });
+        { {"ABCDE", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
         quick_contract_simple({alice}, alice, &branch));
-
     test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid1, contract_ack_t::state_t::nothing);
+
     test.coordinate();
     test.check_same_contract(cid1);
 
     test.set_config({ {"ABCDE", {alice, billy}, alice} });
+
     test.coordinate();
     cpu_contract_ids_t cid2 = test.check_contract("Billy in replicas", "ABCDE",
         quick_contract_extra_replicas({alice}, {billy}, alice, &branch));
 
     test.add_ack(alice, cid2, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_streaming);
+
     test.coordinate();
     cpu_contract_ids_t cid3 = test.check_contract("Billy in temp_voters", "ABCDE",
         quick_contract_temp_voters({alice}, {alice, billy}, alice, &branch));
 
     test.add_ack(alice, cid3, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid3, contract_ack_t::state_t::secondary_streaming);
+
     test.coordinate();
     test.check_contract("Billy in voters", "ABCDE",
         quick_contract_simple({alice, billy}, alice, &branch));
@@ -434,25 +455,169 @@ TPTEST(ClusteringContractCoordinator, RemoveReplica) {
     test.set_config({ {"ABCDE", {alice, billy}, alice} });
     cpu_branch_ids_t branch = quick_branch(
         &test.state.branch_history,
-        { { "ABCDE", nullptr, 0 } });
+        { {"ABCDE", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
         quick_contract_simple({alice, billy}, alice, &branch));
-
     test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_streaming);
+
     test.coordinate();
     test.check_same_contract(cid1);
 
     test.set_config({ {"ABCDE", {alice}, alice} });
+
     test.coordinate();
     cpu_contract_ids_t cid2 = test.check_contract("Billy not in temp_voters", "ABCDE",
         quick_contract_temp_voters({alice, billy}, {alice}, alice, &branch));
 
     test.add_ack(alice, cid2, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_streaming);
+
     test.coordinate();
     test.check_contract("Billy removed", "ABCDE",
         quick_contract_simple({alice}, alice, &branch));
+}
+
+/* In the `ChangePrimary` test, we move the primary from one replica to another. */
+TPTEST(ClusteringContractCoordinator, ChangePrimary) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    test.set_config({ {"ABCDE", {alice, billy}, alice} });
+    cpu_branch_ids_t branch1 = quick_branch(
+        &test.state.branch_history,
+        { {"ABCDE", nullptr, 0} });
+    cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
+        quick_contract_simple({alice, billy}, alice, &branch1));
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.set_config({ {"ABCDE", {alice, billy}, billy} });
+
+    test.coordinate();
+    cpu_contract_ids_t cid2 = test.check_contract("Alice hand_over to Billy", "ABCDE",
+        quick_contract_hand_over({alice, billy}, alice, billy, &branch1));
+
+    test.add_ack(alice, cid2, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    cpu_contract_ids_t cid3 = test.check_contract("No primary", "ABCDE",
+        quick_contract_no_primary({alice, billy}, &branch1));
+
+    test.add_ack(alice, cid3, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"ABCDE", &branch1, 123} });
+    test.add_ack(billy, cid3, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"ABCDE", &branch1, 123} });
+
+    test.coordinate();
+    cpu_contract_ids_t cid4 = test.check_contract("Billy primary; old branch", "ABCDE",
+        quick_contract_simple({alice, billy}, billy, &branch1));
+
+    branch_history_t billy_branch_history = test.state.branch_history;
+    cpu_branch_ids_t branch2 = quick_branch(
+        &billy_branch_history,
+        { {"ABCDE", &branch1, 123} });
+    test.add_ack(alice, cid4, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"ABCDE", &branch1, 123} });
+    test.add_ack(billy, cid4, contract_ack_t::state_t::primary_need_branch,
+        billy_branch_history, &branch2);
+
+    test.coordinate();
+    test.check_contract("Billy primary; new branch", "ABCDE",
+        quick_contract_simple({alice, billy}, billy, &branch2));
+}
+
+/* In the `Split` test, we break a shard into two sub-shards. */
+TPTEST(ClusteringContractCoordinator, Split) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    test.set_config({ {"ABCDE", {alice}, alice} });
+    cpu_branch_ids_t branch1 = quick_branch(
+        &test.state.branch_history,
+        { {"ABCDE", nullptr, 0} });
+    cpu_contract_ids_t cid1 = test.add_contract("ABCDE",
+        quick_contract_simple({alice}, alice, &branch1));
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::nothing);
+
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.set_config({ {"ABC", {alice}, alice}, {"DE", {billy}, billy} });
+
+    test.coordinate();
+    cpu_contract_ids_t cid2ABC = test.check_contract("ABC: Alice remains primary", "ABC",
+        quick_contract_simple({alice}, alice, &branch1));
+    cpu_contract_ids_t cid2DE = test.check_contract("DE: Billy becomes replica", "DE",
+        quick_contract_extra_replicas({alice}, {billy}, alice, &branch1));
+
+    branch_history_t alice_branch_history = test.state.branch_history;
+    cpu_branch_ids_t branch2ABC = quick_branch(
+        &alice_branch_history,
+        { {"ABC", &branch1, 123} });
+    cpu_branch_ids_t branch2DE = quick_branch(
+        &alice_branch_history,
+        { {"DE", &branch1, 123} });
+    test.add_ack(alice, cid2ABC, contract_ack_t::state_t::primary_need_branch,
+        alice_branch_history, &branch2ABC);
+    test.add_ack(billy, cid2ABC, contract_ack_t::state_t::nothing);
+    test.add_ack(alice, cid2DE, contract_ack_t::state_t::primary_need_branch,
+        alice_branch_history, &branch2DE);
+    test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
+        branch_history_t(), { {"DE", nullptr, 0} });
+
+    test.coordinate();
+    cpu_contract_ids_t cid3ABC = test.check_contract("ABC: Alice gets branch ID", "ABC",
+        quick_contract_simple({alice}, alice, &branch2ABC));
+    cpu_contract_ids_t cid3DE = test.check_contract("DE: Alice gets branch ID", "DE",
+        quick_contract_extra_replicas({alice}, {billy}, alice, &branch2DE));
+
+    test.add_ack(alice, cid3ABC, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid3ABC, contract_ack_t::state_t::nothing);
+    test.add_ack(alice, cid3DE, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid3DE, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    test.check_same_contract(cid3ABC);
+    cpu_contract_ids_t cid4DE = test.check_contract("DE: Hand over", "DE",
+        quick_contract_temp_voters_hand_over(
+            {alice}, {billy}, alice, billy, &branch2DE));
+
+    test.add_ack(alice, cid4DE, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid4DE, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    test.check_same_contract(cid3ABC);
+    cpu_contract_ids_t cid5DE = test.check_contract("DE: No primary", "DE",
+        quick_contract_no_primary({billy}, &branch2DE));
+
+    test.add_ack(alice, cid5DE, contract_ack_t::state_t::nothing);
+    test.add_ack(billy, cid5DE, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history, { {"DE", &branch2DE, 456 } });
+
+    test.coordinate();
+    test.check_same_contract(cid3ABC);
+    cpu_contract_ids_t cid6DE = test.check_contract("DE: Billy primary old branch", "DE",
+        quick_contract_simple({billy}, billy, &branch2DE));
+
+    branch_history_t billy_branch_history = test.state.branch_history;
+    cpu_branch_ids_t branch3DE = quick_branch(
+        &billy_branch_history,
+        { {"DE", &branch2DE, 456} });
+    test.add_ack(alice, cid6DE, contract_ack_t::state_t::nothing);
+    test.add_ack(billy, cid6DE, contract_ack_t::state_t::primary_need_branch,
+        billy_branch_history, &branch3DE);
+
+    test.coordinate();
+    test.check_same_contract(cid3ABC);
+    test.check_contract("DE: Billy primary new branch", "DE",
+        quick_contract_simple({billy}, billy, &branch3DE));
 }
 
 } /* namespace unittest */

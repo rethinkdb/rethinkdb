@@ -112,19 +112,17 @@ contract_t calculate_contract(
     }
 
     /* If a server was removed from `config.replicas` and `c.voters` but it's still in
-    `c.replicas`, and it's not primary, then remove it. (If it is primary, it won't be
-    for long, because we'll detect this case and switch to another primary.) */
+    `c.replicas`, then remove it. And if it's primary, then make it not be primary. */
     bool should_kill_primary = false;
     for (const server_id_t &server : old_c.replicas) {
         if (config.replicas.count(server) == 0 &&
                 new_c.voters.count(server) == 0 &&
                 (!static_cast<bool>(new_c.temp_voters) ||
                     new_c.temp_voters->count(server) == 0)) {
+            new_c.replicas.erase(server);
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
-                /* We'll process this case further down. */
+                /* Actual killing happens further down */
                 should_kill_primary = true;
-            } else {
-                new_c.replicas.erase(server);
             }
         }
     }
@@ -172,7 +170,7 @@ contract_t calculate_contract(
             }
             /* OK, now `up_to_date_count` is the number of servers that this server is
             at least as up-to-date as. */
-            if (up_to_date_count * 2 > new_c.voters.size()) {
+            if (up_to_date_count > new_c.voters.size() / 2) {
                 eligible_candidates.push_back(server);
             }
         }
