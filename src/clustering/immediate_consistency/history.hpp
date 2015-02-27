@@ -194,8 +194,6 @@ class branch_history_manager_t :
     public home_thread_mixin_t
 {
 public:
-    virtual ~branch_history_manager_t() { }
-
     /* Adds a new branch to the database. Blocks until it is safely on disk. Blocks to
     avoid a race condition where we write the branch ID to a B-tree's metainfo, crash
     before flushing the `branch_birth_certificate_t` to disk, and then cannot find the
@@ -211,6 +209,9 @@ public:
         const branch_history_t &new_records,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
+
+protected:
+    virtual ~branch_history_manager_t() { }
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_HISTORY_HPP_ */

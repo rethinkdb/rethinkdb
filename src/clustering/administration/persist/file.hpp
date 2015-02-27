@@ -47,8 +47,9 @@ public:
             read_bin(
                 key.key,
                 [&](read_stream_t *bin_value) {
-                    archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
-                        bin_value, value_out);
+                    archive_result_t res =
+                        deserialize<cluster_version_t::raft_is_latest>(
+                            bin_value, value_out);
                     guarantee_deserialization(res, "persistent_file_t::read");
                     found = true;
                 },
@@ -66,8 +67,9 @@ public:
                 key_prefix.key,
                 [&](const std::string &key_suffix, read_stream_t *bin_value) {
                     T value;
-                    archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
-                        bin_value, &value);
+                    archive_result_t res =
+                        deserialize<cluster_version_t::raft_is_latest>(
+                            bin_value, &value);
                     guarantee_deserialization(res, "persistent_file_t::read_many");
                     cb(key_suffix, value);
                 },
