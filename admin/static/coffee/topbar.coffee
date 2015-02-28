@@ -6,7 +6,7 @@ driver = app.driver
 
 class Container extends Backbone.View
     className: 'sidebar-container'
-    template: Handlebars.templates['sidebar-container-template']
+    template: require('../handlebars/sidebar-container.hbs')
 
     initialize: (data) =>
         @model = data.model
@@ -57,7 +57,7 @@ class Container extends Backbone.View
 
 class ClientConnectionStatus extends Backbone.View
     className: 'client-connection-status'
-    template: Handlebars.templates['sidebar-client_connection_status-template']
+    template: require('../handlebars/sidebar-client_connection_status.hbs')
 
     initialize: =>
         @listenTo @model, 'change:me', @render
@@ -74,7 +74,7 @@ class ClientConnectionStatus extends Backbone.View
 
 
 class ServersConnected extends Backbone.View
-    template: Handlebars.templates['sidebar-servers_connected-template']
+    template: require('../handlebars/sidebar-servers_connected.hbs')
 
     initialize: =>
         @listenTo @model, 'change:num_servers', @render
@@ -93,7 +93,7 @@ class ServersConnected extends Backbone.View
 
 
 class TablesAvailable extends Backbone.View
-    template: Handlebars.templates['sidebar-tables_available-template']
+    template: require('../handlebars/sidebar-tables_available.hbs')
 
     initialize: =>
         @listenTo @model, 'change:num_tables', @render
@@ -115,7 +115,7 @@ class TablesAvailable extends Backbone.View
 # Issue count panel at the top
 class Issues extends Backbone.View
     className: 'issues'
-    template: Handlebars.templates['sidebar-issues-template']
+    template: require('../handlebars/sidebar-issues.hbs')
 
     initialize: =>
         @listenTo @model, 'change:num_issues', @render
@@ -131,7 +131,7 @@ class Issues extends Backbone.View
 
 
 class IssuesBanner extends Backbone.View
-    template: Handlebars.templates['sidebar-issues_banner-template']
+    template: require('../handlebars/sidebar-issues_banner.hbs')
     resolve_issues_route: '#resolve_issues'
 
     events:

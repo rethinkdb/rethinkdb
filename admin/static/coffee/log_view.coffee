@@ -6,9 +6,9 @@ models = require('./models.coffee')
 
 class LogsContainer extends Backbone.View
     template:
-        main: Handlebars.templates['logs_container-template']
-        error: Handlebars.templates['error-query-template']
-        alert_message: Handlebars.templates['alert_message-template']
+        main: require('../handlebars/logs_container.hbs')
+        error: require('../handlebars/error-query.hbs')
+        alert_message: require('../handlebars/alert_message.hbs')
 
     events:
         'click .next-log-entries': 'increase_limit'
@@ -100,7 +100,7 @@ class LogsListView extends Backbone.View
 class LogView extends Backbone.View
     tagName: 'li'
     className: 'log-entry'
-    template: Handlebars.templates['log-entry']
+    template: require('../handlebars/log-entry.hbs')
     initialize: =>
         @model.on 'change', @render
 

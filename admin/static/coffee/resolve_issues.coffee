@@ -9,31 +9,31 @@ ui_modals = require('./ui_components/modals.coffee')
 templates =
     # local issues: local_issue_aggregator.hpp
     log_write_error: # log_write.cc
-        Handlebars.templates['issue-log_write_error']
+        require('../handlebars/issue-log_write_error.hbs')
     outdated_index:
-        Handlebars.templates['issue-outdated_index']
+        require('../handlebars/issue-outdated_index.hbs')
     server_disconnected:
-        Handlebars.templates['issue-server_disconnected']
+        require('../handlebars/issue-server_disconnected.hbs')
     server_ghost:
-        Handlebars.templates['issue-server_ghost']
+        require('../handlebars/issue-server_ghost.hbs')
     # name collision issues: name_collision.hpp
     server_name_collision:
-        Handlebars.templates['issue-name-collision']
+        require('../handlebars/issue-name-collision.hbs')
     db_name_collision:
-        Handlebars.templates['issue-name-collision']
+        require('../handlebars/issue-name-collision.hbs')
     table_name_collision:
-        Handlebars.templates['issue-name-collision']
+        require('../handlebars/issue-name-collision.hbs')
 
     # invalid config issues: invalid_config.hpp
     table_needs_primary:
-        Handlebars.templates['issue-table_needs_primary']
+        require('../handlebars/issue-table_needs_primary.hbs')
     data_lost:
-        Handlebars.templates['issue-data_lost']
+        require('../handlebars/issue-data_lost.hbs')
     write_acks:
-        Handlebars.templates['issue-write-acks']
+        require('../handlebars/issue-write-acks.hbs')
     # catchall
     unknown:
-        Handlebars.templates['resolve_issues-unknown-template']
+        require('../handlebars/issue-unknown.hbs')
 
 class Issue extends Backbone.View
     className: 'issue-container'

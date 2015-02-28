@@ -13,8 +13,8 @@ r = require('rethinkdb')
 
 # Modal that allows for form submission
 class AbstractModal extends Backbone.View
-    template_outer: Handlebars.templates['abstract-modal-outer-template']
-    error_template: Handlebars.templates['error_input-template']
+    template_outer: require('../../handlebars/abstract-modal-outer.hbs')
+    error_template: require('../../handlebars/error_input.hbs')
 
     events:
         'click .cancel': 'cancel_modal'
@@ -125,8 +125,8 @@ class AbstractModal extends Backbone.View
         super()
 
 # This is for doing user confirmation easily
-class ConfirmationDialogModal extends @AbstractModal
-    template: Handlebars.templates['confirmation_dialog-template']
+class ConfirmationDialogModal extends AbstractModal
+    template: require('../../handlebars/confirmation_dialog.hbs')
     class: 'confirmation-modal'
 
     render: (message, _url, _data, _on_success) ->
@@ -163,10 +163,10 @@ class ConfirmationDialogModal extends @AbstractModal
 #   - on_success: function to perform on successful rename
 #   - options:
 #     * hide_alert: hide the alert shown in the user space on success
-class RenameItemModal extends @AbstractModal
-    template: Handlebars.templates['rename_item-modal-template']
-    alert_tmpl: Handlebars.templates['renamed_item-alert-template']
-    error_template: Handlebars.templates['error_input-template']
+class RenameItemModal extends AbstractModal
+    template: require('../../handlebars/rename_item-modal.hbs')
+    alert_tmpl: require('../../handlebars/renamed_item-alert.hbs')
+    error_template: require('../../handlebars/error_input.hbs')
     class: 'rename-item-modal'
 
     initialize: (model, options) =>

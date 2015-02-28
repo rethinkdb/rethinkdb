@@ -10,7 +10,7 @@ r = require('rethinkdb')
 class ServersContainer extends Backbone.View
     id: 'servers_container'
     template:
-        main: Handlebars.templates['servers_container-template']
+        main: require('../../handlebars/servers_container.hbs')
 
     initialize: =>
         if not app.view_data_backup.servers_view_servers?
@@ -80,7 +80,7 @@ class ServersListView extends Backbone.View
     className: 'servers_view'
     tagName: 'tbody'
     template:
-        loading_servers: Handlebars.templates['loading_servers']
+        loading_servers: require('../../handlebars/loading_servers.hbs')
     initialize: =>
         @servers_view = []
 
@@ -139,7 +139,7 @@ class ServersListView extends Backbone.View
 class ServerView extends Backbone.View
     className: 'server_container'
     tagName: 'tr'
-    template: Handlebars.templates['server-template']
+    template: require('../../handlebars/server.hbs')
     initialize: =>
         @listenTo @model, 'change', @render
 

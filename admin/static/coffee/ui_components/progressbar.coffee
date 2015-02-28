@@ -16,7 +16,7 @@ class OperationProgressBar extends Backbone.View
         if template?
             @template = template
         else
-            @template = Handlebars.templates['progressbar-template']
+            @template = require('../../handlebars/progressbar.hbs')
         @timeout = null
         @percent = 0
 

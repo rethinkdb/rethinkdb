@@ -8,7 +8,7 @@ MAX_SHARD_COUNT = 32
 class ShardDistribution extends Backbone.View
     className: 'shards_container'
     template:
-        main: Handlebars.templates['shard_distribution_container']
+        main: require('../../handlebars/shard_distribution_container.hbs')
 
     initialize: (data) =>
         if @collection?

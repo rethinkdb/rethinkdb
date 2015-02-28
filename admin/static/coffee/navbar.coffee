@@ -2,12 +2,11 @@
 # TopBar module
 
 app = require('./app.coffee')
-router = app.main_container.router
 
 class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
-    template: Handlebars.templates['navbar_view-template']
+    template: require('../handlebars/navbar_view.hbs')
     events:
         'click .options_link': 'update_cog_icon'
 
@@ -38,7 +37,7 @@ class NavBarView extends Backbone.View
                 return servers.concat(tables).concat(databases)
             property: 'name'
             onselect: (obj) ->
-                router.navigate('#' + obj.type + '/' + obj.id , { trigger: true })
+                app.main.router.navigate('#' + obj.type + '/' + obj.id , { trigger: true })
 
     render: (route) =>
         @$el.html @template()

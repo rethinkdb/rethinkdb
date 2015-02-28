@@ -15,8 +15,8 @@ r = require('rethinkdb')
 
 class TableContainer extends Backbone.View
     template:
-        not_found: Handlebars.templates['element_view-not_found-template']
-        error: Handlebars.templates['error-query-template']
+        not_found: require('../../handlebars/element_view-not_found.hbs')
+        error: require('../../handlebars/error-query.hbs')
     className: 'table-view'
     initialize: (id) =>
         @id = id
@@ -349,12 +349,12 @@ class TableContainer extends Backbone.View
 class TableMainView extends Backbone.View
     className: 'namespace-view'
     template:
-        main: Handlebars.templates['table_container-template']
-        alert: Handlebars.templates['modify_shards-alert-template']
+        main: require('../../handlebars/table_container.hbs')
+        alert: null # unused, delete this
 
     events:
         'click .close': 'close_alert'
-        'click .change_shards-link': 'change_shards'
+        'click .change_shards-link': 'change_shards' # no such link!
         'click .operations .rename': 'rename_table'
         'click .operations .delete': 'delete_table'
 
@@ -441,11 +441,11 @@ class TableMainView extends Backbone.View
         event.preventDefault()
         $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
-    change_shards: (event) =>
+    change_shards: (event) => # won't be called!
         event.preventDefault()
         @$('#namespace-sharding-link').tab('show')
 
-    change_pinning: (event) =>
+    change_pinning: (event) => # this doesn't exist either!
         event.preventDefault()
         @$('#namespace-pinning-link').tab('show')
         $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
@@ -493,8 +493,8 @@ class TableMainView extends Backbone.View
 class ReconfigurePanel extends Backbone.View
     className: 'reconfigure-panel'
     templates:
-        main: Handlebars.templates['reconfigure']
-        status: Handlebars.templates['replica_status-template']
+        main: require('../../handlebars/reconfigure.hbs')
+        status: require('../../handlebars/replica_status.hbs')
     events:
         'click .reconfigure.btn': 'launch_modal'
 
@@ -598,7 +598,7 @@ class ReconfigureDiffView extends Backbone.View
     # You can find the ReconfigureModal in coffee/modals.coffee
 
     className: 'reconfigure-diff'
-    template: Handlebars.templates['reconfigure-diff']
+    template: require('../../handlebars/reconfigure-diff.hbs')
     initialize: =>
         @listenTo @model, 'change:shards', @render
 
@@ -608,7 +608,7 @@ class ReconfigureDiffView extends Backbone.View
 
 class Title extends Backbone.View
     className: 'namespace-info-view'
-    template: Handlebars.templates['table_title-template']
+    template: require('../../handlebars/table_title.hbs')
     initialize: =>
         @listenTo @model, 'change:name', @render
 
@@ -624,7 +624,7 @@ class Title extends Backbone.View
 
 # Profile view
 class Profile extends Backbone.View
-    template: Handlebars.templates['table_profile-template']
+    template: require('../../handlebars/table_profile.hbs')
 
     initialize: =>
         @listenTo @model, 'change', @render
@@ -657,7 +657,7 @@ class TableStatusIndicator extends Backbone.View
     # appropriate color. Unlike a lot of other views, its @$el is
     # set to the svg element from the template, rather than being
     # wrapped.
-    template: Handlebars.templates['table_status_indicator']
+    template: require('../../handlebars/table_status_indicator.hbs')
 
     initialize: =>
         status_class = @status_to_class(@model.get('status'))
@@ -685,9 +685,9 @@ class TableStatusIndicator extends Backbone.View
 
 
 class SecondaryIndexesView extends Backbone.View
-    template: Handlebars.templates['table-secondary_indexes-template']
-    alert_message_template: Handlebars.templates['secondary_indexes-alert_msg-template']
-    error_template: Handlebars.templates['secondary_indexes-error-template']
+    template: require('../../handlebars/table-secondary_indexes.hbs')
+    alert_message_template: require('../../handlebars/secondary_indexes-alert_msg.hbs')
+    error_template: require('../../handlebars/secondary_indexes-error.hbs')
     events:
         'click .create_link': 'show_add_index'
         'click .create_btn': 'create_index'
@@ -904,8 +904,8 @@ class SecondaryIndexesView extends Backbone.View
         super()
 
 class SecondaryIndexView extends Backbone.View
-    template: Handlebars.templates['table-secondary_index-template']
-    progress_template: Handlebars.templates['simple_progressbar-template']
+    template: require('../../handlebars/table-secondary_index.hbs')
+    progress_template: require('../../handlebars/simple_progressbar.hbs')
     events:
         'click .delete_link': 'confirm_delete'
         'click .delete_index_btn': 'delete_index'

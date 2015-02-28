@@ -3,7 +3,7 @@
 models = require('../models.coffee')
 
 class ShardAssignmentsView extends Backbone.View
-    template: Handlebars.templates['shard_assignments-template']
+    template: require('../../handlebars/shard_assignments.hbs')
 
     initialize: (data) =>
         @listenTo @model, 'change:info_unavailable', @set_warnings
@@ -76,7 +76,7 @@ class ShardAssignmentsView extends Backbone.View
 
 
 class ShardAssignmentView extends Backbone.View
-    template: Handlebars.templates['shard_assignment-template']
+    template: require('../../handlebars/shard_assignment.hbs')
     className: 'assignment_container'
 
     initialize: =>

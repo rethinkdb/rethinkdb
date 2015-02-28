@@ -5,17 +5,15 @@ util = require('./util.coffee')
 models = require('./models.coffee')
 table_view = require('./tables/table.coffee')
 app = require('./app.coffee')
-main_container = app.main_container
-router = main_container.router
 driver = app.driver
 system_db = app.system_db
 
 r = require('rethinkdb')
 
 class AddDatabaseModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['add_database-modal-template']
+    template: require('../handlebars/add_database-modal.hbs')
     templates:
-        error: Handlebars.templates['error_input-template']
+        error: require('../handlebars/error_input.hbs')
 
     class: 'add-database'
 
@@ -76,10 +74,10 @@ class AddDatabaseModal extends ui_modals.AbstractModal
 
     on_success: (response) =>
         super()
-        router.current_view.render_message "The database #{@formdata.name} was successfully created."
+        app.main.router.current_view.render_message "The database #{@formdata.name} was successfully created."
 
 class DeleteDatabaseModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['delete-database-modal']
+    template: require('../handlebars/delete-database-modal.hbs')
     class: 'delete_database-dialog'
 
     render: (database_to_delete) ->
@@ -121,14 +119,14 @@ class DeleteDatabaseModal extends ui_modals.AbstractModal
         else
             # If the user was on a database view, we have to redirect him
             # If he was on #tables, we are just refreshing
-            router.navigate '#tables', {trigger: true}
+            app.main.router.navigate '#tables', {trigger: true}
 
-        router.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
+        app.main.router.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
 
 class AddTableModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['add_table-modal-template']
+    template: require('../handlebars/add_table-modal.hbs')
     templates:
-        error: Handlebars.templates['error_input-template']
+        error: require('../handlebars/error_input.hbs')
     class: 'add-table'
 
     initialize: (data) =>
@@ -232,14 +230,14 @@ class AddTableModal extends ui_modals.AbstractModal
 
     on_success: (response) =>
         super
-        router.current_view.render_message "The table #{@db_name}.#{@formdata.name} was successfully created."
+        app.main.router.current_view.render_message "The table #{@db_name}.#{@formdata.name} was successfully created."
 
     remove: =>
         @stopListening()
         super()
 
 class RemoveTableModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['remove_table-modal-template']
+    template: require('../handlebars/remove_table-modal.hbs')
     class: 'remove-namespace-dialog'
 
     render: (tables_to_delete) =>
@@ -304,14 +302,14 @@ class RemoveTableModal extends ui_modals.AbstractModal
         message += " successfully deleted."
 
         if Backbone.history.fragment isnt 'tables'
-            router.navigate '#tables', {trigger: true}
-        router.current_view.render_message message
+            app.main.router.navigate '#tables', {trigger: true}
+        app.main.router.current_view.render_message message
         @remove()
 
 class RemoveServerModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['declare_server_dead-modal-template']
-    alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
-    template_issue_error: Handlebars.templates['fail_solve_issue-template']
+    template: require('../handlebars/declare_server_dead-modal.hbs')
+    alert_tmpl: require('../handlebars/resolve_issues-resolved.hbs')
+    template_issue_error: require('../handlebars/fail_solve_issue.hbs')
 
     class: 'declare-server-dead'
 
@@ -368,7 +366,7 @@ class RemoveServerModal extends ui_modals.AbstractModal
 
 # Modals.ReconfigureModal
 class ReconfigureModal extends ui_modals.AbstractModal
-    template: Handlebars.templates['reconfigure-modal']
+    template: require('../handlebars/reconfigure-modal.hbs')
 
     class: 'reconfigure-modal'
 

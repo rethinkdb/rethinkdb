@@ -23,7 +23,7 @@ num_formatter = (i) ->
 
 class OpsPlotLegend extends Backbone.View
     className: 'ops-plot-legend'
-    template: Handlebars.templates['ops_plot_legend-template']
+    template: require('../handlebars/ops_plot_legend.hbs')
 
     initialize: (_read_metric, _write_metric, _context) =>
         @context = _context
@@ -49,8 +49,8 @@ class OpsPlotLegend extends Backbone.View
 
 class OpsPlot extends Backbone.View
     className: 'ops-plot'
-    template: Handlebars.templates['ops_plot-template']
-    barebones_template: Handlebars.templates['ops_plot-template']
+    template: require('../handlebars/ops_plot.hbs')
+    barebones_template: require('../handlebars/ops_plot.hbs')
 
     # default options for the plot template
     type: 'cluster'

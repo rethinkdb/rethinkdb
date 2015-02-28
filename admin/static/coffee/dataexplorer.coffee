@@ -1,7 +1,6 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
 app = require('./app.coffee')
-router = app.main_container.router
 system_db = app.system_db
 driver = app.driver
 util = require('./util.coffee')
@@ -157,16 +156,16 @@ class QueryResult
 
 class Container extends Backbone.View
     id: 'dataexplorer'
-    template: Handlebars.templates['dataexplorer_view-template']
-    input_query_template: Handlebars.templates['dataexplorer_input_query-template']
-    description_template: Handlebars.templates['dataexplorer-description-template']
-    template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
-    description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
-    alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
-    databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
-    tables_suggestions_template: Handlebars.templates['dataexplorer-tables_suggestions-template']
-    reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
-    query_error_template: Handlebars.templates['dataexplorer-query_error-template']
+    template: require('../handlebars/dataexplorer_view.hbs')
+    input_query_template: require('../handlebars/dataexplorer_input_query.hbs')
+    description_template: require('../handlebars/dataexplorer-description.hbs')
+    template_suggestion_name: require('../handlebars/dataexplorer_suggestion_name_li.hbs')
+    description_with_example_template: require('../handlebars/dataexplorer-description_with_example.hbs')
+    alert_connection_fail_template: require('../handlebars/alert-connection_fail.hbs')
+    databases_suggestions_template: require('../handlebars/dataexplorer-databases_suggestions.hbs')
+    tables_suggestions_template: require('../handlebars/dataexplorer-tables_suggestions.hbs')
+    reason_dataexplorer_broken_template: require('../handlebars/dataexplorer-reason_broken.hbs')
+    query_error_template: require('../handlebars/dataexplorer-query_error.hbs')
 
     # Constants
     limit: 40 # How many results we display per page // Final for now
@@ -553,7 +552,7 @@ class Container extends Backbone.View
         if Container.prototype.focus_on_codemirror is true
             # "@" refers to prototype -_-
             # In case we give focus to codemirror then load the docs, we show the suggestion
-            router.current_view.handle_keypress()
+            app.main.router.current_view.handle_keypress()
 
     # Save the query in the history
     # The size of the history is infinite per session. But we will just save @size_history queries in localStorage
@@ -2891,8 +2890,8 @@ class Container extends Backbone.View
 
 # An abstract base class
 class ResultView extends Backbone.View
-    tree_large_container_template: Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
-    tree_container_template: Handlebars.templates['dataexplorer_result_json_tree_container-template']
+    tree_large_container_template: require('../handlebars/dataexplorer_large_result_json_tree_container.hbs')
+    tree_container_template: require('../handlebars/dataexplorer_result_json_tree_container.hbs')
 
     events: ->
         'click .jt_arrow': 'toggle_collapse'
@@ -3036,7 +3035,7 @@ class ResultView extends Backbone.View
 
 class TreeView extends ResultView
     className: 'results tree_view_container'
-    template: Handlebars.templates['dataexplorer_result_tree-template']
+    template: require('../handlebars/dataexplorer_result_tree.hbs')
 
     render: =>
         switch @query_result.type
@@ -3063,15 +3062,15 @@ class TableView extends ResultView
     className: 'results table_view_container'
 
     templates:
-        wrapper: Handlebars.templates['dataexplorer_result_table-template']
-        container: Handlebars.templates['dataexplorer_result_json_table_container-template']
-        tr_attr: Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
-        td_attr: Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
-        tr_value: Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
-        td_value: Handlebars.templates['dataexplorer_result_json_table_td_value-template']
-        td_value_content: Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
-        data_inline: Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
-        no_result: Handlebars.templates['dataexplorer_result_empty-template']
+        wrapper: require('../handlebars/dataexplorer_result_table.hbs')
+        container: require('../handlebars/dataexplorer_result_json_table_container.hbs')
+        tr_attr: require('../handlebars/dataexplorer_result_json_table_tr_attr.hbs')
+        td_attr: require('../handlebars/dataexplorer_result_json_table_td_attr.hbs')
+        tr_value: require('../handlebars/dataexplorer_result_json_table_tr_value.hbs')
+        td_value: require('../handlebars/dataexplorer_result_json_table_td_value.hbs')
+        td_value_content: require('../handlebars/dataexplorer_result_json_table_td_value_content.hbs')
+        data_inline: require('../handlebars/dataexplorer_result_json_table_data_inline.hbs')
+        no_result: require('../handlebars/dataexplorer_result_empty.hbs')
 
     default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
     mouse_down: false
@@ -3429,7 +3428,7 @@ class TableView extends ResultView
 class RawView extends ResultView
     className: 'results raw_view_container'
 
-    template: Handlebars.templates['dataexplorer_result_raw-template']
+    template: require('../handlebars/dataexplorer_result_raw.hbs')
 
     init_after_dom_rendered: =>
         @adjust_height()
@@ -3449,7 +3448,7 @@ class ProfileView extends ResultView
     className: 'results profile_view_container'
 
     template:
-        Handlebars.templates['dataexplorer_result_profile-template']
+        require('../handlebars/dataexplorer_result_profile.hbs')
 
 
     initialize: (args) =>
@@ -3504,11 +3503,11 @@ class ProfileView extends ResultView
 
 class ResultViewWrapper extends Backbone.View
     className: 'result_view'
-    template: Handlebars.templates['dataexplorer_result_container-template']
-    metadata_template: Handlebars.templates['dataexplorer-metadata-template']
-    option_template: Handlebars.templates['dataexplorer-option_page-template']
-    error_template: Handlebars.templates['dataexplorer-error-template']
-    cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+    template: require('../handlebars/dataexplorer_result_container.hbs')
+    metadata_template: null # unused! Content is now in previous template
+    option_template: require('../handlebars/dataexplorer-option_page.hbs')
+    error_template: require('../handlebars/dataexplorer-error.hbs')
+    cursor_timed_out_template: require('../handlebars/dataexplorer-cursor_timed_out.hbs')
     primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
     views:
@@ -3766,7 +3765,7 @@ class ResultViewWrapper extends Backbone.View
         @view_object?.show_next_batch()
 
 class OptionsView extends Backbone.View
-    dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
+    dataexplorer_options_template: require('../handlebars/dataexplorer-options.hbs')
     className: 'options_view'
 
     events:
@@ -3797,8 +3796,8 @@ class OptionsView extends Backbone.View
         return @
 
 class HistoryView extends Backbone.View
-    dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
-    dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
+    dataexplorer_history_template: require('../handlebars/dataexplorer-history.hbs')
+    dataexplorer_query_li_template: require('../handlebars/dataexplorer-query_li.hbs')
     className: 'history_container'
 
     size_history_displayed: 300
@@ -4095,12 +4094,12 @@ Utils =
     # Render a datum as a pretty tree
     json_to_node: do ->
         template =
-            span: Handlebars.templates['dataexplorer_result_json_tree_span-template']
-            span_with_quotes: Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
-            url: Handlebars.templates['dataexplorer_result_json_tree_url-template']
-            email: Handlebars.templates['dataexplorer_result_json_tree_email-template']
-            object: Handlebars.templates['dataexplorer_result_json_tree_object-template']
-            array: Handlebars.templates['dataexplorer_result_json_tree_array-template']
+            span: require('../handlebars/dataexplorer_result_json_tree_span.hbs')
+            span_with_quotes: require('../handlebars/dataexplorer_result_json_tree_span_with_quotes.hbs')
+            url: require('../handlebars/dataexplorer_result_json_tree_url.hbs')
+            email: require('../handlebars/dataexplorer_result_json_tree_email.hbs')
+            object: require('../handlebars/dataexplorer_result_json_tree_object.hbs')
+            array: require('../handlebars/dataexplorer_result_json_tree_array.hbs')
 
         # We build the tree in a recursive way
         return json_to_node = (value) ->

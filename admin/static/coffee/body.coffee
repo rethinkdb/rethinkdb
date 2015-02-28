@@ -11,7 +11,7 @@ router = require('./router.coffee')
 r = require('rethinkdb')
 
 class MainContainer extends Backbone.View
-    template: Handlebars.templates['body-structure-template']
+    template: require('../handlebars/body-structure.hbs')
     id: 'main_view'
 
     initialize: =>
@@ -121,7 +121,7 @@ class MainContainer extends Backbone.View
 
 class OptionsView extends Backbone.View
     className: 'options_background'
-    template: Handlebars.templates['options_view-template']
+    template: require('../handlebars/options_view.hbs')
 
     events:
         'click label[for=updates_yes]': 'turn_updates_on'
@@ -146,7 +146,7 @@ class OptionsView extends Backbone.View
         @alert_update_view.hide()
 
 class AlertUpdates extends Backbone.View
-    has_update_template: Handlebars.templates['has_update-template']
+    has_update_template: require('../handlebars/has_update.hbs')
     className: 'settings alert'
 
     events:
@@ -223,7 +223,7 @@ class AlertUpdates extends Backbone.View
             window.localStorage.check_updates = JSON.stringify false
 
 class Settings extends Backbone.View
-    settings_template: Handlebars.templates['settings-template']
+    settings_template: null # This class is unused! delete it.
     events:
         'click .check_updates_btn': 'change_settings'
         'click .close': 'close'
@@ -266,8 +266,8 @@ class Settings extends Backbone.View
 class IsDisconnected extends Backbone.View
     el: 'body'
     className: 'is_disconnected_view'
-    template: Handlebars.templates['is_disconnected-template']
-    message: Handlebars.templates['is_disconnected_message-template']
+    template: require('../handlebars/is_disconnected.hbs')
+    message: require('../handlebars/is_disconnected_message.hbs')
     initialize: =>
         @render()
         setInterval ->

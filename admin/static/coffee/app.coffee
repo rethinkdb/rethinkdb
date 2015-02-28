@@ -1,7 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-body = require('./body.coffee')
-data_explorer_view = require('./dataexplorer.coffee')
 system_db = 'rethinkdb'
 
 r = require('rethinkdb')
@@ -28,7 +26,7 @@ class Driver
         @state = 'ok'
         @timers = {}
         @index = 0
-t
+
     # Hack the driver: remove .run() and add private_run()
     # We want run() to throw an error, in case a user write .run() in a query.
     # We'll internally run a query with the method `private_run`
@@ -370,9 +368,11 @@ t
         num_sindexes_constructing: (jobs=driver.admin().jobs) ->
             jobs.count((job) -> job('type').eq('index_construction'))
 
-main_container = new body.MainContainer()
-
 $ ->
+    body = require('./body.coffee')
+    data_explorer_view = require('./dataexplorer.coffee')
+    main_container = new body.MainContainer()
+    app = require('./app.coffee').main = main_container
     $('body').html(main_container.render().$el)
     # We need to start the router after the main view is bound to the DOM
     main_container.start_router()
@@ -390,6 +390,6 @@ module.exports =
     # Some views backup their data here so that when you return to them
     # the latest data can be retrieved quickly.
     view_data_backup: {}
-    main_container: main_container
+    main: null
     # The system database
     system_db: system_db

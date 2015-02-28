@@ -11,9 +11,9 @@ r = require('rethinkdb')
 class DatabasesContainer extends Backbone.View
     id: 'databases_container'
     template:
-        main: Handlebars.templates['databases_container-template']
-        error: Handlebars.templates['error-query-template']
-        alert_message: Handlebars.templates['alert_message-template']
+        main: require('../../handlebars/databases_container.hbs')
+        error: require('../../handlebars/error-query.hbs')
+        alert_message: require('../../handlebars/alert_message.hbs')
 
     events:
         'click .add_database': 'add_database'
@@ -120,8 +120,8 @@ class DatabasesContainer extends Backbone.View
 class DatabasesListView extends Backbone.View
     className: 'database_list'
     template:
-        no_databases: Handlebars.templates['no_databases-template']
-        loading_databases: Handlebars.templates['loading_databases-template']
+        no_databases: require('../../handlebars/no_databases.hbs')
+        loading_databases: require('../../handlebars/loading_databases.hbs')
 
     initialize: (data) =>
         @container = data.container
@@ -187,8 +187,8 @@ class DatabasesListView extends Backbone.View
 class DatabaseView extends Backbone.View
     className: 'database_container section'
     template:
-        main: Handlebars.templates['database-template']
-        empty: Handlebars.templates['empty_list-template']
+        main: require('../../handlebars/database.hbs')
+        empty: require('../../handlebars/empty_list.hbs')
 
     events:
         'click button.add-table': 'add_table'
@@ -287,7 +287,7 @@ class DatabaseView extends Backbone.View
 
 class TableView extends Backbone.View
     className: 'table_container'
-    template: Handlebars.templates['table-template']
+    template: require('../../handlebars/table.hbs')
     initialize: =>
         @listenTo @model, 'change', @render
 

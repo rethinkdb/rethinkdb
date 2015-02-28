@@ -14,8 +14,8 @@ r = require('rethinkdb')
 
 class ServerContainer extends Backbone.View
     template:
-        error: Handlebars.templates['error-query-template']
-        not_found: Handlebars.templates['element_view-not_found-template']
+        error: require('../../handlebars/error-query.hbs')
+        not_found: require('../../handlebars/element_view-not_found.hbs')
 
     initialize: (id) =>
         @id = id
@@ -131,7 +131,7 @@ class ServerContainer extends Backbone.View
 
 class ServerMainView extends Backbone.View
     template:
-        main: Handlebars.templates['full_server-template']
+        main: require('../../handlebars/full_server.hbs')
 
     events:
         'click .close': 'close_alert'
@@ -204,7 +204,7 @@ class ServerMainView extends Backbone.View
 
 class Title extends Backbone.View
     className: 'server-info-view'
-    template: Handlebars.templates['server_view_title-template']
+    template: require('../../handlebars/server_view_title.hbs')
     initialize: =>
         @listenTo @model, 'change:name', @render
 
@@ -219,7 +219,7 @@ class Title extends Backbone.View
 
 class Profile extends Backbone.View
     className: 'server-info-view'
-    template: Handlebars.templates['server_view_profile-template']
+    template: require('../../handlebars/server_view_profile.hbs')
     initialize: =>
         @listenTo @model, 'change', @render
         @listenTo @collection, 'add', @render
@@ -267,7 +267,7 @@ class Profile extends Backbone.View
 
 
 class ResponsibilitiesList extends Backbone.View
-    template: Handlebars.templates['responsibilities-template']
+    template: require('../../handlebars/responsibilities.hbs')
 
     initialize: =>
         @responsibilities_view = []
@@ -337,7 +337,7 @@ class ResponsibilitiesList extends Backbone.View
 
 class ResponsibilityView extends Backbone.View
     className: 'responsibility_container'
-    template: Handlebars.templates['responsibility-template']
+    template: require('../../handlebars/responsibility.hbs')
 
     initialize: =>
         @listenTo @model, 'change', @render
