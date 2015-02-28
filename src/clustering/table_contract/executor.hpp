@@ -7,8 +7,7 @@
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/exec.hpp"
-
-class store_subview_t;
+#include "store_subview.hpp"
 
 /* The `contract_executor_t` is responsible for executing the instructions contained in
 the `contract_t`s in the `table_raft_state_t`. Each server has one `contract_executor_t`
@@ -24,7 +23,7 @@ public:
     contract_executor_t(
         const server_id_t &server_id,
         mailbox_manager_t *const mailbox_manager,
-        raft_member_t<table_raft_state_t> *raft,
+        const clone_ptr_t<watchable_t<table_raft_state_t> > &raft_state,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
             *remote_contract_execution_bcards,
         const multistore_ptr_t *multistore,
@@ -127,7 +126,7 @@ private:
         const contract_ack_t &ack);
 
     const server_id_t server_id;
-    raft_member_t<table_raft_state_t> *const raft;
+    clone_ptr_t<watchable_t<table_raft_state_t> > raft_state;
     const multistore_ptr_t *const multistore;
     perfmon_collection_t *const perfmons;
 
@@ -166,8 +165,7 @@ private:
 
     /* We subscribe to changes in the Raft committed state so we can find out when a new
     contract has been issued. */
-    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::subscription_t
-        raft_state_subs;
+    watchable_t<table_raft_state_t>::subscription_t raft_state_subs;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_HPP_ */

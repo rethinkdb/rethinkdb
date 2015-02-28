@@ -109,26 +109,21 @@ void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 
-key_range_t quick_range(const char *zones) {
-    char min = zones[0];
-    guarantee(min >= 'A' && min <= 'E');
-    while (zones[1] != '\0') {
-        guarantee(zones[1] == zones[0] + 1);
-        ++zones;
+key_range_t quick_range(const char *bounds) {
+    guarantee(strlen(bounds) == 3);
+    char left = bounds[0];
+    guarantee(bounds[1] == '-');
+    char right = bounds[2];
+    if (left != '*' && right != '*') {
+        guarantee(left <= right);
     }
-    char max = zones[0];
     key_range_t r;
-    if (min == 'A') {
-        r.left = store_key_t();
-    } else {
-        r.left = store_key_t(std::string(1, (min - 'A') * 50));
-    }
-    if (max == 'E') {
-        r.right = key_range_t::right_bound_t();
-    } else {
-        r.right = key_range_t::right_bound_t(
-            store_key_t(std::string(1, (max + 1 - 'A') * 50)));
-    }
+    r.left = (left == '*')
+        ? store_key_t()
+        : store_key_t(std::string(1, left));
+    r.right = (right == '*')
+        ? key_range_t::right_bound_t()
+        : key_range_t::right_bound_t(store_key_t(std::string(1, right+1)));
     return r;
 }
 

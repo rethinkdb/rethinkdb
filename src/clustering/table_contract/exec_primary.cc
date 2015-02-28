@@ -19,6 +19,7 @@ primary_execution_t::primary_execution_t(
 {
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
+    coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
 }
 
 void primary_execution_t::update_contract(

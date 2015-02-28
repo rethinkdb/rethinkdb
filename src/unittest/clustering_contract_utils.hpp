@@ -20,6 +20,7 @@ public:
 };
 class cpu_contract_ids_t {
 public:
+    key_range_t range;
     contract_id_t contract_ids[CPU_SHARDING_FACTOR];
 };
 class cpu_contracts_t {

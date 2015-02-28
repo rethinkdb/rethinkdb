@@ -287,6 +287,15 @@ void backfillee(
         wait_interruptible(end_point_cond.get_ready_signal(), interruptor);
         guarantee(end_point_cond.get_ready_signal()->is_pulsed());
 
+        /* Record the updated branch history information that we got. It's
+        essential that we call `record_branch_history()` before we update the
+        metainfo, because otherwise if we crashed at a bad time the data might
+        make it to disk as part of the metainfo but not as part of the branch
+        history, and that would lead to crashes. */
+        branch_history_manager->import_branch_history(
+            end_point_cond.wait().second,
+            interruptor);
+
         /* RSI(raft): Eventually we need to support "reversible" backfills; i.e.
         backfilling to a version that isn't descended from the backfillee's original
         version. Right now we just error if that's happening. */

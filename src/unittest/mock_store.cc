@@ -189,21 +189,28 @@ void mock_store_t::write(
         // deletion entries so that we can backfill them properly.  This code
         // originally was a port of the dummy protocol, so we didn't need to support
         // deletes at first.
-        const point_write_t *point_write = boost::get<point_write_t>(&write.write);
-        guarantee(point_write != NULL);
+        if (const point_write_t *point_write = boost::get<point_write_t>(&write.write)) {
+            response->n_shards = 1;
+            response->response = point_write_response_t();
+            point_write_response_t *res =
+                boost::get<point_write_response_t>(&response->response);
 
-        response->n_shards = 1;
-        response->response = point_write_response_t();
-        point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
-
-        guarantee(point_write->data.has());
-        const bool had_value = table_.find(point_write->key) != table_.end();
-        if (point_write->overwrite || !had_value) {
-            table_[point_write->key]
-                = std::make_pair(timestamp.to_repli_timestamp(),
-                                 point_write->data);
+            guarantee(point_write->data.has());
+            const bool had_value = table_.find(point_write->key) != table_.end();
+            if (point_write->overwrite || !had_value) {
+                table_[point_write->key]
+                    = std::make_pair(timestamp.to_repli_timestamp(),
+                                     point_write->data);
+            }
+            res->result = had_value
+                ? point_write_result_t::DUPLICATE
+                : point_write_result_t::STORED;
+        } else if (boost::get<sync_t>(&write.write) != nullptr) {
+            response->n_shards = 1;
+            response->response = sync_response_t();
+        } else {
+            crash("mock_store_t only supports point writes and syncs");
         }
-        res->result = had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED;
 
         metainfo_.update(new_metainfo);
     }

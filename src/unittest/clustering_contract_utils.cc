@@ -63,6 +63,14 @@ cpu_branch_ids_t quick_branch(
     return res;
 }
 
+static branch_id_t branch_or_nil(const cpu_branch_ids_t *branch, size_t i) {
+    if (branch != nullptr) {
+        return branch->branch_ids[i];
+    } else {
+        return nil_uuid();
+    }
+}
+
 cpu_contracts_t quick_contract_simple(
         const std::set<server_id_t> &voters,
         const server_id_t &primary,
@@ -72,7 +80,7 @@ cpu_contracts_t quick_contract_simple(
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -87,7 +95,7 @@ cpu_contracts_t quick_contract_extra_replicas(
         res.contracts[i].replicas.insert(extras.begin(), extras.end());
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -99,7 +107,7 @@ cpu_contracts_t quick_contract_no_primary(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary = boost::none;
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -114,7 +122,7 @@ cpu_contracts_t quick_contract_hand_over(
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t {
                 primary, boost::make_optional(hand_over) } );
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -130,7 +138,7 @@ cpu_contracts_t quick_contract_temp_voters(
         res.contracts[i].temp_voters = boost::make_optional(temp_voters);
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -148,7 +156,7 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t {
                 primary, boost::make_optional(hand_over) } );
-        res.contracts[i].branch = branch->branch_ids[i];
+        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }

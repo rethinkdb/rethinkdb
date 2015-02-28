@@ -39,10 +39,13 @@ void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 read_t make_sindex_read(
     ql::datum_t key, const std::string &id);
 
-/* Easy way to make shard ranges. `quick_range("ABCDE")` is `key_range_t::universe()`,
-and any substring produces a subrange. For example, `quick_range("ABC")` is approximately
-the first half of the key-space. */
-key_range_t quick_range(const char *zones);
+/* Easy way to make shard ranges. Examples:
+ - `quick_range("A-Z")` contains any key starting with a capital letter.
+ - `quick_range("A-M")` includes "Aardvark" and "Mammoth" but not "Quail".
+ - `quick_range("*-*")` is `key_range_t::universe()`.
+ - `quick_range("*-M")` and `quick_range("N-*")` are adjacent but do not overlap.
+*/
+key_range_t quick_range(const char *bounds);
 
 }  // namespace unittest
 

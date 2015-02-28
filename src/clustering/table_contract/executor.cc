@@ -9,7 +9,7 @@
 contract_executor_t::contract_executor_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
-        raft_member_t<table_raft_state_t> *_raft,
+        const clone_ptr_t<watchable_t<table_raft_state_t> > &_raft_state,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
             *_remote_contract_execution_bcards,
         const multistore_ptr_t *_multistore,
@@ -19,7 +19,7 @@ contract_executor_t::contract_executor_t(
         backfill_throttler_t *_backfill_throttler,
         perfmon_collection_t *_perfmons) :
     server_id(_server_id),
-    raft(_raft),
+    raft_state(_raft_state),
     multistore(_multistore),
     perfmons(_perfmons),
     execution_context { _server_id, _mailbox_manager, _branch_history_manager,
@@ -30,9 +30,9 @@ contract_executor_t::contract_executor_t(
     perfmon_counter(0),
     raft_state_subs(std::bind(&contract_executor_t::on_raft_state_change, this))
 {
-    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t freeze(
-        raft->get_committed_state());
-    raft_state_subs.reset(raft->get_committed_state(), &freeze);
+    watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
+    raft_state_subs.reset(raft_state, &freeze);
+    on_raft_state_change();
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -73,16 +73,14 @@ void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
         std::set<execution_key_t> to_delete;
         {
             ASSERT_NO_CORO_WAITING;
-            raft->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *cs) {
-                update(cs->state, &to_delete);
-            });
+            raft_state->apply_read([&](const table_raft_state_t *state) {
+                update(*state, &to_delete); });
             if (to_delete.empty()) {
                 /* There's no point in going around the loop again. Since we won't delete
-                anything, we won't block, so `raft->get_committed_state()` won't have a
-                chance to change; so any further calls to `update()` will be no-ops. When
-                `raft->get_committed_state()` changes again, `on_raft_state_change()`
-                will start another instance of `update_coro()`. */
+                anything, we won't block, so `raft_state` won't have a chance to change;
+                so any further calls to `update()` will be no-ops. When `raft_state`
+                changes again, `on_raft_state_change()` will start another instance of
+                `update_coro()`. */
                 update_coro_running = false;
                 return;
             }
