@@ -45,11 +45,11 @@ tests:
       ot: 1
 
     - rb: normal_changes
+      py: normal_changes
       ot: ([{'new_val':{'id':100}, 'old_val':null}])
       testopts:
         reql-query: False
-    - py: normal_changes
-      js: normal_changes
+    - js: normal_changes
       ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False
@@ -66,11 +66,11 @@ tests:
         reql-query: False
 
     - rb: squash_changes
+      py: squash_changes
       ot: ([{'new_val':{'id':100}, 'old_val':null}])
       testopts:
         reql-query: False
-    - py: squash_changes
-      js: squash_changes
+    - js: squash_changes
       ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
       testopts:
         reql-query: False
