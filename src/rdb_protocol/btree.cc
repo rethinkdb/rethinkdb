@@ -1209,7 +1209,9 @@ void compute_keys(const store_key_t &primary_key,
                     std::make_pair(
                         store_key_t(
                             skey.print_secondary(
-                                reql_version, primary_key, i)),
+                                ql::skey_version_from_reql_version(reql_version),
+                                primary_key,
+                                i)),
                         skey));
             }
         }
@@ -1227,7 +1229,9 @@ void compute_keys(const store_key_t &primary_key,
                 std::make_pair(
                     store_key_t(
                         index.print_secondary(
-                            reql_version, primary_key, boost::none)),
+                            ql::skey_version_from_reql_version(reql_version),
+                            primary_key,
+                            boost::none)),
                     index));
         }
     }

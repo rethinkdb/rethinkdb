@@ -51,15 +51,18 @@ struct indexed_datum_t {
         : val(std::move(_val)), index(std::move(_index)) {
         guarantee(val.has());
     }
+    // RSI: sometimes this should be `null`.
     datum_t val, index;
 };
 
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
+                 store_key_t _pkey,
                  boost::optional<indexed_datum_t> _old_val,
                  boost::optional<indexed_datum_t> _new_val,
                  DEBUG_ONLY(boost::optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
+          pkey(std::move(_pkey)),
           old_val(std::move(_old_val)),
           new_val(std::move(_new_val)),
           DEBUG_ONLY(sindex(std::move(_sindex))) {
@@ -70,6 +73,7 @@ struct change_val_t {
         }
     }
     std::pair<uuid_u, uint64_t> source_stamp;
+    store_key_t pkey;
     boost::optional<indexed_datum_t> old_val, new_val;
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
@@ -101,7 +105,10 @@ class squashing_queue_t : public maybe_squashing_queue_t {
         } else {
             change_val.old_val = std::move(it->second.old_val);
             it->second = std::move(change_val);
-            if (it->second.old_val == it->second.new_val) {
+            // RSI: what about if some are missing and some are NULL?
+            if ((!it->second.old_val && !it->second.new_val)
+                || (it->second.old_val && it->second.new_val
+                    && it->second.old_val->val == it->second.new_val->val)) {
                 queue.erase(it);
             }
         }
@@ -1068,6 +1075,7 @@ public:
         const configured_limits_t &limits) {
         if (update_stamp(uuid, stamp)) {
             queue->add(pkey, change_val_t(std::make_pair(uuid, stamp),
+                                          pkey,
                                           old_val,
                                           new_val,
                                           DEBUG_ONLY(sindex)));
@@ -1316,13 +1324,13 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
-        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0), started(false) {
-        feed->add_point_sub(this, key);
+    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _pkey)
+        : flat_sub_t(feed, squash), pkey(std::move(_pkey)), stamp(0), started(false) {
+        feed->add_point_sub(this, pkey);
     }
     virtual ~point_sub_t() {
         destructor_cleanup(
-            std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
+            std::bind(&feed_t::del_point_sub, feed, this, std::cref(pkey)));
     }
     virtual void start_artificial(env_t *, const uuid_u &) {
         started = true;
@@ -1334,7 +1342,7 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_point_stamp_t{*addr, key}, profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_point_stamp_t{*addr, pkey}, profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1348,8 +1356,15 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(key, change_val_t(resp->stamp, datum_t(), resp->initial_val));
+            queue->add(pkey, change_val_t(
+               resp->stamp,
+               pkey,
+               indexed_datum_t{resp->initial_val, datum_t()},
+               boost::none,
+               DEBUG_ONLY(boost::none)));
         }
+        // RSI: Should there be an `else` here to change the end of the queue
+        // into an initial value change?
         started = true;
     }
     virtual bool update_stamp(const uuid_u &, uint64_t new_stamp) {
@@ -1362,7 +1377,7 @@ public:
 private:
     virtual bool active() { return started; }
 
-    store_key_t key;
+    store_key_t pkey;
     uint64_t stamp;
     bool started;
 };
@@ -1892,8 +1907,15 @@ public:
                       std::cref(server_uuid),
                       stamp,
                       change.pkey,
-                      change.old_val.has() ? change.old_val : null,
-                      change.new_val.has() ? change.new_val : null,
+                      boost::none,
+                      change.old_val.has()
+                          ? boost::optional<indexed_datum_t>(
+                              indexed_datum_t{change.old_val, datum_t()})
+                          : boost::none,
+                      change.new_val.has()
+                          ? boost::optional<indexed_datum_t>(
+                              indexed_datum_t{change.new_val, datum_t()})
+                          : boost::none,
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
@@ -2091,6 +2113,38 @@ subscription_t::get_els(batcher_t *batcher,
     return std::move(v);
 }
 
+bool discard(const store_key_t &pkey,
+             const std::pair<uuid_u, uint64_t> &source_stamp,
+             const boost::optional<indexed_datum_t> &val,
+             const active_state_t &active_state) {
+    if (!val) return false;
+    guarantee(!!active_state.skey_version == val->index.has());
+    // This is safe because const references extend the lifetime of temporary objects.
+    const store_key_t &key = active_state.skey_version
+        // RSI: use the correct tag number to make multi-indexes work.
+        ? store_key_t(
+            val->index.print_secondary(*active_state.skey_version, pkey, boost::none))
+        : pkey;
+    if (active_state.active_range.contains_key(key)) {
+        return true;
+    } else if (key < active_state.last_read_start) {
+        return false;
+    } else {
+        auto it = active_state.shard_stamps.find(source_stamp.first);
+        if (it == active_state.shard_stamps.end()) {
+            // If we haven't seen the stamps for this `store_t`, we've yet to
+            // read from it.
+            return true;
+        } else {
+            // Discard changes from before the read.  Note that this has to be
+            // `<`; if `source_stamp.second == it->second` we shouldn't discard
+            // the change.
+            return source_stamp.second < it->second;
+        }
+    }
+
+}
+
 std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_state) {
     std::vector<datum_t> ret;
     while (has_el()) {
@@ -2099,17 +2153,16 @@ std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_st
         rassert(active_state.sindex
                 ? (change_val.sindex && *active_state.sindex == *change_val.sindex)
                 : !change_val.sindex);
-        if (active_state.old_range.contains_key(change_val.key)) {
+        if (discard(change_val.pkey, change_val.source_stamp,
+                    change_val.old_val, active_state)) {
+            change_val.old_val = boost::none;
+        }
+        if (discard(change_val.pkey, change_val.source_stamp,
+                    change_val.new_val, active_state)) {
+            change_val.new_val = boost::none;
+        }
+        if (change_val.old_val || change_val.new_val) {
             ret.push_back(change_val_to_change(std::move(change_val)));
-        } else if (active_state.last_range.contains_key(change_val.key)) {
-            auto it = active_state.shard_stamps.find(change_val.source_stamp.first);
-            if (it != active_state.shard_stamps.end()) {
-                if (it->second <= change_val.source_stamp.second) {
-                    ret.push_back(change_val_to_change(std::move(change_val)));
-                }
-            }
-        } else {
-            guarantee(active_state.active_range.contains_key(change_val.key));
         }
     }
     return ret;

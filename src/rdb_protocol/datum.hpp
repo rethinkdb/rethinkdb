@@ -210,7 +210,7 @@ public:
         const std::string &tag);
     static std::string encode_tag_num(uint64_t tag_num);
     // tag_num is used for multi-indexes.
-    std::string print_secondary(reql_version_t reql_version,
+    std::string print_secondary(skey_version_t reql_version,
                                 const store_key_t &primary_key,
                                 boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */

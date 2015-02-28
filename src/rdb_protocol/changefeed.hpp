@@ -96,7 +96,8 @@ struct msg_t {
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
-    msg_t(const msg_t &msg) = default;
+    msg_t(const msg_t &) = default;
+    msg_t &operator=(const msg_t &) = default;
 
     boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
 

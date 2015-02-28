@@ -969,7 +969,7 @@ std::string datum_t::compose_secondary(
         skey_version, truncated_secondary_key, primary_key_string, tag_string);
 }
 
-std::string datum_t::print_secondary(reql_version_t reql_version,
+std::string datum_t::print_secondary(skey_version_t skey_version,
                                      const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
@@ -996,20 +996,15 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        break;
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16_is_latest:
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
         secondary_key_string.append(1, '\x00');
         break;
-    default:
-        unreachable();
+    default: unreachable();
     }
 
-    return compose_secondary(
-        skey_version_from_reql_version(reql_version),
-        secondary_key_string, primary_key, tag_num);
+    return compose_secondary(skey_version, secondary_key_string, primary_key, tag_num);
 }
 
 skey_version_t skey_version_from_reql_version(reql_version_t rv) {

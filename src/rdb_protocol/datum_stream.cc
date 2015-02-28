@@ -44,6 +44,7 @@ boost::optional<active_state_t> rget_response_reader_t::get_active_state() const
         *active_range,
         last_read_start,
         shard_stamps,
+        datum_t::extract_all(key_to_unescaped_str(last_read_start)).skey_version,
         DEBUG_ONLY(readgen->sindex_name())};
 }
 
