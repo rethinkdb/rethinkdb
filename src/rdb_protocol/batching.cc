@@ -102,9 +102,26 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     int64_t first_sd = first_scaledown_d.has()
                        ? first_scaledown_d.as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
-    int64_t max_dur = max_dur_d.has()
-                       ? static_cast<int64_t>(max_dur_d.as_num() * SECS_TO_USECS)
-                       : DEFAULT_MAX_DURATION;
+    int64_t max_dur = DEFAULT_MAX_DURATION;
+    if (max_dur_d.has()) {
+        const double usecs_max_dur = max_dur_d.as_num() * SECS_TO_USECS;
+        rcheck_target(
+            &max_dur_d,
+            usecs_max_dur <= static_cast<double>(std::numeric_limits<int64_t>::max()),
+            base_exc_t::GENERIC,
+            strprintf("max_batch_seconds is too large (got `%"
+                      PR_RECONSTRUCTABLE_DOUBLE "`).",
+                      max_dur_d.as_num()));
+        rcheck_target(
+            &max_dur_d,
+            usecs_max_dur >= 0.0,
+            base_exc_t::GENERIC,
+            strprintf("max_batch_seconds must be positive (got `%"
+                      PR_RECONSTRUCTABLE_DOUBLE "`).",
+                      max_dur_d.as_num()));
+
+        max_dur = static_cast<int64_t>(usecs_max_dur);
+    }
     // Protect the user in case they're a dork.  Normally we would do rfail and
     // trigger exceptions, but due to NOTHROWs above this may not be safe.
     min_els = std::min<int64_t>(min_els, max_els);
