@@ -104,7 +104,7 @@ store_t::store_t(serializer_t *serializer,
     if (create) {
         vector_stream_t key;
         // The version used when deserializing this data depends on the block magic.
-        // The block magic set by init_superblock corresponds to the latest version
+        // The block magic set by init_real_superblock corresponds to the latest version
         // and so this serialization does too.
         // VSI: Do this better.
         write_message_t wm;
@@ -116,10 +116,9 @@ store_t::store_t(serializer_t *serializer,
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
-        real_superblock_t sb(std::move(superblock));
-        sb.create_stat_block();
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock, key.vector(), binary_blob_t());
     }
 
     btree.init(new btree_slice_t(cache.get(),
@@ -241,7 +240,7 @@ bool store_t::send_backfill(
                             access_t::read);
 
     region_map_t<binary_blob_t> unmasked_metainfo;
-    get_metainfo_internal(superblock->get(), &unmasked_metainfo);
+    get_metainfo_internal(superblock.get(), &unmasked_metainfo);
     region_map_t<binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
         protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, progress, interruptor);
@@ -341,7 +340,7 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
                                  interruptor);
 
     region_map_t<binary_blob_t> regions;
-    get_metainfo_internal(superblock->get(), &regions);
+    get_metainfo_internal(superblock.get(), &regions);
 
     bool empty_region = true;
     for (auto it = regions.begin(); it != regions.end(); ++it) {
@@ -422,7 +421,7 @@ void store_t::reset_data(
                                              &deleted_range);
 
         region_map_t<binary_blob_t> old_metainfo;
-        get_metainfo_internal(superblock->get(), &old_metainfo);
+        get_metainfo_internal(superblock.get(), &old_metainfo);
         region_map_t<binary_blob_t> new_metainfo = old_metainfo;
         region_t deleted_region(subregion.beg, subregion.end, deleted_range);
         new_metainfo.set(deleted_region, zero_metainfo);
@@ -592,18 +591,12 @@ bool store_t::add_sindex(
         return false; // sindex was already created
     } else {
         {
-            buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-            sindex.superblock = sindex_superblock.block_id();
+            buf_lock_t sb_lock(sindex_block, alt_create_t::create);
+            sindex.superblock = sb_lock.block_id();
             sindex.opaque_definition = opaque_definition;
 
-            /* Notice we're passing in empty strings for metainfo. The metainfo in
-             * the sindexes isn't used for anything but this could perhaps be
-             * something that would give a better error if someone did try to use
-             * it... on the other hand this code isn't exactly idiot proof even
-             * with that. */
-            btree_slice_t::init_superblock(&sindex_superblock,
-                                           std::vector<char>(),
-                                           binary_blob_t());
+            sindex_superblock_t superblock(std::move(sb_lock));
+            btree_slice_t::init_sindex_superblock(&superblock);
         }
 
         secondary_index_slices.insert(
@@ -1239,7 +1232,7 @@ store_t::check_metainfo(
         THROWS_NOTHING {
     assert_thread();
     region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock->get(), &old_metainfo);
+    get_metainfo_internal(superblock, &old_metainfo);
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif
@@ -1256,13 +1249,12 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
 
     rassert(updated_metadata.get_domain() == region_t::universe());
 
-    buf_lock_t *sb_buf = superblock->get();
     // Clear the existing metainfo. This makes sure that we completely rewrite
     // the metainfo. That avoids two issues:
     // - `set_superblock_metainfo()` wouldn't remove any deleted keys
     // - `set_superblock_metainfo()` is more efficient if we don't do any
     //   in-place updates in its current implementation.
-    clear_superblock_metainfo(sb_buf);
+    clear_superblock_metainfo(superblock);
 
     std::vector<std::vector<char> > keys;
     std::vector<binary_blob_t> values;
@@ -1282,7 +1274,7 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
         values.push_back(i->second);
     }
 
-    set_superblock_metainfo(sb_buf, keys, values);
+    set_superblock_metainfo(superblock, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
@@ -1298,17 +1290,17 @@ void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                                 interruptor,
                                 false /* KSI: christ */);
 
-    get_metainfo_internal(superblock->get(), out);
+    get_metainfo_internal(superblock.get(), out);
 }
 
 void store_t::
-get_metainfo_internal(buf_lock_t *sb_buf,
+get_metainfo_internal(real_superblock_t *superblock,
                       region_map_t<binary_blob_t> *out)
     const THROWS_NOTHING {
     assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     // TODO: this is inefficient, cut out the middleman (vector)
-    get_superblock_metainfo(sb_buf, &kv_pairs);
+    get_superblock_metainfo(superblock, &kv_pairs);
 
     std::vector<std::pair<region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
@@ -1345,7 +1337,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                  interruptor);
 
     region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock->get(), &old_metainfo);
+    get_metainfo_internal(superblock.get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 }
 
