@@ -80,7 +80,7 @@ static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
-    const int64_t SECS_TO_USECS = 1000 * 1000;
+    const double SECS_TO_USECS = 1000 * 1000;
     datum_t max_els_d, min_els_d, max_size_d, max_dur_d;
     datum_t first_scaledown_d;
 
@@ -103,7 +103,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
                        ? first_scaledown_d.as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
     int64_t max_dur = max_dur_d.has()
-                       ? (max_dur_d.as_int() * SECS_TO_USECS)
+                       ? static_cast<int64_t>(max_dur_d.as_num() * SECS_TO_USECS)
                        : DEFAULT_MAX_DURATION;
     // Protect the user in case they're a dork.  Normally we would do rfail and
     // trigger exceptions, but due to NOTHROWs above this may not be safe.
