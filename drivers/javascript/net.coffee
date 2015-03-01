@@ -1444,7 +1444,11 @@ class WebSocketConnection extends Connection
         # endpoint on the http server.
         url = "#{protocol}://#{@host}:#{@port}#{host.pathname}"
 
-        @socket = new (host.provider || WebSocket)(url)
+        if host.factory
+          @socket = host.factory(url, host.options || {})
+        else
+          @socket = new WebSocket(url)
+
         @socket.binaryType = "arraybuffer"
 
         @socket.onopen = (e) =>
@@ -1473,10 +1477,11 @@ class WebSocketConnection extends Connection
 
             # Write the version, auth key length, auth key, and
             # protocol number to the socket, in that order.
-            @socket.send Buffer.concat([version, auth_length, auth_buffer, protocol])
+            auth = Buffer.concat([version, auth_length, auth_buffer, protocol]).buffer
+            @socket.send(auth)
 
         @socket.onmessage = (e) =>
-            buf = e.data
+            buf = new Buffer(new Uint8Array(e.data))
             # Once we receive a response, extend the current
             # buffer with the data from the server. The reason we
             # extend it, vs. just setting it to the value of `buf`
@@ -1515,7 +1520,7 @@ class WebSocketConnection extends Connection
                         # just giving it as a callback directly so
                         # that it gets bound to the correct
                         # `this`.
-                        @socket.onmessage = (e) => @_data(e.data)
+                        @socket.onmessage = (e) => @_data(new Buffer(new Uint8Array(e.data)))
 
                         # Notify listeners we've connected
                         # successfully. Notably, the Connection
