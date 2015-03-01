@@ -1571,17 +1571,17 @@ class WebSocketConnection extends Connection
     _writeQuery: (token, data) ->
         # We use encodeURI to get the length of the unicode
         # representation of the data.
-        buf = new Buffer(encodeURI(data).split(/%..|./).length - 1 + 8)
+        buf = new Buffer(data.length + 12)
 
         # Again, the token is encoded as a little-endian 8 byte
         # unsigned integer.
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
-
+        buf.writeUInt32LE(data.length, 8)
         # Write the data out to the bufferm then invoke `write` with
         # the buffer and token
-        buf.write(data, 8)
-        @write buf, token
+        buf.write(data, 12)
+        @write buf
 
     # #### WebSocketConnection write method
     #
@@ -1592,8 +1592,8 @@ class WebSocketConnection extends Connection
     #
     # Despite not starting with an underscore, this is not a public
     # method.
-    write: (chunk, token) ->
-      @socket.send(chunk)
+    write: (chunk) ->
+      @socket.send(chunk.buffer)
 
 # ## isConnection
 #
