@@ -28,10 +28,10 @@ public:
     contract_t contracts[CPU_SHARDING_FACTOR];
 };
 
-/* `quick_version_map()` is a minimum-verbosity way to construct a
+/* `quick_cpu_version_map()` is a minimum-verbosity way to construct a
 `region_map_t<version_t>`. Use it something like this:
 
-    region_map_t<version_t> vers_map_for_cpu_shard_N = quick_version_map(N, {
+    region_map_t<version_t> vers_map_for_cpu_shard_N = quick_cpu_version_map(N, {
         {"ABC", &my_first_branch, 25},
         {"DE", &my_second_branch, 28}
         });
@@ -39,29 +39,29 @@ public:
 This creates a `region_map_t` on the branch `my_first_branch` at timestamp 25 in the
 first key-range, and on the branch `my_second_branch` at timestamp 28 in the second
 key-range. Note that it only operates on one CPU shard at a time. */
-struct quick_version_map_args_t {
+struct quick_cpu_version_map_args_t {
 public:
     const char *quick_range_spec;
     const cpu_branch_ids_t *branch;
     int timestamp;
 };
-region_map_t<version_t> quick_version_map(
+region_map_t<version_t> quick_cpu_version_map(
         size_t which_cpu_subspace,
-        std::initializer_list<quick_version_map_args_t> qvms);
+        std::initializer_list<quick_cpu_version_map_args_t> qvms);
 
-/* `quick_branch()` is a convenience function to construct a collection of CPU-sharded
+/* `quick_cpu_branch()` is a convenience function to construct a collection of CPU-sharded
 branches. Usage looks something like this:
 
-    cpu_branch_ids_t merged_branch = quick_branch(&branch_history, {
+    cpu_branch_ids_t merged_branch = quick_cpu_branch(&branch_history, {
         {"ABC", &left_branch, 25},
         {"DE", &rigth_branch, 28}
         });
 
 This creates a new branch by merging `left_branch` at timestamp 25 with `right_branch` at
 timestamp 28. */
-cpu_branch_ids_t quick_branch(
+cpu_branch_ids_t quick_cpu_branch(
         branch_history_t *bhist,
-        std::initializer_list<quick_version_map_args_t> origin);
+        std::initializer_list<quick_cpu_version_map_args_t> origin);
 
 /* `quick_contract_*()` are convenience functions to create collections of CPU-sharded
 contracts. */

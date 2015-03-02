@@ -3,11 +3,11 @@
 
 namespace unittest {
 
-region_map_t<version_t> quick_version_map(
+region_map_t<version_t> quick_cpu_version_map(
         size_t which_cpu_subspace,
-        std::initializer_list<quick_version_map_args_t> qvms) {
+        std::initializer_list<quick_cpu_version_map_args_t> qvms) {
     std::vector<std::pair<region_t, version_t> > parts;
-    for (const quick_version_map_args_t &qvm : qvms) {
+    for (const quick_cpu_version_map_args_t &qvm : qvms) {
         key_range_t range = quick_range(qvm.quick_range_spec);
         region_t region = region_intersection(
             region_t(range), cpu_sharding_subspace(which_cpu_subspace));
@@ -25,15 +25,15 @@ region_map_t<version_t> quick_version_map(
     return region_map_t<version_t>(parts.begin(), parts.end());
 }
 
-cpu_branch_ids_t quick_branch(
+cpu_branch_ids_t quick_cpu_branch(
         branch_history_t *bhist,
-        std::initializer_list<quick_version_map_args_t> origin) {
+        std::initializer_list<quick_cpu_version_map_args_t> origin) {
     cpu_branch_ids_t res;
 
     /* Compute the region of the new "branch" */
     res.range.left = quick_range(origin.begin()->quick_range_spec).left;
     res.range.right = key_range_t::right_bound_t(res.range.left);
-    for (const quick_version_map_args_t &qvm : origin) {
+    for (const quick_cpu_version_map_args_t &qvm : origin) {
         key_range_t range = quick_range(qvm.quick_range_spec);
         guarantee(key_range_t::right_bound_t(range.left) == res.range.right);
         res.range.right = range.right;
@@ -49,7 +49,11 @@ cpu_branch_ids_t quick_branch(
         bcs[i].region = region_intersection(
             region_t(res.range), cpu_sharding_subspace(i));
         bcs[i].initial_timestamp = state_timestamp_t::zero();
-        bcs[i].origin = quick_version_map(i, origin);
+        bcs[i].origin = quick_cpu_version_map(i, origin);
+        for (const auto &pair : bcs[i].origin) {
+            bcs[i].initial_timestamp = std::max(bcs[i].initial_timestamp,
+                pair.second.timestamp);
+        }
         
     }
 

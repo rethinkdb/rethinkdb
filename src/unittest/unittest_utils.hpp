@@ -44,8 +44,9 @@ read_t make_sindex_read(
  - `quick_range("A-M")` includes "Aardvark" and "Mammoth" but not "Quail".
  - `quick_range("*-*")` is `key_range_t::universe()`.
  - `quick_range("*-M")` and `quick_range("N-*")` are adjacent but do not overlap.
-*/
+The `quick_region()` variant just wraps the `key_range_t` in a `region_t`. */
 key_range_t quick_range(const char *bounds);
+region_t quick_region(const char *bounds);
 
 }  // namespace unittest
 

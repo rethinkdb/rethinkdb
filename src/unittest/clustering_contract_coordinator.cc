@@ -112,11 +112,11 @@ public:
             const cpu_contract_ids_t &contracts,
             contract_ack_t::state_t st,
             const branch_history_t &branch_history,
-            std::initializer_list<quick_version_map_args_t> version) {
+            std::initializer_list<quick_cpu_version_map_args_t> version) {
         guarantee(st == contract_ack_t::state_t::secondary_need_primary);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             contract_ack_t ack(st);
-            ack.version = boost::make_optional(quick_version_map(i, version));
+            ack.version = boost::make_optional(quick_cpu_version_map(i, version));
             ack.branch_history = branch_history;
             acks.set_key_no_equals(
                 std::make_pair(server, contracts.contract_ids[i]),
@@ -238,7 +238,7 @@ TPTEST(ClusteringContractCoordinator, AddReplica) {
     coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
     test.set_config({ {"*-*", {alice}, alice} });
-    cpu_branch_ids_t branch = quick_branch(
+    cpu_branch_ids_t branch = quick_cpu_branch(
         &test.state.branch_history,
         { {"*-*", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
@@ -275,7 +275,7 @@ TPTEST(ClusteringContractCoordinator, RemoveReplica) {
     coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
     test.set_config({ {"*-*", {alice, billy}, alice} });
-    cpu_branch_ids_t branch = quick_branch(
+    cpu_branch_ids_t branch = quick_cpu_branch(
         &test.state.branch_history,
         { {"*-*", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
@@ -305,7 +305,7 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
     coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
     test.set_config({ {"*-*", {alice, billy}, alice} });
-    cpu_branch_ids_t branch1 = quick_branch(
+    cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
         { {"*-*", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
@@ -341,7 +341,7 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
         quick_contract_simple({alice, billy}, billy, &branch1));
 
     branch_history_t billy_branch_history = test.state.branch_history;
-    cpu_branch_ids_t branch2 = quick_branch(
+    cpu_branch_ids_t branch2 = quick_cpu_branch(
         &billy_branch_history,
         { {"*-*", &branch1, 123} });
     test.add_ack(alice, cid4, contract_ack_t::state_t::secondary_need_primary,
@@ -360,7 +360,7 @@ TPTEST(ClusteringContractCoordinator, Split) {
     coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
     test.set_config({ {"*-*", {alice}, alice} });
-    cpu_branch_ids_t branch1 = quick_branch(
+    cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
         { {"*-*", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
@@ -380,10 +380,10 @@ TPTEST(ClusteringContractCoordinator, Split) {
         quick_contract_extra_replicas({alice}, {billy}, alice, &branch1));
 
     branch_history_t alice_branch_history = test.state.branch_history;
-    cpu_branch_ids_t branch2ABC = quick_branch(
+    cpu_branch_ids_t branch2ABC = quick_cpu_branch(
         &alice_branch_history,
         { {"*-M", &branch1, 123} });
-    cpu_branch_ids_t branch2DE = quick_branch(
+    cpu_branch_ids_t branch2DE = quick_cpu_branch(
         &alice_branch_history,
         { {"N-*", &branch1, 123} });
     test.add_ack(alice, cid2ABC, contract_ack_t::state_t::primary_need_branch,
@@ -429,7 +429,7 @@ TPTEST(ClusteringContractCoordinator, Split) {
         quick_contract_simple({billy}, billy, &branch2DE));
 
     branch_history_t billy_branch_history = test.state.branch_history;
-    cpu_branch_ids_t branch3DE = quick_branch(
+    cpu_branch_ids_t branch3DE = quick_cpu_branch(
         &billy_branch_history,
         { {"N-*", &branch2DE, 456} });
     test.add_ack(alice, cid6DE, contract_ack_t::state_t::nothing);
@@ -450,7 +450,7 @@ TPTEST(ClusteringContractCoordinator, Failover) {
                 billy = generate_uuid(),
                 carol = generate_uuid();
     test.set_config({ {"*-*", {alice, billy, carol}, alice} });
-    cpu_branch_ids_t branch1 = quick_branch(
+    cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
         { {"*-*", nullptr, 0} });
     cpu_contract_ids_t cid1 = test.add_contract("*-*",

@@ -127,4 +127,8 @@ key_range_t quick_range(const char *bounds) {
     return r;
 }
 
+region_t quick_region(const char *bounds) {
+    return region_t(quick_range(bounds));
+}
+
 }  // namespace unittest
