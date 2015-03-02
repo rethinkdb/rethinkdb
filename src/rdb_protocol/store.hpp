@@ -35,6 +35,7 @@ class cache_t;
 class internal_disk_backed_queue_t;
 class io_backender_t;
 class real_superblock_t;
+class sindex_superblock_t;
 class superblock_t;
 class txn_t;
 class cache_balancer_t;
@@ -230,8 +231,8 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            real_superblock_t *superblock,  // releases this.
+            scoped_ptr_t<sindex_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
@@ -239,8 +240,8 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_write(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            real_superblock_t *superblock,  // releases this.
+            scoped_ptr_t<sindex_superblock_t> *sindex_sb_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
@@ -248,13 +249,13 @@ public:
         sindex_access_t(btree_slice_t *_btree,
                         sindex_name_t _name,
                         secondary_index_t _sindex,
-                        scoped_ptr_t<real_superblock_t> _superblock);
+                        scoped_ptr_t<sindex_superblock_t> _superblock);
         ~sindex_access_t();
 
         btree_slice_t *btree;
         sindex_name_t name;
         secondary_index_t sindex;
-        scoped_ptr_t<real_superblock_t> superblock;
+        scoped_ptr_t<sindex_superblock_t> superblock;
     };
 
     typedef std::vector<scoped_ptr_t<sindex_access_t> > sindex_access_vector_t;
@@ -293,28 +294,28 @@ public:
 
     void protocol_read(const read_t &read,
                        read_response_t *response,
-                       superblock_t *superblock,
+                       real_superblock_t *superblock,
                        signal_t *interruptor);
 
     void protocol_write(const write_t &write,
                         write_response_t *response,
                         state_timestamp_t timestamp,
-                        scoped_ptr_t<superblock_t> *superblock,
+                        scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
     void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
                                 chunk_fun_callback_t *chunk_fun_cb,
-                                superblock_t *superblock,
+                                real_superblock_t *superblock,
                                 buf_lock_t *sindex_block,
                                 traversal_progress_combiner_t *progress,
                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void protocol_receive_backfill(scoped_ptr_t<superblock_t> &&superblock,
+    void protocol_receive_backfill(scoped_ptr_t<real_superblock_t> &&superblock,
                                    signal_t *interruptor,
                                    const backfill_chunk_t &chunk);
 
-    void get_metainfo_internal(buf_lock_t *sb_buf,
+    void get_metainfo_internal(real_superblock_t *superblock,
                                region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
 

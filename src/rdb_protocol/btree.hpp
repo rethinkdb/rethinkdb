@@ -21,6 +21,7 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
+class refcount_superblock_t;
 struct sindex_disk_info_t;
 
 class parallel_traversal_progress_t;
@@ -79,7 +80,7 @@ struct btree_info_t {
 
 struct btree_loc_info_t {
     btree_loc_info_t(const btree_info_t *_btree,
-                     superblock_t *_superblock,
+                     real_superblock_t *_superblock,
                      const store_key_t *_key)
         : btree(_btree), superblock(_superblock), key(_key) {
         guarantee(btree != NULL);
@@ -87,7 +88,7 @@ struct btree_loc_info_t {
         guarantee(key != NULL);
     }
     const btree_info_t *const btree;
-    superblock_t *const superblock;
+    real_superblock_t *const superblock;
     const store_key_t *const key;
 };
 
@@ -106,7 +107,7 @@ struct btree_point_replacer_t {
 
 batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
-    scoped_ptr_t<superblock_t> *superblock,
+    scoped_ptr_t<real_superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
@@ -145,14 +146,14 @@ protected:
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-                  superblock_t *superblock,
+                  refcount_superblock_t *superblock,
                   buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
-                timestamp, superblock_t *superblock,
+                timestamp, real_superblock_t *superblock,
                 const deletion_context_t *deletion_context,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
@@ -174,7 +175,7 @@ void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const ql::datum_range_t &datum_range,
     const region_t &sindex_region,
-    superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
@@ -189,7 +190,7 @@ void rdb_get_intersecting_slice(
     btree_slice_t *slice,
     const ql::datum_t &query_geometry,
     const region_t &sindex_region,
-    superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
@@ -204,7 +205,7 @@ void rdb_get_nearest_slice(
     double max_dist,
     uint64_t max_results,
     const ellipsoid_spec_t &geo_system,
-    superblock_t *superblock,
+    sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
@@ -212,7 +213,7 @@ void rdb_get_nearest_slice(
 
 void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
-                          superblock_t *superblock,
+                          real_superblock_t *superblock,
                           distribution_read_response_t *response);
 
 /* Secondary Indexes */
@@ -307,7 +308,7 @@ public:
                        bool update_pkey_cfeeds,
                        new_mutex_in_line_t *spot);
     bool has_pkey_cfeeds();
-    void finish(btree_slice_t *btree, superblock_t *superblock);
+    void finish(btree_slice_t *btree, real_superblock_t *superblock);
 
     ~rdb_modification_report_cb_t();
 

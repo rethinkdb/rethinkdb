@@ -3,6 +3,7 @@
 #include <queue>
 
 #include "boost_utils.hpp"
+#include "btree/reql_specific.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
