@@ -281,8 +281,16 @@ module 'TablesView', ->
     class @TableView extends Backbone.View
         className: 'table_container'
         template: Handlebars.templates['table-template']
+
+        events:
+           'click button.explore-table': 'explore_table'
+
         initialize: =>
             @listenTo @model, 'change', @render
+
+        explore_table: =>
+          window.localStorage.current_query = JSON.stringify "r.db('#{@model.get('db')}').table('#{@model.get('name')}')"
+          location.hash = 'dataexplorer'
 
         render: =>
             @$el.html @template
@@ -295,6 +303,7 @@ module 'TablesView', ->
                 replicas: @model.get 'replicas'
                 replicas_ready: @model.get 'replicas_ready'
                 status: @model.get 'status'
+                displayExploreButton: window.hasOwnProperty('localStorage')
             @
 
         remove: =>
