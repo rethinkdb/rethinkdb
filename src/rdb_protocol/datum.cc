@@ -611,8 +611,15 @@ void datum_t::num_to_str_key(std::string *str_out) const {
         uint64_t u;
     } packed;
     guarantee(sizeof(packed.d) == sizeof(packed.u));
-    packed.d = as_num();
+
+    // Sort negative zero as equivalent to 0
+    double value = as_num();
+    if (value == -0.0) {
+        value = abs(value);
+    }
+
     // Mangle the value so that lexicographic ordering matches double ordering
+    packed.d = value;
     if (packed.u & (1ULL << 63)) {
         // If we have a negative double, flip all the bits.  Flipping the
         // highest bit causes the negative doubles to sort below the
@@ -628,7 +635,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     }
     // The formatting here is sensitive.  Talk to mlucy before changing it.
     str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
-    str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, as_num()));
+    str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, value));
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
