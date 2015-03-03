@@ -71,7 +71,7 @@ void primary_execution_t::update_contract(
 
 void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     assert_thread();
-    order_source_t order_source;
+    order_source_t order_source(store->home_thread());
     cross_thread_signal_t interruptor_store_thread(
         keepalive.get_drain_signal(), store->home_thread());
 

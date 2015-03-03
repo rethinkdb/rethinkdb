@@ -38,7 +38,7 @@ void secondary_execution_t::update_contract(
 
 void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     assert_thread();
-    order_source_t order_source;
+    order_source_t order_source(store->home_thread());
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
             /* Set our initial state to `secondary_need_primary`. */

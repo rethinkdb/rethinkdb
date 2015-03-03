@@ -240,6 +240,8 @@ listener_t::~listener_t() {
     write_mailbox_.begin_shutdown();
     writeread_mailbox_.begin_shutdown();
     read_mailbox_.begin_shutdown();
+    /* Warn the underlying store that it should kick out changefeeds */
+    svs_->note_reshard();
 }
 
 void listener_t::try_start_receiving_writes(

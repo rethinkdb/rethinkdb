@@ -41,13 +41,17 @@
 
 class store_subview_t final : public store_view_t {
 public:
+    /* Note that `store_subview_t` can be created and deleted on any thread, but its
+    "home thread" will be set as the home thread of the underlying store. */
+
     store_subview_t(store_view_t *_store_view, region_t region)
         : store_view_t(region), store_view(_store_view) {
+        home_thread_mixin_t::real_home_thread = store_view->home_thread();
         rassert(region_is_superset(_store_view->get_region(), region));
     }
 
     ~store_subview_t() {
-        store_view->note_reshard();
+        home_thread_mixin_t::real_home_thread = get_thread_id();
     }
     void note_reshard() {
         store_view->note_reshard();

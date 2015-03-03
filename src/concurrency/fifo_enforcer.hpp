@@ -81,6 +81,11 @@ public:
     fifo_enforcer_source_t() THROWS_NOTHING :
         state(state_timestamp_t::zero(), 0) { }
 
+    void rethread(threadnum_t new_thread) {
+        DEBUG_ONLY_CODE(home_thread_mixin_debug_only_t::real_home_thread = new_thread);
+        lock.rethread(new_thread);
+    }
+
     /* Enters the FIFO for read. Does not block. */
     fifo_enforcer_read_token_t enter_read() THROWS_NOTHING;
 
@@ -240,6 +245,11 @@ public:
         { }
 
     ~fifo_enforcer_sink_t() THROWS_NOTHING;
+
+    void rethread(threadnum_t new_thread) {
+        DEBUG_ONLY_CODE(home_thread_mixin_debug_only_t::real_home_thread = new_thread);
+        internal_lock.rethread(new_thread);
+    }
 
     /* Don't access this stuff directly unless you know what you're doing. It's
     public so that new subclasses of `internal_exit_{read,write}_t` can access

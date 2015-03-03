@@ -84,7 +84,12 @@ public:
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             stores[i].init(new mock_store_t(binary_blob_t(version_t::zero())));
             stores[i]->rethread(threadnum_t(next_thread));
-            next_thread = (next_thread + 1) % get_num_db_threads();
+            next_thread = (next_thread + 1) % get_num_threads();
+        }
+    }
+    ~executor_tester_files_t() {
+        for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+            stores[i]->rethread(home_thread());
         }
     }
     branch_history_manager_t *get_branch_history_manager() {
@@ -202,7 +207,11 @@ public:
         store_key_t key2(key);
         uint64_t hash = hash_region_hasher(key2.contents(), key2.size());
         size_t cpu_shard = hash / (HASH_REGION_HASH_SIZE / CPU_SHARDING_FACTOR);
-        std::string value = mock_lookup(files->stores[cpu_shard].get(), key);
+        std::string value;
+        {
+            on_thread_t thread_switcher(files->stores[cpu_shard]->home_thread());
+            value = mock_lookup(files->stores[cpu_shard].get(), key);
+        }
         EXPECT_EQ(expect, value);
     }
 

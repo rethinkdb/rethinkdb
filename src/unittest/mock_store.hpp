@@ -24,6 +24,9 @@ public:
     ~mock_store_t();
     void rethread(threadnum_t new_thread) {
         home_thread_mixin_t::real_home_thread = new_thread;
+        token_source_.rethread(new_thread);
+        token_sink_.rethread(new_thread);
+        order_sink_.rethread(new_thread);
     }
 
     void note_reshard() { }

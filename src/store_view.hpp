@@ -19,6 +19,7 @@ public:
     }
 
     region_t get_region() {
+        /* Safe to call on any thread */
         return region;
     }
 
