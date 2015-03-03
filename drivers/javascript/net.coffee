@@ -46,10 +46,10 @@ cursors = require('./cursor')
 protodef = require('./proto-def')
 
 # Each version of the protocol has a magic number specified in
-# `./proto-def.coffee`. The most recent version is 3. Generally the
+# `./proto-def.coffee`. The most recent version is 4. Generally the
 # official driver will always be updated to the newest version of the
 # protocol, though RethinkDB supports older versions for some time.
-protoVersion = protodef.VersionDummy.Version.V0_3
+protoVersion = protodef.VersionDummy.Version.V0_4
 
 # We are using the JSON protocol for RethinkDB, which is the most
 # recent version. The older protocol is based on Protocol Buffers, and

@@ -165,7 +165,7 @@ class SocketWrapper(object):
 
             # Send our initial handshake
             self.sendall(
-                struct.pack("<2L", p.VersionDummy.Version.V0_3, len(self.auth_key)) +
+                struct.pack("<2L", p.VersionDummy.Version.V0_4, len(self.auth_key)) +
                 self.auth_key +
                 struct.pack("<L", p.VersionDummy.Protocol.JSON)
             )
