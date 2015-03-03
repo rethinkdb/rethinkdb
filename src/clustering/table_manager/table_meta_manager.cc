@@ -96,46 +96,6 @@ table_meta_manager_t::table_meta_manager_t(
         &non_interruptor);
 }
 
-/* `execution_bcard_minidir_bcard_finder_t` finds the `minidir_bcard_t`s for the minidir
-that distributes the `contract_execution_bcard_t`s. Each server has a `minidir_bcard_t`
-for each table that it's a replica for; these are published in the directory. This class
-is responsible for extracting them from the directory and putting them into a format that
-can be passed to `minidir_write_manager_t`. */
-class table_meta_manager_t::execution_bcard_minidir_bcard_finder_t :
-    public watchable_map_transform_t<
-        std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t,
-        uuid_u, minidir_bcard_t<
-            std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t> >
-{
-public:
-    execution_bcard_minidir_bcard_finder_t(
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t> *w,
-        const namespace_id_t &tid) :
-            watchable_map_transform_t(w),
-            table_id(tid) { }
-    bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1, uuid_u *key2_out) {
-        if (key1.second == table_id) {
-            *key2_out = key1.first.get_uuid();
-            return true;
-        } else {
-            return false;
-        }
-    }
-    void value_1_to_2(
-            const table_meta_bcard_t *value1,
-            const minidir_bcard_t<std::pair<server_id_t, branch_id_t>,
-                                  contract_execution_bcard_t> **value2_out) {
-        *value2_out = &value1->execution_bcard_minidir_bcard;
-    }
-    bool key_2_to_1(const uuid_u &key2, std::pair<peer_id_t, namespace_id_t> *key1_out) {
-        key1_out->first = peer_id_t(key2);
-        key1_out->second = table_id;
-        return true;
-    }
-private:
-    namespace_id_t table_id;
-};
-
 table_meta_manager_t::leader_table_t::leader_table_t(
         table_meta_manager_t *_parent,
         active_table_t *_active_table) :
@@ -195,20 +155,21 @@ table_meta_manager_t::active_table_t::active_table_t(
     member_id(_member_id),
     perfmon_membership(
         &get_global_perfmon_collection(), &perfmon_collection, uuid_to_str(_table_id)),
-    raft(member_id, parent->mailbox_manager, &raft_directory, this, initial_state),
-    execution_bcard_read_manager(
-        parent->mailbox_manager),
+    raft(member_id, parent->mailbox_manager, raft_directory.get_values(), this,
+        initial_state),
+    execution_bcard_read_manager(parent->mailbox_manager),
     contract_executor(
         parent->server_id, parent->mailbox_manager, raft.get_raft(),
         execution_bcard_read_manager.get_values(), multistore_ptr, parent->base_path,
         parent->io_backender, &parent->backfill_throttler, &perfmon_collection),
-    execution_bcard_minidir_bcard_finder(
-        new execution_bcard_minidir_bcard_finder_t(
-            parent->table_meta_directory, table_id)),
     execution_bcard_write_manager(
         parent->mailbox_manager,
         contract_executor.get_local_contract_execution_bcards(),
-        execution_bcard_minidir_bcard_finder.get()),
+        execution_bcard_minidir_directory.get_values()),
+    contract_ack_write_manager(
+        parent->mailbox_manager,
+        contract_executor.get_acks(),
+        contract_ack_minidir_directory.get_values()),
     table_directory_subs(
         parent->table_meta_directory,
         std::bind(&active_table_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -250,12 +211,6 @@ table_meta_manager_t::active_table_t::active_table_t(
     }
 }
 
-table_meta_manager_t::active_table_t::~active_table_t() {
-    /* The reason this destructor is declared out of line here is because we don't have
-    access to the full definition of `execution_bcard_minidir_bcard_finder_t` in the
-    header file */
-}
-
 void table_meta_manager_t::active_table_t::write_persistent_state(
         const raft_persistent_state_t<table_raft_state_t> &inner_ps,
         signal_t *interruptor) {
@@ -269,26 +224,35 @@ void table_meta_manager_t::active_table_t::write_persistent_state(
 void table_meta_manager_t::active_table_t::on_table_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_meta_bcard_t *bcard) {
-    /* We monitor the directory for updates related to this table, then extract the
-    `raft_business_card_t`s and pass them on to the `raft_networked_member_t`. */
     if (key.second == table_id) {
-        boost::optional<raft_member_id_t> new_member_id;
-        /* Note that if another server is in a different epoch from us, then we
-        don't put the Raft members into contact with each other. */
+        /* Update `raft_directory` */
         if (bcard != nullptr && bcard->timestamp.epoch == epoch) {
-            new_member_id = bcard->raft_member_id;
+            raft_directory.set_key(
+                key.first,
+                bcard->raft_member_id,
+                bcard->raft_business_card);
+        } else {
+            raft_directory.delete_key(key.first);
         }
-        auto it = old_peer_member_ids.find(key.first);
-        if (it != old_peer_member_ids.end() &&
-                (!static_cast<bool>(new_member_id) ||
-                    *new_member_id != it->second)) {
-            raft_directory.delete_key(it->second);
-            old_peer_member_ids.erase(it);
+
+        /* Update `execution_bcard_minidir_directory` */
+        if (bcard != nullptr) {
+            execution_bcard_minidir_directory.set_key(
+                key.first,
+                bcard->server_id,
+                bcard->execution_bcard_minidir_bcard);
+        } else {
+            execution_bcard_minidir_directory.delete_key(key.first);
         }
-        if (static_cast<bool>(new_member_id)) {
-            raft_directory.set_key_no_equals(
-                *new_member_id, bcard->raft_business_card);
-            old_peer_member_ids[key.first] = *new_member_id;
+
+        /* Update `current_ack_minidir_directory` */
+        if (bcard != nullptr && static_cast<bool>(bcard->leader)) {
+            contract_ack_minidir_directory.set_key(
+                key.first,
+                bcard->leader->uuid,
+                bcard->leader->contract_ack_minidir_bcard);
+        } else {
+            contract_ack_minidir_directory.delete_key(key.first);
         }
     }
 }

@@ -140,6 +140,39 @@ private:
     typename watchable_t<value_t>::subscription_t subs;
 };
 
+/* `watchable_map_keyed_var_t` is like a `watchable_map_var_t`, except that the key-value
+pairs are indexed by a second set of keys, different from the key-value pairs that appear
+in the map. */
+template<class key1_t, class key2_t, class value_t>
+class watchable_map_keyed_var_t {
+public:
+    watchable_map_t<key2_t, value_t> *get_values() {
+        return &values;
+    }
+    void set_key(const key1_t &key1, const key2_t &key2, const value_t &value) {
+        auto it = entries.find(key1);
+        if (it != entries.end()) {
+            /* Update or erase the existing entry */
+            if (it->second.get_key() == key2) {
+                it->second.change([&](value_t *v) { *v = value; return true; });
+                return;
+            } else {
+                /* We can't change the key of an existing entry, so erase it and create
+                a new one */
+                entries.erase(it);
+            }
+        }
+        entries[key1] = typename watchable_map_var_t<key2_t, value_t>::entry_t(
+            &values, key2, value);
+    }
+    void delete_key(const key1_t &key1) {
+        entries.erase(key1);
+    }
+private:
+    watchable_map_var_t<key2_t, value_t> values;
+    std::map<key1_t, typename watchable_map_var_t<key2_t, value_t>::entry_t> entries;
+};
+
 #include "concurrency/watchable_transform.tcc"
 
 #endif /* CONCURRENCY_WATCHABLE_TRANSFORM_HPP_ */

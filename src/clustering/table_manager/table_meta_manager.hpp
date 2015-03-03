@@ -123,11 +123,6 @@ public:
     }
 
 private:
-    /* This is a `watchable_map_transform_t` subclass, a helper class for taking the
-    `minidir_bcard_t`s from the `table_meta_directory` and putting them into a format
-    that the `minidir_write_manager_t` can handle. */
-    class execution_bcard_minidir_bcard_finder_t;
-
     /* The `table_meta_manager_t` has four possible levels of involvement with a table:
 
     0. We haven't been a replica of the table since we restarted. In this case, we don't
@@ -189,7 +184,6 @@ private:
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
             multistore_ptr_t *multistore_ptr);
-        ~active_table_t();
 
         /* These are public so that `table_meta_manager_t` can see them */
         table_meta_manager_t * const parent;
@@ -213,7 +207,9 @@ private:
             const raft_persistent_state_t<table_raft_state_t> &persistent_state,
             signal_t *interruptor);
 
-        /* This is the callback for `table_directory_subs` */
+        /* This is the callback for `table_directory_subs`. It's responsible for
+        maintaining `raft_directory`, `execution_bcard_minidir_directory`, and
+        `contract_ack_minidir_directory`. */
         void on_table_directory_change(
             const std::pair<peer_id_t, namespace_id_t> &key,
             const table_meta_bcard_t *bcard);
@@ -227,12 +223,33 @@ private:
         perfmon_collection_t perfmon_collection;
         perfmon_membership_t perfmon_membership;
 
-        /* One of `active_table_t`'s jobs is extracting `raft_business_card_t`s from
-        `table_meta_bcard_t`s and putting them into a map for the
-        `raft_networked_member_t` to use. */
-        std::map<peer_id_t, raft_member_id_t> old_peer_member_ids;
-        watchable_map_var_t<raft_member_id_t, raft_business_card_t<table_raft_state_t> >
+        /* `active_table_t` monitors `table_meta_directory` and derives three other
+        `watchable_map_t`s from it:
+        - `raft_directory` contains all of the Raft business cards. It is consumed by
+            `raft`, which uses it for Raft internal RPCs.
+        - `execution_bcard_minidir_directory` contains business cards for the minidirs
+            that carry the execution bcards between servers. It is consumed by
+            `execution_bcard_write_manager`.
+        - `contract_ack_minidir_directory` contains business cards for the minidirs that
+            carry the contract acks between servers. It is consumed by
+            `contract_ack_write_manager`.
+        */
+        watchable_map_keyed_var_t<
+                peer_id_t,
+                raft_member_id_t,
+                raft_business_card_t<table_raft_state_t> >
             raft_directory;
+        watchable_map_keyed_var_t<
+                peer_id_t,
+                server_id_t,
+                minidir_bcard_t<std::pair<server_id_t, branch_id_t>,
+                    contract_execution_bcard_t> >
+            execution_bcard_minidir_directory;
+        watchable_map_keyed_var_t<
+                peer_id_t,
+                uuid_u,
+                minidir_bcard_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> >
+            contract_ack_minidir_directory;
 
         raft_networked_member_t<table_raft_state_t> raft;
 
@@ -248,20 +265,15 @@ private:
         and destroying the `leader_table_t` may block. */
         new_mutex_t leader_mutex;
 
-        /* Every server constructs a `contract_executor_t` for every table it's a replica
-        of. There's a lot of support machinery required here. The
-        `execution_bcard_*_manager`s pass `contract_execution_bcard_t`s between different
-        replicas of the same table, via the `execution_bcard_minidir_bcard` field of the
-        `table_meta_bcard_t`. The `execution_minidir_bcard_finder` is responsible for
-        finding the `execution_bcard_minidir_bcard`s in a form suitable for passing to
-        `execution_bcard_write_manager_t`. */
         minidir_read_manager_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> execution_bcard_read_manager;
+
         contract_executor_t contract_executor;
-        scoped_ptr_t<execution_bcard_minidir_bcard_finder_t>
-            execution_bcard_minidir_bcard_finder;
+
         minidir_write_manager_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> execution_bcard_write_manager;
+        minidir_write_manager_t<std::pair<server_id_t, contract_id_t>,
+            contract_ack_t> contract_ack_write_manager;
 
         auto_drainer_t drainer;
 
