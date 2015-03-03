@@ -13,6 +13,7 @@ class real_table_meta_persistence_interface_t :
 public:
     real_table_meta_persistence_interface_t(
             io_backender_t *_io_backender,
+            cache_balancer_t *_cache_balancer,
             const base_path_t &_base_path,
             outdated_index_issue_tracker_t *_outdated_index_issue_tracker,
             rdb_context_t *_rdb_context,
@@ -53,12 +54,11 @@ private:
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out);
 
     io_backender_t * const io_backender;
+    cache_balancer_t * const cache_balancer;
     base_path_t const base_path;
     outdated_index_issue_tracker_t * const outdated_index_issue_tracker;
     rdb_context_t * const rdb_context;
     metadata_file_t * const metadata_file;
-
-    cache_balancer_t cache_balancer;
 
     /* `pick_thread()` uses this to distribute objects evenly over threads */
     int thread_counter;

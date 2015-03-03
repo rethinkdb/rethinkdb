@@ -10,6 +10,7 @@
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
@@ -159,88 +160,13 @@ bool do_serve(io_backender_t *io_backender,
                     return cluster_md->table_meta_manager_bcard.get_ptr();
                 });
 
-        dummy_table_meta_persistence_interface_t table_meta_persistence_interface;
-        scoped_ptr_t<table_meta_manager_t> table_meta_manager;
-        if (i_am_a_server) {
-            // RSI(raft): Actually hook up base path
-            (void)base_path;
-            table_meta_manager.init(new table_meta_manager_t(
-                server_id,
-                &mailbox_manager,
-                &table_meta_manager_directory,
-                table_directory_read_manager.get_root_view(),
-                &table_meta_persistence_interface,
-                base_path,
-                io_backender));
-        }
-
         table_meta_client_t table_meta_client(
             &mailbox_manager,
             &table_meta_manager_directory,
             table_directory_read_manager.get_root_view());
 
-        // Initialize the stat and jobs manager before the directory manager so that we
-        // could initialize the cluster directory metadata with the proper
-        // jobs_manager and stat_manager mailbox addresses
         jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
         stat_manager_t stat_manager(&mailbox_manager, server_id);
-
-        cluster_directory_metadata_t initial_directory(
-            server_id,
-            connectivity_cluster.get_me(),
-            RETHINKDB_VERSION_STR,
-            current_microtime(),
-            getpid(),
-            str_gethostname(),
-            /* Note we'll update `cluster_port`, `reql_port`, `http_port`, and
-            `canonical_addresses` later, once final values are available */
-            serve_info.ports.port,
-            serve_info.ports.reql_port,
-            serve_info.ports.http_admin_is_disabled
-                ? boost::optional<uint16_t>()
-                : boost::optional<uint16_t>(serve_info.ports.http_port),
-            serve_info.ports.canonical_addresses.hosts(),
-            serve_info.argv,
-            0,   /* we'll fill `actual_cache_size_bytes` in later */
-            i_am_a_server
-                ? boost::make_optional(
-                    table_meta_manager->get_table_meta_manager_bcard())
-                : boost::optional<table_meta_manager_bcard_t>(),
-            jobs_manager.get_business_card(),
-            stat_manager.get_address(),
-            log_server.get_business_card(),
-            i_am_a_server
-                ? boost::make_optional(server_config_server->get_business_card())
-                : boost::optional<server_config_business_card_t>(),
-            i_am_a_server ? SERVER_PEER : PROXY_PEER);
-
-        watchable_variable_t<cluster_directory_metadata_t>
-            our_root_directory_variable(initial_directory);
-
-        /* This will take care of updating the directory every time our cache size
-        changes. It also fills in the initial value. */
-        scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
-            actual_cache_size_directory_copier;
-        if (i_am_a_server) {
-            actual_cache_size_directory_copier.init(
-                new field_copier_t<uint64_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::actual_cache_size_bytes,
-                    server_config_server->get_actual_cache_size_bytes(),
-                    &our_root_directory_variable));
-        }
-
-        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
-            &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
-
-        scoped_ptr_t<directory_map_write_manager_t<
-                namespace_id_t, table_meta_bcard_t> >
-            table_directory_write_manager;
-        if (i_am_a_server) {
-            table_directory_write_manager.init(
-                new directory_map_write_manager_t<namespace_id_t, table_meta_bcard_t>(
-                    &connectivity_cluster, 'T',
-                    table_meta_manager->get_table_meta_bcards()));
-        }
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
@@ -277,15 +203,6 @@ bool do_serve(io_backender_t *io_backender,
         }
         logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
-        /* If `serve_info.ports.port` was 0 then the actual port is not 0, so we need to
-        update the directory. */
-        our_root_directory_variable.apply_atomic_op(
-            [&](cluster_directory_metadata_t *md) -> bool {
-                md->cluster_port = connectivity_cluster_run->get_port();
-                md->canonical_addresses =
-                    connectivity_cluster_run->get_canonical_addresses();
-                return true;
-            });
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -293,11 +210,6 @@ bool do_serve(io_backender_t *io_backender,
             directory_read_manager.get_root_view()->incremental_subview(
                 incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::server_id)),
             metadata_field(&cluster_semilattice_metadata_t::servers, semilattice_manager_cluster.get_root_view()));
-
-        field_copier_t<local_issues_t, cluster_directory_metadata_t> copy_local_issues_to_cluster(
-            &cluster_directory_metadata_t::local_issues,
-            local_issue_aggregator.get_issues_watchable(),
-            &our_root_directory_variable);
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
@@ -356,11 +268,94 @@ bool do_serve(io_backender_t *io_backender,
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
-
+            scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
+            scoped_ptr_t<real_table_meta_persistence_interface_t>
+                table_meta_persistence_interface;
+            scoped_ptr_t<table_meta_manager_t> table_meta_manager;
             if (i_am_a_server) {
-                // Proxies do not have caches to balance
                 cache_balancer.init(new alt_cache_balancer_t(
                     server_config_server->get_actual_cache_size_bytes()));
+                outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t(
+                    &local_issue_aggregator));
+                table_meta_persistence_interface.init(
+                    new real_table_meta_persistence_interface_t(
+                        io_backender,
+                        cache_balancer.get(),
+                        base_path,
+                        outdated_index_issue_tracker.get(),
+                        &rdb_ctx,
+                        metadata_file));
+                table_meta_manager.init(new table_meta_manager_t(
+                    server_id,
+                    &mailbox_manager,
+                    &table_meta_manager_directory,
+                    table_directory_read_manager.get_root_view(),
+                    table_meta_persistence_interface.get(),
+                    base_path,
+                    io_backender));
+            }
+
+            cluster_directory_metadata_t initial_directory(
+                server_id,
+                connectivity_cluster.get_me(),
+                RETHINKDB_VERSION_STR,
+                current_microtime(),
+                getpid(),
+                str_gethostname(),
+                /* Note we'll update `reql_port` and `http_port` later, once final values
+                are available */
+                connectivity_cluster_run->get_port(),
+                serve_info.ports.reql_port,
+                serve_info.ports.http_admin_is_disabled
+                    ? boost::optional<uint16_t>()
+                    : boost::optional<uint16_t>(serve_info.ports.http_port),
+                connectivity_cluster_run->get_canonical_addresses(),
+                serve_info.argv,
+                0,   /* we'll fill `actual_cache_size_bytes` in later */
+                i_am_a_server
+                    ? boost::make_optional(
+                        table_meta_manager->get_table_meta_manager_bcard())
+                    : boost::optional<table_meta_manager_bcard_t>(),
+                jobs_manager.get_business_card(),
+                stat_manager.get_address(),
+                log_server.get_business_card(),
+                i_am_a_server
+                    ? boost::make_optional(server_config_server->get_business_card())
+                    : boost::optional<server_config_business_card_t>(),
+                i_am_a_server ? SERVER_PEER : PROXY_PEER);
+
+            watchable_variable_t<cluster_directory_metadata_t>
+                our_root_directory_variable(initial_directory);
+
+            field_copier_t<local_issues_t, cluster_directory_metadata_t>
+                copy_local_issues_to_cluster(
+                    &cluster_directory_metadata_t::local_issues,
+                    local_issue_aggregator.get_issues_watchable(),
+                    &our_root_directory_variable);
+
+            /* This will take care of updating the directory every time our cache size
+            changes. It also fills in the initial value. */
+            scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
+                actual_cache_size_directory_copier;
+            if (i_am_a_server) {
+                actual_cache_size_directory_copier.init(
+                    new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                        &cluster_directory_metadata_t::actual_cache_size_bytes,
+                        server_config_server->get_actual_cache_size_bytes(),
+                        &our_root_directory_variable));
+            }
+
+            directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
+                &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+
+            scoped_ptr_t<directory_map_write_manager_t<
+                    namespace_id_t, table_meta_bcard_t> >
+                table_directory_write_manager;
+            if (i_am_a_server) {
+                table_directory_write_manager.init(
+                    new directory_map_write_manager_t<namespace_id_t, table_meta_bcard_t>(
+                        &connectivity_cluster, 'T',
+                        table_meta_manager->get_table_meta_bcards()));
             }
 
             {

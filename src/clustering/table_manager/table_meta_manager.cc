@@ -311,11 +311,7 @@ void table_meta_manager_t::on_action(
     if (!is_new) {
         guarantee(!(table->is_deleted && !is_deletion), "Can't un-delete a table");
         guarantee(table->is_deleted == table->timestamp.epoch.id.is_nil());
-        // RSI(raft): Reinstate this guarantee once we have a non-trivial implementation
-        // of `table_meta_manager_persistence_interface_t`
-#if 0
         guarantee(table->multistore_ptr.has() == table->active.has());
-#endif
     }
 
     /* Reject outdated or redundant messages */
@@ -337,9 +333,7 @@ void table_meta_manager_t::on_action(
             table_id, st, &table->multistore_ptr, interruptor);
         table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
             *member_id, *initial_state,
-            // RSI(raft): This should be `table->multistore_ptr.get()`, but the current
-            // dummy implementation of `persistence_interface` makes that not work
-            nullptr);
+            table->multistore_ptr.get());
     } else if (!static_cast<bool>(member_id) && table->active.has()) {
         /* The table is being dropped, or we are leaving it */
         table->active.reset();

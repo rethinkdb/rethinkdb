@@ -244,7 +244,7 @@ void real_table_meta_persistence_interface_t::make_multistore(
         std::move(bhm),
         base_path,
         io_backender,
-        &cache_balancer,
+        cache_balancer,
         rdb_context,
         outdated_index_issue_tracker,
         &get_global_perfmon_collection(), // RSI(raft): Better perfmon structure
