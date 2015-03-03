@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
 #include "rdb_protocol/real_table.hpp"
 
+#include "math.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/context.hpp"
@@ -196,14 +197,19 @@ const size_t split_size = 128;
 template<class T>
 std::vector<std::vector<T> > split(std::vector<T> &&v) {
     std::vector<std::vector<T> > out;
-    out.reserve(v.size() / split_size + (v.size() % split_size != 0));
+    out.reserve(ceil_divide(v.size(), split_size));
     size_t i = 0;
     while (i < v.size()) {
-        size_t step = split_size, keys_left = v.size() - i;
+        size_t step = split_size;
+        size_t keys_left = v.size() - i;
         if (step > keys_left) {
             step = keys_left;
         } else if (step < keys_left && keys_left < 2 * step) {
-            // Be less absurd if we have e.g. `split_size + 1` elements.
+            // Be less absurd if we have e.g. `split_size + 1` elements.  (In
+            // general it's better to send batches of size X and X+1 rather than
+            // 2X and 1 because the throughput is basically the same but the max
+            // latency is higher in the second case.  It probably doesn't matter
+            // too much, though, except for very large documents.)
             step = keys_left / 2;
         }
         guarantee(step != 0);
