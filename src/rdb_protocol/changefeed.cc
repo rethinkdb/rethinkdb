@@ -1972,23 +1972,17 @@ subscription_t::get_els(batcher_t *batcher,
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
         scoped_ptr_t<signal_timer_t> timer;
-        if (return_empty_normal_batches == return_empty_normal_batches_t::YES
-            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer = make_scoped<signal_timer_t>();
-        }
-        if (timer.has()
-            && (batcher->get_batch_type() == batch_type_t::NORMAL
-                || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST)) {
-            timer->start(batcher->microtime_left() / 1000);
+        if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+            timer = make_scoped<signal_timer_t>(0);
+        } else if (return_empty_normal_batches == return_empty_normal_batches_t::YES) {
+            timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
             && active()
             && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
-            signal_timer_t min_timer;
-            min_timer.start(min_interval * 1000);
             // It's OK to let the `interrupted_exc_t` propagate up.
-            wait_interruptible(&min_timer, interruptor);
+            nap(min_interval * 1000, interruptor);
         }
         // If we still don't have data, wait for data with a timeout.  (Note
         // that if we're squashing, we started the timeout *before* waiting
