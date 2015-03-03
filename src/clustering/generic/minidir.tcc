@@ -37,7 +37,7 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
         const minidir_link_id_t &link_id,
         fifo_enforcer_write_token_t fifo_token,
         bool closing_link,
-        const key_t &key,
+        const boost::optional<key_t> &key,
         const boost::optional<value_t> &value) {
     scoped_ptr_t<peer_data_t> *peer_data_ptr = &peer_map[peer_id];
     if (!peer_data_ptr->has()) {
@@ -70,18 +70,19 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
         return;
     }
     if (closing_link) {
-        guarantee(key == key_t());
+        guarantee(!static_cast<bool>(key));
         guarantee(!static_cast<bool>(value));
         exit_write.end();
         peer_data->link_map.erase(link_id);
     } else {
+        guarantee(static_cast<bool>(key));
         if (static_cast<bool>(value)) {
-            guarantee(link_data->map.count(key) == 0);
-            link_data->map.insert(std::make_pair(key,
+            guarantee(link_data->map.count(*key) == 0);
+            link_data->map.insert(std::make_pair(*key,
                 typename watchable_map_var_t<key_t, value_t>::entry_t(
-                    &map_var, key, *value)));
+                    &map_var, *key, *value)));
         } else {
-            auto it = link_data->map.find(key);
+            auto it = link_data->map.find(*key);
             guarantee(it != link_data->map.end());
             link_data->map.erase(it);
         }
@@ -230,7 +231,7 @@ void minidir_write_manager_t<key_t, value_t>::spawn_update(
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token, key, value] {
         send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, false, key, value);
+            link_id, write_token, false, boost::make_optional(key), value);
     });
 }
 
@@ -244,7 +245,8 @@ void minidir_write_manager_t<key_t, value_t>::spawn_closing_link(
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token] {
         send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, true, key_t(), boost::optional<value_t>());
+            link_id, write_token, true, boost::optional<key_t>(),
+            boost::optional<value_t>());
     });
 }
 

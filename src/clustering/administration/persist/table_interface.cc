@@ -110,7 +110,9 @@ public:
             }
         });
 
-        file_opener.move_serializer_file_to_permanent_location();
+        if (create) {
+            file_opener.move_serializer_file_to_permanent_location();
+        }
     }
 
     ~real_multistore_ptr_t() {

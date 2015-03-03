@@ -35,7 +35,7 @@ public:
         minidir_link_id_t link_id,
         fifo_enforcer_write_token_t fifo_token,
         bool closing_link,
-        key_t key,
+        boost::optional<key_t> key,
         boost::optional<value_t> value
         )> update_mailbox_t;
     typename update_mailbox_t::address_t update_mailbox;
@@ -99,7 +99,7 @@ private:
         const minidir_link_id_t &link_id,
         fifo_enforcer_write_token_t token,
         bool closing_link,
-        const key_t &key,
+        const boost::optional<key_t> &key,
         const boost::optional<value_t> &value);
 
     mailbox_manager_t *const mailbox_manager;
