@@ -76,13 +76,22 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
         peer_data->link_map.erase(link_id);
     } else {
         guarantee(static_cast<bool>(key));
+        auto it = link_data->map.find(*key);
         if (static_cast<bool>(value)) {
-            guarantee(link_data->map.count(*key) == 0);
-            link_data->map.insert(std::make_pair(*key,
-                typename watchable_map_var_t<key_t, value_t>::entry_t(
-                    &map_var, *key, *value)));
+            if (it != link_data->map.end()) {
+                /* We are updating an existing key */
+                it->second.change([&](value_t *v) {
+                    *v = *value;
+                    return true;
+                });
+            } else {
+                /* We are creating a new key */
+                link_data->map.insert(std::make_pair(*key,
+                    typename watchable_map_var_t<key_t, value_t>::entry_t(
+                        &map_var, *key, *value)));
+            }
         } else {
-            auto it = link_data->map.find(*key);
+            /* We are deleting an existing key */
             guarantee(it != link_data->map.end());
             link_data->map.erase(it);
         }

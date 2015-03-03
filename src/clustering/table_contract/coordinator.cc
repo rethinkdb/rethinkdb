@@ -429,6 +429,8 @@ contract_coordinator_t::contract_coordinator_t(
         false)
 {
     raft->assert_thread();
+    coro_t::spawn_sometime(std::bind(
+        &contract_coordinator_t::pump_contracts, this, drainer.lock()));
     /* Do an initial round of pumping, in case there are any changes the previous
     coordinator didn't take care of */
     wake_pump_contracts->pulse_if_not_already_pulsed();

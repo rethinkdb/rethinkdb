@@ -32,6 +32,10 @@ TPTEST(ClusteringMinidir, SinglePeer) {
     let_stuff_happen();
     ASSERT_EQ(writer1_data.get_all(), reader1.get_values()->get_all());
 
+    writer1_data.set_key("foo", "baz");
+    let_stuff_happen();
+    ASSERT_EQ(writer1_data.get_all(), reader1.get_values()->get_all());
+
     {
         minidir_read_manager_t<std::string, std::string> reader2(
             cluster.get_mailbox_manager());
