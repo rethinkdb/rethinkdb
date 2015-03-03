@@ -82,14 +82,14 @@ ql::datum_t make_row_replacement_stats(
     } else {
         crash("old_row is invalid");
     }
-    
+
     guarantee(new_row.has());
     bool ended_empty = (new_row.get_type() == ql::datum_t::R_NULL);
 
     *was_changed_out = (old_row != new_row);
 
     ql::datum_object_builder_t resp;
-    if (return_changes == return_changes_t::YES) {
+    if (*was_changed_out && return_changes == return_changes_t::YES) {
         bool conflict = resp.add("changes", make_replacement_pair(old_row, new_row));
         guarantee(!conflict);
     }
