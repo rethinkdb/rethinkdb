@@ -395,8 +395,9 @@ void table_query_client_t::relationship_coroutine(
         const table_query_bcard_t &bcard,
         bool is_start,
         auto_drainer_t::lock_t lock) THROWS_NOTHING {
-    wait_any_t stop_signal(lock.get_drain_signal(), coro_stoppers.at(key).get());
     try {
+        wait_any_t stop_signal(lock.get_drain_signal(), coro_stoppers.at(key).get());
+
         relationship_t relationship_record;
         relationship_record.is_local =
             (key.first == mailbox_manager->get_connectivity_cluster()->get_me());
@@ -429,8 +430,7 @@ void table_query_client_t::relationship_coroutine(
             is_start = false;
         }
 
-        wait_any_t waiter(lock.get_drain_signal(), coro_stoppers[key].get());
-        waiter.wait_lazily_unordered();
+        stop_signal.wait_lazily_unordered();
     } catch (const interrupted_exc_t &) {
         /* do nothing */
     } 
