@@ -56,10 +56,7 @@ table_meta_manager_t::table_meta_manager_t(
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     get_config_mailbox(mailbox_manager,
         std::bind(&table_meta_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3)),
-    set_config_mailbox(mailbox_manager,
-        std::bind(&table_meta_manager_t::on_set_config, this,
-            ph::_1, ph::_2, ph::_3, ph::_4))
+            ph::_1, ph::_2, ph::_3))
 {
     guarantee(!server_id.is_unset());
 
@@ -139,6 +136,52 @@ private:
     namespace_id_t table_id;
 };
 
+table_meta_manager_t::leader_table_t::leader_table_t(
+        table_meta_manager_t *_parent,
+        active_table_t *_active_table) :
+    parent(_parent),
+    active_table(_active_table),
+    contract_ack_read_manager(parent->mailbox_manager),
+    coordinator(active_table->get_raft(), contract_ack_read_manager.get_values()),
+    set_config_mailbox(parent->mailbox_manager,
+        std::bind(&leader_table_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
+{
+    active_table->change_bcard_entry([&](table_meta_bcard_t *bcard) {
+        table_meta_bcard_t::leader_bcard_t leader_bcard;
+        leader_bcard.uuid = generate_uuid();
+        leader_bcard.set_config_mailbox = set_config_mailbox.get_address();
+        leader_bcard.contract_ack_minidir_bcard = contract_ack_read_manager.get_bcard();
+        bcard->leader = boost::make_optional(leader_bcard);
+        return true;
+    });
+}
+
+table_meta_manager_t::leader_table_t::~leader_table_t() {
+    active_table->change_bcard_entry([&](table_meta_bcard_t *bcard) {
+        bcard->leader = boost::none;
+        return true;
+    });
+}
+
+void table_meta_manager_t::leader_table_t::on_set_config(
+        signal_t *interruptor,
+        const table_config_and_shards_t &new_config,
+        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
+            address_t &reply_addr) {
+    boost::optional<raft_log_index_t> result = coordinator.change_config(
+        [&](table_config_and_shards_t *config) { *config = new_config; },
+        interruptor);
+    if (static_cast<bool>(result)) {
+        table_meta_manager_bcard_t::timestamp_t timestamp;
+        timestamp.epoch = active_table->epoch;
+        timestamp.log_index = *result;
+        send(parent->mailbox_manager, reply_addr, boost::make_optional(timestamp));
+    } else {
+        send(parent->mailbox_manager, reply_addr,
+            boost::optional<table_meta_manager_bcard_t::timestamp_t>());
+    }
+}
+
 table_meta_manager_t::active_table_t::active_table_t(
         table_meta_manager_t *_parent,
         const namespace_id_t &_table_id,
@@ -175,12 +218,32 @@ table_meta_manager_t::active_table_t::active_table_t(
 {
     guarantee(!member_id.is_nil());
     guarantee(!epoch.id.is_unset());
-    update_bcard(false);
+
+    /* Set up the initial table bcard */
+    {
+        table_meta_bcard_t bcard;
+        bcard.timestamp.epoch = epoch;
+        raft.get_raft()->get_committed_state()->apply_read(
+            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+                bcard.timestamp.log_index = sc->log_index;
+                bcard.database = sc->state.config.config.database;
+                bcard.name = sc->state.config.config.name;
+            });
+        bcard.raft_member_id = member_id;
+        bcard.raft_business_card = raft.get_business_card();
+        bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
+        bcard.server_id = parent->server_id;
+        bcard_entry = make_scoped<watchable_map_var_t<namespace_id_t,
+            table_meta_bcard_t>::entry_t>(
+                &parent->table_meta_bcards, table_id, bcard);
+    }
+
     {
         watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
             freeze(raft.get_raft()->get_committed_state());
         raft_committed_subs.reset(raft.get_raft()->get_committed_state(), &freeze);
     }
+
     {
         watchable_t<bool>::freeze_t freeze(raft.get_raft()->get_readiness_for_change());
         raft_readiness_subs.reset(raft.get_raft()->get_readiness_for_change(), &freeze);
@@ -188,37 +251,9 @@ table_meta_manager_t::active_table_t::active_table_t(
 }
 
 table_meta_manager_t::active_table_t::~active_table_t() {
-    /* Stop `raft_readiness_subs` before deleting the bcard so that `update_bcard()`
-    doesn't get called and accidentally re-create the bcard */
-    raft_readiness_subs.reset();
-    parent->table_meta_bcards.delete_key(table_id);
-}
-
-void table_meta_manager_t::active_table_t::update_bcard(bool expect_exists) {
-    ASSERT_FINITE_CORO_WAITING;
-
-    /* Make sure that the bcard already exists or doesn't already exist (depending on the
-    value of `expect_exists`) */
-    parent->table_meta_bcards.read_key(table_id,
-        [&](const table_meta_bcard_t *bcard) {
-            guarantee((bcard != nullptr) == expect_exists);
-        });
-
-    /* Update the bcard */
-    table_meta_bcard_t bcard;
-    bcard.timestamp.epoch = epoch;
-    raft.get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-            bcard.timestamp.log_index = sc->log_index;
-            bcard.database = sc->state.config.config.database;
-            bcard.name = sc->state.config.config.name;
-        });
-    bcard.raft_member_id = member_id;
-    bcard.raft_business_card = raft.get_business_card();
-    bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
-    bcard.is_leader = raft.get_raft()->get_readiness_for_change()->get();
-    bcard.server_id = parent->server_id;
-    parent->table_meta_bcards.set_key_no_equals(table_id, bcard);
+    /* The reason this destructor is declared out of line here is because we don't have
+    access to the full definition of `execution_bcard_minidir_bcard_finder_t` in the
+    header file */
 }
 
 void table_meta_manager_t::active_table_t::write_persistent_state(
@@ -259,6 +294,25 @@ void table_meta_manager_t::active_table_t::on_table_directory_change(
 }
 
 void table_meta_manager_t::active_table_t::on_raft_committed_change() {
+    /* Check if the table's name or database changed, and update the bcard if so */
+    raft.get_raft()->get_committed_state()->apply_read(
+    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+        bcard_entry->change([&](table_meta_bcard_t *bcard) {
+            if (sc->state.config.config.name != bcard->name ||
+                    sc->state.config.config.database != bcard->database) {
+                bcard->timestamp.log_index = sc->log_index;
+                bcard->name = sc->state.config.config.name;
+                bcard->database = sc->state.config.config.database;
+                return true;
+            } else {
+                /* If we return `false`, updates won't be sent to the other servers. This
+                way, we don't send a message to every server every time Raft commits a
+                change. */
+                return false;
+            }
+        });
+    });
+
     /* Every time the Raft cluster commits a transaction, we re-sync to every other
     server in the cluster. This is because the transaction might consist of adding or
     removing a server, in which case we need to notify that server. */
@@ -274,9 +328,19 @@ void table_meta_manager_t::active_table_t::on_raft_committed_change() {
 }
 
 void table_meta_manager_t::active_table_t::on_raft_readiness_change() {
-    /* If we become the Raft cluster leader, publish this news in the directory so that
-    clients know to route config changes to us. */
-    update_bcard(true);
+    /* Create or destroy `leader` depending on whether we are the Raft cluster's leader.
+    Since `leader_table_t`'s constructor and destructor may block, we have to spawn a
+    coroutine to do it. */
+    auto_drainer_t::lock_t keepalive(&drainer);
+    coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
+        new_mutex_acq_t mutex_acq(&leader_mutex);
+        bool ready = raft.get_raft()->get_readiness_for_change()->get();
+        if (ready && !leader.has()) {
+            leader.init(new leader_table_t(parent, this));
+        } else if (!ready && leader.has()) {
+            leader.reset();
+        }
+    });
 }
 
 void table_meta_manager_t::on_action(
@@ -418,73 +482,6 @@ void table_meta_manager_t::on_get_config(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                     result[pair.first] = s->state.config;
                 });
-            }
-        }
-    }
-    send(mailbox_manager, reply_addr, result);
-}
-
-void table_meta_manager_t::on_set_config(
-        signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const table_config_and_shards_t &new_config,
-        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
-            address_t &reply_addr) {
-    /* Find the table in question and see if we're hosting it */
-    boost::optional<table_meta_manager_bcard_t::timestamp_t> result;
-    mutex_assertion_t::acq_t global_mutex_acq(&mutex);
-    auto it = tables.find(table_id);
-    if (it != tables.end()) {
-        new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
-        global_mutex_acq.reset();
-        wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
-        if (it->second->active.has()) {
-            /* OK, so we are hosting the table. Time to attempt the change. */
-            raft_member_t<table_raft_state_t> *raft =
-                it->second->active->get_raft();
-
-            table_config_and_shards_t old_config;
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
-                change_token;
-            raft_log_index_t log_index;
-
-            /* We need to make sure that `change_lock` goes out of scope before we wait
-            on the token, so we construct a nested scope */
-            {
-                raft_member_t<table_raft_state_t>::change_lock_t change_lock(
-                    raft, interruptor);
-
-                /* Record the previous value. We'll compare it to the new value to see if
-                we need to update the directory. */
-                old_config = raft->get_latest_state()->get().state.config;
-                guarantee(new_config.config.primary_key ==
-                    old_config.config.primary_key);
-
-                /* Here's where we actually apply the change. */
-                table_raft_state_t::change_t::set_table_config_t c;
-                c.new_config = new_config;
-                table_raft_state_t::change_t change(c);
-                change_token = raft->propose_change(&change_lock, change, interruptor);
-
-                /* Record the new log index, which we'll return to the caller */
-                log_index = raft->get_latest_state()->get().log_index;
-            }
-
-            wait_interruptible(change_token->get_ready_signal(), interruptor);
-            if (change_token->wait()) {
-                /* The change succeeded. */
-
-                /* If the name or database changed, update the directory */
-                if (old_config.config.database != new_config.config.database ||
-                        old_config.config.name != new_config.config.name) {
-                    it->second->active->update_bcard(true);
-                }
-
-                /* Send the timestamp back to the caller */
-                table_meta_manager_bcard_t::timestamp_t timestamp;
-                timestamp.epoch = it->second->active->epoch;
-                timestamp.log_index = log_index;
-                result = boost::make_optional(timestamp);
             }
         }
     }

@@ -3,12 +3,14 @@
 
 #include "clustering/table_contract/cpu_sharding.hpp"
 
-/* RSI(raft): This should be `SINCE_v1_N`, where `N` is the version number at which Raft
+/* RSI(raft): This should be `SINCE_v2_N`, where `N` is the version number at which Raft
 is released */
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     contract_t::primary_t, server, hand_over);
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
     contract_t, replicas, voters, temp_voters, primary, branch);
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
+    contract_ack_t, state, version, branch, branch_history);
 
 void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change) {
     class visitor_t : public boost::static_visitor<void> {
@@ -45,7 +47,6 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
     remove_contracts, add_contracts, remove_branches, add_branches);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_raft_state_t::change_t, v);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_raft_state_t, config, member_ids);
-
 
 table_raft_state_t make_new_table_raft_state(
         const table_config_and_shards_t &config) {

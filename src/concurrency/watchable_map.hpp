@@ -145,6 +145,8 @@ public:
         entry_t &operator=(const entry_t &) = delete;
         entry_t &operator=(entry_t &&);
 
+        void change(const std::function<bool(value_t *value)> &callback);
+
     private:
         watchable_map_var_t *parent;
         typename std::map<key_t, value_t>::iterator iterator;

@@ -131,7 +131,18 @@ watchable_map_var_t<key_t, value_t>::entry_t::operator=(entry_t &&other) {
     return *this;
 }
 
-template <class key_t, class value_t>
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::change(
+        const std::function<bool(value_t *value)> &callback) {
+    ASSERT_NO_CORO_WAITING;
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    bool changed = callback(&iterator->second);
+    if (changed) {
+        parent->notify_change(iterator->first, &iterator->second, &write_acq);
+    }
+}
+
+template<class key_t, class value_t>
 watchable_map_var_t<key_t, value_t>::watchable_map_var_t(
         std::map<key_t, value_t> &&source) :
     map(std::move(source)) { }
@@ -224,6 +235,7 @@ template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::change_key(
         const key_t &key,
         const std::function<bool(bool *exists, value_t *value)> &callback) {
+    ASSERT_NO_CORO_WAITING;
     rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
     auto it = map.find(key);
     if (it != map.end()) {

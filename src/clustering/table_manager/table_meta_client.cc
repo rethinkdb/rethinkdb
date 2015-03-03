@@ -344,42 +344,54 @@ bool table_meta_client_t::set_config(
     on_thread_t thread_switcher(home_thread());
 
     /* Find the server (if any) which is acting as leader for the table */
-    table_meta_manager_bcard_t::set_config_mailbox_t::address_t best_mailbox;
+    uuid_u best_leader_uuid;
+    table_meta_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t best_mailbox;
     table_meta_manager_bcard_t::timestamp_t best_timestamp;
     table_meta_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_meta_bcard_t *table_bcard) {
-        if (key.second == table_id) {
-            table_meta_manager_directory->read_key(key.first,
-            [&](const table_meta_manager_bcard_t *server_bcard) {
-                if (server_bcard != nullptr && table_bcard->is_leader) {
-                    if (best_mailbox.is_nil() ||
-                            table_bcard->timestamp.supersedes(best_timestamp)) {
-                        best_mailbox = server_bcard->set_config_mailbox;
-                        best_timestamp = table_bcard->timestamp;
-                    }
-                }
-            });
+            const table_meta_bcard_t *bcard) {
+        if (key.second == table_id && static_cast<bool>(bcard->leader)) {
+            if (best_mailbox.is_nil() || bcard->timestamp.supersedes(best_timestamp)) {
+                best_leader_uuid = bcard->leader->uuid;
+                best_mailbox = bcard->leader->set_config_mailbox;
+                best_timestamp = bcard->timestamp;
+            }
         }
     });
     if (best_mailbox.is_nil()) {
         return false;
     }
 
-    /* Send a message to the server and wait for a reply */
-    disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-    promise_t<boost::optional<table_meta_manager_bcard_t::timestamp_t> >
-        promise;
+    /* There are two reasons why our message might get lost. The first is that the other
+    server disconnects. The second is that the other server remains connected but it
+    stops being leader for that table. We detect the first with a `disconnect_watcher_t`.
+    We detect the second by setting up a `key_subs_t` that pulses `leader_stopped` if the
+    other server is no longer leader or if its leader UUID changes. */
+    disconnect_watcher_t leader_disconnected(mailbox_manager, best_mailbox.get_peer());
+    cond_t leader_stopped;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>::key_subs_t
+        leader_stopped_subs(
+            table_meta_directory,
+            std::make_pair(best_mailbox.get_peer(), table_id),
+            [&](const table_meta_bcard_t *bcard) {
+                if (!static_cast<bool>(bcard->leader) ||
+                        bcard->leader->uuid != best_leader_uuid) {
+                    leader_stopped.pulse_if_not_already_pulsed();
+                }
+            });
+
+    /* OK, now send the change and wait for a reply, or for something to go wrong */
+    promise_t<boost::optional<table_meta_manager_bcard_t::timestamp_t> > promise;
     mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>
         ack_mailbox(mailbox_manager,
-        [&](signal_t *,
-                boost::optional<table_meta_manager_bcard_t::timestamp_t> res) {
+        [&](signal_t *, boost::optional<table_meta_manager_bcard_t::timestamp_t> res) {
             promise.pulse(res);
         });
-    send(mailbox_manager, best_mailbox, table_id, new_config, ack_mailbox.get_address());
-    wait_any_t done_cond(promise.get_ready_signal(), &dw);
+    send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
+    wait_any_t done_cond(promise.get_ready_signal(),
+        &leader_disconnected, &leader_stopped);
     wait_interruptible(&done_cond, &interruptor);
-    if (dw.is_pulsed()) {
+    if (!promise.get_ready_signal()->is_pulsed()) {
         return false;
     }
 

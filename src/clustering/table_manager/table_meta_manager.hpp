@@ -3,6 +3,7 @@
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/table_contract/coordinator.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/executor.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
@@ -112,7 +113,6 @@ public:
         table_meta_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox.get_address();
         bcard.get_config_mailbox = get_config_mailbox.get_address();
-        bcard.set_config_mailbox = set_config_mailbox.get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -128,9 +128,56 @@ private:
     that the `minidir_write_manager_t` can handle. */
     class execution_bcard_minidir_bcard_finder_t;
 
-    /* We store a `active_table_t` for every table that we're currently acting as a Raft
-    cluster member for. We'll have a file for the table on disk if and only if we have a
-    `active_table_t` for that table. */
+    /* The `table_meta_manager_t` has four possible levels of involvement with a table:
+
+    0. We haven't been a replica of the table since we restarted. In this case, we don't
+        store anything for the table whatsoever.
+
+    1. We were a replica for the table at some point since we restarted, but we are not
+        currently a replica for the table. In this case, we store a `table_t` in our
+        `tables` map. We don't have a file on disk for the table or publish a business
+        card for the table.
+
+    2. We are currently a replica for the table, but not the Raft leader. In this case,
+        we store a `table_t` in our `tables` map, and we store an `active_table_t` in the
+        `table_t`. We have a file on disk for the table and we publish a business card
+        for the table.
+
+    3. We are a replica and the Raft leader for the table. This is the same as the above
+        case but we also have a `leader_table_t` in the `active_table_t`.
+
+    So `table_t`, `active_table_t`, and `leader_table_t` are nested inside each other;
+    having any one of them means having all of the later ones. */
+
+    class table_t;
+    class active_table_t;
+    class leader_table_t;
+
+    /* `leader_table_t` hosts the `contract_coordinator_t`. */
+    class leader_table_t {
+    public:
+        leader_table_t(
+            table_meta_manager_t *_parent,
+            active_table_t *_active_table);
+        ~leader_table_t();
+
+    private:
+        void on_set_config(
+            signal_t *interruptor,
+            const table_config_and_shards_t &new_config_and_shards,
+            const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>
+                )>::address_t &reply_addr);
+
+        table_meta_manager_t * const parent;
+        active_table_t * const active_table;
+        minidir_read_manager_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>
+            contract_ack_read_manager;
+        contract_coordinator_t coordinator;
+        table_meta_bcard_t::leader_bcard_t::set_config_mailbox_t set_config_mailbox;
+    };
+
+    /* `active_table_t` publishes the business card and hosts the `contract_executor_t`.
+    It also hosts the `leader_table_t` if there is one. */
     class active_table_t :
         private raft_storage_interface_t<table_raft_state_t>
     {
@@ -138,17 +185,11 @@ private:
         active_table_t(
             table_meta_manager_t *_parent,
             const namespace_id_t &_table_id,
-            const table_meta_manager_bcard_t::timestamp_t::epoch_t
-                &_epoch,
+            const table_meta_manager_bcard_t::timestamp_t::epoch_t &_epoch,
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
             multistore_ptr_t *multistore_ptr);
         ~active_table_t();
-
-        /* Creates or updates the business card for this table in the directory. It's
-        public because `table_meta_manager_t::on_set_config()` calls it. `expect_exists`
-        should be `false` to create and `true` to update. */
-        void update_bcard(bool expect_exists);
 
         /* These are public so that `table_meta_manager_t` can see them */
         table_meta_manager_t * const parent;
@@ -158,6 +199,11 @@ private:
 
         raft_member_t<table_raft_state_t> *get_raft() {
             return raft.get_raft();
+        }
+
+        /* `leader_table_t` uses this to set and unset the `leader` field on the bcard */
+        void change_bcard_entry(const std::function<bool(table_meta_bcard_t *)> &cb) {
+            bcard_entry->change(cb);
         }
 
     private:
@@ -190,6 +236,18 @@ private:
 
         raft_networked_member_t<table_raft_state_t> raft;
 
+        /* `bcard_entry` creates our entry in the directory. It will always be non-empty;
+        it's in a `scoped_ptr_t` to make it more convenient to create. */
+        scoped_ptr_t<watchable_map_var_t<namespace_id_t, table_meta_bcard_t>::entry_t>
+            bcard_entry;
+
+        /* `leader` will be non-empty if we are the Raft leader */
+        scoped_ptr_t<leader_table_t> leader;
+
+        /* `leader_mutex` controls access to `leader`. This is important because creating
+        and destroying the `leader_table_t` may block. */
+        new_mutex_t leader_mutex;
+
         /* Every server constructs a `contract_executor_t` for every table it's a replica
         of. There's a lot of support machinery required here. The
         `execution_bcard_*_manager`s pass `contract_execution_bcard_t`s between different
@@ -205,6 +263,8 @@ private:
         minidir_write_manager_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> execution_bcard_write_manager;
 
+        auto_drainer_t drainer;
+
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
             ::all_subs_t table_directory_subs;
         watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
@@ -212,9 +272,10 @@ private:
         watchable_subscription_t<bool> raft_readiness_subs;
     };
 
-    /* We store a `table_t` for every table that we've ever been a member of since the
-    last time the process restarted, even if we're no longer a member or the table has
-    been dropped. The `active_table_t` (if any) is stored inside the `table_t`. */
+    /* `table_t`'s main job is to hold the `active_table_t`. If there is no
+    `active_table_t`, this means that we used to be a replica for this table but no
+    longer are; in this case, `table_t`'s job is to remember why we are no longer a
+    replica for this table. */
     class table_t {
     public:
         /* `to_sync_set` holds the server IDs and peer IDs of all the servers for which
@@ -265,13 +326,6 @@ private:
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
         const mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
-            address_t &reply_addr);
-
-    void on_set_config(
-        signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const table_config_and_shards_t &new_config_and_shards,
-        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
             address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
@@ -344,7 +398,6 @@ private:
 
     table_meta_manager_bcard_t::action_mailbox_t action_mailbox;
     table_meta_manager_bcard_t::get_config_mailbox_t get_config_mailbox;
-    table_meta_manager_bcard_t::set_config_mailbox_t set_config_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_MANAGER_HPP_ */

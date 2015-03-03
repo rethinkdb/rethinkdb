@@ -88,23 +88,6 @@ public:
         )> get_config_mailbox_t;
     get_config_mailbox_t::address_t get_config_mailbox;
 
-    /* `set_config_mailbox` handles changing the `table_config_and_shards_t`. These
-    changes may or may not involve adding and removing servers; if they do, then the
-    initial config change message will trigger subsequent action messages to add and
-    remove the servers. If the change was committed, it returns the action timestamp for
-    the commit; the client can use this to determine which servers have seen the commit.
-    If something goes wrong, it returns an empty `boost::optional`, in which case the
-    change may or may not eventually be committed. Only the Raft leader can commit
-    changes; find the server whose `is_leader` field is `true` in the
-    `table_meta_bcard_t` before sending a message. */
-    typedef mailbox_t<void(
-        namespace_id_t table_id,
-        table_config_and_shards_t new_config_and_shards,
-        mailbox_t<void(boost::optional<timestamp_t>)>::address_t reply_addr
-        )> set_config_mailbox_t;
-
-    set_config_mailbox_t::address_t set_config_mailbox;
-
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
@@ -116,6 +99,40 @@ RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t);
 
 class table_meta_bcard_t {
 public:
+    /* Whichever server is Raft leader will publish a `leader_bcard_t` in its directory.
+    This is the destination for config change messages, and also the way that contract
+    acks find their way to the contract coordinator. */
+    class leader_bcard_t {
+    public:
+        /* Sometimes a server may stop being leader and then start again in quick
+        succession. It will have a new set of mailboxes, and so any messages that were in
+        flight to the old set of mailboxes will be dropped. Message senders need an easy
+        way to detect when this happens. The solution is the `uuid` field; every set of
+        mailboxes will get a unique UUID, so if the UUID changes, senders know they need
+        to re-send their messages. */
+        uuid_u uuid;
+
+        /* `set_config_mailbox` handles changes to the `table_config_and_shards_t`. These
+        changes may or may not involve adding and removing servers; if they do, then the
+        initial config change message will trigger subsequent action messages to add and
+        remove the servers. If the change was committed, it returns the action timestamp
+        for the commit; the client can use this to determine which servers have seen the
+        commit. If something goes wrong, it returns an empty `boost::optional`, in which
+        case the change may or may not eventually be committed. */
+        typedef mailbox_t<void(
+            table_config_and_shards_t new_config_and_shards,
+            mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>
+                )>::address_t reply_addr
+            )> set_config_mailbox_t;
+        set_config_mailbox_t::address_t set_config_mailbox;
+
+        /* `contract_executor_t`s for this table on other servers send contract acks to
+        the `contract_coordinator_t` for this table via this bcard. */
+        minidir_bcard_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>
+            contract_ack_minidir_bcard;
+    };
+    boost::optional<leader_bcard_t> leader;
+
     /* This timestamp contains a `raft_log_index_t`. It would be expensive to update the
     directory every time a Raft commit happened. Therefore, this timestamp is only
     guaranteed to be updated when:
@@ -143,14 +160,11 @@ public:
     minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
         execution_bcard_minidir_bcard;
 
-    /* `true` if a message to `set_config_mailbox` for this table to this server is
-    likely to succeed. */
-    bool is_leader;
-
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
+RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t);
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
