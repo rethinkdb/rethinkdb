@@ -7,3 +7,7 @@ template class directory_map_read_manager_t<int, int>;
 #include "clustering/table_manager/table_metadata.hpp"
 template class directory_map_read_manager_t<
     namespace_id_t, table_meta_bcard_t>;
+
+#include "clustering/query_routing/metadata.hpp"
+template class directory_map_read_manager_t<
+    std::pair<namespace_id_t, branch_id_t>, table_query_bcard_t>;

@@ -108,5 +108,8 @@ public:
     boost::optional<direct_query_bcard_t> direct;
 };
 
+RDB_DECLARE_SERIALIZABLE(table_query_bcard_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_query_bcard_t);
+
 #endif /* CLUSTERING_QUERY_ROUTING_METADATA_HPP_ */
 

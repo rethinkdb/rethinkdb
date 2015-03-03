@@ -28,10 +28,14 @@ template <class> class watchable_t;
 
 class namespace_repo_t : public home_thread_mixin_t {
 public:
+    /* Alias to reduce verbosity */
+    typedef std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >
+        directory_key_t;
+
     namespace_repo_t(
-        mailbox_manager_t *,
-        table_meta_client_t *,
-        rdb_context_t *);
+        mailbox_manager_t *mailbox_manager,
+        watchable_map_t<directory_key_t, table_query_bcard_t> *directory,
+        rdb_context_t *ctx);
     ~namespace_repo_t();
 
     namespace_interface_access_t get_namespace_interface(const namespace_id_t &ns_id,
@@ -47,23 +51,15 @@ private:
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
 
-    // RSI(raft): Reimplement once table IO works
-#if 0
-    void on_namespaces_change(auto_drainer_t::lock_t keepalive);
-#endif
-
-    mailbox_manager_t *mailbox_manager;
-    table_meta_client_t *table_meta_client;
-    rdb_context_t *ctx;
-
-    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > >
-        region_to_primary_maps;
+    mailbox_manager_t * const mailbox_manager;
+    watchable_map_t<directory_key_t, table_query_bcard_t> * const directory;
+    rdb_context_t * const ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;
 
-    DISABLE_COPYING(namespace_repo_t);
-
     auto_drainer_t drainer;
+
+    DISABLE_COPYING(namespace_repo_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */

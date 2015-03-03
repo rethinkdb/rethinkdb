@@ -30,7 +30,10 @@ public:
                 cluster_semilattice_metadata_t> > semilattices,
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
-            table_meta_client_t *table_meta_client
+            table_meta_client_t *table_meta_client,
+            watchable_map_t<
+                std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
+                table_query_bcard_t> *table_query_directory
             );
 
     bool db_create(const name_string_t &name,

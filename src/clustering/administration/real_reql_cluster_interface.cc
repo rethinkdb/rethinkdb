@@ -25,7 +25,10 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
         rdb_context_t *_rdb_context,
         server_config_client_t *_server_config_client,
-        table_meta_client_t *_table_meta_client
+        table_meta_client_t *_table_meta_client,
+        watchable_map_t<
+            std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
+            table_query_bcard_t> *_table_query_directory
         ) :
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
@@ -34,7 +37,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     rdb_context(_rdb_context),
     namespace_repo(
         mailbox_manager,
-        _table_meta_client,
+        _table_query_directory,
         rdb_context),
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {

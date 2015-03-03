@@ -131,6 +131,11 @@ bool do_serve(io_backender_t *io_backender,
         directory_map_read_manager_t<namespace_id_t, table_meta_bcard_t>
             table_directory_read_manager(&connectivity_cluster, 'T');
 
+        directory_map_read_manager_t<
+                std::pair<namespace_id_t, branch_id_t>,
+                table_query_bcard_t>
+            table_query_directory_read_manager(&connectivity_cluster, 'Q');
+
         log_server_t log_server(&mailbox_manager, &log_writer);
 
         scoped_ptr_t<server_config_server_t> server_config_server;
@@ -239,7 +244,8 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
-                &table_meta_client);
+                &table_meta_client,
+                table_query_directory_read_manager.get_root_view());
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
