@@ -6,7 +6,7 @@
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "btree/slice.hpp"
+#include "btree/reql_specific.hpp"
 #include "btree/types.hpp"
 #include "concurrency/promise.hpp"
 #include "rdb_protocol/btree.hpp"

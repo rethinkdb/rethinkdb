@@ -440,7 +440,7 @@ void query_server_t::make_error_response(bool is_draining,
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Client closed the connection.");
     } else if (is_draining) {
-        // The query_server_t is being destroyed so this wan't actually be written 
+        // The query_server_t is being destroyed so this won't actually be written
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Server is shutting down.");
     } else {
@@ -488,7 +488,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     linux_event_watcher_t *ew = conn->get_event_watcher();
     linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
     wait_any_t interruptor(drain_signal, &abort, &conn_interrupted);
-#else 
+#else
     wait_any_t interruptor(drain_signal, &abort);
 #endif  // __linux
 
@@ -543,21 +543,26 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             }
         });
 
-    // Pick a small limit so queries back up on the TCP connection.
-    limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
-    coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
-                                                          &coro_queue,
-                                                          &callback);
+    {
+        // Pick a small limit so queries back up on the TCP connection.
+        limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
+        coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
+                                                              &coro_queue,
+                                                              &callback);
 
-    while (!err) {
-        ql::protob_t<Query> query(ql::make_counted_query());
-        save_exception(&err, &err_str, &abort, [&]() {
-                if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
-                    query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
-                                                         std::move(query)));
-                    coro_queue.push(query_list.begin());
-                }
-            });
+        while (!err) {
+            ql::protob_t<Query> query(ql::make_counted_query());
+            save_exception(&err, &err_str, &abort, [&]() {
+                    if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
+                        query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
+                                                             std::move(query)));
+                        coro_queue.push(query_list.begin());
+                    }
+                });
+        }
+
+        // Stop processing queries here, so we don't get into race conditions
+        // with the loop over `query_list` below.
     }
 
     // Respond to any queries still in the run queue

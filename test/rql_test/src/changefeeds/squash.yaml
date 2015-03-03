@@ -37,13 +37,6 @@ tests:
       cd:
         ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
         rb: ([{'new_val':{'id':100}, 'old_val':null}])
-
-    - rb: normal_changes
-      ot: ([{'new_val':{'id':100}, 'old_val':null}])
-    
-    - py: normal_changes
-      js: normal_changes
-      ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
     
     - cd: false_squash_changes
       ot: ([{'new_val':{'id':100}, 'old_val':null},

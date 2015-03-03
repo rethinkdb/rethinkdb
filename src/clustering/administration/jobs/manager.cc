@@ -6,12 +6,15 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 #include "concurrency/watchable.hpp"
+#include "pprint/js_pprint.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/query_cache.hpp"
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
                                     get_job_reports_mailbox_address,
                                     job_interrupt_mailbox_address);
+
+const size_t jobs_manager_t::printed_query_columns = 89;
 
 const uuid_u jobs_manager_t::base_sindex_id =
     str_to_uuid("74d855a5-0c40-4930-a451-d1ce508ef2d2");
@@ -87,34 +90,39 @@ void jobs_manager_t::on_get_job_reports(
     // fetching the time, leading to a negative duration which we round to zero.
     microtime_t time = current_microtime();
 
-    pmap(get_num_threads(), [&](int32_t threadnum) {
-        // Here we need to store `query_job_report_t` locally to prevent multiple threads
-        // from inserting into the outer `job_reports`.
-        std::vector<query_job_report_t> query_job_reports_inner;
-        {
-            on_thread_t thread((threadnum_t(threadnum)));
+    if (rdb_context != nullptr) {
+        pmap(get_num_threads(), [&](int32_t threadnum) {
+            // Here we need to store `query_job_report_t` locally to prevent multiple threads
+            // from inserting into the outer `job_reports`.
+            std::vector<query_job_report_t> query_job_reports_inner;
+            {
+                on_thread_t thread((threadnum_t(threadnum)));
 
-            if (rdb_context != nullptr) {
                 for (auto const &query_cache
                         : *rdb_context->get_query_caches_for_this_thread()) {
                     for (auto const &pair : *query_cache) {
                         if (pair.second->persistent_interruptor.is_pulsed()) {
                             continue;
                         }
+
+                        auto render = pprint::render_as_javascript(
+                            pair.second->original_query->query());
+
                         query_job_reports_inner.emplace_back(
                             pair.second->job_id,
                             time - std::min(pair.second->start_time, time),
                             server_id,
-                            query_cache->get_client_addr_port());
+                            query_cache->get_client_addr_port(),
+                            pretty_print(printed_query_columns, render));
                     }
                 }
             }
-        }
-        query_job_reports.insert(
-            query_job_reports.end(),
-            std::make_move_iterator(query_job_reports_inner.begin()),
-            std::make_move_iterator(query_job_reports_inner.end()));
-    });
+            query_job_reports.insert(
+                query_job_reports.end(),
+                std::make_move_iterator(query_job_reports_inner.begin()),
+                std::make_move_iterator(query_job_reports_inner.end()));
+        });
+    }
 
     if (reactor_driver != nullptr) {
         for (auto const &job : reactor_driver->get_sindex_jobs()) {

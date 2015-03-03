@@ -529,7 +529,9 @@ void broadcaster_t::spawn_write(const write_t &write,
 }
 
 void broadcaster_t::pick_a_readable_dispatchee(
-        dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
+        const read_t &read,
+        dispatchee_t **dispatchee_out,
+        mutex_assertion_t::acq_t *proof,
         auto_drainer_t::lock_t *lock_out)
         THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
@@ -540,27 +542,40 @@ void broadcaster_t::pick_a_readable_dispatchee(
             "the primary replica mirror should be always readable.");
     }
 
-    /* Prefer the dispatchee with the highest acknowledged write version
-    (to reduce the risk that the read has to wait for a write). If multiple ones
-    are equal, use the local dispatchee. */
-    dispatchee_t *most_uptodate_dispatchee = nullptr;
-    state_timestamp_t most_uptodate_dispatchee_ts(state_timestamp_t::zero());
-    for (dispatchee_t *d = readable_dispatchees.head();
-         d != NULL;
-         d = readable_dispatchees.next(d)) {
-        if (d->get_latest_acked_write() >= most_uptodate_dispatchee_ts
-            && (d->get_latest_acked_write() > most_uptodate_dispatchee_ts
-                || most_uptodate_dispatchee == nullptr
-                || !most_uptodate_dispatchee->is_local())) {
-
-            most_uptodate_dispatchee = d;
-            most_uptodate_dispatchee_ts = d->get_latest_acked_write();
+    if (read.route_to_primary()) {
+        for (dispatchee_t *d = readable_dispatchees.head();
+             d != NULL;
+             d = readable_dispatchees.next(d)) {
+            if (d->is_local()) {
+                *dispatchee_out = d;
+                *lock_out = dispatchees[d];
+                return;
+            }
         }
-    }
-    guarantee(most_uptodate_dispatchee != nullptr);
+        unreachable(); /* There should always be a local dispatchee */
+    } else {
+        /* Prefer the dispatchee with the highest acknowledged write version
+        (to reduce the risk that the read has to wait for a write). If multiple ones
+        are equal, use the local dispatchee. */
+        dispatchee_t *most_uptodate_dispatchee = nullptr;
+        state_timestamp_t most_uptodate_dispatchee_ts(state_timestamp_t::zero());
+        for (dispatchee_t *d = readable_dispatchees.head();
+             d != NULL;
+             d = readable_dispatchees.next(d)) {
+            if (d->get_latest_acked_write() >= most_uptodate_dispatchee_ts
+                && (d->get_latest_acked_write() > most_uptodate_dispatchee_ts
+                    || most_uptodate_dispatchee == nullptr
+                    || !most_uptodate_dispatchee->is_local())) {
 
-    *dispatchee_out = most_uptodate_dispatchee;
-    *lock_out = dispatchees[most_uptodate_dispatchee];
+                most_uptodate_dispatchee = d;
+                most_uptodate_dispatchee_ts = d->get_latest_acked_write();
+            }
+        }
+        guarantee(most_uptodate_dispatchee != nullptr);
+
+        *dispatchee_out = most_uptodate_dispatchee;
+        *lock_out = dispatchees[most_uptodate_dispatchee];
+    }
 }
 
 void broadcaster_t::get_all_readable_dispatchees(
@@ -710,7 +725,7 @@ void broadcaster_t::single_read(
         mutex_assertion_t::acq_t mutex_acq(&mutex);
         lock->end();
 
-        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
+        pick_a_readable_dispatchee(read, &reader, &mutex_acq, &reader_lock);
         order_token = order_checkpoint.check_through(order_token);
 
         /* Make sure the read runs *after* the most recent write that

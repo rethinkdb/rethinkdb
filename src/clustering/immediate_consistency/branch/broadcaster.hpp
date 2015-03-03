@@ -128,7 +128,9 @@ private:
     dispatchee is "readable" if a `replier_t` exists for it on the remote
     server.) */
     void pick_a_readable_dispatchee(
-        dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
+        const read_t &read,
+        dispatchee_t **dispatchee_out,
+        mutex_assertion_t::acq_t *proof,
         auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
     void get_all_readable_dispatchees(
         std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,

@@ -344,22 +344,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     return obj
 
 json_read_chunk_size = 32 * 1024
-json_max_buffer_size = 16 * 1024 * 1024
-
-def read_json_single_object(json_data, file_in, callback):
-    decoder = json.JSONDecoder()
-    while True:
-        try:
-            (obj, offset) = decoder.raw_decode(json_data)
-            json_data = json_data[offset:]
-            callback(obj)
-            break
-        except ValueError:
-            before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
-            if before_len == len(json_data):
-                raise
-    return json_data
+json_max_buffer_size = 128 * 1024 * 1024
 
 def read_json_array(json_data, file_in, callback, progress_info,
                     json_array=True):
@@ -389,12 +374,13 @@ def read_json_array(json_data, file_in, callback, progress_info,
 
         except (ValueError, IndexError):
             before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
+            to_read = max(json_read_chunk_size, before_len)
+            json_data += file_in.read(min(to_read, json_max_buffer_size - before_len))
             if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
             elif (not json_array) and before_len == len(json_data):
                 break  # End of JSON
-            elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
+            elif before_len == len(json_data) or len(json_data) >= json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
 
