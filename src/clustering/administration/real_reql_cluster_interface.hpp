@@ -157,6 +157,7 @@ private:
     bool find_table(const counted_t<const ql::db_t> &db,
                     const name_string_t &name,
                     namespace_id_t *table_id_out,
+                    std::string *primary_key_out,   /* may be null */
                     std::string *error_out);
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,

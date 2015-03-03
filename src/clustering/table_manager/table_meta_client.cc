@@ -22,13 +22,17 @@ table_meta_client_t::table_meta_client_t(
 table_meta_client_t::find_res_t table_meta_client_t::find(
         const database_id_t &database,
         const name_string_t &name,
-        namespace_id_t *table_id_out) {
+        namespace_id_t *table_id_out,
+        std::string *primary_key_out) {
     size_t count = 0;
     table_metadata_by_id.get_watchable()->read_all(
         [&](const namespace_id_t &key, const table_metadata_t *value) {
             if (value->database == database && value->name == name) {
                 ++count;
                 *table_id_out = key;
+                if (primary_key_out != nullptr) {
+                    *primary_key_out = value->primary_key;
+                }
             }
         });
     if (count == 0) {

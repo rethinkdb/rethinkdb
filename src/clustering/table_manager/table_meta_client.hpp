@@ -29,7 +29,8 @@ public:
     find_res_t find(
         const database_id_t &database,
         const name_string_t &name,
-        namespace_id_t *table_id_out);
+        namespace_id_t *table_id_out,
+        std::string *primary_key_out = nullptr);
 
     /* `get_name()` determines the name and database of the table with the given ID; it's
     the reverse of `find()`. It returns `false` if there is no visible existing table

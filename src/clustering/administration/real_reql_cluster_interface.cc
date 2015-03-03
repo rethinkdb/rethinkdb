@@ -273,7 +273,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         metadata = semilattice_root_view->get();
 
         namespace_id_t table_id;
-        if (!find_table(db, name, &table_id, error_out)) {
+        if (!find_table(db, name, &table_id, nullptr, error_out)) {
             return false;
         }
 
@@ -329,20 +329,9 @@ bool real_reql_cluster_interface_t::table_find(
         counted_t<base_table_t> *table_out, std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    /* Find the specified table in the semilattice metadata */
-    // RSI(raft): Reimplement once table IO works
-    not_implemented();
-    (void)name;
-    (void)db;
-    (void)interruptor;
-    (void)table_out;
-    (void)error_out;
-#if 0
-    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
-        = get_namespaces_metadata();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*namespaces_metadata, db->id, db->name, name,
-            &table_id, error_out)) {
+    std::string primary_key;
+    if (!find_table(db, name, &table_id, &primary_key, error_out)) {
         return false;
     }
 
@@ -355,9 +344,8 @@ bool real_reql_cluster_interface_t::table_find(
     table_out->reset(new real_table_t(
         table_id,
         namespace_repo.get_namespace_interface(table_id, interruptor),
-        namespaces_metadata->namespaces.at(table_id).get_ref().primary_key.get_ref(),
+        primary_key,
         &changefeed_client));
-#endif
 
     return true;
 }
@@ -445,7 +433,7 @@ bool real_reql_cluster_interface_t::table_config(
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     namespace_id_t table_id;
-    if (!find_table(db, name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
     return make_single_selection(
@@ -1026,9 +1014,10 @@ bool real_reql_cluster_interface_t::find_table(
         const counted_t<const ql::db_t> &db,
         const name_string_t &name,
         namespace_id_t *table_id_out,
+        std::string *primary_key_out,
         std::string *error_out) {
     table_meta_client_t::find_res_t res =
-        table_meta_client->find(db->id, name, table_id_out);
+        table_meta_client->find(db->id, name, table_id_out, primary_key_out);
     if (res == table_meta_client_t::find_res_t::none) {
         *error_out = strprintf("Table `%s.%s` does not exist.", db->name.c_str(),
             name.c_str());
