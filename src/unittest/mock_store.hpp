@@ -22,6 +22,9 @@ class mock_store_t : public store_view_t {
 public:
     explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());
     ~mock_store_t();
+    void rethread(threadnum_t new_thread) {
+        home_thread_mixin_t::real_home_thread = new_thread;
+    }
 
     void note_reshard() { }
 

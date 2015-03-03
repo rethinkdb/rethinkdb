@@ -80,9 +80,11 @@ shutting down and restarting an `executor_tester_t`. */
 class executor_tester_files_t {
 public:
     executor_tester_files_t(const server_id_t &_server_id) : server_id(_server_id) {
+        int next_thread = 0;
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            /* RSI(raft): Spread stores across threads */
             stores[i].init(new mock_store_t(binary_blob_t(version_t::zero())));
+            stores[i]->rethread(threadnum_t(next_thread));
+            next_thread = (next_thread + 1) % get_num_db_threads();
             multistore.shards[i] = stores[i].get();
         }
     }
