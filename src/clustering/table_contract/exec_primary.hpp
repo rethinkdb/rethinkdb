@@ -11,7 +11,8 @@ class io_backender_t;
 class listener_t;
 
 class primary_execution_t :
-    public execution_t,    
+    public execution_t,
+    public home_thread_mixin_t,
     private primary_query_server_t::query_callback_t {
 public:
     primary_execution_t(
@@ -29,7 +30,7 @@ private:
     /* `contract_info_t` stores a contract, its ack callback, and a condition variable
     indicating if it's obsolete. The reason this is in a struct is because we sometimes
     need to reason about old contracts, so we may keep multiple versions around. */
-    class contract_info_t : public single_threaded_countable_t<contract_info_t> {
+    class contract_info_t : public slow_atomic_countable_t<contract_info_t> {
     public:
         contract_info_t(
                 const contract_t &c,
@@ -70,7 +71,8 @@ private:
     void run(auto_drainer_t::lock_t keepalive);
 
     /* These override virtual methods on `master_t::query_callback_t`. They get called
-    when we receive queries over the network. */
+    when we receive queries over the network. Warning: They are run on the store's home
+    thread, which is not necessarily our home thread. */
     bool on_write(
         const write_t &request,
         fifo_enforcer_sink_t::exit_write_t *exiter,
@@ -86,31 +88,54 @@ private:
         read_response_t *response_out,
         std::string *error_out);
 
-    /* `sync_and_ack_contract()` is a helper function for `update_contract`. It sends a
-    sync write to all of the replicas, and when enough of them have acknowledged the
-    write, it sends an ack to the coordinator. `is_contract_ackable()` is a helper
-    function that decides when enough replicas have acked the sync. */
-    void sync_and_ack_contract(
+    /* `update_contract()` spawns `update_contract_on_store_thread()` to deliver the new
+    contract to `store->home_thread()`. Its has two jobs:
+    1. It sets `latest_contract_store_thread` to the new contract
+    2. If the broadcaster has been created, it waits until it's safe to ack
+        `primary_ready`, and then does so. */
+    void update_contract_on_store_thread(
         counted_t<contract_info_t> contract,
-        auto_drainer_t::lock_t keepalive);
+        auto_drainer_t::lock_t keepalive,
+        new_mutex_in_line_t *mutex_in_line_ptr);
+
+    /* `sync_contract_with_replicas()` blocks until it's safe to ack `primary_ready` for
+    the given contract. It does this by sending a sync write to all of the replicas and
+    waiting until enough of them respond; this relies on the principle that if a replica
+    acknowledges the sync write, it must have also acknowledged every write initiated
+    before the sync write. If the first sync write fails, it will try repeatedly until it
+    succeeds or is interrupted. */
+    void sync_contract_with_replicas(
+        counted_t<contract_info_t> contract,
+        signal_t *interruptor);
+
+    /* `is_contract_ackable()` is a helper function for `sync_contract_with_replicas()`
+    that returns `true` if it's safe to ack `primary_ready` for the given contract, given
+    that all the replicas in `servers` have performed the sync write. */
     static bool is_contract_ackable(
         counted_t<contract_info_t> contract,
         const std::set<server_id_t> &servers);
 
     branch_id_t const our_branch_id;
 
-    /* `latest_contract` stores the latest contract we've received, along with its ack
-    callback. `latest_ack` stores the latest contract ack we've sent. */
-    counted_t<contract_info_t> latest_contract;
+    /* `latest_contract_*` stores the latest contract we've received, along with its ack
+    callback. The `home_thread` version should only be accessed on `this->home_thread()`,
+    and the `store_thread` version should only be accessed on `store->home_thread()`. */
+    counted_t<contract_info_t> latest_contract_home_thread, latest_contract_store_thread;
+
+    /* `latest_ack` stores the latest contract ack we've sent. */
     boost::optional<contract_ack_t> latest_ack;
+
+    /* `mutex` is used to order calls to `update_contract_on_store_thread()`, so that we
+    don't overwrite a newer contract with an older one */
+    new_mutex_t mutex;
 
     /* `branch_registered` is pulsed once the coordinator has committed our branch ID to
     the Raft state. */
     cond_t branch_registered;
 
-    /* `our_broadcaster` stores the pointer to the `broadcaster_t` and `master_t` we
-    constructed. `run()` pulses it after it finishes constructing them. */
-    promise_t<broadcaster_t *> our_broadcaster;
+    /* `our_broadcaster` stores the pointer to the `broadcaster_t` we constructed. It
+    will be `nullptr` until the `broadcaster_t` actually exists. */
+    broadcaster_t * our_broadcaster;
 
     /* `drainer` ensures that `run` is stopped before the other member variables are
     destroyed. */

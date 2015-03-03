@@ -191,8 +191,11 @@ void backfillee(
     start_point = start_point.mask(region);
 
     branch_history_t start_point_associated_history;
-    branch_history_manager->export_branch_history(
-        start_point, &start_point_associated_history);
+    {
+        on_thread_t thread_switcher(branch_history_manager->home_thread());
+        branch_history_manager->export_branch_history(
+            start_point, &start_point_associated_history);
+    }
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -292,16 +295,17 @@ void backfillee(
         metainfo, because otherwise if we crashed at a bad time the data might
         make it to disk as part of the metainfo but not as part of the branch
         history, and that would lead to crashes. */
-        branch_history_manager->import_branch_history(
-            end_point_cond.wait().second,
-            interruptor);
-
-        /* RSI(raft): Eventually we need to support "reversible" backfills; i.e.
-        backfilling to a version that isn't descended from the backfillee's original
-        version. Right now we just error if that's happening. */
-        typedef region_map_t<version_t> version_map_t;
         {
-            on_thread_t th(branch_history_manager->home_thread());
+            cross_thread_signal_t interruptor_on_bhm_thread(
+                interruptor, branch_history_manager->home_thread());
+            on_thread_t thread_switcher(branch_history_manager->home_thread());
+            branch_history_manager->import_branch_history(
+                end_point_cond.wait().second,
+                &interruptor_on_bhm_thread);
+
+            /* RSI(raft): Eventually we need to support "reversible" backfills; i.e.
+            backfilling to a version that isn't descended from the backfillee's original
+            version. Right now we just error if that's happening. */
             for (const auto &start_pair : start_point) {
                 for (const auto &end_pair : end_point_cond.wait().first) {
                     region_t ixn = region_intersection(start_pair.first, end_pair.first);

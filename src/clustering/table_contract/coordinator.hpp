@@ -27,7 +27,7 @@ Its jobs are as follows:
     RSI(raft): Currently, number 3 isn't actually implemented.
 */
 
-class contract_coordinator_t {
+class contract_coordinator_t : public home_thread_mixin_debug_only_t {
 public:
     contract_coordinator_t(
         raft_member_t<table_raft_state_t> *raft,

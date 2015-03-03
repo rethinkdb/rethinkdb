@@ -30,6 +30,8 @@ contract_executor_t::contract_executor_t(
     perfmon_counter(0),
     raft_state_subs(std::bind(&contract_executor_t::on_raft_state_change, this))
 {
+    multistore->assert_thread();
+
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
     raft_state_subs.reset(raft_state, &freeze);
     on_raft_state_change();
@@ -61,6 +63,7 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
 }
 
 void contract_executor_t::on_raft_state_change() {
+    assert_thread();
     if (!update_coro_running) {
         update_coro_running = true;
         coro_t::spawn_sometime(std::bind(
@@ -69,6 +72,7 @@ void contract_executor_t::on_raft_state_change() {
 }
 
 void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         std::set<execution_key_t> to_delete;
         {
@@ -94,6 +98,7 @@ void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
 
 void contract_executor_t::update(const table_raft_state_t &new_state,
                                  std::set<execution_key_t> *to_delete_out) {
+    assert_thread();
     /* Go through the new contracts and try to match them to existing executions */
     std::set<execution_key_t> dont_delete;
     for (const auto &new_pair : new_state.contracts) {
@@ -173,6 +178,7 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
 
 void contract_executor_t::send_ack(const execution_key_t &key, const contract_id_t &cid,
         const contract_ack_t &ack) {
+    assert_thread();
     /* If the contract is out of date, don't send the ack */
     if (executions.at(key)->contract_id == cid) {
         ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);

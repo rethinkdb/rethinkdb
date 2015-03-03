@@ -9,7 +9,7 @@
 class backfill_throttler_t;
 class io_backender_t;
 
-class secondary_execution_t : public execution_t {
+class secondary_execution_t : public execution_t, public home_thread_mixin_t {
 public:
     secondary_execution_t(
         const execution_t::context_t *_context,

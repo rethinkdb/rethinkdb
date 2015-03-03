@@ -77,6 +77,7 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
                                    signal_t *interruptor,
                                    region_map_t<binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
 
     wait_interruptible(token->main_read_token.get(), interruptor);
@@ -94,6 +95,7 @@ void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
                                 write_token_t *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
@@ -118,6 +120,7 @@ void mock_store_t::read(
         order_token_t order_token,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
@@ -165,6 +168,7 @@ void mock_store_t::write(
         order_token_t order_token,
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
@@ -225,6 +229,7 @@ bool mock_store_t::send_backfill(
         traversal_progress_combiner_t *progress,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
         progress->add_constituent(&progress_owner);
@@ -287,6 +292,7 @@ void mock_store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
     typedef backfill_chunk_t chunk_t;
@@ -317,6 +323,7 @@ void mock_store_t::reset_data(
         const region_t &subregion,
         UNUSED write_durability_t durability,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), subregion));
 
     write_token_t token;

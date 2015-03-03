@@ -427,6 +427,7 @@ contract_coordinator_t::contract_coordinator_t(
             { wake_pump_contracts->pulse_if_not_already_pulsed(); },
         false)
 {
+    raft->assert_thread();
     /* Do an initial round of pumping, in case there are any changes the previous
     coordinator didn't take care of */
     wake_pump_contracts->pulse_if_not_already_pulsed();
@@ -436,6 +437,7 @@ contract_coordinator_t::contract_coordinator_t(
 boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
+    assert_thread();
     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
     raft_log_index_t log_index;
     {
@@ -475,6 +477,7 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
 }
 
 void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
     try {
         while (!keepalive.get_drain_signal()->is_pulsed()) {
             /* Wait until something changes that requires us to update the state */

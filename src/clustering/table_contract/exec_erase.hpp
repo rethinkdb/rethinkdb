@@ -6,7 +6,7 @@
 #include "clustering/table_contract/exec.hpp"
 #include "store_view.hpp"
 
-class erase_execution_t : public execution_t {
+class erase_execution_t : public execution_t, public home_thread_mixin_t {
 public:
     erase_execution_t(
         const execution_t::context_t *context,
