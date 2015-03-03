@@ -328,7 +328,8 @@ it silently ignores the error. Call `verify()` to make sure that every successfu
 is present on the given `executor_tester_t`. */
 class write_generator_t {
 public:
-    write_generator_t(executor_tester_t *t) : target(t), ack_target_change(nullptr) {
+    write_generator_t(executor_tester_t *t) :
+            target(t), next_int(0), ack_target_change(nullptr) {
         coro_t::spawn_sometime(std::bind(&write_generator_t::run, this, drainer.lock()));
     }
     /* `change_target()` changes where writes are sent to. It will block until the change
@@ -340,6 +341,18 @@ public:
         assignment_sentry_t<cond_t *> sentry(&ack_target_change, &cond);
         cond.wait_lazily_unordered();
     }
+    void check_writes_work() {
+        std::string key = strprintf("key%d", next_int);
+        std::string value = strprintf("value%d", next_int);
+        ++next_int;
+        guarantee(target != nullptr);
+        try {
+            target->write_primary(key, value);
+            acked.insert(std::make_pair(key, value));
+        } catch (const cannot_perform_query_exc_t &) {
+            ADD_FAILURE() << "expected writes to work at this point";
+        }
+    }
     void verify(executor_tester_t *reader) {
         std::map<std::string, std::string> copy = acked;
         for (const auto &pair : copy) {
@@ -348,7 +361,6 @@ public:
     }
 private:
     void run(auto_drainer_t::lock_t keepalive) {
-        int next_int = 0;
         try {
             while (!keepalive.get_drain_signal()->is_pulsed()) {
                 std::string key = strprintf("key%d", next_int);
@@ -372,6 +384,7 @@ private:
         }
     }
     executor_tester_t *target;
+    int next_int;
     cond_t *ack_target_change;
     std::map<std::string, std::string> acked;
     auto_drainer_t drainer;
@@ -417,6 +430,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
     billy_exec.check_acks(cid3, contract_ack_t::state_t::secondary_streaming);
 
     write_generator_t write_generator(&alice_exec);
+    write_generator.check_writes_work();
 
     context.remove_contract(cid3);
     cpu_contract_ids_t cid4 = context.add_contract("*-*",
@@ -425,6 +439,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     alice_exec.check_acks(cid4, contract_ack_t::state_t::primary_ready);
     billy_exec.check_acks(cid4, contract_ack_t::state_t::secondary_streaming);
+    write_generator.check_writes_work();
 
     context.remove_contract(cid4);
     cpu_contract_ids_t cid5 = context.add_contract("*-*",
@@ -433,6 +448,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     alice_exec.check_acks(cid5, contract_ack_t::state_t::primary_ready);
     billy_exec.check_acks(cid5, contract_ack_t::state_t::secondary_streaming);
+    write_generator.check_writes_work();
 
     /* Make `billy` the primary instead of `alice` */
 
@@ -448,11 +464,10 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
     cpu_contract_ids_t cid7 = context.add_contract("*-*",
         quick_contract_no_primary({alice, billy}, &branch1));
     context.publish();
+    write_generator.change_target(&billy_exec);
 
     alice_exec.check_acks(cid7, contract_ack_t::state_t::secondary_need_primary);
     billy_exec.check_acks(cid7, contract_ack_t::state_t::secondary_need_primary);
-
-    write_generator.change_target(&billy_exec);
     write_generator.verify(&alice_exec);
     write_generator.verify(&billy_exec);
 
@@ -473,6 +488,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     alice_exec.check_acks(cid9, contract_ack_t::state_t::secondary_streaming);
     billy_exec.check_acks(cid9, contract_ack_t::state_t::primary_ready);
+    write_generator.check_writes_work();
 
     context.remove_contract(cid9);
     cpu_contract_ids_t cid10 = context.add_contract("*-*",
@@ -481,7 +497,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     alice_exec.check_acks(cid10, contract_ack_t::state_t::secondary_streaming);
     billy_exec.check_acks(cid10, contract_ack_t::state_t::primary_ready);
-
+    write_generator.check_writes_work();
     write_generator.verify(&alice_exec);
     write_generator.verify(&billy_exec);
 
@@ -494,6 +510,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     alice_exec.check_acks(cid11, contract_ack_t::state_t::nothing);
     billy_exec.check_acks(cid11, contract_ack_t::state_t::primary_ready);
+    write_generator.check_writes_work();
+    write_generator.verify(&billy_exec);
 
     /* We want to make sure that `alice` erased its data. But it will ack `nothing`
     before it actually erases the data. So we wait 100ms before checking for the data to
@@ -541,6 +559,7 @@ TPTEST(ClusteringContractExecutor, HandOverSafety) {
 
     /* First start a stream of writes to `alice` */
     write_generator_t write_generator(&alice_exec);
+    write_generator.check_writes_work();
 
     /* Next, tell `alice` to hand the primary over to `billy` */
     context.remove_contract(cid2);
