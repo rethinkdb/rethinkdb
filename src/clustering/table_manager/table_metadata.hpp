@@ -4,7 +4,7 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
-#include "clustering/table_manager/table_raft_state.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class table_meta_manager_bcard_t {

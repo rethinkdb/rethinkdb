@@ -337,9 +337,9 @@ void table_meta_manager_t::on_get_config(
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->active.has()) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
-                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[*table_id] = s->state.config;
-                    });
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                    result[*table_id] = s->state.config;
+                });
             }
         }
     } else {
@@ -360,9 +360,9 @@ void table_meta_manager_t::on_get_config(
             guarantee(it != tables.end());
             if (it->second->active.has()) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
-                    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                        result[pair.first] = s->state.config;
-                    });
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                    result[pair.first] = s->state.config;
+                });
             }
         }
     }
@@ -389,7 +389,8 @@ void table_meta_manager_t::on_set_config(
                 it->second->active->get_raft();
 
             table_config_and_shards_t old_config;
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
+            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
+                change_token;
             raft_log_index_t log_index;
 
             /* We need to make sure that `change_lock` goes out of scope before we wait

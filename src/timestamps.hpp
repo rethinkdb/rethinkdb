@@ -4,6 +4,8 @@
 
 #include <inttypes.h>
 
+#include <limits>
+
 #include "containers/archive/archive.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -31,6 +33,12 @@ public:
     static state_timestamp_t zero() {
         state_timestamp_t t;
         t.num = 0;
+        return t;
+    }
+
+    static state_timestamp_t max() {
+        state_timestamp_t t;
+        t.num = std::numeric_limits<uint64_t>::max();
         return t;
     }
 
@@ -66,6 +74,15 @@ public:
     }
 
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
+
+    // This is only used for unit tests.
+#ifndef NDEBUG
+    static state_timestamp_t from_num(int n) {
+        state_timestamp_t t;
+        t.num = n;
+        return t;
+    }
+#endif
 
     RDB_MAKE_ME_SERIALIZABLE_1(state_timestamp_t, num);
 

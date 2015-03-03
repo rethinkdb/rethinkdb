@@ -64,27 +64,28 @@ Rethink server main options and startup functions.
 Throttling mechanism for query processing in a cluster node, uses clustered mailboxes.
 
 #### clustering/immediate_consistency
-Data and shard consistency mechanisms using clustered mailboxes known as business cards.
+Handles assigning timestamps to queries and enforcing consistency.
 
-##### clustering/immediate_consistency/branch
-Read/Write queries are sent to the primary server of a shard (master_t).
-The master_t forwards them to the brodcaster_t (primary replica) of that shard.
-The broadcaster_t sorts and distributes them to one or more listener_t,
+Every shard's primary replica has a `broadcaster_t`. Clients send read and write queries
+to the `broadcaster_t` via the types in `clustering/query_routing`. The `broadcaster_t`
+assigns them timestamps and distributes them to the `listener_t`s. Every primary and
+secondary replica has a `listener_t`. The `listener_t` accepts queries from the
+`broadcaster_t` and applies them to the storage engine.
 
-A listener_t is the cluster-facing interface of a replica for a single shard.
-A listener_t performs read/writes to the B-tree.
-A secondary replica is essentially just a listener_t.
+When the `listener_t` is first created, it also takes care of backfilling data from
+another replica and synchronizing the stream of writes from the `broadcaster_t` with the
+backfill it got from the other replica. `replier_t` modifies the behavior of the
+`listener_t` by allowing it to respond to reads as well as writes.
 
-History of table data regions (shards) is identified by a branch ID + timestamp.
-A branch is the DB state when a broadcaster_t was created + sequence of writes.
+The branch history is a collection of metadata that's used to coordinate backfills. A
+"branch" is a sequence of writes all timestamped in order by the same `broadcaster_t`.
+Whenever the primary replica restarts or changes to another server, it creates a new
+branch derived from the earlier branch. This allows the server to reason about divergent
+data.
 
-The replier_t basically is there to wait for the backfilling to complete (from sec to pri),
-and only then it will tell the broadcaster_t that the listener_t can now also
-receive (up-to-date) read requests.
-
-##### clustering/immediate_consistency/query
-Query processing for each shard.
-A primary server of a shard has a master_t receiving queries from other nodes.
+#### clustering/query_routing
+Handles transferring queries from the parser to replicas. Also takes care of splitting
+queries into parts for different shards.
 
 #### clustering/table_manager
 Uses Raft to coordinate creating/deleting/reconfiguring tables.

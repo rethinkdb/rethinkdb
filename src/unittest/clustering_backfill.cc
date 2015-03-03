@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/backfiller.hpp"
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/backfiller.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/branch_history_manager.hpp"
