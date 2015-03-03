@@ -404,8 +404,12 @@ def setup_table(table_variable_name, table_name, db_name="test")
   
   if $required_external_tables.count > 0
     # use one of the required tables
-    table_name, db_name = $required_external_tables.pop
-    raise "External table #{db_name}.#{table_name} did not exist" unless r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
+    db_name, table_name = $required_external_tables.pop
+    begin
+        r.db(db_name).table(table_name).info().run($reql_conn)
+    rescue RethinkDB::RqlRuntimeError
+      "External table #{db_name}.#{table_name} did not exist"
+    end
     
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     

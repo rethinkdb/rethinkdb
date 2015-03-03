@@ -438,9 +438,12 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
     
     if len(required_external_tables) > 0:
-        table_name, db_name = required_external_tables.pop()
-        assert r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(driver.cpp_conn) is True, 'External table %s.%s did not exist' % (db_name, table_name)
-        atexit.register(_clean_table, tableName=table_name, dbName=db_name)
+        db_name, table_name = required_external_tables.pop()
+        try:
+            r.db(db_name).table(table_name).info(driver.cpp_conn)
+        except r.RqlRuntimeError:
+            raise AssertionError('External table %s.%s did not exist' % (db_name, table_name))
+        atexit.register(_clean_table, table_name=table_name, db_name=db_name)
         
         print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     else:

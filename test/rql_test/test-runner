@@ -30,6 +30,8 @@ testExtensions = ['test', 'yaml']
 
 r = utils.import_python_driver()
 
+print_debug = False
+
 # -- set the default tempfolder to a generated folder in this directory
 
 tempfile.tempdir = tempfile.mkdtemp(prefix='.rethinkdbTestTemp-', dir=os.getcwd())
@@ -59,6 +61,12 @@ def setCancelRun(*args):
 signal.signal(signal.SIGINT, setCancelRun)
 # ToDo: cover all relevant signals
 # ToDo: allow for double-SIGINT to fast-kill
+
+# --
+
+def debug(message):
+    if print_debug:
+        sys.stdout.write('DEBUG: %s' % message.rstrip())
 
 # --
 
@@ -1178,6 +1186,8 @@ class WorkerThread(threading.Thread):
     outputQueue = None
     
     existingServer = None
+    existingDBsToTables = None # dict of arrays of db_name => table_name already on this server
+    
     server = None
     serverLogFile = None
     reqlConnection = None
@@ -1197,6 +1207,11 @@ class WorkerThread(threading.Thread):
             if isinstance(existingServer, RethinkDBRunningServer):
                 self.existingServer = existingServer
                 self.server = existingServer
+                
+                self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
+                self.existingDBsToTables = {}
+                for dbName in r.db_list().run(self.reqlConnection):
+                    self.existingDBsToTables[dbName]  = r.db(dbName).table_list().run(self.reqlConnection)
             else:
                 raise Exception('existingServer must be an instance of RethinkDBRunningServer, got: %s' % repr(existingServer))
         
@@ -1253,23 +1268,40 @@ class WorkerThread(threading.Thread):
     
     def clean_server(self):
         '''Clean out the server so it only has the rethinkdb and an empty test databases'''
-        assert self.existingServer is None
         
         if self.reqlConnection is None:
             raise ValueError('clean_server called when there was no connection')
         
         try:
-        
-            # -- clean out other databases
             
-            r.db_list().set_difference(['test', 'rethinkdb']).for_each(lambda dbName: r.db_drop(dbName)).run(self.reqlConnection)
+            # -- ensure that the test db is present
             
-            # -- ensure that the test db is present and empty
+            r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.reqlConnection)
             
-            if 'test' not in r.db_list().run(self.reqlConnection):
-                r.db_create('test').run(self.reqlConnection)
+            # -- clean out databases/tables
+            
+            if self.existingServer is None:
+                
+                # - drop all databases except test and rethinkdb
+                
+                r.db_list().set_difference(['test', 'rethinkdb']).for_each(r.db_drop(r.row)).run(self.reqlConnection)
+                
+                # - drop all tables in test
+                
+                r.db('test').table_list().for_each(r.db('test').table_drop(r.row)).run(self.reqlConnection)
+                
             else:
-                r.db('test').table_list().for_each(lambda tableName: r.db('test').table_drop(tableName)).run(self.reqlConnection)
+                
+                # - remove all dbs that were not there initially
+                
+                r.db_list().set_difference(self.existingDBsToTables.keys()).for_each(r.db_drop(r.row)).run(self.reqlConnection)
+                
+                # - groom out the tables that were not there initially
+                
+                for db_name in r.db_list().run(self.reqlConnection):
+                    if db_name == 'rethinkdb':
+                        continue
+                    r.db(db_name).table_list().set_difference(self.existingDBsToTables[db_name]).for_each(r.db(db_name).table_drop(r.row)).run(self.reqlConnection)
             
             # -- clean rethinkdb._debug_scratch
             
@@ -1277,16 +1309,20 @@ class WorkerThread(threading.Thread):
             
             # -- remove any other connected servers
             
-            r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
-            r.wait().run(self.reqlConnection)
+            if self.existingServer is None:
+                r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
+                r.wait().run(self.reqlConnection)
             
         except Exception as e:
-            warnings.warn('Unable to clean server, starting a new one. Error message: %s' % str(e)) # ToDo: improve logging
-            try:
-                self.server.close()
-            except Exception: pass
-            self.server = None
-            self.reqlConnection = None
+            if self.existingServer:
+                warnings.warn('Unable to clean existing server! Error message: %s' % str(e)) # ToDo: improve logging
+            else:
+                warnings.warn('Unable to clean server, starting a new one. Error message: %s' % str(e)) # ToDo: improve logging
+                try:
+                    self.server.close()
+                except Exception: pass
+                self.server = None
+                self.reqlConnection = None
     
     def run(self):
         try:
@@ -1309,8 +1345,7 @@ class WorkerThread(threading.Thread):
                 
                 # -- make sure it is clean and setup
                 
-                if self.existingServer is None:
-                    self.clean_server()
+                self.clean_server()
                 
                 # -- set writeToStdout
                 
@@ -1414,8 +1449,13 @@ class WorkerThread(threading.Thread):
         except Exception as e:
             debug(traceback.format_exc())
             raise Warning("Worker failure: " + unicode(e))
+        
+        finally:
+            if self.existingServer:
+                self.clean_server()
 
 def main():
+    global print_debug
     
     testFilters = []
     testList = []
@@ -1441,7 +1481,7 @@ def main():
     
     parser.add_option('-v', '--verbose', dest='verbose', default=False, action='store_true', help='show test output while running (disables -j/--jobs')
     
-    parser.add_option('-j', '--jobs', dest='workerThreads', default=2, type='int', help='tests to run simultaneously (default 2)')
+    parser.add_option('-j', '--jobs', dest='workerThreads', default=None, type='int', help='tests to run simultaneously (default 2)')
     
     options, args = parser.parse_args()
     
@@ -1465,15 +1505,18 @@ def main():
     
     # workerThreads
     
-    if options.workerThreads < 1:
-        parser.error('-j/--jobs value must be 1 or greater')
+    if options.workerThreads is None:
+        if options.table or options.verbose is True:
+            options.workerThreads = 1
+        else:
+            options.workerThreads = 2
     
-    # verbose
-    
-    if options.verbose is True:
-        if options.workerThreads > 2:
-            warnings.warn('-v/--verbose disables running more than one test in parallel')
+    elif options.verbose is True:
+        warnings.warn('-v/--verbose disables running more than one test in parallel')
         options.workerThreads = 1
+    
+    elif options.workerThreads < 1:
+        parser.error('-j/--jobs value must be 1 or greater')
     
     # - add filters
     
@@ -1684,6 +1727,8 @@ def main():
                         sys.stderr.write('>>> %s %s%s after %s (%s)\n\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
                         sys.stderr.write(test.console_output)
                         sys.stderr.write('\n<<< end %s: %s\n' % (test.result.capitalize(), test.name))
+            sys.stderr.flush()
+            sys.stdout.flush()
         
         # - end if there are no worker threads
         

@@ -642,7 +642,15 @@ function setup_table(table_variable_name, table_name, db_name) {
                 table = required_external_tables.pop();
                 defines[table_variable_name] = r.db(table[0]).table(table[1]);
                 tables_to_cleanup.push([table[0], table[1]])
-                runTest();
+                
+                // check that the table exists
+                r.db(table[0]).table(table[1]).info().run(reqlConn, function(err, res) {
+                    if (err) {
+                        unexpectedException("External table " + table[0] + "." + table[1] + " did not exist")
+                    } else {
+                        runTest();
+                    }
+                });
             } else {
                 // create the table as provided
                 
