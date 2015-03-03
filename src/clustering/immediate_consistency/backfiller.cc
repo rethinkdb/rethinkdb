@@ -5,6 +5,7 @@
 
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -149,10 +150,12 @@ void backfiller_t::on_backfill(
 
     try {
         {
+            cross_thread_signal_t interruptor_on_bhm_thread(
+                &interrupted, branch_history_manager->home_thread());
             on_thread_t th(branch_history_manager->home_thread());
             branch_history_manager->import_branch_history(
                 start_point_associated_branch_history,
-                interruptor);
+                &interruptor_on_bhm_thread);
         }
 
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?

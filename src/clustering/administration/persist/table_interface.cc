@@ -131,11 +131,11 @@ public:
         }
     }
 
-    branch_history_manager_t *get_branch_history_manager() const {
+    branch_history_manager_t *get_branch_history_manager() {
         return branch_history_manager.get();
     }
 
-    store_view_t *get_cpu_sharded_store(size_t i) const {
+    store_view_t *get_cpu_sharded_store(size_t i) {
         return stores[i].get();
     }
 

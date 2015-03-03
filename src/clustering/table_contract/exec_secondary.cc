@@ -5,6 +5,7 @@
 
 #include "clustering/immediate_consistency/listener.hpp"
 #include "clustering/immediate_consistency/replier.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 secondary_execution_t::secondary_execution_t(
         const execution_t::context_t *_context,
@@ -24,6 +25,7 @@ secondary_execution_t::secondary_execution_t(
 void secondary_execution_t::update_contract(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &acb) {
+    assert_thread();
     guarantee(primary ==
         (static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()));
     guarantee(branch == c.branch);
@@ -35,26 +37,30 @@ void secondary_execution_t::update_contract(
 }
 
 void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
     order_source_t order_source;
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
-            /* RSI(raft): This function needs to work even if `store->home_thread` is not
-            equal to our home thread. */
-
             /* Set our initial state to `secondary_need_primary`. */
+            contract_ack_t initial_ack;
             {
+                cross_thread_signal_t interruptor_on_store_thread(
+                    keepalive.get_drain_signal(), store->home_thread());
+                on_thread_t thread_switcher(store->home_thread());
                 region_map_t<binary_blob_t> blobs;
                 read_token_t token;
                 store->new_read_token(&token);
                 store->do_get_metainfo(
                     order_source.check_in("secondary_execution_t").with_read_mode(),
-                    &token, keepalive.get_drain_signal(), &blobs);
-                contract_ack_t ack(contract_ack_t::state_t::secondary_need_primary);
-                ack.version = boost::make_optional(to_version_map(blobs));
-                send_ack(ack);
+                    &token, &interruptor_on_store_thread, &blobs);
+                initial_ack.state = contract_ack_t::state_t::secondary_need_primary;
+                initial_ack.version = boost::make_optional(to_version_map(blobs));
             }
+            send_ack(initial_ack);
 
-            /* If the contract has no primary, we stop here. */
+            /* If the contract has no primary, we stop here. When a new contract is
+            issued which has a primary, the `contract_executor_t` will destroy us and
+            construct a new `secondary_execution_t`. */
             if (primary.is_nil()) {
                 keepalive.get_drain_signal()->wait_lazily_unordered();
                 return;
@@ -97,6 +103,13 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 &disconnect_signal,
                 keepalive.get_drain_signal());
 
+            /* We have to construct and destroy the `listener_t` and the `replier_t` on
+            the store's home thread. So we switcher there and switch back, and when the
+            stack variables get destructed we do the reverse. */
+            cross_thread_signal_t stop_signal_on_store_thread(
+                &stop_signal, store->home_thread());
+            on_thread_t thread_switcher_1(store->home_thread());
+
             /* Backfill and start streaming from the primary. */
             listener_t listener(
                 context->base_path,
@@ -109,7 +122,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 store,
                 primary_bcard.replier,
                 perfmon_collection,
-                &stop_signal,
+                &stop_signal_on_store_thread,
                 &order_source,
                 nullptr); /* RSI(raft): Hook up backfill progress again */
 
@@ -117,6 +130,8 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 &listener,
                 context->mailbox_manager,
                 context->branch_history_manager);
+
+            on_thread_t thread_switcher_t(home_thread());
 
             /* Let the coordinator know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
@@ -131,6 +146,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 }
 
 void secondary_execution_t::send_ack(const contract_ack_t &ca) {
+    assert_thread();
     ack_cb(ca);
     last_ack = boost::make_optional(ca);
 }

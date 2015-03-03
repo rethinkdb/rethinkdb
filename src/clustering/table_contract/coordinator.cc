@@ -40,7 +40,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                     &combined_branch_history,
                     vers_pair.second,
                     branch,
-                    region);
+                    vers_pair.first);
             for (const auto &can_pair : points_on_canonical_branch) {
                 base_frag.version = boost::make_optional(can_pair.second.timestamp);
                 parts.push_back(std::make_pair(can_pair.first, base_frag));
@@ -67,11 +67,7 @@ contract_t calculate_contract(
     contract_t new_c = old_c;
 
     /* If there are new servers in `config.replicas`, add them to `c.replicas` */
-    for (const server_id_t &server : config.replicas) {
-        if (new_c.replicas.count(server) == 0) {
-            new_c.replicas.insert(server);
-        }
-    }
+    new_c.replicas.insert(config.replicas.begin(), config.replicas.end());
 
     /* If there is a mismatch between `config.replicas` and `c.voters`, then correct
     it */
@@ -117,19 +113,17 @@ contract_t calculate_contract(
     }
 
     /* If a server was removed from `config.replicas` and `c.voters` but it's still in
-    `c.replicas`, and it's not primary, then remove it. (If it is primary, it won't be
-    for long, because we'll detect this case and switch to another primary.) */
+    `c.replicas`, then remove it. And if it's primary, then make it not be primary. */
     bool should_kill_primary = false;
     for (const server_id_t &server : old_c.replicas) {
         if (config.replicas.count(server) == 0 &&
-                old_c.voters.count(server) == 0 &&
-                (!static_cast<bool>(old_c.temp_voters) ||
-                    old_c.temp_voters->count(server) == 0)) {
+                new_c.voters.count(server) == 0 &&
+                (!static_cast<bool>(new_c.temp_voters) ||
+                    new_c.temp_voters->count(server) == 0)) {
+            new_c.replicas.erase(server);
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
-                /* We'll process this case further down. */
+                /* Actual killing happens further down */
                 should_kill_primary = true;
-            } else {
-                new_c.replicas.erase(server);
             }
         }
     }
@@ -145,42 +139,67 @@ contract_t calculate_contract(
         as up to date, according to that metric, as more than half of the voters
         (including itself) is eligible. */
 
-        /* First, collect and sort the states from the servers. Note that we use the
-        server ID as a secondary sorting key. This mean we tend to pick the same server
-        if we run the algorithm twice; this helps to reduce unnecessary fragmentation. */
-        std::vector<std::pair<state_timestamp_t, server_id_t> > replica_states;
+        /* First, collect the states from the servers, and sort them by how up-to-date
+        they are. Note that we use the server ID as a secondary sorting key. This mean we
+        tend to pick the same server if we run the algorithm twice; this helps to reduce
+        unnecessary fragmentation. */
+        std::vector<std::pair<state_timestamp_t, server_id_t> > sorted_candidates;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::state_t::secondary_need_primary) {
-                replica_states.push_back(
-                    std::make_pair(*acks.at(server).version, server));
+                sorted_candidates.push_back(
+                    std::make_pair(*(acks.at(server).version), server));
             }
         }
-        std::sort(replica_states.begin(), replica_states.end());
+        std::sort(sorted_candidates.begin(), sorted_candidates.end());
 
-        /* Second, select a new one. This loop is a little convoluted; it will set
-        `new_primary` to `config.primary_replica` if eligible, otherwise the most
-        up-to-date other server if there is one, otherwise nothing. */
-        boost::optional<server_id_t> new_primary;
-        for (size_t i = new_c.voters.size() / 2; i < replica_states.size(); ++i) {
-            new_primary = replica_states[i].second;
-            if (replica_states[i].second == config.primary_replica) {
-                break;
+        /* Second, determine which servers are eligible to become primary. */
+        std::vector<server_id_t> eligible_candidates;
+        for (size_t i = 0; i < sorted_candidates.size(); ++i) {
+            server_id_t server = sorted_candidates[i].second;
+            /* `up_to_date_count` is the number of servers that `server` is at least as
+            up-to-date as. We know `server` must be at least as up-to-date as itself and
+            all of the servers that are earlier in the list. */
+            size_t up_to_date_count = i + 1;
+            /* If there are several servers with the same timestamp, they will appear
+            together in the list. So `server` may be at least as up-to-date as some of
+            the servers that appear after it in the list. */
+            while (up_to_date_count < sorted_candidates.size() &&
+                    sorted_candidates[up_to_date_count].first ==
+                        sorted_candidates[i].first) {
+                ++up_to_date_count;
+            }
+            /* OK, now `up_to_date_count` is the number of servers that this server is
+            at least as up-to-date as. */
+            if (up_to_date_count > new_c.voters.size() / 2) {
+                eligible_candidates.push_back(server);
             }
         }
 
-        /* RSI(raft): If `config.primary_replica` isn't connected or isn't ready, we
-        should elect a different primary. If `config.primary_replica` is connected but
-        just takes a little bit longer to reply to our contracts than the other replicas,
-        we should wait for it to reply to our contracts and then elect it. Under the
-        current implementation, we don't wait. This could lead to an awkward loop, where
-        we elect the wrong primary, then un-elect it because we realize
-        `config.primary_replica` is ready, and then re-elect the wrong primary instead of
-        electing `config.primary_replica`. */
-
-        if (static_cast<bool>(new_primary)) {
+        if (!eligible_candidates.empty()) {
             contract_t::primary_t p;
-            p.server = *new_primary;
+
+            /* Select the primary. It's safe for us to pick any eligible candidate, but
+            we should always pick `config.primary_replica` if it's available. Otherwise,
+            we just pick the most up-to-date one. */
+            auto it = std::find(eligible_candidates.begin(), eligible_candidates.end(),
+                config.primary_replica);
+            if (it != eligible_candidates.end()) {
+                p.server = config.primary_replica;
+            } else {
+                /* `eligible_candidates` is ordered by how up-to-date they are */
+                p.server = eligible_candidates.back();
+            }
+
+            /* RSI(raft): If `config.primary_replica` isn't connected or isn't ready, we
+            should elect a different primary. If `config.primary_replica` is connected
+            but just takes a little bit longer to reply to our contracts than the other
+            replicas, we should wait for it to reply to our contracts and then elect it.
+            Under the current implementation, we don't wait. This could lead to an
+            awkward loop, where we elect the wrong primary, then un-elect it because we
+            realize `config.primary_replica` is ready, and then re-elect the wrong
+            primary instead of electing `config.primary_replica`. */
+
             new_c.primary = boost::make_optional(p);
         }
     }
@@ -237,7 +256,9 @@ contract_t calculate_contract(
                     acks.at(old_c.primary->server).state ==
                         contract_ack_t::state_t::primary_ready) {
                 /* We already did the hand over. Now it's safe to stop the old primary.
-                */
+                The new primary will be started later, after a majority of the replicas
+                acknowledge that they are no longer listening for writes from the old
+                primary. */
                 new_c.primary = boost::none;
             } else {
                 new_c.primary->hand_over = boost::make_optional(config.primary_replica);
@@ -407,6 +428,7 @@ contract_coordinator_t::contract_coordinator_t(
             { wake_pump_contracts->pulse_if_not_already_pulsed(); },
         false)
 {
+    raft->assert_thread();
     /* Do an initial round of pumping, in case there are any changes the previous
     coordinator didn't take care of */
     wake_pump_contracts->pulse_if_not_already_pulsed();
@@ -416,6 +438,7 @@ contract_coordinator_t::contract_coordinator_t(
 boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
+    assert_thread();
     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
     raft_log_index_t log_index;
     {
@@ -455,6 +478,7 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
 }
 
 void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
     try {
         while (!keepalive.get_drain_signal()->is_pulsed()) {
             /* Wait until something changes that requires us to update the state */

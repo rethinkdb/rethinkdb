@@ -6,6 +6,7 @@
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "region/region_map.hpp"
+#include "rpc/semilattice/joins/macros.hpp"   /* for EQUALITY_COMPARABLE macros */
 
 /* `table_raft_state_t` is the type of the state that is stored in each table's Raft
 instance. The most important part is a collection of `contract_t`s, which describe the
@@ -47,9 +48,6 @@ class contract_t {
 public:
     class primary_t {
     public:
-        bool operator==(const primary_t &x) const {
-            return server == x.server && hand_over == x.hand_over;
-        }
         /* The server that's supposed to be primary. */
         server_id_t server;
         /* If we're switching to another primary, then `hand_over` is the server ID of
@@ -68,10 +66,6 @@ public:
         }
         
     }
-    bool operator==(const contract_t &x) const {
-        return replicas == x.replicas && voters == x.voters &&
-            temp_voters == x.temp_voters && primary == x.primary && branch == x.branch;
-    }
 
     /* `replicas` is all the servers that are replicas for this table, whether voting or
     non-voting. `voters` is a subset of `replicas` that just contains the voting
@@ -89,6 +83,8 @@ public:
     branch_id_t branch;
 };
 
+RDB_DECLARE_EQUALITY_COMPARABLE(contract_t::primary_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(contract_t);
 RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
 RDB_DECLARE_SERIALIZABLE(contract_t);
 
@@ -183,15 +179,12 @@ public:
         };
 
         change_t() { }
-        template<class T> change_t(T &&t) : v(t) { }
+        template<class T> change_t(T &&t) : v(std::move(t)) { }
 
         boost::variant<set_table_config_t, new_contracts_t> v;
     };
 
     void apply_change(const change_t &c);
-    bool operator==(const table_raft_state_t &other) const {
-        return config == other.config && member_ids == other.member_ids;
-    }
 
     /* `config` is the latest user-specified config. The user can freely read and modify
     this at any time. */
@@ -214,6 +207,7 @@ public:
     std::map<server_id_t, raft_member_id_t> member_ids;
 };
 
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);

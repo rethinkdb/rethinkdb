@@ -11,6 +11,7 @@ namespace unittest {
 
 branch_birth_certificate_t in_memory_branch_history_manager_t::get_branch(
         const branch_id_t &branch) const THROWS_NOTHING {
+    assert_thread();
     std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = bh.branches.find(branch);
     rassert(it != bh.branches.end(), "no such branch");
     return it->second;
@@ -18,6 +19,7 @@ branch_birth_certificate_t in_memory_branch_history_manager_t::get_branch(
 
 bool in_memory_branch_history_manager_t::is_branch_known(
         const branch_id_t &branch) const THROWS_NOTHING {
+    assert_thread();
     return bh.branches.count(branch) > 0;
 }
 
@@ -25,6 +27,7 @@ void in_memory_branch_history_manager_t::create_branch(
         branch_id_t branch_id,
         const branch_birth_certificate_t &bc,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(bh.branches.find(branch_id) == bh.branches.end());
     nap(10, interruptor);
     bh.branches[branch_id] = bc;
@@ -33,6 +36,7 @@ void in_memory_branch_history_manager_t::create_branch(
 void in_memory_branch_history_manager_t::import_branch_history(
         const branch_history_t &new_records, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     nap(10, interruptor);
     for (const auto &pair : new_records.branches) {
         bh.branches.insert(std::make_pair(pair.first, pair.second));

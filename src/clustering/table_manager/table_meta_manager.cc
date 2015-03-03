@@ -159,7 +159,12 @@ table_meta_manager_t::active_table_t::active_table_t(
         initial_state),
     execution_bcard_read_manager(parent->mailbox_manager),
     contract_executor(
-        parent->server_id, parent->mailbox_manager, raft.get_raft(),
+        parent->server_id, parent->mailbox_manager,
+        raft.get_raft()->get_committed_state()->subview(
+            [](const raft_member_t<table_raft_state_t>::state_and_config_t &sc)
+                    -> table_raft_state_t {
+                return sc.state;
+            }),
         execution_bcard_read_manager.get_values(), multistore_ptr, parent->base_path,
         parent->io_backender, &parent->backfill_throttler, &perfmon_collection),
     execution_bcard_write_manager(

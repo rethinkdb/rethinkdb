@@ -139,7 +139,7 @@ public:
         guarantee(current_out != NULL);
         result_type old_value = *current_out;
         *current_out = inner(input);
-        return old_value != *current_out;
+        return !(old_value == *current_out);
     }
 private:
     callable_type inner;

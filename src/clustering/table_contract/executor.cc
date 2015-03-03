@@ -9,16 +9,16 @@
 contract_executor_t::contract_executor_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
-        raft_member_t<table_raft_state_t> *_raft,
+        const clone_ptr_t<watchable_t<table_raft_state_t> > &_raft_state,
         watchable_map_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
             *_remote_contract_execution_bcards,
-        const multistore_ptr_t *_multistore,
+        multistore_ptr_t *_multistore,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         backfill_throttler_t *_backfill_throttler,
         perfmon_collection_t *_perfmons) :
     server_id(_server_id),
-    raft(_raft),
+    raft_state(_raft_state),
     multistore(_multistore),
     perfmons(_perfmons),
     execution_context {
@@ -30,9 +30,11 @@ contract_executor_t::contract_executor_t(
     perfmon_counter(0),
     raft_state_subs(std::bind(&contract_executor_t::on_raft_state_change, this))
 {
-    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t freeze(
-        raft->get_committed_state());
-    raft_state_subs.reset(raft->get_committed_state(), &freeze);
+    multistore->assert_thread();
+
+    watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
+    raft_state_subs.reset(raft_state, &freeze);
+    on_raft_state_change();
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -61,6 +63,7 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
 }
 
 void contract_executor_t::on_raft_state_change() {
+    assert_thread();
     if (!update_coro_running) {
         update_coro_running = true;
         coro_t::spawn_sometime(std::bind(
@@ -69,20 +72,19 @@ void contract_executor_t::on_raft_state_change() {
 }
 
 void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         std::set<execution_key_t> to_delete;
         {
             ASSERT_NO_CORO_WAITING;
-            raft->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *cs) {
-                update(cs->state, &to_delete);
-            });
+            raft_state->apply_read([&](const table_raft_state_t *state) {
+                update(*state, &to_delete); });
             if (to_delete.empty()) {
                 /* There's no point in going around the loop again. Since we won't delete
-                anything, we won't block, so `raft->get_committed_state()` won't have a
-                chance to change; so any further calls to `update()` will be no-ops. When
-                `raft->get_committed_state()` changes again, `on_raft_state_change()`
-                will start another instance of `update_coro()`. */
+                anything, we won't block, so `raft_state` won't have a chance to change;
+                so any further calls to `update()` will be no-ops. When `raft_state`
+                changes again, `on_raft_state_change()` will start another instance of
+                `update_coro()`. */
                 update_coro_running = false;
                 return;
             }
@@ -96,6 +98,7 @@ void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
 
 void contract_executor_t::update(const table_raft_state_t &new_state,
                                  std::set<execution_key_t> *to_delete_out) {
+    assert_thread();
     /* Go through the new contracts and try to match them to existing executions */
     std::set<execution_key_t> dont_delete;
     for (const auto &new_pair : new_state.contracts) {
@@ -175,6 +178,7 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
 
 void contract_executor_t::send_ack(const execution_key_t &key, const contract_id_t &cid,
         const contract_ack_t &ack) {
+    assert_thread();
     /* If the contract is out of date, don't send the ack */
     if (executions.at(key)->contract_id == cid) {
         ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);

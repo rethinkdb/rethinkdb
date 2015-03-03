@@ -109,4 +109,26 @@ void run_in_thread_pool(const std::function<void()> &fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 
+key_range_t quick_range(const char *bounds) {
+    guarantee(strlen(bounds) == 3);
+    char left = bounds[0];
+    guarantee(bounds[1] == '-');
+    char right = bounds[2];
+    if (left != '*' && right != '*') {
+        guarantee(left <= right);
+    }
+    key_range_t r;
+    r.left = (left == '*')
+        ? store_key_t()
+        : store_key_t(std::string(1, left));
+    r.right = (right == '*')
+        ? key_range_t::right_bound_t()
+        : key_range_t::right_bound_t(store_key_t(std::string(1, right+1)));
+    return r;
+}
+
+region_t quick_region(const char *bounds) {
+    return region_t(quick_range(bounds));
+}
+
 }  // namespace unittest

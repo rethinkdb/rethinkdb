@@ -40,6 +40,7 @@ broadcaster_t::broadcaster_t(
       readable_dispatchees_as_set(std::set<server_id_t>()),
       registrar(mailbox_manager, this)
 {
+    initial_svs->assert_thread();
     order_checkpoint.set_tagappend("broadcaster_t");
 
 #ifndef NDEBUG
@@ -58,7 +59,11 @@ broadcaster_t::broadcaster_t(
 #endif
 
     /* Store the new branch in the branch history manager */
-    bhm->create_branch(branch_id, branch_info, interruptor);
+    {
+        cross_thread_signal_t interruptor_on_bhm_thread(interruptor, bhm->home_thread());
+        on_thread_t thread_switcher(bhm->home_thread());
+        bhm->create_branch(branch_id, branch_info, &interruptor_on_bhm_thread);
+    }
 
     /* Initialize the metainfo to the new branch */
     write_token_t write_token;

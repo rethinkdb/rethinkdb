@@ -76,6 +76,7 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
                                    signal_t *interruptor,
                                    region_map_t<binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
 
     wait_interruptible(token->main_read_token.get(), interruptor);
@@ -93,6 +94,7 @@ void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
                                 write_token_t *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
@@ -116,6 +118,7 @@ void mock_store_t::read(
         read_response_t *response,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
@@ -164,6 +167,7 @@ void mock_store_t::write(
         order_token_t order_token,
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
@@ -188,21 +192,28 @@ void mock_store_t::write(
         // deletion entries so that we can backfill them properly.  This code
         // originally was a port of the dummy protocol, so we didn't need to support
         // deletes at first.
-        const point_write_t *point_write = boost::get<point_write_t>(&write.write);
-        guarantee(point_write != NULL);
+        if (const point_write_t *point_write = boost::get<point_write_t>(&write.write)) {
+            response->n_shards = 1;
+            response->response = point_write_response_t();
+            point_write_response_t *res =
+                boost::get<point_write_response_t>(&response->response);
 
-        response->n_shards = 1;
-        response->response = point_write_response_t();
-        point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
-
-        guarantee(point_write->data.has());
-        const bool had_value = table_.find(point_write->key) != table_.end();
-        if (point_write->overwrite || !had_value) {
-            table_[point_write->key]
-                = std::make_pair(timestamp.to_repli_timestamp(),
-                                 point_write->data);
+            guarantee(point_write->data.has());
+            const bool had_value = table_.find(point_write->key) != table_.end();
+            if (point_write->overwrite || !had_value) {
+                table_[point_write->key]
+                    = std::make_pair(timestamp.to_repli_timestamp(),
+                                     point_write->data);
+            }
+            res->result = had_value
+                ? point_write_result_t::DUPLICATE
+                : point_write_result_t::STORED;
+        } else if (boost::get<sync_t>(&write.write) != nullptr) {
+            response->n_shards = 1;
+            response->response = sync_response_t();
+        } else {
+            crash("mock_store_t only supports point writes and syncs");
         }
-        res->result = had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED;
 
         metainfo_.update(new_metainfo);
     }
@@ -217,6 +228,7 @@ bool mock_store_t::send_backfill(
         traversal_progress_combiner_t *progress,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
         progress->add_constituent(&progress_owner);
@@ -279,6 +291,7 @@ void mock_store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
     typedef backfill_chunk_t chunk_t;
@@ -309,6 +322,7 @@ void mock_store_t::reset_data(
         const region_t &subregion,
         UNUSED write_durability_t durability,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     rassert(region_is_superset(get_region(), subregion));
 
     write_token_t token;

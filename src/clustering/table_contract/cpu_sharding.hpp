@@ -26,8 +26,8 @@ thread. */
 class multistore_ptr_t : public home_thread_mixin_t {
 public:
     virtual ~multistore_ptr_t() { }
-    virtual branch_history_manager_t *get_branch_history_manager() const = 0;
-    virtual store_view_t *get_cpu_sharded_store(size_t i) const = 0;
+    virtual branch_history_manager_t *get_branch_history_manager() = 0;
+    virtual store_view_t *get_cpu_sharded_store(size_t i) = 0;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_ */

@@ -75,6 +75,15 @@ public:
 
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
+    // This is only used for unit tests.
+#ifndef NDEBUG
+    static state_timestamp_t from_num(int n) {
+        state_timestamp_t t;
+        t.num = n;
+        return t;
+    }
+#endif
+
     RDB_MAKE_ME_SERIALIZABLE_1(state_timestamp_t, num);
 
 private:
