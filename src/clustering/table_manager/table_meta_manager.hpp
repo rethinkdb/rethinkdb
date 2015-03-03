@@ -122,6 +122,11 @@ public:
         return &table_meta_bcards;
     }
 
+    watchable_map_t<std::pair<namespace_id_t, uuid_u>, table_query_bcard_t> *
+            get_table_query_bcards() {
+        return &table_query_bcard_combiner;
+    }
+
 private:
     /* The `table_meta_manager_t` has four possible levels of involvement with a table:
 
@@ -265,15 +270,33 @@ private:
         and destroying the `leader_table_t` may block. */
         new_mutex_t leader_mutex;
 
+        /* The `execution_bcard_read_manager` receives `contract_execution_bcard_t`s from
+        `contract_executor_t`s on other servers and passes them to the
+        `contract_executor_t` on this server. */
         minidir_read_manager_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> execution_bcard_read_manager;
 
+        /* The `contract_executor_t` creates and destroys `broadcaster_t`s,
+        `listener_t`s, etc. to handle queries. */
         contract_executor_t contract_executor;
 
+        /* The `execution_bcard_write_manager` receives `contract_execution_bcard_t`s
+        from the `contract_executor` on this server and passes them to the
+        `contract_executor_t`s on other servers. */
         minidir_write_manager_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> execution_bcard_write_manager;
+
+        /* The `contract_ack_write_manager` receives `contract_ack_t`s from the
+        `contract_executor` and passes them to the `contract_coordinator_t` on the Raft
+        leader. */
         minidir_write_manager_t<std::pair<server_id_t, contract_id_t>,
             contract_ack_t> contract_ack_write_manager;
+
+        /* The `table_query_bcard_source` receives `table_query_bcard_t`s from the
+        `contract_executor` and sends them on to `table_query_bcard_combiner` on the
+        parent. From there they will be sent to other servers' `namespace_repo_t`s. */
+        watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>::source_t
+            table_query_bcard_source;
 
         auto_drainer_t drainer;
 
@@ -387,6 +410,11 @@ private:
     directory. `active_table_t` creates and deletes entries in this map. */
     watchable_map_var_t<namespace_id_t, table_meta_bcard_t>
         table_meta_bcards;
+
+    /* This collects `table_query_bcards_t`s from all of the tables on this server into
+    a single `watchable_map_t`. */
+    watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>
+        table_query_bcard_combiner;
 
     /* Note: `tables` must be destroyed before `table_meta_bcards` or any of the const
     member variables. */

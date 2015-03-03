@@ -357,11 +357,19 @@ bool do_serve(io_backender_t *io_backender,
             scoped_ptr_t<directory_map_write_manager_t<
                     namespace_id_t, table_meta_bcard_t> >
                 table_directory_write_manager;
+            scoped_ptr_t<directory_map_write_manager_t<
+                    std::pair<namespace_id_t, uuid_u>, table_query_bcard_t> >
+                table_query_directory_write_manager;
             if (i_am_a_server) {
                 table_directory_write_manager.init(
                     new directory_map_write_manager_t<namespace_id_t, table_meta_bcard_t>(
                         &connectivity_cluster, 'T',
                         table_meta_manager->get_table_meta_bcards()));
+                table_query_directory_write_manager.init(
+                    new directory_map_write_manager_t<
+                            std::pair<namespace_id_t, uuid_u>, table_query_bcard_t>(
+                        &connectivity_cluster, 'Q',
+                        table_meta_manager->get_table_query_bcards()));
             }
 
             {

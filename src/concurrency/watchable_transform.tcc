@@ -199,3 +199,62 @@ void watchable_buffer_t<value_t>::notify() {
     }
 }
 
+template<class tag_t, class key_t, class value_t>
+watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::source_t(
+        watchable_map_combiner_t *_parent,
+        const tag_t &tag,
+        watchable_map_t<key_t, value_t> *inner) :
+    parent(_parent),
+    sentry(&parent->map, tag, inner),
+    subs(inner, std::bind(&source_t::on_change, this, ph::_1, ph::_2), true)
+    { }
+
+template<class tag_t, class key_t, class value_t>
+void watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::on_change(
+        const key_t &key, const value_t *value) {
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    parent->notify_change(std::make_pair(sentry.get_key(), key), value, &write_acq);
+}
+
+template<class tag_t, class key_t, class value_t>
+std::map<std::pair<tag_t, key_t>, value_t>
+watchable_map_combiner_t<tag_t, key_t, value_t>::get_all() {
+    std::map<std::pair<tag_t, key_t>, value_t> res;
+    read_all([&](const std::pair<tag_t, key_t> &key, const value_t *value) {
+        res.insert(std::make_pair(key, *value));
+    });
+    return res;
+}
+
+template<class tag_t, class key_t, class value_t>
+boost::optional<value_t> watchable_map_combiner_t<tag_t, key_t, value_t>::get_key(
+        const std::pair<tag_t, key_t> &key) {
+    auto it = map.find(key.first);
+    if (it == map.end()) {
+        return boost::none;
+    }
+    return it->second->get_key(key.second);
+}
+
+template<class tag_t, class key_t, class value_t>
+void watchable_map_combiner_t<tag_t, key_t, value_t>::read_all(
+        const std::function<void(
+            const std::pair<tag_t, key_t> &, const value_t *)> &callback) {
+    for (const auto &pair : map) {
+        pair.second->read_all([&](const key_t &key, const value_t *value) {
+            callback(std::make_pair(pair.first, key), value);
+        });
+    }
+}
+
+template<class tag_t, class key_t, class value_t>
+void watchable_map_combiner_t<tag_t, key_t, value_t>::read_key(
+        const std::pair<tag_t, key_t> &key,
+        const std::function<void(const value_t *)> &callback) {
+    auto it = map.find(key.first);
+    if (it == map.end()) {
+        callback(nullptr);
+    }
+    it->second->read_key(key.second, callback);
+}
+

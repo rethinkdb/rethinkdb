@@ -173,6 +173,42 @@ private:
     std::map<key1_t, typename watchable_map_var_t<key2_t, value_t>::entry_t> entries;
 };
 
+/* `watchable_map_combiner_t` combines several `watchable_map_t`s into one, attaching a
+tag to each one. */
+template<class tag_t, class key_t, class value_t>
+class watchable_map_combiner_t :
+    public watchable_map_t<std::pair<tag_t, key_t>, value_t> {
+public:
+    class source_t {
+    public:
+        source_t(
+            watchable_map_combiner_t *parent,
+            const tag_t &tag,
+            watchable_map_t<key_t, value_t> *inner);
+    private:
+        void on_change(const key_t &key, const value_t *value);
+        watchable_map_combiner_t *parent;
+        map_insertion_sentry_t<tag_t, watchable_map_t<key_t, value_t> *> sentry;
+        typename watchable_map_t<key_t, value_t>::all_subs_t subs;
+    };
+
+    std::map<std::pair<tag_t, key_t>, value_t> get_all();
+    boost::optional<value_t> get_key(const std::pair<tag_t, key_t> &key);
+    void read_all(
+        const std::function<void(
+            const std::pair<tag_t, key_t> &, const value_t *)> &);
+    void read_key(
+        const std::pair<tag_t, key_t> &key,
+        const std::function<void(const value_t *)> &);
+
+private:
+    rwi_lock_assertion_t *get_rwi_lock() {
+        return &rwi_lock;
+    }
+    rwi_lock_assertion_t rwi_lock;
+    std::map<tag_t, watchable_map_t<key_t, value_t> *> map;
+};
+
 #include "concurrency/watchable_transform.tcc"
 
 #endif /* CONCURRENCY_WATCHABLE_TRANSFORM_HPP_ */
