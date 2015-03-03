@@ -2145,6 +2145,7 @@ bool discard(const store_key_t &pkey,
 
 }
 
+// RSI: pick up here, actually use it.
 std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_state) {
     std::vector<datum_t> ret;
     while (has_el()) {
