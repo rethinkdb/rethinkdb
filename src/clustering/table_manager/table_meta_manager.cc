@@ -198,6 +198,7 @@ table_meta_manager_t::active_table_t::active_table_t(
                 bcard.timestamp.log_index = sc->log_index;
                 bcard.database = sc->state.config.config.database;
                 bcard.name = sc->state.config.config.name;
+                bcard.primary_key = sc->state.config.config.primary_key;
             });
         bcard.raft_member_id = member_id;
         bcard.raft_business_card = raft.get_business_card();
