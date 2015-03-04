@@ -14,7 +14,7 @@ struct metadata_disk_superblock_t {
     
     block_id_t root_block;
     block_id_t stat_block;
-};
+} __attribute__ ((packed));
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
@@ -120,6 +120,19 @@ public:
     }
 };
 
+class metadata_value_detacher_t : public value_deleter_t {
+public:
+    void delete_value(buf_parent_t parent, const void *value) const {
+        /* This `const_cast` is needed because `blob_t` expects a non-const pointer. But
+        it will not actually modify the contents if the only method we ever call is
+        `detach_subtrees`. */
+        blob_t blob(parent.cache()->max_block_size(),
+                    static_cast<char *>(const_cast<void *>(value)),
+                    blob::btree_maxreflen);
+        blob.detach_subtrees(parent);
+    }
+};
+
 metadata_file_t::read_txn_t::read_txn_t(
         metadata_file_t *f,
         signal_t *interruptor) :
@@ -187,6 +200,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
     class : public depth_first_traversal_callback_t {
     public:
         done_traversing_t handle_pair(scoped_key_value_t &&kv) {
+            guarantee(kv.key()->size >= key_prefix.size());
             guarantee(memcmp(
                 kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
             std::string suffix(
@@ -231,6 +245,7 @@ void metadata_file_t::write_txn_t::write_bin(
         const write_message_t *msg,
         signal_t *interruptor) {
     metadata_value_sizer_t sizer(file->cache->max_block_size());
+    metadata_value_detacher_t detacher;
     metadata_value_deleter_t deleter;
     buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, access_t::write);
     wait_interruptible(sb_lock.write_acq_signal(), interruptor);
@@ -240,7 +255,7 @@ void metadata_file_t::write_txn_t::write_bin(
         &sizer,
         &superblock,
         key.btree_key(),
-        &deleter,
+        &detacher,
         &kvloc,
         &file->btree_stats,
         nullptr);
@@ -258,7 +273,7 @@ void metadata_file_t::write_txn_t::write_bin(
     }
     null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, &kvloc, key.btree_key(), repli_timestamp_t::invalid,
-        &deleter, &null_cb, delete_or_erase_t::ERASE);
+        &detacher, &null_cb, delete_or_erase_t::ERASE);
 }
 
 metadata_file_t::metadata_file_t(

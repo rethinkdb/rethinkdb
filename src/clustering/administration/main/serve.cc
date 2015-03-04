@@ -106,9 +106,9 @@ bool do_serve(io_backender_t *io_backender,
         if (metadata_file != NULL) {
             cond_t non_interruptor;
             metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
-            txn.read(mdkey_cluster_semilattices(), &cluster_metadata, &non_interruptor);
-            txn.read(mdkey_auth_semilattices(), &auth_metadata, &non_interruptor);
-            txn.read(mdkey_server_id(), &server_id, &non_interruptor);
+            cluster_metadata = txn.read(mdkey_cluster_semilattices(), &non_interruptor);
+            auth_metadata = txn.read(mdkey_auth_semilattices(), &non_interruptor);
+            server_id = txn.read(mdkey_server_id(), &non_interruptor);
         }
 
 #ifndef NDEBUG
