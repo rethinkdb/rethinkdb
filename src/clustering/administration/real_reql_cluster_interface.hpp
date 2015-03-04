@@ -185,10 +185,8 @@ private:
             std::string *error_out);
 
     bool reconfigure_internal(
-            cluster_semilattice_metadata_t *cluster_metadata,
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
-            const name_string_t &table_name,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,

@@ -665,39 +665,31 @@ bool real_reql_cluster_interface_t::db_wait(
 }
 
 bool real_reql_cluster_interface_t::reconfigure_internal(
-        cluster_semilattice_metadata_t *cluster_md,
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
-        const name_string_t &table_name,
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)cluster_md;
-    (void)db;
-    (void)table_id;
-    (void)table_name;
-    (void)params;
-    (void)dry_run;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     rassert(get_thread_id() == server_config_client->home_thread());
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
-            &cluster_md->rdb_namespaces);
-    namespace_semilattice_metadata_t *table_md =
-        ns_change.get()->namespaces.at(table_id).get_mutable();
+
+    /* Fetch the table's current configuration */
+    table_config_and_shards_t old_config;
+    if (!table_meta_client->get_config(table_id, interruptor, &old_config)) {
+        *error_out = "Lost contact with the server(s) that were hosting the table being "
+            "reconfigured. The table was not reconfigured.";
+        return false;
+    }
 
     // Store the old value of the config and status
-    ql::datum_t old_config = convert_table_config_to_datum(table_id, table_name,
-        convert_name_to_datum(db->name), table_md->primary_key.get_ref(),
-        table_md->replication_info.get_ref().config, admin_identifier_format_t::name,
-        server_config_client);
+    ql::datum_t old_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name), old_config.config,
+        admin_identifier_format_t::name, server_config_client);
+
+    /* RSI(raft): Reimplement this once `table_status` is implemented */
+    ql::datum_t old_status_datum("this is a fake status");
+#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -706,83 +698,75 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             &old_status, error_out)) {
         return false;
     }
+#endif
 
-    std::map<server_id_t, int> server_usage;
-    for (const auto &pair : cluster_md->rdb_namespaces->namespaces) {
-        if (pair.second.is_deleted()) {
-            continue;
-        }
-        if (pair.first == table_id) {
-            /* We don't want to take into account the table's current configuration,
-            since we're about to change that anyway */
-            continue;
-        }
-        calculate_server_usage(pair.second.get_ref().replication_info.get_ref().config,
-                               &server_usage);
-    }
-
-    table_replication_info_t new_repli_info;
+    table_config_and_shards_t new_config;
+    new_config.config.name = old_config.config.name;
+    new_config.config.database = old_config.config.database;
+    new_config.config.primary_key = old_config.config.primary_key;
 
     if (!calculate_split_points_intelligently(
             table_id,
             this,
             params.num_shards,
-            table_md->replication_info.get_ref().shard_scheme,
+            old_config.shard_scheme,
             interruptor,
-            &new_repli_info.shard_scheme,
+            &new_config.shard_scheme,
             error_out)) {
         return false;
     }
 
-    /* This just generates a new configuration; it doesn't put it in the
-    semilattices. */
+    /* RSI(raft): Fill in `server_usage` so we make smarter choices */
+    std::map<server_id_t, int> server_usage;
+
+    /* `table_generate_config()` just generates the config; it doesn't apply it */
     if (!table_generate_config(
-            server_config_client,
-            table_id,
-            table_meta_client,
-            server_usage,
-            params,
-            new_repli_info.shard_scheme,
-            interruptor,
-            &new_repli_info.config,
+            server_config_client, table_id, table_meta_client, server_usage,
+            params, new_config.shard_scheme, interruptor, &new_config.config.shards,
             error_out)) {
+        *error_out = "When generating new configuration for table: " + *error_out;
         return false;
     }
 
-    new_repli_info.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
-    new_repli_info.config.durability = write_durability_t::HARD;
+    new_config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
+    new_config.config.durability = write_durability_t::HARD;
 
     if (!dry_run) {
-        /* Commit the change */
-        table_md->replication_info.set(new_repli_info);
-        semilattice_root_view->join(*cluster_md);
+        if (!table_meta_client->set_config(table_id, new_config, interruptor)) {
+            *error_out = "Lost contact with the server(s) that were hosting the table "
+                "being reconfigured. The table may or may not have been reconfigured.";
+            return false;
+        }
     }
 
     // Compute the new value of the config and status
-    ql::datum_t new_config = convert_table_config_to_datum(table_id, table_name,
-        convert_name_to_datum(db->name), table_md->primary_key.get_ref(),
-        new_repli_info.config, admin_identifier_format_t::name, server_config_client);
-    ql::datum_t new_status;
+    ql::datum_t new_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name), new_config.config,
+        admin_identifier_format_t::name, server_config_client);
+
+    /* RSI(raft): Reimplement this once `table_status` is implemented */
+    ql::datum_t new_status_datum("this is a fake status");
+#if 0
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
+#endif
 
     ql::datum_object_builder_t result_builder;
     if (!dry_run) {
         result_builder.overwrite("reconfigured", ql::datum_t(1.0));
         result_builder.overwrite("config_changes",
-            make_replacement_pair(old_config, new_config));
+            make_replacement_pair(old_config_datum, new_config_datum));
         result_builder.overwrite("status_changes",
-            make_replacement_pair(old_status, new_status));
+            make_replacement_pair(old_status_datum, new_status_datum));
     } else {
         result_builder.overwrite("reconfigured", ql::datum_t(0.0));
         result_builder.overwrite("config_changes",
-            make_replacement_pair(old_config, new_config));
+            make_replacement_pair(old_config_datum, new_config_datum));
     }
     *result_out = std::move(result_builder).to_datum();
     return true;
-#endif
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
@@ -793,31 +777,17 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)params;
-    (void)dry_run;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
-    cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*cluster_md.rdb_namespaces, db->id, db->name,
-            name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
-    return reconfigure_internal(&cluster_md, db, table_id, name, params, dry_run,
+    return reconfigure_internal(db, table_id, params, dry_run,
                                 &ct_interruptor, result_out, error_out);
-#endif
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
