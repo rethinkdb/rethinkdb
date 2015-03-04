@@ -97,7 +97,7 @@ TPTEST(BtreeMetadata, ManyKeysBigValues) {
         metadata_file_t::read_txn_t txn(&file, &non_interruptor);
         for (const auto &pair : data) {
             std::string value = txn.read(prefix.suffix(pair.first), &non_interruptor);
-            ASSERT_EQ(pair.first, value);
+            ASSERT_EQ(pair.second, value);
         }
     }
 }
