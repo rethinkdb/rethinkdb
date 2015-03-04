@@ -25,6 +25,7 @@ public:
         key_t(const std::string &s) : key(s) { }
         key_t suffix(const std::string &s) const {
             key_t copy = *this;
+            guarantee(key.size() + s.size() <= MAX_KEY_SIZE);
             copy.key.set_size(key.size() + s.size());
             memcpy(copy.key.contents() + key.size(), s.c_str(), s.size());
             return copy;
@@ -39,7 +40,15 @@ public:
         read_txn_t(metadata_file_t *file, signal_t *interruptor);
 
         template<class T>
-        bool read(
+        T read(const key_t<T> &key, signal_t *interruptor) {
+            T value;
+            bool found = read_maybe(key, &value, interruptor);
+            guarantee(found, "failed to find expected metadata key");
+            return value;
+        }
+
+        template<class T>
+        bool read_maybe(
                 const key_t<T> &key,
                 T *value_out,
                 signal_t *interruptor) {
@@ -49,7 +58,7 @@ public:
                 [&](read_stream_t *bin_value) {
                     archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
                         bin_value, value_out);
-                    guarantee_deserialization(res, "persistent_file_t::read");
+                    guarantee_deserialization(res, "metadata_file_t::read_txn_t::read");
                     found = true;
                 },
                 interruptor);
@@ -68,7 +77,8 @@ public:
                     T value;
                     archive_result_t res = deserialize<cluster_version_t::LATEST_DISK>(
                         bin_value, &value);
-                    guarantee_deserialization(res, "persistent_file_t::read_many");
+                    guarantee_deserialization(res,
+                        "metadata_file_t::read_txn_t::read_many");
                     cb(key_suffix, value);
                 },
                 interruptor);

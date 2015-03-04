@@ -14,7 +14,7 @@ struct metadata_disk_superblock_t {
     
     block_id_t root_block;
     block_id_t stat_block;
-};
+} __attribute__ ((packed));
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
@@ -187,6 +187,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
     class : public depth_first_traversal_callback_t {
     public:
         done_traversing_t handle_pair(scoped_key_value_t &&kv) {
+            guarantee(kv.key()->size >= key_prefix.size());
             guarantee(memcmp(
                 kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
             std::string suffix(

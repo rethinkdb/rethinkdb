@@ -781,10 +781,9 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
                 metadata_file_t::write_txn_t txn(metadata_file.get(), &non_interruptor);
-                cluster_semilattice_metadata_t md;
-                txn.read(mdkey_cluster_semilattices(), &md, &non_interruptor);
-                server_id_t server_id;
-                txn.read(mdkey_server_id(), &server_id, &non_interruptor);
+                cluster_semilattice_metadata_t md =
+                    txn.read(mdkey_cluster_semilattices(), &non_interruptor);
+                server_id_t server_id = txn.read(mdkey_server_id(), &non_interruptor);
                 auto it = md.servers.servers.find(server_id);
                 if (it != md.servers.servers.end() && !it->second.is_deleted()) {
                     it->second.get_mutable()->cache_size_bytes.set(*total_cache_size);

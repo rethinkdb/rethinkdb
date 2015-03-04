@@ -38,8 +38,7 @@ TPTEST(BtreeMetadata, MetadataTest) {
             &get_global_perfmon_collection(),
             &non_interruptor);
         metadata_file_t::read_txn_t txn(&file, &non_interruptor);
-        std::string big_string_2;
-        txn.read(big_string_key, &big_string_2, &non_interruptor);
+        std::string big_string_2 = txn.read(big_string_key, &non_interruptor);
         EXPECT_EQ(big_string, big_string_2);
         bool found_foo = false, found_bar = false;
         txn.read_many<int>(
@@ -60,6 +59,46 @@ TPTEST(BtreeMetadata, MetadataTest) {
             &non_interruptor);
         EXPECT_TRUE(found_foo);
         EXPECT_TRUE(found_bar);
+    }
+}
+
+TPTEST(BtreeMetadata, ManyKeysBigValues) {
+    temp_file_t temp_file;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    cond_t non_interruptor;
+
+    std::map<std::string, std::string> data;
+    for (size_t i = 0; i < 1000; ++i) {
+        data.insert(std::make_pair(
+            strprintf("%zu-", i) + rand_string(30),
+            rand_string(i * 10)));
+    }
+
+    metadata_file_t::key_t<std::string> prefix("s");
+    {
+        metadata_file_t file(
+            &io_backender,
+            temp_file.name(),
+            &get_global_perfmon_collection(),
+            [&](metadata_file_t::write_txn_t *, signal_t *) { },
+            &non_interruptor);
+        metadata_file_t::write_txn_t txn(&file, &non_interruptor);
+        for (const auto &pair : data) {
+            txn.write(prefix.suffix(pair.first), pair.second, &non_interruptor);
+        }
+    }
+
+    {
+        metadata_file_t file(
+            &io_backender,
+            temp_file.name(),
+            &get_global_perfmon_collection(),
+            &non_interruptor);
+        metadata_file_t::read_txn_t txn(&file, &non_interruptor);
+        for (const auto &pair : data) {
+            std::string value = txn.read(prefix.suffix(pair.first), &non_interruptor);
+            ASSERT_EQ(pair.first, value);
+        }
     }
 }
 
