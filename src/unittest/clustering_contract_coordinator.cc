@@ -14,8 +14,9 @@ The general outline of a test is as follows: Construct a `coordinator_tester_t`.
 `coordinate()` and then use `check_contract()` to make sure the newly-created contracts
 make sense. If desired, adjust the inputs and repeat. */
 
-/* These functions are defined internally in `clustering/table_contract/coordinator.cc`,
-and not declared in the header, so we have to declare them here. */
+/* These functions and constants are defined internally in
+`clustering/table_contract/coordinator.cc`, and not declared in the header, so we have to
+declare them here. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
@@ -28,6 +29,7 @@ void calculate_branch_history(
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out);
+extern const int failover_timeout_ms;
 
 namespace unittest {
 
@@ -112,11 +114,13 @@ public:
             const cpu_contract_ids_t &contracts,
             contract_ack_t::state_t st,
             const branch_history_t &branch_history,
-            std::initializer_list<quick_cpu_version_map_args_t> version) {
+            std::initializer_list<quick_cpu_version_map_args_t> version,
+            bool failover_timeout_elapsed) {
         guarantee(st == contract_ack_t::state_t::secondary_need_primary);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             contract_ack_t ack(st);
             ack.version = boost::make_optional(quick_cpu_version_map(i, version));
+            ack.failover_timeout_elapsed = failover_timeout_elapsed;
             ack.branch_history = branch_history;
             acks.set_key_no_equals(
                 std::make_pair(server, contracts.contract_ids[i]),
@@ -153,7 +157,8 @@ public:
     void coordinate() {
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
-        calculate_all_contracts(state, &acks, &remove_contracts, &add_contracts);
+        calculate_all_contracts(state, &acks,
+            &remove_contracts, &add_contracts);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
         calculate_branch_history(state, &acks, remove_contracts, add_contracts,
@@ -331,10 +336,12 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
 
     test.add_ack(alice, cid3, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} });
+        { {"*-*", &branch1, 123} },
+        false);
     test.add_ack(billy, cid3, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} });
+        { {"*-*", &branch1, 123} },
+        false);
 
     test.coordinate();
     cpu_contract_ids_t cid4 = test.check_contract("Billy primary; old branch", "*-*",
@@ -346,7 +353,8 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
         { {"*-*", &branch1, 123} });
     test.add_ack(alice, cid4, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} });
+        { {"*-*", &branch1, 123} },
+        false);
     test.add_ack(billy, cid4, contract_ack_t::state_t::primary_need_branch,
         billy_branch_history, &branch2);
 
@@ -392,7 +400,9 @@ TPTEST(ClusteringContractCoordinator, Split) {
     test.add_ack(alice, cid2DE, contract_ack_t::state_t::primary_need_branch,
         alice_branch_history, &branch2DE);
     test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
-        branch_history_t(), { {"DE", nullptr, 0} });
+        branch_history_t(),
+        { {"N-*", nullptr, 0} },
+        false);
 
     test.coordinate();
     cpu_contract_ids_t cid3ABC = test.check_contract("L: Alice gets branch ID", "*-M",
@@ -421,7 +431,9 @@ TPTEST(ClusteringContractCoordinator, Split) {
 
     test.add_ack(alice, cid5DE, contract_ack_t::state_t::nothing);
     test.add_ack(billy, cid5DE, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"N-*", &branch2DE, 456 } });
+        test.state.branch_history,
+        { {"N-*", &branch2DE, 456 } },
+        false);
 
     test.coordinate();
     test.check_same_contract(cid3ABC);
@@ -442,7 +454,7 @@ TPTEST(ClusteringContractCoordinator, Split) {
         quick_contract_simple({billy}, billy, &branch3DE));
 }
 
-/* In the `Failover` test, we check that a new primary is elected if the old primary
+/* In the `Failover` test, we test that a new primary will be elected if the old primary
 fails. */
 TPTEST(ClusteringContractCoordinator, Failover) {
     coordinator_tester_t test;
@@ -462,15 +474,67 @@ TPTEST(ClusteringContractCoordinator, Failover) {
     test.coordinate();
     test.check_same_contract(cid1);
 
+    /* Report that the primary has failed, but initially set `failover_timeout_elapsed`
+    to `false` on one of the secondaries; nothing will happen */
+
     test.remove_ack(alice, cid1);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"*-*", &branch1, 100} });
+        test.state.branch_history,
+        { {"*-*", &branch1, 100} },
+        true);
+    test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"*-*", &branch1, 101} },
+        false);
 
     test.coordinate();
     test.check_same_contract(cid1);
 
+    /* OK, now try again with the failover timeout elapsed on both secondaries */
+
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"*-*", &branch1, 100} },
+        true);
     test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"*-M", &branch1, 101}, {"M-*", &branch1, 99} });
+        test.state.branch_history,
+        { {"*-*", &branch1, 101} },
+        true);
+
+    test.coordinate();
+    test.check_contract("Failover", "*-*",
+        quick_contract_no_primary({alice, billy, carol}, &branch1));
+}
+
+/* In the `FailoverSplit` test, we test a corner case where different servers are
+eligile to be primary for different parts of the new key-space. */
+TPTEST(ClusteringContractCoordinator, FailoverSplit) {
+    coordinator_tester_t test;
+    server_id_t alice = generate_uuid(),
+                billy = generate_uuid(),
+                carol = generate_uuid();
+    test.set_config({ {"*-*", {alice, billy, carol}, alice} });
+    cpu_branch_ids_t branch1 = quick_cpu_branch(
+        &test.state.branch_history,
+        { {"*-*", nullptr, 0} });
+    cpu_contract_ids_t cid1 = test.add_contract("*-*",
+        quick_contract_simple({alice, billy, carol}, alice, &branch1));
+    test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_streaming);
+    test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_streaming);
+
+    test.coordinate();
+    test.check_same_contract(cid1);
+
+    test.remove_ack(alice, cid1);
+    test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"*-*", &branch1, 100} },
+        true);
+    test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
+        test.state.branch_history,
+        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99} },
+        true);
 
     test.coordinate();
     cpu_contract_ids_t cid2ABC = test.check_contract("L: No primary", "*-M",
@@ -479,13 +543,21 @@ TPTEST(ClusteringContractCoordinator, Failover) {
         quick_contract_no_primary({alice, billy, carol}, &branch1));
 
     test.add_ack(billy, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"*-M", &branch1, 100} });
+        test.state.branch_history,
+        { {"*-M", &branch1, 100} },
+        true);
     test.add_ack(carol, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"*-M", &branch1, 101} });
+        test.state.branch_history,
+        { {"*-M", &branch1, 101} },
+        true);
     test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"N-*", &branch1, 100} });
+        test.state.branch_history,
+        { {"N-*", &branch1, 100} },
+        true);
     test.add_ack(carol, cid2DE, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history, { {"N-*", &branch1, 99} });
+        test.state.branch_history,
+        { {"N-*", &branch1, 99} },
+        true);
 
     test.coordinate();
     test.check_contract("L: Failover", "*-M",

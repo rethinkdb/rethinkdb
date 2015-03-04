@@ -89,9 +89,16 @@ void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
                 return;
             }
         }
-        /* This is the part that can block */
         for (const execution_key_t &key : to_delete) {
-            executions.erase(key);
+            auto it = executions.find(key);
+            guarantee(it != executions.end());
+            /* Resetting `execution` is the part that can block. */
+            it->second->execution.reset();
+            /* Note that we do a two-step process: first we reset `execution`, then we
+            erase the entry from `executions`. This is because until we finish resetting
+            `execution`, it may still be calling `send_ack()`, and it's important that
+            `send_ack()` be able to see the entry in `executions`. */
+            executions.erase(it);
         }
     }
 }

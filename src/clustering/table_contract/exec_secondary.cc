@@ -42,7 +42,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
             /* Set our initial state to `secondary_need_primary`. */
-            contract_ack_t initial_ack;
+            contract_ack_t initial_ack(contract_ack_t::state_t::secondary_need_primary);
             {
                 cross_thread_signal_t interruptor_on_store_thread(
                     keepalive.get_drain_signal(), store->home_thread());
@@ -53,54 +53,80 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 store->do_get_metainfo(
                     order_source.check_in("secondary_execution_t").with_read_mode(),
                     &token, &interruptor_on_store_thread, &blobs);
-                initial_ack.state = contract_ack_t::state_t::secondary_need_primary;
                 initial_ack.version = boost::make_optional(to_version_map(blobs));
             }
+
+            /* Note that in the initial ack, `failover_timeout_elapsed` will be `false`.
+            This isn't quite right, because it's possible that hasn't been a primary for
+            a while before we got to this point. Consider the following scenario: The
+            primary fails. The failover timeout elapses. The coordinator sets the primary
+            to nil. All the `secondary_execution_t`s are destroyed and recreated with
+            `primary` set to `nil_uuid()`. But now they all report that the failover
+            timeout has not elapsed yet, so the failover timeout has to elapse again
+            before a new primary can be elected. This is annoying, but it doesn't really
+            break anything. */
+            initial_ack.failover_timeout_elapsed = false;
+
             send_ack(initial_ack);
 
-            /* If the contract has no primary, we stop here. When a new contract is
-            issued which has a primary, the `contract_executor_t` will destroy us and
-            construct a new `secondary_execution_t`. */
-            if (primary.is_nil()) {
-                keepalive.get_drain_signal()->wait_lazily_unordered();
-                return;
+            /* Set up a subscription to look for the primary in the directory and also
+            detect if we lose contact. Initially, `primary_bcard` and
+            `primary_no_more_bcard` are both unpulsed, and `primary_disconnect_watcher`
+            is empty. When we first see the primary, we pulse `primary_bcard` and create
+            `primary_disconnected`. If the primary later disappears from the directory,
+            we pulse `primary_no_more_bcard`. */
+            promise_t<contract_execution_bcard_t> primary_bcard;
+            object_buffer_t<disconnect_watcher_t> primary_disconnected;
+            cond_t primary_no_more_bcard;
+
+            object_buffer_t<watchable_map_t<
+                std::pair<server_id_t, branch_id_t>,
+                contract_execution_bcard_t>::key_subs_t>
+                    primary_watcher;
+            if (!primary.is_nil()) {
+                primary_watcher.create(
+                    context->remote_contract_execution_bcards,
+                    std::make_pair(primary, branch),
+                    [&](const contract_execution_bcard_t *bc) {
+                        if (!primary_bcard.get_ready_signal()->is_pulsed()) {
+                            if (bc != nullptr) {
+                                primary_bcard.pulse(*bc);
+                                primary_disconnected.create(
+                                    context->mailbox_manager, bc->peer);
+                            }
+                        } else if (!primary_no_more_bcard.is_pulsed()) {
+                            if (bc == nullptr) {
+                                primary_no_more_bcard.pulse();
+                            }
+                        }
+                    }, true);
             }
 
-            /* Wait until we see the primary. */
-            contract_execution_bcard_t primary_bcard;
-            context->remote_contract_execution_bcards->run_key_until_satisfied(
-                std::make_pair(primary, branch),
-                [&](const contract_execution_bcard_t *bc) {
-                    if (bc != nullptr) {
-                        primary_bcard = *bc;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }, keepalive.get_drain_signal());
-            guarantee(primary_bcard.broadcaster.branch_id == branch);
+            /* Wait until we see a primary or the failover timeout elapses. */
+            static const int failover_timeout_ms = 5000;
+            signal_timer_t failover_timer;
+            failover_timer.start(failover_timeout_ms);
+            wait_any_t waiter(primary_bcard.get_ready_signal(), &failover_timer);
+            wait_interruptible(&waiter, keepalive.get_drain_signal());
+
+            if (!primary_bcard.is_pulsed()) {
+                /* The failover timeout elapsed. Send a new contract ack with
+                `failover_timeout_elapsed` set to `true`, then resume waiting for the
+                primary. */
+                initial_ack.failover_timeout_elapsed = true;
+                send_ack(initial_ack);
+                wait_interruptible(
+                    primary_bcard.get_ready_signal(), keepalive.get_drain_signal());
+            }
 
             /* Let the coordinator know we found the primary. */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_backfilling));
 
             /* Set up a signal that will get pulsed if we lose contact with the primary
             or we get interrupted */
-            cond_t no_more_bcard_signal;
-            watchable_map_t<std::pair<server_id_t, branch_id_t>,
-                            contract_execution_bcard_t>::key_subs_t subs(
-                context->remote_contract_execution_bcards,
-                std::make_pair(primary, branch),
-                [&](const contract_execution_bcard_t *bc) {
-                    if (bc == nullptr) {
-                        no_more_bcard_signal.pulse();
-                    }
-                },
-                true);
-            disconnect_watcher_t disconnect_signal(
-                context->mailbox_manager, primary_bcard.peer);
             wait_any_t stop_signal(
-                &no_more_bcard_signal,
-                &disconnect_signal,
+                &primary_no_more_bcard,
+                primary_disconnected.get(),
                 keepalive.get_drain_signal());
 
             /* We have to construct and destroy the `listener_t` and the `replier_t` on
@@ -117,10 +143,10 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 context->mailbox_manager,
                 context->server_id,
                 context->backfill_throttler,
-                primary_bcard.broadcaster,
+                primary_bcard.assert_get_value().broadcaster,
                 context->branch_history_manager,
                 store,
-                primary_bcard.replier,
+                primary_bcard.assert_get_value().replier,
                 perfmon_collection,
                 &stop_signal_on_store_thread,
                 &order_source,

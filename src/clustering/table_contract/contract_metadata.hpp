@@ -107,7 +107,8 @@ If `server_id == contract.primary->server`:
 
 Otherwise, if `server_id` is in `contract.replicas`:
 - If `contract.primary` is empty or we can't contact `contract.primary->server`, then ack
-    `secondary_need_primary`.
+    `secondary_need_primary`. Set the `failover_timeout_elapsed` flag to `true` if we
+    haven't seen a primary recently for this region.
 - Otherwise, backfill data and then stream writes from `contract.primary->server`. While
     backfilling, ack `secondary_backfilling`; when done backfilling, ack
     `secondary_streaming`.
@@ -129,12 +130,16 @@ public:
     };
 
     contract_ack_t() { }
-    explicit contract_ack_t(state_t s) : state(s) { }
+    explicit contract_ack_t(state_t s) :
+        state(s), failover_timeout_elapsed(false) { }
 
     state_t state;
 
     /* This is non-empty if `state` is `secondary_need_primary`. */
     boost::optional<region_map_t<version_t> > version;
+
+    /* This can only be `true` if `state` is `secondary_need_primary` */
+    bool failover_timeout_elapsed;
 
     /* This is non-empty if `state` is `primary_need_branch` */
     boost::optional<branch_id_t> branch;

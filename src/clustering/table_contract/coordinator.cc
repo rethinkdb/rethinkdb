@@ -17,6 +17,7 @@ class contract_ack_frag_t {
 public:
     contract_ack_t::state_t state;
     boost::optional<state_timestamp_t> version;
+    bool failover_timeout_elapsed;
     boost::optional<branch_id_t> branch;
 };
 
@@ -27,6 +28,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const branch_history_reader_t *raft_branch_history) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
+    base_frag.failover_timeout_elapsed = ack.failover_timeout_elapsed;
     base_frag.branch = ack.branch;
     if (!static_cast<bool>(ack.version)) {
         return region_map_t<contract_ack_frag_t>(region, base_frag);
@@ -129,9 +131,14 @@ contract_t calculate_contract(
     }
 
     /* If we don't have a primary, choose a primary. Servers are not eligible to be a
-    primary unless they are carrying every acked write. In addition, we must choose
-    `config.primary_replica` if it is eligible. There will be at least one eligible
-    server if and only if we have reports from a majority of `new_c.voters`. */
+    primary unless they are carrying every acked write. There will be at least one
+    eligible server if and only if we have reports from a majority of `new_c.voters`.
+
+    In addition, we must choose `config.primary_replica` if it is eligible. If
+    `config.primary_replica` has not sent an ack, we must wait for the failover timeout
+    to elapse before electing a different replica. This is to make sure that we won't
+    elect the wrong replica simply because the user's designated primary took a little
+    longer to send the ack. */
     if (!static_cast<bool>(old_c.primary)) {
         /* We have an invariant that every acked write must be on the path from the root
         of the branch history to `old_c.branch`. So we project each voter's state onto
@@ -176,30 +183,37 @@ contract_t calculate_contract(
             }
         }
 
-        if (!eligible_candidates.empty()) {
-            contract_t::primary_t p;
-
-            /* Select the primary. It's safe for us to pick any eligible candidate, but
-            we should always pick `config.primary_replica` if it's available. Otherwise,
-            we just pick the most up-to-date one. */
-            auto it = std::find(eligible_candidates.begin(), eligible_candidates.end(),
-                config.primary_replica);
-            if (it != eligible_candidates.end()) {
-                p.server = config.primary_replica;
-            } else {
-                /* `eligible_candidates` is ordered by how up-to-date they are */
-                p.server = eligible_candidates.back();
+        /* Third, check if the failover timeout is elapsed; this will be relevant if the
+        user's designated primary is ineligible. */
+        bool failover_timeout_elapsed = false;
+        for (const server_id_t &server : new_c.voters) {
+            if (acks.count(server) == 1 && acks.at(server).state ==
+                    contract_ack_t::state_t::secondary_need_primary &&
+                    acks.at(server).failover_timeout_elapsed) {
+                failover_timeout_elapsed = true;
+                break;
             }
+        }
 
-            /* RSI(raft): If `config.primary_replica` isn't connected or isn't ready, we
-            should elect a different primary. If `config.primary_replica` is connected
-            but just takes a little bit longer to reply to our contracts than the other
-            replicas, we should wait for it to reply to our contracts and then elect it.
-            Under the current implementation, we don't wait. This could lead to an
-            awkward loop, where we elect the wrong primary, then un-elect it because we
-            realize `config.primary_replica` is ready, and then re-elect the wrong
-            primary instead of electing `config.primary_replica`. */
-
+        /* OK, now we can pick a primary. */
+        auto it = std::find(eligible_candidates.begin(), eligible_candidates.end(),
+                config.primary_replica);
+        if (it != eligible_candidates.end()) {
+            /* The user's designated primary is eligible, so use it. */
+            contract_t::primary_t p;
+            p.server = config.primary_replica;
+            new_c.primary = boost::make_optional(p);
+        } else if (!eligible_candidates.empty() &&
+                (config.primary_replica.is_nil() ||
+                    acks.count(config.primary_replica) == 1 ||
+                    failover_timeout_elapsed)) {
+            /* The user's designated primary is ineligible, but there are other eligible
+            candidates, and we're not going to wait for the user's designated primary to
+            send in an ack (because it already sent in an ack, or the failover timeout
+            elapsed) */
+            contract_t::primary_t p;
+            /* `eligible_candidates` is ordered by how up-to-date they are */
+            p.server = eligible_candidates.back();
             new_c.primary = boost::make_optional(p);
         }
     }
@@ -226,14 +240,12 @@ contract_t calculate_contract(
         /* Check if we need to do an auto-failover. The precise form of this condition
         isn't important for correctness. If we do an auto-failover when the primary isn't
         actually dead, or don't do an auto-failover when the primary is actually dead,
-        the worst that will happen is we'll lose availability.
-
-        RSI(raft): Maybe wait until the primary stays down for a certain amount of time
-        before failing over. */
+        the worst that will happen is we'll lose availability. */
         size_t voters_cant_reach_primary = 0;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
-                    contract_ack_t::state_t::secondary_need_primary) {
+                    contract_ack_t::state_t::secondary_need_primary &&
+                    acks.at(server).failover_timeout_elapsed) {
                 ++voters_cant_reach_primary;
             }
         }
@@ -490,9 +502,10 @@ contract_coordinator_t::contract_coordinator_t(
     acks(_acks),
     wake_pump_contracts(new cond_t),
     wake_pump_configs(new cond_t),
-    ack_subs(acks,
-        [this](const std::pair<server_id_t, contract_id_t> &, const contract_ack_t *)
-            { wake_pump_contracts->pulse_if_not_already_pulsed(); },
+    ack_subs(
+        acks,
+        [this](const std::pair<server_id_t, contract_id_t> &, const contract_ack_t *) {
+            wake_pump_contracts->pulse_if_not_already_pulsed(); },
         false)
 {
     raft->assert_thread();
@@ -554,7 +567,7 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
     assert_thread();
     try {
         while (!keepalive.get_drain_signal()->is_pulsed()) {
-            /* Wait until something changes that requires us to update the state */
+            /* Wait until one of our inputs changes before recalculating */
             wait_interruptible(wake_pump_contracts.get(), keepalive.get_drain_signal());
 
             /* Wait a little longer to give changes time to accumulate, because
@@ -584,9 +597,11 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                 table_raft_state_t::change_t::new_contracts_t change;
                 raft->get_latest_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
-                    calculate_all_contracts(state->state, acks,
+                    calculate_all_contracts(
+                        state->state, acks,
                         &change.remove_contracts, &change.add_contracts);
-                    calculate_branch_history(state->state, acks,
+                    calculate_branch_history(
+                        state->state, acks,
                         change.remove_contracts, change.add_contracts,
                         &change.remove_branches, &change.add_branches);
                 });

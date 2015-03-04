@@ -62,7 +62,6 @@ private:
     member variables are destroyed. */
     auto_drainer_t drainer;
 
-    /* We subscribe to contract acks so we can pulse `*wake_pump_contracts` */
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>::all_subs_t
         ack_subs;
 };
