@@ -14,7 +14,6 @@
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
-#include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
