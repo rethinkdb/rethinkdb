@@ -64,7 +64,7 @@ class BackboneCluster extends Backbone.Router
     dataexplorer: ->
         @current_view.remove()
         @current_view = new dataexplorer_view.Container
-            state: dataexplorer_view.state
+            state: dataexplorer_view.dataexplorer_state
         @container.html @current_view.render().$el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view_wrapper.set_scrollbar() # In case we check the data explorer, leave and come back

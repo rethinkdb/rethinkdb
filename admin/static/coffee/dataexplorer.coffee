@@ -587,7 +587,7 @@ class Container extends Backbone.View
     initialize: (args) =>
         @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
-        dataexplorer_state = args.state if args.state?
+        @state = args.state
         @executing = false
 
         # Load options from local storage
@@ -3774,7 +3774,7 @@ class OptionsView extends Backbone.View
     initialize: (args) =>
         @container = args.container
         @options = args.options
-        state = 'hidden'
+        @state = 'hidden'
 
     toggle_option: (event) =>
         event.preventDefault()
