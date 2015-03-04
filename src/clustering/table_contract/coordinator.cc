@@ -419,10 +419,77 @@ void calculate_branch_history(
     });
 }
 
+/* `calculate_member_ids_and_raft_config()` figures out when servers need to be added to
+or removed from the `table_raft_state_t::member_ids` map or the Raft configuration. The
+goals are as follows:
+- A server ought to be in `member_ids` and the Raft configuration if it appears in the
+    current `table_config_t` or in a contract.
+- If it is a voter in any contract, it should be a voter in the Raft configuration;
+    otherwise, it should be a non-voting member.
+
+There is constraint on how we approach those goals: Every server in the Raft
+configuration must also be in `member_ids`. So we add new servers to `member_ids` before
+adding them to the Raft configuration, and we remove obsolete servers from the Raft
+configuration before removing them from `member_ids`. Note that `calculate_member_ids()`
+assumes that if it returns changes for both `member_ids` and the Raft configuration, the
+`member_ids` changes will be applied first. */
+void calculate_member_ids_and_raft_config(
+        const raft_member_t<table_raft_state_t>::state_and_config_t &sc,
+        std::set<server_id_t> *remove_member_ids_out,
+        std::map<server_id_t, raft_member_id_t> *add_member_ids_out,
+        raft_config_t *new_config_out) {
+    /* Assemble a set of all of the servers that ought to be in `member_ids`. */
+    std::set<server_id_t> members_goal;
+    for (const table_config_t::shard_t &shard : sc.state.config.config.shards) {
+        members_goal.insert(shard.replicas.begin(), shard.replicas.end());
+    }
+    for (const auto &pair : sc.state.contracts) {
+        members_goal.insert(
+            pair.second.second.replicas.begin(), pair.second.second.replicas.end());
+    }
+    /* Assemble a set of all of the servers that ought to be Raft voters. */
+    std::set<server_id_t> voters_goal;
+    for (const auto &pair : sc.state.contracts) {
+        voters_goal.insert(
+            pair.second.second.voters.begin(),
+            pair.second.second.voters.end());
+    }
+    /* Create entries in `add_member_ids_out` for any servers in `goal` that don't
+    already have entries in `member_ids` */
+    for (const server_id_t &server : members_goal) {
+        if (sc.state.member_ids.count(server) == 0) {
+            add_member_ids_out->insert(std::make_pair(server, generate_uuid()));
+        }
+    }
+    /* For any servers in the current `member_ids` that aren't in `servers`, add an entry
+    in `remove_member_ids_out`, unless they are still in the Raft configuration. (If
+    they're still in the Raft configuration, we'll remove them soon.) */
+    for (const auto &existing : sc.state.member_ids) {
+        if (members_goal.count(existing.first) == 0 &&
+                !sc.config.is_member(existing.second)) {
+            remove_member_ids_out->insert(existing.first);
+        }
+    }
+    /* Set up `new_config_out`. */
+    for (const server_id_t &server : members_goal) {
+        raft_member_id_t member_id = (sc.state.member_ids.count(server) == 1)
+            ? sc.state.member_ids.at(server)
+            : add_member_ids_out->at(server);
+        if (voters_goal.count(server) == 1) {
+            new_config_out->voting_members.insert(member_id);
+        } else {
+            new_config_out->non_voting_members.insert(member_id);
+        }
+    }
+}
+
 contract_coordinator_t::contract_coordinator_t(
         raft_member_t<table_raft_state_t> *_raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks) :
-    raft(_raft), acks(_acks), wake_pump_contracts(new cond_t),
+    raft(_raft),
+    acks(_acks),
+    wake_pump_contracts(new cond_t),
+    wake_pump_configs(new cond_t),
     ack_subs(acks,
         [this](const std::pair<server_id_t, contract_id_t> &, const contract_ack_t *)
             { wake_pump_contracts->pulse_if_not_already_pulsed(); },
@@ -431,9 +498,12 @@ contract_coordinator_t::contract_coordinator_t(
     raft->assert_thread();
     coro_t::spawn_sometime(std::bind(
         &contract_coordinator_t::pump_contracts, this, drainer.lock()));
+    coro_t::spawn_sometime(std::bind(
+        &contract_coordinator_t::pump_configs, this, drainer.lock()));
     /* Do an initial round of pumping, in case there are any changes the previous
     coordinator didn't take care of */
     wake_pump_contracts->pulse_if_not_already_pulsed();
+    wake_pump_configs->pulse_if_not_already_pulsed();
 }
         
 
@@ -472,6 +542,7 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         return boost::none;
     }
     wake_pump_contracts->pulse_if_not_already_pulsed();
+    wake_pump_configs->pulse_if_not_already_pulsed();
     wait_interruptible(change_token->get_ready_signal(), interruptor);
     if (!change_token->wait()) {
         return boost::none;
@@ -538,6 +609,10 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                     if (!change_token.has()) {
                         continue;
                     }
+
+                    /* `pump_configs()` sometimes makes changes in reaction to changes in
+                    contracts, so wake it up. */
+                    wake_pump_configs->pulse_if_not_already_pulsed();
                 }
             } while (false);
         }
@@ -546,4 +621,90 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
     }
 }
 
+void contract_coordinator_t::pump_configs(auto_drainer_t::lock_t keepalive) {
+    assert_thread();
+    try {
+        while (!keepalive.get_drain_signal()->is_pulsed()) {
+            /* Wait until something changes that requires us to update the state */
+            wait_interruptible(wake_pump_configs.get(), keepalive.get_drain_signal());
+
+            /* Wait a little longer to give changes time to accumulate */
+            signal_timer_t buffer_timer;
+            buffer_timer.start(200);
+            wait_interruptible(&buffer_timer, keepalive.get_drain_signal());
+
+            /* Now we'll apply changes to Raft. We keep trying in a loop in case it
+            doesn't work at first. */
+            do {
+                /* Wait until the Raft member is likely to accept config changes. This
+                isn't actually necessary for changes to `member_ids`, but it's easier to
+                just handle `member_ids` changes and Raft configuration changes at the
+                same time. */
+                raft->get_readiness_for_config_change()->run_until_satisfied(
+                    [](bool is_ready) { return is_ready; },
+                    keepalive.get_drain_signal());
+
+                raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft,
+                    keepalive.get_drain_signal());
+
+                /* Reset `wake_pump_configs` here. Any changes in the inputs that
+                happened up to this point will be included in this round of
+                recalculation, but any later changes might not be. */
+                wake_pump_configs = make_scoped<cond_t>();
+
+                /* Calculate changes to `table_raft_state_t::member_ids` */
+                table_raft_state_t::change_t::new_member_ids_t member_ids_change;
+                boost::optional<raft_config_t> config_change;
+                raft->get_latest_state()->apply_read(
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+                    raft_config_t new_config;
+                    calculate_member_ids_and_raft_config(
+                        *sc,
+                        &member_ids_change.remove_member_ids,
+                        &member_ids_change.add_member_ids,
+                        &new_config);
+                    /* The config almost always won't be a joint consensus, because we
+                    waited until the `raft_member_t` was ready for config changes. But
+                    it's still possible so we have to handle that case somehow. Setting
+                    `config_change` won't change the config in a joint consensus because
+                    `propose_config_change()` will fail, but at least it will force us to
+                    go around the loop again. */
+                    if ((!sc->config.is_joint_consensus() &&
+                                new_config != sc->config.config) ||
+                            (sc->config.is_joint_consensus() &&
+                                new_config != *sc->config.new_config)) {
+                        config_change = boost::make_optional(new_config);
+                    }
+                });
+
+                /* Apply the member IDs change, unless it's a no-op */
+                if (!member_ids_change.remove_member_ids.empty() ||
+                        !member_ids_change.add_member_ids.empty()) {
+                    cond_t non_interruptor;
+                    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
+                        change_token = raft->propose_change(
+                            &change_lock,
+                            table_raft_state_t::change_t(member_ids_change),
+                            &non_interruptor);
+                    if (!change_token.has()) {
+                        continue;
+                    }
+                }
+
+                /* Apply the new config, unless it's a no-op */
+                if (static_cast<bool>(config_change)) {
+                    cond_t non_interruptor;
+                    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
+                        change_token = raft->propose_config_change(
+                            &change_lock, *config_change, &non_interruptor);
+                    if (!change_token.has()) {
+                        continue;
+                    }
+                }
+            } while (false);
+        }
+    } catch (const interrupted_exc_t &) {
+        /* We're shutting down or no longer Raft leader for some reason. */
+    }
+}
 

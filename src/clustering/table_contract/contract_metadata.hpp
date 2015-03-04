@@ -178,10 +178,16 @@ public:
             branch_history_t add_branches;
         };
 
+        class new_member_ids_t {
+        public:
+            std::set<server_id_t> remove_member_ids;
+            std::map<server_id_t, raft_member_id_t> add_member_ids;
+        };
+
         change_t() { }
         template<class T> change_t(T &&t) : v(std::move(t)) { }
 
-        boost::variant<set_table_config_t, new_contracts_t> v;
+        boost::variant<set_table_config_t, new_contracts_t, new_member_ids_t> v;
     };
 
     void apply_change(const change_t &c);
@@ -210,6 +216,7 @@ public:
 RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_member_ids_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 

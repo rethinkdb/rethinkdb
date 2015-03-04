@@ -23,7 +23,8 @@ public:
         base_path(_base_path),
         outdated_index_issue_tracker(_outdated_index_issue_tracker),
         rdb_context(_rdb_context),
-        metadata_file(_metadata_file)
+        metadata_file(_metadata_file),
+        thread_counter(0)
         { }
 
     void read_all_tables(

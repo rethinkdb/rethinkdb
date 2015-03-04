@@ -26,8 +26,10 @@ void semilattice_persister_t<metadata_t>::dump_loop(
                 metadata_file_t::write_txn_t txn(file, keepalive.get_drain_signal());
                 txn.write(key, view->get(), keepalive.get_drain_signal());
             }
-            wait_any_t c(flush_again.get(), &stop);
-            wait_interruptible(&c, keepalive.get_drain_signal());
+            {
+                wait_any_t c(flush_again.get(), &stop);
+                wait_interruptible(&c, keepalive.get_drain_signal());
+            }
             if (flush_again->is_pulsed()) {
                 scoped_ptr_t<cond_t> tmp(new cond_t);
                 flush_again.swap(tmp);

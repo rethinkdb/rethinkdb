@@ -85,6 +85,12 @@ public:
         return members;
     }
 
+    /* Returns `true` if `member` is a voting or non-voting member. */
+    bool is_member(const raft_member_id_t &member) const {
+        return voting_members.count(member) == 1 ||
+            non_voting_members.count(member) == 1;
+    }
+
     /* Returns `true` if `members` constitutes a majority. */
     bool is_quorum(const std::set<raft_member_id_t> &members) const {
         size_t votes = 0;
@@ -134,6 +140,11 @@ public:
             members.insert(members2.begin(), members2.end());
         }
         return members;
+    }
+
+    bool is_member(const raft_member_id_t &member) const {
+        return config.is_member(member) ||
+            (is_joint_consensus() && new_config->is_member(member));
     }
 
     bool is_quorum(const std::set<raft_member_id_t> &members) const {

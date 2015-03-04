@@ -43,18 +43,26 @@ private:
     of it running as long as the `contract_coordinator_t` exists. */
     void pump_contracts(auto_drainer_t::lock_t keepalive);
 
+    /* `pump_configs()` makes changes to the `member_ids` field of the
+    `table_raft_state_t` and to the Raft cluster configuration. It's separate from
+    `pump_contracts()` because the Raft cluster configuration changes are limited by the
+    Raft cluster's readiness for configuration changes, so it's best if they're not
+    handled in the same loop. */
+    void pump_configs(auto_drainer_t::lock_t keepalive);
+
     raft_member_t<table_raft_state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
 
-    /* Whenever something happens that might make it necessary to issue new contracts,
-    pulse `*wake_pump_contracts`. */
+    /* Whenever something happens that might make it necessary to issue new contracts or
+    change the configs, pulse `*wake_pump_contracts` or `*wake_pump_configs`. */
     scoped_ptr_t<cond_t> wake_pump_contracts;
+    scoped_ptr_t<cond_t> wake_pump_configs;
 
-    /* `drainer` makes sure that `pump_contracts()` stops before the member variables are
-    destroyed. */
+    /* `drainer` makes sure that `pump_contracts()` and `pump_configs()` stop before the
+    member variables are destroyed. */
     auto_drainer_t drainer;
 
-    /* We subscribe to contract changes so we can pulse `*wake_pump_contracts` */
+    /* We subscribe to contract acks so we can pulse `*wake_pump_contracts` */
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>::all_subs_t
         ack_subs;
 };

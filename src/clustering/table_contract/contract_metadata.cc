@@ -37,6 +37,14 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
                 new_contracts_change.add_branches.branches.begin(),
                 new_contracts_change.add_branches.branches.end());
         }
+        void operator()(const change_t::new_member_ids_t &new_member_ids_change) {
+            for (const server_id_t &sid : new_member_ids_change.remove_member_ids) {
+                state->member_ids.erase(sid);
+            }
+            state->member_ids.insert(
+                new_member_ids_change.add_member_ids.begin(),
+                new_member_ids_change.add_member_ids.end());
+        }
         table_raft_state_t *state;
     } visitor;
     visitor.state = this;
@@ -53,6 +61,9 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
     table_raft_state_t::change_t::new_contracts_t,
     remove_contracts, add_contracts, remove_branches, add_branches);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
+    table_raft_state_t::change_t::new_member_ids_t,
+    remove_member_ids, add_member_ids);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
     table_raft_state_t::change_t, v);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
