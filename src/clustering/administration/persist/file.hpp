@@ -22,7 +22,7 @@ public:
     template<class T>
     class key_t {
     public:
-        key_t(const std::string &s) : key(s) { }
+        explicit key_t(const std::string &s) : key(s) { }
         key_t suffix(const std::string &s) const {
             key_t copy = *this;
             guarantee(key.size() + s.size() <= MAX_KEY_SIZE);

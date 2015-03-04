@@ -34,7 +34,7 @@ RDB_DECLARE_SERIALIZABLE(log_message_t);
 
 class log_read_exc_t : public std::runtime_error {
 public:
-    log_read_exc_t(const std::string &s) : std::runtime_error(s) { }
+    explicit log_read_exc_t(const std::string &s) : std::runtime_error(s) { }
 };
 
 std::string format_log_level(log_level_t l);

@@ -49,7 +49,7 @@ received values from `get_values()`. */
 template<class key_t, class value_t>
 class minidir_read_manager_t {
 public:
-    minidir_read_manager_t(mailbox_manager_t *mm);
+    explicit minidir_read_manager_t(mailbox_manager_t *mm);
 
     minidir_bcard_t<key_t, value_t> get_bcard() {
         minidir_bcard_t<key_t, value_t> bc;
@@ -83,7 +83,7 @@ private:
             std::map<key_t, typename watchable_map_var_t<key_t, value_t>::entry_t> map;
             fifo_enforcer_sink_t fifo_sink;
         };
-        peer_data_t(auto_drainer_t::lock_t ck) : connection_keepalive(ck) { }
+        explicit peer_data_t(auto_drainer_t::lock_t ck) : connection_keepalive(ck) { }
         auto_drainer_t::lock_t connection_keepalive;
         std::map<uuid_u, scoped_ptr_t<link_data_t> > link_map;
         auto_drainer_t drainer;
@@ -164,7 +164,7 @@ private:
             minidir_bcard_t<key_t, value_t> bcard;
             fifo_enforcer_source_t fifo_source;
         };
-        peer_data_t(auto_drainer_t::lock_t ck) : connection_keepalive(ck) { }
+        explicit peer_data_t(auto_drainer_t::lock_t ck) : connection_keepalive(ck) { }
         /* We hold `connection_keepalive` to force the `connectivity_cluster_t` to notify
         us that the old connection has been dropped, so we'll delete the lock, before it
         starts a new connection. This prevents us getting confused. */

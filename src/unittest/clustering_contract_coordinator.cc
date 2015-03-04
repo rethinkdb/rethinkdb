@@ -29,7 +29,6 @@ void calculate_branch_history(
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out);
-extern const int failover_timeout_ms;
 
 namespace unittest {
 
@@ -230,7 +229,7 @@ public:
     exact same ID. */
     void check_same_contract(const cpu_contract_ids_t &contract_ids) {
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            EXPECT_TRUE(state.contracts.count(contract_ids.contract_ids[i]) == 1);
+            EXPECT_EQ(1, state.contracts.count(contract_ids.contract_ids[i]));
         }
     }
 

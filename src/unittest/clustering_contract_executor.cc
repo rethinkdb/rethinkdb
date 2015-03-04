@@ -79,7 +79,8 @@ private:
 shutting down and restarting an `executor_tester_t`. */
 class executor_tester_files_t : public multistore_ptr_t {
 public:
-    executor_tester_files_t(const server_id_t &_server_id) : server_id(_server_id) {
+    explicit executor_tester_files_t(const server_id_t &_server_id) :
+            server_id(_server_id) {
         int next_thread = 0;
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             stores[i].init(new mock_store_t(binary_blob_t(version_t::zero())));
@@ -340,7 +341,7 @@ it silently ignores the error. Call `verify()` to make sure that every successfu
 is present on the given `executor_tester_t`. */
 class write_generator_t {
 public:
-    write_generator_t(executor_tester_t *t) :
+    explicit write_generator_t(executor_tester_t *t) :
             target(t), next_int(0), ack_target_change(nullptr) {
         coro_t::spawn_sometime(std::bind(&write_generator_t::run, this, drainer.lock()));
     }

@@ -288,7 +288,7 @@ void backfillee(
 
         /* Wait until we get a message in `end_point_mailbox`. */
         wait_interruptible(end_point_cond.get_ready_signal(), interruptor);
-        guarantee(end_point_cond.get_ready_signal()->is_pulsed());
+        guarantee(end_point_cond.is_pulsed());
 
         /* Record the updated branch history information that we got. It's
         essential that we call `record_branch_history()` before we update the
@@ -296,19 +296,17 @@ void backfillee(
         make it to disk as part of the metainfo but not as part of the branch
         history, and that would lead to crashes. */
         {
-            std::pair<region_map_t<version_t>, branch_history_t> end_point_copy =
-                end_point_cond.wait();
             cross_thread_signal_t interruptor_on_bhm_thread(
                 interruptor, branch_history_manager->home_thread());
             on_thread_t thread_switcher(branch_history_manager->home_thread());
             branch_history_manager->import_branch_history(
-                end_point_copy.second, &interruptor_on_bhm_thread);
+                end_point_cond.assert_get_value().second, &interruptor_on_bhm_thread);
 
             /* RSI(raft): Eventually we need to support "reversible" backfills; i.e.
             backfilling to a version that isn't descended from the backfillee's original
             version. Right now we just error if that's happening. */
             for (const auto &start_pair : start_point) {
-                for (const auto &end_pair : end_point_copy.first) {
+                for (const auto &end_pair : end_point_cond.assert_get_value().first) {
                     region_t ixn = region_intersection(start_pair.first, end_pair.first);
                     if (!region_is_empty(ixn)) {
                         guarantee(version_is_ancestor(branch_history_manager,

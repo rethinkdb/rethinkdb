@@ -3,7 +3,6 @@
 
 #include "concurrency/interruptor.hpp"
 #include "concurrency/rwlock.hpp"
-#include "concurrency/interruptor.hpp"
 
 // This is a mutex, following the usual semantics (seen in rwlock_t,
 // fifo_enforcer_sink_t, buf_lock_t) where construction puts you in the queue, a

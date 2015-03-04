@@ -45,7 +45,7 @@ cluster_version_t magic_to_version(block_magic_t magic) {
 
 class metadata_superblock_t : public superblock_t {
 public:
-    metadata_superblock_t(buf_lock_t &&sb_buf) : sb_buf_(std::move(sb_buf)) { }
+    explicit metadata_superblock_t(buf_lock_t &&sb_buf) : sb_buf_(std::move(sb_buf)) { }
     void release() {
         sb_buf_.reset_buf_lock();
     }

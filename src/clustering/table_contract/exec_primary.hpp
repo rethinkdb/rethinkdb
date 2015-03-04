@@ -45,7 +45,7 @@ private:
     even after a failover or other reconfiguration. */
     class ack_counter_t {
     public:
-        ack_counter_t(counted_t<contract_info_t> c) :
+        explicit ack_counter_t(counted_t<contract_info_t> c) :
             contract(c), primary_ack(false), voter_acks(0), temp_voter_acks(0) { }
         void note_ack(const server_id_t &server) {
             primary_ack |= (server == contract->contract.primary->server);

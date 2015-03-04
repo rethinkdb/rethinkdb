@@ -139,6 +139,8 @@ public:
         guarantee(current_out != NULL);
         result_type old_value = *current_out;
         *current_out = inner(input);
+        /* We can't use `!=` here because sometimes lazy programmers will implement `==`
+        but not `!=`. */
         return !(old_value == *current_out);
     }
 private:
