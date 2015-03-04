@@ -58,13 +58,41 @@ tests:
   - cd: tbl.index_rename('rename-stuff','rename-last')
     ot: ({'renamed':1})
 
-  - cd: tbl.index_wait('rename-last').pluck('index', 'ready')
-    ot: [{'index':'rename-last','ready':true}]
+  - rb: tbl.index_create('minval'){|x| r.minval}
+    py: tbl.index_create('minval', lambda:r.minval)
+    js: tbl.index_create('minval', function(row){ return r.minval; })
+    ot: ({'created':1})
+
+  - rb: tbl.index_create('maxval'){|x| r.maxval}
+    py: tbl.index_create('maxval', lambda:r.maxval)
+    js: tbl.index_create('maxval', function(row){ return r.maxval; })
+    ot: ({'created':1})
+
+  - cd: tbl.index_wait('rename-last', 'minval', 'maxval').pluck('index', 'ready')
+    ot: bag([{'index':'rename-last','ready':true},
+             {'index':'minval','ready':true},
+             {'index':'maxval','ready':true}])
 
   - py: tbl.get_all(0, index='rename-last').count()
     js: tbl.get_all(0, {index:'rename-last'}).count()
     rb: tbl.get_all(0, :index => 'rename-last').count()
     ot: 3
+
+  # minval and maxval should error, so the indexes should be empty
+  - py: tbl.get_all(r.minval, index='minval').count()
+    js: tbl.get_all(r.minval, {index:'minval'}).count()
+    rb: tbl.get_all(r.minval, :index => 'minval').count()
+    ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+
+  - py: tbl.get_all(r.maxval, index='maxval').count()
+    js: tbl.get_all(r.maxval, {index:'maxval'}).count()
+    rb: tbl.get_all(r.maxval, :index => 'maxval').count()
+    ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+
+  - py: tbl.between(r.minval, r.maxval, index='minval').count()
+    js: tbl.between(r.minval, r.maxval, {index:'minval'}).count()
+    rb: tbl.between(r.minval, r.maxval, :index => 'minval').count()
+    ot: 0
 
   - cd: tbl.index_create('rename-last-dup', tbl.index_status('rename-last').nth(0).get_field('function'))
     ot: ({'created':1})
@@ -77,7 +105,10 @@ tests:
     rb: tbl.get_all(0, :index => 'rename-last-dup').count()
     ot: 3
 
-  - cd: tbl.index_drop('rename-last-dup')
+  - cd:
+      - tbl.index_drop('rename-last-dup')
+      - tbl.index_drop('minval')
+      - tbl.index_drop('maxval')
     ot: ({'dropped':1})
 
   - cd: tbl.index_list()
