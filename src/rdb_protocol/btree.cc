@@ -215,8 +215,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const deletion_context_t *deletion_context,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out,
-    profile::trace_t *trace)
-{
+    profile::trace_t *trace) {
     const return_changes_t return_changes = replacer->should_return_changes();
     const datum_string_t &primary_key = info.btree->primary_key;
     const store_key_t &key = *info.key;
