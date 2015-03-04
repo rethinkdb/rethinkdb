@@ -8,7 +8,7 @@ util = require('./util.coffee')
 r = require('rethinkdb')
 
 
-state =
+dataexplorer_state =
     current_query: null
     query_result: null
     cursor_timed_out: true
@@ -225,19 +225,19 @@ class Container extends Backbone.View
     # We give this button an "active" class that make it looks like it's pressed.
     toggle_pressed_buttons: =>
         if @history_view.state is 'visible'
-            state.history_state = 'visible'
+            dataexplorer_state.history_state = 'visible'
             @$('.clear_queries_link').fadeIn 'fast'
             @$('.close_queries_link').addClass 'active'
         else
-            state.history_state = 'hidden'
+            dataexplorer_state.history_state = 'hidden'
             @$('.clear_queries_link').fadeOut 'fast'
             @$('.close_queries_link').removeClass 'active'
 
         if @options_view.state is 'visible'
-            state.options_state = 'visible'
+            dataexplorer_state.options_state = 'visible'
             @$('.toggle_options_link').addClass 'active'
         else
-            state.options_state = 'hidden'
+            dataexplorer_state.options_state = 'hidden'
             @$('.toggle_options_link').removeClass 'active'
 
     # Show/hide the history view
@@ -563,21 +563,21 @@ class Container extends Backbone.View
         query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
         query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
         if window.localStorage?
-            if state.history.length is 0 or state.history[state.history.length-1].query isnt query and @regex.white.test(query) is false
-                state.history.push
+            if dataexplorer_state.history.length is 0 or dataexplorer_state.history[dataexplorer_state.history.length-1].query isnt query and @regex.white.test(query) is false
+                dataexplorer_state.history.push
                     query: query
                     broken_query: broken_query
-                if state.history.length>@size_history
-                    window.localStorage.rethinkdb_history = JSON.stringify state.history.slice state.history.length-@size_history
+                if dataexplorer_state.history.length>@size_history
+                    window.localStorage.rethinkdb_history = JSON.stringify dataexplorer_state.history.slice dataexplorer_state.history.length-@size_history
                 else
-                    window.localStorage.rethinkdb_history = JSON.stringify state.history
+                    window.localStorage.rethinkdb_history = JSON.stringify dataexplorer_state.history
                 @history_view.add_query
                     query: query
                     broken_query: broken_query
 
     clear_history: =>
-        state.history.length = 0
-        window.localStorage.rethinkdb_history = JSON.stringify state.history
+        dataexplorer_state.history.length = 0
+        window.localStorage.rethinkdb_history = JSON.stringify dataexplorer_state.history
 
     # Save the current query (the one in codemirror) in local storage
     save_current_query: =>
@@ -587,31 +587,31 @@ class Container extends Backbone.View
     initialize: (args) =>
         @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
-        state = args.state
+        dataexplorer_state = args.state if args.state?
         @executing = false
 
         # Load options from local storage
         if window.localStorage?.options?
             try
-                state.options = JSON.parse window.localStorage.options
+                dataexplorer_state.options = JSON.parse window.localStorage.options
             catch err
                 window.localStorage.removeItem 'options'
 
         # Load the query that was written in code mirror (that may not have been executed before)
         if typeof window.localStorage?.current_query is 'string'
             try
-                state.current_query = JSON.parse window.localStorage.current_query
+                dataexplorer_state.current_query = JSON.parse window.localStorage.current_query
             catch err
                 window.localStorage.removeItem 'current_query'
 
 
         if window.localStorage?.rethinkdb_history?
             try
-                state.history = JSON.parse window.localStorage.rethinkdb_history
+                dataexplorer_state.history = JSON.parse window.localStorage.rethinkdb_history
             catch err
                 window.localStorage.removeItem 'rethinkdb_history'
 
-        @query_has_changed = state.query_result?.current_query isnt state.current_query
+        @query_has_changed = dataexplorer_state.query_result?.current_query isnt dataexplorer_state.current_query
 
         # Index used to navigate through history with the keyboard
         @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -636,15 +636,15 @@ class Container extends Backbone.View
 
         @results_view_wrapper = new ResultViewWrapper
             container: @
-            view: state.view
+            view: dataexplorer_state.view
 
         @options_view = new OptionsView
             container: @
-            options: state.options
+            options: dataexplorer_state.options
 
         @history_view = new HistoryView
             container: @
-            history: state.history
+            history: dataexplorer_state.history
 
         @driver_handler = new DriverHandler
             container: @
@@ -714,9 +714,9 @@ class Container extends Backbone.View
             @$('.button_query').prop 'disabled', true
 
         # Let's bring back the data explorer to its old state (if there was)
-        if state?.query_result?
+        if dataexplorer_state?.query_result?
             @results_view_wrapper.set_query_result
-                query_result: state.query_result
+                query_result: dataexplorer_state.query_result
 
         @$('.results_container').html @results_view_wrapper.render(query_has_changed: @query_has_changed).$el
 
@@ -739,13 +739,13 @@ class Container extends Backbone.View
         @codemirror.on 'gutterClick', @handle_gutter_click
 
         @codemirror.setSize '100%', 'auto'
-        if state.current_query?
-            @codemirror.setValue state.current_query
+        if dataexplorer_state.current_query?
+            @codemirror.setValue dataexplorer_state.current_query
         @codemirror.focus() # Give focus
 
         # Track if the focus is on codemirror
         # We use it to refresh the docs once the reql_docs.json is loaded
-        state.focus_on_codemirror = true
+        dataexplorer_state.focus_on_codemirror = true
 
         @codemirror.setCursor @codemirror.lineCount(), 0
         if @codemirror.getValue() is '' # We show suggestion for an empty query only
@@ -754,16 +754,16 @@ class Container extends Backbone.View
 
         @draft = @codemirror.getValue()
 
-        if state.history_state is 'visible' # If the history was visible, we show it
+        if dataexplorer_state.history_state is 'visible' # If the history was visible, we show it
             @toggle_history
                 no_animation: true
 
-        if state.options_state is 'visible' # If the history was visible, we show it
+        if dataexplorer_state.options_state is 'visible' # If the history was visible, we show it
             @toggle_options
                 no_animation: true
 
     on_blur: =>
-        state.focus_on_codemirror = false
+        dataexplorer_state.focus_on_codemirror = false
         # We hide the description only if the user isn't selecting text from a description.
         if @keep_suggestions_on_blur is false
             @hide_suggestion_and_description()
@@ -1021,14 +1021,14 @@ class Container extends Backbone.View
                 @ignored_next_keyup = false
             return true
 
-        state.focus_on_codemirror = true
+        dataexplorer_state.focus_on_codemirror = true
 
         # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
         if event?.type is 'mouseup'
             @hide_suggestion_and_description()
 
         # Save the last query (even incomplete)
-        state.current_query = @codemirror.getValue()
+        dataexplorer_state.current_query = @codemirror.getValue()
         @save_current_query()
 
         # Look for special commands
@@ -1245,7 +1245,7 @@ class Container extends Backbone.View
                                         else if /^\s*"/.test(@current_extra_suggestion) is true
                                             suggestion = @current_extra_suggestion+'"'
                                 else
-                                    if state.options.electric_punctuation is false
+                                    if dataexplorer_state.options.electric_punctuation is false
                                         move_outside = true
                                     if /^\s*'/.test(@current_extra_suggestion) is true
                                         string_delimiter = "'"
@@ -1293,15 +1293,15 @@ class Container extends Backbone.View
                 return true
             # Catching history navigation
             else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
-                if @history_displayed_id < state.history.length
+                if @history_displayed_id < dataexplorer_state.history.length
                     @history_displayed_id++
-                    @codemirror.setValue state.history[state.history.length-@history_displayed_id].query
+                    @codemirror.setValue dataexplorer_state.history[dataexplorer_state.history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
             else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                 if @history_displayed_id > 1
                     @history_displayed_id--
-                    @codemirror.setValue state.history[state.history.length-@history_displayed_id].query
+                    @codemirror.setValue dataexplorer_state.history[dataexplorer_state.history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if @history_displayed_id is 1
@@ -1309,13 +1309,13 @@ class Container extends Backbone.View
                     @codemirror.setValue @draft
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
             else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
-                @history_displayed_id = state.history.length
-                @codemirror.setValue state.history[state.history.length-@history_displayed_id].query
+                @history_displayed_id = dataexplorer_state.history.length
+                @codemirror.setValue dataexplorer_state.history[dataexplorer_state.history.length-@history_displayed_id].query
                 event.preventDefault()
                 return true
             else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                 @history_displayed_id = @history.length
-                @codemirror.setValue state.history[state.history.length-@history_displayed_id].query
+                @codemirror.setValue dataexplorer_state.history[dataexplorer_state.history.length-@history_displayed_id].query
                 @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 event.preventDefault()
                 return true
@@ -1365,7 +1365,7 @@ class Container extends Backbone.View
             @hide_suggestion_and_description()
             return false
 
-        if state.options.electric_punctuation is true
+        if dataexplorer_state.options.electric_punctuation is true
             @pair_char(event, stack) # Pair brackets/quotes
 
         # We just look at key up so we don't fire the call 3 times
@@ -1445,7 +1445,7 @@ class Container extends Backbone.View
                     @$('.suggestion_name_list').append @template_suggestion_name
                         id: i
                         suggestion: suggestion
-            if state.options.suggestions is true and show_suggestion is true
+            if dataexplorer_state.options.suggestions is true and show_suggestion is true
                 @show_suggestion()
             else
                 @hide_suggestion()
@@ -1453,7 +1453,7 @@ class Container extends Backbone.View
         else if result.description?
             @hide_suggestion()
             @description = result.description
-            if state.options.suggestions is true and event?.type isnt 'mouseup'
+            if dataexplorer_state.options.suggestions is true and event?.type isnt 'mouseup'
                 @show_description()
             else
                 @hide_description()
@@ -2405,7 +2405,7 @@ class Container extends Backbone.View
 
         ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
 
-        if state.options.electric_punctuation is true
+        if dataexplorer_state.options.electric_punctuation is true
             if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                 @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
                 @written_suggestion = suggestion_to_write+')'
@@ -2533,7 +2533,7 @@ class Container extends Backbone.View
     abort_query: =>
         @disable_toggle_executing = false
         @toggle_executing false
-        state.query_result?.force_end_gracefully()
+        dataexplorer_state.query_result?.force_end_gracefully()
         @driver_handler.close_connection()
 
     # Function that execute the queries in a synchronous way.
@@ -2547,8 +2547,8 @@ class Container extends Backbone.View
         @$('.profiler_enabled').slideUp 'fast'
 
         # The user just executed a query, so we reset cursor_timed_out to false
-        state.cursor_timed_out = false
-        state.query_has_changed = false
+        dataexplorer_state.cursor_timed_out = false
+        dataexplorer_state.query_has_changed = false
 
         @raw_query = @codemirror.getValue()
 
@@ -2556,7 +2556,7 @@ class Container extends Backbone.View
 
         # Execute the query
         try
-            state.query_result?.discard()
+            dataexplorer_state.query_result?.discard()
             # Separate queries
             @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
             @index = 0 # index of the query currently being executed
@@ -2580,7 +2580,7 @@ class Container extends Backbone.View
 
     toggle_executing: (executing) =>
         if executing == @executing
-            if executing and state.query_result?.is_feed
+            if executing and dataexplorer_state.query_result?.is_feed
                 @$('.loading_query_img').hide()
             return
         if @disable_toggle_executing
@@ -2591,7 +2591,7 @@ class Container extends Backbone.View
         if executing
             @timeout_toggle_abort = setTimeout =>
                 @timeout_toggle_abort = null
-                if not state.query_result?.is_feed
+                if not dataexplorer_state.query_result?.is_feed
                     @$('.loading_query_img').show()
                 @$('.execute_query').hide()
                 @$('.abort_query').show()
@@ -2606,7 +2606,7 @@ class Container extends Backbone.View
 
     # A portion is one query of the whole input.
     execute_portion: =>
-        state.query_result = null
+        dataexplorer_state.query_result = null
         while @queries[@index]?
             full_query = @non_rethinkdb_query
             full_query += @queries[@index]
@@ -2631,7 +2631,7 @@ class Container extends Backbone.View
 
                 if final_query
                     query_result = new QueryResult
-                        has_profile: state.options.profiler
+                        has_profile: dataexplorer_state.options.profiler
                         current_query: @raw_query
                         raw_query: @raw_queries[@index]
                         driver_handler: @driver_handler
@@ -2639,7 +2639,7 @@ class Container extends Backbone.View
                             error: (query_result, err) =>
                                 @results_view_wrapper.render_error(@query, err)
                             ready: (query_result) =>
-                                state.pause_at = null
+                                dataexplorer_state.pause_at = null
                                 if query_result.is_feed
                                     @toggle_executing true
                                     @disable_toggle_executing = true
@@ -2648,17 +2648,17 @@ class Container extends Backbone.View
                                             @disable_toggle_executing = false
                                             @toggle_executing false
 
-                    state.query_result = query_result
+                    dataexplorer_state.query_result = query_result
 
                     @results_view_wrapper.set_query_result
-                        query_result: state.query_result
+                        query_result: dataexplorer_state.query_result
 
                 @disable_toggle_executing = false
                 @driver_handler.run_with_new_connection rdb_query,
                     optargs:
                         binaryFormat: "raw"
                         timeFormat: "raw"
-                        profile: state.options.profiler
+                        profile: dataexplorer_state.options.profiler
                     connection_error: (error) =>
                         @save_query
                             query: @raw_query
@@ -3891,7 +3891,7 @@ class HistoryView extends Backbone.View
                 if that.state is 'visible'
                     that.container.adjust_collapsible_panel_height
                         is_at_bottom: is_at_bottom
-        else if state is 'visible'
+        else if that.state is 'visible'
             @container.adjust_collapsible_panel_height
                 delay_scroll: true
                 is_at_bottom: is_at_bottom
