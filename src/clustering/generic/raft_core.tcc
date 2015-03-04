@@ -348,7 +348,6 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     if (mode == mode_t::leader ||
             (mode == mode_t::follower && current_microtime() <
                 last_heard_from_leader + election_timeout_min_ms * 1000)) {
-        debugf("%s disregarding RequestVote RPC\n", uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->vote_granted = false;
         return;
@@ -597,8 +596,6 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     Raft paper, Section 5.1: "If a server receives a request with a stale term number, it
     rejects the request" */
     if (request.term < ps.current_term) {
-        debugf("%s on_append_entries_rpc() term out of date\n",
-            uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
         reply_out->term = ps.current_term;
@@ -645,8 +642,6 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     if (request.entries.prev_index > ps.log.get_latest_index() ||
             ps.log.get_entry_term(request.entries.prev_index) !=
                 request.entries.prev_term) {
-        debugf("%s on_append_entries_rpc() log mismatch\n",
-            uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -685,9 +680,6 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     if (new_entries.empty()) {
         new_entries = "<none>";
     }
-    debugf("%s on_append_entries_rpc() recorded %s\n",
-        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
-        new_entries.c_str());
 
     /* Raft paper, Figure 2: "Append any new entries not already in the log" */
     for (raft_log_index_t i = ps.log.get_latest_index() + 1;
@@ -1046,11 +1038,6 @@ void raft_member_t<state_t>::leader_update_match_index(
     guarantee(it->second <= new_value);
     it->second = new_value;
 
-    debugf("%s leader_update_match_index for %s to %d\n",
-        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
-        uuid_to_str(key.uuid).substr(0,4).c_str(),
-        static_cast<int>(new_value));
-
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
     raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
@@ -1074,10 +1061,6 @@ void raft_member_t<state_t>::leader_update_match_index(
             break;
         }
     }
-    debugf("%s commit_index %d -> %d\n",
-        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
-        static_cast<int>(old_commit_index),
-        static_cast<int>(new_commit_index));
     if (new_commit_index != old_commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
         storage->write_persistent_state(ps, interruptor);
@@ -1141,10 +1124,6 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     /* `update_term()` changed `ps`, but we don't need to flush to stable storage
     immediately, because `candidate_run_election()` will do it. */
 
-    debugf("%s begin first election (term = %d)\n",
-        uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
-        static_cast<int>(ps.current_term));
-
     mode = mode_t::candidate;
 
     /* While we're candidate or leader, we'll never update our log in response to an RPC.
@@ -1176,13 +1155,8 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 RequestVote RPCs." */
                 update_term(ps.current_term + 1, mutex_acq.get());
                 /* Go around the `while`-loop again. */
-                debugf("%s election timeout (term = %d)\n",
-                    uuid_to_str(this_member_id.uuid).substr(0,4).c_str(),
-                    static_cast<int>(ps.current_term));
             }
         }
-
-        debugf("%s elected\n", uuid_to_str(this_member_id.uuid).substr(0,4).c_str());
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
