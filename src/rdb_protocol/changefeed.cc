@@ -7,6 +7,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -1002,7 +1003,8 @@ public:
     get_els(batcher_t *batcher,
             return_empty_normal_batches_t return_empty_normal_batches,
             const signal_t *interruptor);
-    virtual void start_artificial(env_t *, const uuid_u &) = 0;
+    virtual void start_artificial(env_t *, const uuid_u &,
+                                  artificial_table_backend_t *) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
@@ -1294,16 +1296,30 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
-        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0), started(false) {
-        feed->add_point_sub(this, key);
+    point_sub_t(feed_t *feed, const datum_t &squash, datum_t _pkey)
+        : flat_sub_t(feed, squash),
+          pkey(std::move(_pkey)),
+          stamp(0),
+          started(false) {
+        feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
         destructor_cleanup(
-            std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
+            std::bind(&feed_t::del_point_sub, feed, this,
+                      store_key_t(pkey.print_primary())));
     }
-    virtual void start_artificial(env_t *, const uuid_u &) {
+    virtual void start_artificial(env_t *env, const uuid_u &,
+                                  artificial_table_backend_t *subscriber) {
         started = true;
+        std::string err;
+        datum_t d;
+        if (subscriber != NULL
+            && subscriber->read_row(pkey, env->interruptor, &d, &err)) {
+            queue->add(store_key_t(pkey.print_primary()), datum_t(),
+                       d.has() ? d : datum_t::null());
+        } else {
+            rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
+        }
     }
     virtual void start_real(env_t *env,
                             std::string,
@@ -1312,7 +1328,8 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_point_stamp_t{*addr, key}, profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_point_stamp_t{*addr, store_key_t(pkey.print_primary())},
+                   profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1326,7 +1343,7 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(key, datum_t(), resp->initial_val);
+            queue->add(store_key_t(pkey.print_primary()), datum_t(), resp->initial_val);
         }
         started = true;
     }
@@ -1340,7 +1357,7 @@ public:
 private:
     virtual bool active() { return started; }
 
-    store_key_t key;
+    datum_t pkey;
     uint64_t stamp;
     bool started;
 };
@@ -1358,7 +1375,8 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid) {
+    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
+                                  artificial_table_backend_t *) {
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
@@ -1549,7 +1567,8 @@ public:
         }
     }
 
-    NORETURN virtual void start_artificial(env_t *, const uuid_u &) {
+    NORETURN virtual void start_artificial(env_t *, const uuid_u &,
+                                           artificial_table_backend_t *) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -2471,6 +2490,7 @@ artificial_t::~artificial_t() { }
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
     const keyspec_t::spec_t &spec,
+    artificial_table_backend_t *subscriber,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
     // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
@@ -2480,7 +2500,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), spec);
-    sub->start_artificial(env, uuid);
+    sub->start_artificial(env, uuid, subscriber);
     return make_counted<stream_t>(std::move(sub),
                                   boost::apply_visitor(pointness_visitor_t(), spec),
                                   bt);

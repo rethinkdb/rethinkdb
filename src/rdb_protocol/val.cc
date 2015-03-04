@@ -34,7 +34,7 @@ public:
         return tbl->tbl->read_changes(
             env,
             squash,
-            changefeed::keyspec_t::point_t{store_key_t(key.print_primary())},
+            changefeed::keyspec_t::point_t{key},
             bt,
             tbl->display_name());
     }
