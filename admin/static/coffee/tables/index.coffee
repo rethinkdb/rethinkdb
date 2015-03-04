@@ -308,8 +308,8 @@ class TableView extends Backbone.View
         @stopListening()
         super()
 
-module.exports =
-    DatabasesContainer: DatabasesContainer
-    DatabasesListView: DatabasesListView
-    DatabaseView: DatabaseView
-    TableView: TableView
+
+exports.DatabasesContainer = DatabasesContainer
+exports.DatabasesListView = DatabasesListView
+exports.DatabaseView = DatabaseView
+exports.TableView = TableView

@@ -249,7 +249,7 @@ class RenameItemModal extends AbstractModal
         if typeof @options?.on_success is 'function'
             @options.on_success @model
 
-module.exports =
-    AbstractModal: AbstractModal
-    ConfirmationDialogModal: ConfirmationDialogModal
-    RenameItemModal: RenameItemModal
+
+exports.AbstractModal = AbstractModal
+exports.ConfirmationDialogModal = ConfirmationDialogModal
+exports.RenameItemModal = RenameItemModal

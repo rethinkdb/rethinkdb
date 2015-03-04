@@ -119,5 +119,5 @@ class OperationProgressBar extends Backbone.View
     set_none_state: =>
         @stage = 'none'
 
-module.exports =
-    OperationProgressBar: OperationProgressBar
+
+exports.OperationProgressBar = OperationProgressBar

@@ -115,7 +115,7 @@ class LogView extends Backbone.View
         @stopListening()
         super()
 
-module.exports =
-    LogsContainer: LogsContainer
-    LogsListView: LogsListView
-    LogView: LogView
+
+exports.LogsContainer = LogsContainer
+exports.LogsListView = LogsListView
+exports.LogView = LogView

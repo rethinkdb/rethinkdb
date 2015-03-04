@@ -79,5 +79,5 @@ class NavBarView extends Backbone.View
         @$('.cog_icon').toggleClass 'active'
         @container.toggle_options event
 
-module.exports =
-    NavBarView: NavBarView
+
+exports.NavBarView = NavBarView

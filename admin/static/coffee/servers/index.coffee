@@ -14,7 +14,7 @@ class ServersContainer extends Backbone.View
 
     initialize: =>
         if not app.view_data_backup.servers_view_servers?
-            app.view_data_backup.servers_view_servers = new Servers
+            app.view_data_backup.servers_view_servers = new models.Servers
             @loading = true
         else
             @loading = false
@@ -149,3 +149,8 @@ class ServerView extends Backbone.View
 
     remove: =>
         @stopListening()
+
+
+exports.ServersContainer = ServersContainer
+exports.ServersListView = ServersListView
+exports.ServerView = ServerView

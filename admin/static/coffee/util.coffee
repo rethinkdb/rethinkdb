@@ -1,6 +1,8 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Prettifies a date given in Unix time (ms since epoch)
 
+Handlebars = require('hbsfy/runtime');
+
 # Returns a comma-separated list of the provided array
 Handlebars.registerHelper 'comma_separated', (context, block) ->
     out = ""
@@ -206,10 +208,10 @@ deep_copy = (data) ->
             result[key] = deep_copy value
         return result
 
-module.exports =
-    capitalize: capitalize
-    humanize_table_status: humanize_table_status
-    form_data_as_object: form_data_as_object
-    stripslashes: stripslashes
-    is_integer: is_integer
-    deep_copy: deep_copy
+
+exports.capitalize = capitalize
+exports.humanize_table_status = humanize_table_status
+exports.form_data_as_object = form_data_as_object
+exports.stripslashes = stripslashes
+exports.is_integer = is_integer
+exports.deep_copy = deep_copy

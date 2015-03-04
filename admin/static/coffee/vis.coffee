@@ -281,8 +281,8 @@ class InterpolatingCache
         if @values.length > @ndp
             @values = @values.slice(-@ndp)
 
-module.exports =
-    OpsPlotLegend: OpsPlotLegend
-    OpsPlot: OpsPlot
-    SizeBoundedCache: SizeBoundedCache
-    InterpolatingCache: InterpolatingCache
+
+exports.OpsPlotLegend = OpsPlotLegend
+exports.OpsPlot = OpsPlot
+exports.SizeBoundedCache = SizeBoundedCache
+exports.InterpolatingCache = InterpolatingCache

@@ -216,5 +216,5 @@ class ShardDistribution extends Backbone.View
         @$('rect').tooltip
             trigger: 'hover'
 
-module.exports =
-    ShardDistribution: ShardDistribution
+
+exports.ShardDistribution = ShardDistribution

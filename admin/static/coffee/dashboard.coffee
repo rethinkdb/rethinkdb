@@ -389,10 +389,9 @@ class ClusterStatusSindexes extends Backbone.View
         @$el.html @template template_model
         @
 
-module.exports =
-    DashboardContainer: DashboardContainer
-    DashboardMainView: DashboardMainView
-    ClusterStatusAvailability: ClusterStatusAvailability
-    ClusterStatusRedundancy: ClusterStatusRedundancy
-    ClusterStatusConnectivity: ClusterStatusConnectivity
-    ClusterStatusSindexes: ClusterStatusSindexes
+exports.DashboardContainer = DashboardContainer
+exports.DashboardMainView = DashboardMainView
+exports.ClusterStatusAvailability = ClusterStatusAvailability
+exports.ClusterStatusRedundancy = ClusterStatusRedundancy
+exports.ClusterStatusConnectivity = ClusterStatusConnectivity
+exports.ClusterStatusSindexes = ClusterStatusSindexes

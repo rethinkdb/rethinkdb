@@ -4,9 +4,8 @@ var gulp = require('gulp'),
     lessc = require('gulp-less'),
     browserify = require('browserify'),
     source = require('vinyl-source-stream'),
+    transform = require('vinyl-transform'),
     buffer = require('vinyl-buffer'),
-    sourcemaps = require('gulp-sourcemaps'),
-    coffee = require('gulp-coffee'),
     concat = require('gulp-concat'),
     gutil = require('gulp-util');
 

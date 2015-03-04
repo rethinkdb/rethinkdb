@@ -85,6 +85,6 @@ class Issue extends Backbone.View
 
         @modal.render()
 
-module.exports =
-    templates: templates
-    Issue: Issue
+
+exports.templates = templates
+exports.Issue = Issue

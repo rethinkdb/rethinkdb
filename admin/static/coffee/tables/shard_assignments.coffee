@@ -90,6 +90,6 @@ class ShardAssignmentView extends Backbone.View
         @stopListening()
         super()
 
-module.exports =
-    ShardAssignmentsView: ShardAssignmentsView
-    ShardAssignmentView: ShardAssignmentView
+
+exports.ShardAssignmentsView = ShardAssignmentsView
+exports.ShardAssignmentView = ShardAssignmentView

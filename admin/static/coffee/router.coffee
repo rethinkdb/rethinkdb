@@ -79,5 +79,5 @@ class BackboneCluster extends Backbone.Router
         @current_view = new server_view.ServerContainer id
         @container.html @current_view.render().$el
 
-module.exports =
-    BackboneCluster: BackboneCluster
+
+exports.BackboneCluster = BackboneCluster

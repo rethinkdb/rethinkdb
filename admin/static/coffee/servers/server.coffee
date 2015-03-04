@@ -350,10 +350,10 @@ class ResponsibilityView extends Backbone.View
         @stopListening()
         super()
 
-module.exports =
-    ServerContainer: ServerContainer
-    ServerMainView: ServerMainView
-    Title: Title
-    Profile: Profile
-    ResponsibilitiesList: ResponsibilitiesList
-    ResponsibilityView: ResponsibilityView
+
+exports.ServerContainer = ServerContainer
+exports.ServerMainView = ServerMainView
+exports.Title = Title
+exports.Profile = Profile
+exports.ResponsibilitiesList = ResponsibilitiesList
+exports.ResponsibilityView = ResponsibilityView

@@ -6,6 +6,7 @@ system_db = app.system_db
 topbar = require('./topbar.coffee')
 navbar = require('./navbar.coffee')
 models = require('./models.coffee')
+modals = require('./modals.coffee')
 router = require('./router.coffee')
 
 r = require('rethinkdb')
@@ -296,9 +297,9 @@ class IsDisconnected extends Backbone.View
             $('.reconnecting_state').html(@message)
             $('.animation_state').fadeIn('slow')
 
-module.exports =
-    MainContainer: MainContainer
-    OptionsView: OptionsView
-    AlertUpdates: AlertUpdates
-    Settings: Settings
-    IsDisconnected: IsDisconnected
+
+exports.MainContainer = MainContainer
+exports.OptionsView = OptionsView
+exports.AlertUpdates = AlertUpdates
+exports.Settings = Settings
+exports.IsDisconnected = IsDisconnected

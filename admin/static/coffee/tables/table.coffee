@@ -263,7 +263,7 @@ class TableContainer extends Backbone.View
         else
             @shards_assignments = new models.ShardAssignments(
                 _.map shards_assignments,
-                    (shard) -> new models.Shardassignment shard
+                    (shard) -> new models.ShardAssignment shard
             )
             @table_view?.set_assignments @shards_assignments
 
@@ -991,13 +991,13 @@ class SecondaryIndexView extends Backbone.View
         @progress_bar?.remove()
         super()
 
-module.exports =
-    TableContainer: TableContainer
-    TableMainView: TableMainView
-    ReconfigurePanel: ReconfigurePanel
-    ReconfigureDiffView: ReconfigureDiffView
-    Title: Title
-    Profile: Profile
-    TableStatusIndicator: TableStatusIndicator
-    SecondaryIndexesView: SecondaryIndexesView
-    SecondaryIndexView: SecondaryIndexView
+
+exports.TableContainer = TableContainer
+exports.TableMainView = TableMainView
+exports.ReconfigurePanel = ReconfigurePanel
+exports.ReconfigureDiffView = ReconfigureDiffView
+exports.Title = Title
+exports.Profile = Profile
+exports.TableStatusIndicator = TableStatusIndicator
+exports.SecondaryIndexesView = SecondaryIndexesView
+exports.SecondaryIndexView = SecondaryIndexView

@@ -202,10 +202,10 @@ class IssuesBanner extends Backbone.View
         @stopListening()
         super()
 
-module.exports =
-    Container: Container
-    ClientConnectionStatus: ClientConnectionStatus
-    ServersConnected: ServersConnected
-    TablesAvailable: TablesAvailable
-    Issues: Issues
-    IssuesBanner: IssuesBanner
+
+exports.Container = Container
+exports.ClientConnectionStatus = ClientConnectionStatus
+exports.ServersConnected = ServersConnected
+exports.TablesAvailable = TablesAvailable
+exports.Issues = Issues
+exports.IssuesBanner = IssuesBanner

@@ -385,11 +385,10 @@ $ ->
 # Create a driver - providing sugar on top of the raw driver
 driver = new Driver
 
-module.exports =
-    driver: driver
+exports.driver = driver
     # Some views backup their data here so that when you return to them
     # the latest data can be retrieved quickly.
-    view_data_backup: {}
-    main: null
+exports.view_data_backup = {}
+exports.main = null
     # The system database
-    system_db: system_db
+exports.system_db = system_db

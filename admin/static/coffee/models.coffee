@@ -129,25 +129,24 @@ class Stats extends Backbone.Model
 # convenience, it's useful to pick data from several of these models: these
 # are computed models (and computed collections).
 
-module.exports =
-    Servers: Servers
-    Server: Server
-    Tables: Tables
-    Table: Table
-    Reconfigure: Reconfigure
-    Databases: Databases
-    Database: Database
-    Indexes: Indexes
-    Index: Index
-    Distribution: Distribution
-    Shard: Shard
-    ShardAssignments: ShardAssignments
-    ShardAssignment: ShardAssignment
-    Responsibilities: Responsibilities
-    Responsibility: Responsibility
-    Dashboard: Dashboard
-    Issue: Issue
-    Issues: Issues
-    Logs: Logs
-    Log: Log
-    Stats: Stats
+exports.Servers = Servers
+exports.Server = Server
+exports.Tables = Tables
+exports.Table = Table
+exports.Reconfigure = Reconfigure
+exports.Databases = Databases
+exports.Database = Database
+exports.Indexes = Indexes
+exports.Index = Index
+exports.Distribution = Distribution
+exports.Shard = Shard
+exports.ShardAssignments = ShardAssignments
+exports.ShardAssignment = ShardAssignment
+exports.Responsibilities = Responsibilities
+exports.Responsibility = Responsibility
+exports.Dashboard = Dashboard
+exports.Issue = Issue
+exports.Issues = Issues
+exports.Logs = Logs
+exports.Log = Log
+exports.Stats = Stats

@@ -691,10 +691,9 @@ class ReconfigureModal extends ui_modals.AbstractModal
             shard_diffs.push(shard_diff)
         shard_diffs
 
-module.exports =
-    AddDatabaseModal: AddDatabaseModal
-    DeleteDatabaseModal: DeleteDatabaseModal
-    AddTableModal: AddTableModal
-    RemoveTableModal: RemoveTableModal
-    RemoveServerModal: RemoveServerModal
-    ReconfigureModal: ReconfigureModal
+exports.AddDatabaseModal = AddDatabaseModal
+exports.DeleteDatabaseModal = DeleteDatabaseModal
+exports.AddTableModal = AddTableModal
+exports.RemoveTableModal = RemoveTableModal
+exports.RemoveServerModal = RemoveServerModal
+exports.ReconfigureModal = ReconfigureModal

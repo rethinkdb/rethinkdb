@@ -4181,15 +4181,16 @@ Utils =
                     classname: 'jt_bool'
                     value: if value then 'true' else 'false'
 
-module.exports =
-    QueryResult: QueryResult
-    Container: Container
-    ResultView: ResultView
-    TreeView: TreeView
-    TableView: TableView
-    RawView: RawView
-    ProfileView: ProfileView
-    ResultViewWrapper: ResultViewWrapper
-    OptionsView: OptionsView
-    HistoryView: HistoryView
-    DriverHandler: DriverHandler
+
+exports.QueryResult = QueryResult
+exports.Container = Container
+exports.ResultView = ResultView
+exports.TreeView = TreeView
+exports.TableView = TableView
+exports.RawView = RawView
+exports.ProfileView = ProfileView
+exports.ResultViewWrapper = ResultViewWrapper
+exports.OptionsView = OptionsView
+exports.HistoryView = HistoryView
+exports.DriverHandler = DriverHandler
+exports.dataexplorer_state = dataexplorer_state
