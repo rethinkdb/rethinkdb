@@ -672,7 +672,9 @@ void datum_t::bool_to_str_key(std::string *str_out) const {
 
 void datum_t::extrema_to_str_key(std::string *str_out) const {
     if (get_type() == MINVAL) {
-        str_out->append(key_to_unescaped_str(store_key_t::min()));
+        // This isn't exactly the minimum key, but tag_skey_version requires
+        // a non-zero length key
+        str_out->append(1, '\x00');
     } else {
         r_sanity_check(get_type() == MAXVAL);
         // This is a hack to preserve the invariant that no keys have their top bit set
@@ -680,7 +682,7 @@ void datum_t::extrema_to_str_key(std::string *str_out) const {
         // TODO: remove this hack post-2.0
         std::string max_str = key_to_unescaped_str(store_key_t::max());
         guarantee(max_str.size() > 0);
-        max_str[0] &= 0x8F;
+        max_str[0] &= 0x7F;
         str_out->append(max_str);
     }
 }
@@ -1163,7 +1165,7 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // but the amount truncated depends on the length of the primary key.  Since we
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
-store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
+store_key_t datum_t::truncated_secondary(skey_version_t skey_version, extrema_ok_t extrema_ok) const {
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
@@ -1177,6 +1179,10 @@ store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
         array_to_str_key(&s);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
+    } else if (get_type() == MINVAL || get_type() == MAXVAL) {
+        rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::GENERIC,
+                     "Cannot use `r.minval` or `r.maxval` in a secondary index key.");
+        extrema_to_str_key(&s);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, "
@@ -2103,65 +2109,68 @@ datum_range_t::datum_range_t(
     datum_t _left_bound, key_range_t::bound_t _left_bound_type,
     datum_t _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
-      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) {
+    r_sanity_check(left_bound.has() && right_bound.has());
+}
 datum_range_t::datum_range_t(datum_t val)
     : left_bound(val), right_bound(val),
-      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) {
+    r_sanity_check(val.has());
+}
 
 datum_range_t datum_range_t::universe()  {
-    return datum_range_t(datum_t(), key_range_t::open,
-                         datum_t(), key_range_t::open);
+    return datum_range_t(datum_t::minval(), key_range_t::open,
+                         datum_t::maxval(), key_range_t::open);
 }
 bool datum_range_t::is_universe() const {
-    return !left_bound.has() && !right_bound.has()
-        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+    r_sanity_check(left_bound.has() && right_bound.has());
+    return left_bound.get_type() == datum_t::type_t::MINVAL &&
+           left_bound_type == key_range_t::open &&
+           right_bound.get_type() == datum_t::type_t::MAXVAL &&
+           right_bound_type == key_range_t::open;
 }
 
 bool datum_range_t::contains(reql_version_t reql_version,
                              datum_t val) const {
-    return (!left_bound.has()
-            || left_bound.compare_lt(reql_version, val)
-            || (left_bound == val && left_bound_type == key_range_t::closed))
-        && (!right_bound.has()
-            || right_bound.compare_gt(reql_version, val)
-            || (right_bound == val && right_bound_type == key_range_t::closed));
+    r_sanity_check(left_bound.has() && right_bound.has());
+    return (left_bound.compare_lt(reql_version, val) ||
+            (left_bound == val && left_bound_type == key_range_t::closed)) &&
+           (right_bound.compare_gt(reql_version, val) ||
+            (right_bound == val && right_bound_type == key_range_t::closed));
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {
-    object_buffer_t<store_key_t> lb, rb;
-    if (left_bound.has()) {
-        std::string lb_str = left_bound.print_primary_internal();
-        if (lb_str.size() > MAX_KEY_SIZE) {
-            lb_str.erase(MAX_KEY_SIZE);
-        }
-        lb.create(lb_str);
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    std::string lb_str = left_bound.print_primary_internal();
+    if (lb_str.size() > MAX_KEY_SIZE) {
+        lb_str.erase(MAX_KEY_SIZE);
     }
-    if (right_bound.has()) {
-        std::string rb_str = right_bound.print_primary_internal();
-        if (rb_str.size() > MAX_KEY_SIZE) {
-            rb_str.erase(MAX_KEY_SIZE);
-        }
-        rb.create(rb_str);
+
+    std::string rb_str = right_bound.print_primary_internal();
+    if (rb_str.size() > MAX_KEY_SIZE) {
+        rb_str.erase(MAX_KEY_SIZE);
     }
-    return key_range_t(left_bound_type, lb.has() ? *lb.get() : store_key_t::min(),
-                       right_bound_type, rb.has() ? *rb.get() : store_key_t::max());
+
+    return key_range_t(left_bound_type, store_key_t(lb_str),
+                       right_bound_type, store_key_t(rb_str));
 }
 
 key_range_t datum_range_t::to_sindex_keyrange(skey_version_t skey_version) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+    object_buffer_t<store_key_t> lb, rb;
     return rdb_protocol::sindex_key_range(
-        left_bound.has()
-            ? store_key_t(left_bound.truncated_secondary(skey_version))
-            : store_key_t::min(),
-        right_bound.has()
-            ? store_key_t(right_bound.truncated_secondary(skey_version))
-            : store_key_t::max());
+        store_key_t(left_bound.truncated_secondary(skey_version, extrema_ok_t::OK)),
+        store_key_t(right_bound.truncated_secondary(skey_version, extrema_ok_t::OK)));
 }
 
 datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {
+    r_sanity_check(d.has() && right_bound.has());
     return datum_range_t(d, type, right_bound, right_bound_type);
 }
 
 datum_range_t datum_range_t::with_right_bound(datum_t d, key_range_t::bound_t type) {
+    r_sanity_check(left_bound.has() && d.has());
     return datum_range_t(left_bound, left_bound_type, d, type);
 }
 

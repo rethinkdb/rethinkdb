@@ -82,12 +82,12 @@ tests:
   - py: tbl.get_all(r.minval, index='minval').count()
     js: tbl.get_all(r.minval, {index:'minval'}).count()
     rb: tbl.get_all(r.minval, :index => 'minval').count()
-    ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+    ot: 0
 
   - py: tbl.get_all(r.maxval, index='maxval').count()
     js: tbl.get_all(r.maxval, {index:'maxval'}).count()
     rb: tbl.get_all(r.maxval, :index => 'maxval').count()
-    ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+    ot: 0
 
   - py: tbl.between(r.minval, r.maxval, index='minval').count()
     js: tbl.between(r.minval, r.maxval, {index:'minval'}).count()

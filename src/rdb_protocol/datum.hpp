@@ -32,10 +32,6 @@ class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
 
-namespace unittest {
-struct make_sindex_read_t;
-}
-
 namespace ql {
 
 class datum_stream_t;
@@ -70,6 +66,10 @@ enum class use_json_t { NO = 0, YES = 1 };
 // When getting the typename of a datum, this should be YES if the name will be
 // used for sorting datums by type, and NO if the name is to be given to a user.
 enum class name_for_sorting_t { NO = 0, YES = 1};
+
+// When constructing a secondary index key, extremas should not be used.  They
+// may be used when constructing secondary index ranges (i.e. for `between`).
+enum class extrema_ok_t { NOT_OK = 0, OK = 1 };
 
 void debug_print(printf_buffer_t *, const datum_t &);
 
@@ -244,7 +244,8 @@ public:
         const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     static components_t extract_all(const std::string &secondary_and_primary);
-    store_key_t truncated_secondary(skey_version_t skey_version) const;
+    store_key_t truncated_secondary(skey_version_t skey_version,
+                                    extrema_ok_t extrema_ok = extrema_ok_t::NOT_OK) const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
 

@@ -473,9 +473,8 @@ private:
                           base_exc_t::GENERIC,
                           "Cannot use `null` in BETWEEN, use `r.minval` or `r.maxval` "
                           "to denote unboundedness.");
-            bound.reset();
-        } else if (bound.get_type() == unbounded_type) {
-            bound.reset();
+            bound = unbounded_type == datum_t::type_t::MINVAL ? datum_t::minval() :
+                                                                datum_t::maxval();
         }
         return bound;
     }

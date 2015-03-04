@@ -44,9 +44,6 @@ class Term;
 class Datum;
 class Backtrace;
 
-
-namespace unittest { struct make_sindex_read_t; }
-
 enum class profile_bool_t {
     PROFILE,
     DONT_PROFILE
