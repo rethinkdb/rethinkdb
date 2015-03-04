@@ -45,7 +45,7 @@ module 'UIComponents', ->
                 'keyboard': true
             .on 'hidden', =>
                 # Removes the modal dialog from the DOM
-                @$modal.remove()
+                @hide_modal()
 
             # Define @el to be the modal (the root of the view), make sure events perform on it
             @setElement @$modal

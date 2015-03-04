@@ -1,0 +1,4 @@
+entries = {
+  u'buildtools': u'https://chromium.googlesource.com/chromium/buildtools.git',
+  u'buildtools/clang_format/script': 'https://chromium.googlesource.com/chromium/llvm-project/cfe/tools/clang-format.git@385fc3379dc95b67d601b4384b16b1ec0bf12361',
+}

@@ -209,17 +209,17 @@ void remove_directory_recursive(const char *path);
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
-#define COMPILER "CLANG " __clang_version__
+#define COMPILER_STR "CLANG " __clang_version__
 #elif defined __GNUC__
-#define COMPILER "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
+#define COMPILER_STR "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
 #else
-#define COMPILER "UNKNOWN COMPILER"
+#define COMPILER_STR "UNKNOWN COMPILER"
 #endif
 
 #ifndef NDEBUG
-#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER ")"
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER_STR ")"
 #else
-#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER_STR ")"
 #endif
 
 #define ANY_PORT 0
