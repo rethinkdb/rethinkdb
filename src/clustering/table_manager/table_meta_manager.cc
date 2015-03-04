@@ -4,6 +4,7 @@
 #include "clustering/generic/minidir.tcc"
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.tcc"
+#include "logger.hpp"
 
 /* RSI: Should be `since_N` where `N` is the version for Raft */
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_meta_persistent_state_t,
@@ -335,11 +336,10 @@ void table_meta_manager_t::on_action(
     mutex_assertion_t::acq_t global_mutex_acq(&mutex);
     bool is_new = (tables.count(table_id) == 0);
     table_t *table;
-    scoped_ptr_t<table_t> *table_ptr = &tables[table_id];
-    if (!table_ptr->has()) {
-        table_ptr->init(table = new table_t);
+    if (is_new) {
+        tables[table_id].init(table = new table_t);
     } else {
-        table = table_ptr->get();
+        table = tables.at(table_id).get();
     }
     new_mutex_in_line_t table_mutex_in_line(&table->mutex);
     global_mutex_acq.reset();
@@ -372,11 +372,17 @@ void table_meta_manager_t::on_action(
         table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
             *member_id, *initial_state,
             table->multistore_ptr.get());
+        logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
     } else if (!static_cast<bool>(member_id) && table->active.has()) {
         /* The table is being dropped, or we are leaving it */
         table->active.reset();
         table->multistore_ptr.reset();
         persistence_interface->remove_table(table_id, interruptor);
+        if (is_deletion) {
+            logDBG("Deleting table %s", uuid_to_str(table_id).c_str());
+        } else {
+            logDBG("Removed replica for table %s", uuid_to_str(table_id).c_str());
+        }
     } else if (static_cast<bool>(member_id) && table->active.has() &&
             (table->timestamp.epoch != timestamp.epoch ||
                 table->active->member_id != *member_id)) {
@@ -392,6 +398,7 @@ void table_meta_manager_t::on_action(
         persistence_interface->update_table(table_id, st, interruptor);
         table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
             *member_id, *initial_state, table->multistore_ptr.get());
+        logDBG("Overrode replica for table %s", uuid_to_str(table_id).c_str());
     }
 
     table->timestamp = timestamp;

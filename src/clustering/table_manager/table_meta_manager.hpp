@@ -313,6 +313,8 @@ private:
     replica for this table. */
     class table_t {
     public:
+        table_t() : sync_coro_running(false) { }
+
         /* `to_sync_set` holds the server IDs and peer IDs of all the servers for which
         we should call `do_sync()` with this table. `schedule_sync()` adds entries to
         `to_sync_set` and sometimes also spawns a coroutine to call `do_sync()`; it uses
