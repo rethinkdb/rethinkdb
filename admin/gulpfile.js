@@ -17,18 +17,24 @@ var BUILD_DIR = './build',
     TEMPLATE_DIR = STATIC_DIR+'/handlebars';
 
 
-gulp.task('default', function() {
+gulp.task('default', ['browserify'], function() {
+});
+
+gulp.task('browserify', function() {
+  var browserified = transform(function(filename) {
+    return browserify(filename)
+      .transform('coffeeify')
+      .transform('browserify-handlebars')
+      .external('rethinkdb')
+      .bundle();
+  });
+
+  return gulp.src(['./static/coffee/body.coffee'])
+    .pipe(browserified)
+    .pipe(gulp.dest('./browserified_app.js'));
 });
 
 gulp.task('copy-files', function() {
   gulp.src(parameters.app_path+'/static/*')
     .pipe(gulp.dest(parameters.web_path+'/js/'));
-});
-
-
-gulp.task('coffee', function() {
-  return gulp.src(COFFEE_SRC)
-    .pipe(coffee({bare: true}).on('error', gutil.log))
-    .pipe(concat, parameters.app_main_file)
-    .pipe(gulp.dest())
 });

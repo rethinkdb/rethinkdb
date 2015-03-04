@@ -56,7 +56,7 @@ class Driver
                     if @state is 'ok'
                         is_disconnected.display_fail()
                 else
-                    is_disconnected = new body.IsDisconnected
+                    is_disconnected = new require('./body.coffee').IsDisconnected
                 @state = 'fail'
             else
                 if @state is 'fail'
