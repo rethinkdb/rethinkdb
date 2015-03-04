@@ -30,25 +30,6 @@ private:
     DISABLE_COPYING(value_sizer_t);
 };
 
-
-struct btree_superblock_t {
-    block_magic_t magic;
-    block_id_t root_block;
-    block_id_t stat_block;
-    block_id_t sindex_block;
-
-    static const int METAINFO_BLOB_MAXREFLEN
-        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
-                                                               - sizeof(root_block)
-                                                               - sizeof(stat_block)
-                                                               - sizeof(sindex_block);
-
-    char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
-
-    static const block_magic_t expected_magic;
-} __attribute__((__packed__));
-static const uint32_t BTREE_SUPERBLOCK_SIZE = sizeof(btree_superblock_t);
-
 struct btree_statblock_t {
     //The total number of keys in the btree
     int64_t population;

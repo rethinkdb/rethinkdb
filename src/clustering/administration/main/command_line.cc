@@ -38,7 +38,9 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/path.hpp"
-#include "clustering/administration/persist.hpp"
+#include "clustering/administration/persist/file.hpp"
+#include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/migrate_v1_16.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -374,10 +376,6 @@ serializer_filepath_t get_cluster_metadata_filename(const base_path_t& dirpath) 
     return serializer_filepath_t(dirpath, "metadata");
 }
 
-serializer_filepath_t get_auth_metadata_filename(const base_path_t& dirpath) {
-    return serializer_filepath_t(dirpath, "auth_metadata");
-}
-
 void initialize_logfile(const std::map<std::string, options::values_t> &opts,
                         const base_path_t& dirpath) {
     std::string filename;
@@ -678,23 +676,24 @@ void run_rethinkdb_create(const base_path_t &base_path,
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
-    perfmon_collection_t auth_perfmon_collection;
-    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
-
     try {
-        metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&io_backender,
-                                                                              get_cluster_metadata_filename(base_path),
-                                                                              &metadata_perfmon_collection,
-                                                                              our_server_id,
-                                                                              cluster_metadata);
-        metadata_persistence::auth_persistent_file_t auth_metadata_file(&io_backender,
-                                                                        get_auth_metadata_filename(base_path),
-                                                                        &auth_perfmon_collection,
-                                                                        auth_semilattice_metadata_t());
-        logNTC("Our server ID: %s\n", uuid_to_str(our_server_id).c_str());
+        cond_t non_interruptor;
+        metadata_file_t metadata_file(
+            &io_backender,
+            get_cluster_metadata_filename(base_path),
+            &metadata_perfmon_collection,
+            [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
+                write_txn->write(mdkey_server_id(),
+                    our_server_id, interruptor);
+                write_txn->write(mdkey_cluster_semilattices(),
+                    cluster_metadata, interruptor);
+                write_txn->write(mdkey_auth_semilattices(),
+                    auth_semilattice_metadata_t(), interruptor);
+            },
+            &non_interruptor);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
-    } catch (const metadata_persistence::file_in_use_exc_t &ex) {
+    } catch (const file_in_use_exc_t &ex) {
         logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     }
@@ -741,45 +740,54 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
-    perfmon_collection_t auth_perfmon_collection;
-    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
-
     try {
-        scoped_ptr_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
-        scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
-        if (our_server_id && cluster_metadata) {
-            cluster_metadata_file.init(
-                new metadata_persistence::cluster_persistent_file_t(&io_backender,
-                                                                    get_cluster_metadata_filename(base_path),
-                                                                    &metadata_perfmon_collection,
-                                                                    *our_server_id,
-                                                                    *cluster_metadata));
-            auth_metadata_file.init(
-                new metadata_persistence::auth_persistent_file_t(&io_backender,
-                                                                 get_auth_metadata_filename(base_path),
-                                                                 &auth_perfmon_collection,
-                                                                 auth_semilattice_metadata_t()));
+        scoped_ptr_t<metadata_file_t> metadata_file;
+        cond_t non_interruptor;
+        if (our_server_id != nullptr && cluster_metadata != nullptr) {
+            metadata_file.init(new metadata_file_t(
+                &io_backender,
+                get_cluster_metadata_filename(base_path),
+                &metadata_perfmon_collection,
+                [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
+                    write_txn->write(mdkey_server_id(),
+                        *our_server_id, interruptor);
+                    write_txn->write(mdkey_cluster_semilattices(),
+                        *cluster_metadata, interruptor);
+                    write_txn->write(mdkey_auth_semilattices(),
+                        auth_semilattice_metadata_t(), interruptor);
+                },
+                &non_interruptor));
             guarantee(!static_cast<bool>(total_cache_size), "rethinkdb porcelain should "
                 "have already set up total_cache_size");
         } else {
-            cluster_metadata_file.init(
-                new metadata_persistence::cluster_persistent_file_t(&io_backender,
-                                                                    get_cluster_metadata_filename(base_path),
-                                                                    &metadata_perfmon_collection));
-            auth_metadata_file.init(
-                new metadata_persistence::auth_persistent_file_t(&io_backender,
-                                                                 get_auth_metadata_filename(base_path),
-                                                                 &auth_perfmon_collection));
-
+            metadata_file.init(new metadata_file_t(
+                &io_backender,
+                get_cluster_metadata_filename(base_path),
+                &metadata_perfmon_collection,
+                &non_interruptor));
+            /* The `metadata_file_t` constructor will migrate the main metadata if it
+            exists, but we need to migrate the auth metadata separately */
+            serializer_filepath_t auth_path(base_path, "auth_metadata");
+            if (access(auth_path.permanent_path().c_str(), F_OK) == 0) {
+                {
+                    metadata_file_t::write_txn_t txn(metadata_file.get(),
+                                                     &non_interruptor);
+                    migrate_v1_16::migrate_auth_file(auth_path, &txn);
+                    /* End the inner scope here so we flush the new metadata file before
+                    we delete the old auth file */
+                }
+                remove(auth_path.permanent_path().c_str());
+            }
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
+                metadata_file_t::write_txn_t txn(metadata_file.get(), &non_interruptor);
                 cluster_semilattice_metadata_t md =
-                    cluster_metadata_file->read_metadata();
-                server_id_t server_id = cluster_metadata_file->read_server_id();
+                    txn.read(mdkey_cluster_semilattices(), &non_interruptor);
+                server_id_t server_id = txn.read(mdkey_server_id(), &non_interruptor);
                 auto it = md.servers.servers.find(server_id);
                 if (it != md.servers.servers.end() && !it->second.is_deleted()) {
                     it->second.get_mutable()->cache_size_bytes.set(*total_cache_size);
-                    cluster_metadata_file->update_metadata(md);
+                    txn.write(mdkey_cluster_semilattices(), md, &non_interruptor);
                 }
             }
         }
@@ -791,12 +799,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         serve_info->look_up_peers();
         *result_out = serve(&io_backender,
                             base_path,
-                            cluster_metadata_file.get(),
-                            auth_metadata_file.get(),
+                            metadata_file.get(),
                             *serve_info,
                             &sigint_cond);
 
-    } catch (const metadata_persistence::file_in_use_exc_t &ex) {
+    } catch (const file_in_use_exc_t &ex) {
         logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     } catch (const host_lookup_exc_t &ex) {
