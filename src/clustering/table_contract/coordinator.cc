@@ -470,7 +470,8 @@ void calculate_member_ids_and_raft_config(
     already have entries in `member_ids` */
     for (const server_id_t &server : members_goal) {
         if (sc.state.member_ids.count(server) == 0) {
-            add_member_ids_out->insert(std::make_pair(server, generate_uuid()));
+            add_member_ids_out->insert(std::make_pair(
+                server, raft_member_id_t(generate_uuid())));
         }
     }
     /* For any servers in the current `member_ids` that aren't in `servers`, add an entry
