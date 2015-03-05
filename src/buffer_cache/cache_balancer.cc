@@ -147,24 +147,28 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
     last_rebalance_time = now;
 
     // Calculate new cache sizes
-    if (total_cache_size > 0 && total_evicters > 0) {
+    if (total_evicters > 0) {
         uint64_t total_new_sizes = 0;
 
         for (size_t i = 0; i < cache_data.size(); ++i) {
             for (size_t j = 0; j < cache_data[i].size(); ++j) {
                 cache_data_t *data = &cache_data[i][j];
 
-                double temp = data->old_size;
-                temp /= static_cast<double>(total_cache_size);
-                temp *= static_cast<double>(total_bytes_loaded);
+                if (total_cache_size > 0) {
+                    double temp = data->old_size;
+                    temp /= static_cast<double>(total_cache_size);
+                    temp *= static_cast<double>(total_bytes_loaded);
 
-                int64_t new_size = data->bytes_loaded;
-                new_size -= static_cast<int64_t>(temp);
-                new_size += data->old_size;
-                new_size = std::max<int64_t>(new_size, 0);
+                    int64_t new_size = data->bytes_loaded;
+                    new_size -= static_cast<int64_t>(temp);
+                    new_size += data->old_size;
+                    new_size = std::max<int64_t>(new_size, 0);
 
-                data->new_size = new_size;
-                total_new_sizes += new_size;
+                    data->new_size = new_size;
+                    total_new_sizes += new_size;
+                } else {
+                    data->new_size = 0;
+                }
             }
         }
 
