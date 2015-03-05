@@ -1313,12 +1313,14 @@ public:
         started = true;
         std::string err;
         datum_t d;
-        if (subscriber != NULL
-            && subscriber->read_row(pkey, env->interruptor, &d, &err)) {
-            queue->add(store_key_t(pkey.print_primary()), datum_t(),
-                       d.has() ? d : datum_t::null());
-        } else {
-            rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
+        // `subscriber` should only be `NULL` in the unit tests.
+        if (subscriber != NULL) {
+            if (subscriber->read_row(pkey, env->interruptor, &d, &err)) {
+                queue->add(store_key_t(pkey.print_primary()), datum_t(),
+                           d.has() ? d : datum_t::null());
+            } else {
+                rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
+            }
         }
     }
     virtual void start_real(env_t *env,
