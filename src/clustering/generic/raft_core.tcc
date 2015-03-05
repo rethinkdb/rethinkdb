@@ -1458,22 +1458,20 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
     }
 
     /* Kill coroutines as necessary */
-    for (auto it = update_drainers->begin(); it != update_drainers->end();
-            ++it) {
+    for (auto it = update_drainers->begin(); it != update_drainers->end(); ) {
         raft_member_id_t peer = it->first;
         guarantee(peer != this_member_id, "We shouldn't have spawned a coroutine to "
             "send updates to ourself");
         if (peers.count(peer) == 1) {
             /* `peer` is still a member of the cluster, so the coroutine should stay
             alive */
+            ++it;
             continue;
+        } else {
+            /* This will block until the update coroutine stops */
+            update_drainers->erase(it++);
+            match_indexes.erase(peer);
         }
-        auto jt = it;
-        ++jt;
-        /* This will block until the update coroutine stops */
-        update_drainers->erase(it);
-        it = jt;
-        match_indexes.erase(peer);
     }
 }
 

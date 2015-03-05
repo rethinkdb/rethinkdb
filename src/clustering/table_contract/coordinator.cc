@@ -579,7 +579,7 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
 
             /* Now we'll apply changes to Raft. We keep trying in a loop in case it
             doesn't work at first. */
-            do {
+            while (true) {
                 /* Wait until the Raft member is likely to accept changes */
                 raft->get_readiness_for_change()->run_until_satisfied(
                     [](bool is_ready) { return is_ready; },
@@ -607,6 +607,7 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                 });
 
                 /* Apply the change, unless it's a no-op */
+                bool change_ok;
                 if (!change.remove_contracts.empty() ||
                         !change.add_contracts.empty() ||
                         !change.remove_branches.empty() ||
@@ -617,19 +618,25 @@ void contract_coordinator_t::pump_contracts(auto_drainer_t::lock_t keepalive) {
                             &change_lock, table_raft_state_t::change_t(change),
                             &non_interruptor);
 
-                    /* If the change failed, go back to the top of the loop and wait on
-                    `get_readiness_for_change()` again. But if the change succeeded,
-                    don't bother waiting on it; we won't start a redundant change because
-                    we always compute the change by comparing to `get_latest_state()`. */
-                    if (!change_token.has()) {
-                        continue;
-                    }
-
                     /* `pump_configs()` sometimes makes changes in reaction to changes in
                     contracts, so wake it up. */
                     wake_pump_configs->pulse_if_not_already_pulsed();
+
+                    change_ok = change_token.has();
+
+                    /* Note that we don't wait on the change token. We know we won't
+                    start a redundant change because we always compute the change by
+                    comparing to `get_latest_state()`. */
+                } else {
+                    change_ok = true;
                 }
-            } while (false);
+
+                /* If the change failed, go back to the top of the loop and wait on
+                `get_readiness_for_change()` again. */
+                if (change_ok) {
+                    break;
+                }
+            }
         }
     } catch (const interrupted_exc_t &) {
         /* We're shutting down or no longer Raft leader for some reason. */
@@ -650,7 +657,7 @@ void contract_coordinator_t::pump_configs(auto_drainer_t::lock_t keepalive) {
 
             /* Now we'll apply changes to Raft. We keep trying in a loop in case it
             doesn't work at first. */
-            do {
+            while (true) {
                 /* Wait until the Raft member is likely to accept config changes. This
                 isn't actually necessary for changes to `member_ids`, but it's easier to
                 just handle `member_ids` changes and Raft configuration changes at the
@@ -692,31 +699,48 @@ void contract_coordinator_t::pump_configs(auto_drainer_t::lock_t keepalive) {
                     }
                 });
 
-                /* Apply the member IDs change, unless it's a no-op */
+                bool member_ids_ok;
                 if (!member_ids_change.remove_member_ids.empty() ||
                         !member_ids_change.add_member_ids.empty()) {
+                    /* Apply the `member_ids` change */
                     cond_t non_interruptor;
                     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                         change_token = raft->propose_change(
                             &change_lock,
                             table_raft_state_t::change_t(member_ids_change),
                             &non_interruptor);
-                    if (!change_token.has()) {
-                        continue;
-                    }
+                    member_ids_ok = change_token.has();
+                } else {
+                    /* The change is a no-op, so don't bother applying it */
+                    member_ids_ok = true;
                 }
 
-                /* Apply the new config, unless it's a no-op */
-                if (static_cast<bool>(config_change)) {
+                bool config_ok;
+                if (!member_ids_ok) {
+                    /* If the `member_ids` change didn't go through, don't attempt the
+                    config change. The config change would be unlikely to succeed, but
+                    more importantly, the config change isn't necessarily valid to apply
+                    unless it comes after the `member_ids` change. */
+                    config_ok = false;
+                } else if (static_cast<bool>(config_change)) {
+                    /* Apply the config change */
                     cond_t non_interruptor;
                     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                         change_token = raft->propose_config_change(
                             &change_lock, *config_change, &non_interruptor);
-                    if (!change_token.has()) {
-                        continue;
-                    }
+                    config_ok = change_token.has();
+                } else {
+                    /* The config change is a no-op */
+                    config_ok = true;
                 }
-            } while (false);
+
+                /* If both changes succeeded, break out of the loop. Otherwise, go back
+                to the top of the loop and wait for `get_readiness_for_config_change()`
+                again. */
+                if (member_ids_ok && config_ok) {
+                    break;
+                }
+            }
         }
     } catch (const interrupted_exc_t &) {
         /* We're shutting down or no longer Raft leader for some reason. */
