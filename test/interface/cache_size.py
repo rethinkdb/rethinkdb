@@ -31,17 +31,27 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
                .update({"cache_size_mb": size_mb}) \
                .run(conn)
         assert res["errors"] == 0, res
-        # Wait a moment for the change to take effect
-        time.sleep(1)
 
     def check_cache_usage(expect_mb):
-        actual_mb = r.db("rethinkdb") \
-                     .table("stats") \
-                     ["storage_engine"]["cache"]["in_use_bytes"] \
-                     .nth(0) \
-                     .div(megabyte) \
-                     .run(conn)
-        assert expect_mb * 0.9 <= actual_mb <= expect_mb * 1.01, "Measured cache usage at %.2f MB (expected %.2f MB)" % (actual_mb, expect_mb)
+        # Wait for up to 5 seconds because changes to the cache size might take a moment
+        # to take effect.
+        deadline = time.time() + 5
+        last_error = None
+        while time.time() < deadline:
+            try:
+                actual_mb = r.db("rethinkdb") \
+                             .table("stats") \
+                             ["storage_engine"]["cache"]["in_use_bytes"] \
+                             .nth(0) \
+                             .div(megabyte) \
+                             .run(conn)
+                assert expect_mb * 0.9 <= actual_mb <= expect_mb * 1.01, "Measured cache usage at %.2f MB (expected %.2f MB)" % (actual_mb, expect_mb)
+                break
+            except AssertionError as e:
+                last_error = e
+                time.sleep(0.5)
+        else:
+            raise last_error
 
     high_cache_mb = 20
     set_cache_size(high_cache_mb)
@@ -71,10 +81,20 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
     set_cache_size(high_cache_mb)
 
     print("Forcing cache repopulation...")
-    res = r.table("test").map(r.row).count().run(conn)
-    assert res == num_docs, res
+    # Try this twice in case the new cache size hasn't taken effect yet the first time
+    # we run the query.
+    last_error = None
+    for i in range(0, 2):
+        try:
+            res = r.table("test").map(r.row).count().run(conn)
+            assert res == num_docs, res
 
-    check_cache_usage(high_cache_mb)
+            check_cache_usage(high_cache_mb)
+            break
+        except AssertionError as e:
+            last_error = e
+    else:
+        raise last_error
 
     set_cache_size(0)
     check_cache_usage(0)
