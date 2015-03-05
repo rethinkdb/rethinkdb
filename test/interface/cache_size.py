@@ -31,6 +31,8 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
                .update({"cache_size_mb": size_mb}) \
                .run(conn)
         assert res["errors"] == 0, res
+        # Wait a moment for the change to take effect
+        time.sleep(1)
 
     def check_cache_usage(expect_mb):
         actual_mb = r.db("rethinkdb") \
@@ -69,10 +71,13 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
     set_cache_size(high_cache_mb)
 
     print("Forcing cache repopulation...")
-    res = r.table("test").update({"new_field": "hi"}).run(conn)
-    assert res["replaced"] == num_docs and res["errors"] == 0, res
+    res = r.table("test").map(r.row).count().run(conn)
+    assert res == num_docs, res
 
     check_cache_usage(high_cache_mb)
+
+    set_cache_size(0)
+    check_cache_usage(0)
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
