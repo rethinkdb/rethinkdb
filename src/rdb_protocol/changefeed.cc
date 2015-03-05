@@ -999,6 +999,7 @@ class feed_t;
 class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
+    virtual feed_type_t cfeed_type() const = 0;
     std::vector<datum_t>
     get_els(batcher_t *batcher,
             return_empty_normal_batches_t return_empty_normal_batches,
@@ -1303,6 +1304,9 @@ public:
           started(false) {
         feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
+    virtual feed_type_t cfeed_type() const final {
+        return feed_type_t::point;
+    }
     virtual ~point_sub_t() {
         destructor_cleanup(
             std::bind(&feed_t::del_point_sub, feed, this,
@@ -1373,6 +1377,9 @@ public:
             ops.push_back(make_op(transform));
         }
         feed->add_range_sub(this);
+    }
+    virtual feed_type_t cfeed_type() const final {
+        return feed_type_t::stream;
     }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
@@ -1487,6 +1494,10 @@ public:
     }
     virtual ~limit_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
+    }
+
+    virtual feed_type_t cfeed_type() const final {
+        return feed_type_t::orderby_limit;
     }
 
     void maybe_start() {
@@ -1943,14 +1954,13 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
 class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    stream_t(scoped_ptr_t<subscription_t> &&_sub, bool _is_point, Args... args)
+    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
         : eager_datum_stream_t(std::forward<Args...>(args...)),
-          is_point(_is_point),
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual feed_type_t cfeed_type() const {
-        return is_point ? feed_type_t::point : feed_type_t::stream;
+        return sub->cfeed_type();
     }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
@@ -1966,7 +1976,6 @@ public:
                             env->interruptor);
     }
 private:
-    bool is_point;
     scoped_ptr_t<subscription_t> sub;
 };
 
@@ -2415,13 +2424,7 @@ counted_t<datum_stream_t> client_t::new_stream(
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
-        bool is_point;
-        if (spec.type() == typeid(keyspec_t::point_t)) {
-            is_point = true;
-        } else {
-            is_point = false;
-        }
-        return make_counted<stream_t>(std::move(sub), is_point, bt);
+        return make_counted<stream_t>(std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
@@ -2464,13 +2467,6 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
     return ret;
 }
 
-class pointness_visitor_t : public boost::static_visitor<bool> {
-public:
-    bool operator()(const keyspec_t::range_t &) const { return false; }
-    bool operator()(const keyspec_t::limit_t &) const { return false; }
-    bool operator()(const keyspec_t::point_t &) const { return true; }
-};
-
 class artificial_feed_t : public feed_t {
 public:
     explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
@@ -2503,9 +2499,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), spec);
     sub->start_artificial(env, uuid, subscriber);
-    return make_counted<stream_t>(std::move(sub),
-                                  boost::apply_visitor(pointness_visitor_t(), spec),
-                                  bt);
+    return make_counted<stream_t>(std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {

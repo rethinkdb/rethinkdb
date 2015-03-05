@@ -31,28 +31,19 @@ class func_t;
 
 enum class return_empty_normal_batches_t { NO, YES };
 
-enum class feed_type_t {
-    not_feed,
-    point,
-    stream,
-};
+enum class feed_type_t { not_feed, point, stream, orderby_limit, unioned };
 
 // Handle unions of changefeeds; the union of a stream and a point
 // changefeed is defined to be a stream here.
 inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
     switch (a) {
-    case feed_type_t::stream:
-        return feed_type_t::stream;
-    case feed_type_t::point:
-        switch (b) {
-        case feed_type_t::stream:
-            return feed_type_t::stream;
-        case feed_type_t::point:
-        case feed_type_t::not_feed:
-            return feed_type_t::point;
-        }
-    case feed_type_t::not_feed:
-        return b;
+    case feed_type_t::stream: // fallthru
+    case feed_type_t::point: // fallthru
+    case feed_type_t::orderby_limit:
+        return (b == a || b == feed_type_t::not_feed) ? a : feed_type_t::unioned;
+    case feed_type_t::unioned: return a;
+    case feed_type_t::not_feed: return b;
+    default: unreachable();
     }
     unreachable();
 }

@@ -2,6 +2,7 @@ err = require('./errors')
 util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
+protoResponseNote = require('./proto-def').Response.ResponseNote
 Promise = require('bluebird')
 EventEmitter = require('events').EventEmitter
 
@@ -121,10 +122,6 @@ class IterableResult
                 # Error responses are not discarded, and the error will be sent to all future callbacks
                 switch response.t
                     when protoResponseType.SUCCESS_PARTIAL
-                        @_handleRow()
-                    when protoResponseType.SUCCESS_FEED
-                        @_handleRow()
-                    when protoResponseType.SUCCESS_ATOM_FEED
                         @_handleRow()
                     when protoResponseType.SUCCESS_SEQUENCE
                         if response.r.length is 0
@@ -311,8 +308,6 @@ class IterableResult
         else
             @emitter.emit('data', data)
 
-
-
 class Cursor extends IterableResult
     constructor: ->
         @_type = protoResponseType.SUCCESS_PARTIAL
@@ -322,7 +317,7 @@ class Cursor extends IterableResult
 
 class Feed extends IterableResult
     constructor: ->
-        @_type = protoResponseType.SUCCESS_FEED
+        @_type = protoResponseNote.SEQUENCE_FEED
         super
 
     hasNext: ->
@@ -332,10 +327,9 @@ class Feed extends IterableResult
 
     toString: ar () -> "[object Feed]"
 
-
 class AtomFeed extends IterableResult
     constructor: ->
-        @_type = protoResponseType.SUCCESS_ATOM_FEED
+        @_type = protoResponseNote.ATOM_FEED
         super
 
     hasNext: ->
@@ -345,6 +339,17 @@ class AtomFeed extends IterableResult
 
     toString: ar () -> "[object AtomFeed]"
 
+class OrderByLimitFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseNote.ORDER_BY_LIMIT_FEED
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object OrderByLimitFeed]"
 
 # Used to wrap array results so they support the same iterable result
 # API as cursors.

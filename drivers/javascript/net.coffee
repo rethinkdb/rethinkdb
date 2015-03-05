@@ -408,9 +408,34 @@ class Connection extends events.EventEmitter
                         # `CONTINUE` query with the same token. So, we
                         # create a new Cursor for this token, and add
                         # it to the object stored in
-                        # `@outstandingCallbacks`
-                        cursor = new cursors.Cursor @, token, opts, root
+                        # `@outstandingCallbacks`.
+
+                        # We create a new cursor, which is sometimes a
+                        # `Feed`, `AtomFeed`, or `OrderByLimitFeed`
+                        # depending on the `ResponseNotes`.  (This
+                        # usually doesn't matter, but third-party ORMs
+                        # might want to treat these differently.)
+                        if response.n.length == 0
+                            cursor = new cursors.Cursor @, token, opts, root
+                        else if response.n.length == 1
+                            switch response.n[0]
+                                when protodef.Response.ResponseNote.SEQUENCE_FEED
+                                    cursor = new cursors.Feed @, token, opts, root
+                                when protodef.Response.ResponseNote.ATOM_FEED
+                                    cursor = new cursors.AtomFeed @, token, opts, root
+                                when protodef.Response.ResponseNote.ORDER_BY_LIMIT_FEED
+                                    cursor = new cursors.OrderByLimitFeed @, token, opts, root
+                                else
+                                    cb new err.RqlDriverError "Unknown note"
+                        else
+                            # Currently all notes are mutually exclusive.
+                            cb new err.RqlDriverError "Too many notes"
+
+                        # When we've created the cursor, we add it to
+                        # the object stored in
+                        # `@outstandingCallbacks`.
                         @outstandingCallbacks[token].cursor = cursor
+
                         # Again, if we have profile information, we
                         # wrap the result given to the callback.  In
                         # either case, we need to add the response to
@@ -447,39 +472,6 @@ class Connection extends events.EventEmitter
                             cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
                             cb null, cursor._addResponse(response)
-                    when protoResponseType.SUCCESS_FEED
-                        # The `SUCCESS_FEED` response is sent by the
-                        # server to indicate that the response
-                        # represents a changefeed. This works just
-                        # like a cursor (sending `CONTINUE` to get
-                        # more results etc), except that it is
-                        # potentially infinite.
-                        #
-                        # The main difference here is that we create a
-                        # `Feed` object vs. a `Cursor` object, and we
-                        # set the `feed` key for this token in
-                        # `@outstandingCallbacks` instead of the
-                        # `cursor` key.
-                        feed = new cursors.Feed @, token, opts, root
-                        @outstandingCallbacks[token].feed = feed
-                        if profile?
-                            cb null, {profile: profile, value: feed._addResponse(response)}
-                        else
-                            cb null, feed._addResponse(response)
-                    when protoResponseType.SUCCESS_ATOM_FEED
-                        # `SUCCESS_ATOM_FEED` is just like
-                        # `SUCCESS_FEED`, except that it indicates the
-                        # changes coming back will all be for a single
-                        # document, vs. changes from potentially many
-                        # documents. So for example, a query like
-                        # `r.table('foo').get('bar').changes()` will
-                        # return a `SUCCESS_ATOM_FEED` response
-                        feed = new cursors.AtomFeed @, token, opts, root
-                        @outstandingCallbacks[token].feed = feed
-                        if profile?
-                            cb null, {profile: profile, value: feed._addResponse(response)}
-                        else
-                            cb null, feed._addResponse(response)
                     when protoResponseType.WAIT_COMPLETE
                         # The `WAIT_COMPLETE` response is sent by the
                         # server after all queries executed with the

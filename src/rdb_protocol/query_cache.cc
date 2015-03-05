@@ -311,17 +311,26 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         d->write_to_protobuf(res->add_response(), use_json);
     }
 
-    const ql::feed_type_t cfeed = entry->stream->cfeed_type();
-    if (entry->stream->is_exhausted() || (res->response_size() == 0
-                                          && cfeed == feed_type_t::not_feed)) {
-        res->set_type(Response::SUCCESS_SEQUENCE);
-        entry->state = entry_t::state_t::DONE;
-    } else if (cfeed == feed_type_t::stream) {
-        res->set_type(Response::SUCCESS_FEED);
-    } else if (cfeed == feed_type_t::point) {
-        res->set_type(Response::SUCCESS_ATOM_FEED);
-    } else {
-        res->set_type(Response::SUCCESS_PARTIAL);
+    res->set_type(Response::SUCCESS_PARTIAL);
+    switch (entry->stream->cfeed_type()) {
+    case feed_type_t::not_feed:
+        if (entry->stream->is_exhausted() || res->response_size() ==0) {
+            res->set_type(Response::SUCCESS_SEQUENCE);
+        }
+        break;
+    case feed_type_t::stream:
+        res->add_notes(Response::SEQUENCE_FEED);
+        break;
+    case feed_type_t::point:
+        res->add_notes(Response::ATOM_FEED);
+        break;
+    case feed_type_t::orderby_limit:
+        res->add_notes(Response::ORDER_BY_LIMIT_FEED);
+        break;
+    case feed_type_t::unioned:
+        res->add_notes(Response::UNIONED_FEED);
+        break;
+    default: unreachable();
     }
 }
 

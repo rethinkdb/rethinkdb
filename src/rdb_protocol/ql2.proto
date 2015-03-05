@@ -119,9 +119,7 @@ message Response {
                                // the same token as this response, you will get
                                // more of the sequence.  Keep sending [CONTINUE]
                                // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED      = 5; // Like [SUCCESS_PARTIAL] but for feeds.
         WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
-        SUCCESS_ATOM_FEED = 6; // Like [SUCCESS_FEED] but a singleton.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -136,6 +134,15 @@ message Response {
                             // than numbers.
     }
     optional ResponseType type = 1;
+
+    enum ResponseNote {
+        SEQUENCE_FEED = 1;
+        ATOM_FEED = 2;
+        ORDER_BY_LIMIT_FEED = 3;
+        UNIONED_FEED = 4;
+    }
+    repeated ResponseNote notes = 6;
+
     optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL

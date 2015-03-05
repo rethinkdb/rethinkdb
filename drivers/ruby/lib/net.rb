@@ -196,9 +196,7 @@ module RethinkDB
 
       res = run_internal(q, all_opts, token)
       return res if !res
-      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL ||
-         res['t'] == Response::ResponseType::SUCCESS_FEED ||
-         res['t'] == Response::ResponseType::SUCCESS_ATOM_FEED
+      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                            msg, self, opts, token, true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
