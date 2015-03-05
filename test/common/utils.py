@@ -537,7 +537,7 @@ def getShardRanges(conn, table, db='test'):
     # -- translate split points into ranges
     
     ranges = []
-    lastPoint = None
+    lastPoint = conn._r.minval
     for splitPoint in splitPointsRaw:
         newPoint = None
         if splitPoint.startswith('N'):
@@ -557,9 +557,9 @@ def getShardRanges(conn, table, db='test'):
     # - default if no split points
     
     if not ranges:
-        ranges.append((None, None))
+        ranges.append((conn._r.minval, conn._r.maxval))
     else:
-        ranges.append((lastPoint, None))
+        ranges.append((lastPoint, conn._r.maxval))
     
     # -- return value
     
