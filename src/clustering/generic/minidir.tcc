@@ -91,9 +91,11 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
                         &map_var, *key, *value)));
             }
         } else {
-            /* We are deleting an existing key */
-            guarantee(it != link_data->map.end());
-            link_data->map.erase(it);
+            /* We are deleting an existing key. (Or maybe the key doesn't exist, and this
+            message was redundant. That's possible too.) */
+            if (it != link_data->map.end()) {
+                link_data->map.erase(it);
+            }
         }
     }
 }
