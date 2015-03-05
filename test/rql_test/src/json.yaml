@@ -37,6 +37,18 @@ tests:
     - cd: r.json(text).to_json_string()
       ot: sorted
 
+    - cd: r.expr(r.minval).to_json_string()
+      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+
+    - cd: r.expr(r.maxval).to_json_string()
+      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+
+    - cd: r.expr(r.minval).coerce_to('string')
+      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+
+    - cd: r.expr(r.maxval).coerce_to('string')
+      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+
     - cd: r.time(2014,9,11, 'Z')
       runopts:
         time_format: "'raw'"

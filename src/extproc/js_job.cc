@@ -1,10 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/js_job.hpp"
 
+#include <v8.h>
+
 #include <stdint.h>
 #include <libplatform/libplatform.h>
 #include <limits>
-#include <v8.h>
 
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -104,11 +105,10 @@ private:
 // Cleans the worker process's environment when instantiated
 class js_context_t {
 public:
-    js_context_t(UNUSED js_env_t *js_env) :
+    js_context_t() :
         local_scope(js_instance_t::isolate()),
         context(v8::Context::New(js_instance_t::isolate())),
-        scope(context) {
-    }
+        scope(context) { }
 
     v8::HandleScope local_scope;
     v8::Local<v8::Context> context;
@@ -388,7 +388,7 @@ js_env_t::~js_env_t() {
 
 js_result_t js_env_t::eval(const std::string &source,
                            const ql::configured_limits_t &limits) {
-    js_context_t clean_context(this);
+    js_context_t clean_context;
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
@@ -492,7 +492,7 @@ v8::Local<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
 js_result_t js_env_t::call(js_id_t id,
                            const std::vector<ql::datum_t> &args,
                            const ql::configured_limits_t &limits) {
-    js_context_t clean_context(this);
+    js_context_t clean_context;
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
@@ -660,6 +660,12 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
     v8::Isolate *isolate = js_instance_t::isolate();
 
     switch (datum.get_type()) {
+    case ql::datum_t::type_t::MINVAL:
+        err_out->assign("`r.minval` cannot be passed to `r.js`.");
+        return v8::Handle<v8::Value>();
+    case ql::datum_t::type_t::MAXVAL:
+        err_out->assign("`r.maxval` cannot be passed to `r.js`.");
+        return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BINARY:
         // TODO: In order to support this, we need to link against a static version of
         // V8, which provides an ArrayBuffer API.
@@ -709,7 +715,6 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
             return obj;
         }
     }
-
     case ql::datum_t::type_t::UNINITIALIZED: // fallthru
     default:
         err_out->assign("bad datum value in js extproc");

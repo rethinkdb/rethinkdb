@@ -269,15 +269,12 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
                                     mod_info_out);
-                switch (res) {
-                    case ql::serialization_result_t::ARRAY_TOO_BIG:
-                        rfail_typed_target(&new_val, "Array too large for disk writes"
-                                           " (limit 100,000 elements)");
-                        unreachable();
-                    case ql::serialization_result_t::SUCCESS:
-                        break;
-                    default:
-                        unreachable();
+                if (res & ql::serialization_result_t::ARRAY_TOO_BIG) {
+                    rfail_typed_target(&new_val, "Array too large for disk writes "
+                                       "(limit 100,000 elements).");
+                } else if (res & ql::serialization_result_t::EXTREMA_PRESENT) {
+                    rfail_typed_target(&new_val, "`r.minval` and `r.maxval` cannot be "
+                                       "written to disk.");
                 }
             }
 
@@ -461,15 +458,12 @@ void rdb_set(const store_key_t &key,
         ql::serialization_result_t res =
             kv_location_set(&kv_location, key, data, timestamp, deletion_context,
                             mod_info);
-        switch (res) {
-        case ql::serialization_result_t::ARRAY_TOO_BIG:
-            rfail_typed_target(&data, "Array too large for disk writes"
-                               " (limit 100,000 elements)");
-            unreachable();
-        case ql::serialization_result_t::SUCCESS:
-            break;
-        default:
-            unreachable();
+        if (res & ql::serialization_result_t::ARRAY_TOO_BIG) {
+            rfail_typed_target(&data, "Array too large for disk writes "
+                               "(limit 100,000 elements).");
+        } else if (res & ql::serialization_result_t::EXTREMA_PRESENT) {
+            rfail_typed_target(&data, "`r.minval` and `r.maxval` cannot be "
+                               "written to disk.");
         }
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());

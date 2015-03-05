@@ -332,11 +332,13 @@ private:
             return impl.eval_impl_dereferenced(
                 this, env, args, v0,
                 [&]{ return this->obj_eval_dereferenced(v0, v1); });
+        case datum_t::MINVAL:
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:
         case datum_t::R_BOOL:
         case datum_t::R_NULL:
         case datum_t::R_OBJECT:
+        case datum_t::MAXVAL:
         case datum_t::UNINITIALIZED:
         default:
             d.type_error(

@@ -20,7 +20,6 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
     min_python_version=2.6.0
-    max_python_version=2.9.99
 
     must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"

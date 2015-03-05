@@ -365,7 +365,9 @@ message Term {
         // Half-open by default, but the openness of either side can be
         // changed by passing 'closed' or 'open for `right_bound` or
         // `left_bound`.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
+        BETWEEN_DEPRECATED = 36; // Deprecated version of between, which allows `null` to specify unboundedness
+                                 // With the newer version, clients should use `r.minval` and `r.maxval` for unboundedness
+        BETWEEN   = 182; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
                         // The arity of the function should be
@@ -710,6 +712,10 @@ message Term {
         FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
         GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
         POLYGON_SUB = 171;       // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+
+        // Constants for specifying key ranges
+        MINVAL = 180;
+        MAXVAL = 181;
     }
     optional TermType type = 1;
 

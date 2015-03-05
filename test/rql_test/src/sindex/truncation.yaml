@@ -44,12 +44,12 @@ tests:
       max_batch_rows: "10"
     ot: vals.map{|x| x[:num]}.select{|x| x >= 150 && x < 450}
 
-  - rb: tbl.between(null, 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}
+  - rb: tbl.between(r.minval, 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}
     runopts:
       max_batch_rows: "10"
     ot: vals.map{|x| x[:num]}.select{|x| x < 450}
 
-  - rb: tbl.between("a"*1000+"150", null, index:'a').orderby('a').map{|x| x['num']}
+  - rb: tbl.between("a"*1000+"150", r.maxval, index:'a').orderby('a').map{|x| x['num']}
     runopts:
       max_batch_rows: "10"
     ot: vals.map{|x| x[:num]}.select{|x| x >= 150}

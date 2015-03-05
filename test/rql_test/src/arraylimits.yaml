@@ -47,7 +47,7 @@ tests:
   - cd: tbl.insert({'id':0, 'array':huge_l.append(1)})
     runopts:
       array_limit: '100001'
-    ot: partial({'errors':1, 'first_error':"Array too large for disk writes (limit 100,000 elements)"})
+    ot: partial({'errors':1, 'first_error':"Array too large for disk writes (limit 100,000 elements)."})
 
   - cd: tbl.get(0)
     runopts:

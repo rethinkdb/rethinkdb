@@ -7,8 +7,8 @@
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/math_utils.hpp"
+#include "rdb_protocol/op.hpp"
 
 namespace ql {
 
@@ -429,24 +429,63 @@ private:
     virtual const char *name() const { return "changes"; }
 };
 
+class minval_term_t final : public op_term_t {
+public:
+    minval_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0)) { }
+private:
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+        return new_val(datum_t::minval());
+    }
+    const char *name() const { return "minval"; }
+};
+
+class maxval_term_t final : public op_term_t {
+public:
+    maxval_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0)) { }
+private:
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+        return new_val(datum_t::maxval());
+    }
+    const char *name() const { return "maxval"; }
+};
+
+// For compatibility, the old version of `between` treats `null` as unbounded, and the
+// new version of between will error on a `null` boundary (r.minval and r.maxval should
+// be used instead).  The deprecated version can be removed in a few versions, and the
+// new version can remove the error once we support `null` in indexes.
+enum class between_null_t { UNBOUNDED, ERROR };
+
 class between_term_t : public bounded_op_term_t {
 public:
-    between_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
+    between_term_t(compile_env_t *env,
+                   const protob_t<const Term> &term,
+                   between_null_t _null_behavior)
+        : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})),
+          null_behavior(_null_behavior) { }
 private:
+    datum_t check_bound(scoped_ptr_t<val_t> bound_val,
+                        datum_t::type_t unbounded_type) const {
+        datum_t bound = bound_val->as_datum();
+        if (bound.get_type() == datum_t::R_NULL) {
+            rcheck_target(bound_val, null_behavior != between_null_t::ERROR,
+                          base_exc_t::GENERIC,
+                          "Cannot use `null` in BETWEEN, use `r.minval` or `r.maxval` "
+                          "to denote unboundedness.");
+            bound = unbounded_type == datum_t::type_t::MINVAL ? datum_t::minval() :
+                                                                datum_t::maxval();
+        }
+        return bound;
+    }
+
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_slice_t> tbl_slice = args->arg(env, 0)->as_table_slice();
         bool left_open = is_left_open(env, args);
-        datum_t lb = args->arg(env, 1)->as_datum();
-        if (lb.get_type() == datum_t::R_NULL) {
-            lb.reset();
-        }
         bool right_open = is_right_open(env, args);
-        datum_t rb = args->arg(env, 2)->as_datum();
-        if (rb.get_type() == datum_t::R_NULL) {
-            rb.reset();
-        }
+        datum_t lb = check_bound(args->arg(env, 1), datum_t::type_t::MINVAL);
+        datum_t rb = check_bound(args->arg(env, 2), datum_t::type_t::MAXVAL);
 
         if (lb.has() && rb.has()) {
             // This reql_version will always be LATEST, because this function is not
@@ -478,6 +517,7 @@ private:
     virtual const char *name() const { return "between"; }
 
     protob_t<Term> filter_func;
+    between_null_t null_behavior;
 };
 
 class union_term_t : public op_term_t {
@@ -535,9 +575,21 @@ private:
     virtual const char *name() const { return "range"; }
 };
 
+counted_t<term_t> make_minval_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<minval_term_t>(env, term);
+}
+counted_t<term_t> make_maxval_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<maxval_term_t>(env, term);
+}
+counted_t<term_t> make_between_deprecated_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<between_term_t>(env, term, between_null_t::UNBOUNDED);
+}
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<between_term_t>(env, term);
+    return make_counted<between_term_t>(env, term, between_null_t::ERROR);
 }
 counted_t<term_t> make_changes_term(
     compile_env_t *env, const protob_t<const Term> &term) {
