@@ -12,12 +12,11 @@ is transmitted to the thing waiting on the condition variable. */
 template <class val_t>
 class promise_t : public home_thread_mixin_debug_only_t {
 public:
-    promise_t() : is_pulsed_copy(false) { }
+    promise_t() { }
 
     void pulse(const val_t &v) {
         assert_thread();
         value.create(v);
-        is_pulsed_copy = true;
         cond.pulse();
     }
 
@@ -37,10 +36,9 @@ public:
         return &cond;
     }
 
-    /* Note that `assert_get_value()` can be called on any thread. This is why it
-    accesses `is_pulsed_copy` instead of checking if `cond_t` is pulsed. */
+    /* Note that `assert_get_value()` can be called on any thread. */
     val_t assert_get_value() const {
-        guarantee(is_pulsed_copy);
+        cond.guarantee_pulsed();
         return *value.get();
     }
 
@@ -58,12 +56,6 @@ public:
     }
 
 private:
-    /* `is_pulsed_copy` will be true iff `cond` is pulsed. The reason to have a separate
-    variable is because we want to be able to assert that the promise is pulsed from
-    other threads, but it's illegal to check if a cond is pulsed from the wrong thread.
-    */
-    bool is_pulsed_copy;
-
     cond_t cond;
     object_buffer_t<val_t> value;
 
