@@ -58,7 +58,7 @@ function printTestFailure(name, src, expected, result) {
 }
 
 function eq_test(expected, result, compOpts, partial) {
-    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " | == | " + partial);
+    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " || partial: " + (partial == true));
     
     if (expected instanceof Function) {
         return expected(result);
@@ -131,38 +131,7 @@ function eq_test(expected, result, compOpts, partial) {
 
     } else {
         // Primitive comparison
-        return ((typeof expected === typeof result) && (expected === result)) || (isNaN(expected) && isNaN(result))
-    }
-}
-
-function le_test(a, b){
-    if (a instanceof Object && !Array.isArray(a)) {
-        if (!(b instanceof Object && !Array.isArray(b))) {
-            return false;
-        }
-        var ka = Object.keys(a).sort();
-        var kb = Object.keys(b).sort();
-        if (ka < kb) {
-            return true;
-        }
-        if (ka > kb) {
-            return false;
-        }
-        var ret;
-        for (k in ka) {
-            k = ka[k];
-            var a_lt_b = le_test(a[k], b[k]);
-            var b_lt_a = le_test(b[k], a[k]);
-
-            if (a_lt_b ^ b_lt_a) {
-                return a_lt_b;
-            }
-        }
-        return true;
-    } else if (b instanceof Object && !Array.isArray(b)) {
-        return true;
-    } else {
-        return a <= b;
+        return ((typeof expected === typeof result) && (expected === result)) || (Number.isNaN(Number(expected)) && Number.isNaN(Number(result)))
     }
 }
 
@@ -363,7 +332,7 @@ function runTest() {
                 
                 test.exp_fun = exp_fun;
                 
-                TRACE('expected value: ' + test.exp_fun + ' from ' + test.expectedSrc)
+                TRACE('expected value: ' + stringValue(test.exp_fun) + ' from ' + stringValue(test.expectedSrc))
                 
                 // - evaluate the test
                 
@@ -456,7 +425,7 @@ function processResult(err, result, test) {
         // - pull out feeds and cursors to arrays
         
         else if (result instanceof Object && result.each) {
-            if (!isNaN(test.testopts.result_limit) && test.testopts.result_limit > 0) {
+            if (!Number.isNaN(Number(test.testopts.result_limit)) && test.testopts.result_limit > 0) {
                 TRACE('processResult_limitedIter collecting ' + test.testopts.result_limit + ' item(s) from cursor');
                 
                 handleError = function processResult_error(err) {
@@ -694,8 +663,8 @@ function fetch(cursor, limit) {
         try {
             if (limit) {
                 limit = parseInt(limit);
-                if (isNaN(limit)) {
-                    unexpectedException("The limit value of fetch must be null ")
+                if (Number.isNaN(limit)) {
+                    unexpectedException("The limit value of fetch must be null or a number ")
                 }
             }
             if (!test.testopts) {
@@ -743,9 +712,91 @@ function define(expr, variable) {
 
 // Invoked by generated code to support bag comparison on this expected value
 function bag(expected, compOpts, partial) {
-    var bag = eval(expected).sort(le_test);
+    
+    // note: This only works for dicts, arrays, numbers, undefines, and strings. Anything else might as well be random.
+    
+    function sortFuncName(obj) {
+        if (obj === undefined) {
+            return 'undefined';
+        } else if (Number.isNaN(Number(obj)) === false && !(obj instanceof Array)) {
+            return 'Number';
+        } else if (obj.name) {
+            return obj.name;
+        } else if (obj.constructor && obj.constructor.name) {
+            return obj.constructor.name;
+        } else {
+            return stringValue(obj);
+        }
+    }
+    
+    function sortFunc(left, right) {
+        TRACE('sorting: ' + stringValue(left) + ' vs.: ' + stringValue(right) + ' ' + sortFuncName(left))
+        // -- compare object types, sorting by name
+        
+        var result = sortFuncName(left).localeCompare(sortFuncName(right))
+        if (result != 0) { return result; }
+        
+        // --- null/undefined
+        
+        if (left === undefined) {
+            if (right === undefined) {
+                return 0;
+            } else {
+                return -1;
+            }
+        
+        // -- array
+        
+        } else if (left instanceof Array) {
+            TRACE('array')
+            var i = 0;
+            for (i = 0; i < left.length; i++) {
+                if (i >= right.length) {
+                    return -1;
+                }
+                TRACE('item ' + i + ' ' + left[i] + ' ' +  right[i])
+                result = sortFunc(left[i], right[i]);
+                if (result != 0) { return result; }
+            }
+            if (right.length > i) {
+                return 1;
+            }
+        
+        // -- dict
+        
+        } else if (left instanceof Object) {
+            leftKeys = Object.keys(left).sort(sortFunc);
+            rightKeys = Object.keys(right).sort(sortFunc);
+            
+            // if they don't have the same keys, sort by that
+            result = sortFunc(leftKeys, rightKeys);
+            if (result != 0) { return result; }
+            
+            for (var i in leftKeys) {
+                key = leftKeys[i];
+                result = sortFunc(left[key], right[key]);
+                if (result != 0) { return result; }
+            }
+        
+        // -- number
+        
+        } else if (Number.isNaN(Number(left)) === false && Number.isNaN(Number(right)) === false) {
+            left = Number(left);
+            right = Number(right);
+            return left == right ? 0 : left > right;
+        
+        // -- string
+        
+        } else {
+            return left.localeCompare(right);
+        }
+        return 0;
+    }
+
+    var bag = eval(expected).sort(sortFunc);
     var fun = function bag_inner(other) {
-        other = other.sort(le_test);
+        other = other.sort(sortFunc);
+        TRACE("bag: " + stringValue(bag) + " other: " + stringValue(other))
         return eq_test(bag, other, compOpts, true);
     };
     fun.toString = function() {
