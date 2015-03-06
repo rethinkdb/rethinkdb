@@ -23,6 +23,7 @@ JOBSERVER_FDS_FLAG = $(filter --jobserver-fds=%,$(MAKEFLAGS))
 PKG_MAKEFLAGS = $(if $(JOBSERVER_FDS_FLAG), -j) $(JOBSERVER_FDS_FLAG)
 PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX
 PKG_SCRIPT = $(foreach v, $(PKG_SCRIPT_VARIABLES), $v='$($v)') MAKEFLAGS='$(PKG_MAKEFLAGS)' $/mk/support/pkg/pkg.sh
+PKG_SCRIPT_TRACE = TRACE=1 $(PKG_SCRIPT)
 PKG_RECURSIVE_MARKER := $(if $(findstring 0,$(JUST_SCAN_MAKEFILES)),$(if $(DRY_RUN),,+))
 
 # How to log the output of fetching and building packages
@@ -48,7 +49,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$(warning Fetching $@ is disabled in --always-make (-B) mode)
 else
 	$P FETCH $*
-	$(PKG_SCRIPT) fetch $* $(call SUPPORT_LOG_REDIRECT, $(SUPPORT_LOG_DIR)/$*_fetch.log)
+	$(PKG_SCRIPT_TRACE) fetch $* $(call SUPPORT_LOG_REDIRECT, $(SUPPORT_LOG_DIR)/$*_fetch.log)
 endif
 
 # List of files that make expects the packages to install
@@ -69,7 +70,7 @@ clean-$2: clean-$2_$3
 
 .PHONY: shrinkwrap-$2
 shrinkwrap-$2:
-	$(PKG_SCRIPT) shrinkwrap $2_$3
+	$(PKG_SCRIPT_TRACE) shrinkwrap $2_$3
 
 # Depend on node for fetching node packages
 $(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
@@ -100,7 +101,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
 	$$P BUILD $2_$3
-	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install $2_$3 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
+	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT_TRACE) install $2_$3 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
 	touch $(SUPPORT_BUILD_DIR)/$2_$3/install.witness
 endif
 
@@ -133,7 +134,7 @@ ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
 	$$P INSTALL-INCLUDE $2_$3
-	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install-include $2_$3 \
+	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT_TRACE) install-include $2_$3 \
 	  $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install-include.log)
 	test -e $1 && touch $1 || true
 endif
