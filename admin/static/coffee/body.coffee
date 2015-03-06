@@ -224,46 +224,6 @@ class AlertUpdates extends Backbone.View
         if window.localStorage?
             window.localStorage.check_updates = JSON.stringify false
 
-class Settings extends Backbone.View
-    settings_template: null # This class is unused! delete it.
-    events:
-        'click .check_updates_btn': 'change_settings'
-        'click .close': 'close'
-
-    close: (event) =>
-        event.preventDefault()
-        @$el.parent().hide()
-        @$el.remove()
-
-    initialize: (args) =>
-        @alert_view = args.alert_view
-        if window.localStorage?.check_updates?
-            @check_updates = JSON.parse window.localStorage.check_updates
-        else
-            @check_updates = true
-
-
-    change_settings: (event) =>
-        update = @$(event.target).data('update')
-        if update is 'on'
-            @check_updates = true
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify true
-            @alert_view.check()
-        else if update is 'off'
-            @check_updates = false
-            @alert_view.hide()
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify false
-                window.localStorage.removeItem('ignore_version')
-        @render()
-
-    render: =>
-        @$el.html @settings_template
-            check_value: if @check_updates then 'off' else 'on'
-        @delegateEvents()
-        return @
-
 
 class IsDisconnected extends Backbone.View
     el: 'body'
@@ -302,5 +262,4 @@ class IsDisconnected extends Backbone.View
 exports.MainContainer = MainContainer
 exports.OptionsView = OptionsView
 exports.AlertUpdates = AlertUpdates
-exports.Settings = Settings
 exports.IsDisconnected = IsDisconnected

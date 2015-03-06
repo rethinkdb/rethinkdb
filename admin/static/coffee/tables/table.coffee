@@ -354,7 +354,6 @@ class TableMainView extends Backbone.View
 
     events:
         'click .close': 'close_alert'
-        'click .change_shards-link': 'change_shards' # no such link!
         'click .operations .rename': 'rename_table'
         'click .operations .delete': 'delete_table'
 
@@ -440,15 +439,6 @@ class TableMainView extends Backbone.View
     close_alert: (event) ->
         event.preventDefault()
         $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
-
-    change_shards: (event) => # won't be called!
-        event.preventDefault()
-        @$('#namespace-sharding-link').tab('show')
-
-    change_pinning: (event) => # this doesn't exist either!
-        event.preventDefault()
-        @$('#namespace-pinning-link').tab('show')
-        $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
     # Rename operation
     rename_table: (event) =>

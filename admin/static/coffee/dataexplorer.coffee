@@ -3504,7 +3504,6 @@ class ProfileView extends ResultView
 class ResultViewWrapper extends Backbone.View
     className: 'result_view'
     template: require('../handlebars/dataexplorer_result_container.hbs')
-    metadata_template: null # unused! Content is now in previous template
     option_template: require('../handlebars/dataexplorer-option_page.hbs')
     error_template: require('../handlebars/dataexplorer-error.hbs')
     cursor_timed_out_template: require('../handlebars/dataexplorer-cursor_timed_out.hbs')
