@@ -90,7 +90,17 @@ PRECOMPILED_DIR := $(TOP)/precompiled
 ##### To rebuild when Makefiles change
 
 ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
-  MAKEFILE_DEPENDENCY := 
+  MAKEFILE_DEPENDENCY :=
 else
   MAKEFILE_DEPENDENCY = $(filter %Makefile,$(MAKEFILE_LIST)) $(filter %.mk,$(MAKEFILE_LIST))
 endif
+
+##### Paths occasionally left undefined by the configure script
+
+NPM ?= false
+NPM_BIN_DEP ?= requires-missing-npm
+COFFEE_BIN_DEP ?= requires-missing-coffee
+BROWSERIFY_BIN_DEP ?= requires-missing-browserify
+
+requires-missing-%:
+	$(error '$*' is required but was not found)
