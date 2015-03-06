@@ -539,6 +539,8 @@ private:
         case Term::JAVASCRIPT:
         case Term::ASC:
         case Term::DESC:
+        case Term::MINVAL:
+        case Term::MAXVAL:
             return false;
         case Term::TABLE:
         case Term::FUNCALL:
