@@ -450,7 +450,7 @@ void store_t::sindex_create(
         &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
-                            access_t::read);
+                            access_t::write);
     superblock->release();
 
     /* Note that this function allows creating sindexes with older ReQL versions. For
@@ -492,7 +492,7 @@ void store_t::sindex_rename(
         &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
-                            access_t::read);
+                            access_t::write);
     superblock->release();
 
     rename_sindex(sindex_name_t(name), sindex_name_t(new_name), &sindex_block);
@@ -510,7 +510,7 @@ void store_t::sindex_drop(
         &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
-                            access_t::read);
+                            access_t::write);
     superblock->release();
 
     bool success = drop_sindex(sindex_name_t(name), &sindex_block);

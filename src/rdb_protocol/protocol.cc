@@ -296,17 +296,6 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
         && delete_range->inner.contains_key(key->contents, key->size);
 }
 
-void add_status(const single_sindex_status_t &new_status,
-                single_sindex_status_t *status_out) {
-    status_out->blocks_processed += new_status.blocks_processed;
-    status_out->blocks_total += new_status.blocks_total;
-    status_out->ready &= new_status.ready;
-    status_out->func = new_status.func; // All shards have the same function.
-    status_out->geo = new_status.geo; // All shards have the same geoness.
-    status_out->multi = new_status.multi; // All shards have the same multiness.
-    status_out->outdated = new_status.outdated; // All shards have the same datedness.
-}
-
 }  // namespace rdb_protocol
 
 namespace rdb_protocol {
@@ -353,12 +342,6 @@ region_t cpu_sharding_subspace(int subregion_number,
 
 }  // namespace rdb_protocol
 
-// Returns the key identifying the monokey region used for sindex_list_t
-// operations.
-store_key_t sindex_list_region_key() {
-    return store_key_t();
-}
-
 /* read_t::get_region implementation */
 struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
@@ -381,10 +364,6 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return dg.region;
     }
 
-    region_t operator()(UNUSED const sindex_list_t &sl) const {
-        return rdb_protocol::monokey_region(sindex_list_region_key());
-    }
-
     region_t operator()(const changefeed_subscribe_t &s) const {
         return s.region;
     }
@@ -399,10 +378,6 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const changefeed_point_stamp_t &t) const {
         return rdb_protocol::monokey_region(t.key);
-    }
-
-    region_t operator()(const sindex_status_t &ss) const {
-        return ss.region;
     }
 
     region_t operator()(const dummy_read_t &d) const {
@@ -485,14 +460,6 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(dg);
     }
 
-    bool operator()(const sindex_list_t &sl) const {
-        return keyed_read(sl, sindex_list_region_key());
-    }
-
-    bool operator()(const sindex_status_t &ss) const {
-        return rangey_read(ss);
-    }
-
     bool operator()(const dummy_read_t &d) const {
         return rangey_read(d);
     }
@@ -558,8 +525,6 @@ public:
     void operator()(const intersecting_geo_read_t &gr);
     void operator()(const nearest_geo_read_t &gr);
     void operator()(const distribution_read_t &rg);
-    void operator()(const sindex_list_t &rg);
-    void operator()(const sindex_status_t &rg);
     void operator()(const changefeed_subscribe_t &);
     void operator()(const changefeed_limit_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
@@ -833,24 +798,6 @@ void rdb_r_unshard_visitor_t::operator()(const distribution_read_t &dg) {
     response_out->response = res;
 }
 
-void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_list_t &sl) {
-    guarantee(count == 1);
-    guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
-    *response_out = responses[0];
-}
-
-void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
-    *response_out = read_response_t(sindex_status_response_t());
-    auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
-    for (size_t i = 0; i < count; ++i) {
-        auto resp = boost::get<sindex_status_response_t>(&responses[i].response);
-        guarantee(resp != NULL);
-        for (auto it = resp->statuses.begin(); it != resp->statuses.end(); ++it) {
-            add_status(it->second, &ss_response->statuses[it->first]);
-        }
-    }
-}
-
 void rdb_r_unshard_visitor_t::operator()(const dummy_read_t &) {
     *response_out = responses[0];
 }
@@ -892,8 +839,6 @@ struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const changefeed_stamp_t &) const {           return false; }
     bool operator()(const changefeed_point_stamp_t &) const {     return false; }
     bool operator()(const distribution_read_t &) const {          return true;  }
-    bool operator()(const sindex_list_t &) const {                return false; }
-    bool operator()(const sindex_status_t &) const {              return false; }
 };
 
 // Only use snapshotting if we're doing a range get.
@@ -974,18 +919,6 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const changefeed_stamp_t &t) const {
         return t.region;
-    }
-
-    region_t operator()(const sindex_create_t &s) const {
-        return s.region;
-    }
-
-    region_t operator()(const sindex_drop_t &d) const {
-        return d.region;
-    }
-
-    region_t operator()(const sindex_rename_t &r) const {
-        return r.region;
     }
 
     region_t operator()(const sync_t &s) const {
@@ -1077,18 +1010,6 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
-    bool operator()(const sindex_create_t &c) const {
-        return rangey_write(c);
-    }
-
-    bool operator()(const sindex_drop_t &d) const {
-        return rangey_write(d);
-    }
-
-    bool operator()(const sindex_rename_t &r) const {
-        return rangey_write(r);
-    }
-
     bool operator()(const sync_t &s) const {
         return rangey_write(s);
     }
@@ -1143,18 +1064,6 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const point_write_t &) const { monokey_response(); }
     void operator()(const point_delete_t &) const { monokey_response(); }
-
-    void operator()(const sindex_create_t &) const {
-        *response_out = responses[0];
-    }
-
-    void operator()(const sindex_drop_t &) const {
-        *response_out = responses[0];
-    }
-
-    void operator()(const sindex_rename_t &) const {
-        *response_out = responses[0];
-    }
 
     void operator()(const sync_t &) const {
         *response_out = responses[0];

@@ -121,16 +121,6 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
-        UNUSED const sindex_list_t &sinner) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
-        UNUSED const sindex_status_t &ss) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(
         mock_namespace_interface_t *_parent,
         read_response_t *_response) :
@@ -244,18 +234,6 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const poin
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_delete_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_rename_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 

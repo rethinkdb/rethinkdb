@@ -4,12 +4,16 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
 
+#include "containers/scoped.hpp"
+
 class namespace_interface_t;
 class order_source_t;
+class store_t;
 
 namespace unittest {
 

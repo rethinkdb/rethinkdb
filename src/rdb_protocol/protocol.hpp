@@ -122,6 +122,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_geo_bool_t, int8_t,
 
 class sindex_config_t {
 public:
+    sindex_config_t() { }
     sindex_config_t(const ql::map_wire_func_t &_func, reql_version_t _func_version,
             sindex_multi_bool_t _multi, sindex_geo_bool_t _geo) :
         func(_func), func_version(_func_version), multi(_multi), geo(_geo) { }

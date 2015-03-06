@@ -79,8 +79,6 @@ private:
         void NORETURN operator()(UNUSED const intersecting_geo_read_t &gr);
         void NORETURN operator()(UNUSED const nearest_geo_read_t &gr);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
-        void NORETURN operator()(UNUSED const sindex_list_t &sl);
-        void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
         read_visitor_t(mock_namespace_interface_t *parent, read_response_t *_response);
 
@@ -94,9 +92,6 @@ private:
         void operator()(const dummy_write_t &d);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
-        void NORETURN operator()(UNUSED const sindex_create_t &s);
-        void NORETURN operator()(UNUSED const sindex_drop_t &s);
-        void NORETURN operator()(UNUSED const sindex_rename_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
         write_visitor_t(mock_namespace_interface_t *parent, write_response_t *_response);
