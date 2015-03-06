@@ -193,7 +193,9 @@ std::string create_sindex(const std::vector<scoped_ptr_t<store_t> > *stores) {
 
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
-    for (
+    for (const auto &store : stores) {
+        store->sindex_create(id, 
+    }
 
     write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::REGULAR),
