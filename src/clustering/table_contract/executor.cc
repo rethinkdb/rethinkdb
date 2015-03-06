@@ -66,7 +66,6 @@ void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
     std::set<execution_key_t> to_delete;
     {
         ASSERT_NO_CORO_WAITING;
-        update_pumper.ack();
         raft_state->apply_read([&](const table_raft_state_t *state) {
             update(*state, &to_delete); });
     }

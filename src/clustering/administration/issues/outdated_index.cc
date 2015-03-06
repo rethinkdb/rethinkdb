@@ -136,7 +136,8 @@ outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
         local_issue_aggregator_t *parent) :
     issues(std::vector<outdated_index_issue_t>()),
     subs(parent, issues.get_watchable(), &local_issues_t::outdated_index_issues),
-    update_pool(1, &update_queue, this) { }
+    update_pumper(std::bind(&outdated_index_issue_tracker_t::update, this, ph::_1))
+    { }
 
 scoped_ptr_t<outdated_index_report_t> outdated_index_issue_tracker_t::create_report(
         const namespace_id_t &ns_id) {
@@ -159,7 +160,7 @@ void copy_thread_map(
 
 void outdated_index_issue_tracker_t::recompute() {
     on_thread_t rethreader((threadnum_t(home_thread())));
-    update_queue.give_value(outdated_index_dummy_value_t());
+    update_pumper.notify();
 }
 
 outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
@@ -170,9 +171,7 @@ outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
         });
 }
 
-void outdated_index_issue_tracker_t::coro_pool_callback(
-        UNUSED outdated_index_dummy_value_t dummy,
-        UNUSED signal_t *interruptor) {
+void outdated_index_issue_tracker_t::update(UNUSED signal_t *interruptor) {
     // Collect outdated indexes by table id from all threads
     std::vector<outdated_index_issue_t::index_map_t> all_maps(get_num_threads());
 

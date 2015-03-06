@@ -573,10 +573,11 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
 
         raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft, interruptor);
 
-        /* Call `ack()` right before we read the Raft state. This is because any changes
-        to the Raft state that happened up to this point will be included in this round
-        of pumping, but any changes after this point must be run in their own round. */
-        contract_pumper.ack();
+        /* Call `include_latest_notifications()` right before we read the Raft state.
+        This is because any changes to the Raft state that happened up to this point will
+        be included in this round of pumping, but any changes after this point must be
+        run in their own round. */
+        contract_pumper.include_latest_notifications();
 
         /* Calculate the proposed change */
         table_raft_state_t::change_t::new_contracts_t change;
@@ -640,8 +641,9 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
 
         raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft, interruptor);
 
-        /* As in `pump_contracts()`, call `ack()` right before we read the Raft state */
-        config_pumper.ack();
+        /* As in `pump_contracts()`, call `include_latest_notifications()` right before
+        we read the Raft state */
+        config_pumper.include_latest_notifications();
 
         /* Calculate changes to `table_raft_state_t::member_ids` */
         table_raft_state_t::change_t::new_member_ids_t member_ids_change;
