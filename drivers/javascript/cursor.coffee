@@ -2,7 +2,6 @@ err = require('./errors')
 util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
-protoResponseNote = require('./proto-def').Response.ResponseNote
 Promise = require('bluebird')
 EventEmitter = require('events').EventEmitter
 
@@ -317,7 +316,7 @@ class Cursor extends IterableResult
 
 class Feed extends IterableResult
     constructor: ->
-        @_type = protoResponseNote.SEQUENCE_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -329,7 +328,7 @@ class Feed extends IterableResult
 
 class AtomFeed extends IterableResult
     constructor: ->
-        @_type = protoResponseNote.ATOM_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -341,7 +340,7 @@ class AtomFeed extends IterableResult
 
 class OrderByLimitFeed extends IterableResult
     constructor: ->
-        @_type = protoResponseNote.ORDER_BY_LIMIT_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -422,6 +421,7 @@ class ArrayResult extends IterableResult
         response
 
 module.exports.Cursor = Cursor
-module.exports.AtomFeed = AtomFeed
 module.exports.Feed = Feed
+module.exports.AtomFeed = AtomFeed
+module.exports.OrderByLimitFeed = OrderByLimitFeed
 module.exports.makeIterable = ArrayResult::makeIterable

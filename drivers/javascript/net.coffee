@@ -325,20 +325,6 @@ class Connection extends events.EventEmitter
                 if cursor._endFlag && cursor._outstandingRequests is 0
                     @_delQuery(token)
 
-            # Similar to cursors, we may or may not have a feed object
-            # already for this token. The feed object is created on
-            # the first response received, so we may not have one if
-            # this is the first response for this token. (Or we may
-            # not have one if this isn't a query that returns a feed)
-            else if feed?
-                # Cursor and Feed have a shared implementation, so the
-                # logic for adding a response to the feed and deciding
-                # whether to delete the token from
-                # `@outstandingRequests` is the same.
-                feed._addResponse(response)
-
-                if feed._endFlag && feed._outstandingRequests is 0
-                    @_delQuery(token)
             # Next we check if we have a callback registered for this
             # token. In [ast](ast.html) we always provide `_start`
             # with a wrapped callback function, so this may as well be
@@ -642,8 +628,6 @@ class Connection extends events.EventEmitter
         for own key, value of @outstandingCallbacks
             if value.cursor?
                 value.cursor._addResponse(response)
-            else if value.feed?
-                value.feed._addResponse(response)
             else if value.cb?
                 value.cb mkErr(err.RqlRuntimeError, response, value.root)
 
@@ -1081,7 +1065,7 @@ class TcpConnection extends Connection
         #    `close` method on this connection, with the `opts` that
         #    were passed to this function. The only option `close`
         #    accepts is `noreplyWait`
-        # 3. The suerpclass's close method sets `@open` to false, and
+        # 3. The superclass's close method sets `@open` to false, and
         #    also closes all cursors, feeds, and callbacks that are
         #    currently outstanding.
         # 4. Depending on whether `opts.noreplyWait` is true, the
