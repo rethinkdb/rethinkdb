@@ -780,16 +780,19 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
                           env,
+                          false,
                           keyspec_t::point_t{ql::datum_t(0.0)},
                           NULL,
                           bt)),
               point_10(a->subscribe(
                            env,
+                           false,
                            keyspec_t::point_t{ql::datum_t(10.0)},
                            NULL,
                            bt)),
               range(a->subscribe(
                         env,
+                        false,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),

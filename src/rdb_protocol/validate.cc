@@ -206,6 +206,7 @@ static std::set<std::string> acceptable_keys = {
     "group_format",
     "header",
     "identifier_format",
+    "include_states",
     "index",
     "left_bound",
     "max_batch_bytes",

@@ -30,10 +30,12 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+    virtual counted_t<datum_stream_t> read_changes(
+        const datum_t &squash, bool include_states) {
         return tbl->tbl->read_changes(
             env,
             squash,
+            include_states,
             changefeed::keyspec_t::point_t{key},
             bt,
             tbl->display_name());
@@ -76,11 +78,17 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+    virtual counted_t<datum_stream_t> read_changes(
+        const datum_t &squash, bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
-            env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
+            env,
+            squash,
+            include_states,
+            std::move(spec),
+            bt,
+            slice->get_tbl()->display_name());
         return s;
     }
     virtual datum_t replace(

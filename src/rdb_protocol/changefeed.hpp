@@ -192,6 +192,7 @@ public:
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const datum_t &squash,
+        bool include_states,
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
@@ -521,6 +522,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
+        bool include_states,
         const keyspec_t::spec_t &spec,
         artificial_table_backend_t *subscriber,
         const protob_t<const Backtrace> &bt);
