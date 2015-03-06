@@ -1,0 +1,84 @@
+desc: Test changefeeds on a table
+table_variable_name: tbl
+tests:
+    
+    # -- regular tables
+    
+    # - start feeds
+    
+    - cd: all = tbl.changes()
+    
+    # - note: no initial values from table changefeeds
+    
+    # - inserts
+    
+    - cd: tbl.insert([{'id':1}, {'id':2}])
+      ot: partial({'errors':0, 'inserted':2})
+    - cd: fetch(all, 2)
+      ot: bag([{'old_val':null, 'new_val':{'id':1}}, {'old_val':null, 'new_val':{'id':2}}])
+    
+    # - updates
+    
+    - cd: tbl.get(1).update({'version':1})
+      ot: partial({'errors':0, 'replaced':1})
+    - cd: fetch(all, 1)
+      ot: [{'old_val':{'id':1}, 'new_val':{'id':1, 'version':1}}]
+    
+    # - deletions
+    
+    - cd: tbl.get(1).delete()
+      ot: partial({'errors':0, 'deleted':1})
+    - cd: fetch(all, 1)
+      ot: [{'old_val':{'id':1, 'version':1}, 'new_val':null}]
+    
+    # - pluck on values
+    
+    - cd: pluck = tbl.changes().pluck({'new_val':['version']})
+    - cd: tbl.insert([{'id':5, 'version':5}])
+      ot: partial({'errors':0, 'inserted':1})
+    - cd: fetch(pluck, 1)
+      ot: [{'new_val':{'version':5}}]
+
+    # - changes overflow
+#      
+# ToDo: enable this when we can reduce the number of items to generate the overflow
+#      
+#    - cd: overflow = tbl.changes()
+#    # add more than 100,000 entries to make sure we get the overflow error
+#    - cd: r.between(1, 100002).for_each(tbl.insert({}))
+#    - cd: overflow
+#      ot: error(RqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
+
+    # -- virtual tables
+    
+    - def: vtbl = r.db('rethinkdb').table('_debug_scratch')
+    - cd: allVirtual = vtbl.changes()
+
+    # - inserts
+    
+    - cd: vtbl.insert([{'id':1}, {'id':2}])
+      ot: partial({'errors':0, 'inserted':2})
+    - cd: fetch(allVirtual, 2)
+      ot: bag([{'old_val':null, 'new_val':{'id':1}}, {'old_val':null, 'new_val':{'id':2}}])
+    
+    # - updates
+    
+    - cd: vtbl.get(1).update({'version':1})
+      ot: partial({'errors':0, 'replaced':1})
+    - cd: fetch(allVirtual, 1)
+      ot: [{'old_val':{'id':1}, 'new_val':{'id':1, 'version':1}}]
+    
+    # - deletions
+    
+    - cd: vtbl.get(1).delete()
+      ot: partial({'errors':0, 'deleted':1})
+    - cd: fetch(allVirtual, 1)
+      ot: [{'old_val':{'id':1, 'version':1}, 'new_val':null}]
+    
+    # - pluck on values
+    
+    - cd: vpluck = vtbl.changes().pluck({'new_val':['version']})
+    - cd: vtbl.insert([{'id':5, 'version':5}])
+      ot: partial({'errors':0, 'inserted':1})
+    - cd: fetch(vpluck, 1)
+      ot: [{'new_val':{'version':5}}]   

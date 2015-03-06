@@ -18,19 +18,14 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
                          filename.permanent_path().c_str()),
       queue_size(0),
       head_block_id(NULL_BLOCK_ID),
-      tail_block_id(NULL_BLOCK_ID) {
-    filepath_file_opener_t file_opener(filename, io_backender);
-    standard_serializer_t::create(&file_opener,
+      tail_block_id(NULL_BLOCK_ID),
+      file_opener(new filepath_file_opener_t(filename, io_backender)) {
+    standard_serializer_t::create(file_opener.get(),
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              &file_opener,
+                                              file_opener.get(),
                                               &perfmon_collection));
-
-    /* Remove the file we just created from the filesystem, so that it will
-       get deleted as soon as the serializer is destroyed or if the process
-       crashes. */
-    file_opener.unlink_serializer_file();
 
     balancer.init(new dummy_cache_balancer_t(2 * MEGABYTE));
     cache.init(new cache_t(serializer.get(), balancer.get(), &perfmon_collection));
@@ -45,7 +40,17 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     memset(buf, 0, block_size.value());
 }
 
-internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
+internal_disk_backed_queue_t::~internal_disk_backed_queue_t() {
+    /* First destroy the serializer, then remove the temporary file.
+    This avoids issues with certain file systems (specifically VirtualBox
+    shared folders), see https://github.com/rethinkdb/rethinkdb/issues/3791. */
+    cache_conn.reset();
+    cache.reset();
+    balancer.reset();
+    serializer.reset();
+
+    file_opener->unlink_serializer_file();
+}
 
 void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);

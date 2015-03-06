@@ -14,22 +14,24 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "perfmon/perfmon.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
+
+/* This is the main entry point for performing B-tree operations. */
 
 namespace profile {
 class trace_t;
 }
 
-class btree_slice_t;
-class binary_blob_t;
 class value_deleter_t;
-
-template <class> class promise_t;
 
 enum cache_snapshotted_t { CACHE_SNAPSHOTTED_NO, CACHE_SNAPSHOTTED_YES };
 
-/* An abstract superblock provides the starting point for performing btree operations */
+/* An abstract superblock provides the starting point for performing B-tree operations.
+This makes it so that the B-tree code doesn't actually have to know about the format of
+the superblock, or about anything else that might be contained in the superblock besides
+the root block ID and the stat block ID. */
 class superblock_t {
 public:
     superblock_t() { }
@@ -40,11 +42,11 @@ public:
     virtual block_id_t get_root_block_id() = 0;
     virtual void set_root_block_id(block_id_t new_root_block) = 0;
 
+    /* If stats collection is desired, create a stat block with `create_stat_block()` and
+    store its ID on the superblock, then return it from `get_stat_block_id()`. If stats
+    collection is not desired, `get_stat_block_id()` can always return `NULL_BLOCK_ID`.
+    */
     virtual block_id_t get_stat_block_id() = 0;
-    virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
-
-    virtual block_id_t get_sindex_block_id() = 0;
-    virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
     virtual buf_parent_t expose_buf() = 0;
 
@@ -54,39 +56,46 @@ private:
     DISABLE_COPYING(superblock_t);
 };
 
-/* real_superblock_t implements superblock_t in terms of an actual on-disk block
-   structure. */
-class real_superblock_t : public superblock_t {
+class btree_stats_t {
 public:
-    explicit real_superblock_t(buf_lock_t &&sb_buf);
-    real_superblock_t(buf_lock_t &&sb_buf, new_semaphore_acq_t &&write_semaphore_acq);
+    explicit btree_stats_t(perfmon_collection_t *parent,
+                           const std::string &identifier)
+        : btree_collection(),
+          pm_keys_read(secs_to_ticks(1)),
+          pm_keys_set(secs_to_ticks(1)),
+          pm_keys_membership(&btree_collection,
+              &pm_keys_read, "keys_read",
+              &pm_total_keys_read, "total_keys_read",
+              &pm_keys_set, "keys_set",
+              &pm_total_keys_set, "total_keys_set") {
+        if (parent != NULL) {
+            rename(parent, identifier);
+        }
+    }
 
-    void release();
-    buf_lock_t *get() { return &sb_buf_; }
+    void hide() {
+        btree_collection_membership.reset();
+    }
 
-    block_id_t get_root_block_id();
-    void set_root_block_id(block_id_t new_root_block);
+    void rename(perfmon_collection_t *parent,
+                const std::string &identifier) {
+        btree_collection_membership.reset();
+        btree_collection_membership.init(new perfmon_membership_t(
+            parent,
+            &btree_collection,
+            "btree-" + identifier));
+    }
 
-    block_id_t get_stat_block_id();
-    void set_stat_block_id(block_id_t new_stat_block);
-
-    block_id_t get_sindex_block_id();
-    void set_sindex_block_id(block_id_t new_block_id);
-
-    buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
-
-private:
-    /* The write_semaphore_acq_ is empty for reads.
-    For writes it locks the write superblock acquisition semaphore until the
-    sb_buf_ is released.
-    Note that this is used to throttle writes compared to reads, but not required
-    for correctness. */    
-    new_semaphore_acq_t write_semaphore_acq_;
-
-    buf_lock_t sb_buf_;
+    perfmon_collection_t btree_collection;
+    scoped_ptr_t<perfmon_membership_t> btree_collection_membership;
+    perfmon_rate_monitor_t
+        pm_keys_read,
+        pm_keys_set;
+    perfmon_counter_t
+        pm_total_keys_read,
+        pm_total_keys_set;
+    perfmon_multi_membership_t pm_keys_membership;
 };
-
-class btree_stats_t;
 
 class keyvalue_location_t {
 public:
@@ -159,53 +168,6 @@ class null_key_modification_callback_t : public key_modification_callback_t {
     }
 };
 
-
-/* This iterator encapsulates most of the metainfo data layout. Unfortunately,
- * functions set_superblock_metainfo and delete_superblock_metainfo also know a
- * lot about the data layout, so if it's changed, these functions must be
- * changed as well.
- *
- * Data layout is dead simple right now, it's an array of the following
- * (unaligned, unpadded) contents:
- *
- *   sz_t key_size;
- *   char key[key_size];
- *   sz_t value_size;
- *   char value[value_size];
- */
-struct superblock_metainfo_iterator_t {
-    typedef uint32_t sz_t;  // be careful: the values of this type get casted to int64_t in checks, so it must fit
-    typedef std::pair<sz_t, char *> key_t;
-    typedef std::pair<sz_t, char *> value_t;
-
-    superblock_metainfo_iterator_t(char *metainfo, char *metainfo_end) : end(metainfo_end) { advance(metainfo); }
-
-    bool is_end() { return pos == end; }
-
-    void operator++();
-
-    std::pair<key_t, value_t> operator*() {
-        return std::make_pair(key(), value());
-    }
-    key_t key() { return std::make_pair(key_size, key_ptr); }
-    value_t value() { return std::make_pair(value_size, value_ptr); }
-
-    char *record_ptr() { return pos; }
-    char *next_record_ptr() { return next_pos; }
-    char *end_ptr() { return end; }
-    sz_t *value_size_ptr() { return reinterpret_cast<sz_t*>(value_ptr) - 1; }
-private:
-    void advance(char *p);
-
-    char *pos;
-    char *next_pos;
-    char *end;
-    sz_t key_size;
-    char *key_ptr;
-    sz_t value_size;
-    char *value_ptr;
-};
-
 buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb);
 
 void check_and_handle_split(value_sizer_t *sizer,
@@ -222,69 +184,16 @@ void check_and_handle_underfull(value_sizer_t *sizer,
                                 const btree_key_t *key,
                                 const value_deleter_t *detacher);
 
-// Metainfo functions
-bool get_superblock_metainfo(buf_lock_t *superblock,
-                             const std::vector<char> &key,
-                             std::vector<char> *value_out);
-
-void get_superblock_metainfo(
-    buf_lock_t *superblock,
-    std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
-
-void set_superblock_metainfo(buf_lock_t *superblock,
-                             const std::vector<char> &key,
-                             const binary_blob_t &value);
-
-void set_superblock_metainfo(buf_lock_t *superblock,
-                             const std::vector<std::vector<char> > &keys,
-                             const std::vector<binary_blob_t> &values);
-
-void delete_superblock_metainfo(buf_lock_t *superblock,
-                                const std::vector<char> &key);
-void clear_superblock_metainfo(buf_lock_t *superblock);
-
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t *sb);
 
-/* Create a stat block for the superblock. */
-void create_stat_block(superblock_t *sb);
-
-void get_btree_superblock(
-        txn_t *txn,
-        access_t access,
-        scoped_ptr_t<real_superblock_t> *got_superblock_out);
-/* Variant for writes that go through a superblock write semaphore */
-void get_btree_superblock(
-        txn_t *txn,
-        write_access_t access,
-        new_semaphore_acq_t &&write_sem_acq,
-        scoped_ptr_t<real_superblock_t> *got_superblock_out);
-
-void get_btree_superblock_and_txn_for_writing(
-        cache_conn_t *cache_conn,
-        new_semaphore_t *superblock_write_semaphore,
-        write_access_t superblock_access,
-        int expected_change_count,
-        repli_timestamp_t tstamp,
-        write_durability_t durability,
-        scoped_ptr_t<real_superblock_t> *got_superblock_out,
-        scoped_ptr_t<txn_t> *txn_out);
-
-void get_btree_superblock_and_txn_for_backfilling(
-        cache_conn_t *cache_conn,
-        cache_account_t *backfill_account,
-        scoped_ptr_t<real_superblock_t> *got_superblock_out,
-        scoped_ptr_t<txn_t> *txn_out);
-
-void get_btree_superblock_and_txn_for_reading(
-        cache_conn_t *cache_conn,
-        cache_snapshotted_t snapshotted,
-        scoped_ptr_t<real_superblock_t> *got_superblock_out,
-        scoped_ptr_t<txn_t> *txn_out);
+/* Create a stat block suitable for storing in a superblock and returning from
+`get_stat_block_id()`. */
+block_id_t create_stat_block(buf_parent_t parent);
 
 /* Note that there's no guarantee that `pass_back_superblock` will have been
  * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,
- * the superblock is returned only when `*kevaluey_location_out` gets destructed. */
+ * the superblock is returned only when `*keyvalue_location_out` gets destructed. */
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,

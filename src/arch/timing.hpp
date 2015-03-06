@@ -15,7 +15,7 @@ void nap(int64_t ms) THROWS_NOTHING;
 /* This variant takes an interruptor, and throws `interrupted_exc_t` if the
 interruptor is pulsed before the timeout is up */
 
-void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+void nap(int64_t ms, const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 class timer_token_t;
 
@@ -26,6 +26,7 @@ timer "rings". */
 class signal_timer_t : public signal_t, private timer_callback_t {
 public:
     signal_timer_t();
+    explicit signal_timer_t(int64_t ms); // Calls `start` for you.
     ~signal_timer_t();
 
     // Starts the timer, cannot be called if the timer is already running

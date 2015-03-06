@@ -24,8 +24,10 @@ with driver.Process(files='db', output_folder='.', command_prefix=command_prefix
     
     conn = r.connect(host=server.host, port=server.driver_port)
     
+    # note: these tests are impicitly run in sequence because of the --table option
+    
     command_line = [
-        os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test', 'test-runner')),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir, 'rql_test', 'test-runner'),
         '--cluster-port', str(server.cluster_port),
         '--driver-port', str(server.driver_port),
         '--table', 'rethinkdb._debug_scratch']
@@ -43,8 +45,10 @@ with driver.Process(files='db', output_folder='.', command_prefix=command_prefix
     
     print("Command line:", " ".join(command_line))
     print("Running the QL test (%.2fs)" % (time.time() - startTime))
-    with open("test-runner-log.txt", "w") as f:
-        subprocess.check_call(command_line, stdout=f, stderr=f)
+
+    print('==== Start test-runner Output ====')
+    subprocess.check_call(command_line)
+    print('==== End test-runner Output ====')
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

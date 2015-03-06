@@ -20,13 +20,12 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
     min_python_version=2.6.0
-    max_python_version=2.9.99
 
-    must_fetch_list='bluebird'
+    must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
     optional_libs="gtest termcap boost_system ssl"
-    required_libs="protobuf v8 re2 z crypto curl"
+    required_libs="protobuf icui18n icuuc icudata v8 re2 z crypto curl"
     other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
@@ -1131,6 +1130,9 @@ lib_pkg_name () {
         boost_system) echo boost ;;
         crypto) echo openssl ;;
         ssl) echo openssl ;;
+        icui18n) echo icu ;;
+        icuuc) echo icu ;;
+        icudata) echo icu ;;
         *) echo "$1" ;;
     esac
 }

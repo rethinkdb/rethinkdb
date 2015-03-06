@@ -73,7 +73,7 @@ module RethinkDB
       fetch_batch
     end
 
-    def each (&block) # :nodoc:
+    def each(&block) # :nodoc:
       raise RqlRuntimeError, "Can only iterate over a cursor once." if @run
       return self.enum_for(:each) if !block
       @run = true
@@ -81,13 +81,7 @@ module RethinkDB
         @results.each(&block)
         return self if !@more
         raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
-        res = @conn.wait(@token)
-        @results = Shim.response_to_native(res, @msg, @opts)
-        if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
-          @more = false
-        else
-          fetch_batch
-        end
+        wait_for_batch(nil)
       end
     end
 
@@ -101,11 +95,35 @@ module RethinkDB
       return false
     end
 
+    def wait_for_batch(timeout)
+        res = @conn.wait(@token, timeout)
+        @results = Shim.response_to_native(res, @msg, @opts)
+        if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
+          @more = false
+        else
+          fetch_batch
+        end
+    end
+
     def fetch_batch
       if @more
         @conn.register_query(@token, @opts)
         @conn.dispatch([Query::QueryType::CONTINUE], @token)
       end
+    end
+
+    def next(wait=true)
+      raise RqlRuntimeError, "Cannot call `next` on a cursor " +
+                             "after calling `each`." if @run
+      raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
+      timeout = wait == true ? nil : ((wait == false || wait.nil?) ? 0 : wait)
+
+      while @results.length == 0
+        raise StopIteration if !@more
+        wait_for_batch(timeout)
+      end
+
+      @results.shift
     end
   end
 
@@ -157,7 +175,7 @@ module RethinkDB
     def run_internal(q, opts, token)
       register_query(token, opts)
       dispatch(q, token)
-      opts[:noreply] ? nil : wait(token)
+      opts[:noreply] ? nil : wait(token, nil)
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && !self.is_open()
@@ -228,15 +246,18 @@ module RethinkDB
       return token
     end
 
-    def wait(token)
+    def wait(token, timeout)
       begin
         res = nil
         @listener_mutex.synchronize {
           raise RqlRuntimeError, "Connection is closed." if !@waiters.has_key?(token)
           res = @data.delete(token)
-          if res == nil
-            @waiters[token].wait(@listener_mutex)
+          if res.nil?
+            @waiters[token].wait(@listener_mutex, timeout)
             res = @data.delete(token)
+            if res.nil?
+              raise Timeout::Error, "Timed out waiting for cursor response."
+            end
           end
           @waiters.delete(token)
         }

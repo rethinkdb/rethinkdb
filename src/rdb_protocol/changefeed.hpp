@@ -28,14 +28,16 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
+class artificial_table_backend_t;
 class auto_drainer_t;
 class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
 class namespace_interface_access_t;
-class superblock_t;
-struct sindex_disk_info_t;
+class real_superblock_t;
+class sindex_superblock_t;
 struct rdb_modification_report_t;
+struct sindex_disk_info_t;
 
 namespace ql {
 
@@ -132,7 +134,7 @@ struct keyspec_t {
         size_t limit;
     };
     struct point_t {
-        store_key_t key;
+        datum_t key;
     };
 
     keyspec_t(keyspec_t &&other)
@@ -335,12 +337,12 @@ typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> item_queue_t
 
 struct primary_ref_t {
     btree_slice_t *btree;
-    superblock_t *superblock;
+    real_superblock_t *superblock;
 };
 
 struct sindex_ref_t {
     btree_slice_t *btree;
-    superblock_t *superblock;
+    sindex_superblock_t *superblock;
     const sindex_disk_info_t *sindex_info;
 };
 
@@ -520,6 +522,7 @@ public:
     counted_t<datum_stream_t> subscribe(
         env_t *env,
         const keyspec_t::spec_t &spec,
+        artificial_table_backend_t *subscriber,
         const protob_t<const Backtrace> &bt);
     void send_all(const msg_t &msg);
 

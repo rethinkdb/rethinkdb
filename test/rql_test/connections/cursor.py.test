@@ -155,7 +155,11 @@ class TestCursorWait(unittest.TestCase):
         cursor_counts = [ ]
         cursor_timeouts = [ ]
         for i in xrange(self.num_cursors):
-            cursors.append(r.range().run(self.conn))
+            cursors.append(r.range().map(r.js("(function (row) {" +
+                                                  "end = new Date(new Date().getTime() + 2);" +
+                                                  "while (new Date() < end) { }" +
+                                                  "return row;" +
+                                              "})")).run(self.conn, max_batch_rows=2))
             cursor_counts.append(0)
             cursor_timeouts.append(0)
 
@@ -167,7 +171,8 @@ class TestCursorWait(unittest.TestCase):
                     # To avoid complete deadlock with 0 wait, occasionally allow more data through
                     if (wait_time == False or wait_time == 0) and random.random() > 0.99:
                         cursors[cursor_index].next(wait=0.0001)
-                    cursors[cursor_index].next(wait=wait_time)
+                    else:
+                        cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
             except r.RqlDriverError as e:
                 if e.message != 'Timed out waiting for cursor response.':
@@ -175,7 +180,7 @@ class TestCursorWait(unittest.TestCase):
                 cursor_timeouts[cursor_index] += 1
 
         # We need to get ahead of pre-fetching for this to get the error we want
-        while sum(cursor_counts) < 150000:
+        while sum(cursor_counts) < 4000:
             for cursor_index in xrange(self.num_cursors):
                 for read_count in xrange(random.randint(0, 10)):
                     get_next(cursor_index)

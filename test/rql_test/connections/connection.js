@@ -135,9 +135,8 @@ describe('Javascript connection API', function(){
                     ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
                     {stdio: ['ignore', 'pipe', 'pipe']});
 
-                cpp_server.stderr.on('data', function(data) {
-                    fs.write(server_err_log, data)
-                    // Somehow, rethinkdb dump things in stderr
+                cpp_server.stdout.on('data', function(data) {
+                    fs.write(server_out_log, data)
                     if (data.toString().match(/Server ready/)) {
                         cpp_server.removeAllListeners();
                         setTimeout(done, 500); // We give the server 500ms to avoid errors like ("Cannot compute blueprint...")
@@ -149,8 +148,8 @@ describe('Javascript connection API', function(){
                         setup();
                     }
                 });
-                cpp_server.stdout.on('data', function(data) {
-                    fs.write(server_out_log, data)
+                cpp_server.stderr.on('data', function(data) {
+                    fs.write(server_err_log, data)
                 });
             }
 
@@ -171,27 +170,27 @@ describe('Javascript connection API', function(){
         });
 
         it("correct authorization key", function(done){
-            spawn(
-                  rethinkdbExe,
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter3'],
-                  {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(function(){
-                r.connect({port: port, authKey: "hunter3"}, function(e, c){
+                r.connect({port: port}, function(e, c){
                     assertNull(e);
-                    r.expr(1).run(c, noError(done));
+                    r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(c, noError(function() {
+                        r.connect({port: port, authKey: "hunter3"}, function(e, c){
+                            assertNull(e);
+                            r.expr(1).run(c, noError(done));
+                        });
+                    }));
                 });
             }, 500);
-
         });
 
         it("wrong authorization key", function(done){
-            spawn(
-                  rethinkdbExe,
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter4'],
-                  {stdio: ['ignore', server_out_log, server_err_log]});
-
             setTimeout(function(){
-                r.connect({port: port, authKey: "hunter-wrong"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
+                r.connect({port: port}, function(e, c){
+                    assertNull(e);
+                    r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(c, noError(function() {
+                        r.connect({port: port, authKey: "hunter-wrong"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
+                    }));
+                });
             }, 500);
         });
 
@@ -392,7 +391,7 @@ describe('Javascript connection API', function(){
         it("Non valid optarg", withConnection(function(done, c){
             r.expr(1).run(c, {nonValidOption: true}).then(function() {
                 done(new Error("Was expecting an error"))
-            }).error(givesError("RqlDriverError", "Found nonValidOption which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}.", done));
+            }).error(givesError("RqlCompileError", "Unrecognized global optional argument `non_valid_option`", done));
         }));
 
         it("Extra argument", withConnection(function(done, c){

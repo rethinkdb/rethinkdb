@@ -12,6 +12,7 @@ __all__ = [
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
     'january', 'february', 'march', 'april', 'may', 'june',
     'july', 'august', 'september', 'october', 'november', 'december',
+    'minval', 'maxval',
     'geojson', 'point', 'line', 'polygon', 'distance', 'intersects', 'circle'
 ]
 
@@ -169,31 +170,34 @@ def epoch_time(*args):
 def now(*args):
     return ast.Now(*args)
 
-class RqlTimeName(ast.RqlQuery):
+class RqlConstant(ast.RqlQuery):
     def compose(self, args, optargs):
         return 'r.'+self.st
 
 # Time enum values
-monday      = type('', (RqlTimeName,), {'tt':pTerm.MONDAY, 'st': 'monday'})()
-tuesday     = type('', (RqlTimeName,), {'tt':pTerm.TUESDAY, 'st': 'tuesday'})()
-wednesday   = type('', (RqlTimeName,), {'tt':pTerm.WEDNESDAY, 'st': 'wednesday'})()
-thursday    = type('', (RqlTimeName,), {'tt':pTerm.THURSDAY, 'st': 'thursday'})()
-friday      = type('', (RqlTimeName,), {'tt':pTerm.FRIDAY, 'st': 'friday'})()
-saturday    = type('', (RqlTimeName,), {'tt':pTerm.SATURDAY, 'st': 'saturday'})()
-sunday      = type('', (RqlTimeName,), {'tt':pTerm.SUNDAY, 'st': 'sunday'})()
+monday      = type('', (RqlConstant,), {'tt':pTerm.MONDAY, 'st': 'monday'})()
+tuesday     = type('', (RqlConstant,), {'tt':pTerm.TUESDAY, 'st': 'tuesday'})()
+wednesday   = type('', (RqlConstant,), {'tt':pTerm.WEDNESDAY, 'st': 'wednesday'})()
+thursday    = type('', (RqlConstant,), {'tt':pTerm.THURSDAY, 'st': 'thursday'})()
+friday      = type('', (RqlConstant,), {'tt':pTerm.FRIDAY, 'st': 'friday'})()
+saturday    = type('', (RqlConstant,), {'tt':pTerm.SATURDAY, 'st': 'saturday'})()
+sunday      = type('', (RqlConstant,), {'tt':pTerm.SUNDAY, 'st': 'sunday'})()
 
-january     = type('', (RqlTimeName,), {'tt':pTerm.JANUARY, 'st': 'january'})()
-february    = type('', (RqlTimeName,), {'tt':pTerm.FEBRUARY, 'st': 'february'})()
-march       = type('', (RqlTimeName,), {'tt': pTerm.MARCH, 'st': 'march'})()
-april       = type('', (RqlTimeName,), {'tt': pTerm.APRIL, 'st': 'april'})()
-may         = type('', (RqlTimeName,), {'tt': pTerm.MAY, 'st': 'may'})()
-june        = type('', (RqlTimeName,), {'tt': pTerm.JUNE, 'st': 'june'})()
-july        = type('', (RqlTimeName,), {'tt': pTerm.JULY, 'st': 'july'})()
-august      = type('', (RqlTimeName,), {'tt': pTerm.AUGUST, 'st': 'august'})()
-september   = type('', (RqlTimeName,), {'tt': pTerm.SEPTEMBER, 'st': 'september'})()
-october     = type('', (RqlTimeName,), {'tt': pTerm.OCTOBER, 'st': 'october'})()
-november    = type('', (RqlTimeName,), {'tt': pTerm.NOVEMBER, 'st': 'november'})()
-december    = type('', (RqlTimeName,), {'tt': pTerm.DECEMBER, 'st': 'december'})()
+january     = type('', (RqlConstant,), {'tt':pTerm.JANUARY, 'st': 'january'})()
+february    = type('', (RqlConstant,), {'tt':pTerm.FEBRUARY, 'st': 'february'})()
+march       = type('', (RqlConstant,), {'tt': pTerm.MARCH, 'st': 'march'})()
+april       = type('', (RqlConstant,), {'tt': pTerm.APRIL, 'st': 'april'})()
+may         = type('', (RqlConstant,), {'tt': pTerm.MAY, 'st': 'may'})()
+june        = type('', (RqlConstant,), {'tt': pTerm.JUNE, 'st': 'june'})()
+july        = type('', (RqlConstant,), {'tt': pTerm.JULY, 'st': 'july'})()
+august      = type('', (RqlConstant,), {'tt': pTerm.AUGUST, 'st': 'august'})()
+september   = type('', (RqlConstant,), {'tt': pTerm.SEPTEMBER, 'st': 'september'})()
+october     = type('', (RqlConstant,), {'tt': pTerm.OCTOBER, 'st': 'october'})()
+november    = type('', (RqlConstant,), {'tt': pTerm.NOVEMBER, 'st': 'november'})()
+december    = type('', (RqlConstant,), {'tt': pTerm.DECEMBER, 'st': 'december'})()
+
+minval      = type('', (RqlConstant,), {'tt': pTerm.MINVAL, 'st': 'minval'})()
+maxval      = type('', (RqlConstant,), {'tt': pTerm.MAXVAL, 'st': 'maxval'})()
 
 def make_timezone(*args):
     return ast.RqlTzinfo(*args)
