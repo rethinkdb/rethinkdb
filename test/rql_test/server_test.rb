@@ -75,7 +75,7 @@ class ClientTest < Test::Unit::TestCase
   def eq(query, res, &b)
     $batch_confs.map {|bc|
       qres = query.run(bc)
-      qres = qres.to_a if qres.class == RethinkDB::Cursor
+      qres = qres.to_a if qres.is_a?(RethinkDB::Cursor)
       qres = b.call(qres) if b
       assert_equal(res, qres, "
 ...............................................................................

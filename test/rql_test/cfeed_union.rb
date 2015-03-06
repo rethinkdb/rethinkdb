@@ -54,7 +54,7 @@ def assert
 end
 
 def dehash x
-  x.class == Hash ? x.map{|k,v| [k, dehash(v)]} : x
+  x.is_a?(Hash) ? x.map{|k,v| [k, dehash(v)]} : x
 end
 
 def cmp(a, b)

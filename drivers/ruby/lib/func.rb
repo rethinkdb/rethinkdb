@@ -82,7 +82,7 @@ module RethinkDB
 
         if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
           a.each {|arg|
-            if arg.class == RQL && arg.bitop
+            if arg.is_a?(RQL) && arg.bitop
               err = "Calling #{__method__} on result of infix bitwise operator:\n" +
                 "#{arg.inspect}.\n" +
                 "This is almost always a precedence error.\n" +
@@ -94,7 +94,7 @@ module RethinkDB
         end
 
         if (opt_offset = @@optarg_offsets[termtype.downcase])
-          if opt_offset.class == Hash
+          if opt_offset.is_a?(Hash)
             opt_offset = opt_offset[b ? :with_block : :without]
           end
           # TODO: This should drop the Hash comparison or at least
@@ -102,7 +102,7 @@ module RethinkDB
           # Any time one of these operations is changed to support a
           # hash argument, we'll have to remember to fix
           # @@optarg_offsets, otherwise.
-          optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
+          optargs = a.delete_at(opt_offset) if a[opt_offset].is_a?(Hash)
         end
 
         args = ((@body != RQL) ? [self] : []) + a + (b ? [new_func(&b)] : [])
@@ -131,7 +131,7 @@ module RethinkDB
     def -@; RQL.new.sub(0, self); end
 
     def [](ind)
-      if ind.class == Range
+      if ind.is_a?(Range)
         return slice(ind.begin, ind.end, :right_bound =>
                      (ind.exclude_end? ? 'open' : 'closed'))
       else
