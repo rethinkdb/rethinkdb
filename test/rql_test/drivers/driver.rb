@@ -54,7 +54,7 @@ $defines = binding
 # --
 
 def show(x)
-  if x.class == Err
+  if x.is_a?(Err)
     name = x.type.sub(/^RethinkDB::/, "")
     return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
   end
@@ -125,20 +125,20 @@ class Number
     @value = value
     @requiredType = value.class
   end
-  
+
   def method_missing(name, *args)
     return @number.send(name, *args)
   end
-  
+
   def to_s
     return @value.to_s + "(explicit" + @requiredType.name + ")"
   end
-  
+
   def inspect
     return @value.to_s + " (explicit " + @requiredType.name + ")"
   end
-  attr_reader :value 
-  attr_reader :requiredType 
+  attr_reader :value
+  attr_reader :requiredType
 end
 
 def int_cmp(value)
@@ -153,14 +153,14 @@ end
 
 def cmp_test(expected, result, testopts={}, partial=false)
   if expected.object_id == NoError.object_id
-    if result.class == Err
+    if result.is_a?(Err)
       puts result
       puts result.backtrace
       return -1
     end
     return 0
   end
-  
+
   if expected.nil? and result.nil?
     return 0
   elsif result.nil?
@@ -168,14 +168,14 @@ def cmp_test(expected, result, testopts={}, partial=false)
   elsif expected.nil?
     return -1
   end
-  
+
   if expected.object_id == AnyUUID.object_id
     return -1 if not result.kind_of? String
     return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
     return 1
   end
 
-  if result.class == String then
+  if result.is_a?(String) then
     result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
 
@@ -226,10 +226,10 @@ def cmp_test(expected, result, testopts={}, partial=false)
       }
     end
     return 0
-  
+
   when "PartitalHash"
     return cmp_test(expected.hash, result, testopts, true)
-  
+
   when "Hash"
     cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
@@ -256,13 +256,13 @@ def cmp_test(expected, result, testopts={}, partial=false)
       testopts,
       expected.partial
     )
-  
+
   when "Float", "Fixnum", "Number"
     if not (result.kind_of? Float or result.kind_of? Fixnum)
       cmp = result.class.name <=> expected.class.name
       return cmp if cmp != 0
     end
-    
+
     if expected.kind_of?(Number)
       if not result.kind_of?(expected.requiredType)
         cmp = result.class.name <=> expected.class.name
@@ -270,7 +270,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
       end
       expected = expected.value
     end
-    
+
     if testopts.has_key?(:precision)
       diff = result - expected
       if (diff).abs < testopts[:precision]
@@ -281,7 +281,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
     else
       return result <=> expected
     end
-  
+
   else
     begin
       cmp = result <=> expected
@@ -295,10 +295,10 @@ end
 
 def test(src, expected, name, opthash=nil, testopts=nil)
   $test_count += 1
-  
+
   begin
     # -- process the opthash
-    
+
     if opthash
       opthash = Hash[opthash.map{ |key,value|
         if value.is_a?(String)
@@ -321,9 +321,9 @@ def test(src, expected, name, opthash=nil, testopts=nil)
     else
       opthash = {:max_batch_rows => 3}
     end
-    
+
     # -- process the testopts
-    
+
     if testopts
       testopts = Hash[testopts.map{ |key,value|
         if value.is_a?(String)
@@ -343,31 +343,31 @@ def test(src, expected, name, opthash=nil, testopts=nil)
     else
       testopts = {}
     end
-    
+
     # -- run the command
-    
+
     result = nil
     begin
-      
+
       # - save variable if requested
-      
+
       if testopts && testopts.key?(:variable)
         queryString = "#{testopts[:variable]} = (#{src})" # handle cases like: r(1) + 3
       else
         queryString = "(#{src})" # handle cases like: r(1) + 3
       end
-      
+
       # - run the command
-      
+
       result = $defines.eval(queryString)
-      
+
       # - run as a query if it is one
-      
+
       if result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)
         print_debug("Evaluating cursor: #{queryString} #{testopts}")
-      
+
       elsif result.kind_of?(RethinkDB::RQL)
-        
+
         if opthash and opthash.length > 0
           optstring = opthash.to_s[1..-2].gsub(/(?<quoteChar>['"]?)\b(?<!:)(?<key>\w+)\b\k<quoteChar>\s*=>/, ':\k<key>=>')
           queryString += '.run($reql_conn, ' + optstring + ')' # removing braces
@@ -376,7 +376,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         end
         print_debug("Running query: #{queryString} #{testopts}")
         result = $defines.eval(queryString)
-        
+
         if result.kind_of?(RethinkDB::Cursor) # convert cursors into Enumerators to allow for poping single items
 	      result = result.each
 	      if testopts && testopts.key?(:variable)
@@ -386,22 +386,22 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       else
         print_debug("Running: #{queryString}")
       end
-      
+
     rescue StandardError, SyntaxError => e
       result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], e.backtrace)
     end
-    
+
     # -- process the result
-    
+
     return check_result(name, src, result, expected, testopts)
-  
+
   rescue StandardError, SyntaxError => err
     fail_test(name, src, err, expected, type="TEST")
   end
 end
 
 def setup_table(table_variable_name, table_name, db_name="test")
-  
+
   if $required_external_tables.count > 0
     # use one of the required tables
     db_name, table_name = $required_external_tables.pop
@@ -410,9 +410,9 @@ def setup_table(table_variable_name, table_name, db_name="test")
     rescue RethinkDB::RqlRuntimeError
       "External table #{db_name}.#{table_name} did not exist"
     end
-    
+
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
-    
+
     at_exit do
       res = r.db(db_name).table(table_name).delete().run($reql_conn)
       raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
@@ -426,16 +426,16 @@ def setup_table(table_variable_name, table_name, db_name="test")
     end
     res = r.db(db_name).table_create(table_name).run($reql_conn)
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
-    
+
     print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush
-    
+
     at_exit do
       res = r.db(db_name).table_drop(table_name).run($reql_conn)
       raise "Failed to delete table #{db_name}.#{table_name}: #{res}" unless res["tables_dropped"] == 1
     end
   end
-  
+
   $defines.eval("#{table_variable_name} = r.db('#{db_name}').table('#{table_name}')")
 end
 
@@ -470,11 +470,11 @@ def check_result(name, src, result, expected, testopts={})
     end
     if successfulTest
       # - read out cursors
-      
+
       if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && expected != NoError
         result = result.to_a
       end
-      
+
       begin
         if cmp_test(expected, result, testopts) != 0
           fail_test(name, src, result, expected)

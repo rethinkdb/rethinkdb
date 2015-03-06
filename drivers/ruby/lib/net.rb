@@ -141,7 +141,7 @@ module RethinkDB
         @abort_module = Faux_Abort
       end
 
-      opts = {:host => opts} if opts.class == String
+      opts = {:host => opts} if opts.is_a?(String)
       @host = opts[:host] || "localhost"
       @port = opts[:port] || 28015
       @default_db = opts[:db]
@@ -191,7 +191,7 @@ module RethinkDB
       q = [Query::QueryType::START,
            msg,
            Hash[all_opts.map {|k,v|
-                  [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
+                  [k.to_s, (v.is_a?(RQL) ? v.to_pb : RQL.new.expr(v).to_pb)]
                 }]]
 
       res = run_internal(q, all_opts, token)
@@ -219,7 +219,7 @@ module RethinkDB
         begin
           b.call(real_val)
         ensure
-          value.close if value.class == Cursor
+          value.close if value.is_a?(Cursor)
         end
       else
         real_val

@@ -129,6 +129,9 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
+    
+    # note: This only works for dicts, arrays, numbers, Nones, and strings. Anything else might as well be random.
+
     def __init__(self, lst, partial=False, **kwargs):
         self.lst = sorted(lst, key=lambda x: repr(x))
         self.partial = partial == True

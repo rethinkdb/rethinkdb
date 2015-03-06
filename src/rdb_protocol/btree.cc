@@ -335,9 +335,11 @@ void do_a_replace_from_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
+    profile::sampler_t *sampler,
     profile::trace_t *trace,
     std::set<std::string> *conditions)
 {
+    sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
@@ -363,6 +365,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     ql::configured_limits_t limits,
+    profile::sampler_t *sampler,
     profile::trace_t *trace) {
 
     fifo_enforcer_source_t source;
@@ -405,6 +408,7 @@ batched_replace_response_t rdb_batched_replace(
                         sindex_cb,
                         update_pkey_cfeeds,
                         &stats,
+                        sampler,
                         trace,
                         &conditions));
                 current_superblock.init(
