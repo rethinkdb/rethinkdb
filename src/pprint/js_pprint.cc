@@ -74,8 +74,10 @@ protected:
         default:
             if (should_continue_string(t)) {
                 doc = string_dots_together(t);
-            } else {
+            } else if (should_use_parens(t)) {
                 doc = standard_funcall(t);
+            } else {
+                doc = standard_literal(t);
             }
             break;
         }
@@ -408,11 +410,7 @@ private:
     }
     counted_t<const document_t> standard_funcall(const Term &t) {
         std::vector<counted_t<const document_t> > term;
-        if (t.type() == Term::JAVASCRIPT) {
-            term.push_back(js);
-        } else {
-            term.push_back(make_text(to_js_name(t)));
-        }
+        term.push_back(term_name(t));
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
@@ -433,6 +431,16 @@ private:
         }
         term.push_back(wrap_parens(make_concat(std::move(args))));
         in_r_expr = old_r_expr;
+        if (should_use_rdot(t)) {
+            return prepend_r_dot(make_concat(std::move(term)));
+        } else {
+            return make_nest(make_concat(std::move(term)));
+        }
+    }
+    counted_t<const document_t> standard_literal(const Term &t) {
+        guarantee(t.args_size() == 0);
+        std::vector<counted_t<const document_t> > term;
+        term.push_back(term_name(t));
         if (should_use_rdot(t)) {
             return prepend_r_dot(make_concat(std::move(term)));
         } else {
@@ -464,6 +472,14 @@ private:
     template <typename... Ts>
     counted_t<const document_t> make_c(Ts &&... docs) {
         return make_concat({std::forward<Ts>(docs)...});
+    }
+    counted_t<const document_t> term_name(const Term &t) {
+        switch (t.type()) {
+        case Term::JAVASCRIPT:
+            return js;
+        default:
+            return make_text(to_js_name(t));
+        }
     }
     bool should_use_rdot(const Term &t) {
         switch (t.type()) {
@@ -545,6 +561,37 @@ private:
         case Term::TABLE:
         case Term::FUNCALL:
             return t.args_size() == 2;
+        default:
+            return true;
+        }
+    }
+    bool should_use_parens(const Term &t) {
+        // handle malformed protobufs
+        if (t.args_size() > 0) return true;
+        switch (t.type()) {
+        case Term::MINVAL:
+        case Term::MAXVAL:
+        case Term::IMPLICIT_VAR:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
+            return false;
         default:
             return true;
         }
