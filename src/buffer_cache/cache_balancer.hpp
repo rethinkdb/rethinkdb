@@ -10,8 +10,7 @@
 
 #include "threading.hpp"
 #include "arch/timing.hpp"
-#include "concurrency/coro_pool.hpp"
-#include "concurrency/queue/single_value_producer.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/scoped.hpp"
 
@@ -86,11 +85,8 @@ private:
     DISABLE_COPYING(dummy_cache_balancer_t);
 };
 
-class alt_cache_balancer_dummy_value_t { };
-
 class alt_cache_balancer_t final :
     public cache_balancer_t,
-    public coro_pool_callback_t<alt_cache_balancer_dummy_value_t>,
     public repeating_timer_callback_t {
 public:
     explicit alt_cache_balancer_t(
@@ -134,10 +130,8 @@ private:
     // Callback for repeating timer
     void on_ring();
 
-    // Callback that handles rebalancing in a coro pool, so we don't block the
-    // timer callback or have multiple rebalances happening at once
-    void coro_pool_callback(alt_cache_balancer_dummy_value_t,
-                            UNUSED signal_t *interruptor);
+    // Callback that handles rebalancing in a coroutine. Called by `rebalance_pumper`.
+    void rebalance_blocking(UNUSED signal_t *interruptor);
 
     // Used when calculating new cache sizes
     struct cache_data_t {
@@ -194,10 +188,11 @@ private:
     // from each thread
     scoped_array_t<per_thread_data_t> per_thread_data;
 
-    // Coroutine pool to make sure there is only one rebalance happening at a time
-    // The single_value_producer_t makes sure we never build up a backlog
-    single_value_producer_t<alt_cache_balancer_dummy_value_t> pool_queue;
-    coro_pool_t<alt_cache_balancer_dummy_value_t> rebalance_pool;
+    /* Destructor order matters: `cache_size_change_subscription` must be destroyed
+    before `rebalance_pumper` because it calls `rebalance_pumper.notify()`, but
+    `rebalance_pumper` must be destroyed before the other member variables because it 
+    owns the `rebalance_blocking()` coroutine, which uses other member variables. */
+    pump_coro_t rebalance_pumper;
 
     watchable_t<uint64_t>::subscription_t cache_size_change_subscription;
 
