@@ -401,21 +401,18 @@ class Connection extends events.EventEmitter
                         # depending on the `ResponseNotes`.  (This
                         # usually doesn't matter, but third-party ORMs
                         # might want to treat these differently.)
-                        if response.n.length == 0
-                            cursor = new cursors.Cursor @, token, opts, root
-                        else if response.n.length == 1
-                            switch response.n[0]
+                        cursor = null
+                        for note in response.n
+                            switch note
                                 when protodef.Response.ResponseNote.SEQUENCE_FEED
-                                    cursor = new cursors.Feed @, token, opts, root
+                                    cursor ?= new cursors.Feed @, token, opts, root
+                                when protodef.Response.ResponseNote.UNIONED_FEED
+                                    cursor ?= new cursors.UnionedFeed @, token, opts, root
                                 when protodef.Response.ResponseNote.ATOM_FEED
-                                    cursor = new cursors.AtomFeed @, token, opts, root
+                                    cursor ?= new cursors.AtomFeed @, token, opts, root
                                 when protodef.Response.ResponseNote.ORDER_BY_LIMIT_FEED
-                                    cursor = new cursors.OrderByLimitFeed @, token, opts, root
-                                else
-                                    cb new err.RqlDriverError "Unknown note"
-                        else
-                            # Currently all notes are mutually exclusive.
-                            cb new err.RqlDriverError "Too many notes"
+                                    cursor ?= new cursors.OrderByLimitFeed @, token, opts, root
+                        cursor ?= new cursors.Cursor @, token, opts, root
 
                         # When we've created the cursor, we add it to
                         # the object stored in

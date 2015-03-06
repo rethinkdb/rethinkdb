@@ -326,6 +326,18 @@ class Feed extends IterableResult
 
     toString: ar () -> "[object Feed]"
 
+class UnionedFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object UnionedFeed]"
+
 class AtomFeed extends IterableResult
     constructor: ->
         @_type = protoResponseType.SUCCESS_PARTIAL
