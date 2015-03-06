@@ -101,6 +101,7 @@ public:
     void note_reshard();
 
     /* store_view_t interface */
+
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
 
@@ -162,6 +163,29 @@ public:
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_create(
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_rename(
+            const std::string &name,
+            const std::string &new_name,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_drop(
+            const std::string &id,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    /* End of `store_view_t` interface */
 
     scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
             buf_lock_t *sindex_block);
@@ -345,11 +369,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // Drops all sindexes if this store is not responsible for any data
-    void maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
-                                 const write_durability_t durability,
-                                 signal_t *interruptor);
-
     // Helper function to clear out a secondary index that has been
     // marked as deleted. To be run in a coroutine.
     void delayed_clear_sindex(

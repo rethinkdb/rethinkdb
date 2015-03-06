@@ -15,6 +15,7 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"

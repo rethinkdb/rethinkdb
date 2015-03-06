@@ -240,6 +240,9 @@ bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
         counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
         sindex_geo_bool_t geo) {
     ql::map_wire_func_t wire_func(index_func);
+    crash("unimplemented");
+    (void)env; (void)id; (void)index_func; (void)multi; (void)geo; (void)wire_func;
+#if 0
     write_t write(sindex_create_t(id, wire_func, multi, geo), env->profile(),
                   env->limits());
     write_response_t res;
@@ -248,9 +251,13 @@ bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
         boost::get<sindex_create_response_t>(&res.response);
     r_sanity_check(response);
     return response->success;
+#endif
 }
 
 bool real_table_t::sindex_drop(ql::env_t *env, const std::string &id) {
+    crash("unimplemented");
+    (void)env; (void)id;
+#if 0
     write_t write(sindex_drop_t(id), env->profile(), env->limits());
     write_response_t res;
     write_with_profile(env, &write, &res);
@@ -258,12 +265,16 @@ bool real_table_t::sindex_drop(ql::env_t *env, const std::string &id) {
         boost::get<sindex_drop_response_t>(&res.response);
     r_sanity_check(response);
     return response->success;
+#endif
 }
 
 sindex_rename_result_t real_table_t::sindex_rename(ql::env_t *env,
                                                    const std::string &old_name,
                                                    const std::string &new_name,
                                                    bool overwrite) {
+    crash("unimplemented");
+    (void)env; (void)old_name; (void)new_name; (void)overwrite;
+#if 0
     write_t write(sindex_rename_t(old_name, new_name, overwrite),
                   env->profile(),
                   env->limits());
@@ -273,9 +284,13 @@ sindex_rename_result_t real_table_t::sindex_rename(ql::env_t *env,
         boost::get<sindex_rename_response_t>(&res.response);
     r_sanity_check(response);
     return response->result;
+#endif
 }
 
 std::vector<std::string> real_table_t::sindex_list(ql::env_t *env, bool use_outdated) {
+    crash("unimplemented");
+    (void)env; (void)use_outdated;
+#if 0
     sindex_list_t sindex_list;
     read_t read(sindex_list, env->profile());
     read_response_t res;
@@ -284,10 +299,14 @@ std::vector<std::string> real_table_t::sindex_list(ql::env_t *env, bool use_outd
         boost::get<sindex_list_response_t>(&res.response);
     r_sanity_check(s_res);
     return s_res->sindexes;
+#endif
 }
 
 std::map<std::string, ql::datum_t>
 real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexes) {
+    crash("unimplemented");
+    (void)env; (void)sindexes;
+#if 0
     sindex_status_t sindex_status(sindexes);
     read_t read(sindex_status, env->profile());
     read_response_t res;
@@ -321,6 +340,7 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
     }
 
     return statuses;
+#endif
 }
 
 void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,

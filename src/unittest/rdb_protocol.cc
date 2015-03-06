@@ -30,7 +30,7 @@
 namespace unittest {
 
 void run_with_namespace_interface(
-        boost::function<void(namespace_interface_t *, order_source_t *)> fun,
+        boost::function<void(namespace_interface_t *, order_source_t *, store_t *)> fun,
         bool oversharding,
         int num_restarts) {
     recreate_temporary_directory(base_path_t("."));
@@ -103,12 +103,15 @@ void run_with_namespace_interface(
                                         &ctx,
                                         do_create);
 
-        fun(&nsi, &order_source);
+        fun(&nsi, &order_source, &stores);
     }
 }
 
 void run_in_thread_pool_with_namespace_interface(
-        boost::function<void(namespace_interface_t *, order_source_t*)> fun,
+        boost::function<void(
+            namespace_interface_t *,
+            order_source_t *,
+            const std::vector<scoped_ptr_t<store_t> > *)> fun,
         bool oversharded,
         int num_restarts = 1) {
     extproc_spawner_t extproc_spawner;
@@ -120,7 +123,10 @@ void run_in_thread_pool_with_namespace_interface(
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */
-void run_setup_teardown_test(UNUSED namespace_interface_t *nsi, order_source_t *) {
+void run_setup_teardown_test(
+        namespace_interface_t *,
+        order_source_t *,
+        const std::vector<scoped_ptr_t<store_t> > *) {
     /* Do nothing */
 }
 TEST(RDBProtocol, SetupTeardown) {
@@ -132,7 +138,10 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 }
 
 /* `GetSet` tests basic get and set operations */
-void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
+void run_get_set_test(
+        namespace_interface_t *nsi,
+        order_source_t *osource,
+        const std::vector<scoped_ptr_t<store_t> > *) {
     {
         write_t write(
                 point_write_t(store_key_t("a"), ql::datum_t::null()),
@@ -176,14 +185,15 @@ TEST(RDBProtocol, OvershardedGetSet) {
     run_in_thread_pool_with_namespace_interface(&run_get_set_test, true);
 }
 
-std::string create_sindex(namespace_interface_t *nsi,
-                          order_source_t *osource) {
+std::string create_sindex(const std::vector<scoped_ptr_t<store_t> > *stores) {
     std::string id = uuid_to_str(generate_uuid());
 
     const ql::sym_t arg(1);
     ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
 
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
+
+    for (
 
     write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::REGULAR),

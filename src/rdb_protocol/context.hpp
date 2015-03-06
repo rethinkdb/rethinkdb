@@ -34,13 +34,18 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         return_changes_t, int8_t,
         return_changes_t::NO, return_changes_t::YES);
 
+enum class sindex_rename_result_t {
+    OLD_NAME_DOESNT_EXIST,
+    NEW_NAME_EXISTS,
+    SUCCESS
+};
+
 class auth_semilattice_metadata_t;
 class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
-enum class sindex_rename_result_t;
 
 enum class sindex_multi_bool_t;
 enum class sindex_geo_bool_t;
