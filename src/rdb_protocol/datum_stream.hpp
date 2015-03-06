@@ -33,8 +33,8 @@ enum class return_empty_normal_batches_t { NO, YES };
 
 enum class feed_type_t { not_feed, point, stream, orderby_limit, unioned };
 
-// Handle unions of changefeeds; the union of a stream and a point
-// changefeed is defined to be a stream here.
+// Handle unions of changefeeds; if there's no plausible unioned type then we
+// just return `feed_type_t::unioned`.
 inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
     switch (a) {
     case feed_type_t::stream: // fallthru
