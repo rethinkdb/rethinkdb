@@ -17,7 +17,6 @@ class DashboardContainer extends Backbone.View
         error: require('../handlebars/error-query.hbs')
 
     initialize: =>
-        console.log app
         if not app.view_data_backup.dashboard_view_dashboard?
             app.view_data_backup.dashboard_view_dashboard = new models.Dashboard
         @dashboard = app.view_data_backup.dashboard_view_dashboard
