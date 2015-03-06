@@ -127,13 +127,13 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
       $dispatch_hook = nil
     end
     $c.register_query(1337, {})
-    assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, {}], 1337), nil))
     $c.register_query(-1, {})
-    assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1), nil))
     $c.register_query(16, {})
-    assert_equal({ "t"=>16, "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, 1], 16), nil))
   end
 
