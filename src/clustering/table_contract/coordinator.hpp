@@ -4,6 +4,7 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
+#include "concurrency/pump_coro.hpp"
 
 /* There is one `contract_coordinator_t` per table, located on whichever server is
 currently the Raft leader. It's the only thing which ever initiates Raft transactions.
@@ -39,28 +40,27 @@ public:
         signal_t *interruptor);
 
 private:
-    /* `pump_contracts()` is what actually issues the new contracts. There's an instance
-    of it running as long as the `contract_coordinator_t` exists. */
-    void pump_contracts(auto_drainer_t::lock_t keepalive);
+    /* `pump_contracts()` is what actually issues the new contracts. It eventually gets
+    run after every change. */
+    void pump_contracts(signal_t *interruptor);
 
     /* `pump_configs()` makes changes to the `member_ids` field of the
     `table_raft_state_t` and to the Raft cluster configuration. It's separate from
     `pump_contracts()` because the Raft cluster configuration changes are limited by the
     Raft cluster's readiness for configuration changes, so it's best if they're not
-    handled in the same loop. */
-    void pump_configs(auto_drainer_t::lock_t keepalive);
+    handled in the same function. */
+    void pump_configs(signal_t *interruptor);
 
     raft_member_t<table_raft_state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
 
-    /* Whenever something happens that might make it necessary to issue new contracts or
-    change the configs, pulse `*wake_pump_contracts` or `*wake_pump_configs`. */
-    scoped_ptr_t<cond_t> wake_pump_contracts;
-    scoped_ptr_t<cond_t> wake_pump_configs;
-
-    /* `drainer` makes sure that `pump_contracts()` and `pump_configs()` stop before the
-    member variables are destroyed. */
-    auto_drainer_t drainer;
+    /* These `pump_coro_t`s are responsible for calling `pump_contracts()` and
+    `pump_configs()`. Destructor order matters here. We have to destroy `ack_subs` first,
+    because it notifies `contract_pumper`. Then we have to destroy `contract_pumper`,
+    because its callback notifies `config_pumper`. Then we have to destroy
+    `config_pumper`, because it accesses `raft` and `acks`. */
+    pump_coro_t config_pumper;
+    pump_coro_t contract_pumper;
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>::all_subs_t
         ack_subs;

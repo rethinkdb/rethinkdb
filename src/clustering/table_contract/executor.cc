@@ -26,15 +26,15 @@ contract_executor_t::contract_executor_t(
         _base_path, _io_backender, _backfill_throttler,
         _remote_contract_execution_bcards, &local_contract_execution_bcards,
         &local_table_query_bcards },
-    update_coro_running(false),
     perfmon_counter(0),
-    raft_state_subs(std::bind(&contract_executor_t::on_raft_state_change, this))
+    update_pumper(std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
+    raft_state_subs([this]() { update_pumper.notify(); })
 {
     multistore->assert_thread();
 
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
     raft_state_subs.reset(raft_state, &freeze);
-    on_raft_state_change();
+    update_pumper.notify();
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -62,33 +62,15 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
     return key;
 }
 
-void contract_executor_t::on_raft_state_change() {
-    assert_thread();
-    if (!update_coro_running) {
-        update_coro_running = true;
-        coro_t::spawn_sometime(std::bind(
-            &contract_executor_t::update_coro, this, drainer.lock()));
+void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
+    std::set<execution_key_t> to_delete;
+    {
+        ASSERT_NO_CORO_WAITING;
+        update_pumper.ack();
+        raft_state->apply_read([&](const table_raft_state_t *state) {
+            update(*state, &to_delete); });
     }
-}
-
-void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
-    assert_thread();
-    while (!keepalive.get_drain_signal()->is_pulsed()) {
-        std::set<execution_key_t> to_delete;
-        {
-            ASSERT_NO_CORO_WAITING;
-            raft_state->apply_read([&](const table_raft_state_t *state) {
-                update(*state, &to_delete); });
-            if (to_delete.empty()) {
-                /* There's no point in going around the loop again. Since we won't delete
-                anything, we won't block, so `raft_state` won't have a chance to change;
-                so any further calls to `update()` will be no-ops. When `raft_state`
-                changes again, `on_raft_state_change()` will start another instance of
-                `update_coro()`. */
-                update_coro_running = false;
-                return;
-            }
-        }
+    if (!to_delete.empty()) {
         for (const execution_key_t &key : to_delete) {
             auto it = executions.find(key);
             guarantee(it != executions.end());
@@ -100,6 +82,9 @@ void contract_executor_t::update_coro(auto_drainer_t::lock_t keepalive) {
             `send_ack()` be able to see the entry in `executions`. */
             executions.erase(it);
         }
+        /* Now that we've deleted the executions, `update()` is likely to have new
+        instructions for us, so we should run again. */
+        update_pumper.notify();
     }
 }
 

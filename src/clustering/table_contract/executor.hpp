@@ -7,6 +7,7 @@
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/exec.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "store_subview.hpp"
 
 /* The `contract_executor_t` is responsible for executing the instructions contained in
@@ -107,15 +108,14 @@ private:
 
     execution_key_t get_contract_key(const std::pair<region_t, contract_t> &pair);
 
-    /* `on_raft_state_change()` is called whenever the Raft state changes. In response to
-    the Raft state change, we want to delete existing executions and spawn new ones.
-    However, deleting executions may block. So `on_raft_state_change()` spawns
-    `update_coro()`. `update_coro()` calls `apply_read()` on the Raft state watchable and
-    passes the result to `update()`. `update()` may spawn new executions, but it may not
-    delete them, because that would block. Instead, it puts their regions in
-    `to_delete_out`, and then `update_coro()` deletes them. */
-    void on_raft_state_change();
-    void update_coro(auto_drainer_t::lock_t);
+    /* In response to Raft state changes, we want to delete existing executions and spawn
+    new ones. However, deleting executions may block. So `raft_state_subs` notifies
+    `update_pumper` which spawns `update_blocking()`. `update_blocking()` calls
+    `apply_read()` on the Raft state watchable and passes the result to `update()`.
+    `update()` may spawn new executions, but it may not delete them, because that would
+    block. Instead, it puts their regions in `to_delete_out`, and then
+    `update_blocking()` deletes them. */
+    void update_blocking(signal_t *interruptor);
     void update(const table_raft_state_t &new_state,
                 std::set<execution_key_t> *to_delete_out);
 
@@ -151,16 +151,14 @@ private:
 
     std::map<execution_key_t, scoped_ptr_t<execution_data_t> > executions;
 
-    /* True if `update_coro()` is currently running. We use this to avoid spawning
-    multiple redundant copies. */
-    bool update_coro_running;
-
     /* Used to generate unique names for perfmons */
     int perfmon_counter;
 
-    /* `drainer` makes sure that `update_coro()` stops before the other member variables
-    are deleted. */
-    auto_drainer_t drainer;
+    /* `update_pumper` calls `update_blocking()`. Destructor order matters: we must
+    destroy `raft_state_subs` before `update_pumper` because it notifies `update_pumper`,
+    but we must destroy `update_pumper` before the other member variables because
+    `update_blocking()` accesses them. */
+    pump_coro_t update_pumper;
 
     /* We subscribe to changes in the Raft committed state so we can find out when a new
     contract has been issued. */
