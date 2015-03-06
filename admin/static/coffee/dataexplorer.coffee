@@ -2899,6 +2899,7 @@ class ResultView extends Backbone.View
         'mousedown': 'parent_pause_feed'
 
     initialize: (args) =>
+        @_patched_already = false
         @parent = args.parent
         @query_result = args.query_result
         @render()
@@ -3001,10 +3002,28 @@ class ResultView extends Backbone.View
     current_batch_size: =>
         return @current_batch()?.length ? 0
 
+    setStackSize: =>
+        # In some versions of firefox, the effective recursion
+        # limit gets hit sometimes by the driver. Here we patch
+        # the driver's built in stackSize to 30 (normally it's
+        # 100). The driver will invoke callbacks with setImmediate
+        # vs directly invoking themif the stackSize limit is
+        # exceeded, which keeps the stack size manageable (but
+        # results in worse tracebacks).
+        if @_patched_already
+            return
+        iterableProto = @query_result.cursor?.__proto__?.__proto__?.constructor?.prototype
+        if iterableProto?.stackSize > 30
+            console.log "Patching stack limit on cursors to 30"
+            iterableProto.stackSize = 30
+            @_patched_already = true
+
+
     # TODO: rate limit events to avoid freezing the browser when there are too many
     fetch_batch_rows:  =>
         if @query_result.type is not 'cursor'
             return
+        @setStackSize()
         if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
             @query_result.once 'add', (query_result, row) =>
                 if @removed_self
