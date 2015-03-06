@@ -101,9 +101,10 @@ class Cursor(object):
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
-            del self.responses[0]
-            for item in response_data:
-                yield item
+            for i in xrange(len(response_data)):
+                if i == len(response_data) - 1:
+                    del self.responses[0]
+                yield response_data[i]
 
     def __iter__(self):
         return self
@@ -123,12 +124,7 @@ class Cursor(object):
 
         if len(self.responses) == 0:
             if not self.end_flag:
-                try:
-                    if timeout == 0:
-                        raise socket.timeout()
-                    self.conn._handle_cursor_response(self.conn._read_response(self.query.token, timeout))
-                except socket.timeout as e:
-                    raise RqlDriverError("Timed out waiting for cursor response.")
+                self.conn._handle_cursor_response(self.conn._read_response(self.query.token, timeout))
                 if len(self.responses) == 0:
                     raise RqlDriverError("Internal error, missing cursor response.")
 
@@ -212,6 +208,9 @@ class SocketWrapper(object):
                     if err.errno == errno.ECONNRESET:
                         self.close()
                         raise RqlDriverError("Connection is closed.")
+                    elif err.errno == errno.EWOULDBLOCK:
+                        # This should only happen with a timeout of 0
+                        raise socket.timeout()
                     elif err.errno != errno.EINTR:
                         self.close()
                         raise RqlDriverError('Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(err)))
