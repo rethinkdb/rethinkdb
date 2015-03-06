@@ -439,13 +439,7 @@ private:
     }
     counted_t<const document_t> standard_literal(const Term &t) {
         guarantee(t.args_size() == 0);
-        std::vector<counted_t<const document_t> > term;
-        term.push_back(term_name(t));
-        if (should_use_rdot(t)) {
-            return prepend_r_dot(make_concat(std::move(term)));
-        } else {
-            return make_nest(make_concat(std::move(term)));
-        }
+        return prepend_r_dot(term_name(t));
     }
     counted_t<const document_t> prepend_r_dot(counted_t<const document_t> doc) {
         if (!prepend_ok) return doc;
