@@ -2928,7 +2928,7 @@ class ResultView extends Backbone.View
                 json_data: JSON.stringify(result, null, 4)
         else
             return @tree_container_template
-                tree: Utils.json_to_node(result)
+                tree: util.json_to_node(result)
 
     # Return the number of datums if there are less than @max_datum_threshold
     # Or return a number greater than @max_datum_threshold
@@ -3289,10 +3289,10 @@ class TableView extends ResultView
                 data['value'] = '[ ... ]'
                 data['data_to_expand'] = JSON.stringify(value)
         else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-            data['value'] = Utils.date_to_string(value)
+            data['value'] = util.date_to_string(value)
             data['classname'] = 'jta_date'
         else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-            data['value'] = Utils.binary_to_string value
+            data['value'] = util.binary_to_string value
             data['classname'] = 'jta_bin'
         else if Object::toString.call(value) is '[object Object]'
             data['value'] = '{ ... }'
@@ -3512,8 +3512,8 @@ class ProfileView extends ResultView
                 profile:
                     clipboard_text: JSON.stringify profile, null, 2
                     tree: @json_to_tree profile
-                    total_duration: Utils.prettify_duration @parent.container.driver_handler.total_duration
-                    server_duration: Utils.prettify_duration @compute_total_duration profile
+                    total_duration: util.prettify_duration @parent.container.driver_handler.total_duration
+                    server_duration: util.prettify_duration @compute_total_duration profile
                     num_shard_accesses: @compute_num_shard_accesses profile
 
             @clip.glue(@$('button.copy_profile'))
@@ -3715,7 +3715,7 @@ class ResultViewWrapper extends Backbone.View
                 show_more_data: has_more_data and not @container.state.cursor_timed_out
                 cursor_timed_out_template: (
                     @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
-                execution_time_pretty: Utils.prettify_duration @container.driver_handler.total_duration
+                execution_time_pretty: util.prettify_duration @container.driver_handler.total_duration
                 no_results: @query_result.ended and @query_result.size() == 0
                 num_results: @query_result.size()
                 floating_metadata: @floating_metadata
@@ -3723,6 +3723,7 @@ class ResultViewWrapper extends Backbone.View
             @$('.execution_time').tooltip
                 for_dataexplorer: true
                 trigger: 'hover'
+
                 placement: 'bottom'
             @$('.tab-content').html @view_object?.$el
             @$(".link_to_#{@view}_view").parent().addClass 'active'
@@ -3993,211 +3994,6 @@ class DriverHandler
     remove: =>
         @close_connection()
 
-Utils =
-    # JavaScript doesn't let us set a timezone
-    # So we create a date shifted of the timezone difference
-    # Then replace the timezone of the JS date with the one from the ReQL object
-    date_to_string: (date) ->
-        timezone = date.timezone
-
-        # Extract data from the timezone
-        timezone_array = date.timezone.split(':')
-        sign = timezone_array[0][0] # Keep the sign
-        timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
-
-        # Save the timezone in minutes
-        timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
-        if sign is '-'
-            timezone_int = -1*timezone_int
-
-        # d = real date with user's timezone
-        d = new Date(date.epoch_time*1000)
-
-        # Add the user local timezone
-        timezone_int += d.getTimezoneOffset()*60
-
-        # d_shifted = date shifted with the difference between the two timezones
-        # (user's one and the one in the ReQL object)
-        d_shifted = new Date((date.epoch_time+timezone_int)*1000)
-
-        # If the timezone between the two dates is not the same,
-        # it means that we changed time between (e.g because of daylight savings)
-        if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
-            # d_shifted_bis = date shifted with the timezone of d_shifted and not d
-            d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
-
-            if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
-                # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
-                # Let's create the date outselves...
-                str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
-                hours = parseInt(str_pieces[5])
-                hours++
-                if hours.toString().length is 1
-                    hours = "0"+hours.toString()
-                else
-                    hours = hours.toString()
-                #Note str_pieces[0] is the whole string
-                raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
-            else
-                raw_date_str = d_shifted_bis.toString()
-        else
-            raw_date_str = d_shifted.toString()
-
-        # Remove the timezone and replace it with the good one
-        return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
-
-    prettify_duration: (duration) ->
-        if duration < 1
-            return '<1ms'
-        else if duration < 1000
-            return duration.toFixed(0)+"ms"
-        else if duration < 60*1000
-            return (duration/1000).toFixed(2)+"s"
-        else # We do not expect query to last one hour.
-            minutes = Math.floor(duration/(60*1000))
-            return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
-
-    binary_to_string: (bin) ->
-        # We print the size of the binary, not the size of the base 64 string
-        # We suppose something stronger than the RFC 2045:
-        # We suppose that there is ONLY one CRLF every 76 characters
-        blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
-        leftover = bin.data.length-blocks_of_76*78
-
-        base64_digits = 76*blocks_of_76+leftover
-
-        blocks_of_4 = Math.floor(base64_digits/4)
-
-        end = bin.data.slice(-2)
-        if end is '=='
-            number_of_equals = 2
-        else if end.slice(-1) is '='
-            number_of_equals = 1
-        else
-            number_of_equals = 0
-
-        size = 3*blocks_of_4-number_of_equals
-
-        if size >= 1073741824
-            sizeStr = (size/1073741824).toFixed(1)+'GB'
-        else if size >= 1048576
-            sizeStr = (size/1048576).toFixed(1)+'MB'
-        else if size >= 1024
-            sizeStr = (size/1024).toFixed(1)+'KB'
-        else if size is 1
-            sizeStr = size+' byte'
-        else
-            sizeStr = size+' bytes'
-
-
-        # Compute a snippet and return the <binary, size, snippet> result
-        if size is 0
-            return "<binary, #{sizeStr}>"
-        else
-            str = atob bin.data.slice(0, 8)
-            snippet = ''
-            for char, i  in str
-                next = str.charCodeAt(i).toString(16)
-                if next.length is 1
-                    next = "0" + next
-                snippet += next
-
-                if i isnt str.length-1
-                    snippet += " "
-            if size > str.length
-                snippet += "..."
-
-            return "<binary, #{sizeStr}, \"#{snippet}\">"
-
-    # Render a datum as a pretty tree
-    json_to_node: do ->
-        template =
-            span: require('../handlebars/dataexplorer_result_json_tree_span.hbs')
-            span_with_quotes: require('../handlebars/dataexplorer_result_json_tree_span_with_quotes.hbs')
-            url: require('../handlebars/dataexplorer_result_json_tree_url.hbs')
-            email: require('../handlebars/dataexplorer_result_json_tree_email.hbs')
-            object: require('../handlebars/dataexplorer_result_json_tree_object.hbs')
-            array: require('../handlebars/dataexplorer_result_json_tree_array.hbs')
-
-        # We build the tree in a recursive way
-        return json_to_node = (value) ->
-            value_type = typeof value
-
-            output = ''
-            if value is null
-                return template.span
-                    classname: 'jt_null'
-                    value: 'null'
-            else if Object::toString.call(value) is '[object Array]'
-                if value.length is 0
-                    return '[ ]'
-                else
-                    sub_values = []
-                    for element in value
-                        sub_values.push
-                            value: json_to_node element
-                        if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
-                            sub_values[sub_values.length-1]['no_comma'] = true
-
-
-                    sub_values[sub_values.length-1]['no_comma'] = true
-                    return template.array
-                        values: sub_values
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
-                return template.span
-                    classname: 'jt_date'
-                    value: Utils.date_to_string(value)
-            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
-                return template.span
-                    classname: 'jt_bin'
-                    value: Utils.binary_to_string(value)
-
-            else if value_type is 'object'
-                sub_keys = []
-                for key of value
-                    sub_keys.push key
-                sub_keys.sort()
-
-                sub_values = []
-                for key in sub_keys
-                    last_key = key
-                    sub_values.push
-                        key: key
-                        value: json_to_node value[key]
-                    # We don't add a coma for url and emails, because we put it in value (value = url, >>)
-                    if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
-                        sub_values[sub_values.length-1]['no_comma'] = true
-
-                if sub_values.length isnt 0
-                    sub_values[sub_values.length-1]['no_comma'] = true
-
-                data =
-                    no_values: false
-                    values: sub_values
-
-                if sub_values.length is 0
-                    data.no_value = true
-
-                return template.object data
-            else if value_type is 'number'
-                return template.span
-                    classname: 'jt_num'
-                    value: value
-            else if value_type is 'string'
-                if /^(http|https):\/\/[^\s]+$/i.test(value)
-                    return template.url
-                        url: value
-                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
-                    return template.email
-                        email: value
-                else
-                    return template.span_with_quotes
-                        classname: 'jt_string'
-                        value: value
-            else if value_type is 'boolean'
-                return template.span
-                    classname: 'jt_bool'
-                    value: if value then 'true' else 'false'
 
 
 exports.QueryResult = QueryResult
