@@ -6,6 +6,7 @@
 #include "clustering/table_contract/coordinator.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/executor.hpp"
+#include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 /* There is one `table_meta_manager_t` on each server. For tables hosted on this server,
@@ -297,6 +298,10 @@ private:
         parent. From there they will be sent to other servers' `namespace_repo_t`s. */
         watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>::source_t
             table_query_bcard_source;
+
+        /* The `sindex_manager` watches the `table_config_t` and changes the sindexes on
+        `multistore_ptr` according to what it sees. */
+        sindex_manager_t sindex_manager;
 
         auto_drainer_t drainer;
 

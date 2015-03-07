@@ -139,6 +139,10 @@ public:
         return stores[i].get();
     }
 
+    store_t *get_underlying_store(size_t i) {
+        return stores[i].get();
+    }
+
 private:
     scoped_ptr_t<real_branch_history_manager_t> branch_history_manager;
     scoped_ptr_t<serializer_t> serializer;

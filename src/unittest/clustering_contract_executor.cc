@@ -99,6 +99,9 @@ public:
     store_view_t *get_cpu_sharded_store(size_t i) {
         return stores[i].get();
     }
+    store_t *get_underlying_store(UNUSED size_t i) {
+        crash("not implemented for this unit test");
+    }
 private:
     friend class executor_tester_t;
     server_id_t server_id;

@@ -472,16 +472,15 @@ void store_t::sindex_create(
     guarantee(write_res == 0);
 
     sindex_name_t sindex_name(name);
-    bool success = add_sindex(sindex_name, stream.vector(), &sindex_block);
+    bool success = add_sindex_internal(sindex_name, stream.vector(), &sindex_block);
     guarantee(success, "sindex_create() called with a sindex name that exists");
 
     rdb_protocol::bring_sindexes_up_to_date(
         std::set<sindex_name_t>{sindex_name}, this, &sindex_block);
 }
 
-void store_t::sindex_rename(
-        const std::string &name,
-        const std::string &new_name,
+void store_t::sindex_rename_multi(
+        const std::map<std::string, std::string> &name_changes,
         UNUSED signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<real_superblock_t> superblock;
@@ -495,7 +494,38 @@ void store_t::sindex_rename(
                             access_t::write);
     superblock->release();
 
-    rename_sindex(sindex_name_t(name), sindex_name_t(new_name), &sindex_block);
+    /* First we remove all the secondary indexes and hide their perfmons, but put the
+    definitions and `btree_stats_t`s into `to_put_back` indexed by their new names. Then
+    we go through and put them all back under their new names. */
+    std::map<std::string, std::pair<secondary_index_t, btree_stats_t *> > to_put_back;
+
+    for (const auto &pair : name_changes) {
+        secondary_index_t definition;
+        bool success = get_secondary_index(
+            &sindex_block, sindex_name_t(pair.first), &definition);
+        guarantee(success);
+        success = delete_secondary_index(&sindex_block, sindex_name_t(pair.first));
+        guarantee(success);
+
+        auto slice_it = secondary_index_slices.find(definition.id);
+        guarantee(slice_it != secondary_index_slices.end());
+        guarantee(slice_it->second.has());
+        slice_it->second->assert_thread();
+        btree_stats_t *stats = &slice_it->second->stats;
+        stats->hide();
+    
+        to_put_back.insert(std::make_pair(
+            pair.second, std::make_pair(definition, stats)));
+    }
+
+    for (const auto &pair : to_put_back) {
+        set_secondary_index(&sindex_block, sindex_name_t(pair.first), pair.second.first);
+        pair.second.second->rename(&perfmon_collection, "index-" + pair.first);
+    }
+
+    if (index_report.has()) {
+        index_report->indexes_renamed(name_changes);
+    }
 }
 
 void store_t::sindex_drop(
@@ -513,8 +543,24 @@ void store_t::sindex_drop(
                             access_t::write);
     superblock->release();
 
-    bool success = drop_sindex(sindex_name_t(name), &sindex_block);
-    guarantee(success, "sindex_drop() called on a sindex that doesn't exist");
+    secondary_index_t sindex;
+    bool success = ::get_secondary_index(&sindex_block, sindex_name_t(name), &sindex);
+    guarantee(success, "sindex_drop() called on sindex that doesn't exist");
+
+    /* Mark the secondary index as deleted */
+    success = mark_secondary_index_deleted(&sindex_block, sindex_name_t(name));
+    guarantee(success);
+
+    /* Clear the sindex later. It starts its own transaction and we don't
+    want to deadlock because we're still holding locks. */
+    coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
+                                     this,
+                                     sindex,
+                                     drainer.lock()));
+
+    if (index_report.has()) {
+        index_report->index_dropped(name);
+    }
 }
 
 scoped_ptr_t<new_mutex_in_line_t> store_t::get_in_line_for_sindex_queue(
@@ -665,7 +711,7 @@ microtime_t store_t::get_sindex_start_time(uuid_u const &id) {
     }
 }
 
-bool store_t::add_sindex(
+bool store_t::add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block) {
@@ -939,42 +985,6 @@ std::map<sindex_name_t, secondary_index_t> store_t::get_sindexes() const {
     return sindexes;
 }
 
-void store_t::set_sindexes(
-        const std::map<sindex_name_t, secondary_index_t> &sindexes,
-        buf_lock_t *sindex_block,
-        std::set<sindex_name_t> *created_sindexes_out)
-    THROWS_ONLY(interrupted_exc_t) {
-
-    std::map<sindex_name_t, secondary_index_t> existing_sindexes;
-    ::get_secondary_indexes(sindex_block, &existing_sindexes);
-
-    for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
-        if (!std_contains(sindexes, it->first) && !it->first.being_deleted) {
-            bool success = drop_sindex(it->first, sindex_block);
-            guarantee(success);
-        }
-    }
-
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        auto extant_index = existing_sindexes.find(it->first);
-        if (extant_index != existing_sindexes.end() &&
-            !secondary_indexes_are_equivalent(it->second.opaque_definition,
-                                              extant_index->second.opaque_definition)) {
-            bool success = drop_sindex(extant_index->first, sindex_block);
-            guarantee(success);
-            extant_index = existing_sindexes.end();
-        }
-
-        if (extant_index == existing_sindexes.end()) {
-            bool success = add_sindex(it->first,
-                                      it->second.opaque_definition,
-                                      sindex_block);
-            guarantee(success);
-            created_sindexes_out->insert(it->first);
-        }
-    }
-}
-
 bool store_t::mark_index_up_to_date(const sindex_name_t &name,
                                     buf_lock_t *sindex_block)
     THROWS_NOTHING {
@@ -1003,66 +1013,6 @@ bool store_t::mark_index_up_to_date(uuid_u id,
     }
 
     return found;
-}
-
-void store_t::rename_sindex(
-        const sindex_name_t &old_name,
-        const sindex_name_t &new_name,
-        buf_lock_t *sindex_block)
-        THROWS_ONLY(interrupted_exc_t) {
-    secondary_index_t old_sindex;
-    bool success = get_secondary_index(sindex_block, old_name, &old_sindex);
-    guarantee(success);
-
-    // Drop the new sindex (if it exists)
-    UNUSED bool b = drop_sindex(new_name, sindex_block);
-
-    // Delete the current entry
-    success = delete_secondary_index(sindex_block, old_name);
-    guarantee(success);
-    set_secondary_index(sindex_block, new_name, old_sindex);
-
-    // Rename the perfmons
-    guarantee(!old_name.being_deleted);
-    guarantee(!new_name.being_deleted);
-    auto slice_it = secondary_index_slices.find(old_sindex.id);
-    guarantee(slice_it != secondary_index_slices.end());
-    guarantee(slice_it->second.has());
-    slice_it->second->assert_thread();
-    slice_it->second->stats.rename(&perfmon_collection, "index-" + new_name.name);
-
-    if (index_report.has()) {
-        index_report->index_renamed(old_name.name, new_name.name);
-    }
-}
-
-MUST_USE bool store_t::drop_sindex(
-        const sindex_name_t &name,
-        buf_lock_t *sindex_block)
-        THROWS_ONLY(interrupted_exc_t) {
-    guarantee(!name.being_deleted);
-    /* Remove reference in the super block */
-    secondary_index_t sindex;
-    if (!::get_secondary_index(sindex_block, name, &sindex)) {
-        return false;
-    } else {
-        /* Mark the secondary index as deleted */
-        bool success = mark_secondary_index_deleted(sindex_block, name);
-        guarantee(success);
-
-        /* Clear the sindex later. It starts its own transaction and we don't
-        want to deadlock because we're still holding locks. */
-        coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
-                                         this,
-                                         sindex,
-                                         drainer.lock()));
-    }
-
-    if (index_report.has()) {
-        index_report->index_dropped(name.name);
-    }
-
-    return true;
 }
 
 MUST_USE bool store_t::mark_secondary_index_deleted(

@@ -439,9 +439,10 @@ TEST(RDBProtocol, OvershardedSindexCreateDrop) {
 void rename_sindex(const std::vector<scoped_ptr_t<store_t> > *stores,
                    std::string old_name,
                    std::string new_name) {
+    std::map<std::string, std::string> renames{ {old_name, new_name} };
     cond_t non_interruptor;
     for (const auto &store : *stores) {
-        store->sindex_rename(old_name, new_name, &non_interruptor);
+        store->sindex_rename_multi(renames, &non_interruptor);
     }
 }
 

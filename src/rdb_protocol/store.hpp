@@ -78,8 +78,8 @@ public:
 
     // Called when indexes change during store_t lifetime
     virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void index_renamed(const std::string &old_name,
-                               const std::string &new_name) = 0;
+    virtual void indexes_renamed(
+        const std::map<std::string, std::string> &name_changes) = 0;
 };
 
 class store_t final : public store_view_t {
@@ -164,6 +164,8 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    /* End of `store_view_t` interface */
+
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list(
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -174,9 +176,8 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    void sindex_rename(
-            const std::string &name,
-            const std::string &new_name,
+    void sindex_rename_multi(
+            const std::map<std::string, std::string> &name_changes,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
@@ -184,8 +185,6 @@ public:
             const std::string &id,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-
-    /* End of `store_view_t` interface */
 
     scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
             buf_lock_t *sindex_block);
@@ -216,18 +215,12 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    MUST_USE bool add_sindex(
+    MUST_USE bool add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
-
-    void set_sindexes(
-        const std::map<sindex_name_t, secondary_index_t> &sindexes,
-        buf_lock_t *sindex_block,
-        std::set<sindex_name_t> *created_sindexes_out)
-    THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
         const sindex_name_t &name,
@@ -238,17 +231,6 @@ public:
         uuid_u id,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-    bool drop_sindex(
-        const sindex_name_t &name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void rename_sindex(
-        const sindex_name_t &old_name,
-        const sindex_name_t &new_name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
 
     void update_outdated_sindex_list(buf_lock_t *sindex_block);
 

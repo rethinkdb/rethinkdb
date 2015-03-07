@@ -180,6 +180,13 @@ table_meta_manager_t::active_table_t::active_table_t(
         &parent->table_query_bcard_combiner,
         table_id,
         contract_executor.get_local_table_query_bcards()),
+    sindex_manager(
+        multistore_ptr,
+        raft.get_raft()->get_committed_state()->subview(
+            [](const raft_member_t<table_raft_state_t>::state_and_config_t &sc)
+                    -> table_config_t {
+                return sc.state.config.config;
+            })),
     table_directory_subs(
         parent->table_meta_directory,
         std::bind(&active_table_t::on_table_directory_change, this, ph::_1, ph::_2),

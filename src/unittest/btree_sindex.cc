@@ -173,7 +173,9 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                                     super_block->get_sindex_block_id(),
                                     access_t::write);
 
-            UNUSED bool b = store.add_sindex(name, std::vector<char>(), &sindex_block);
+            bool b = store.add_sindex_internal(
+                name, std::vector<char>(), &sindex_block);
+            guarantee(b);
         }
 
         {
@@ -270,21 +272,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
     for (auto it  = created_sindexs.begin(); it != created_sindexs.end(); ++it) {
         /* Drop the sindex */
-        write_token_t token;
-        store.new_write_token(&token);
-
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                           1, write_durability_t::SOFT, &token,
-                                           &txn, &super_block, &dummy_interruptor);
-
-        buf_lock_t sindex_block(super_block->expose_buf(),
-                                super_block->get_sindex_block_id(),
-                                access_t::write);
-
-        store.drop_sindex(*it, &sindex_block);
+        cond_t non_interruptor;
+        store.sindex_drop(it->name, &non_interruptor);
     }
 }
 

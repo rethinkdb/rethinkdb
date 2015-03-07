@@ -130,7 +130,8 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
                 bool success = mark_secondary_index_deleted(&sindex_block, it->first);
                 guarantee(success);
 
-                success = add_sindex(it->first, it->second.opaque_definition, &sindex_block);
+                success = add_sindex_internal(
+                    it->first, it->second.opaque_definition, &sindex_block);
                 guarantee(success);
                 sindexes_to_update.insert(it->first);
             }

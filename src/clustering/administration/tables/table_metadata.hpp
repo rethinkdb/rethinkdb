@@ -61,6 +61,7 @@ public:
     name_string_t name;
     std::string primary_key;
     std::vector<shard_t> shards;
+    std::map<std::string, sindex_config_t> sindexes;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
 };

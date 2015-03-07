@@ -126,6 +126,12 @@ public:
     sindex_config_t(const ql::map_wire_func_t &_func, reql_version_t _func_version,
             sindex_multi_bool_t _multi, sindex_geo_bool_t _geo) :
         func(_func), func_version(_func_version), multi(_multi), geo(_geo) { }
+
+    bool operator==(const sindex_config_t &o) const;
+    bool operator!=(const sindex_config_t &o) const {
+        return !(*this == o);
+    }
+
     ql::map_wire_func_t func;
     reql_version_t func_version;
     sindex_multi_bool_t multi;
