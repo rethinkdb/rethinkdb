@@ -146,6 +146,8 @@ module RethinkDB
       @port = opts[:port] || 28015
       @default_db = opts[:db]
       @auth_key = opts[:auth_key] || ""
+      @timeout = opts[:timeout].to_i
+      @timeout = 20 if @timeout <= 0
 
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
@@ -391,7 +393,7 @@ module RethinkDB
             @auth_key + [@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
-        response += @socket.read_exn(1, 20)
+        response += @socket.read_exn(1, @timeout)
       end
       response = response[0...-1]
       if response != "SUCCESS"
