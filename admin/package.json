@@ -26,7 +26,6 @@
     "gulp-concat": "^2.5.2",
     "gulp-less": "^3.0.1",
     "gulp-newer": "^0.5.0",
-    "gulp-param": "^0.6.3",
     "gulp-rename": "^1.2.0",
     "gulp-replace": "^0.5.3",
     "gulp-sourcemaps": "^1.4.0",
@@ -39,7 +38,8 @@
     "uglifyify": "^3.0.1",
     "vinyl": "^0.4.6",
     "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.0.0"
+    "vinyl-source-stream": "^1.0.0",
+    "yargs": "^3.4.5"
   },
   "dependencies": {
     "coffeeify": "^1.0.0"

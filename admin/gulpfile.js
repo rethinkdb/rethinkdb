@@ -1,5 +1,5 @@
 'use strict';
-var gulp = require('gulp-param')(require('gulp'), process.argv),
+var gulp = require('gulp'),
     lessc = require('gulp-less'),
     gutil = require('gulp-util'),
     browserify = require('browserify'),
@@ -14,6 +14,7 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     del = require('del'),
     fs = require('fs'),
     path = require('path'),
+    argv = require('yargs').argv,
     less = require('gulp-less');
 
 var ROOT_DIR = path.resolve(__dirname, '..'),
@@ -28,15 +29,18 @@ var ROOT_DIR = path.resolve(__dirname, '..'),
     FONTS_DIR = STATIC_DIR+'/fonts',
     IMAGES_DIR = STATIC_DIR+'/images',
     JS_DIR = STATIC_DIR+'/js',
-    DRIVER_SRC_DIR = ROOT_DIR+'/drivers/javascript',
+    DRIVER_BUILD_DIR = BUILD_DIR+'/packages/js',
     VERSION_FILE = WEB_OBJ_DIR+'/version.coffee',
     BROWSERIFY_BUNDLE_ENTRY_POINT = COFFEE_DIR+'/body.coffee',
     BROWSERIFY_CACHE_FILE = WEB_OBJ_DIR+'/browserify-cache.json',
     INDEX_FILE = WEBUI_DIR+'/templates/cluster.html';
 
-gulp.task('build', ['default']);
+var watch = false, // Whether to watch the browserify output
+    bundler = null; // holds the bundler once it's created
 
-gulp.task('default', [
+gulp.task('default', ['build', 'watch']);
+
+gulp.task('build', [
   'browserify',
   'external-js',
   'less',
@@ -68,40 +72,40 @@ gulp.task('less', function() {
     .on('error', gutil.log);
 });
 
-gulp.task('rethinkdb-version', function(version, cb) {
+gulp.task('rethinkdb-version', function(cb) {
   fs.mkdir(WEB_OBJ_DIR, function(result, err) {
       fs.writeFile(
         VERSION_FILE,
-        new Buffer('module.exports = "'+version+'";'),
+        new Buffer('module.exports = "'+argv.version+'";'),
         cb);
   });
 });
 
-gulp.task('rethinkdb-driver', function(js_build_dir) {
-  gulp.src(js_build_dir+'/rethinkdb.js')
-    .pipe(gulp.dest(WEB_ASSETS_DIR+'/js'));
-});
-
-gulp.task('index', function(version) {
+gulp.task('index', function() {
   gulp.src([INDEX_FILE])
     .pipe(rename('index.html'))
-    .pipe(replace(/{RETHINKDB_VERSION}/g, version))
+    .pipe(replace(/{RETHINKDB_VERSION}/g, argv.version))
     .pipe(gulp.dest(WEB_ASSETS_DIR))
     .on('error', gutil.log);
 });
 
-gulp.task('browserify', ['rethinkdb-version'], function(version) {
-  browserifyShared(version, false);
+gulp.task('browserify', ['rethinkdb-version'], function() {
+  bundler = createBundler(false);
+  return rebundle();
 });
 
-gulp.task('browserify-watch', ['rethinkdb-version'], function(version){
-  browserifyShared(version, true);
+gulp.task('browserify-watch', ['rethinkdb-version'], function(){
+  bundler = createBundler(true);
+  return rebundle();
 });
 
-var browserifyShared = function(version, watch) {
-  // Abstracts common functionality between watching for changes and not
+
+function createBundler(watch) {
+  // This is the browserify bundler, used by both the build and watch
+  // tasks. Only one should be created, and re-used so that it can
+  // cache build results when rebuilding on file changes
   return uberWatchify(browserify({
-    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
+      entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
     cache: uberWatchify.getCache(BROWSERIFY_CACHE_FILE),
     extensions: ['.coffee', '.hbs'],
     packageCache: {},
@@ -109,11 +113,10 @@ var browserifyShared = function(version, watch) {
   }),{
     // special uber-watchify only options
     cacheFile: BROWSERIFY_CACHE_FILE,
-    watch: false,
+    watch: watch,
   })
     // Allows var r = require('rethinkdb') without including the
     // driver source in this bundle
-    //.external('rethinkdb')
     .exclude('rethinkdb')
     // Need to exclude the version file so we don't accidentally pick
     // up something off the filesystem
@@ -122,24 +125,25 @@ var browserifyShared = function(version, watch) {
     .transform('coffeeify')
     // convert handlebars files & insert handlebars runtime
     .transform('hbsfy')
-    .require(VERSION_FILE, {expose: 'rethinkdb-version'})
-    .require(BUILD_DIR+'/drivers/javascript/proto-def.js',
-             {expose: './proto-def'})
-    .require(
-      DRIVER_SRC_DIR+'/rethinkdb.coffee',
-      {
-        expose: 'rethinkdb',
-        //basedir: DRIVER_SRC_DIR,
-      }
-    )
-    .bundle()
-    .on('error', gutil.log)
-    // We use a vinyl-source-stream to turn the browserify bundle into
-    // a stream that gulp understands
+    .add(VERSION_FILE, {expose: 'rethinkdb-version'})
+    .add(DRIVER_BUILD_DIR+'/rethinkdb.js',
+         {expose: 'rethinkdb'})
+    .on('update', rebundle)
+    .on('error', function(e){gutil.log("Browserify error:", e);})
+    .on('log', function(msg){gutil.log("Browserify: "+msg);});
+}
+
+function rebundle(files) {
+  if (files){
+    gutil.log("Files changed: ", files);
+  }
+  return bundler.bundle()
+  // We use a vinyl-source-stream to turn the browserify bundle into
+  // a stream that gulp understands
     .pipe(vinylSource(JS_BUNDLE_FILE))
-    .pipe(gulp.dest(WEB_ASSETS_DIR))
-    .on('error', gutil.log);
-};
+    .pipe(gulp.dest(WEB_ASSETS_DIR));
+}
+
 
 // each entry will be turned into a gulp task copying the specified
 // files to the web assets output directory
