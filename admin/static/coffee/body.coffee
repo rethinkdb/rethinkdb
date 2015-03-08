@@ -117,6 +117,7 @@ module 'MainView', ->
         events:
             'click label[for=updates_yes]': 'turn_updates_on'
             'click label[for=updates_no]': 'turn_updates_off'
+            'change .limit-results': 'change_query_limit'
 
         initialize: (data) =>
             @alert_update_view = data.alert_update_view
@@ -124,6 +125,7 @@ module 'MainView', ->
         render: =>
             @$el.html @template
                 check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
+                query_limit: if window.localStorage?.query_limit? then JSON.parse window.localStorage.query_limit else 40
                 version: window.VERSION
             @
 
@@ -135,6 +137,9 @@ module 'MainView', ->
         turn_updates_off: (event) =>
             window.localStorage.check_updates = JSON.stringify false
             @alert_update_view.hide()
+
+        change_query_limit: (event) =>
+            window.localStorage.query_limit = @$('#query_limit').val()
 
     class @AlertUpdates extends Backbone.View
         has_update_template: Handlebars.templates['has_update-template']
