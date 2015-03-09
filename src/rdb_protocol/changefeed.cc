@@ -1806,12 +1806,10 @@ public:
         return std::make_pair(old_d, new_d);
     }
 
-    virtual bool has_el() {
-        return els.size() != 0;
-    }
+    virtual bool has_el() { return els.size() != 0; }
     virtual bool active() { return need_init == got_init; }
     virtual datum_t pop_el() {
-        guarantee(els.size() != 0);
+        guarantee(has_el());
         datum_t ret = std::move(els.front());
         els.pop_front();
         return ret;
