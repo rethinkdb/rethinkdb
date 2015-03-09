@@ -145,7 +145,7 @@ message Response {
         // The stream is a point changefeed stream
         // (e.g. `r.table('test').get(0).changes()`).
         ATOM_FEED = 2;
-        // The steam is an order_by_limit changefeed stream
+        // The stream is an order_by_limit changefeed stream
         // (e.g. `r.table('test').order_by(index: 'id').limit(5).changes()`).
         ORDER_BY_LIMIT_FEED = 3;
         // The stream is a union of multiple changefeed types that can't be
@@ -153,7 +153,7 @@ message Response {
         // (e.g. `r.table('test').changes().union(r.table('test').get(0).changes())`).
         UNIONED_FEED = 4;
         // The stream is a changefeed stream and includes notes on what state
-        // the changefeed strem is in (e.g. objects of the form `{state:
+        // the changefeed stream is in (e.g. objects of the form `{state:
         // 'initializing'}`).
         INCLUDES_STATES = 5;
     }
