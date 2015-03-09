@@ -74,10 +74,8 @@ def print_progress(ratio):
     print("\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)), end=' ')
     sys.stdout.flush()
 
-def check_version(progress, conn):
-    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
-    # if the user has a database named 'rethinkdb'
-    minimum_version = (1, 16, 0)
+def check_minimum_version(progress, conn, minimum_version):
+    stringify_version = lambda v: '.'.join(map(str, v))
     parsed_version = None
     try:
         version = r.db('rethinkdb').table('server_status')[0]['process']['version'].run(conn)
@@ -89,9 +87,9 @@ def check_version(progress, conn):
             raise RuntimeError("incompatible version")
     except (RuntimeError, TypeError, r.RqlRuntimeError):
         if parsed_version is None:
-            message = "Error: Incompatible server version found, expected >= %d.%d.%d" % \
-                minimum_version
+            message = "Error: Incompatible server version found, expected >= %s" % \
+                stringify_version(minimum_version)
         else:
-            message = "Error: Incompatible server version found (%d.%d.%d), expected >= %d.%d.%d" % \
-                (parsed_version + minimum_version)
+            message = "Error: Incompatible server version found (%s), expected >= %s" % \
+                (stringify_version(parsed_version), stringify_version(minimum_version))
         raise RuntimeError(message)
