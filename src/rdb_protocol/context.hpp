@@ -135,16 +135,6 @@ public:
     virtual bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability) = 0;
 
-    virtual bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
-        sindex_geo_bool_t geo) = 0;
-    virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
-    virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
-        const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
-    virtual std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated) = 0;
-    virtual std::map<std::string, ql::datum_t> sindex_status(
-        ql::env_t *env, const std::set<std::string> &sindexes) = 0;
-
     /* This must be public */
     virtual ~base_table_t() { }
 };
@@ -257,6 +247,34 @@ public:
             signal_t *interruptor,
             ql::datum_t *result_out,
             std::string *error_out) = 0;
+
+    virtual bool sindex_create(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor,
+            std::string *error_out);
+    virtual bool sindex_drop(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            signal_t *interruptor,
+            std::string *error_out);
+    virtual bool sindex_rename(
+            counted_t<const ql:db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const std::string &new_name,
+            signal_t *interruptor,
+            std::string *error_out);
+    virtual bool sindex_list(
+            counted_t<const ql:db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            signal_t *interruptor,
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                *configs_and_statuses_out);
 
 protected:
     virtual ~reql_cluster_interface_t() { }   // silence compiler warnings
