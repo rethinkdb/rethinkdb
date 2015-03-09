@@ -141,9 +141,10 @@ module RethinkDB
         @abort_module = Faux_Abort
       end
 
+      opts = Hash[opts.map{|(k,v)| [k.to_sym,v]}] if opts.is_a?(Hash)
       opts = {:host => opts} if opts.is_a?(String)
       @host = opts[:host] || "localhost"
-      @port = opts[:port] || 28015
+      @port = opts[:port].to_i || 28015
       @default_db = opts[:db]
       @auth_key = opts[:auth_key] || ""
 
