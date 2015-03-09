@@ -418,7 +418,9 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "version check", check_version)
+        # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+        # if the user has a database named 'rethinkdb'
+        rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
         del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 

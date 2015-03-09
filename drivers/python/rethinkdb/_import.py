@@ -764,7 +764,9 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    rdb_call_wrapper(conn_fn, "version check", check_version)
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
@@ -814,7 +816,9 @@ def import_file(options):
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    rdb_call_wrapper(conn_fn, "version check", check_version)
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory
