@@ -1,18 +1,18 @@
 desc: Test changefeed squashing
 table_variable_name: tbl
 tests:
-    
+
     # Check type
-    
+
     - py: tbl.changes(squash=true).type_of()
       rb: tbl.changes(squash:true).type_of()
       js: tbl.changes({squash:true}).typeOf()
       ot: ("STREAM")
-    
+
     # comparison changes
-    
+
     - cd: normal_changes = tbl.changes().limit(1)
-    
+
     - py: false_squash_changes = tbl.changes(squash=False).limit(2)
       js: false_squash_changes = tbl.changes({squash:false}).limit(2)
       rb: false_squash_changes = tbl.changes(squash:false).limit(2)
@@ -32,12 +32,12 @@ tests:
     - cd: tbl.get(100).update({'a':1})['replaced']
       js: tbl.get(100).update({'a':1})('replaced')
       ot: 1
-    
+
     - cd: normal_changes
       cd:
         ot: ([{'new_val':{'id':100, 'a':1}, 'old_val':null}])
         rb: ([{'new_val':{'id':100}, 'old_val':null}])
-    
+
     - cd: false_squash_changes
       ot: ([{'new_val':{'id':100}, 'old_val':null},
             {'new_val':{'a':1, 'id':100}, 'old_val':{'id':100}}])
@@ -47,14 +47,14 @@ tests:
 
     - cd: squash_changes
       ot: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
-    
+
     # Bad squash values
-    
+
     - py: tbl.changes(squash=null)
       rb: tbl.changes(squash:null)
       js: tbl.changes({squash:null})
       ot: err('RqlRuntimeError', 'Expected BOOL or NUMBER but found NULL.')
-    
+
     - py: tbl.changes(squash=-10)
       rb: tbl.changes(squash:-10)
       js: tbl.changes({squash:-10})

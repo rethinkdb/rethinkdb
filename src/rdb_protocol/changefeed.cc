@@ -1567,18 +1567,13 @@ public:
             }
             if (include_states) els.push_back(ready_datum());
 
-            decltype(queued_changes) changes;
-            changes.swap(queued_changes);
-            // We never squash initial values -- it doesn't help much with
-            // network traffic and it makes it hard to send state documents.
-            for (const auto &change_pair : changes) {
-                std::pair<datum_t, datum_t> pair =
-                    note_change_impl(change_pair.first, change_pair.second);
-                if (pair.first.has() || pair.second.has()) {
-                    push_el(std::move(pair.first), std::move(pair.second));
+            if (!squash) {
+                decltype(queued_changes) changes;
+                changes.swap(queued_changes);
+                for (const auto &pair : changes) {
+                    note_change(pair.first, pair.second);
                 }
             }
-            guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
         }
     }
@@ -2071,7 +2066,6 @@ subscription_t::get_els(batcher_t *batcher,
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
-            && active()
             && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
             // It's OK to let the `interrupted_exc_t` propagate up.
             nap(min_interval * 1000, interruptor);
@@ -2124,7 +2118,7 @@ subscription_t::get_els(batcher_t *batcher,
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else if (has_el()) {
-        while (has_el() && !batcher->should_send_batch()) {
+        while (has_el() && !batcher->should_send_batch(ignore_latency_t::YES)) {
             datum_t el = pop_el();
             batcher->note_el(el);
             ret.push_back(std::move(el));
