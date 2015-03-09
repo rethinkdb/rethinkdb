@@ -13,6 +13,7 @@ module 'DataExplorerView', ->
             suggestions: true
             electric_punctuation: false
             profiler: false
+            query_limit: 40
         history: []
         focus_on_codemirror: true
 
@@ -159,7 +160,6 @@ module 'DataExplorerView', ->
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # Constants
-        limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         size_history: 50
 
@@ -2980,14 +2980,14 @@ module 'DataExplorerView', ->
                     if @query_result.is_feed
                         pause_at = @parent.container.state.pause_at
                         if pause_at?
-                            latest = @query_result.slice(Math.min(0, pause_at - @parent.container.limit), pause_at - 1)
+                            latest = @query_result.slice(Math.min(0, pause_at - @parent.container.state.options.query_limit), pause_at - 1)
                         else
-                            latest = @query_result.slice(-@parent.container.limit)
+                            latest = @query_result.slice(-@parent.container.state.options.query_limit)
                         latest.reverse()
 
                         return latest
                     else
-                        return @query_result.slice(@query_result.position, @query_result.position + @parent.container.limit)
+                        return @query_result.slice(@query_result.position, @query_result.position + @parent.container.state.options.query_limit)
 
         current_batch_size: =>
             return @current_batch()?.length ? 0
@@ -3013,14 +3013,14 @@ module 'DataExplorerView', ->
             if @query_result.type is not 'cursor'
                 return
             @setStackSize()
-            if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.limit
+            if @query_result.is_feed or @query_result.size() < @query_result.position + @parent.container.state.options.query_limit
                 @query_result.once 'add', (query_result, row) =>
                     if @removed_self
                         return
                     if @query_result.is_feed
                         if not @parent.container.state.pause_at?
                             if not @paused_at?
-                                @query_result.drop_before(@query_result.size() - @parent.container.limit)
+                                @query_result.drop_before(@query_result.size() - @parent.container.state.options.query_limit)
                             @add_row row
                         @parent.update_feed_metadata()
                     @fetch_batch_rows()
@@ -3030,8 +3030,8 @@ module 'DataExplorerView', ->
                 @render()
 
         show_next_batch: =>
-            @query_result.position += @parent.container.limit
-            @query_result.drop_before @parent.container.limit
+            @query_result.position += @parent.container.state.options.query_limit
+            @query_result.drop_before @parent.container.state.options.query_limit
             @render()
             @parent.render()
             @fetch_batch_rows()
@@ -3061,7 +3061,7 @@ module 'DataExplorerView', ->
             if not noflash
                 node.addClass 'flash'
             children = tree_container.children()
-            if children.length > @parent.container.limit
+            if children.length > @parent.container.state.options.query_limit
                 children.last().remove()
 
     class TableView extends ResultView
@@ -3693,7 +3693,7 @@ module 'DataExplorerView', ->
         render: (args) =>
             if @query_result?.ready
                 @view_object?.$el.detach()
-                has_more_data = not @query_result.ended and @query_result.position + @container.limit <= @query_result.size()
+                has_more_data = not @query_result.ended and @query_result.position + @container.state.options.query_limit <= @query_result.size()
                 @$el.html @template
                     limit_value: @view_object?.current_batch_size()
                     skip_value: @query_result.position
@@ -3725,7 +3725,7 @@ module 'DataExplorerView', ->
             if @query_result.is_feed
                 total = @container.state.pause_at ? @query_result.size()
                 ended: @query_result.ended
-                overflow: @container.limit < total
+                overflow: @container.state.options.query_limit < total
                 paused: @container.state.pause_at?
                 upcoming: @query_result.size() - total
 
@@ -3773,7 +3773,8 @@ module 'DataExplorerView', ->
         className: 'options_view'
 
         events:
-            'click li': 'toggle_option'
+            'click li:not(.text-input)': 'toggle_option'
+            'change #query_limit': 'change_query_limit'
 
         initialize: (args) =>
             @container = args.container
@@ -3791,6 +3792,12 @@ module 'DataExplorerView', ->
                     window.localStorage.options = JSON.stringify @options
                 if new_target is 'profiler' and new_value is false
                     @$('.profiler_enabled').slideUp 'fast'
+
+        change_query_limit: (event) =>
+            @options['query_limit'] = if parseInt(@$('#query_limit').val(), 10) > 40 then parseInt(@$('#query_limit').val(), 10) else  40
+            if window.localStorage?
+                window.localStorage.options = JSON.stringify @options
+            @$('#query_limit').val(@options['query_limit']) # In case the input is reset to 40
 
         render: (displayed) =>
             @$el.html @dataexplorer_options_template @options
