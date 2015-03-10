@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/error.hpp"
@@ -26,7 +27,6 @@ datum_string_t sindex_config_to_string(const sindex_config_t &config) {
     write_message_t wm;
     serialize_sindex_info(&wm, disk_info);
     string_stream_t stream;
-    stream.reserve(wm.size());
     int write_res = send_write_message(&stream, &wm);
     guarantee(write_res == 0);
     return datum_string_t(sindex_blob_prefix + stream.str());
@@ -117,7 +117,7 @@ public:
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v->as_datum();
                 if (d.get_type() == datum_t::R_BINARY) {
-                    config = sindex_config_from_string(d.as_binary(), this);
+                    config = sindex_config_from_string(d.as_binary(), v.get());
                     // We ignore the sindex's old `reql_version` and make the new version
                     // just be `reql_version_t::LATEST`; but in the future we may have
                     // to do some conversions for compatibility.
@@ -143,18 +143,21 @@ public:
                 &empty_compile_env, func_term);
 
             config.func = ql::map_wire_func_t(func_term_term->eval_to_func(env->scope));
-            config.func = reql_version_t::LATEST;
+            config.func_version = reql_version_t::LATEST;
         }
+
+        config.func.compile_wire_func()->assert_deterministic(
+            "Index functions must be deterministic.");
 
         /* Check if we're doing a multi index or a normal index. */
         if (scoped_ptr_t<val_t> multi_val = args->optarg(env, "multi")) {
-            multi = multi_val->as_bool()
+            config.multi = multi_val->as_bool()
                 ? sindex_multi_bool_t::MULTI
                 : sindex_multi_bool_t::SINGLE;
         }
         /* Do we want to create a geo index? */
         if (scoped_ptr_t<val_t> geo_val = args->optarg(env, "geo")) {
-            geo = geo_val->as_bool()
+            config.geo = geo_val->as_bool()
                 ? sindex_geo_bool_t::GEO
                 : sindex_geo_bool_t::REGULAR;
         }
@@ -212,14 +215,14 @@ public:
         std::string error;
         if (!env->env->reql_cluster_interface()->sindex_list(
                 table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                env->env->interruptor, &error)) {
+                env->env->interruptor, &error, &configs_and_statuses)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
         /* Convert into an array and return it */
         ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
         for (const auto &pair : configs_and_statuses) {
-            res.add(ql::datum_t(ql::datum_string_t(pair.first)));
+            res.add(ql::datum_t(datum_string_t(pair.first)));
         }
         return new_val(std::move(res).to_datum());
     }
@@ -246,20 +249,31 @@ public:
         std::string error;
         if (!env->env->reql_cluster_interface()->sindex_list(
                 table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                env->env->interruptor, &error)) {
+                env->env->interruptor, &error, &configs_and_statuses)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
         /* Convert it into an array and return it */
         ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
         for (const auto &pair : configs_and_statuses) {
-            if (!sindexes.empty() && sindexes.count(pair.first) == 0) {
-                continue;
+            if (!sindexes.empty()) {
+                if (sindexes.count(pair.first) == 0) {
+                    continue;
+                } else {
+                    sindexes.erase(pair.first);
+                }
             }
             res.add(sindex_status_to_datum(
-                pair.first, pair.second.first, pair.second.second);
+                pair.first, pair.second.first, pair.second.second));
         }
-        return new_val(res);
+
+        /* Make sure we found all the requested sindexes. */
+        rcheck(sindexes.empty(), base_exc_t::GENERIC,
+            strprintf("Index `%s` was not found on table `%s`.",
+                      sindexes.begin()->c_str(),
+                      table->display_name().c_str()));
+
+        return new_val(std::move(res).to_datum());
     }
 
     virtual const char *name() const { return "sindex_status"; }
@@ -289,7 +303,7 @@ public:
             std::string error;
             if (!env->env->reql_cluster_interface()->sindex_list(
                     table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                    env->env->interruptor, &error)) {
+                    env->env->interruptor, &error, &configs_and_statuses)) {
                 rfail(base_exc_t::GENERIC, "%s", error.c_str());
             }
 
@@ -299,9 +313,9 @@ public:
                 if (!sindexes.empty() && sindexes.count(pair.first) == 0) {
                     continue;
                 }
-                if (pair.second.first.ready) {
-                    res.add(sindex_status_to_datum(
-                        pair.first, pair.second.first, pair.second.second);
+                if (pair.second.second.ready) {
+                    statuses.add(sindex_status_to_datum(
+                        pair.first, pair.second.first, pair.second.second));
                 } else {
                     all_ready = false;
                 }
@@ -341,33 +355,18 @@ public:
         scoped_ptr_t<val_t> overwrite_val = args->optarg(env, "overwrite");
         bool overwrite = overwrite_val ? overwrite_val->as_bool() : false;
 
-        sindex_rename_result_t result;
         std::string error;
         if (!env->env->reql_cluster_interface()->sindex_rename(
                 table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                old_name, new_name, env->env->interruptor, &error)) {
+                old_name, new_name, overwrite, env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
-        switch (result) {
-        case sindex_rename_result_t::SUCCESS: {
-                datum_object_builder_t retval;
-                UNUSED bool b = retval.add("renamed",
-                                           datum_t(old_name == new_name ?
-                                                                 0.0 : 1.0));
-                return new_val(std::move(retval).to_datum());
-            }
-        case sindex_rename_result_t::OLD_NAME_DOESNT_EXIST:
-            rfail_target(old_name_val, base_exc_t::GENERIC,
-                         "Index `%s` does not exist on table `%s`.",
-                         old_name.c_str(), table->display_name().c_str());
-        case sindex_rename_result_t::NEW_NAME_EXISTS:
-            rfail_target(new_name_val, base_exc_t::GENERIC,
-                         "Index `%s` already exists on table `%s`.",
-                         new_name.c_str(), table->display_name().c_str());
-        default:
-            unreachable();
-        }
+        datum_object_builder_t retval;
+        UNUSED bool b = retval.add("renamed",
+                                   datum_t(old_name == new_name ?
+                                                         0.0 : 1.0));
+        return new_val(std::move(retval).to_datum());
     }
 
     virtual const char *name() const { return "sindex_rename"; }

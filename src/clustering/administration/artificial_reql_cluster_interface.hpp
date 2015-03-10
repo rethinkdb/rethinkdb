@@ -143,6 +143,35 @@ public:
             ql::datum_t *result_out,
             std::string *error_out);
 
+    bool sindex_create(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_drop(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_rename(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const std::string &new_name,
+            bool overwrite,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_list(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            std::string *error_out,
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                *configs_and_statuses_out);
+
 private:
     name_string_t database;
     std::map<name_string_t,

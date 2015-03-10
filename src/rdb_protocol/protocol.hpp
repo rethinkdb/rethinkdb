@@ -112,41 +112,6 @@ struct backfill_atom_t {
 };
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
-enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
-enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
-        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_geo_bool_t, int8_t,
-        sindex_geo_bool_t::REGULAR, sindex_geo_bool_t::GEO);
-
-class sindex_config_t {
-public:
-    sindex_config_t() { }
-    sindex_config_t(const ql::map_wire_func_t &_func, reql_version_t _func_version,
-            sindex_multi_bool_t _multi, sindex_geo_bool_t _geo) :
-        func(_func), func_version(_func_version), multi(_multi), geo(_geo) { }
-
-    bool operator==(const sindex_config_t &o) const;
-    bool operator!=(const sindex_config_t &o) const {
-        return !(*this == o);
-    }
-
-    ql::map_wire_func_t func;
-    reql_version_t func_version;
-    sindex_multi_bool_t multi;
-    sindex_geo_bool_t geo;
-};
-RDB_DECLARE_SERIALIZABLE(sindex_config_t);
-
-class sindex_status_t {
-public:
-    size_t blocks_processed, blocks_total;
-    bool ready;
-    bool outdated;
-};
-RDB_DECLARE_SERIALIZABLE(sindex_status_t);
-
 namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(

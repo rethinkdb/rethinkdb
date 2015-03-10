@@ -538,4 +538,48 @@ bool test_rdb_env_t::instance_t::db_rebalance(
     return false;
 }
 
+bool test_rdb_env_t::instance_t::sindex_create(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const sindex_config_t &config,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_create()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_drop(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_drop()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_rename(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const std::string &new_name,
+        UNUSED bool overwrite,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_rename()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_list(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out,
+        UNUSED std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_list()";
+    return false;
+}
+
 }  // namespace unittest
