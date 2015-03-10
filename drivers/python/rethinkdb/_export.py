@@ -7,7 +7,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, json, traceback, csv
-import multiprocessing, subprocess, re, ctypes
+import multiprocessing, subprocess, re, ctypes, numbers
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
@@ -243,7 +243,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
     try:
         with open(filename, "w") as out:
             out_writer = csv.writer(out)
-            out_writer.writerow([s.encode('utf-8') for s in fields])
+            out_writer.writerow(fields)
 
             while True:
                 item = task_queue.get()
@@ -255,9 +255,11 @@ def csv_writer(filename, fields, task_queue, error_queue):
                 for field in fields:
                     if field not in row:
                         info.append(None)
-                    elif isinstance(row[field], (int, long, float, complex)):
-                        info.append(str(row[field]).encode('utf-8'))
-                    elif isinstance(row[field], (str, unicode)):
+                    elif isinstance(row[field], numbers.Number):
+                        info.append(str(row[field]))
+                    elif isinstance(row[field], str):
+                        info.append(row[field])
+                    elif isinstance(row[field], unicode):
                         info.append(row[field].encode('utf-8'))
                     else:
                         info.append(json.dumps(row[field]))
@@ -280,7 +282,7 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
 
 def get_table_size(progress, conn, db, table, progress_info):
     table_size = r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
-    progress_info[1].value = table_size
+    progress_info[1].value = int(table_size)
     progress_info[0].value = 0
 
 def export_table(host, port, auth_key, db, table, directory, fields, format,
