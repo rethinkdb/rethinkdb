@@ -24,6 +24,14 @@ bool sindex_config_t::operator==(const sindex_config_t &o) const {
 
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_config_t,
     func, func_version, multi, geo);
+
+void sindex_status_t::accum(const sindex_status_t &other) {
+    blocks_processed += other.blocks_processed;
+    blocks_total += other.blocks_total;
+    ready &= other.ready;
+    rassert(outdated == other.outdated);
+}
+
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_status_t,
     blocks_processed, blocks_total, ready, outdated);
 

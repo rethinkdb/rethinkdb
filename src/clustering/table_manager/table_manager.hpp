@@ -73,6 +73,13 @@ private:
         const raft_persistent_state_t<table_raft_state_t> &persistent_state,
         signal_t *interruptor);
 
+    /* This is the callback for `get_status_mailbox`. */
+    void on_get_status(
+        signal_t *interruptor,
+        const mailbox_t<void(
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            )>::address_t &reply_addr);
+
     /* This is the callback for `table_directory_subs`. It's responsible for
     maintaining `raft_directory`, `execution_bcard_minidir_directory`, and
     `contract_ack_minidir_directory`. */
@@ -158,6 +165,8 @@ private:
     sindex_manager_t sindex_manager;
 
     auto_drainer_t drainer;
+
+    table_manager_bcard_t::get_status_mailbox_t get_status_mailbox;
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         ::all_subs_t table_directory_subs;

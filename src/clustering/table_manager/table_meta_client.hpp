@@ -59,6 +59,13 @@ public:
         signal_t *interruptor,
         std::map<namespace_id_t, table_config_and_shards_t> *configs_out);
 
+    /* `get_status()` returns the secondary index status of the table with the given ID.
+    It may block. It returns `true` on success and `false` on failure. */
+    bool get_status(
+        const namespace_id_t &table_id,
+        signal_t *interruptor,
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > *res_out);
+
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
     to the ID of the newly generated table. It may block. If it returns `false`, the
     table may or may not have been created. If it returns `true`, the change will be

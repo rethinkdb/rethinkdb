@@ -70,6 +70,9 @@ RDB_DECLARE_SERIALIZABLE(sindex_config_t);
 
 class sindex_status_t {
 public:
+    sindex_status_t() :
+        blocks_processed(0), blocks_total(0), ready(true), outdated(false) { }
+    void accum(const sindex_status_t &other);
     size_t blocks_processed, blocks_total;
     bool ready;
     bool outdated;

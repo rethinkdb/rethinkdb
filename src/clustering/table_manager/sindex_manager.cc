@@ -16,6 +16,43 @@ sindex_manager_t::sindex_manager_t(
     update_pumper.notify();
 }
 
+std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+sindex_manager_t::get_status(signal_t *interruptor) {
+    /* First, we make a list of all the sindexes in the config. Then, we iterate over
+    the actual sindexes in the stores and try to match them to the sindexes in the
+    config. If we find a match, we accumulate the `sindex_status_t`s. If there's a sindex
+    in the config with no matching actual sindex, we set `ready = false`. */
+
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > res;
+    table_config->apply_read([&](const table_config_t *config) {
+        for (const auto &pair : config->sindexes) {
+            res[pair.first] = std::make_pair(pair.second, sindex_status_t());
+        }
+    });
+
+    for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+        store_t *store = multistore->get_underlying_store(i);
+        cross_thread_signal_t ct_interruptor(interruptor, store->home_thread());
+        on_thread_t thread_switcher(store->home_thread());
+
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_state =
+            store->sindex_list(&ct_interruptor);
+
+        for (auto &&pair : res) {
+            auto it = store_state.find(pair.first);
+            /* Note that we treat an index with the wrong definition like a missing
+            index. */
+            if (it != store_state.end() && it->second.first == pair.second.first) {
+                pair.second.second.accum(it->second.second);
+            } else {
+                pair.second.second.ready = false;
+            }
+        }
+    }
+
+    return res;
+}
+
 void sindex_manager_t::update_blocking(signal_t *interruptor) {
     std::map<std::string, sindex_config_t> goal;
     table_config->apply_read([&](const table_config_t *config) {

@@ -1075,13 +1075,13 @@ bool real_reql_cluster_interface_t::sindex_rename(
                     map->erase(new_name);
                 } else {
                     *error_out = strprintf("Index `%s` already exists on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str());
+                        new_name.c_str(), db->name.c_str(), table.c_str());
                     return false;
                 }
             }
             sindex_config_t config = map->at(name);
             map->erase(name);
-            map->insert(std::make_pair(name, config));
+            map->insert(std::make_pair(new_name, config));
             return true;
         },
         interruptor, error_out);
@@ -1089,17 +1089,27 @@ bool real_reql_cluster_interface_t::sindex_rename(
 
 bool real_reql_cluster_interface_t::sindex_list(
         counted_t<const ql::db_t> db,
-        const name_string_t &table,
+        const name_string_t &table_name,
         signal_t *interruptor,
         std::string *error_out,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *configs_and_statuses_out) {
-    (void)db;
-    (void)table;
-    (void)interruptor;
-    (void)configs_and_statuses_out;
-    *error_out = "This isn't implemented yet.";
-    return false;
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
+    namespace_id_t table_id;
+    if (!find_table(db, table_name, &table_id, nullptr, error_out)) {
+        return false;
+    }
+    if (!table_meta_client->get_status(
+            table_id, &ct_interruptor, configs_and_statuses_out)) {
+        *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`.",
+            db->name.c_str(), table_name.c_str());
+        return false;
+    }
+    return true;
 }
 
 bool real_reql_cluster_interface_t::find_table(

@@ -161,6 +161,15 @@ public:
     minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
         execution_bcard_minidir_bcard;
 
+    /* This is used for `sindex_status()` queries.
+    RSI(raft): Maybe this should be extended for regular status queries too. */
+    typedef mailbox_t<void(
+        mailbox_t<void(
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            )>::address_t
+        )> get_status_mailbox_t;
+    get_status_mailbox_t::address_t get_status_mailbox;
+
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
