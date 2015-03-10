@@ -1172,8 +1172,9 @@ private:
 
 class real_feed_t : public feed_t {
 public:
-    real_feed_t(client_t *client,
-                mailbox_manager_t *_manager,
+    real_feed_t(auto_drainer_t::lock_t client_lock,
+                client_t *client,
+                mailbox_manager_t *manager,
                 namespace_interface_t *ns_if,
                 uuid_u uuid,
                 signal_t *interruptor);
@@ -1188,6 +1189,7 @@ private:
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
     void constructor_cb();
 
+    auto_drainer_t::lock_t client_lock;
     client_t *client;
     uuid_u uuid;
     mailbox_manager_t *manager;
@@ -1214,12 +1216,14 @@ private:
 };
 
 // This mustn't hold onto the `namespace_interface_t` after it returns.
-real_feed_t::real_feed_t(client_t *_client,
+real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
+                         client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
                          signal_t *interruptor)
-    : client(_client),
+    : client_lock(std::move(_client_lock)),
+      client(_client),
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
@@ -1335,7 +1339,7 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this,
                                      store_key_t(pkey.print_primary())));
     }
-    virtual feed_type_t cfeed_type() const final { return feed_type_t::point; }
+    feed_type_t cfeed_type() const final { return feed_type_t::point; }
 
     virtual void start_artificial(env_t *env, const uuid_u &,
                                   artificial_table_backend_t *subscriber) {
@@ -1418,9 +1422,7 @@ public:
         }
         feed->add_range_sub(this);
     }
-    virtual feed_type_t cfeed_type() const final {
-        return feed_type_t::stream;
-    }
+    feed_type_t cfeed_type() const final { return feed_type_t::stream; }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
@@ -1551,9 +1553,7 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
-    virtual feed_type_t cfeed_type() const final {
-        return feed_type_t::orderby_limit;
-    }
+    feed_type_t cfeed_type() const final { return feed_type_t::orderby_limit; }
 
     void maybe_start() {
         // When we later support not always returning the initial set, that
@@ -2468,7 +2468,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
                 auto val = make_scoped<real_feed_t>(
-                    this, manager, access.get(), uuid, &interruptor);
+                    drainer.lock(), this, manager, access.get(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
