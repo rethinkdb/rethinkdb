@@ -3,10 +3,8 @@
 #define CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
-#include "clustering/table_contract/cpu_sharding.hpp"
+#include "clustering/table_manager/table_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
-
-class table_manager_t;
 
 /* There is one `multi_table_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -64,38 +62,6 @@ the remaining servers' action mailboxes, so the table will finish being created.
 as though the table still exists, it will forward the drop message to that server's
 action mailbox. */
 
-class table_persistent_state_t {
-public:
-    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
-    raft_member_id_t member_id;
-    raft_persistent_state_t<table_raft_state_t> raft_state;
-};
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
-
-class table_persistence_interface_t {
-public:
-    virtual void read_all_tables(
-        const std::function<void(
-            const namespace_id_t &table_id,
-            const table_persistent_state_t &state,
-            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
-        signal_t *interruptor) = 0;
-    virtual void add_table(
-        const namespace_id_t &table,
-        const table_persistent_state_t &state,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) = 0;
-    virtual void update_table(
-        const namespace_id_t &table,
-        const table_persistent_state_t &state,
-        signal_t *interruptor) = 0;
-    virtual void remove_table(
-        const namespace_id_t &table,
-        signal_t *interruptor) = 0;
-protected:
-    virtual ~table_persistence_interface_t() { }
-};
-
 class multi_table_manager_t {
 public:
     multi_table_manager_t(
@@ -128,8 +94,6 @@ public:
     }
 
 private:
-    friend class table_manager_t;
-
     /* The `multi_table_manager_t` has three possible levels of involvement with a table:
 
     0. We haven't been a replica of the table since we restarted. In this case, we don't
@@ -141,17 +105,50 @@ private:
         card for the table.
 
     2. We are currently a replica for the table, In this case, we store a `table_t` in
-        our `tables` map, and we store a `table_manager_t` in the `table_t`. We have a
+        our `tables` map, and we store a `active_table_t` in the `table_t`. We have a
         file on disk for the table and we publish a business card for the table. */
 
-    /* `table_t`'s main job is to hold the `table_manager_t`. If there is no
-    `table_manager_t`, this means that we used to be a replica for this table but no
+    class active_table_t {
+    public:
+        active_table_t(
+            multi_table_manager_t *parent,
+            const namespace_id_t &table_id,
+            const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+            const raft_member_id_t &member_id,
+            const raft_persistent_state_t<table_raft_state_t> &initial_state,
+            multistore_ptr_t *multistore_ptr);
+
+        raft_member_t<table_raft_state_t> *get_raft() {
+            return manager.get_raft();
+        }
+
+        void on_raft_commit();
+
+        multi_table_manager_t *parent;
+        table_manager_t manager;
+
+        /* The `watchable_map_entry_copier_t` copies the `table_manager_bcard_t` from
+        `manager.get_table_manager_bcard()` into the `table_manager_bcards` map. */
+        watchable_map_entry_copier_t<namespace_id_t, table_manager_bcard_t>
+            table_manager_bcard_copier;
+
+        /* The `table_query_bcard_source` receives `table_query_bcard_t`s from the
+        `table_manager_t` and sends them on to `table_query_bcard_combiner`. From there
+        they will be sent to other servers' `namespace_repo_t`s. */
+        watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>::source_t
+            table_query_bcard_source;
+
+        watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
+            raft_committed_subs;
+    };
+
+    /* `table_t`'s main job is to hold the `active_table_t`. If there is no
+    `active_table_t`, this means that we used to be a replica for this table but no
     longer are; in this case, `table_t`'s job is to remember why we are no longer a
     replica for this table. */
     class table_t {
     public:
-        table_t();
-        ~table_t();
+        table_t() : sync_coro_running(false) { }
 
         /* `to_sync_set` holds the server IDs and peer IDs of all the servers for which
         we should call `do_sync()` with this table. `schedule_sync()` adds entries to
@@ -178,14 +175,14 @@ private:
         `active_table_t` but we don't want to delete and re-create the `multistore_ptr`.
         */
         scoped_ptr_t<multistore_ptr_t> multistore_ptr;
-        scoped_ptr_t<table_manager_t> active;
+        scoped_ptr_t<active_table_t> active;
     };
 
     void on_table_manager_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_manager_bcard_t &value);
 
-    /* `on_action()`, `on_get_config()`, and `on_set_config()` are mailbox callbacks */
+    /* `on_action()` and `on_get_config()` are mailbox callbacks */
 
     void on_action(
         signal_t *interruptor,
@@ -207,8 +204,8 @@ private:
     server regarding the given table, and sends one if so. It is called in the following
     situations:
       - Whenever another server connects, it is called for that server and every table
-      - Whenever a server changes its `table_meta_bcard_t` in the directory for a table,
-        it is called for that server and that table
+      - Whenever a server changes its `table_manager_bcard_t` in the directory for a
+        table, it is called for that server and that table
       - Whenever a Raft transaction is committed for a table that we are a member of, it
         is called for every server and that table
     This results in a lot of redundant calls. This is OK because every action message has

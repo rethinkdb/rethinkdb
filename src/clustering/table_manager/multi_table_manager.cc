@@ -5,10 +5,6 @@
 #include "clustering/table_manager/table_manager.hpp"
 #include "logger.hpp"
 
-/* RSI: Should be `since_N` where `N` is the version for Raft */
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_persistent_state_t,
-    epoch, member_id, raft_state);
-
 multi_table_manager_t::multi_table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
@@ -72,8 +68,9 @@ multi_table_manager_t::multi_table_manager_t(
             new_mutex_acq_t table_mutex_acq(&table->mutex);
             global_mutex_acq.reset();
             table->multistore_ptr = std::move(multistore_ptr);
-            table->active = make_scoped<table_manager_t>(this, table_id, state.epoch,
-                state.member_id, state.raft_state, table->multistore_ptr.get());
+            table->active = make_scoped<active_table_t>(
+                this, table_id, state.epoch, state.member_id, state.raft_state,
+                table->multistore_ptr.get());
             raft_member_t<table_raft_state_t>::state_and_config_t raft_state =
                 table->active->get_raft()->get_committed_state()->get();
             guarantee(raft_state.state.member_ids.at(server_id) == state.member_id,
@@ -96,11 +93,41 @@ multi_table_manager_t::multi_table_manager_t(
         &non_interruptor);
 }
 
-multi_table_manager_t::table_t::table_t() : sync_coro_running(false) { }
+multi_table_manager_t::active_table_t::active_table_t(
+        multi_table_manager_t *_parent,
+        const namespace_id_t &table_id,
+        const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+        const raft_member_id_t &member_id,
+        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        multistore_ptr_t *multistore_ptr) :
+    parent(_parent),
+    manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
+        &parent->backfill_throttler, parent->persistence_interface, parent->base_path,
+        parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr),
+    table_manager_bcard_copier(
+        &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
+    table_query_bcard_source(
+        &parent->table_query_bcard_combiner, table_id, manager.get_table_query_bcards()),
+    raft_committed_subs(std::bind(&active_table_t::on_raft_commit, this))
+{
+    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
+        freeze(manager.get_raft()->get_committed_state());
+    raft_committed_subs.reset(manager.get_raft()->get_committed_state(), &freeze);
+}
 
-multi_table_manager_t::table_t::~table_t() {
-    /* Declared in the `.cc` file so we don't have to include `table_manager.hpp` in the
-    header file */
+void multi_table_manager_t::active_table_t::on_raft_commit() {
+    /* Every time the Raft cluster commits a transaction, we re-sync to every other
+    server in the cluster. This is because the transaction might consist of adding or
+    removing a server, in which case we need to notify that server. */
+    mutex_assertion_t::acq_t mutex_acq(&parent->mutex);
+    auto it = parent->tables.find(manager.table_id);
+    guarantee(it != parent->tables.end());
+    parent->multi_table_manager_directory->read_all(
+    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
+        if (peer != parent->mailbox_manager->get_me()) {
+            parent->schedule_sync(manager.table_id, it->second.get(), peer);
+        }
+    });
 }
 
 void multi_table_manager_t::on_action(
@@ -154,8 +181,8 @@ void multi_table_manager_t::on_action(
         st.raft_state = *initial_state;
         persistence_interface->add_table(
             table_id, st, &table->multistore_ptr, interruptor);
-        table->active = make_scoped<table_manager_t>(this, table_id, timestamp.epoch,
-            *member_id, *initial_state,
+        table->active = make_scoped<active_table_t>(
+            this, table_id, timestamp.epoch, *member_id, *initial_state,
             table->multistore_ptr.get());
         logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
     } else if (!static_cast<bool>(member_id) && table->active.has()) {
@@ -170,7 +197,7 @@ void multi_table_manager_t::on_action(
         }
     } else if (static_cast<bool>(member_id) && table->active.has() &&
             (table->timestamp.epoch != timestamp.epoch ||
-                table->active->member_id != *member_id)) {
+                table->active->manager.member_id != *member_id)) {
         /* If the epoch changed, then the table's configuration was manually overridden.
         If the member ID changed, then we were removed and then re-added, but we never
         processed the removal message. In either case, we have to destroy and re-create
@@ -181,8 +208,9 @@ void multi_table_manager_t::on_action(
         st.member_id = *member_id;
         st.raft_state = *initial_state;
         persistence_interface->update_table(table_id, st, interruptor);
-        table->active = make_scoped<table_manager_t>(this, table_id, timestamp.epoch,
-            *member_id, *initial_state, table->multistore_ptr.get());
+        table->active = make_scoped<active_table_t>(
+            this, table_id, timestamp.epoch, *member_id, *initial_state,
+            table->multistore_ptr.get());
         logDBG("Overrode replica for table %s", uuid_to_str(table_id).c_str());
     }
 

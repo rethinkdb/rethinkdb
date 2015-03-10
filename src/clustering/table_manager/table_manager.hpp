@@ -6,8 +6,6 @@
 #include "clustering/table_contract/executor.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
-class multi_table_manager_t;
-
 /* `table_manager_t` hosts the `raft_member_t` and the `contract_executor_t`. It also
 hosts the `contract_coordinator_t` if we are the Raft leader. */
 class table_manager_t :
@@ -15,7 +13,14 @@ class table_manager_t :
 {
 public:
     table_manager_t(
-        multi_table_manager_t *_parent,
+        const server_id_t &_server_id,
+        mailbox_manager_t *_mailbox_manager,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory,
+        backfill_throttler_t *_backfill_throttler,
+        table_persistence_interface_t *_persistence_interface,
+        const base_path_t &_base_path,
+        io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &member_id,
@@ -29,6 +34,14 @@ public:
 
     raft_member_t<table_raft_state_t> *get_raft() {
         return raft.get_raft();
+    }
+
+    clone_ptr_t<watchable_t<table_manager_bcard_t> > get_table_manager_bcard() {
+        return table_manager_bcard.get_watchable();
+    }
+
+    watchable_map_t<uuid_u, table_query_bcard_t> *get_table_query_bcards() {
+        return contract_executor.get_local_table_query_bcards();
     }
 
 private:
@@ -72,12 +85,13 @@ private:
     /* This is the callback for `raft_readiness_subs` */
     void on_raft_readiness_change();
 
-    multi_table_manager_t * const parent;
+    mailbox_manager_t * const mailbox_manager;
+    table_persistence_interface_t * const persistence_interface;
 
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_membership;
 
-    /* `active_table_t` monitors `table_manager_directory` and derives three other
+    /* `table_manager_t` monitors `table_manager_directory` and derives three other
     `watchable_map_t`s from it:
     - `raft_directory` contains all of the Raft business cards. It is consumed by
         `raft`, which uses it for Raft internal RPCs.
@@ -107,10 +121,7 @@ private:
 
     raft_networked_member_t<table_raft_state_t> raft;
 
-    /* `bcard_entry` creates our entry in the directory. It will always be non-empty;
-    it's in a `scoped_ptr_t` to make it more convenient to create. */
-    scoped_ptr_t<watchable_map_var_t<namespace_id_t, table_manager_bcard_t>::entry_t>
-        bcard_entry;
+    watchable_variable_t<table_manager_bcard_t> table_manager_bcard;
 
     /* `leader` will be non-empty if we are the Raft leader */
     scoped_ptr_t<leader_t> leader;
@@ -140,12 +151,6 @@ private:
     leader. */
     minidir_write_manager_t<std::pair<server_id_t, contract_id_t>,
         contract_ack_t> contract_ack_write_manager;
-
-    /* The `table_query_bcard_source` receives `table_query_bcard_t`s from the
-    `contract_executor` and sends them on to `table_query_bcard_combiner` on the
-    parent. From there they will be sent to other servers' `namespace_repo_t`s. */
-    watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>::source_t
-        table_query_bcard_source;
 
     auto_drainer_t drainer;
 

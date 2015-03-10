@@ -6,6 +6,7 @@
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -166,6 +167,38 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
+
+class table_persistent_state_t {
+public:
+    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+    raft_member_id_t member_id;
+    raft_persistent_state_t<table_raft_state_t> raft_state;
+};
+RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
+
+class table_persistence_interface_t {
+public:
+    virtual void read_all_tables(
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_persistent_state_t &state,
+            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+        signal_t *interruptor) = 0;
+    virtual void add_table(
+        const namespace_id_t &table,
+        const table_persistent_state_t &state,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
+        signal_t *interruptor) = 0;
+    virtual void update_table(
+        const namespace_id_t &table,
+        const table_persistent_state_t &state,
+        signal_t *interruptor) = 0;
+    virtual void remove_table(
+        const namespace_id_t &table,
+        signal_t *interruptor) = 0;
+protected:
+    virtual ~table_persistence_interface_t() { }
+};
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
 

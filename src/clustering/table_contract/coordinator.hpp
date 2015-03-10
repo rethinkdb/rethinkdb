@@ -10,7 +10,7 @@ currently the Raft leader. It's the only thing which ever initiates Raft transac
 Its jobs are as follows:
 
 1. Applying config changes: The `table_meta_client_t` sends config change requests to the
-    `table_meta_manager_t`, which calls `contract_coordinator_t::change_config()` to
+    `multi_table_manager_t`, which calls `contract_coordinator_t::change_config()` to
     apply the changes.
 
 2. Issuing `contract_t`s: The coordinator cross-references the `contract_t`s stored in
@@ -24,7 +24,6 @@ Its jobs are as follows:
     will join the Raft cluster. When the new member is ready, the coordinator issues a
     Raft config change to make the new replica a voting member. When a replica leaves, it
     goes through the reverse process.
-    RSI(raft): Currently, number 3 isn't actually implemented.
 */
 
 class contract_coordinator_t : public home_thread_mixin_debug_only_t {
