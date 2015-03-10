@@ -33,19 +33,16 @@ public:
     will be called again after it returns. But if the callback calls
     `include_latest_notifications()`, all notifications up to that point will be
     considered to be handled by this instance of the callback. This is only legal if
-    `max_callbacks` is 1. */
+    `max_callbacks` is 1, because otherwise there's no way for the `pump_coro_t` to know
+    which callback is calling it. */
     void include_latest_notifications();
 
-    /* `flush()` blocks until all the calls to `notify()` up to this point have been
-    handled. */
+    /* `flush()` blocks until `callback` has run completely at least once since the last
+    call to `notify()`. (Or if `callback` started before the call to `notify()` but
+    called `include_latest_notification()` after the call to `notify()`.) */
     void flush(signal_t *interruptor);
 
 private:
-    class counted_cond_t :
-        public cond_t,
-        public single_threaded_countable_t<counted_cond_t>
-        { };
-
     void run(auto_drainer_t::lock_t keepalive);
 
     std::function<void(signal_t *)> const callback;
@@ -62,15 +59,18 @@ private:
     size_t running;
     bool starting, queued;
 
-    /* `flush()` inserts into `flush_waiters`; `run()` makes a local copy of
-    `flush_waiters` and then clears it. When the callback finishes, it pulses all of the
-    conds in its local copy. */
-    std::vector<counted_t<counted_cond_t> > flush_waiters;
+    /* `notify()` increments `timestamp` every time it is called. This is used to track
+    the waiters in `flush_waiters`. */
+    uint64_t timestamp;
 
-    /* If `max_callbacks` is 1, then `run()` will set `running_flush_waiters` to its
-    local copy of `flush_waiters`, so that `include_latest_notifications()` can access
-    it. */
-    std::vector<counted_t<counted_cond_t> > *running_flush_waiters;
+    /* `flush()` inserts into `flush_waiters` under the current value of `timestamp`. */
+    std::multimap<uint64_t, cond_t *> flush_waiters;
+
+    /* `run()` will make a copy of `timestamp` when it starts. If `max_callbacks` is 1,
+    then it will set `running_timestamp` to a pointer to its local copy, so that
+    `include_latest_notifications()` can adjust it. If `run()` is not active or if
+    `max_callbacks` is greater than 1, `running_timestamp` will always be null. */
+    uint64_t *running_timestamp;
 
     auto_drainer_t drainer;
 };
