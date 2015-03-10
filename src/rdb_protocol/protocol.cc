@@ -54,23 +54,6 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
 
-bool sindex_config_t::operator==(const sindex_config_t &o) const {
-    if (func_version != o.func_version || multi != o.multi || geo != o.geo) {
-        return false;
-    }
-    /* This is kind of a hack--we compare the functions by serializing them and comparing
-    the serialized values. */
-    write_message_t wm1, wm2;
-    serialize<cluster_version_t::CLUSTER>(&wm1, func);
-    serialize<cluster_version_t::CLUSTER>(&wm2, o.func);
-    vector_stream_t stream1, stream2;
-    int res = send_write_message(&stream1, &wm1);
-    guarantee(res == 0);
-    res = send_write_message(&stream2, &wm2);
-    guarantee(res == 0);
-    return stream1.vector() == stream2.vector();
-}
-
 namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
