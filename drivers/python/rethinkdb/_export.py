@@ -44,6 +44,7 @@ def print_export_help():
     print("  --format (csv | json)            format to write (defaults to json)")
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
+    print("  --delimiter CHAR                 field delimiter for CSV format")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
     print("                                   be specified multiple times)")
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
@@ -59,8 +60,8 @@ def print_export_help():
     print("rethinkdb export -c hades -e test.subscribers -a hunter2")
     print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
     print("")
-    print("rethinkdb export --format csv -e test.history --fields time,message")
-    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'.")
+    print("rethinkdb export --format csv -e test.history --fields time,message --delimiter ';'")
+    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message' using a semicolon to delimit fields.")
     print("")
     print("rethinkdb export --fields id,value -e test.data")
     print("  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'.")
@@ -73,6 +74,7 @@ def parse_options():
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--delimiter", dest="delimiter", metavar="<CHAR>", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
@@ -121,6 +123,11 @@ def parse_options():
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
+
+    if options.delimiter is not None and options.format != "csv":
+        raise RuntimeError("Error: You can only specify a delimiter when writing in CSV format.")
+
+    res["delimiter"] = ',' if options.delimiter is None else options.delimiter
 
     # Get number of clients
     if options.clients < 1:
@@ -239,10 +246,10 @@ def json_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def csv_writer(filename, fields, task_queue, error_queue):
+def csv_writer(filename, fields, delimiter, task_queue, error_queue):
     try:
         with open(filename, "w") as out:
-            out_writer = csv.writer(out)
+            out_writer = csv.writer(out, delimiter=delimiter)
             out_writer.writerow(fields)
 
             while True:
@@ -268,7 +275,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def launch_writer(format, directory, db, table, fields, task_queue, error_queue):
+def launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue):
     if format == "json":
         filename = directory + "/%s/%s.json" % (db, table)
         return multiprocessing.Process(target=json_writer,
@@ -276,7 +283,7 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
     elif format == "csv":
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
-                                       args=(filename, fields, task_queue, error_queue))
+                                       args=(filename, fields, delimiter, task_queue, error_queue))
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
@@ -285,7 +292,7 @@ def get_table_size(progress, conn, db, table, progress_info):
     progress_info[1].value = int(table_size)
     progress_info[0].value = 0
 
-def export_table(host, port, auth_key, db, table, directory, fields, format,
+def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
                  error_queue, progress_info, sindex_counter, stream_semaphore, exit_event):
     writer = None
 
@@ -299,7 +306,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format,
 
         with stream_semaphore:
             task_queue = SimpleQueue()
-            writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
+            writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
             writer.start()
 
             rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
@@ -363,6 +370,7 @@ def run_clients(options, db_table_set):
                                                            db, table,
                                                            options["directory_partial"],
                                                            options["fields"],
+                                                           options["delimiter"],
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
