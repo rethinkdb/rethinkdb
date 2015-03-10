@@ -9,7 +9,7 @@
 #include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class table_meta_manager_bcard_t {
+class multi_table_manager_bcard_t {
 public:
     /* Every message to the `action_mailbox` has an `timestamp_t` attached. This is used
     to filter out outdated instructions. */
@@ -93,11 +93,11 @@ public:
     server_id_t server_id;
 };
 RDB_DECLARE_SERIALIZABLE(
-    table_meta_manager_bcard_t::timestamp_t::epoch_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t::timestamp_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t);
+    multi_table_manager_bcard_t::timestamp_t::epoch_t);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t::timestamp_t);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t);
 
-class table_meta_bcard_t {
+class table_manager_bcard_t {
 public:
     /* Whichever server is Raft leader will publish a `leader_bcard_t` in its directory.
     This is the destination for config change messages, and also the way that contract
@@ -121,7 +121,7 @@ public:
         case the change may or may not eventually be committed. */
         typedef mailbox_t<void(
             table_config_and_shards_t new_config_and_shards,
-            mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>
+            mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>
                 )>::address_t reply_addr
             )> set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
@@ -139,7 +139,7 @@ public:
     - The server has entered a new epoch for the table, or;
     - The server has entered or left the Raft cluster, or;
     - The table's name or database have changed. */
-    table_meta_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_bcard_t::timestamp_t timestamp;
 
     /* `database` and `name` are the table's database and name. They are distributed in
     the directory so that every server can efficiently look up tables by name. */
@@ -164,8 +164,8 @@ public:
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
-RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t::leader_bcard_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t);
+RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
+RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
 

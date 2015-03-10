@@ -6,15 +6,15 @@
 
 table_meta_client_t::table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
-        watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
-            *_table_meta_manager_directory,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
-            *_table_meta_directory) :
+        watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+            *_multi_table_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory) :
     mailbox_manager(_mailbox_manager),
-    table_meta_manager_directory(_table_meta_manager_directory),
-    table_meta_directory(_table_meta_directory),
+    multi_table_manager_directory(_multi_table_manager_directory),
+    table_manager_directory(_table_manager_directory),
     table_metadata_by_id(&table_metadata_by_id_var),
-    table_meta_directory_subs(table_meta_directory,
+    table_manager_directory_subs(table_manager_directory,
         std::bind(&table_meta_client_t::on_directory_change, this, ph::_1, ph::_2),
         true)
     { }
@@ -78,14 +78,14 @@ bool table_meta_client_t::get_config(
     on_thread_t thread_switcher(home_thread());
 
     /* Find a mailbox of a server that claims to be hosting the given table */
-    table_meta_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
-    table_meta_manager_bcard_t::timestamp_t best_timestamp;
-    table_meta_directory->read_all(
+    multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
+    multi_table_manager_bcard_t::timestamp_t best_timestamp;
+    table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_meta_bcard_t *table_bcard) {
+            const table_manager_bcard_t *table_bcard) {
         if (key.second == table_id) {
-            table_meta_manager_directory->read_key(key.first,
-            [&](const table_meta_manager_bcard_t *server_bcard) {
+            multi_table_manager_directory->read_key(key.first,
+            [&](const multi_table_manager_bcard_t *server_bcard) {
                 if (server_bcard != nullptr) {
                     if (best_mailbox.is_nil() ||
                             table_bcard->timestamp.supersedes(best_timestamp)) {
@@ -130,16 +130,16 @@ void table_meta_client_t::list_configs(
     configs_out->clear();
 
     /* Collect mailbox addresses for every single server we can see */
-    std::vector<table_meta_manager_bcard_t::get_config_mailbox_t::address_t>
+    std::vector<multi_table_manager_bcard_t::get_config_mailbox_t::address_t>
         addresses;
-    table_meta_manager_directory->read_all(
-    [&](const peer_id_t &, const table_meta_manager_bcard_t *server_bcard) {
+    multi_table_manager_directory->read_all(
+    [&](const peer_id_t &, const multi_table_manager_bcard_t *server_bcard) {
         addresses.push_back(server_bcard->get_config_mailbox);
     });
 
     /* Send a message to every server and collect all of the results */
     pmap(addresses.begin(), addresses.end(),
-    [&](const table_meta_manager_bcard_t::get_config_mailbox_t::address_t &a) {
+    [&](const multi_table_manager_bcard_t::get_config_mailbox_t::address_t &a) {
         disconnect_watcher_t dw(mailbox_manager, a.get_peer());
         promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
         mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
@@ -180,7 +180,7 @@ bool table_meta_client_t::create(
         });
 
     /* Prepare the message that we'll be sending to each server */
-    table_meta_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_bcard_t::timestamp_t timestamp;
     timestamp.epoch.timestamp = current_microtime();
     timestamp.epoch.id = generate_uuid();
     timestamp.log_index = 0;
@@ -201,9 +201,9 @@ bool table_meta_client_t::create(
             raft_state, raft_config);
 
     /* Find the business cards of the servers we'll be sending to */
-    std::map<server_id_t, table_meta_manager_bcard_t> bcards;
-    table_meta_manager_directory->read_all(
-        [&](const peer_id_t &, const table_meta_manager_bcard_t *bc) {
+    std::map<server_id_t, multi_table_manager_bcard_t> bcards;
+    multi_table_manager_directory->read_all(
+        [&](const peer_id_t &, const multi_table_manager_bcard_t *bc) {
             if (servers.count(bc->server_id) == 1) {
                 bcards[bc->server_id] = *bc;
             }
@@ -211,7 +211,7 @@ bool table_meta_client_t::create(
 
     size_t num_acked = 0;
     pmap(bcards.begin(), bcards.end(),
-    [&](const std::pair<server_id_t, table_meta_manager_bcard_t> &pair) {
+    [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
         try {
             /* Send the message for the server and wait for a reply */
             disconnect_watcher_t dw(mailbox_manager,
@@ -270,19 +270,19 @@ bool table_meta_client_t::drop(
     on_thread_t thread_switcher(home_thread());
 
     /* Construct a special timestamp that supersedes all regular timestamps */
-    table_meta_manager_bcard_t::timestamp_t drop_timestamp;
+    multi_table_manager_bcard_t::timestamp_t drop_timestamp;
     drop_timestamp.epoch.timestamp = std::numeric_limits<microtime_t>::max();
     drop_timestamp.epoch.id = nil_uuid();
     drop_timestamp.log_index = std::numeric_limits<raft_log_index_t>::max();
 
     /* Find all servers that are hosting the table */
-    std::map<server_id_t, table_meta_manager_bcard_t> bcards;
-    table_meta_directory->read_all(
+    std::map<server_id_t, multi_table_manager_bcard_t> bcards;
+    table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_meta_bcard_t *) {
+            const table_manager_bcard_t *) {
         if (key.second == table_id) {
-            table_meta_manager_directory->read_key(key.first,
-            [&](const table_meta_manager_bcard_t *bc) {
+            multi_table_manager_directory->read_key(key.first,
+            [&](const multi_table_manager_bcard_t *bc) {
                 if (bc != nullptr) {
                     bcards[bc->server_id] = *bc;
                 }
@@ -295,7 +295,7 @@ bool table_meta_client_t::drop(
     the deletion message on. */
     size_t num_acked = 0;
     pmap(bcards.begin(), bcards.end(),
-    [&](const std::pair<server_id_t, table_meta_manager_bcard_t> &pair) {
+    [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
         try {
             disconnect_watcher_t dw(mailbox_manager,
                 pair.second.action_mailbox.get_peer());
@@ -349,11 +349,11 @@ bool table_meta_client_t::set_config(
 
     /* Find the server (if any) which is acting as leader for the table */
     uuid_u best_leader_uuid;
-    table_meta_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t best_mailbox;
-    table_meta_manager_bcard_t::timestamp_t best_timestamp;
-    table_meta_directory->read_all(
+    table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t best_mailbox;
+    multi_table_manager_bcard_t::timestamp_t best_timestamp;
+    table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_meta_bcard_t *bcard) {
+            const table_manager_bcard_t *bcard) {
         if (key.second == table_id && static_cast<bool>(bcard->leader)) {
             if (best_mailbox.is_nil() || bcard->timestamp.supersedes(best_timestamp)) {
                 best_leader_uuid = bcard->leader->uuid;
@@ -373,11 +373,11 @@ bool table_meta_client_t::set_config(
     other server is no longer leader or if its leader UUID changes. */
     disconnect_watcher_t leader_disconnected(mailbox_manager, best_mailbox.get_peer());
     cond_t leader_stopped;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>::key_subs_t
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::key_subs_t
         leader_stopped_subs(
-            table_meta_directory,
+            table_manager_directory,
             std::make_pair(best_mailbox.get_peer(), table_id),
-            [&](const table_meta_bcard_t *bcard) {
+            [&](const table_manager_bcard_t *bcard) {
                 if (!static_cast<bool>(bcard->leader) ||
                         bcard->leader->uuid != best_leader_uuid) {
                     leader_stopped.pulse_if_not_already_pulsed();
@@ -385,10 +385,10 @@ bool table_meta_client_t::set_config(
             });
 
     /* OK, now send the change and wait for a reply, or for something to go wrong */
-    promise_t<boost::optional<table_meta_manager_bcard_t::timestamp_t> > promise;
-    mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>
+    promise_t<boost::optional<multi_table_manager_bcard_t::timestamp_t> > promise;
+    mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>)>
         ack_mailbox(mailbox_manager,
-        [&](signal_t *, boost::optional<table_meta_manager_bcard_t::timestamp_t> res) {
+        [&](signal_t *, boost::optional<multi_table_manager_bcard_t::timestamp_t> res) {
             promise.pulse(res);
         });
     send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
@@ -400,7 +400,7 @@ bool table_meta_client_t::set_config(
     }
 
     /* Sometimes the server will reply by indicating that something went wrong */
-    boost::optional<table_meta_manager_bcard_t::timestamp_t> timestamp = promise.wait();
+    boost::optional<multi_table_manager_bcard_t::timestamp_t> timestamp = promise.wait();
     if (!static_cast<bool>(timestamp)) {
         return false;
     }
@@ -437,7 +437,7 @@ bool table_meta_client_t::set_config(
 
 void table_meta_client_t::on_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_meta_bcard_t *dir_value) {
+        const table_manager_bcard_t *dir_value) {
     table_metadata_by_id_var.change_key(key.second,
     [&](bool *md_exists, table_metadata_t *md_value) -> bool {
         if (dir_value != nullptr && !*md_exists) {
