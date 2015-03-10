@@ -8,8 +8,10 @@
 pump_coro_t::pump_coro_t(
         const std::function<void(signal_t *)> &_callback,
         size_t _max_callbacks) :
-    callback(_callback), max_callbacks(_max_callbacks),
-    running(0), starting(false), queued(false)
+    callback(_callback),
+    max_callbacks(_max_callbacks),
+    running(0), starting(false), queued(false),
+    timestamp(0), running_timestamp(nullptr)
 {
     guarantee(max_callbacks >= 1);
 }
@@ -17,6 +19,7 @@ pump_coro_t::pump_coro_t(
 void pump_coro_t::notify() {
     assert_thread();
     mutex_assertion_t::acq_t acq(&mutex);
+    ++timestamp;
     /* If `starting` is `true`, then there's already a coroutine that's going to call the
     callback soon, so we don't need to start another one */
     if (!starting) {
@@ -34,25 +37,24 @@ void pump_coro_t::include_latest_notifications() {
     mutex_assertion_t::acq_t acq(&mutex);
     guarantee(max_callbacks == 1, "Don't use `include_latest_notifications()` with "
         "max_callbacks > 1");
-    guarantee(running_flush_waiters != nullptr, "`include_latest_notifications()` "
-        "should only be called from within the callback.");
-    running_flush_waiters->insert(
-        running_flush_waiters->end(),
-        std::make_move_iterator(flush_waiters.begin()),
-        std::make_move_iterator(flush_waiters.end()));
-    flush_waiters.clear();
+    guarantee(running_timestamp != nullptr, "`include_latest_notifications()` should "
+        "only be called from within the callback.");
+    *running_timestamp = timestamp;
     queued = false;
 }
 
 void pump_coro_t::flush(signal_t *interruptor) {
     assert_thread();
+    mutex_assertion_t::acq_t acq(&mutex);
     if (running == 0 && !starting) {
         guarantee(!queued, "queued can't be true if running != max_callbacks");
         return;
     }
-    counted_t<counted_cond_t> waiter = make_counted<counted_cond_t>();
-    flush_waiters.push_back(waiter);
-    wait_interruptible(waiter.get(), interruptor);
+    cond_t cond;
+    multimap_insertion_sentry_t<uint64_t, cond_t *>
+        sentry(&flush_waiters, timestamp, &cond);
+    acq.reset();
+    wait_interruptible(&cond, interruptor);
 }
 
 void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {
@@ -62,32 +64,34 @@ void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {
     guarantee(running < max_callbacks);
     starting = false;
     ++running;
-    try {
-        while (!keepalive.get_drain_signal()->is_pulsed()) {
-            std::vector<counted_t<counted_cond_t> > local_waiters;
-            std::swap(flush_waiters, local_waiters);
-            assignment_sentry_t<std::vector<counted_t<counted_cond_t> > *>
-                flush_waiters_sentry;
-            if (max_callbacks == 1) {
-                flush_waiters_sentry.reset(&running_flush_waiters, &local_waiters);
-            }
-            acq.reset();
 
-            callback(keepalive.get_drain_signal());
-
-            acq.reset(&mutex);
-            for (const auto &cond : local_waiters) {
-                cond->pulse();
-            }
-            if (queued) {
-                queued = false;
-            } else {
-                break;
-            }
+    while (!keepalive.get_drain_signal()->is_pulsed()) {
+        uint64_t local_timestamp = timestamp;
+        assignment_sentry_t<uint64_t *> timestamp_sentry;
+        if (max_callbacks == 1) {
+            timestamp_sentry.reset(&running_timestamp, &local_timestamp);
         }
-    } catch (const interrupted_exc_t &) {
-        guarantee(keepalive.get_drain_signal()->is_pulsed());
+        acq.reset();
+
+        try {
+            callback(keepalive.get_drain_signal());
+        } catch (const interrupted_exc_t &) {
+            return;
+        }
+
+        acq.reset(&mutex);
+        for (auto it = flush_waiters.begin();
+                it != flush_waiters.upper_bound(timestamp);
+                ++it) {
+            it->second->pulse_if_not_already_pulsed();
+        }
+        if (queued) {
+            queued = false;
+        } else {
+            break;
+        }
     }
+    
     --running;
 }
 
