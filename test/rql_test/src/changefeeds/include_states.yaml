@@ -16,8 +16,7 @@ tests:
       js: tbl.orderBy({index:'id'}).limit(10).changes({squash:true, includeStates:true}).limit(2)
       ot: [{'state':'initializing'}, {'state':'ready'}]
 
-    - cd: tbl.insert({'id':1})['inserted']
-      ot: 1
+    - cd: tbl.insert({'id':1})
 
     - py: tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true).limit(3)
       rb: tbl.order_by(index:'id').limit(10).changes(squash:true, include_states:true).limit(3)
@@ -27,23 +26,26 @@ tests:
     - py: tblchanges = tbl.changes(squash=true, include_states=true)
       rb: tblchanges = tbl.changes(squash:true, include_states:true)
       js: tblchanges = tbl.changes({squash:true, includeStates:true})
-    - cd: tbl.insert({'id':2})['inserted']
-      ot: 1
+
+    - cd: tbl.insert({'id':2})
+
     - cd: fetch(tblchanges, 2)
       ot: [{'state':'ready'},{'new_val':{'id':2},'old_val':null}]
 
-    - py: getchanges = tbl.get(2).changes(squash=true, include_states=true)
-      rb: getchanges = tbl.get(2).changes(squash:true, include_states:true)
-      js: getchanges = tbl.get(2).changes({squash:true, includeStates:true})
-    - cd: tbl.get(2).update({'a':1})['replaced']
-      ot: 1
+    - py: getchanges = tbl.get(2).changes(include_states=true)
+      rb: getchanges = tbl.get(2).changes(include_states:true)
+      js: getchanges = tbl.get(2).changes({includeStates:true})
+
+    - cd: tbl.get(2).update({'a':1})
+
     - cd: fetch(getchanges, 4)
       ot: [{'state':'initializing'}, {'new_val':{'id':2}}, {'state':'ready'}, {'old_val':{'id':2},'new_val':{'id':2,'a':1}}]
 
-    - py: limitchanges = tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true)
-      rb: limitchanges = tbl.order_by(index:'id').limit(10).changes(squash:true, include_states:true)
-      js: limitchanges = tbl.orderBy({index:'id'}).limit(10).changes({squash:true, includeStates:true})
-    - cd: tbl.insert({'id':3})['inserted']
-      ot: 1
+    - py: limitchanges = tbl.order_by(index='id').limit(10).changes(include_states=true)
+      rb: limitchanges = tbl.order_by(index:'id').limit(10).changes(include_states:true)
+      js: limitchanges = tbl.orderBy({index:'id'}).limit(10).changes({includeStates:true})
+
+    - cd: tbl.insert({'id':3})
+
     - cd: fetch(limitchanges, 5)
       ot: [{'state':'initializing'}, {'new_val':{'a':1, 'id':2}}, {'new_val':{'id':1}}, {'state':'ready'}, {'old_val':null, 'new_val':{'id':3}}]
