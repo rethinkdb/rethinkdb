@@ -15,6 +15,11 @@ from .errors import *
 from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes
 
 try:
+    xrange
+except NameError:
+    xrange = range
+
+try:
     {}.iteritems
     dict_items = lambda d: d.iteritems()
 except AttributeError:
@@ -101,10 +106,13 @@ class Cursor(object):
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
-            for i in xrange(len(response_data)):
-                if i == len(response_data) - 1:
-                    del self.responses[0]
-                yield response_data[i]
+            if len(response_data) == 0:
+                del self.responses[0]
+            else:
+                for i in xrange(len(response_data)):
+                    if i == len(response_data) - 1:
+                        del self.responses[0]
+                    yield response_data[i]
 
     def __iter__(self):
         return self
