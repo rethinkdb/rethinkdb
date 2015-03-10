@@ -52,6 +52,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
+    virtual void set_notes(Response *) const { }
 
     virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
