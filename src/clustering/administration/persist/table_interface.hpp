@@ -2,16 +2,16 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
-#include "clustering/table_manager/table_meta_manager.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
 
 class cache_balancer_t;
 class metadata_file_t;
 class outdated_index_issue_tracker_t;
 
-class real_table_meta_persistence_interface_t :
-    public table_meta_persistence_interface_t {
+class real_table_persistence_interface_t :
+    public table_persistence_interface_t {
 public:
-    real_table_meta_persistence_interface_t(
+    real_table_persistence_interface_t(
             io_backender_t *_io_backender,
             cache_balancer_t *_cache_balancer,
             const base_path_t &_base_path,
@@ -30,17 +30,17 @@ public:
     void read_all_tables(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_meta_persistent_state_t &state,
+            const table_persistent_state_t &state,
             scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
         signal_t *interruptor);
     void add_table(
         const namespace_id_t &table,
-        const table_meta_persistent_state_t &state,
+        const table_persistent_state_t &state,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor);
     void update_table(
         const namespace_id_t &table,
-        const table_meta_persistent_state_t &state,
+        const table_persistent_state_t &state,
         signal_t *interruptor);
     void remove_table(
         const namespace_id_t &table,

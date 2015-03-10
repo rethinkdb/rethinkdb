@@ -7,7 +7,6 @@
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file.hpp"
-#include "clustering/table_manager/table_meta_manager.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"

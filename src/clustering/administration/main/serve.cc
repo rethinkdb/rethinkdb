@@ -29,7 +29,7 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
-#include "clustering/table_manager/table_meta_manager.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -127,7 +127,7 @@ bool do_serve(io_backender_t *io_backender,
         directory_read_manager_t<cluster_directory_metadata_t>
             directory_read_manager(&connectivity_cluster, 'D');
 
-        directory_map_read_manager_t<namespace_id_t, table_meta_bcard_t>
+        directory_map_read_manager_t<namespace_id_t, table_manager_bcard_t>
             table_directory_read_manager(&connectivity_cluster, 'T');
 
         directory_map_read_manager_t<
@@ -157,16 +157,16 @@ bool do_serve(io_backender_t *io_backender,
         /* Extract a subview of the directory with all the table meta manager business
         cards. */
         watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
-                table_meta_manager_bcard_t>
-            table_meta_manager_directory(
+                multi_table_manager_bcard_t>
+            multi_table_manager_directory(
                 directory_read_manager.get_root_map_view(),
                 [](const cluster_directory_metadata_t *cluster_md) {
-                    return cluster_md->table_meta_manager_bcard.get_ptr();
+                    return cluster_md->multi_table_manager_bcard.get_ptr();
                 });
 
         table_meta_client_t table_meta_client(
             &mailbox_manager,
-            &table_meta_manager_directory,
+            &multi_table_manager_directory,
             table_directory_read_manager.get_root_view());
 
         jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
@@ -274,28 +274,28 @@ bool do_serve(io_backender_t *io_backender,
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
             scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
-            scoped_ptr_t<real_table_meta_persistence_interface_t>
-                table_meta_persistence_interface;
-            scoped_ptr_t<table_meta_manager_t> table_meta_manager;
+            scoped_ptr_t<real_table_persistence_interface_t>
+                table_persistence_interface;
+            scoped_ptr_t<multi_table_manager_t> multi_table_manager;
             if (i_am_a_server) {
                 cache_balancer.init(new alt_cache_balancer_t(
                     server_config_server->get_actual_cache_size_bytes()));
                 outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t(
                     &local_issue_aggregator));
-                table_meta_persistence_interface.init(
-                    new real_table_meta_persistence_interface_t(
+                table_persistence_interface.init(
+                    new real_table_persistence_interface_t(
                         io_backender,
                         cache_balancer.get(),
                         base_path,
                         outdated_index_issue_tracker.get(),
                         &rdb_ctx,
                         metadata_file));
-                table_meta_manager.init(new table_meta_manager_t(
+                multi_table_manager.init(new multi_table_manager_t(
                     server_id,
                     &mailbox_manager,
-                    &table_meta_manager_directory,
+                    &multi_table_manager_directory,
                     table_directory_read_manager.get_root_view(),
-                    table_meta_persistence_interface.get(),
+                    table_persistence_interface.get(),
                     base_path,
                     io_backender));
             }
@@ -319,8 +319,8 @@ bool do_serve(io_backender_t *io_backender,
                 0,   /* we'll fill `actual_cache_size_bytes` in later */
                 i_am_a_server
                     ? boost::make_optional(
-                        table_meta_manager->get_table_meta_manager_bcard())
-                    : boost::optional<table_meta_manager_bcard_t>(),
+                        multi_table_manager->get_multi_table_manager_bcard())
+                    : boost::optional<multi_table_manager_bcard_t>(),
                 jobs_manager.get_business_card(),
                 stat_manager.get_address(),
                 log_server.get_business_card(),
@@ -354,21 +354,22 @@ bool do_serve(io_backender_t *io_backender,
                 &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
 
             scoped_ptr_t<directory_map_write_manager_t<
-                    namespace_id_t, table_meta_bcard_t> >
+                    namespace_id_t, table_manager_bcard_t> >
                 table_directory_write_manager;
             scoped_ptr_t<directory_map_write_manager_t<
                     std::pair<namespace_id_t, uuid_u>, table_query_bcard_t> >
                 table_query_directory_write_manager;
             if (i_am_a_server) {
                 table_directory_write_manager.init(
-                    new directory_map_write_manager_t<namespace_id_t, table_meta_bcard_t>(
+                    new directory_map_write_manager_t<
+                            namespace_id_t, table_manager_bcard_t>(
                         &connectivity_cluster, 'T',
-                        table_meta_manager->get_table_meta_bcards()));
+                        multi_table_manager->get_table_manager_bcards()));
                 table_query_directory_write_manager.init(
                     new directory_map_write_manager_t<
                             std::pair<namespace_id_t, uuid_u>, table_query_bcard_t>(
                         &connectivity_cluster, 'Q',
-                        table_meta_manager->get_table_query_bcards()));
+                        multi_table_manager->get_table_query_bcards()));
             }
 
             {

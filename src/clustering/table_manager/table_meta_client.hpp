@@ -7,7 +7,7 @@
 #include "concurrency/watchable_map.hpp"
 
 /* `table_meta_client_t` is responsible for submitting client requests over the network
-to the `table_meta_manager_t`. It doesn't have any real state of its own; it's just a
+to the `multi_table_manager_t`. It doesn't have any real state of its own; it's just a
 convenient way of bundling together all of the objects that are necessary for submitting
 a client request. */
 class table_meta_client_t :
@@ -15,10 +15,10 @@ class table_meta_client_t :
 public:
     table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
-        watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
-            *_table_meta_manager_directory,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
-            *_table_meta_directory);
+        watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+            *_multi_table_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory);
 
     /* All of these functions can be called from any thread. */
 
@@ -93,7 +93,7 @@ private:
 
         /* `timestamp` is the timestamp as of which `database` and `name` are up to date.
         It's used to break ties if two different peers report different information. */
-        table_meta_manager_bcard_t::timestamp_t timestamp;
+        multi_table_manager_bcard_t::timestamp_t timestamp;
 
         /* `witnesses` is the set of all visible peers that claim to be hosting this
         table. If it ever becomes empty, we'll delete the `table_metadata_t`. */
@@ -102,26 +102,27 @@ private:
 
     void on_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_meta_bcard_t *value);
+        const table_manager_bcard_t *value);
 
     mailbox_manager_t *const mailbox_manager;
-    watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
-        *const table_meta_manager_directory;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
-        *const table_meta_directory;
+    watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+        *const multi_table_manager_directory;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+        *const table_manager_directory;
 
     /* `table_metadata_by_id_var` is a summary of everything we know about the tables in
     the cluster. `on_directory_change()` will always keep it up to date with respect to
-    `table_meta_directory`. `table_metadata_by_id` distributes `table_metadata_by_id_var`
-    to each thread, so that `find()`, `get_name()`, and `list_names()` can run without
-    blocking. */
+    `table_manager_directory`. `table_metadata_by_id` distributes
+    `table_metadata_by_id_var` to each thread, so that `find()`, `get_name()`, and
+    `list_names()` can run without blocking. */
     watchable_map_var_t<namespace_id_t, table_metadata_t>
         table_metadata_by_id_var;
     all_thread_watchable_map_var_t<namespace_id_t, table_metadata_t>
         table_metadata_by_id;
 
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>::all_subs_t
-        table_meta_directory_subs;
+    watchable_map_t<
+            std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::all_subs_t
+        table_manager_directory_subs;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_ */

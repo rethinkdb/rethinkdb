@@ -16,9 +16,9 @@ metadata_file_t::key_t<server_id_t>
     return metadata_file_t::key_t<server_id_t>("server_id");
 }
 
-metadata_file_t::key_t<table_meta_persistent_state_t>
+metadata_file_t::key_t<table_persistent_state_t>
         mdprefix_table_persistent_state() {
-    return metadata_file_t::key_t<table_meta_persistent_state_t>("table/");
+    return metadata_file_t::key_t<table_persistent_state_t>("table/");
 }
 
 metadata_file_t::key_t<branch_birth_certificate_t>
