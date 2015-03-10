@@ -88,9 +88,6 @@ def get_next(cursor, wait_time)
         case wait_time
         when nil
             cursor.next()
-        when false, 0
-            # To avoid complete deadlock with 0 wait, occasionally allow more data through
-            if rand() <= 0.99 then cursor.next(wait_time) else cursor.next(0.0001) end
         else
             cursor.next(wait_time)
         end
