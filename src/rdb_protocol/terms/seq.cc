@@ -383,7 +383,7 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
-        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
+        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
         if (squash.get_type() == datum_t::type_t::R_NUM) {
             rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::GENERIC,
                           "Expected BOOL or a positive NUMBER but found "
