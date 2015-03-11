@@ -1,0 +1,65 @@
+desc: Tests key sorting of all usable types in primary indexes
+table_variable_name: tbl
+tests:
+
+
+    # Test key sorting
+    - def:
+         py: binary_a = r.binary(b'')
+         rb: binary_a = r.binary('')
+         js: binary_a = Buffer('')
+
+    - def:
+         py: binary_b = r.binary(b'5aurhbviunr')
+         rb: binary_b = r.binary('5aurhbviunr')
+         js: binary_b = Buffer('5aurhbviunr')
+
+    # Define a set of rows in order of increasing sindex keys
+    - def:
+         cd: trows = [{'num':0,'id':[0]},
+                      {'num':1,'id':[1, 2, 3, 4, 0]},
+                      {'num':2,'id':[1, 2, 3, 4, 4]},
+                      {'num':3,'id':[1, 2, 3, 4, 4, 5]},
+                      {'num':4,'id':[1, 2, 3, 4, 8, 1]},
+                      {'num':5,'id':[1, 3, r.epoch_time(0)]},
+                      {'num':6,'id':[1, 3, r.epoch_time(0), r.epoch_time(0)]},
+                      {'num':7,'id':[1, 3, r.epoch_time(0), r.epoch_time(1)]},
+                      {'num':8,'id':[1, 4, 3, 4, 8, 2]},
+                      {'num':9,'id':False},
+                      {'num':10,'id':True},
+                      {'num':11,'id':-500},
+                      {'num':12,'id':500},
+                      {'num':13,'id':binary_a},
+                      {'num':14,'id':binary_b},
+                      {'num':15,'id':r.epoch_time(0)},
+                      {'num':16,'id':''},
+                      {'num':17,'id':' str'}]
+
+    - def:
+         cd: expected = r.range(tbl.count()).coerce_to('array')
+
+    - cd: tbl.insert(trows)['inserted']
+      js: tbl.insert(trows)('inserted')
+      ot: 18
+
+    - rb: tbl.order_by({:index => 'id'}).map{|row| row['num']}.coerce_to('array').eq(expected)
+      js: tbl.order_by({index:'id'}).map(r.row('num')).coerce_to('array').eq(expected)
+      py: tbl.order_by(index='id').map(r.row['num']).coerce_to('array').eq(expected)
+      ot: true
+
+    # Test minval and maxval
+    - rb: tbl.order_by(:index => 'id').between(r.minval, r.maxval).map{|x| x['num']}.coerce_to('array').eq(expected)
+      js: tbl.order_by({index:'id'}).between(r.minval, r.maxval).map(r.row('num')).coerce_to('array').eq(expected)
+      py: tbl.order_by(index='id').between(r.minval, r.maxval).map(r.row['num']).coerce_to('array').eq(expected)
+      ot: true
+
+    - py: tbl.order_by(index='id').between([1,2,3,4,4],[1,2,3,5]).map(r.row['num']).coerce_to('array')
+      js: tbl.order_by({index:'id'}).between([1,2,3,4,4],[1,2,3,5]).map(r.row('num')).coerce_to('array')
+      rb: tbl.order_by(:index => 'id').between([1,2,3,4,4],[1,2,3,5]).map{|x| x['num']}.coerce_to('array')
+      ot: [2,3,4]
+
+    - py: tbl.order_by(index='id').between([1,2,3,4,4,r.minval],[1,2,3,4,4,r.maxval]).map(r.row['num']).coerce_to('array')
+      js: tbl.order_by({index:'id'}).between([1,2,3,4,4,r.minval],[1,2,3,4,4,r.maxval]).map(r.row('num')).coerce_to('array')
+      rb: tbl.order_by(:index => 'id').between([1,2,3,4,4,r.minval],[1,2,3,4,4,r.maxval]).map{|x| x['num']}.coerce_to('array')
+      ot: [3]
+
