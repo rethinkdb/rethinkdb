@@ -1,21 +1,10 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 __all__ = ['expr', 'RqlQuery']
 
-import types
-import sys
-import datetime
-import numbers
-import collections
-import time
-import re
-import base64
-import binascii
-import json as py_json
-from threading import Lock
+import base64, binascii, collections, datetime, json as py_json, threading
 
 from .errors import RqlDriverError, QueryPrinter, T
-from . import repl # For the repl connection
 from . import ql2_pb2 as p
 
 pTerm = p.Term.TermType
@@ -33,6 +22,22 @@ try:
     dict_items = lambda d: d.iteritems()
 except AttributeError:
     dict_items = lambda d: d.items()
+
+class Repl(object):
+    threadData = threading.local()
+    replActive = False
+    
+    @classmethod
+    def get(cls):
+        if 'repl' in cls.threadData.__dict__:
+            return cls.threadData.repl
+        else:
+            return None
+    
+    @classmethod
+    def set(cls, conn):
+        cls.threadData.repl = conn
+        cls.replActive = True
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
@@ -91,10 +96,13 @@ class RqlQuery(object):
     # Send this query to the server to be executed
     def run(self, c=None, **global_optargs):
         if not c:
-            if repl.default_connection:
-                c = repl.default_connection
+            if Repl.get():
+                c = Repl.get()
             else:
-                raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
+                if Repl.replActive:
+                    raise RqlDriverError("RqlQuery.run must be given a connection to run on, which is not set on this thread.")
+                else:
+                    raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
 
         return c._start(self, **global_optargs)
 
@@ -1535,7 +1543,7 @@ def func_wrap(val):
 
 class Func(RqlQuery):
     tt = pTerm.FUNC
-    lock = Lock()
+    lock = threading.Lock()
     nextVarId = 1
 
     def __init__(self, lmbd):
