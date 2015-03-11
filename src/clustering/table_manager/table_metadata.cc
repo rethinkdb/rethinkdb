@@ -13,10 +13,10 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
     table_manager_bcard_t::leader_bcard_t,
     uuid, set_config_mailbox, contract_ack_minidir_bcard);
-RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(
     table_manager_bcard_t,
     leader, timestamp, database, name, primary_key, raft_member_id, raft_business_card,
-    execution_bcard_minidir_bcard, server_id);
+    execution_bcard_minidir_bcard, get_status_mailbox, server_id);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_persistent_state_t,
     epoch, member_id, raft_state);

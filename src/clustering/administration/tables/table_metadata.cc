@@ -23,10 +23,10 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_t::shard_t,
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
                                replicas, primary_replica);
 
-RDB_IMPL_SERIALIZABLE_6_SINCE_v1_16(table_config_t,
-    database, name, primary_key, shards, write_ack_config, durability);
-RDB_IMPL_EQUALITY_COMPARABLE_6(table_config_t,
-    database, name, primary_key, shards, write_ack_config, durability);
+RDB_IMPL_SERIALIZABLE_7_SINCE_v1_16(table_config_t,
+    database, name, primary_key, shards, sindexes, write_ack_config, durability);
+RDB_IMPL_EQUALITY_COMPARABLE_7(table_config_t,
+    database, name, primary_key, shards, sindexes, write_ack_config, durability);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_shard_scheme_t, split_points);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);

@@ -78,8 +78,8 @@ public:
 
     // Called when indexes change during store_t lifetime
     virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void index_renamed(const std::string &old_name,
-                               const std::string &new_name) = 0;
+    virtual void indexes_renamed(
+        const std::map<std::string, std::string> &name_changes) = 0;
 };
 
 class store_t final : public store_view_t {
@@ -101,6 +101,7 @@ public:
     void note_reshard();
 
     /* store_view_t interface */
+
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
 
@@ -163,6 +164,28 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    /* End of `store_view_t` interface */
+
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_create(
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_rename_multi(
+            const std::map<std::string, std::string> &name_changes,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_drop(
+            const std::string &id,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
     scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
             buf_lock_t *sindex_block);
 
@@ -192,18 +215,12 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    MUST_USE bool add_sindex(
+    MUST_USE bool add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
-
-    void set_sindexes(
-        const std::map<sindex_name_t, secondary_index_t> &sindexes,
-        buf_lock_t *sindex_block,
-        std::set<sindex_name_t> *created_sindexes_out)
-    THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
         const sindex_name_t &name,
@@ -214,17 +231,6 @@ public:
         uuid_u id,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-    bool drop_sindex(
-        const sindex_name_t &name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void rename_sindex(
-        const sindex_name_t &old_name,
-        const sindex_name_t &new_name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
 
     void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
@@ -345,11 +351,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // Drops all sindexes if this store is not responsible for any data
-    void maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
-                                 const write_durability_t durability,
-                                 signal_t *interruptor);
-
     // Helper function to clear out a secondary index that has been
     // marked as deleted. To be run in a coroutine.
     void delayed_clear_sindex(

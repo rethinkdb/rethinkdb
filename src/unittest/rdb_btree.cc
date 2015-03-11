@@ -89,65 +89,20 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 }
 
 sindex_name_t create_sindex(store_t *store) {
-    cond_t dummy_interruptor;
-    sindex_name_t sindex_name(uuid_to_str(generate_uuid()));
-    write_token_t token;
-    store->new_write_token(&token);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> super_block;
-
-    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                        1, write_durability_t::SOFT,
-                                        &token, &txn, &super_block,
-                                        &dummy_interruptor);
+    std::string name = uuid_to_str(generate_uuid());
 
     ql::sym_t one(1);
     ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
-    ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
+    sindex_config_t config(
+        ql::map_wire_func_t(mapping, make_vector(one), get_backtrace(mapping)),
+        reql_version_t::LATEST,
+        sindex_multi_bool_t::SINGLE,
+        sindex_geo_bool_t::REGULAR);
 
-    sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
-
-    write_message_t wm;
-    sindex_disk_info_t sindex_info(m, sindex_reql_version_info_t::LATEST(),
-                                   multi_bool, sindex_geo_bool_t::REGULAR);
-    serialize_sindex_info(&wm, sindex_info);
-
-    vector_stream_t stream;
-    stream.reserve(wm.size());
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
-    buf_lock_t sindex_block(super_block->expose_buf(),
-                            super_block->get_sindex_block_id(),
-                            access_t::write);
-    UNUSED bool b = store->add_sindex(
-            sindex_name,
-            stream.vector(),
-            &sindex_block);
-    return sindex_name;
-}
-
-void drop_sindex(store_t *store,
-                 const sindex_name_t &sindex_name) {
-    cond_t dummy_interruptor;
-    write_token_t token;
-    store->new_write_token(&token);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> super_block;
-
-    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                        1, write_durability_t::SOFT, &token,
-                                        &txn, &super_block, &dummy_interruptor);
-
-    buf_lock_t sindex_block(super_block->expose_buf(),
-                            super_block->get_sindex_block_id(),
-                            access_t::write);
-    std::set<std::string> created_sindexes;
-    store->drop_sindex(
-            sindex_name,
-            &sindex_block);
+    cond_t non_interruptor;
+    store->sindex_create(name, config, &non_interruptor);
+        
+    return sindex_name_t(name);;
 }
 
 void bring_sindexes_up_to_date(
@@ -517,7 +472,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     spawn_writes_and_bring_sindexes_up_to_date(&store, sindex_name,
             &background_inserts_done);
 
-    drop_sindex(&store, sindex_name);
+    store.sindex_drop(sindex_name.name, &dummy_interruptor);
     background_inserts_done.wait();
 }
 

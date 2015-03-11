@@ -111,8 +111,7 @@ public:
     /* Deletes every key in the region, and sets the metainfo for that region to
     `zero_version`.
     [Precondition] region_is_superset(region, subregion)
-    [May block]
-     */
+    [May block] */
     virtual void reset_data(
             const binary_blob_t &zero_version,
             const region_t &subregion,

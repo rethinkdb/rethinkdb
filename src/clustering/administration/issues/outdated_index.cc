@@ -112,14 +112,14 @@ public:
         parent->recompute();
     }
 
-    void index_renamed(const std::string &old_name,
-                       const std::string &new_name) {
+    void indexes_renamed(const std::map<std::string, std::string> &name_changes) {
         assert_thread();
         std::set<std::string> &ns_set = (*parent->outdated_indexes.get())[ns_id];
-
-        if (ns_set.find(old_name) != ns_set.end()) {
-            ns_set.erase(old_name);
-            ns_set.insert(new_name);
+        for (const auto &pair : name_changes) {
+            ns_set.erase(pair.first);
+        }
+        for (const auto &pair : name_changes) {
+            ns_set.insert(pair.second);
         }
         parent->recompute();
     }

@@ -204,39 +204,6 @@ bool artificial_table_t::write_sync_depending_on_durability(
         "Artificial tables don't support `sync()`.");
 }
 
-bool artificial_table_t::sindex_create(
-        UNUSED ql::env_t *env, UNUSED const std::string &id,
-        UNUSED counted_t<const ql::func_t> index_func, UNUSED sindex_multi_bool_t multi,
-        UNUSED sindex_geo_bool_t geo) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't create a secondary index on an artificial table.");
-}
-
-bool artificial_table_t::sindex_drop(UNUSED ql::env_t *env,
-        UNUSED const std::string &id) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't drop a secondary index on an artificial table.");
-}
-
-sindex_rename_result_t artificial_table_t::sindex_rename(
-        UNUSED ql::env_t *env,
-        UNUSED const std::string &old_name,
-        UNUSED const std::string &new_name,
-        UNUSED bool overwrite) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't rename a secondary index on an artificial table.");
-}
-
-std::vector<std::string> artificial_table_t::sindex_list(
-        UNUSED ql::env_t *env, UNUSED bool use_outdated) {
-    return std::vector<std::string>();
-}
-
-std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
-        UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
-    return std::map<std::string, ql::datum_t>();
-}
-
 void artificial_table_t::do_single_update(
         ql::env_t *env,
         ql::datum_t pval,

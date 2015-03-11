@@ -15,6 +15,7 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
@@ -60,6 +61,7 @@ public:
     name_string_t name;
     std::string primary_key;
     std::vector<shard_t> shards;
+    std::map<std::string, sindex_config_t> sindexes;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
 };

@@ -79,8 +79,6 @@ private:
         void NORETURN operator()(UNUSED const intersecting_geo_read_t &gr);
         void NORETURN operator()(UNUSED const nearest_geo_read_t &gr);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
-        void NORETURN operator()(UNUSED const sindex_list_t &sl);
-        void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
         read_visitor_t(mock_namespace_interface_t *parent, read_response_t *_response);
 
@@ -94,9 +92,6 @@ private:
         void operator()(const dummy_write_t &d);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
-        void NORETURN operator()(UNUSED const sindex_create_t &s);
-        void NORETURN operator()(UNUSED const sindex_drop_t &s);
-        void NORETURN operator()(UNUSED const sindex_rename_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
         write_visitor_t(mock_namespace_interface_t *parent, write_response_t *_response);
@@ -248,6 +243,35 @@ public:
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 std::string *error_out);
+
+        bool sindex_create(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                const sindex_config_t &config,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_drop(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_rename(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                const std::string &new_name,
+                bool overwrite,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_list(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                signal_t *interruptor,
+                std::string *error_out,
+                std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                    *configs_and_statuses_out);
 
     private:
         extproc_pool_t extproc_pool;
