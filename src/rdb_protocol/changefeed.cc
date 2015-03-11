@@ -1183,7 +1183,7 @@ public:
     client_t::addr_t get_addr() const;
 private:
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
-    virtual void maybe_remove_feed() { client->maybe_remove_feed(uuid); }
+    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
@@ -1304,7 +1304,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
@@ -2455,7 +2455,9 @@ counted_t<datum_stream_t> client_t::new_stream(
             threadnum_t old_thread = get_thread_id();
             cross_thread_signal_t interruptor(env->interruptor, home_thread());
             on_thread_t th(home_thread());
-            auto_drainer_t::lock_t lock(&drainer);
+            // If the `client_t` is being destroyed, we're shutting down, so we
+            // consider it an interruption.
+            auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
             rwlock_in_line_t spot(&feeds_lock, access_t::write);
             spot.read_signal()->wait_lazily_unordered();
             auto feed_it = feeds.find(uuid);
@@ -2468,7 +2470,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
                 auto val = make_scoped<real_feed_t>(
-                    drainer.lock(), this, manager, access.get(), uuid, &interruptor);
+                    lock, this, manager, access.get(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -2489,10 +2491,11 @@ counted_t<datum_stream_t> client_t::new_stream(
     }
 }
 
-void client_t::maybe_remove_feed(const uuid_u &uuid) {
+void client_t::maybe_remove_feed(
+    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
     assert_thread();
+    lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> destroy;
-    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto feed_it = feeds.find(uuid);
@@ -2508,10 +2511,11 @@ void client_t::maybe_remove_feed(const uuid_u &uuid) {
     }
 }
 
-scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
+scoped_ptr_t<real_feed_t> client_t::detach_feed(
+    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
     assert_thread();
+    lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> ret;
-    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     // The feed might have been removed in `maybe_remove_feed`, in which case
