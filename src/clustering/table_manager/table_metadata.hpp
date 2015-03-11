@@ -6,10 +6,11 @@
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class table_meta_manager_bcard_t {
+class multi_table_manager_bcard_t {
 public:
     /* Every message to the `action_mailbox` has an `timestamp_t` attached. This is used
     to filter out outdated instructions. */
@@ -93,11 +94,11 @@ public:
     server_id_t server_id;
 };
 RDB_DECLARE_SERIALIZABLE(
-    table_meta_manager_bcard_t::timestamp_t::epoch_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t::timestamp_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_manager_bcard_t);
+    multi_table_manager_bcard_t::timestamp_t::epoch_t);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t::timestamp_t);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t);
 
-class table_meta_bcard_t {
+class table_manager_bcard_t {
 public:
     /* Whichever server is Raft leader will publish a `leader_bcard_t` in its directory.
     This is the destination for config change messages, and also the way that contract
@@ -121,7 +122,7 @@ public:
         case the change may or may not eventually be committed. */
         typedef mailbox_t<void(
             table_config_and_shards_t new_config_and_shards,
-            mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>
+            mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>
                 )>::address_t reply_addr
             )> set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
@@ -139,7 +140,7 @@ public:
     - The server has entered a new epoch for the table, or;
     - The server has entered or left the Raft cluster, or;
     - The table's name or database have changed. */
-    table_meta_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_bcard_t::timestamp_t timestamp;
 
     /* `database` and `name` are the table's database and name. They are distributed in
     the directory so that every server can efficiently look up tables by name. */
@@ -164,8 +165,40 @@ public:
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
 };
-RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t::leader_bcard_t);
-RDB_DECLARE_SERIALIZABLE(table_meta_bcard_t);
+RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
+RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
+
+class table_persistent_state_t {
+public:
+    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+    raft_member_id_t member_id;
+    raft_persistent_state_t<table_raft_state_t> raft_state;
+};
+RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
+
+class table_persistence_interface_t {
+public:
+    virtual void read_all_tables(
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_persistent_state_t &state,
+            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+        signal_t *interruptor) = 0;
+    virtual void add_table(
+        const namespace_id_t &table,
+        const table_persistent_state_t &state,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
+        signal_t *interruptor) = 0;
+    virtual void update_table(
+        const namespace_id_t &table,
+        const table_persistent_state_t &state,
+        signal_t *interruptor) = 0;
+    virtual void remove_table(
+        const namespace_id_t &table,
+        signal_t *interruptor) = 0;
+protected:
+    virtual ~table_persistence_interface_t() { }
+};
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
 

@@ -69,7 +69,7 @@ public:
             std::set<host_and_port_t> _canonical_addresses,
             const std::vector<std::string> &_argv,
             uint64_t _actual_cache_size_bytes,
-            const boost::optional<table_meta_manager_bcard_t> &tmmbc,
+            const boost::optional<multi_table_manager_bcard_t> &mtmbc,
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
@@ -87,7 +87,7 @@ public:
         canonical_addresses(_canonical_addresses),
         argv(_argv),
         actual_cache_size_bytes(_actual_cache_size_bytes),
-        table_meta_manager_bcard(tmmbc),
+        multi_table_manager_bcard(mtmbc),
         jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
@@ -115,7 +115,7 @@ public:
         canonical_addresses = std::move(other.canonical_addresses);
         argv = std::move(other.argv);
         actual_cache_size_bytes = other.actual_cache_size_bytes;
-        table_meta_manager_bcard = other.table_meta_manager_bcard;
+        multi_table_manager_bcard = other.multi_table_manager_bcard;
         jobs_mailbox = other.jobs_mailbox;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         log_mailbox = other.log_mailbox;
@@ -141,7 +141,7 @@ public:
     std::vector<std::string> argv;
     uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
-    boost::optional<table_meta_manager_bcard_t> table_meta_manager_bcard;
+    boost::optional<multi_table_manager_bcard_t> multi_table_manager_bcard;
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;

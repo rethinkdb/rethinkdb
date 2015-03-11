@@ -213,7 +213,7 @@ public:
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
     the Raft cluster for this table. `contract_coordinator_t` writes it;
-    `table_meta_manager_t` reads it and uses that information to add and remove servers
+    `multi_table_manager_t` reads it and uses that information to add and remove servers
     to the Raft cluster. */
     std::map<server_id_t, raft_member_id_t> member_ids;
 };

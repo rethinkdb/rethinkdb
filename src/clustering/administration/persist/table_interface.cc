@@ -146,17 +146,17 @@ private:
     scoped_ptr_t<store_t> stores[CPU_SHARDING_FACTOR];
 };
 
-void real_table_meta_persistence_interface_t::read_all_tables(
+void real_table_persistence_interface_t::read_all_tables(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_meta_persistent_state_t &state,
+            const table_persistent_state_t &state,
             scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
         signal_t *interruptor) {
-    std::map<namespace_id_t, table_meta_persistent_state_t> tables;
+    std::map<namespace_id_t, table_persistent_state_t> tables;
     metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
-    read_txn.read_many<table_meta_persistent_state_t>(
+    read_txn.read_many<table_persistent_state_t>(
         mdprefix_table_persistent_state(),
-        [&](const std::string &uuid_str, const table_meta_persistent_state_t &state) {
+        [&](const std::string &uuid_str, const table_persistent_state_t &state) {
             namespace_id_t table_id = str_to_uuid(uuid_str);
             tables.insert(std::make_pair(table_id, state));
         },
@@ -168,9 +168,9 @@ void real_table_meta_persistence_interface_t::read_all_tables(
     }
 }
 
-void real_table_meta_persistence_interface_t::add_table(
+void real_table_persistence_interface_t::add_table(
         const namespace_id_t &table,
-        const table_meta_persistent_state_t &state,
+        const table_persistent_state_t &state,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) {
     /* Record the existence of the table in the metadata file before creating the table's
@@ -185,9 +185,9 @@ void real_table_meta_persistence_interface_t::add_table(
     make_multistore(table, interruptor, multistore_ptr_out);
 }
 
-void real_table_meta_persistence_interface_t::update_table(
+void real_table_persistence_interface_t::update_table(
         const namespace_id_t &table,
-        const table_meta_persistent_state_t &state,
+        const table_persistent_state_t &state,
         signal_t *interruptor) {
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.write(
@@ -196,7 +196,7 @@ void real_table_meta_persistence_interface_t::update_table(
         interruptor);
 }
 
-void real_table_meta_persistence_interface_t::remove_table(
+void real_table_persistence_interface_t::remove_table(
         const namespace_id_t &table,
         signal_t *interruptor) {
     /* Remove the table's data files before removing the record of the table's existence
@@ -217,17 +217,17 @@ void real_table_meta_persistence_interface_t::remove_table(
         interruptor);
 }
 
-serializer_filepath_t real_table_meta_persistence_interface_t::file_name_for(
+serializer_filepath_t real_table_persistence_interface_t::file_name_for(
         const namespace_id_t &table_id) {
     return serializer_filepath_t(base_path, uuid_to_str(table_id));
 }
 
-threadnum_t real_table_meta_persistence_interface_t::pick_thread() {
+threadnum_t real_table_persistence_interface_t::pick_thread() {
     thread_counter = (thread_counter + 1) % get_num_db_threads();
     return threadnum_t(thread_counter);
 }
 
-void real_table_meta_persistence_interface_t::make_multistore(
+void real_table_persistence_interface_t::make_multistore(
         const namespace_id_t &table_id,
         signal_t *interruptor,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out) {

@@ -1,36 +1,31 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_manager/table_meta_manager.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
 
-#include "clustering/generic/minidir.tcc"
 #include "clustering/generic/raft_core.tcc"
-#include "clustering/generic/raft_network.tcc"
+#include "clustering/table_manager/table_manager.hpp"
 #include "logger.hpp"
 
-/* RSI: Should be `since_N` where `N` is the version for Raft */
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_meta_persistent_state_t,
-    epoch, member_id, raft_state);
-
-table_meta_manager_t::table_meta_manager_t(
+multi_table_manager_t::multi_table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
-        watchable_map_t<peer_id_t, table_meta_manager_bcard_t>
-            *_table_meta_manager_directory,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_meta_bcard_t>
-            *_table_meta_directory,
-        table_meta_persistence_interface_t *_persistence_interface,
+        watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+            *_multi_table_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory,
+        table_persistence_interface_t *_persistence_interface,
         const base_path_t &_base_path,
         io_backender_t *_io_backender) :
     server_id(_server_id),
     mailbox_manager(_mailbox_manager),
-    table_meta_manager_directory(_table_meta_manager_directory),
-    table_meta_directory(_table_meta_directory),
+    multi_table_manager_directory(_multi_table_manager_directory),
+    table_manager_directory(_table_manager_directory),
     persistence_interface(_persistence_interface),
     base_path(_base_path),
     io_backender(_io_backender),
     /* Whenever a server connects, we need to sync all of our tables to it. */
-    table_meta_manager_directory_subs(
-        table_meta_manager_directory,
-        [this](const peer_id_t &peer, const table_meta_manager_bcard_t *bcard) {
+    multi_table_manager_directory_subs(
+        multi_table_manager_directory,
+        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
             if (peer != mailbox_manager->get_me() && bcard != nullptr) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
                 for (const auto &pair : tables) {
@@ -40,10 +35,10 @@ table_meta_manager_t::table_meta_manager_t(
         }, false),
     /* Whenever a server changes its entry for a table in the directory, we need to
     re-sync that table to that server. */
-    table_meta_directory_subs(
-        table_meta_directory,
+    table_manager_directory_subs(
+        table_manager_directory,
         [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_meta_bcard_t *) {
+                const table_manager_bcard_t *) {
             if (key.first != mailbox_manager->get_me()) {
                 mutex_assertion_t::acq_t mutex_acq(&mutex);
                 auto it = tables.find(key.second);
@@ -53,10 +48,10 @@ table_meta_manager_t::table_meta_manager_t(
             }
         }, false),
     action_mailbox(mailbox_manager,
-        std::bind(&table_meta_manager_t::on_action, this,
+        std::bind(&multi_table_manager_t::on_action, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     get_config_mailbox(mailbox_manager,
-        std::bind(&table_meta_manager_t::on_get_config, this,
+        std::bind(&multi_table_manager_t::on_get_config, this,
             ph::_1, ph::_2, ph::_3))
 {
     guarantee(!server_id.is_unset());
@@ -64,7 +59,7 @@ table_meta_manager_t::table_meta_manager_t(
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
     persistence_interface->read_all_tables(
-        [&](const namespace_id_t &table_id, const table_meta_persistent_state_t &state,
+        [&](const namespace_id_t &table_id, const table_persistent_state_t &state,
                 scoped_ptr_t<multistore_ptr_t> &&multistore_ptr) {
             mutex_assertion_t::acq_t global_mutex_acq(&mutex);
             guarantee(tables.count(table_id) == 0);
@@ -73,8 +68,9 @@ table_meta_manager_t::table_meta_manager_t(
             new_mutex_acq_t table_mutex_acq(&table->mutex);
             global_mutex_acq.reset();
             table->multistore_ptr = std::move(multistore_ptr);
-            table->active = make_scoped<active_table_t>(this, table_id, state.epoch,
-                state.member_id, state.raft_state, table->multistore_ptr.get());
+            table->active = make_scoped<active_table_t>(
+                this, table_id, state.epoch, state.member_id, state.raft_state,
+                table->multistore_ptr.get());
             raft_member_t<table_raft_state_t>::state_and_config_t raft_state =
                 table->active->get_raft()->get_committed_state()->get();
             guarantee(raft_state.state.member_ids.at(server_id) == state.member_id,
@@ -85,10 +81,10 @@ table_meta_manager_t::table_meta_manager_t(
             table->is_deleted = false;
 
             /* This probably won't do anything, since we probably won't be connected to
-            any other servers when `table_meta_manager_t` is created; but just in case,
+            any other servers when `multi_table_manager_t` is created; but just in case,
             sync to any other servers that are connected. */
-            table_meta_manager_directory->read_all(
-                [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
+            multi_table_manager_directory->read_all(
+                [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
                     if (peer != mailbox_manager->get_me()) {
                         schedule_sync(table_id, table, peer);
                     }
@@ -97,231 +93,47 @@ table_meta_manager_t::table_meta_manager_t(
         &non_interruptor);
 }
 
-table_meta_manager_t::leader_table_t::leader_table_t(
-        table_meta_manager_t *_parent,
-        active_table_t *_active_table) :
-    parent(_parent),
-    active_table(_active_table),
-    contract_ack_read_manager(parent->mailbox_manager),
-    coordinator(active_table->get_raft(), contract_ack_read_manager.get_values()),
-    set_config_mailbox(parent->mailbox_manager,
-        std::bind(&leader_table_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
-{
-    active_table->change_bcard_entry([&](table_meta_bcard_t *bcard) {
-        table_meta_bcard_t::leader_bcard_t leader_bcard;
-        leader_bcard.uuid = generate_uuid();
-        leader_bcard.set_config_mailbox = set_config_mailbox.get_address();
-        leader_bcard.contract_ack_minidir_bcard = contract_ack_read_manager.get_bcard();
-        bcard->leader = boost::make_optional(leader_bcard);
-        return true;
-    });
-}
-
-table_meta_manager_t::leader_table_t::~leader_table_t() {
-    active_table->change_bcard_entry([&](table_meta_bcard_t *bcard) {
-        bcard->leader = boost::none;
-        return true;
-    });
-}
-
-void table_meta_manager_t::leader_table_t::on_set_config(
-        signal_t *interruptor,
-        const table_config_and_shards_t &new_config,
-        const mailbox_t<void(boost::optional<table_meta_manager_bcard_t::timestamp_t>)>::
-            address_t &reply_addr) {
-    boost::optional<raft_log_index_t> result = coordinator.change_config(
-        [&](table_config_and_shards_t *config) { *config = new_config; },
-        interruptor);
-    if (static_cast<bool>(result)) {
-        table_meta_manager_bcard_t::timestamp_t timestamp;
-        timestamp.epoch = active_table->epoch;
-        timestamp.log_index = *result;
-        send(parent->mailbox_manager, reply_addr, boost::make_optional(timestamp));
-    } else {
-        send(parent->mailbox_manager, reply_addr,
-            boost::optional<table_meta_manager_bcard_t::timestamp_t>());
-    }
-}
-
-table_meta_manager_t::active_table_t::active_table_t(
-        table_meta_manager_t *_parent,
-        const namespace_id_t &_table_id,
-        const table_meta_manager_bcard_t::timestamp_t::epoch_t &_epoch,
-        const raft_member_id_t &_member_id,
+multi_table_manager_t::active_table_t::active_table_t(
+        multi_table_manager_t *_parent,
+        const namespace_id_t &table_id,
+        const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+        const raft_member_id_t &member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         multistore_ptr_t *multistore_ptr) :
     parent(_parent),
-    table_id(_table_id),
-    epoch(_epoch),
-    member_id(_member_id),
-    perfmon_membership(
-        &get_global_perfmon_collection(), &perfmon_collection, uuid_to_str(_table_id)),
-    raft(member_id, parent->mailbox_manager, raft_directory.get_values(), this,
-        initial_state),
-    execution_bcard_read_manager(parent->mailbox_manager),
-    contract_executor(
-        parent->server_id, parent->mailbox_manager,
-        raft.get_raft()->get_committed_state()->subview(
-            [](const raft_member_t<table_raft_state_t>::state_and_config_t &sc)
-                    -> table_raft_state_t {
-                return sc.state;
-            }),
-        execution_bcard_read_manager.get_values(), multistore_ptr, parent->base_path,
-        parent->io_backender, &parent->backfill_throttler, &perfmon_collection),
-    execution_bcard_write_manager(
-        parent->mailbox_manager,
-        contract_executor.get_local_contract_execution_bcards(),
-        execution_bcard_minidir_directory.get_values()),
-    contract_ack_write_manager(
-        parent->mailbox_manager,
-        contract_executor.get_acks(),
-        contract_ack_minidir_directory.get_values()),
+    manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
+        &parent->backfill_throttler, parent->persistence_interface, parent->base_path,
+        parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr),
+    table_manager_bcard_copier(
+        &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
-        &parent->table_query_bcard_combiner,
-        table_id,
-        contract_executor.get_local_table_query_bcards()),
-    table_directory_subs(
-        parent->table_meta_directory,
-        std::bind(&active_table_t::on_table_directory_change, this, ph::_1, ph::_2),
-        true),
-    raft_committed_subs(std::bind(&active_table_t::on_raft_committed_change, this)),
-    raft_readiness_subs(std::bind(&active_table_t::on_raft_readiness_change, this))
+        &parent->table_query_bcard_combiner, table_id, manager.get_table_query_bcards()),
+    raft_committed_subs(std::bind(&active_table_t::on_raft_commit, this))
 {
-    guarantee(!member_id.is_nil());
-    guarantee(!epoch.id.is_unset());
-
-    /* Set up the initial table bcard */
-    {
-        table_meta_bcard_t bcard;
-        bcard.timestamp.epoch = epoch;
-        raft.get_raft()->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-                bcard.timestamp.log_index = sc->log_index;
-                bcard.database = sc->state.config.config.database;
-                bcard.name = sc->state.config.config.name;
-                bcard.primary_key = sc->state.config.config.primary_key;
-            });
-        bcard.raft_member_id = member_id;
-        bcard.raft_business_card = raft.get_business_card();
-        bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
-        bcard.server_id = parent->server_id;
-        bcard_entry = make_scoped<watchable_map_var_t<namespace_id_t,
-            table_meta_bcard_t>::entry_t>(
-                &parent->table_meta_bcards, table_id, bcard);
-    }
-
-    {
-        watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
-            freeze(raft.get_raft()->get_committed_state());
-        raft_committed_subs.reset(raft.get_raft()->get_committed_state(), &freeze);
-    }
-
-    {
-        watchable_t<bool>::freeze_t freeze(raft.get_raft()->get_readiness_for_change());
-        raft_readiness_subs.reset(raft.get_raft()->get_readiness_for_change(), &freeze);
-    }
+    watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
+        freeze(manager.get_raft()->get_committed_state());
+    raft_committed_subs.reset(manager.get_raft()->get_committed_state(), &freeze);
 }
 
-void table_meta_manager_t::active_table_t::write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &inner_ps,
-        signal_t *interruptor) {
-    table_meta_persistent_state_t outer_ps;
-    outer_ps.epoch = epoch;
-    outer_ps.member_id = member_id;
-    outer_ps.raft_state = inner_ps;
-    parent->persistence_interface->update_table(table_id, outer_ps, interruptor);
-}
-
-void table_meta_manager_t::active_table_t::on_table_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_meta_bcard_t *bcard) {
-    if (key.second == table_id) {
-        /* Update `raft_directory` */
-        if (bcard != nullptr && bcard->timestamp.epoch == epoch) {
-            raft_directory.set_key(
-                key.first,
-                bcard->raft_member_id,
-                bcard->raft_business_card);
-        } else {
-            raft_directory.delete_key(key.first);
-        }
-
-        /* Update `execution_bcard_minidir_directory` */
-        if (bcard != nullptr) {
-            execution_bcard_minidir_directory.set_key(
-                key.first,
-                bcard->server_id,
-                bcard->execution_bcard_minidir_bcard);
-        } else {
-            execution_bcard_minidir_directory.delete_key(key.first);
-        }
-
-        /* Update `current_ack_minidir_directory` */
-        if (bcard != nullptr && static_cast<bool>(bcard->leader)) {
-            contract_ack_minidir_directory.set_key(
-                key.first,
-                bcard->leader->uuid,
-                bcard->leader->contract_ack_minidir_bcard);
-        } else {
-            contract_ack_minidir_directory.delete_key(key.first);
-        }
-    }
-}
-
-void table_meta_manager_t::active_table_t::on_raft_committed_change() {
-    /* Check if the table's name or database changed, and update the bcard if so */
-    raft.get_raft()->get_committed_state()->apply_read(
-    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-        bcard_entry->change([&](table_meta_bcard_t *bcard) {
-            if (sc->state.config.config.name != bcard->name ||
-                    sc->state.config.config.database != bcard->database) {
-                bcard->timestamp.log_index = sc->log_index;
-                bcard->name = sc->state.config.config.name;
-                bcard->database = sc->state.config.config.database;
-                return true;
-            } else {
-                /* If we return `false`, updates won't be sent to the other servers. This
-                way, we don't send a message to every server every time Raft commits a
-                change. */
-                return false;
-            }
-        });
-    });
-
+void multi_table_manager_t::active_table_t::on_raft_commit() {
     /* Every time the Raft cluster commits a transaction, we re-sync to every other
     server in the cluster. This is because the transaction might consist of adding or
     removing a server, in which case we need to notify that server. */
     mutex_assertion_t::acq_t mutex_acq(&parent->mutex);
-    auto it = parent->tables.find(table_id);
+    auto it = parent->tables.find(manager.table_id);
     guarantee(it != parent->tables.end());
-    parent->table_meta_manager_directory->read_all(
-    [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
+    parent->multi_table_manager_directory->read_all(
+    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
         if (peer != parent->mailbox_manager->get_me()) {
-            parent->schedule_sync(table_id, it->second.get(), peer);
+            parent->schedule_sync(manager.table_id, it->second.get(), peer);
         }
     });
 }
 
-void table_meta_manager_t::active_table_t::on_raft_readiness_change() {
-    /* Create or destroy `leader` depending on whether we are the Raft cluster's leader.
-    Since `leader_table_t`'s constructor and destructor may block, we have to spawn a
-    coroutine to do it. */
-    auto_drainer_t::lock_t keepalive(&drainer);
-    coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
-        new_mutex_acq_t mutex_acq(&leader_mutex);
-        bool ready = raft.get_raft()->get_readiness_for_change()->get();
-        if (ready && !leader.has()) {
-            leader.init(new leader_table_t(parent, this));
-        } else if (!ready && leader.has()) {
-            leader.reset();
-        }
-    });
-}
-
-void table_meta_manager_t::on_action(
+void multi_table_manager_t::on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const table_meta_manager_bcard_t::timestamp_t &timestamp,
+        const multi_table_manager_bcard_t::timestamp_t &timestamp,
         bool is_deletion,
         const boost::optional<raft_member_id_t> &member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
@@ -363,14 +175,14 @@ void table_meta_manager_t::on_action(
     /* Bring record up to date */
     if (static_cast<bool>(member_id) && !table->active.has()) {
         /* The table is being created, or we are joining it */
-        table_meta_persistent_state_t st;
+        table_persistent_state_t st;
         st.epoch = timestamp.epoch;
         st.member_id = *member_id;
         st.raft_state = *initial_state;
         persistence_interface->add_table(
             table_id, st, &table->multistore_ptr, interruptor);
-        table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
-            *member_id, *initial_state,
+        table->active = make_scoped<active_table_t>(
+            this, table_id, timestamp.epoch, *member_id, *initial_state,
             table->multistore_ptr.get());
         logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
     } else if (!static_cast<bool>(member_id) && table->active.has()) {
@@ -385,19 +197,20 @@ void table_meta_manager_t::on_action(
         }
     } else if (static_cast<bool>(member_id) && table->active.has() &&
             (table->timestamp.epoch != timestamp.epoch ||
-                table->active->member_id != *member_id)) {
+                table->active->manager.member_id != *member_id)) {
         /* If the epoch changed, then the table's configuration was manually overridden.
         If the member ID changed, then we were removed and then re-added, but we never
         processed the removal message. In either case, we have to destroy and re-create
         `table->active`. */
         table->active.reset();
-        table_meta_persistent_state_t st;
+        table_persistent_state_t st;
         st.epoch = timestamp.epoch;
         st.member_id = *member_id;
         st.raft_state = *initial_state;
         persistence_interface->update_table(table_id, st, interruptor);
-        table->active = make_scoped<active_table_t>(this, table_id, timestamp.epoch,
-            *member_id, *initial_state, table->multistore_ptr.get());
+        table->active = make_scoped<active_table_t>(
+            this, table_id, timestamp.epoch, *member_id, *initial_state,
+            table->multistore_ptr.get());
         logDBG("Overrode replica for table %s", uuid_to_str(table_id).c_str());
     }
 
@@ -409,8 +222,8 @@ void table_meta_manager_t::on_action(
     A creates a new table, which is hosted on B, C, and D; but the messages from A to
     C and D are lost. This code path will cause B to forward the messages to C and D
     instead of being stuck in a limbo state. */
-    table_meta_manager_directory->read_all(
-    [&](const peer_id_t &peer, const table_meta_manager_bcard_t *) {
+    multi_table_manager_directory->read_all(
+    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
         if (peer != mailbox_manager->get_me()) {
             schedule_sync(table_id, table, peer);
         }
@@ -421,7 +234,7 @@ void table_meta_manager_t::on_action(
     }
 }
 
-void table_meta_manager_t::on_get_config(
+void multi_table_manager_t::on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
         const mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
@@ -469,12 +282,12 @@ void table_meta_manager_t::on_get_config(
     send(mailbox_manager, reply_addr, result);
 }
 
-void table_meta_manager_t::do_sync(
+void multi_table_manager_t::do_sync(
         const namespace_id_t &table_id,
         const table_t &table,
         const server_id_t &other_server_id,
-        const boost::optional<table_meta_bcard_t> &table_bcard,
-        const table_meta_manager_bcard_t &table_manager_bcard) {
+        const boost::optional<table_manager_bcard_t> &table_bcard,
+        const multi_table_manager_bcard_t &table_manager_bcard) {
     if (table.is_deleted && static_cast<bool>(table_bcard)) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id, table.timestamp, true, boost::optional<raft_member_id_t>(),
@@ -499,7 +312,7 @@ void table_meta_manager_t::do_sync(
             if (static_cast<bool>(member_id)) {
                 initial_state = table.active->get_raft()->get_state_for_init();
             }
-            table_meta_manager_bcard_t::timestamp_t timestamp;
+            multi_table_manager_bcard_t::timestamp_t timestamp;
             timestamp.epoch = table.timestamp.epoch;
             timestamp.log_index = log_index;
             send(mailbox_manager, table_manager_bcard.action_mailbox,
@@ -509,7 +322,7 @@ void table_meta_manager_t::do_sync(
     }
 }
 
-void table_meta_manager_t::schedule_sync(
+void multi_table_manager_t::schedule_sync(
         const namespace_id_t &table_id,
         table_t *table,
         const peer_id_t &peer_id) {
@@ -544,19 +357,19 @@ void table_meta_manager_t::schedule_sync(
                     /* Removing `peer` from `table->to_sync_set` isn't strictly
                     necessary, but it sometimes reduces redundant traffic */
                     table->to_sync_set.erase(peer);
-                    boost::optional<table_meta_manager_bcard_t>
-                        table_meta_manager_bcard =
-                            table_meta_manager_directory->get_key(peer);
-                    if (!static_cast<bool>(table_meta_manager_bcard)) {
+                    boost::optional<multi_table_manager_bcard_t>
+                        multi_table_manager_bcard =
+                            multi_table_manager_directory->get_key(peer);
+                    if (!static_cast<bool>(multi_table_manager_bcard)) {
                         /* Peer is not connected. */
                         continue;
                     }
                     do_sync(
                         table_id,
                         *table,
-                        table_meta_manager_bcard->server_id,
-                        table_meta_directory->get_key(std::make_pair(peer, table_id)),
-                        *table_meta_manager_bcard);
+                        multi_table_manager_bcard->server_id,
+                        table_manager_directory->get_key(std::make_pair(peer, table_id)),
+                        *multi_table_manager_bcard);
                 }
                 global_mutex_acq.reset(&mutex);
             }
