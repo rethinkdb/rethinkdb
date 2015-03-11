@@ -549,26 +549,6 @@ void broadcaster_t::pick_a_readable_dispatchee(
     *lock_out = dispatchees[most_uptodate_dispatchee];
 }
 
-void broadcaster_t::get_all_readable_dispatchees(
-        std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
-        std::vector<auto_drainer_t::lock_t> *locks_out)
-        THROWS_ONLY(cannot_perform_query_exc_t) {
-    ASSERT_FINITE_CORO_WAITING;
-    proof->assert_is_holding(&mutex);
-    if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary replica mirror should be always readable.");
-    }
-
-    dispatchee_t *dispatchee = readable_dispatchees.head();
-
-    while (dispatchee) {
-        dispatchees_out->push_back(dispatchee);
-        locks_out->push_back(dispatchees[dispatchee]);
-        dispatchee = readable_dispatchees.next(dispatchee);
-    }
-}
-
 void broadcaster_t::background_write(
         dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
         incomplete_write_ref_t write_ref, order_token_t order_token,
