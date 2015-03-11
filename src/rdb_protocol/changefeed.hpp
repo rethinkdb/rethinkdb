@@ -197,8 +197,10 @@ public:
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
         const keyspec_t::spec_t &spec);
-    void maybe_remove_feed(const namespace_id_t &uuid);
-    scoped_ptr_t<real_feed_t> detach_feed(const namespace_id_t &uuid);
+    void maybe_remove_feed(
+        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
+    scoped_ptr_t<real_feed_t> detach_feed(
+        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;

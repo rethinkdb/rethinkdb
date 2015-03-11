@@ -18,6 +18,8 @@ The signal returned by `lock_t::get_drain_signal()` will be pulsed when the
 `auto_drainer_t`'s destructor is called. You can use this to interrupt the
 running processes if it makes sense for your situation. */
 
+enum class throw_if_draining_t { NO, YES };
+
 class auto_drainer_t : public home_thread_mixin_t {
 public:
     auto_drainer_t();
@@ -35,7 +37,8 @@ public:
     class lock_t {
     public:
         lock_t();
-        explicit lock_t(auto_drainer_t *);
+        explicit lock_t(auto_drainer_t *,
+                        throw_if_draining_t thr = throw_if_draining_t::NO);
         lock_t(const lock_t &);
         lock_t &operator=(const lock_t &);
         lock_t(lock_t &&);
