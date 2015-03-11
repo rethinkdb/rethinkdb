@@ -416,10 +416,34 @@ void broadcaster_t::read(
         fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
         signal_t *interruptor)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-    if (read.all_read()) {
-        all_read(read, response, lock, order_token, interruptor);
-    } else {
-        single_read(read, response, lock, order_token, interruptor);
+    order_token.assert_read_mode();
+
+    dispatchee_t *reader;
+    auto_drainer_t::lock_t reader_lock;
+    min_timestamp_token_t enforcer_token;
+
+    {
+        wait_interruptible(lock, interruptor);
+        mutex_assertion_t::acq_t mutex_acq(&mutex);
+        lock->end();
+
+        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
+        order_token = order_checkpoint.check_through(order_token);
+
+        /* Make sure the read runs *after* the most recent write that
+        we did already acknowledge. */
+        enforcer_token = min_timestamp_token_t(most_recent_acked_write_timestamp);
+    }
+
+    try {
+        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+        listener_read(reader, read, response, enforcer_token, &interruptor2);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
     }
 }
 
@@ -633,96 +657,6 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
         write->callback->write = NULL;
         write->callback->on_end();
     }
-}
-
-void broadcaster_t::single_read(
-    const read_t &read,
-    read_response_t *response,
-    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
-    signal_t *interruptor)
-    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
-{
-    guarantee(!read.all_read());
-    order_token.assert_read_mode();
-
-    dispatchee_t *reader;
-    auto_drainer_t::lock_t reader_lock;
-    min_timestamp_token_t enforcer_token;
-
-    {
-        wait_interruptible(lock, interruptor);
-        mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->end();
-
-        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
-        order_token = order_checkpoint.check_through(order_token);
-
-        /* Make sure the read runs *after* the most recent write that
-        we did already acknowledge. */
-        enforcer_token = min_timestamp_token_t(most_recent_acked_write_timestamp);
-    }
-
-    try {
-        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
-        listener_read(reader, read, response, enforcer_token, &interruptor2);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            throw;
-        } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
-        }
-    }
-}
-
-void broadcaster_t::all_read(
-    const read_t &read,
-    read_response_t *response,
-    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
-    signal_t *interruptor)
-    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
-{
-    guarantee(read.all_read());
-    order_token.assert_read_mode();
-
-    std::vector<dispatchee_t *> readers;
-    std::vector<auto_drainer_t::lock_t> reader_locks;
-    min_timestamp_token_t enforcer_token;
-
-    {
-        wait_interruptible(lock, interruptor);
-        mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->end();
-
-        get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
-        guarantee(readers.size() == reader_locks.size());
-        order_token = order_checkpoint.check_through(order_token);
-
-        /* Make sure the reads runs *after* the most recent write that
-        we did already acknowledge. */
-        enforcer_token = min_timestamp_token_t(most_recent_acked_write_timestamp);
-    }
-
-    try {
-        wait_any_t interruptor2(interruptor);
-        for (auto it = reader_locks.begin(); it != reader_locks.end(); ++it) {
-            interruptor2.add(it->get_drain_signal());
-        }
-        std::vector<read_response_t> responses;
-        responses.resize(readers.size());
-        for (size_t i = 0; i < readers.size(); ++i) {
-            listener_read(readers[i], read, &responses[i], enforcer_token, &interruptor2);
-        }
-
-        read.unshard(responses.data(), responses.size(), response,
-                     nullptr, &interruptor2);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            throw;
-        } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
-        }
-    }
-
 }
 
 void broadcaster_t::refresh_readable_dispatchees_as_set() {

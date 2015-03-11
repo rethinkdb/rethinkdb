@@ -130,20 +130,6 @@ private:
         fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
-    void single_read(
-        const read_t &r,
-        read_response_t *response,
-        fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok,
-        signal_t *interruptor)
-        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
-
-    void all_read(
-        const read_t &r,
-        read_response_t *response,
-        fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok,
-        signal_t *interruptor)
-        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
-
     void listener_read(
         broadcaster_t::dispatchee_t *mirror,
         const read_t &r,
