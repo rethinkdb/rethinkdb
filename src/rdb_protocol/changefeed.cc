@@ -1028,6 +1028,7 @@ class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
     virtual feed_type_t cfeed_type() const = 0;
+    void set_notes(Response *res) const;
     std::vector<datum_t>
     get_els(batcher_t *batcher,
             return_empty_normal_batches_t return_empty_normal_batches,
@@ -2011,9 +2012,8 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    virtual feed_type_t cfeed_type() const {
-        return sub->cfeed_type();
-    }
+    void set_notes(Response *res) const final { sub->set_notes(res); }
+    feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
@@ -2044,6 +2044,10 @@ subscription_t::subscription_t(
 }
 
 subscription_t::~subscription_t() { }
+
+void subscription_t::set_notes(Response *res) const {
+    if (include_states) res->add_notes(Response::INCLUDES_STATES);
+}
 
 std::vector<datum_t>
 subscription_t::get_els(batcher_t *batcher,

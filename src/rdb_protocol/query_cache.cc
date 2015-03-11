@@ -339,6 +339,7 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         break;
     default: unreachable();
     }
+    entry->stream->set_notes(res);
 }
 
 query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,
