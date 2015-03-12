@@ -1,16 +1,18 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
 __all__ = ['connect', 'Connection', 'Cursor']
 
-import errno, json, numbers, socket, struct
+import errno, json, numbers, socket, struct, json
+from os import environ
 
 from . import ql2_pb2 as p
 
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
+from . import repl # For the repl connection
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes, Repl
+from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes
 
 try:
     xrange
@@ -318,7 +320,7 @@ class Connection(object):
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
     # a Python repl environment.
     def repl(self):
-        Repl.set(self)
+        repl.default_connection = self
         return self
 
     def _start(self, term, **global_optargs):
