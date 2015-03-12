@@ -11,13 +11,11 @@ $(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
 
 else # Don't use precompiled assets
 
-GULP := $(TOP)/admin/node_modules/.bin/gulp
-
 WEB_ASSETS_SRC_FILES := $(shell find $(TOP)/admin -path $(TOP)/admin/node_modules -prune -o -print)
 
 ALL_WEB_ASSETS := $(BUILD_ROOT_DIR)/web-assets
 
-$(BUILD_ROOT_DIR)/web-assets: $(WEB_ASSETS_SRC_FILES) $(JS_BUILD_DIR)/rethinkdb.js
+$(BUILD_ROOT_DIR)/web-assets: $(WEB_ASSETS_SRC_FILES) $(JS_BUILD_DIR)/rethinkdb.js | $(GULP_BIN_DEP)
 	$P GULP
 	$(GULP) build --cwd $(TOP)/admin $(if $(filter $(VERBOSE),0), --silent)
 	touch $@

@@ -15,7 +15,9 @@ var gulp = require('gulp'),
     fs = require('fs'),
     path = require('path'),
     argv = require('yargs').argv,
-    less = require('gulp-less');
+    less = require('gulp-less'),
+    coffeeify = require('coffeeify'),
+    hbsfy = require('hbsfy');
 
 var ROOT_DIR = path.resolve(__dirname, '..'),
     BUILD_DIR = ROOT_DIR+'/build',
@@ -35,8 +37,16 @@ var ROOT_DIR = path.resolve(__dirname, '..'),
     BROWSERIFY_CACHE_FILE = WEB_OBJ_DIR+'/browserify-cache.json',
     INDEX_FILE = WEBUI_DIR+'/templates/cluster.html';
 
-var watch = false, // Whether to watch the browserify output
+var watch = false,  // Whether to watch the browserify output
     bundler = null; // holds the bundler once it's created
+
+function error() {
+    gutil.log.apply(null, arguments);
+    console.log('node path: ', process.env.NODE_PATH);
+    process.exit(1);
+}
+
+var info = process.argv.indexOf('--silent') > -1 ? function(){ } : gutil.log;
 
 gulp.task('default', ['build', 'watch']);
 
@@ -69,7 +79,7 @@ gulp.task('less', function() {
     }))
     .pipe(rename('cluster.css'))
     .pipe(gulp.dest(WEB_ASSETS_DIR))
-    .on('error', gutil.log);
+    .on('error', error);
 });
 
 gulp.task('rethinkdb-version', function(cb) {
@@ -86,7 +96,7 @@ gulp.task('index', function() {
     .pipe(rename('index.html'))
     .pipe(replace(/{RETHINKDB_VERSION}/g, argv.version))
     .pipe(gulp.dest(WEB_ASSETS_DIR))
-    .on('error', gutil.log);
+    .on('error', error);
 });
 
 gulp.task('browserify', ['rethinkdb-version'], function() {
@@ -122,20 +132,20 @@ function createBundler(watch) {
     // up something off the filesystem
     .exclude('rethinkdb-version')
     // convert coffee files first
-    .transform('coffeeify')
+    .transform(coffeeify)
     // convert handlebars files & insert handlebars runtime
-    .transform('hbsfy')
+    .transform(hbsfy)
     .add(VERSION_FILE, {expose: 'rethinkdb-version'})
     .add(DRIVER_BUILD_DIR+'/rethinkdb.js',
          {expose: 'rethinkdb'})
     .on('update', rebundle)
-    .on('error', function(e){gutil.log("Browserify error:", e);})
-    .on('log', function(msg){gutil.log("Browserify: "+msg);});
+    .on('error', function(e){error("Browserify error:", e);})
+    .on('log', function(msg){info("Browserify: "+msg);});
 }
 
 function rebundle(files) {
   if (files){
-    gutil.log("Files changed: ", files);
+    info("Files changed: ", files);
   }
   return bundler.bundle()
   // We use a vinyl-source-stream to turn the browserify bundle into
@@ -162,7 +172,7 @@ copy_tasks.map(function(taskdef){
       // only copy if the src is newer than dest
       .pipe(newer(destDir))
       .pipe(gulp.dest(destDir))
-      .on('error', gutil.log);
+      .on('error', error);
   });
 });
 
