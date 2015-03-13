@@ -57,7 +57,7 @@ module RethinkDB
       preview = preview_res.pretty_inspect[0...-1]
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} is closed.)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
+      "#<RethinkDB::Cursor:#{object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
         (@run ? "" : "\n#{preview}") + ">"
     end
 
@@ -75,7 +75,7 @@ module RethinkDB
 
     def each(&block) # :nodoc:
       raise RqlRuntimeError, "Can only iterate over a cursor once." if @run
-      return self.enum_for(:each) if !block
+      return enum_for(:each) if !block
       @run = true
       while true
         @results.each(&block)
@@ -141,11 +141,14 @@ module RethinkDB
         @abort_module = Faux_Abort
       end
 
-      opts = {:host => opts} if opts.class == String
+      opts = Hash[opts.map{|(k,v)| [k.to_sym,v]}] if opts.is_a?(Hash)
+      opts = {:host => opts} if opts.is_a?(String)
       @host = opts[:host] || "localhost"
-      @port = opts[:port] || 28015
+      @port = opts[:port].to_i || 28015
       @default_db = opts[:db]
       @auth_key = opts[:auth_key] || ""
+      @timeout = opts[:timeout].to_i
+      @timeout = 20 if @timeout <= 0
 
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
@@ -154,7 +157,7 @@ module RethinkDB
       @token_cnt = 0
       @token_cnt_mutex = Mutex.new
 
-      self.connect()
+      connect()
     end
     attr_reader :host, :port, :default_db, :conn_id
 
@@ -178,8 +181,8 @@ module RethinkDB
       opts[:noreply] ? nil : wait(token, nil)
     end
     def run(msg, opts, &b)
-      reconnect(:noreply_wait => false) if @auto_reconnect && !self.is_open()
-      raise RqlRuntimeError, "Connection is closed." if !self.is_open()
+      reconnect(:noreply_wait => false) if @auto_reconnect && !is_open()
+      raise RqlRuntimeError, "Connection is closed." if !is_open()
 
       global_optargs = {}
       all_opts = @default_opts.merge(opts)
@@ -191,14 +194,12 @@ module RethinkDB
       q = [Query::QueryType::START,
            msg,
            Hash[all_opts.map {|k,v|
-                  [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
+                  [k.to_s, (v.is_a?(RQL) ? v.to_pb : RQL.new.expr(v).to_pb)]
                 }]]
 
       res = run_internal(q, all_opts, token)
       return res if !res
-      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL ||
-         res['t'] == Response::ResponseType::SUCCESS_FEED ||
-         res['t'] == Response::ResponseType::SUCCESS_ATOM_FEED
+      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                            msg, self, opts, token, true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
@@ -221,7 +222,7 @@ module RethinkDB
         begin
           b.call(real_val)
         ensure
-          value.close if value.class == Cursor
+          value.close if value.is_a?(Cursor)
         end
       else
         real_val
@@ -261,7 +262,7 @@ module RethinkDB
           end
           @waiters.delete(token)
         }
-        raise RqlRuntimeError, "Connection is closed." if res.nil? && !self.is_open()
+        raise RqlRuntimeError, "Connection is closed." if res.nil? && !is_open()
         raise RqlDriverError, "Internal driver error, no response found." if res.nil?
         return res
       rescue @abort_module::Abort => e
@@ -280,8 +281,8 @@ module RethinkDB
     def inspect
       db = @default_opts[:db] || RQL.new.db('test')
       properties = "(#{@host}:#{@port}) (Default DB: #{db.inspect})"
-      state = self.is_open() ? "(open)" : "(closed)"
-      "#<RethinkDB::Connection:#{self.object_id} #{properties} #{state}>"
+      state = is_open() ? "(open)" : "(closed)"
+      "#<RethinkDB::Connection:#{object_id} #{properties} #{state}>"
     end
 
     @@last = nil
@@ -295,8 +296,8 @@ module RethinkDB
     # enumerables on the client.
     def reconnect(opts={})
       raise ArgumentError, "Argument to reconnect must be a hash." if opts.class != Hash
-      self.close(opts)
-      self.connect()
+      close(opts)
+      connect()
     end
 
     def connect()
@@ -323,7 +324,7 @@ module RethinkDB
       end
       opts[:noreply_wait] = true if !opts.keys.include?(:noreply_wait)
 
-      self.noreply_wait() if opts[:noreply_wait] && self.is_open()
+      noreply_wait() if opts[:noreply_wait] && is_open()
       if @listener
         @listener.terminate
         @listener.join
@@ -341,7 +342,7 @@ module RethinkDB
     end
 
     def noreply_wait
-      raise RqlRuntimeError, "Connection is closed." if !self.is_open()
+      raise RqlRuntimeError, "Connection is closed." if !is_open()
       q = [Query::QueryType::NOREPLY_WAIT]
       res = run_internal(q, {noreply: false}, new_token)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
@@ -391,7 +392,7 @@ module RethinkDB
             @auth_key + [@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
-        response += @socket.read_exn(1, 20)
+        response += @socket.read_exn(1, @timeout)
       end
       response = response[0...-1]
       if response != "SUCCESS"

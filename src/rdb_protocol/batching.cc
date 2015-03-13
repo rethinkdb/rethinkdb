@@ -283,12 +283,13 @@ archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec) {
 }
 INSTANTIATE_DESERIALIZE_FOR_CLUSTER(batchspec_t);
 
-bool batcher_t::should_send_batch() const {
+bool batcher_t::should_send_batch(ignore_latency_t ignore_latency) const {
     // We ignore `size_left` as long as we have not got at least
     // `min_wanted_els` documents.
     return els_left <= 0
         || (size_left <= 0 && min_els_left <= 0)
-        || (current_microtime() >= end_time && seen_one_el);
+        || (ignore_latency == ignore_latency_t::NO
+            && (current_microtime() >= end_time && seen_one_el));
 }
 
 batcher_t::batcher_t(

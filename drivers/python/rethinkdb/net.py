@@ -1,18 +1,21 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 __all__ = ['connect', 'Connection', 'Cursor']
 
-import errno, json, numbers, socket, struct, json
-from os import environ
+import errno, json, numbers, socket, struct
 
 from . import ql2_pb2 as p
 
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from . import repl # For the repl connection
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes
+from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes, Repl
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 try:
     {}.iteritems
@@ -72,9 +75,7 @@ class Cursor(object):
         self.it = iter(self._it())
 
     def _extend(self, response):
-        self.end_flag = response.type not in (pResponse.SUCCESS_PARTIAL,
-                                              pResponse.SUCCESS_ATOM_FEED,
-                                              pResponse.SUCCESS_FEED)
+        self.end_flag = response.type != pResponse.SUCCESS_PARTIAL
         self.responses.append(response)
 
         if len(self.responses) == 1 and not self.end_flag:
@@ -99,15 +100,17 @@ class Cursor(object):
 
             self.conn._check_error_response(self.responses[0], self.query.term)
             if self.responses[0].type not in [pResponse.SUCCESS_PARTIAL,
-                                         pResponse.SUCCESS_SEQUENCE,
-                                         pResponse.SUCCESS_FEED,
-                                         pResponse.SUCCESS_ATOM_FEED]:
+                                              pResponse.SUCCESS_SEQUENCE]:
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
-            del self.responses[0]
-            for item in response_data:
-                yield item
+            if len(response_data) == 0:
+                del self.responses[0]
+            else:
+                for i in xrange(len(response_data)):
+                    if i == len(response_data) - 1:
+                        del self.responses[0]
+                    yield response_data[i]
 
     def __iter__(self):
         return self
@@ -127,12 +130,7 @@ class Cursor(object):
 
         if len(self.responses) == 0:
             if not self.end_flag:
-                try:
-                    if timeout == 0:
-                        raise socket.timeout()
-                    self.conn._handle_cursor_response(self.conn._read_response(self.query.token, timeout))
-                except socket.timeout as e:
-                    raise RqlDriverError("Timed out waiting for cursor response.")
+                self.conn._handle_cursor_response(self.conn._read_response(self.query.token, timeout))
                 if len(self.responses) == 0:
                     raise RqlDriverError("Internal error, missing cursor response.")
 
@@ -216,6 +214,9 @@ class SocketWrapper(object):
                     if err.errno == errno.ECONNRESET:
                         self.close()
                         raise RqlDriverError("Connection is closed.")
+                    elif err.errno == errno.EWOULDBLOCK:
+                        # This should only happen with a timeout of 0
+                        raise socket.timeout()
                     elif err.errno != errno.EINTR:
                         self.close()
                         raise RqlDriverError('Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(err)))
@@ -317,7 +318,7 @@ class Connection(object):
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
     # a Python repl environment.
     def repl(self):
-        repl.default_connection = self
+        Repl.set(self)
         return self
 
     def _start(self, term, **global_optargs):
@@ -341,9 +342,7 @@ class Connection(object):
         cursor._extend(response)
         cursor.outstanding_requests -= 1
 
-        if (response.type not in [pResponse.SUCCESS_PARTIAL,
-                             pResponse.SUCCESS_FEED,
-                             pResponse.SUCCESS_ATOM_FEED] and
+        if ((response.type != pResponse.SUCCESS_PARTIAL) and
             cursor.outstanding_requests == 0):
             del self._cursor_cache[response.token]
 
@@ -433,10 +432,7 @@ class Connection(object):
         response = self._read_response(query.token)
         self._check_error_response(response, query.term)
 
-        if response.type in [pResponse.SUCCESS_PARTIAL,
-                             pResponse.SUCCESS_SEQUENCE,
-                             pResponse.SUCCESS_ATOM_FEED,
-                             pResponse.SUCCESS_FEED]:
+        if response.type in [pResponse.SUCCESS_PARTIAL, pResponse.SUCCESS_SEQUENCE]:
             # Sequence responses
             value = Cursor(self, query, opts)
             self._cursor_cache[query.token] = value

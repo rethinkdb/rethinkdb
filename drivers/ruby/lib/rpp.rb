@@ -111,9 +111,9 @@ module RethinkDB
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []
 
-      term = term.to_pb if term.class == RQL
+      term = term.to_pb if term.is_a?(RQL)
       if term.class != Array
-        if term.class == Hash
+        if term.is_a?(Hash)
           if not pp_pseudotype(q, term, bt)
             pp_int_optargs(q, term, bt, pre_dot)
           end
@@ -186,7 +186,7 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      if args[-1] && args[-1].class == Array && args[-1][0] == Term::TermType::FUNC
+      if args[-1] && args[-1].is_a?(Array) && args[-1][0] == Term::TermType::FUNC
         func_bt = bt_consume(bt, args.size() - 1 + arg_offset)
         func = args.pop
       end

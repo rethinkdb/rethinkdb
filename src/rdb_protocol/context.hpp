@@ -96,6 +96,7 @@ public:
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         const ql::datum_t &squash,
+        bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;

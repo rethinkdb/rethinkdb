@@ -780,16 +780,19 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
                           env,
-                          keyspec_t::point_t{
-                              store_key_t(ql::datum_t(0.0).print_primary())},
+                          false,
+                          keyspec_t::point_t{ql::datum_t(0.0)},
+                          NULL,
                           bt)),
               point_10(a->subscribe(
                            env,
-                           keyspec_t::point_t{
-                               store_key_t(ql::datum_t(10.0).print_primary())},
+                           false,
+                           keyspec_t::point_t{ql::datum_t(10.0)},
+                           NULL,
                            bt)),
               range(a->subscribe(
                         env,
+                        false,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
@@ -799,6 +802,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                               key_range_t::closed,
                               ql::datum_t(10.0),
                               key_range_t::open)},
+                        NULL,
                         bt)) { }
         ql::protob_t<const Backtrace> bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;

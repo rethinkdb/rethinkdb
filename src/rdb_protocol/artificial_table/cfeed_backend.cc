@@ -45,6 +45,7 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
+    bool include_states,
     const ql::protob_t<const Backtrace> &bt,
     ql::changefeed::keyspec_t::spec_t &&spec,
     signal_t *interruptor,
@@ -80,7 +81,13 @@ bool cfeed_artificial_table_backend_t::read_changes(
     necessary because we have to call `subscribe()` on the client thread, but we don't
     want to release the lock on the home thread until `subscribe()` returns. */
     on_thread_t thread_switcher_2(request_thread);
-    *cfeed_out = machinery->subscribe(env, std::move(spec), bt);
+    try {
+        *cfeed_out = machinery->subscribe(
+            env, include_states, std::move(spec), this, bt);
+    } catch (const ql::base_exc_t &e) {
+        *error_out = e.what();
+        return false;
+    }
     return true;
 }
 

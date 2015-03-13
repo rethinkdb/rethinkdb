@@ -196,7 +196,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
         auto data_it = parent->data.find(key);
         ql::datum_object_builder_t resp;
-        ql::datum_t old_val = data_it == parent->data.end() ?
+        ql::datum_t old_val = data_it != parent->data.end() ?
             data_it->second : ql::datum_t::null();
 
         ql::datum_t new_val = *it;

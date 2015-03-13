@@ -244,8 +244,9 @@ public:
         const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     static components_t extract_all(const std::string &secondary_and_primary);
-    store_key_t truncated_secondary(skey_version_t skey_version,
-                                    extrema_ok_t extrema_ok = extrema_ok_t::NOT_OK) const;
+    store_key_t truncated_secondary(
+        skey_version_t skey_version,
+        extrema_ok_t extrema_ok = extrema_ok_t::NOT_OK) const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
 

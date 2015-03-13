@@ -68,6 +68,10 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
     # This would cause a name conflict, so it should fail
     assert res["errors"] == 1
 
+    res = r.db("rethinkdb").table("db_config").get(bar_uuid) \
+           .update({"name": "rethinkdb"}).run(conn)
+    assert res["errors"] == 1
+
     res = r.db_drop("foo2").run(conn)
     assert res["dbs_dropped"] == 1
     assert res["tables_dropped"] == 0

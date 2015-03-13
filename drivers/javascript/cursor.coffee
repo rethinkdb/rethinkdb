@@ -122,10 +122,6 @@ class IterableResult
                 switch response.t
                     when protoResponseType.SUCCESS_PARTIAL
                         @_handleRow()
-                    when protoResponseType.SUCCESS_FEED
-                        @_handleRow()
-                    when protoResponseType.SUCCESS_ATOM_FEED
-                        @_handleRow()
                     when protoResponseType.SUCCESS_SEQUENCE
                         if response.r.length is 0
                             @_responses.shift()
@@ -311,8 +307,6 @@ class IterableResult
         else
             @emitter.emit('data', data)
 
-
-
 class Cursor extends IterableResult
     constructor: ->
         @_type = protoResponseType.SUCCESS_PARTIAL
@@ -322,7 +316,7 @@ class Cursor extends IterableResult
 
 class Feed extends IterableResult
     constructor: ->
-        @_type = protoResponseType.SUCCESS_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -332,10 +326,21 @@ class Feed extends IterableResult
 
     toString: ar () -> "[object Feed]"
 
+class UnionedFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object UnionedFeed]"
 
 class AtomFeed extends IterableResult
     constructor: ->
-        @_type = protoResponseType.SUCCESS_ATOM_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -345,6 +350,17 @@ class AtomFeed extends IterableResult
 
     toString: ar () -> "[object AtomFeed]"
 
+class OrderByLimitFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object OrderByLimitFeed]"
 
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
@@ -417,6 +433,7 @@ class ArrayResult extends IterableResult
         response
 
 module.exports.Cursor = Cursor
-module.exports.AtomFeed = AtomFeed
 module.exports.Feed = Feed
+module.exports.AtomFeed = AtomFeed
+module.exports.OrderByLimitFeed = OrderByLimitFeed
 module.exports.makeIterable = ArrayResult::makeIterable

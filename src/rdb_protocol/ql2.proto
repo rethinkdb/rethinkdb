@@ -119,9 +119,7 @@ message Response {
                                // the same token as this response, you will get
                                // more of the sequence.  Keep sending [CONTINUE]
                                // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED      = 5; // Like [SUCCESS_PARTIAL] but for feeds.
         WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
-        SUCCESS_ATOM_FEED = 6; // Like [SUCCESS_FEED] but a singleton.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -136,6 +134,31 @@ message Response {
                             // than numbers.
     }
     optional ResponseType type = 1;
+
+    // ResponseNotes are used to provide information about the query
+    // response that may be useful for people writing drivers or ORMs.
+    // Currently all the notes we send indicate that a stream has certain
+    // special properties.
+    enum ResponseNote {
+        // The stream is a changefeed stream (e.g. `r.table('test').changes()`).
+        SEQUENCE_FEED = 1;
+        // The stream is a point changefeed stream
+        // (e.g. `r.table('test').get(0).changes()`).
+        ATOM_FEED = 2;
+        // The stream is an order_by_limit changefeed stream
+        // (e.g. `r.table('test').order_by(index: 'id').limit(5).changes()`).
+        ORDER_BY_LIMIT_FEED = 3;
+        // The stream is a union of multiple changefeed types that can't be
+        // collapsed to a single type
+        // (e.g. `r.table('test').changes().union(r.table('test').get(0).changes())`).
+        UNIONED_FEED = 4;
+        // The stream is a changefeed stream and includes notes on what state
+        // the changefeed stream is in (e.g. objects of the form `{state:
+        // 'initializing'}`).
+        INCLUDES_STATES = 5;
+    }
+    repeated ResponseNote notes = 6;
+
     optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
