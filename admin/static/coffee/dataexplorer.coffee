@@ -1,6 +1,6 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
-    @state =
+    @defaults =
         current_query: null
         query_result: null
         cursor_timed_out: true
@@ -16,6 +16,11 @@ module 'DataExplorerView', ->
             query_limit: 40
         history: []
         focus_on_codemirror: true
+    # This ensures the defaults are never inadvertently modified
+    Object.freeze(@defaults)
+    Object.freeze(@defaults.options)
+    # state is initially a mutable version of defaults. It's modified later
+    @state = _.extend({}, @defaults)
 
     # This class represents the results of a query.
     #
@@ -582,11 +587,20 @@ module 'DataExplorerView', ->
             @executing = false
 
             # Load options from local storage
-            if window.localStorage?.options?
+            if window.localStorage?
                 try
-                    @state.options = JSON.parse window.localStorage.options
+                    @state.options = JSON.parse(window.localStorage.options)
+                    # Ensure no keys are without a default value in
+                    # the options object
+                    _.defaults(@state.options, DataExplorerView.defaults.options)
+                    # TODO: check if options is something other than an array
                 catch err
                     window.localStorage.removeItem 'options'
+                # Whatever the case with default values, we need to
+                # sync up with the current application's idea of the
+                # options
+                window.localStorage.options = JSON.stringify(@state.options)
+
 
             # Load the query that was written in code mirror (that may not have been executed before)
             if typeof window.localStorage?.current_query is 'string'
@@ -3003,9 +3017,8 @@ module 'DataExplorerView', ->
             if @_patched_already
                 return
             iterableProto = @query_result.cursor?.__proto__?.__proto__?.constructor?.prototype
-            if iterableProto?.stackSize > 30
-                console.log "Patching stack limit on cursors to 30"
-                iterableProto.stackSize = 30
+            if iterableProto?.stackSize > 20
+                iterableProto.stackSize = 20
                 @_patched_already = true
 
         # TODO: rate limit events to avoid freezing the browser when there are too many
