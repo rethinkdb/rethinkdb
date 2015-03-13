@@ -2,12 +2,17 @@
 #include "clustering/immediate_consistency/replica.hpp"
 
 replica_t::replica_t(
+        mailbox_manager_t *_mailbox_manager,
         store_view_t *_store,
+        branch_history_manager_t *_bhm,
+        const branch_id_t &_branch_id,
         state_timestamp_t _timestamp) :
+    mailbox_manager(_mailbox_manager),
     store(_store),
-    start_timestamp(_timestamp),
-    end_timestamp(_timestamp),
-    read_timestamp_enforcer(end_timestamp)
+    branch_id(_branch_id),
+    start_enforcer(_timestamp),
+    end_enforcer(_timestamp),
+    backfiller(_mailbox_manager, _bhm, _store)
     { }
 
 void replica_t::do_read(
@@ -85,5 +90,13 @@ void replica_t::do_write(
 
     /* Notify reads that were waiting for this write that it's OK to go */
     end_enforcer.complete(timestamp);
+}
+
+void replica_t::on_synchronize(
+        signal_t *interruptor,
+        state_timestamp_t timestamp,
+        mailbox_t<void()>::address_t ack_addr) {
+    end_enforcer.wait_all_before(timestamp, interruptor);
+    send(mailbox_manager, ack_addr);
 }
 

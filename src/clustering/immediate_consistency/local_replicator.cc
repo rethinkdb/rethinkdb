@@ -54,11 +54,11 @@ local_replicator_t::local_replicator_t(
         interruptor);
 
     state_timestamp_t first_timestamp;
-    dispatchee = make_scoped<primary_query_router_t::dispatchee_t>(
+    registration = make_scoped<primary_query_router_t::dispatchee_registration_t>(
         primary, this, server_id, 2.0, &first_timestamp);
     guarantee(first_timestamp ==
         primary->get_branch_birth_certificate().initial_timestamp);
-    dispatchee->set_readable(true);
+    registration->make_readable();
 }
 
 void local_replicator_t::do_read(

@@ -10,6 +10,8 @@ public:
     ready_mailbox_t::address_t ready_mailbox;
 };
 
+RDB_DECLARE_SERIALIZABLE(remote_replicator_client_intro_t);
+
 class remote_replicator_client_bcard_t {
 public:
     typedef mailbox_t<void(
@@ -34,12 +36,16 @@ public:
     read_mailbox_t::address_t read_mailbox;
 };
 
+RDB_DECLARE_SERIALIZABLE(remote_replicator_client_bcard_t);
+
 class remote_replicator_server_bcard_t {
 public:
     branch_id_t branch;
     region_t region;
     registrar_business_card_t<remote_replicator_client_bcard_t> registrar;
 };
+
+RDB_DECLARE_SERIALIZABLE(remote_replicator_server_bcard_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_METADATA_HPP_ */
 

@@ -2,21 +2,25 @@
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 
 remote_replicator_client_t::remote_replicator_client_t(
-        const base_path_t &_base_path,
-        io_backender_t *_io_backender,
-        mailbox_manager_t *_mailbox_manager,
-        const server_id_t &_server_id,
+        const base_path_t &base_path,
+        io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
+        mailbox_manager_t *mailbox_manager,
+        const server_id_t &server_id,
+
+        const branch_id_t &_branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
         const replica_bcard_t &replica_bcard,
+
         store_view_t *store,
+        branch_history_manager_t *branch_history_manager,
+
         perfmon_collection_t *backfill_stats_parent,
         order_source_t *order_source,
         signal_t *interruptor,
         double *backfill_progress_out   /* can be null */
         ) THROWS_ONLY(interrupted_exc_t) :
-    mailbox_manager_(_mailbox_manager),
-    server_id_(_server_id),
+
     store_(store),
     uuid_(generate_uuid()),
     perfmon_collection_membership_(
@@ -31,17 +35,18 @@ remote_replicator_client_t::remote_replicator_client_t(
     write_queue_semaphore_(
         SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
-    write_async_mailbox_(mailbox_manager_,
+    write_async_mailbox_(mailbox_manager,
         std::bind(&listener_t::on_write_async, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
-    write_sync_mailbox_(mailbox_manager_,
+    write_sync_mailbox_(mailbox_manager,
         std::bind(&listener_t::on_write_sync, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
-    read_mailbox_(mailbox_manager_,
+    read_mailbox_(mailbox_manager,
         std::bind(&listener_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
     /* Subscribe to the stream of writes coming from the primary */
+    guarantee(remote_replicator_server_bcard.branch_id == branch_id);
     remote_replicator_client_intro_t intro;
     {
         remote_replicator_client_bcard_t::intro_mailbox_t intro_mailbox(
@@ -57,7 +62,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             write_async_mailbox_.get_address(),
             server_id_);
         registrant_.init(new registrant_t<remote_replica_client_bcard_t>(
-            mailbox_manager, transmitter_bcard.registrar, our_bcard));
+            mailbox_manager, remote_replicator_server_bcard.registrar, our_bcard));
         wait_interruptible(&registered_, interruptor);
     }
 
@@ -65,23 +70,24 @@ remote_replicator_client_t::remote_replicator_client_t(
     yet. */
 
     /* Block until the backfiller is at least as up-to-date as the point where we started
-    streaming writes from the broadcaster */
+    streaming writes from the primary */
     {
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
-            mailbox_manager_,
+            mailbox_manager,
             [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
-        send(mailbox_manager_, replica_bcard.synchronize_mailbox, 
-            intro.streaming_begin_point, ack_mbox.get_address());
+        send(mailbox_manager, replica_bcard.synchronize_mailbox, 
+            intro.streaming_begin_timestamp, ack_mbox.get_address());
         wait_interruptible(&backfiller_is_up_to_date, interruptor);
     }
 
     /* Backfill from the backfiller */
     {
+        guarantee(replica_bcard.branch_id == branch_id);
         peer_id_t peer = replica_bcard.backfiller_bcard.backfill_mailbox.get_peer();
         backfill_throttler_t::lock_t throttler_lock(
             backfill_throttler, peer, interruptor);
-        backfillee(mailbox_manager_,
+        backfillee(mailbox_manager,
                    branch_history_manager,
                    store_,
                    store_->get_region(),
@@ -119,10 +125,13 @@ remote_replicator_client_t::remote_replicator_client_t(
 
     /* Construct the `replica_t` so that we can perform writes */
     replica.init(new replica_t(
+        mailbox_manager,
         store,
+        branch_history_manager,
+        branch_id,
         backfill_end_timestamp));
 
-    /* Allow writes to be performed */
+    /* Start performing the queued-up writes */
     write_queue_coro_pool_callback_.init(
         new std_function_callback_t<write_queue_entry_t>(
             std::bind(&listener_t::perform_enqueued_write, this,
@@ -139,8 +148,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     wait_interruptible(&write_queue_has_drained_, interruptor);
 
     /* Tell the primary that it's OK to send us reads and synchronous writes */
-    send(mailbox_manager_, registration_done_cond_.assert_get_value().upgrade_mailbox,
-        write_sync_mailbox.get_address(), read_mailbox.get_address());
+    send(mailbox_manager, intro.ready_mailbox);
 }
 
 

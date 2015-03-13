@@ -15,7 +15,7 @@ remote_replicator_server_t::proxy_replica_t::proxy_replica_t(
     client_bcard(_client_bcard), parent(_parent), is_ready(false)
 {
     state_timestamp_t first_timestamp;
-    dispatchee = make_scoped<primary_query_router_t::dispatchee_t>(
+    registration = make_scoped<primary_query_router_t::dispatchee_registration_t>(
         parent->primary, this, client_bcard.server_id, 1.0, &first_timestamp);
     send(parent->mailbox_manager, client_bcard.intro_mailbox,
         remote_replica_client_intro_t { first_timestamp, ready_mailbox.get_address() });
@@ -71,6 +71,6 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
 void remote_replicator_server_t::proxy_replica_t::on_ready(signal_t *) {
     guarantee(!is_ready);
     is_ready = true;
-    dispatchee->set_readable(true);
+    registration->mark_readable();
 }
 

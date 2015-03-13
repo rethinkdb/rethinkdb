@@ -40,25 +40,22 @@ struct backfiller_business_card_t {
 RDB_DECLARE_SERIALIZABLE(backfiller_business_card_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(backfiller_business_card_t);
 
-struct replier_business_card_t {
-    /* This mailbox is used to check that the replier is at least as up to date
-     * as the timestamp. The second argument is used as an ack mailbox, once
-     * synchronization is complete the replier will send a message to it. */
-    typedef mailbox_t<void(state_timestamp_t, mailbox_addr_t<void()>)> synchronize_mailbox_t;
+struct replica_bcard_t {
+    /* This mailbox is used to ensure that the replica is at least as up to date as the
+    timestamp. The second argument is used as an ack mailbox; the replica will send a
+    reply there once it's at least as up to date as the timestamp. */
+    typedef mailbox_t<void(
+        state_timestamp_t,
+        mailbox_addr_t<void()>
+        )> synchronize_mailbox_t;
+
     synchronize_mailbox_t::address_t synchronize_mailbox;
-
+    branch_id_t branch_id;
     backfiller_business_card_t backfiller_bcard;
-
-    replier_business_card_t()
-    { }
-
-    replier_business_card_t(const synchronize_mailbox_t::address_t &_synchronize_mailbox, const backfiller_business_card_t &_backfiller_bcard)
-        : synchronize_mailbox(_synchronize_mailbox), backfiller_bcard(_backfiller_bcard)
-    { }
 };
 
-RDB_DECLARE_SERIALIZABLE(replier_business_card_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(replier_business_card_t);
+RDB_DECLARE_SERIALIZABLE(replica_bcard_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(replica_bcard_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_METADATA_HPP_ */
 

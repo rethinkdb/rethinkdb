@@ -1,14 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_QUERY_ROUTER_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_QUERY_ROUTER_HPP_
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_DISPATCHER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_DISPATCHER_HPP_
 
-class primary_query_router_t : public home_thread_mixin_debug_only_t {
+class primary_dispatcher_t : public home_thread_mixin_debug_only_t {
 private:
     class incomplete_write_t;
-    class incomplete_write_ref_t;
 
 public:
-    class replica_t {
+    class dispatchee_t {
     public:
         virtual void do_read(
             const read_t &read,
@@ -29,35 +28,35 @@ public:
             signal_t *interruptor) = 0;
     };
 
-    class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
+    class dispatchee_registration_t {
     public:
-        dispatchee_t(
+        dispatchee_registration_t(
             primary_query_router_t *parent,
             replica_t *replica,
             const server_id_t &server_id,
             double priority,
             state_timestamp_t *first_timestamp_out);
-        ~dispatchee_t();
+        ~dispatchee_registraiton_t();
 
-        void set_readable(bool readable);
+        void make_readable();
 
     private:
-        friend class primary_query_router_t;
+        friend class primary_dispatcher_t;
 
         primary_query_router_t *const parent;
-        replica_t *const replica;
-        server_id_t server_id;
-        double priority;
+        dispatchee_t *const dispatchee;
+        server_id_t const server_id;
+        double const priority;
 
         bool is_readable;
 
         perfmon_counter_t queue_count;
         perfmon_membership_t queue_count_membership;
 
-        fifo_enforcer_source_t fifo_source;
         unlimited_fifo_queue_t<std::function<void()> > background_write_queue;
         calling_callback_t background_write_caller;
         coro_pool_t<std::function<void()> > background_write_workers;
+
         state_timestamp_t latest_acked_write;
 
         auto_drainer_t drainer;
@@ -84,11 +83,10 @@ public:
         incomplete_write_t *write;
     };
 
-    primary_query_router_t(
+    primary_dispatcher_t(
         perfmon_collection_t *parent_perfmon_collection,
         const region_map_t<version_t> &base_version);
-    primary_query_router_t(const primary_query_router_t &) = delete;
-    primary_query_router_t &operator=(const primary_query_router_t &) = delete;
+    DISABLE_COPYING(primary_dispatcher_t);
 
     branch_id_t get_branch_id() {
         return branch_id;
@@ -99,10 +97,10 @@ public:
 
     void read(
         const read_t &r,
-        read_response_t *response,
         fifo_enforcer_sink_t::exit_read_t *lock,
         order_token_t tok,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        read_response_t *response_out)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun and
@@ -119,33 +117,23 @@ public:
     }
 
 private:
-    /* Reads need to pick a single readable mirror to perform the operation. Writes need
-    to choose a readable mirror to get the reply from. Both use
-    `pick_a_readable_dispatchee()` to do the picking. You must hold `mutex` and pass in
-    `proof` of the mutex acquisition. */
-    void pick_a_readable_dispatchee(
-        dispatchee_t **dispatchee_out,
-        mutex_assertion_t::acq_t *proof,
-        auto_drainer_t::lock_t *lock_out)
-        THROWS_ONLY(cannot_perform_query_exc_t);
+    class incomplete_write_t : public single_threaded_countable_t<incomplete_write_t> {
+    public:
+        incomplete_write_t(
+            const write_t &w, state_timestamp_t ts, order_token_t ot,
+            write_durability_t durability, write_callback_t *cb);
+        ~incomplete_write_t();
+        write_t write;
+        state_timestamp_t timestamp;
+        order_token_t order_token;
+        write_durability_t durability,
+        write_callback_t *callback;
+    };
 
     void background_write(
-        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
-        incomplete_write_ref_t write_ref, order_token_t order_token,
-        fifo_enforcer_write_token_t token) THROWS_NOTHING;
-    void background_writeread(
-        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
-        incomplete_write_ref_t write_ref, order_token_t order_token,
-        fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
-    void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
-
-    /* This recomputes `readable_dispatchees_as_set()` from `readable_dispatchees()` */
-    void refresh_readable_dispatchees_as_set();
-
-    /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
-    and `newest_complete_timestamp`. It mostly exists as a form of executable
-    documentation. */
-    void sanity_check();
+        dispatchee_registration_t *dispatchee,
+        auto_drainer_t::lock_t dispatchee_lock,
+        counted_t<incomplete_write_t> write) THROWS_NOTHING;
 
     branch_id_t branch_id;
     branch_birth_certificate_t branch_bc;
@@ -153,22 +141,9 @@ private:
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_membership;
 
-    /* If a write has begun, but some mirror might not have completed it yet,
-    then it goes in `incomplete_writes`. The idea is that a new mirror that
-    connects will use the union of a backfill and `incomplete_writes` as its
-    data, and that will guarantee it gets at least one copy of every write.
-    See the member function `sanity_check()` for a description of the
-    relationship between `incomplete_writes`, `current_timestamp`, and
-    `newest_complete_timestamp`. */
-
-    /* `mutex` is held by new writes and reads being created, by writes
-    finishing, and by dispatchees joining, leaving, or upgrading. It protects
-    `incomplete_writes`, `current_timestamp`, `newest_complete_timestamp`,
-    `order_checkpoint`, `dispatchees`, and `readable_dispatchees`. */
     mutex_assertion_t mutex;
 
-    std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
-    state_timestamp_t current_timestamp, newest_complete_timestamp;
+    state_timestamp_t current_timestamp;
     order_checkpoint_t order_checkpoint;
 
     /* Once we ack a write, we must make sure that every read that's initiated
@@ -177,8 +152,7 @@ private:
     it whenever we send a read to a listener. */
     state_timestamp_t most_recent_acked_write_timestamp;
 
-    std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
-    intrusive_list_t<dispatchee_t> readable_dispatchees;
+    std::map<dispatchee_registration_t *, auto_drainer_t::lock_t> dispatchees;
 
     /* This is just a set that contains the peer ID of each dispatchee in
     `readable_dispatchees`. We store it separately so we can expose it to code that needs

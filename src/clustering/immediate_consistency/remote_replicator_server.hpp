@@ -13,7 +13,7 @@ public:
     }
 
 private:
-    class proxy_replica_t : public primary_query_router_t::replica_t {
+    class proxy_replica_t : public primary_query_router_t::dispatchee_t {
     public:
         proxy_replica_t(
             const remote_replicator_client_bcard_t &client_bcard,
@@ -47,7 +47,7 @@ private:
         bool is_ready;
 
         remote_replicator_server_intro_t::ready_mailbox_t ready_mailbox;
-        scoped_ptr_t<primary_query_router_t::dispatchee_t> dispatchee;
+        scoped_ptr_t<primary_query_router_t::dispatchee_registration_t> registration;
     };
 
     mailbox_manager_t *mailbox_manager;

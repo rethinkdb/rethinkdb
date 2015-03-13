@@ -2,7 +2,7 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICATOR_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICATOR_HPP_
 
-class local_replicator_t : public primary_query_router_t::replica_t {
+class local_replicator_t : public primary_query_router_t::dispatchee_t {
 public:
     local_replicator_t(
         const server_id_t &server_id,
@@ -42,14 +42,14 @@ private:
 
     replica_t replica;
 
-    /* Destructor order matters: We need to destroy `dispatchee` before `drainer` because
-    `dispatchee` calls `do_write_async()` which acquires `drainer`. We need to destroy
-    `drainer` before the other members variables because destroying `drainer` stops
-    `background_write()`, which accesses the other members. */
+    /* Destructor order matters: We need to destroy `registration` before `drainer`
+    because `registration` calls `do_write_async()` which acquires `drainer`. We need to
+    destroy `drainer` before the other members variables because destroying `drainer`
+    stops `background_write()`, which accesses the other members. */
 
     auto_drainer_t drainer;
 
-    scoped_ptr_t<primary_query_router_t::dispatchee_t> dispatchee;
+    scoped_ptr_t<primary_query_router_t::dispatchee_registration_t> registration;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICA_HPP_ */

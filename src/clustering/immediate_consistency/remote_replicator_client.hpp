@@ -6,13 +6,18 @@ class remote_replicator_client_t {
 public:
     remote_replicator_client_t(
         const base_path_t &_base_path,
-        io_backender_t *_io_backender,
-        mailbox_manager_t *_mailbox_manager,
+        io_backender_t *io_backender,
+        backfill_throttler_t*backfill_throttler,
+        mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
-        backfill_throttler_t *backfill_throttler,
+
+        const branch_id_t &branch_id,
         const remote_replica_transmitter_bcard_t &transmitter_bcard,
         const replica_reader_bcard_t &reader_bcard,
+
         store_view_t *store,
+        branch_history_manager_t *branch_history_manager,
+
         perfmon_collection_t *backfill_stats_parent,
         order_source_t *order_source,
         signal_t *interruptor,
@@ -59,8 +64,6 @@ private:
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
-    mailbox_manager_t *const mailbox_manager_;
-    server_id_t const server_id_;
     store_view_t *const store_;
 
     // This uuid exists solely as a temporary used to be passed to
