@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_DISPATCHER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_DISPATCHER_HPP_
 
+#include "clustering/immediate_consistency/history.hpp"
+#include "rdb_protocol/protocol.hpp"
+
 class primary_dispatcher_t : public home_thread_mixin_debug_only_t {
 private:
     class incomplete_write_t;

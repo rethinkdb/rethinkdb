@@ -2,5 +2,5 @@
 #include "clustering/table_contract/exec.hpp"
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(contract_execution_bcard_t,
-    broadcaster, replier, peer);
+    remote_replicator_server, replica, peer);
 

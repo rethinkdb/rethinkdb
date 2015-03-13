@@ -2,7 +2,8 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_EXEC_HPP_
 #define CLUSTERING_TABLE_CONTRACT_EXEC_HPP_
 
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/query_routing/metadata.hpp"
 #include "store_view.hpp"
@@ -12,11 +13,11 @@ class io_backender_t;
 
 /* `contract_execution_bcard_t`s are passed around between the `contract_executor_t`s for
 the same table on different servers. They allow servers to request backfills from one
-another and subscribe to `broadcaster_t`s. */
+another and subscribe to receive queries. */
 class contract_execution_bcard_t {
 public:
-    broadcaster_business_card_t broadcaster;
-    replier_business_card_t replier;
+    remote_replicator_server_bcard_t remote_replicator_server;
+    replica_bcard_t replica;
     peer_id_t peer;
 };
 

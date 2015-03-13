@@ -3,8 +3,7 @@
 
 #include <utility>
 
-#include "clustering/immediate_consistency/listener.hpp"
-#include "clustering/immediate_consistency/replier.hpp"
+#include "clustering/immediate_consistency/remote_replicator_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 secondary_execution_t::secondary_execution_t(
@@ -137,25 +136,22 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             on_thread_t thread_switcher_1(store->home_thread());
 
             /* Backfill and start streaming from the primary. */
-            listener_t listener(
+            remote_replicator_client_t remote_replicator_client(
                 context->base_path,
                 context->io_backender,
+                context->backfill_throttler,
                 context->mailbox_manager,
                 context->server_id,
-                context->backfill_throttler,
-                primary_bcard.assert_get_value().broadcaster,
-                context->branch_history_manager,
+                branch,
+                primary_bcard.assert_get_value().remote_replicator_server,
+                primary_bcard.assert_get_value().replica,
                 store,
-                primary_bcard.assert_get_value().replier,
+                context->branch_history_manager,
                 perfmon_collection,
-                &stop_signal_on_store_thread,
                 &order_source,
-                nullptr); /* RSI(raft): Hook up backfill progress again */
-
-            replier_t replier(
-                &listener,
-                context->mailbox_manager,
-                context->branch_history_manager);
+                &stop_signal_on_store_thread,
+                /* RSI(raft): Hook up backfill progress again */
+                nullptr);
 
             on_thread_t thread_switcher_t(home_thread());
 

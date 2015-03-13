@@ -2,18 +2,21 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_SERVER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_SERVER_HPP_
 
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
+
 class remote_replicator_server_t {
 public:
     remote_replicator_server_t(
         mailbox_manager_t *mailbox_manager,
-        primary_query_router_t *primary);
+        primary_dispatcher_t *primary);
 
     remote_replicator_server_bcard_t get_bcard() {
         return remote_replicator_server_bcard_t { registrar.get_business_card() };
     }
 
 private:
-    class proxy_replica_t : public primary_query_router_t::dispatchee_t {
+    class proxy_replica_t : public primary_dispatcher_t::dispatchee_t {
     public:
         proxy_replica_t(
             const remote_replicator_client_bcard_t &client_bcard,

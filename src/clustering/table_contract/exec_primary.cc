@@ -1,9 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/exec_primary.hpp"
 
-#include "clustering/immediate_consistency/broadcaster.hpp"
-#include "clustering/immediate_consistency/listener.hpp"
-#include "clustering/immediate_consistency/replier.hpp"
+#include "clustering/immediate_consistency/local_replicator.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "store_view.hpp"
 
@@ -15,10 +15,9 @@ primary_execution_t::primary_execution_t(
         const contract_t &c,
         const std::function<void(const contract_ack_t &)> &acb) :
     execution_t(_context, _region, _store, _perfmon_collection),
-    our_branch_id(generate_uuid()),
     latest_contract_home_thread(make_counted<contract_info_t>(c, acb)),
     latest_contract_store_thread(latest_contract_home_thread),
-    our_broadcaster(nullptr)
+    our_primary(nullptr)
 {
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
@@ -39,7 +38,8 @@ void primary_execution_t::update_contract(
     latest_contract_home_thread = make_counted<contract_info_t>(c, acb);
 
     /* Has our branch ID been registered yet? */
-    if (!branch_registered.is_pulsed() && c.branch == our_branch_id) {
+    if (!branch_registered.is_pulsed() &&
+            boost::make_optional(c.branch) == our_branch_id) {
         /* This contract just issued us our initial branch ID */
         branch_registered.pulse();
         /* Change `latest_ack` immediately so we don't keep sending the branch
@@ -76,37 +76,32 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         keepalive.get_drain_signal(), store->home_thread());
 
     try {
-        /* Set our initial state to `primary_need_branch`, so that the coordinator will
-        assign us a new branch ID. */
-        branch_birth_certificate_t branch_bc;
-        {
-            on_thread_t thread_switcher(store->home_thread());
+        /* Create the `primary_dispatcher_t`, establishing our branch in the process. */
+        on_thread_t thread_switcher_1(store->home_thread());
 
-            /* Read the initial version from disk */
-            region_map_t<binary_blob_t> blobs;
-            read_token_t token;
-            store->new_read_token(&token);
-            store->do_get_metainfo(
-                order_source.check_in("primary_t").with_read_mode(), &token,
-                &interruptor_store_thread, &blobs);
+        region_map_t<binary_blob_t> blobs;
+        read_token_t token;
+        store->new_read_token(&token);
+        store->do_get_metainfo(
+            order_source.check_in("primary_t").with_read_mode(), &token,
+            &interruptor_store_thread, &blobs);
 
-            /* Prepare a `branch_birth_certificate_t` for the new branch */
-            branch_bc.region = region;
-            branch_bc.origin = to_version_map(blobs);
-            branch_bc.initial_timestamp = state_timestamp_t::zero();
-            for (const auto &pair : branch_bc.origin) {
-                branch_bc.initial_timestamp =
-                    std::max(pair.second.timestamp, branch_bc.initial_timestamp);
-            }
-        }
+        primary_dispatcher_t primary_dispatcher(
+            perfmon_collection,
+            to_version_map(blobs));
+
+        on_thread_t thread_switcher_2(home_thread());
 
         /* Send a request for the coordinator to register our branch */
         {
+            our_branch_id = boost::make_optional(primary_dispatcher.get_branch_id());
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
-            ack.branch = boost::make_optional(our_branch_id);
+            ack.branch = boost::make_optional(*our_branch_id);
             context->branch_history_manager->export_branch_history(
                 branch_bc.origin, &ack.branch_history);
-            ack.branch_history.branches.insert(std::make_pair(our_branch_id, branch_bc));
+            ack.branch_history.branches.insert(std::make_pair(
+                *our_branch_id,
+                primary_dispatcher.get_branch_birth_certificate()));
             latest_ack = boost::make_optional(ack);
             latest_contract_home_thread->ack_cb(ack);
         }
@@ -116,56 +111,39 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
         /* Acquire the mutex so that instances of `update_contract_on_store_thread()`
         will be blocked out during the transitional period when we're setting up the
-        broadcaster. At the same time as we acquire the mutex, make a local copy of
+        local replica. At the same time as we acquire the mutex, make a local copy of
         `latest_contract_on_home_thread`. `sync_contract_with_replicas()` won't have
-        happened for this contract because `our_broadcaster` was `nullptr` when
+        happened for this contract because `our_dispatcher` was `nullptr` when
         `update_contract_on_store_thread()` ran for it. So we have to manually call
         `sync_contract_with_replicas()` for it. */
-        counted_t<contract_info_t> pre_broadcaster_contract =
-            latest_contract_home_thread;
-        scoped_ptr_t<new_mutex_in_line_t> pre_broadcaster_mutex_in_line(
+        counted_t<contract_info_t> pre_replica_contract = latest_contract_home_thread;
+        scoped_ptr_t<new_mutex_in_line_t> pre_replica_mutex_in_line(
             new new_mutex_in_line_t(&mutex));
         wait_interruptible(
-            pre_broadcaster_mutex_in_line->acq_signal(), keepalive.get_drain_signal());
+            pre_replica_mutex_in_line->acq_signal(), keepalive.get_drain_signal());
 
-        /* Set up the `broadcaster_t`, `listener_t`, and `replier_t`, which do the
-        actual important work. These must be constructed and destructed on the same
-        thread as `store`. So we switch there, construct them, and switch back. When the
-        destructors are run, the same thing will happen in the other order. */ 
-        on_thread_t thread_switcher_1(store->home_thread());
+        /* Set up the `local_replicator_t`, `remote_replicator_server_t`, and
+        `primary_query_server_t`. */
+        on_thread_t thread_switcher_3(store->home_thread());
 
-        broadcaster_t broadcaster(
-            context->mailbox_manager,
-            context->branch_history_manager,
+        local_replicator_t local_replicator(
+            server_id,
+            &primary_dispatcher,
             store,
-            perfmon_collection,
-            our_branch_id,
-            branch_bc,
-            &order_source,
-            &interruptor_store_thread);
-        our_broadcaster = &broadcaster;
-
-        listener_t listener(
-            context->base_path,
-            context->io_backender,
-            context->mailbox_manager,
-            context->server_id,
-            &broadcaster,
-            perfmon_collection,
-            &interruptor_store_thread,
-            &order_source);
-
-        replier_t replier(
-            &listener,
-            context->mailbox_manager,
             context->branch_history_manager);
+
+        remote_replicator_server_t remote_replicator_server(
+            context->mailbox_manager,
+            &primary_dispatcher);
+
+        our_dispatcher = &primary_dispatcher;
 
         primary_query_server_t primary_query_server(
             context->mailbox_manager,
             region,
             this);
 
-        on_thread_t thread_switcher_2(home_thread());
+        on_thread_t thread_switcher_4(home_thread());
 
         /* OK, now we have to make sure that `sync_contract_with_replicas()` gets called
         for `pre_broadcaster_contract` by spawning an extra copy of
@@ -174,14 +152,14 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         so it didn't call `sync_contract_with_replicas()`. */
         coro_t::spawn_sometime(std::bind(
             &primary_execution_t::update_contract_on_store_thread, this,
-            pre_broadcaster_contract,
+            pre_replica_contract,
             keepalive,
-            pre_broadcaster_mutex_in_line.release()));
+            pre_replica_mutex_in_line.release()));
 
         /* Put an entry in the minidir so the replicas can find us */
         contract_execution_bcard_t ce_bcard;
-        ce_bcard.broadcaster = broadcaster.get_business_card();
-        ce_bcard.replier = replier.get_business_card();
+        ce_bcard.remote_replicator_server = remote_replicator_server.get_bcard();
+        ce_bcard.replica = local_replicator.get_replica_bcard();
         ce_bcard.peer = context->mailbox_manager->get_me();
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t>::entry_t minidir_entry(
@@ -212,7 +190,7 @@ bool primary_execution_t::on_write(
         write_response_t *response_out,
         std::string *error_out) {
     store->assert_thread();
-    guarantee(our_broadcaster != nullptr);
+    guarantee(our_dispatcher != nullptr);
 
     if (static_cast<bool>(latest_contract_store_thread->contract.primary->hand_over)) {
         *error_out = "The primary replica is currently changing from one replica to "
@@ -234,7 +212,7 @@ bool primary_execution_t::on_write(
     error about "not enough acks" and then got applied anyway. */
     {
         ack_counter_t counter(latest_contract_store_thread);
-        our_broadcaster->get_readable_dispatchees()->apply_read(
+        our_dispatcher->get_readable_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
                     counter.note_ack(s);
@@ -248,7 +226,7 @@ bool primary_execution_t::on_write(
     }
 
     /* `write_callback_t` waits until the query is safe to ack, then pulses `done`. */
-    class write_callback_t : public broadcaster_t::write_callback_t {
+    class write_callback_t : public primary_dispatcher_t::write_callback_t {
     public:
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
                 counted_t<contract_info_t> contract) :
@@ -282,7 +260,7 @@ bool primary_execution_t::on_write(
     /* It's important that we don't block between making a local copy of
     `latest_contract_store_thread` (above) and calling `spawn_write()` (below) */
 
-    our_broadcaster->spawn_write(request, order_token, &write_callback);
+    our_dispatcher->spawn_write(request, order_token, &write_callback);
 
     /* This will allow other calls to `on_write()` to happen. */
     exiter->end();
@@ -299,14 +277,14 @@ bool primary_execution_t::on_read(
         read_response_t *response_out,
         std::string *error_out) {
     store->assert_thread();
-    guarantee(our_broadcaster != nullptr);
+    guarantee(our_dispatcher != nullptr);
     try {
-        our_broadcaster->read(
+        our_dispatcher->read(
             request,
-            response_out,
             exiter,
             order_token,
-            interruptor);
+            interruptor,
+            response_out);
         return true;
     } catch (const cannot_perform_query_exc_t &e) {
         *error_out = e.what();
@@ -341,7 +319,7 @@ void primary_execution_t::update_contract_on_store_thread(
 
             /* If we have a broadcaster, then try to sync with replicas so we can ack the
             contract */
-            if (our_broadcaster != nullptr) {
+            if (our_dispatcher != nullptr) {
                 should_ack = true;
                 sync_contract_with_replicas(contract, &interruptor_store_thread);
             } else {
@@ -366,16 +344,16 @@ void primary_execution_t::sync_contract_with_replicas(
         counted_t<contract_info_t> contract,
         signal_t *interruptor) {
     store->assert_thread();
-    guarantee(our_broadcaster != nullptr);
+    guarantee(our_dispatcher != nullptr);
     while (!interruptor->is_pulsed()) {
         /* Wait until it looks like the write could go through */
-        our_broadcaster->get_readable_dispatchees()->run_until_satisfied(
+        our_dispatcher->get_readable_dispatchees()->run_until_satisfied(
             [&](const std::set<server_id_t> &servers) {
                 return is_contract_ackable(contract, servers);
             },
             interruptor);
         /* Now try to actually put the write through */
-        class safe_write_callback_t : public broadcaster_t::write_callback_t {
+        class safe_write_callback_t : public primary_dispatcher_t::write_callback_t {
         public:
             write_durability_t get_default_write_durability() {
                 return write_durability_t::HARD;
@@ -394,7 +372,7 @@ void primary_execution_t::sync_contract_with_replicas(
             cond_t done;
         } write_callback;
         write_callback.contract = contract;
-        our_broadcaster->spawn_write(write_t::make_sync(region),
+        our_dispatcher->spawn_write(write_t::make_sync(region),
             order_token_t::ignore, &write_callback);
         wait_interruptible(&write_callback.done, interruptor);
         if (is_contract_ackable(contract, write_callback.servers)) {

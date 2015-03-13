@@ -2,6 +2,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REPLICA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REPLICA_HPP_
 
+#include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "clustering/immediate_consistency/backfiller.hpp"
+#include "concurrency/timestamp_enforcer.hpp"
+
 class replica_t {
 public:
     replica_t(

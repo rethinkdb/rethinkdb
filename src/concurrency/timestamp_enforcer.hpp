@@ -2,6 +2,12 @@
 #ifndef CONCURRENCY_TIMESTAMP_ENFORCER_HPP_
 #define CONCURRENCY_TIMESTAMP_ENFORCER_HPP_
 
+#include <map>
+#include <set>
+
+#include "concurrency/cond_var.hpp"
+#include "timestamps.hpp"
+
 class timestamp_enforcer_t {
 public:
     timestamp_enforcer_t(state_timestamp_t initial);

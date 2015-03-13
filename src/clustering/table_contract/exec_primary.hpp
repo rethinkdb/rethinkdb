@@ -6,9 +6,8 @@
 #include "clustering/table_contract/exec.hpp"
 #include "containers/counted.hpp"
 
-class broadcaster_t;
 class io_backender_t;
-class listener_t;
+class primary_dispatcher_t;
 
 class primary_execution_t :
     public execution_t,
@@ -115,7 +114,7 @@ private:
         counted_t<contract_info_t> contract,
         const std::set<server_id_t> &servers);
 
-    branch_id_t const our_branch_id;
+    boost::optional<branch_id_t> our_branch_id;
 
     /* `latest_contract_*` stores the latest contract we've received, along with its ack
     callback. The `home_thread` version should only be accessed on `this->home_thread()`,
@@ -133,9 +132,10 @@ private:
     the Raft state. */
     cond_t branch_registered;
 
-    /* `our_broadcaster` stores the pointer to the `broadcaster_t` we constructed. It
-    will be `nullptr` until the `broadcaster_t` actually exists. */
-    broadcaster_t * our_broadcaster;
+    /* `our_dispatcher` stores the pointer to the `primary_dispatcher_t` we constructed.
+    It will be `nullptr` until the `primary_dispatcher_t` actually exists and has a valid
+    replica. */
+    primary_dispatcher_t * our_dispatcher;
 
     /* `drainer` ensures that `run` is stopped before the other member variables are
     destroyed. */

@@ -2,13 +2,21 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICATOR_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICATOR_HPP_
 
-class local_replicator_t : public primary_query_router_t::dispatchee_t {
+#include "clustering/immediate_consistency/history.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "store_view.hpp"
+
+class local_replicator_t : public primary_dispatcher_t::dispatchee_t {
 public:
     local_replicator_t(
         const server_id_t &server_id,
-        primary_query_router_t *primary,
+        primary_dispatcher_t *primary,
         store_view_t *store,
         branch_history_manager_t *bhm);
+
+    replica_bcard_t get_replica_bcard() {
+        return replica.get_bcard();
+    }
 
     void do_read(
         const read_t &read,

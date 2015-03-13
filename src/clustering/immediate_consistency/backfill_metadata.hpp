@@ -2,6 +2,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_METADATA_HPP_
 
+#include "clustering/immediate_consistency/history.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rpc/mailbox/typed.hpp"
+
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */
 

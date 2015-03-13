@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "clustering/immediate_consistency/history.hpp"
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/backfill_metadata.hpp"
 
 class backfiller_send_backfill_callback_t;
 template <class> class semilattice_read_view_t;

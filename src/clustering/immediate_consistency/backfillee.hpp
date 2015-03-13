@@ -3,7 +3,7 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_
 
 #include "clustering/immediate_consistency/history.hpp"
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 

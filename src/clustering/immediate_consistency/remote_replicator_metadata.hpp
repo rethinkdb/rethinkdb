@@ -2,6 +2,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_METADATA_HPP_
 
+#include "clustering/generic/registration_metadata.hpp"
+#include "clustering/immediate_consistency/history.hpp"
+#include "rdb_protocol/protocol.hpp"
+
 class remote_replicator_client_intro_t {
 public:
     typedef mailbox_t<void()> ready_mailbox_t;

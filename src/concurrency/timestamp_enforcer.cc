@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "concurrency/timestamp_enforcer.hpp"
 
+#include "concurrency/interruptor.hpp"
+#include "containers/map_sentries.hpp"
+
 void timestamp_enforcer_t::wait_all_before(
         state_timestamp_t goal, signal_t *interruptor) {
     if (goal > timestamp) {

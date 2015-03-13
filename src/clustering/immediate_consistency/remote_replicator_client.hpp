@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 
+#include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
+
 class remote_replicator_client_t {
 public:
     remote_replicator_client_t(
@@ -12,8 +14,8 @@ public:
         const server_id_t &server_id,
 
         const branch_id_t &branch_id,
-        const remote_replica_transmitter_bcard_t &transmitter_bcard,
-        const replica_reader_bcard_t &reader_bcard,
+        const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
+        const replica_bcard_t &replica_bcard,
 
         store_view_t *store,
         branch_history_manager_t *branch_history_manager,
