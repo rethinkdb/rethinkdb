@@ -85,11 +85,9 @@ void local_replicator_t::do_write_sync(
         write_durability_t durability,
         signal_t *interruptor,
         write_response_t *response_out) {
-    debugf("begin do_write_sync()\n");
     replica.do_write(
         write, timestamp, order_token, durability,
         interruptor, response_out);
-    debugf("done\n");
 }
 
 void local_replicator_t::do_write_async(

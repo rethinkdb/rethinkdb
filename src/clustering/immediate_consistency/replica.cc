@@ -86,7 +86,7 @@ void replica_t::do_write(
     write_token_t write_token;
     {
         /* Wait until it's our turn to go. */
-        start_enforcer.wait_all_before(timestamp, interruptor);
+        start_enforcer.wait_all_before(timestamp.pred(), interruptor);
 
         /* Claim a write token. This determines the order in which writes will be
         processed by the underlying store. */

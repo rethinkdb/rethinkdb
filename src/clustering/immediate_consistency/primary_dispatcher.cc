@@ -41,7 +41,7 @@ primary_dispatcher_t::dispatchee_registration_t::~dispatchee_registration_t() {
     if (is_ready) {
         parent->ready_dispatchees_as_set.apply_atomic_op(
             [&](std::set<server_id_t> *servers) {
-                guarantee(servers->count(server_id) == 0);
+                guarantee(servers->count(server_id) == 1);
                 servers->erase(server_id);
                 return true;
             });

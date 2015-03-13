@@ -182,7 +182,7 @@ void remote_replicator_client_t::on_write_async(
         order_token_t order_token)
         THROWS_NOTHING {
     wait_interruptible(&registered_, interruptor);
-    write_queue_entrance_enforcer_->wait_all_before(timestamp, interruptor);
+    write_queue_entrance_enforcer_->wait_all_before(timestamp.pred(), interruptor);
     write_queue_semaphore_.co_lock_interruptible(interruptor);
     write_queue_.push(write_queue_entry_t(write, timestamp, order_token));
     write_queue_entrance_enforcer_->complete(timestamp);

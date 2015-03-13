@@ -36,7 +36,7 @@ public:
         ++acks;
     }
     void on_end() {
-        EXPECT_EQ(1, acks);
+        EXPECT_GE(acks, 1);
         pulse();
     }
     int acks;

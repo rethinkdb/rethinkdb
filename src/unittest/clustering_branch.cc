@@ -23,7 +23,6 @@ void run_with_primary(
                            mock_store_t *,
                            local_replicator_t *,
                            order_source_t *)> fun) {
-    debugf("start run_with_primary\n");
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -32,7 +31,6 @@ void run_with_primary(
     primary_dispatcher_t primary_dispatcher(
         &get_global_perfmon_collection(),
         region_map_t<version_t>(region_t::universe(), version_t::zero()));
-    debugf("created dispatcher\n");
 
     mock_store_t initial_store((binary_blob_t(version_t::zero())));
     in_memory_branch_history_manager_t branch_history_manager;
@@ -43,7 +41,6 @@ void run_with_primary(
         &initial_store,
         &branch_history_manager,
         &interruptor);
-    debugf("created local replicator\n");
 
     fun(&io_backender,
         &cluster,
@@ -66,7 +63,6 @@ void run_read_write_test(
         UNUSED local_replicator_t *local_replicator,
         order_source_t *order_source) {
     /* Send some writes via the broadcaster to the mirror. */
-    debugf("start run_read_write_test\n");
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
         std::string key = std::string(1, 'a' + randint(26));
@@ -77,9 +73,7 @@ void run_read_write_test(
             w,
             order_source->check_in("run_read_write_test(write)"),
             &write_callback);
-        debugf("waiting for write %d\n", i);
         write_callback.wait_lazily_unordered();
-        debugf("done write %d\n", i);
     }
 
     /* Now send some reads. */
@@ -92,14 +86,12 @@ void run_read_write_test(
         read_t r = mock_read(it->first);
         cond_t non_interruptor;
         read_response_t resp;
-        debugf("waiting for read\n");
         dispatcher->read(
             r,
             &exiter,
             order_source->check_in("run_read_write_test(read)").with_read_mode(),
             &non_interruptor,
             &resp);
-        debugf("done read\n");
         EXPECT_EQ(it->second, mock_parse_read_response(resp));
     }
 }
