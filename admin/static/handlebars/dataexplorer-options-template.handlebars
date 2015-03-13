@@ -1,19 +1,15 @@
-
     <ul class="options_list">
         <li data-option="suggestions">
-            <div class="checkbox-container"><input type="checkbox" data-option="suggestions" id="suggestions"{{#if suggestions}} checked=true{{/if}}><label for="suggestions" data-option="suggestions"></label></div> 
+            <div class="checkbox-container"><input type="checkbox" data-option="suggestions" id="suggestions"{{#if suggestions}} checked=true{{/if}}><label for="suggestions" data-option="suggestions"></label></div>
             <div class="option_description" data-option="suggestions">Enable automatic suggestions and command descriptions</div></li>
         <li data-option="electric_punctuation">
-            <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div> 
+            <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div>
             <div class="option_description" data-option="electric_punctuation">Auto-insert pair brackets, parentheses, and quotes</div></li>
         <li data-option="profiler">
             <div class="alert profiler_enabled"><strong>Query profiler active:</strong> re-run the query to see results.</div>
-            <div class="checkbox-container"><input type="checkbox" data-option="profiler" id="profiler" {{#if profiler}} checked=true{{/if}}><label for="profiler" data-option="profiler"></label></div> 
-            <div class="option_description" data-option="profiler">Enable query test profiler</div></li>
+            <div class="checkbox-container"><input type="checkbox" data-option="profiler" id="profiler" {{#if profiler}} checked=true{{/if}}><label for="profiler" data-option="profiler"></label></div>
+            <div class="option_description" data-option="profiler">Enable query profiler</div></li>
         <li class="text-input" data-option="query_limit">
             <div class="input-container"><input type="text" data-option="query_limit" id="query_limit" value="{{query_limit}}"/><label for="query_limit" data-option="query_limit"></label></div>
             <div class="input_description" data-option="profiler">Max results per query (Note: returning more results will increase loading time)</div></li>
     </ul>
-
-
-
