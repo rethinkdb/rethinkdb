@@ -1,6 +1,30 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/replica.hpp"
 
+#include "store_view.hpp"
+
+#ifndef NDEBUG
+struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t {
+public:
+    explicit version_leq_metainfo_checker_callback_t(const state_timestamp_t& tstamp) :
+        tstamp_(tstamp) { }
+
+    void check_metainfo(
+            const region_map_t<binary_blob_t> &metainfo, 
+            const region_t& region) const {
+        for (const auto &pair : metainfo.mask(region)) {
+            version_t version = binary_blob_t::get<version_t>(pair.second);
+            guarantee(version.timestamp <= tstamp_);
+        }
+    }
+
+private:
+    state_timestamp_t tstamp_;
+
+    DISABLE_COPYING(version_leq_metainfo_checker_callback_t);
+};
+#endif // NDEBUG
+
 replica_t::replica_t(
         mailbox_manager_t *_mailbox_manager,
         store_view_t *_store,
@@ -12,7 +36,9 @@ replica_t::replica_t(
     branch_id(_branch_id),
     start_enforcer(_timestamp),
     end_enforcer(_timestamp),
-    backfiller(_mailbox_manager, _bhm, _store)
+    backfiller(_mailbox_manager, _bhm, _store),
+    synchronize_mailbox(mailbox_manager,
+        std::bind(&replica_t::on_synchronize, this, ph::_1, ph::_2, ph::_3))
     { }
 
 void replica_t::do_read(
@@ -33,14 +59,14 @@ void replica_t::do_read(
 #ifndef NDEBUG
     trivial_metainfo_checker_callback_t metainfo_checker_callback;
     metainfo_checker_t metainfo_checker(
-        &metainfo_checker_callback, svs_->get_region());
+        &metainfo_checker_callback, store->get_region());
 #endif
 
     // Perform the operation
     store->read(
         DEBUG_ONLY(metainfo_checker, )
         read,
-        &response,
+        response_out,
         &read_token,
         interruptor);
 }
@@ -51,7 +77,7 @@ void replica_t::do_write(
         order_token_t order_token,
         write_durability_t durability,
         signal_t *interruptor,
-        read_response_t *response_out) {
+        write_response_t *response_out) {
     assert_thread();
     rassert(region_is_superset(store->get_region(), write.get_region()));
     rassert(!region_is_empty(write.get_region()));
@@ -72,21 +98,22 @@ void replica_t::do_write(
 
 #ifndef NDEBUG
     version_leq_metainfo_checker_callback_t metainfo_checker_callback(timestamp.pred());
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
+    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
     // Perform the operation
-    svs_->write(DEBUG_ONLY(metainfo_checker, )
-                region_map_t<binary_blob_t>(
-                    svs_->get_region(),
-                    binary_blob_t(version_t(branch_id, timestamp))),
-                write,
-                response,
-                durability,
-                timestamp,
-                order_token,
-                &write_token,
-                &combined_interruptor);
+    store->write(
+        DEBUG_ONLY(metainfo_checker, )
+        region_map_t<binary_blob_t>(
+            store->get_region(),
+            binary_blob_t(version_t(branch_id, timestamp))),
+        write,
+        response_out,
+        durability,
+        timestamp,
+        order_token,
+        &write_token,
+        interruptor);
 
     /* Notify reads that were waiting for this write that it's OK to go */
     end_enforcer.complete(timestamp);

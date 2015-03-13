@@ -3,22 +3,27 @@
 
 remote_replicator_server_t::remote_replicator_server_t(
         mailbox_manager_t *_mailbox_manager,
-        primary_query_router_t *_primary) :
+        primary_dispatcher_t *_primary) :
     mailbox_manager(_mailbox_manager),
     primary(_primary),
     registrar(mailbox_manager, this)
     { }
 
 remote_replicator_server_t::proxy_replica_t::proxy_replica_t(
-        const remote_replicator_client_bcard_t &_client_bcard,
-        remote_replicator_server_t *_parent) :
-    client_bcard(_client_bcard), parent(_parent), is_ready(false)
+        remote_replicator_server_t *_parent,
+        const remote_replicator_client_bcard_t &_client_bcard) :
+    client_bcard(_client_bcard), parent(_parent), is_ready(false),
+    ready_mailbox(
+        parent->mailbox_manager,
+        std::bind(&proxy_replica_t::on_ready, this, ph::_1))
 {
     state_timestamp_t first_timestamp;
-    registration = make_scoped<primary_query_router_t::dispatchee_registration_t>(
+    registration = make_scoped<primary_dispatcher_t::dispatchee_registration_t>(
         parent->primary, this, client_bcard.server_id, 1.0, &first_timestamp);
     send(parent->mailbox_manager, client_bcard.intro_mailbox,
-        remote_replica_client_intro_t { first_timestamp, ready_mailbox.get_address() });
+        remote_replicator_client_intro_t { 
+            first_timestamp,
+            ready_mailbox.get_address() });
 }
 
 void remote_replicator_server_t::proxy_replica_t::do_read(
@@ -35,7 +40,7 @@ void remote_replicator_server_t::proxy_replica_t::do_read(
             got_response.pulse();
         });
     send(parent->mailbox_manager, client_bcard.read_mailbox,
-        read, min_timestamp, reply_mailbox.get_address());
+        read, min_timestamp, response_mailbox.get_address());
     wait_interruptible(&got_response, interruptor);
 }
 
@@ -71,6 +76,6 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
 void remote_replicator_server_t::proxy_replica_t::on_ready(signal_t *) {
     guarantee(!is_ready);
     is_ready = true;
-    registration->mark_readable();
+    registration->mark_ready();
 }
 

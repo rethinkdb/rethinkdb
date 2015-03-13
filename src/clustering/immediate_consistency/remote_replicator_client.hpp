@@ -2,14 +2,21 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
+#include "clustering/immediate_consistency/replica.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/disk_backed_queue_wrapper.hpp"
+#include "concurrency/semaphore.hpp"
+
+class backfill_throttler_t;
 
 class remote_replicator_client_t {
 public:
     remote_replicator_client_t(
         const base_path_t &_base_path,
         io_backender_t *io_backender,
-        backfill_throttler_t*backfill_throttler,
+        backfill_throttler_t *backfill_throttler,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
 
@@ -35,7 +42,12 @@ private:
         write_t write;
         state_timestamp_t timestamp;
         order_token_t order_token;
+        RDB_DECLARE_ME_SERIALIZABLE(write_queue_entry_t);
     };
+
+    /* This has the effect of friending the serialization functions, so that they can
+    serialize `write_queue_entry_t` even though it's private. */
+    RDB_DECLARE_ME_SERIALIZABLE(write_queue_entry_t);
 
     void on_write_async(
             signal_t *interruptor,
@@ -66,6 +78,7 @@ private:
             mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
+    mailbox_manager_t *const mailbox_manager_;
     store_view_t *const store_;
 
     // This uuid exists solely as a temporary used to be passed to

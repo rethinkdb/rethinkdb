@@ -1,19 +1,22 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 
+/* Limits how many writes should be sent to a dispatchee at once. */
+const size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
+
 primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
         primary_dispatcher_t *_parent,
-        replica_t *_replica,
+        dispatchee_t *_dispatchee,
         const server_id_t &_server_id,
         double _priority,
         state_timestamp_t *first_timestamp_out) :
     parent(_parent),
-    replica(_replica),
+    dispatchee(_dispatchee),
     server_id(_server_id),
     priority(_priority),
-    is_readable(false),
+    is_ready(false),
     queue_count_membership(
-        &parent->broadcaster_collection,
+        &parent->perfmon_collection,
         &queue_count,
         uuid_to_str(server_id) + "broadcast_queue_count"),
     background_write_queue(&queue_count),
@@ -21,7 +24,7 @@ primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
         DISPATCH_WRITES_CORO_POOL_SIZE,
         &background_write_queue,
         &background_write_caller),
-    last_acked_write(state_timestamp_t::zero())
+    latest_acked_write(state_timestamp_t::zero())
 {
     parent->assert_thread();
 
@@ -35,8 +38,8 @@ primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
 primary_dispatcher_t::dispatchee_registration_t::~dispatchee_registration_t() {
     DEBUG_VAR mutex_assertion_t::acq_t acq(&parent->mutex);
     ASSERT_FINITE_CORO_WAITING;
-    if (is_readable) {
-        parent->readable_dispatchees_as_set.apply_atomic_op(
+    if (is_ready) {
+        parent->ready_dispatchees_as_set.apply_atomic_op(
             [&](std::set<server_id_t> *servers) {
                 guarantee(servers->count(server_id) == 0);
                 servers->erase(server_id);
@@ -47,12 +50,12 @@ primary_dispatcher_t::dispatchee_registration_t::~dispatchee_registration_t() {
     parent->assert_thread();
 }
 
-primary_dispatcher_t::dispatchee_registration_t::make_readable() {
+void primary_dispatcher_t::dispatchee_registration_t::mark_ready() {
     DEBUG_VAR mutex_assertion_t::acq_t acq(&parent->mutex);
     ASSERT_FINITE_CORO_WAITING;
-    guarantee(!is_readable);
-    is_readable = true;
-    parent->readable_dispatchees_as_set.apply_atomic_op(
+    guarantee(!is_ready);
+    is_ready = true;
+    parent->ready_dispatchees_as_set.apply_atomic_op(
         [&](std::set<server_id_t> *servers) {
             guarantee(servers->count(server_id) == 0);
             servers->insert(server_id);
@@ -71,9 +74,9 @@ primary_dispatcher_t::write_callback_t::~write_callback_t() {
 
 primary_dispatcher_t::primary_dispatcher_t(
         perfmon_collection_t *parent_perfmon_collection,
-        const region_map_t<version_t> &base_version)
+        const region_map_t<version_t> &base_version) :
     perfmon_membership(parent_perfmon_collection, &perfmon_collection, "broadcaster"),
-    readable_dispatchees_as_set(std::set<server_id_t>())
+    ready_dispatchees_as_set(std::set<server_id_t>())
 {
     current_timestamp = state_timestamp_t::zero();
     for (const auto &pair : base_version) {
@@ -112,8 +115,8 @@ void primary_dispatcher_t::read(
         priority as a tie-breaker. */
         std::pair<state_timestamp_t, double> best;
         for (const auto &pair : dispatchees) {
-            dispatchee_t *d = pair.first;
-            if (!d->is_readable) {
+            dispatchee_registration_t *d = pair.first;
+            if (!d->is_ready) {
                 continue;
             }
             if (dispatchee == nullptr ||
@@ -124,23 +127,23 @@ void primary_dispatcher_t::read(
             }
         }
 
-        rassert(dispatchee != nullptr, "Primary replica should always be readable");
+        rassert(dispatchee != nullptr, "Primary replica should always be ready");
         if (dispatchee == nullptr) {
-            throw cannot_perform_query_exc_t("No replicas are available for reading.");
+            throw cannot_perform_query_exc_t("No replicas are ready for reading.");
         }
 
-        order_token = order_checkpoint.check_through(order_token);
+        order_checkpoint.check_through(order_token);
         min_timestamp = most_recent_acked_write_timestamp;
     }
 
     try {
         wait_any_t interruptor2(dispatchee_lock.get_drain_signal(), interruptor);
-        dispatchee->dispatchee->do_read(read, token, &interruptor2, response_out);
+        dispatchee->dispatchee->do_read(read, min_timestamp, &interruptor2, response_out);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
         } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+            throw cannot_perform_query_exc_t("lost contact with replica during read");
         }
     }
 }
@@ -181,8 +184,8 @@ void primary_dispatcher_t::spawn_write(
     current_timestamp = current_timestamp.next();
 
     // You can't reuse the same callback for two writes.
-    guarantee(cb->write == NULL);
-    cb->write = write_wrapper.get();
+    guarantee(cb->write == nullptr);
+    cb->write = incomplete_write.get();
 
     for (const auto &pair : dispatchees) {
         pair.first->background_write_queue.push(
@@ -192,12 +195,15 @@ void primary_dispatcher_t::spawn_write(
 }
 
 primary_dispatcher_t::incomplete_write_t::incomplete_write_t(
-        const write_t &w, state_timestamp_t ts, order_token_t ot, write_callback_t *cb) :
-    write(w), timestamp(ts), order_token(ot), callback(cb)
+        const write_t &w, state_timestamp_t ts, order_token_t ot,
+        write_durability_t dur, write_callback_t *cb) :
+    write(w), timestamp(ts), order_token(ot), durability(dur), callback(cb)
     { }
 
 primary_dispatcher_t::incomplete_write_t::~incomplete_write_t() {
     if (callback != nullptr) {
+        guarantee(callback->write == this);
+        callback->write = nullptr;
         callback->on_end();
     }
 }
@@ -207,7 +213,7 @@ void primary_dispatcher_t::background_write(
         auto_drainer_t::lock_t dispatchee_lock,
         counted_t<incomplete_write_t> write) THROWS_NOTHING {
     try {
-        if (dispatchee->is_readable) {
+        if (dispatchee->is_ready) {
             write_response_t response;
             dispatchee->dispatchee->do_write_sync(
                 write->write, write->timestamp, write->order_token, write->durability,
@@ -216,7 +222,7 @@ void primary_dispatcher_t::background_write(
             /* Update latest acked write on the distpatchee so we can route queries
             to the fastest replica and avoid blocking there. */
             dispatchee->latest_acked_write =
-                std::max(dispatchee->latest_acked_write, write_ref.get()->timestamp);
+                std::max(dispatchee->latest_acked_write, write->timestamp);
 
             /* The write could potentially get acked when we call `on_ack()` on the
             callback. So make sure all reads started after this point will see this

@@ -3,6 +3,9 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_DISPATCHER_HPP_
 
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/watchable.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class primary_dispatcher_t : public home_thread_mixin_debug_only_t {
@@ -29,29 +32,31 @@ public:
             state_timestamp_t timestamp,
             order_token_t order_token,
             signal_t *interruptor) = 0;
+    protected:
+        virtual ~dispatchee_t() { }
     };
 
     class dispatchee_registration_t {
     public:
         dispatchee_registration_t(
-            primary_query_router_t *parent,
-            replica_t *replica,
+            primary_dispatcher_t *parent,
+            dispatchee_t *dispatchee,
             const server_id_t &server_id,
             double priority,
             state_timestamp_t *first_timestamp_out);
-        ~dispatchee_registraiton_t();
+        ~dispatchee_registration_t();
 
-        void make_readable();
+        void mark_ready();
 
     private:
         friend class primary_dispatcher_t;
 
-        primary_query_router_t *const parent;
+        primary_dispatcher_t *const parent;
         dispatchee_t *const dispatchee;
         server_id_t const server_id;
         double const priority;
 
-        bool is_readable;
+        bool is_ready;
 
         perfmon_counter_t queue_count;
         perfmon_membership_t queue_count_membership;
@@ -80,7 +85,7 @@ public:
         virtual ~write_callback_t();
 
     private:
-        friend class broadcaster_t;
+        friend class primary_dispatcher_t;
         /* This is so that if the write callback is destroyed before `on_end()` is
         called, it will get deregistered. */
         incomplete_write_t *write;
@@ -115,8 +120,8 @@ public:
         order_token_t tok,
         write_callback_t *cb);
 
-    clone_ptr_t<watchable_t<std::set<server_id_t> > > get_readable_dispatchees() {
-        return readable_dispatchees_as_set.get_watchable();
+    clone_ptr_t<watchable_t<std::set<server_id_t> > > get_ready_dispatchees() {
+        return ready_dispatchees_as_set.get_watchable();
     }
 
 private:
@@ -129,7 +134,7 @@ private:
         write_t write;
         state_timestamp_t timestamp;
         order_token_t order_token;
-        write_durability_t durability,
+        write_durability_t durability;
         write_callback_t *callback;
     };
 
@@ -158,9 +163,9 @@ private:
     std::map<dispatchee_registration_t *, auto_drainer_t::lock_t> dispatchees;
 
     /* This is just a set that contains the peer ID of each dispatchee in
-    `readable_dispatchees`. We store it separately so we can expose it to code that needs
+    `ready_dispatchees`. We store it separately so we can expose it to code that needs
     to know which replicas are available. */
-    watchable_variable_t<std::set<server_id_t> > readable_dispatchees_as_set;
+    watchable_variable_t<std::set<server_id_t> > ready_dispatchees_as_set;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_PRIMARY_QUERY_ROUTER_HPP_ */

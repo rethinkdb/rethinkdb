@@ -3,9 +3,10 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
-#include "clustering/immediate_consistency/broadcaster.hpp"
-#include "clustering/immediate_consistency/listener.hpp"
-#include "clustering/immediate_consistency/replier.hpp"
+#include "clustering/immediate_consistency/local_replicator.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_client.hpp"
+#include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -24,86 +25,6 @@
 
 namespace unittest {
 
-void run_with_broadcaster(
-    std::function< void(
-        std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-        branch_history_manager_t *,
-        scoped_ptr_t<broadcaster_t> *,
-        test_store_t *,
-        scoped_ptr_t<listener_t> *,
-        rdb_context_t *ctx,
-        order_source_t *)> fun) {
-    order_source_t order_source;
-
-    /* Set up a cluster so mailboxes can be created */
-    simple_mailbox_cluster_t cluster;
-
-    /* Set up branch history manager */
-    in_memory_branch_history_manager_t branch_history_manager;
-
-    // io backender
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-
-    extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, NULL);
-
-    /* Set up a broadcaster and initial listener */
-    test_store_t initial_store(&io_backender, &order_source, &ctx);
-
-    cond_t interruptor;
-
-    branch_birth_certificate_t branch_info;
-    branch_info.region = region_t::universe();
-    branch_info.origin =
-        region_map_t<version_t>(region_t::universe(), version_t::zero());
-    branch_info.initial_timestamp = state_timestamp_t::zero();
-
-    scoped_ptr_t<broadcaster_t> broadcaster(
-        new broadcaster_t(
-            cluster.get_mailbox_manager(),
-            &branch_history_manager,
-            &initial_store.store,
-            &get_global_perfmon_collection(),
-            generate_uuid(),
-            branch_info,
-            &order_source,
-            &interruptor));
-
-    scoped_ptr_t<listener_t> initial_listener(new listener_t(
-        base_path_t("."), //TODO is it bad that this isn't configurable?
-        &io_backender,
-        cluster.get_mailbox_manager(),
-        generate_uuid(),
-        broadcaster.get(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        &order_source));
-
-    fun(std::make_pair(&io_backender, &cluster),
-        &branch_history_manager,
-        &broadcaster,
-        &initial_store,
-        &initial_listener,
-        &ctx,
-        &order_source);
-}
-
-void run_in_thread_pool_with_broadcaster(
-        std::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                            branch_history_manager_t *,
-                            scoped_ptr_t<broadcaster_t> *,
-                            test_store_t *,
-                            scoped_ptr_t<listener_t> *,
-                            rdb_context_t *,
-                            order_source_t *)> fun)
-{
-    extproc_spawner_t extproc_spawner;
-    run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
-}
-
-
-/* `PartialBackfill` backfills only in a specific sub-region. */
-
 ql::datum_t generate_document(size_t value_padding_length, const std::string &value) {
     ql::configured_limits_t limits;
     // This is a kind of hacky way to add an object to a map but I'm not sure
@@ -114,12 +35,12 @@ ql::datum_t generate_document(size_t value_padding_length, const std::string &va
                         limits, reql_version_t::LATEST);
 }
 
-void write_to_broadcaster(size_t value_padding_length,
-                          broadcaster_t *broadcaster,
-                          const std::string &key,
-                          const std::string &value,
-                          order_token_t otok,
-                          signal_t *) {
+void write_to_dispatcher(size_t value_padding_length,
+                         primary_dispatcher_t *dispatcher,
+                         const std::string &key,
+                         const std::string &value,
+                         order_token_t otok,
+                         signal_t *) {
     write_t write(
             point_write_t(
                 store_key_t(key),
@@ -129,55 +50,70 @@ void write_to_broadcaster(size_t value_padding_length,
             profile_bool_t::PROFILE,
             ql::configured_limits_t());
     simple_write_callback_t write_callback;
-    broadcaster->spawn_write(write, otok, &write_callback);
+    dispatcher->spawn_write(write, otok, &write_callback);
     write_callback.wait_lazily_unordered();
 }
 
-void run_backfill_test(size_t value_padding_length,
-                       std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
-                       branch_history_manager_t *branch_history_manager,
-                       scoped_ptr_t<broadcaster_t> *broadcaster,
-                       test_store_t *,
-                       scoped_ptr_t<listener_t> *initial_listener,
-                       rdb_context_t *ctx,
-                       order_source_t *order_source) {
-    io_backender_t *const io_backender = io_backender_and_cluster.first;
-    simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
+void run_backfill_test(size_t value_padding_length) {
 
-    recreate_temporary_directory(base_path_t("."));
-    /* Set up a replier so the broadcaster can handle operations */
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    order_source_t order_source;
+    simple_mailbox_cluster_t cluster;
+    in_memory_branch_history_manager_t branch_history_manager;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    extproc_pool_t extproc_pool(2);
+    rdb_context_t ctx(&extproc_pool, NULL);
+    cond_t non_interruptor;
+
+    primary_dispatcher_t dispatcher(
+        &get_global_perfmon_collection(),
+        region_map_t<version_t>(region_t::universe(), version_t::zero()));
+
+    test_store_t store1(&io_backender, &order_source, &ctx);
+    in_memory_branch_history_manager_t bhm1;
+    local_replicator_t local_replicator(
+        cluster.get_mailbox_manager(),
+        generate_uuid(),
+        &dispatcher,
+        &store1.store,
+        &bhm1,
+        &non_interruptor);
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(),
+        std::bind(&write_to_dispatcher, value_padding_length, &dispatcher,
                   ph::_1, ph::_2, ph::_3, ph::_4),
         std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
         &mc_key_gen,
-        order_source,
+        &order_source,
         "rdb_backfill run_partial_backfill_test inserter",
         &inserter_state);
     nap(10000);
 
+    remote_replicator_server_t remote_replicator_server(
+        cluster.get_mailbox_manager(),
+        &dispatcher);
+
     backfill_throttler_t backfill_throttler;
 
     /* Set up a second mirror */
-    test_store_t store2(io_backender, order_source, ctx);
+    test_store_t store2(&io_backender, &order_source, &ctx);
+    in_memory_branch_history_manager_t bhm2;
     cond_t interruptor;
-    listener_t listener2(
+    remote_replicator_client_t remote_replicator_client(
         base_path_t("."),
-        io_backender,
-        cluster->get_mailbox_manager(),
-        generate_uuid(),
+        &io_backender,
         &backfill_throttler,
-        (*broadcaster)->get_business_card(),
-        branch_history_manager,
+        cluster.get_mailbox_manager(),
+        generate_uuid(),
+        dispatcher.get_branch_id(),
+        remote_replicator_server.get_bcard(),
+        local_replicator.get_replica_bcard(),
         &store2.store,
-        replier.get_business_card(),
+        &bhm2,
         &get_global_perfmon_collection(),
+        &order_source,
         &interruptor,
-        order_source,
         nullptr);
 
     nap(10000);
@@ -194,10 +130,13 @@ void run_backfill_test(size_t value_padding_length,
         fifo_enforcer_source_t fifo_source;
         fifo_enforcer_sink_t fifo_sink;
         fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
-        cond_t non_interruptor;
         read_response_t response;
-        broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        point_read_response_t get_result = boost::get<point_read_response_t>(response.response);
+        dispatcher.read(
+            read, &exiter,
+            order_source.check_in("(rdb)run_partial_backfill_test").with_read_mode(),
+            &non_interruptor, &response);
+        point_read_response_t get_result =
+            boost::get<point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.has());
         EXPECT_EQ(generate_document(value_padding_length,
                                      it->second),
@@ -205,16 +144,12 @@ void run_backfill_test(size_t value_padding_length,
     }
 }
 
-TEST(RDBProtocolBackfill, Backfill) {
-     run_in_thread_pool_with_broadcaster(
-         std::bind(&run_backfill_test, 0, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5,
-            ph::_6, ph::_7));
+TPTEST(RDBProtocolBackfill, Backfill) {
+    run_backfill_test(0);
 }
 
-TEST(RDBProtocolBackfill, BackfillLargeValues) {
-     run_in_thread_pool_with_broadcaster(
-         std::bind(&run_backfill_test, 300, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5,
-            ph::_6, ph::_7));
+TPTEST(RDBProtocolBackfill, BackfillLargeValues) {
+     run_backfill_test(300);
 }
 
 }   /* namespace unittest */

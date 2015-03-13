@@ -4,18 +4,21 @@
 
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/replica.hpp"
 #include "store_view.hpp"
 
 class local_replicator_t : public primary_dispatcher_t::dispatchee_t {
 public:
     local_replicator_t(
+        mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
         primary_dispatcher_t *primary,
         store_view_t *store,
-        branch_history_manager_t *bhm);
+        branch_history_manager_t *bhm,
+        signal_t *interruptor);
 
     replica_bcard_t get_replica_bcard() {
-        return replica.get_bcard();
+        return replica.get_replica_bcard();
     }
 
     void do_read(
@@ -57,7 +60,7 @@ private:
 
     auto_drainer_t drainer;
 
-    scoped_ptr_t<primary_query_router_t::dispatchee_registration_t> registration;
+    scoped_ptr_t<primary_dispatcher_t::dispatchee_registration_t> registration;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICA_HPP_ */

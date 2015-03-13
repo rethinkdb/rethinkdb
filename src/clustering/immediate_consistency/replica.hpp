@@ -6,7 +6,7 @@
 #include "clustering/immediate_consistency/backfiller.hpp"
 #include "concurrency/timestamp_enforcer.hpp"
 
-class replica_t {
+class replica_t : public home_thread_mixin_debug_only_t {
 public:
     replica_t(
         mailbox_manager_t *mailbox_manager,
@@ -15,7 +15,7 @@ public:
         const branch_id_t &branch_id,
         state_timestamp_t timestamp);
 
-    replica_bcard_t *get_replica_bcard() {
+    replica_bcard_t get_replica_bcard() {
         return replica_bcard_t {
             synchronize_mailbox.get_address(),
             branch_id,
@@ -25,7 +25,7 @@ public:
 
     void do_read(
         const read_t &read,
-        min_timestamp_token_t token,
+        state_timestamp_t token,
         signal_t *interruptor,
         read_response_t *response_out);
 
@@ -37,7 +37,7 @@ public:
         order_token_t order_token,
         write_durability_t durability,
         signal_t *interruptor,
-        read_response_t *response_out);
+        write_response_t *response_out);
 
 private:
     void on_synchronize(

@@ -1,6 +1,26 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
+#include "store_view.hpp"
+
+/* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used when
+draining the write queue after completing a backfill. */
+#define WRITE_QUEUE_CORO_POOL_SIZE 64
+
+/* When we have caught up to the primary replica to within
+`WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves to be
+up-to-date. */
+#define WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY 5
+
+/* When we are draining the write queue, we allow new objects to be added to the write
+queue at (this rate) * (the rate at which objects are being popped). If this number is
+high, then the backfill will take longer but the cluster will serve queries at a high
+rate during the backfill. If this number is low, then the backfill will be faster but the
+cluster will only serve queries slowly during the backfill. */
+#define WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION 0.5
+
 remote_replicator_client_t::remote_replicator_client_t(
         const base_path_t &base_path,
         io_backender_t *io_backender,
@@ -8,7 +28,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
 
-        const branch_id_t &_branch_id,
+        const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
         const replica_bcard_t &replica_bcard,
 
@@ -21,11 +41,12 @@ remote_replicator_client_t::remote_replicator_client_t(
         double *backfill_progress_out   /* can be null */
         ) THROWS_ONLY(interrupted_exc_t) :
 
+    mailbox_manager_(mailbox_manager),
     store_(store),
     uuid_(generate_uuid()),
     perfmon_collection_membership_(
         backfill_stats_parent,
-        &perfmon_collection,
+        &perfmon_collection_,
         "backfill-serialization-" + uuid_to_str(uuid_)),
     /* TODO: Put the file in the data directory, not here */
     write_queue_(
@@ -36,32 +57,34 @@ remote_replicator_client_t::remote_replicator_client_t(
         SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_async_mailbox_(mailbox_manager,
-        std::bind(&listener_t::on_write_async, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+        std::bind(&remote_replicator_client_t::on_write_async, this,
+            ph::_1, ph::_2, ph::_3, ph::_4)),
     write_sync_mailbox_(mailbox_manager,
-        std::bind(&listener_t::on_write_sync, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
+        std::bind(&remote_replicator_client_t::on_write_sync, this,
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     read_mailbox_(mailbox_manager,
-        std::bind(&listener_t::on_read, this,
+        std::bind(&remote_replicator_client_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
     /* Subscribe to the stream of writes coming from the primary */
-    guarantee(remote_replicator_server_bcard.branch_id == branch_id);
+    guarantee(remote_replicator_server_bcard.branch == branch_id);
     remote_replicator_client_intro_t intro;
     {
         remote_replicator_client_bcard_t::intro_mailbox_t intro_mailbox(
             mailbox_manager,
-            [&](signal_t *, const remote_replica_transmitter_intro_t &i) {
+            [&](signal_t *, const remote_replicator_client_intro_t &i) {
                 intro = i;
-                write_queue_entry_enforcer_.init(
+                write_queue_entrance_enforcer_.init(
                     new timestamp_enforcer_t(intro.streaming_begin_timestamp));
                 registered_.pulse();
             });
-        remote_replica_client_bcard_t our_bcard(
-            intro_mailbox_.get_address(),
+        remote_replicator_client_bcard_t our_bcard {
+            server_id,
+            intro_mailbox.get_address(),
             write_async_mailbox_.get_address(),
-            server_id_);
-        registrant_.init(new registrant_t<remote_replica_client_bcard_t>(
+            write_sync_mailbox_.get_address(),
+            read_mailbox_.get_address() };
+        registrant_.init(new registrant_t<remote_replicator_client_bcard_t>(
             mailbox_manager, remote_replicator_server_bcard.registrar, our_bcard));
         wait_interruptible(&registered_, interruptor);
     }
@@ -100,18 +123,18 @@ remote_replicator_client_t::remote_replicator_client_t(
     state_timestamp_t backfill_end_timestamp;
     {
         read_token_t read_token2;
-        svs_->new_read_token(&read_token2);
+        store_->new_read_token(&read_token2);
         region_map_t<binary_blob_t> backfill_end_point_blob;
-        svs_->do_get_metainfo(
+        store_->do_get_metainfo(
             order_source->check_in("listener_t(B)").with_read_mode(),
             &read_token2, interruptor, &backfill_end_point_blob);
         region_map_t<version_t> backfill_end_point =
             to_version_map(backfill_end_point_blob);
-        guarantee(backfill_end_point.get_domain() == svs_->get_region());
+        guarantee(backfill_end_point.get_domain() == store_->get_region());
 
         bool first_chunk = true;
         for (const auto &chunk : backfill_end_point) {
-            guarantee(chunk.second.branch == branch_id_);
+            guarantee(chunk.second.branch == branch_id);
             if (first_chunk) {
                 backfill_end_timestamp = chunk.second.timestamp;
                 first_chunk = false;
@@ -124,7 +147,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     guarantee(backfill_end_timestamp >= intro.streaming_begin_timestamp);
 
     /* Construct the `replica_t` so that we can perform writes */
-    replica.init(new replica_t(
+    replica_.init(new replica_t(
         mailbox_manager,
         store,
         branch_history_manager,
@@ -134,7 +157,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     /* Start performing the queued-up writes */
     write_queue_coro_pool_callback_.init(
         new std_function_callback_t<write_queue_entry_t>(
-            std::bind(&listener_t::perform_enqueued_write, this,
+            std::bind(&remote_replicator_client_t::perform_enqueued_write, this,
                 ph::_1, backfill_end_timestamp, ph::_2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_,
@@ -175,6 +198,10 @@ void remote_replicator_client_t::perform_enqueued_write(
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
+    if (qe.timestamp <= backfill_end_timestamp) {
+        return;
+    }
+
     write_response_t dummy;
     replica_->do_write(
         qe.write, qe.timestamp, qe.order_token, write_durability_t::SOFT,
@@ -199,7 +226,7 @@ void remote_replicator_client_t::on_write_sync(
     replica_->do_write(
         write, timestamp, order_token, durability,
         interruptor, &response);
-    send(ack_addr, response);
+    send(mailbox_manager_, ack_addr, response);
 }
 
 void remote_replicator_client_t::on_read(
@@ -210,6 +237,10 @@ void remote_replicator_client_t::on_read(
         THROWS_NOTHING {
     read_response_t response;
     replica_->do_read(read, min_timestamp, interruptor, &response);
-    send(ack_addr, response);
+    send(mailbox_manager_, ack_addr, response);
 }
+
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    remote_replicator_client_t::write_queue_entry_t,
+    write, timestamp, order_token);
 

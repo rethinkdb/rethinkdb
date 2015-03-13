@@ -17,7 +17,7 @@ primary_execution_t::primary_execution_t(
     execution_t(_context, _region, _store, _perfmon_collection),
     latest_contract_home_thread(make_counted<contract_info_t>(c, acb)),
     latest_contract_store_thread(latest_contract_home_thread),
-    our_primary(nullptr)
+    our_dispatcher(nullptr)
 {
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
@@ -98,7 +98,8 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
             ack.branch = boost::make_optional(*our_branch_id);
             context->branch_history_manager->export_branch_history(
-                branch_bc.origin, &ack.branch_history);
+                primary_dispatcher.get_branch_birth_certificate().origin,
+                &ack.branch_history);
             ack.branch_history.branches.insert(std::make_pair(
                 *our_branch_id,
                 primary_dispatcher.get_branch_birth_certificate()));
@@ -127,10 +128,12 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         on_thread_t thread_switcher_3(store->home_thread());
 
         local_replicator_t local_replicator(
-            server_id,
+            context->mailbox_manager,
+            context->server_id,
             &primary_dispatcher,
             store,
-            context->branch_history_manager);
+            context->branch_history_manager,
+            &interruptor_store_thread);
 
         remote_replicator_server_t remote_replicator_server(
             context->mailbox_manager,
@@ -164,7 +167,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t>::entry_t minidir_entry(
                 context->local_contract_execution_bcards,
-                std::make_pair(context->server_id, our_branch_id),
+                std::make_pair(context->server_id, *our_branch_id),
                 ce_bcard);
 
         /* Put an entry in the global directory so clients can find us */
@@ -212,7 +215,7 @@ bool primary_execution_t::on_write(
     error about "not enough acks" and then got applied anyway. */
     {
         ack_counter_t counter(latest_contract_store_thread);
-        our_dispatcher->get_readable_dispatchees()->apply_read(
+        our_dispatcher->get_ready_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
                     counter.note_ack(s);
@@ -347,7 +350,7 @@ void primary_execution_t::sync_contract_with_replicas(
     guarantee(our_dispatcher != nullptr);
     while (!interruptor->is_pulsed()) {
         /* Wait until it looks like the write could go through */
-        our_dispatcher->get_readable_dispatchees()->run_until_satisfied(
+        our_dispatcher->get_ready_dispatchees()->run_until_satisfied(
             [&](const std::set<server_id_t> &servers) {
                 return is_contract_ackable(contract, servers);
             },

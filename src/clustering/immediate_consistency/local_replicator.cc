@@ -1,13 +1,22 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/local_replicator.hpp"
 
+#include "concurrency/cross_thread_signal.hpp"
+
 local_replicator_t::local_replicator_t(
+        mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
-        primary_query_router_t *primary,
+        primary_dispatcher_t *primary,
         store_view_t *_store,
-        branch_history_manager_t *bhm) :
+        branch_history_manager_t *bhm,
+        signal_t *interruptor) :
     store(_store),
-    replica(store, primary->get_branch_birth_certificate().initial_timestamp)
+    replica(
+        mailbox_manager,
+        store,
+        bhm,
+        primary->get_branch_id(),
+        primary->get_branch_birth_certificate().initial_timestamp)
 {
     order_source_t order_source;
 
@@ -47,18 +56,18 @@ local_replicator_t::local_replicator_t(
         region_map_t<binary_blob_t>(
             store->get_region(),
             binary_blob_t(version_t(
-                primary->get_branch_id()
+                primary->get_branch_id(),
                 primary->get_branch_birth_certificate().initial_timestamp))),
         order_source.check_in("local_replica_t(write)"),
         &write_token,
         interruptor);
 
     state_timestamp_t first_timestamp;
-    registration = make_scoped<primary_query_router_t::dispatchee_registration_t>(
+    registration = make_scoped<primary_dispatcher_t::dispatchee_registration_t>(
         primary, this, server_id, 2.0, &first_timestamp);
     guarantee(first_timestamp ==
         primary->get_branch_birth_certificate().initial_timestamp);
-    registration->make_readable();
+    registration->mark_ready();
 }
 
 void local_replicator_t::do_read(
@@ -76,9 +85,11 @@ void local_replicator_t::do_write_sync(
         write_durability_t durability,
         signal_t *interruptor,
         write_response_t *response_out) {
+    debugf("begin do_write_sync()\n");
     replica.do_write(
         write, timestamp, order_token, durability,
         interruptor, response_out);
+    debugf("done\n");
 }
 
 void local_replicator_t::do_write_async(

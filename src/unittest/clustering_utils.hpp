@@ -9,8 +9,9 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
-#include "clustering/immediate_consistency/broadcaster.hpp"
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
+#include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "buffer_cache/cache_balancer.hpp"
@@ -23,7 +24,9 @@
 
 namespace unittest {
 
-class simple_write_callback_t : public broadcaster_t::write_callback_t, public cond_t {
+class simple_write_callback_t :
+    public primary_dispatcher_t::write_callback_t, public cond_t
+{
 public:
     simple_write_callback_t() : acks(0) { }
     write_durability_t get_default_write_durability() {
