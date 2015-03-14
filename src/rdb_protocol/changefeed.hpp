@@ -192,12 +192,15 @@ public:
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const datum_t &squash,
+        bool include_states,
         const namespace_id_t &table,
         const protob_t<const Backtrace> &bt,
         const std::string &table_name,
         const keyspec_t::spec_t &spec);
-    void maybe_remove_feed(const namespace_id_t &uuid);
-    scoped_ptr_t<real_feed_t> detach_feed(const namespace_id_t &uuid);
+    void maybe_remove_feed(
+        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
+    scoped_ptr_t<real_feed_t> detach_feed(
+        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
@@ -521,6 +524,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
+        bool include_states,
         const keyspec_t::spec_t &spec,
         artificial_table_backend_t *subscriber,
         const protob_t<const Backtrace> &bt);

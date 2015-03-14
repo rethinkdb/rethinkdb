@@ -1,18 +1,21 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 __all__ = ['connect', 'Connection', 'Cursor']
 
-import errno, json, numbers, socket, struct, json
-from os import environ
+import errno, json, numbers, socket, struct
 
 from . import ql2_pb2 as p
 
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from . import repl # For the repl connection
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes
+from .ast import RqlQuery, RqlTopLevelQuery, DB, recursively_convert_pseudotypes, Repl
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 try:
     {}.iteritems
@@ -101,10 +104,13 @@ class Cursor(object):
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
-            for i in xrange(len(response_data)):
-                if i == len(response_data) - 1:
-                    del self.responses[0]
-                yield response_data[i]
+            if len(response_data) == 0:
+                del self.responses[0]
+            else:
+                for i in xrange(len(response_data)):
+                    if i == len(response_data) - 1:
+                        del self.responses[0]
+                    yield response_data[i]
 
     def __iter__(self):
         return self
@@ -312,7 +318,7 @@ class Connection(object):
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
     # a Python repl environment.
     def repl(self):
-        repl.default_connection = self
+        Repl.set(self)
         return self
 
     def _start(self, term, **global_optargs):

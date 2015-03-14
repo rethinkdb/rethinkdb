@@ -311,31 +311,35 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         d->write_to_protobuf(res->add_response(), use_json);
     }
 
-    res->set_type(Response::SUCCESS_PARTIAL);
+    // Note that `SUCCESS_SEQUENCE` is possible for feeds if you call `.limit`
+    // after the feed.
+    res->set_type(entry->stream->is_exhausted()
+                  ? Response::SUCCESS_SEQUENCE
+                  : Response::SUCCESS_PARTIAL);
     switch (entry->stream->cfeed_type()) {
     case feed_type_t::not_feed:
-        if (entry->stream->is_exhausted() || res->response_size() == 0) {
-            res->set_type(Response::SUCCESS_SEQUENCE);
-        }
+        // If we don't have a feed, then a 0-size response means there's no more
+        // data.  The reason this `if` statement is only in this branch of the
+        // `case` statement is that feeds can sometimes have 0-size responses
+        // for other reasons (e.g. in their first batch, or just whenever with a
+        // V0_3 protocol).
+        if (res->response_size() == 0) res->set_type(Response::SUCCESS_SEQUENCE);
         break;
     case feed_type_t::stream:
-        r_sanity_check(!entry->stream->is_exhausted());
         res->add_notes(Response::SEQUENCE_FEED);
         break;
     case feed_type_t::point:
-        r_sanity_check(!entry->stream->is_exhausted());
         res->add_notes(Response::ATOM_FEED);
         break;
     case feed_type_t::orderby_limit:
-        r_sanity_check(!entry->stream->is_exhausted());
         res->add_notes(Response::ORDER_BY_LIMIT_FEED);
         break;
     case feed_type_t::unioned:
-        r_sanity_check(!entry->stream->is_exhausted());
         res->add_notes(Response::UNIONED_FEED);
         break;
     default: unreachable();
     }
+    entry->stream->set_notes(res);
 }
 
 query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,

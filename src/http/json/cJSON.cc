@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cmath>
 #include "errors.hpp"
 #include "utils.hpp"
 
@@ -129,8 +130,13 @@ static const char *parse_number(cJSON *item, const char *num) {
 static char *print_number(cJSON *item) {
     char *str;
     double d = item->valuedouble;
-    guarantee(isfinite(d));
-    int ret = asprintf(&str, "%.20g", d);
+    guarantee(risfinite(d));
+    int ret;
+    if (d == 0.0 && std::signbit(d)) {
+        ret = asprintf(&str, "-0.0");
+    } else {
+        ret = asprintf(&str, "%.20g", d);
+    }
     guarantee(ret);
     return str;
 }
