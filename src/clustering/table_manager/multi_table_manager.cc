@@ -237,8 +237,9 @@ void multi_table_manager_t::on_action(
 void multi_table_manager_t::on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
-            address_t &reply_addr) {
+        const mailbox_t<void(
+            std::map<namespace_id_t, table_config_and_shards_t>
+            )>::address_t &reply_addr) {
     std::map<namespace_id_t, table_config_and_shards_t> result;
     if (static_cast<bool>(table_id)) {
         /* Fetch information for a specific table. */
