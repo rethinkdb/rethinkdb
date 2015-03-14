@@ -1123,8 +1123,9 @@ public:
         const auto_drainer_t::lock_t &lock,
         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
+    void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const auto_drainer_t::lock_t &lock,
-                  const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1162,6 +1163,7 @@ private:
                             const std::vector<int> &sub_threads,
                             int i);
     void each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i);
+    void each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i);
 
     std::map<store_key_t, std::vector<std::set<point_sub_t *> > > point_subs;
     rwlock_t point_subs_lock;
@@ -1951,7 +1953,7 @@ public:
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
         feed->each_sub(*lock,
-                       std::bind(&flat_sub_t::stop,
+                       std::bind(&subscription_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -2101,11 +2103,6 @@ subscription_t::get_els(batcher_t *batcher,
                 throw e;
             }
             r_sanity_check(cond == NULL);
-            if (!has_el()) {
-                // If we don't have an element, it must be because we squashed
-                // changes down to nothing, got an error, or skipped some rows.
-                r_sanity_check(squash || exc || skipped != 0);
-            }
             apply_queued_changes();
         }
     }
@@ -2357,10 +2354,31 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
     }
 }
 
+void feed_t::each_limit_sub(
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    pmap(get_num_threads(),
+         std::bind(&feed_t::each_limit_sub_cb,
+                   this,
+                   std::cref(f),
+                   ph::_1));
+}
+
+void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
+    on_thread_t th((threadnum_t(i)));
+    for (auto const &pair : limit_subs) {
+        for (limit_sub_t *sub : pair.second[i]) {
+            f(sub);
+        }
+    }
+}
+
 void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
-                      const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     each_range_sub(lock, f);
     each_point_sub(f);
+    each_limit_sub(f);
 }
 
 void feed_t::on_point_sub(
