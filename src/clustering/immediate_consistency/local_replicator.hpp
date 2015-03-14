@@ -7,6 +7,16 @@
 #include "clustering/immediate_consistency/replica.hpp"
 #include "store_view.hpp"
 
+/* `local_replicator_t` receives writes from a `primary_dispatcher_t` on the same server
+and applies them directly to a `store_t` on the same server. It doesn't receive a
+backfill at startup; instead, it asserts that the store's state is equal to the starting
+state of the `primary_dispatcher_t`'s branch, and then sets the metainfo to point at the
+starting state of the branch. So it must be created before any writes have happened on
+the `primary_dispatcher_t`.
+
+There is one `local_replicator_t` on the primary replica server of each shard.
+`primary_execution_t` constructs it. */
+
 class local_replicator_t : public primary_dispatcher_t::dispatchee_t {
 public:
     local_replicator_t(
@@ -46,13 +56,6 @@ private:
     branch_id_t const branch_id;
 
     replica_t replica;
-
-    /* Destructor order matters: We need to destroy `registration` before `drainer`
-    because `registration` calls `do_write_async()` which acquires `drainer`. We need to
-    destroy `drainer` before the other members variables because destroying `drainer`
-    stops `background_write()`, which accesses the other members. */
-
-    auto_drainer_t drainer;
 
     scoped_ptr_t<primary_dispatcher_t::dispatchee_registration_t> registration;
 };

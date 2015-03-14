@@ -6,6 +6,12 @@
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 
+/* `remote_replicator_server_t` takes reads and writes from the `primary_dispatcher_t`
+and sends them over the network to `remote_replicator_client_t`s on other machines.
+
+There is one `remote_replicator_server_t` per shard. It lives on the primary replica
+server with the `primary_dispatcher_t`. */
+
 class remote_replicator_server_t {
 public:
     remote_replicator_server_t(
@@ -20,6 +26,8 @@ public:
     }
 
 private:
+    /* Whenever a `remote_replicator_client_t` connects, the `registrar` will construct a
+    `proxy_replica_t` to represent it. */
     class proxy_replica_t : public primary_dispatcher_t::dispatchee_t {
     public:
         proxy_replica_t(

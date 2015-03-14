@@ -11,13 +11,40 @@
 
 class backfill_throttler_t;
 
+/* `remote_replicator_client_t` contacts a `remote_replicator_server_t` on another server
+to sign up for writes to a given shard, and then applies them to a `store_t` on the same
+server. It also performs a backfill to initialize the state of the `store_t`, and handles
+the transition between the backfill and the streaming writes.
+
+There is one `remote_replicator_client_t` on each secondary replica server of each shard.
+`secondary_execution_t` constructs it. */
+
 class remote_replicator_client_t {
 private:
     class write_queue_entry_t;
 
 public:
+    /* Here's how the backfill works:
+
+    1. We sign up for a stream of writes from the `remote_replicator_server_t`. Initially
+        we store the writes in `write_queue_`.
+    2. We receive a backfill from the `replica_t`. We ensure that the `replica_t` is on
+        the same branch as the `remote_replicator_server_t`, and that the backfill's end
+        timestamp is greater than or equal to the stream's begin timestamp.
+    3. When the backfill finishes, we start performing the writes in the write queue.
+    4. When the write queue has been drained, we are ready.
+
+    While the backfill is ongoing, we allow writes to enter the write queue as fast as
+    they arrive. But when we're trying to drain the write queue, we limit the rate using
+    `write_queue_semaphore_` to make sure the queue drains. We control the flow earlier
+    in the pipeline by waiting to respond to `on_write_async()` calls from the
+    `primary_dispatcher_t`.
+
+    The `remote_replicator_client_t` constructor blocks until this entire process is
+    complete. */
+
     remote_replicator_client_t(
-        const base_path_t &_base_path,
+        const base_path_t &base_path,
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
         mailbox_manager_t *mailbox_manager,

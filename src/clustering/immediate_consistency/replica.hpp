@@ -6,6 +6,13 @@
 #include "clustering/immediate_consistency/backfiller.hpp"
 #include "concurrency/timestamp_enforcer.hpp"
 
+/* `replica_t` represents a replica of a shard which is currently tracking changes to a
+given branch. `local_replicator_t` and `remote_replicator_client_t` construct a
+`replica_t` after they finish initializing the state of the `store_t` to match the
+ongoing writes from the `primary_dispatcher_t`. `replica_t` takes care of actually
+applying those ongoing writes and reads to the `store_t`. It also takes care of providing
+backfills to new `remote_replicator_client_t`s that are trying to start up. */
+
 class replica_t : public home_thread_mixin_debug_only_t {
 public:
     replica_t(
