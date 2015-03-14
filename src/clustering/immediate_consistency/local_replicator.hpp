@@ -42,12 +42,6 @@ public:
         signal_t *interruptor);
 
 private:
-    void background_write(
-        const write_t &write,
-        state_timestamp_t timestamp,
-        order_token_t order_token,
-        auto_drainer_t::lock_t keepalive);
-
     store_view_t *const store;
     branch_id_t const branch_id;
 

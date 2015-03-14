@@ -12,6 +12,9 @@
 class backfill_throttler_t;
 
 class remote_replicator_client_t {
+private:
+    class write_queue_entry_t;
+
 public:
     remote_replicator_client_t(
         const base_path_t &_base_path,
@@ -33,27 +36,15 @@ public:
         double *backfill_progress_out   /* can be null */
         ) THROWS_ONLY(interrupted_exc_t);
 
+    ~remote_replicator_client_t();
+
 private:
-    class write_queue_entry_t {
-    public:
-        write_queue_entry_t() { }
-        write_queue_entry_t(const write_t &w, state_timestamp_t ts, order_token_t ot) :
-            write(w), timestamp(ts), order_token(ot) { }
-        write_t write;
-        state_timestamp_t timestamp;
-        order_token_t order_token;
-        RDB_DECLARE_ME_SERIALIZABLE(write_queue_entry_t);
-    };
-
-    /* This has the effect of friending the serialization functions, so that they can
-    serialize `write_queue_entry_t` even though it's private. */
-    RDB_DECLARE_ME_SERIALIZABLE(write_queue_entry_t);
-
     void on_write_async(
             signal_t *interruptor,
             const write_t &write,
             state_timestamp_t timestamp,
-            order_token_t order_token)
+            order_token_t order_token,
+            const mailbox_t<void()>::address_t &ack_addr)
         THROWS_NOTHING;
 
     void perform_enqueued_write(
@@ -68,14 +59,14 @@ private:
             state_timestamp_t timestamp,
             order_token_t order_token,
             write_durability_t durability,
-            mailbox_addr_t<void(write_response_t)> ack_addr)
+            const mailbox_t<void(write_response_t)>::address_t &ack_addr)
         THROWS_NOTHING;
 
     void on_read(
             signal_t *interruptor,
             const read_t &read,
             state_timestamp_t min_timestamp,
-            mailbox_addr_t<void(read_response_t)> ack_addr)
+            const mailbox_t<void(read_response_t)>::address_t &ack_addr)
         THROWS_NOTHING;
 
     mailbox_manager_t *const mailbox_manager_;
@@ -93,8 +84,12 @@ private:
 
     cond_t registered_;
 
+    /* `write_queue_` is in a `scoped_ptr_t` because it needs to be able to see the full
+    definition of `write_queue_entry_t`. The others are in `scoped_ptr_t` because they
+    can't be initialized at the beginning of the constructor, and must be initialized
+    later instead. */
     scoped_ptr_t<timestamp_enforcer_t> write_queue_entrance_enforcer_;
-    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue_;
+    scoped_ptr_t<disk_backed_queue_wrapper_t<write_queue_entry_t> > write_queue_;
     scoped_ptr_t<std_function_callback_t<write_queue_entry_t> >
         write_queue_coro_pool_callback_;
     adjustable_semaphore_t write_queue_semaphore_;

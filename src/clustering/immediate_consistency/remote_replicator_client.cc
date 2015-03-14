@@ -21,6 +21,17 @@ rate during the backfill. If this number is low, then the backfill will be faste
 cluster will only serve queries slowly during the backfill. */
 #define WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION 0.5
 
+class remote_replicator_client_t::write_queue_entry_t {
+public:
+    write_queue_entry_t() { }
+    write_queue_entry_t(const write_t &w, state_timestamp_t ts, order_token_t ot) :
+        write(w), timestamp(ts), order_token(ot) { }
+    write_t write;
+    state_timestamp_t timestamp;
+    order_token_t order_token;
+    RDB_MAKE_ME_SERIALIZABLE_3(write_queue_entry_t, write, timestamp, order_token);
+};
+
 remote_replicator_client_t::remote_replicator_client_t(
         const base_path_t &base_path,
         io_backender_t *io_backender,
@@ -48,17 +59,17 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_stats_parent,
         &perfmon_collection_,
         "backfill-serialization-" + uuid_to_str(uuid_)),
-    /* TODO: Put the file in the data directory, not here */
-    write_queue_(
+    write_queue_(new disk_backed_queue_wrapper_t<write_queue_entry_t>(
         io_backender,
+        /* TODO: Put the file in the data directory, not here */
         serializer_filepath_t(base_path, "backfill-serialization-" + uuid_to_str(uuid_)),
-        &perfmon_collection_),
+        &perfmon_collection_)),
     write_queue_semaphore_(
         SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_async_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_write_async, this,
-            ph::_1, ph::_2, ph::_3, ph::_4)),
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
     write_sync_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_write_sync, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
@@ -160,12 +171,12 @@ remote_replicator_client_t::remote_replicator_client_t(
             std::bind(&remote_replicator_client_t::perform_enqueued_write, this,
                 ph::_1, backfill_end_timestamp, ph::_2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
-            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_,
+            WRITE_QUEUE_CORO_POOL_SIZE, write_queue_.get(),
             write_queue_coro_pool_callback_.get()));
     write_queue_semaphore_.set_capacity(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY);
 
     /* Wait for the write queue to drain completely */
-    if (write_queue_.size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
+    if (write_queue_->size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
     wait_interruptible(&write_queue_has_drained_, interruptor);
@@ -174,18 +185,24 @@ remote_replicator_client_t::remote_replicator_client_t(
     send(mailbox_manager, intro.ready_mailbox);
 }
 
+remote_replicator_client_t::~remote_replicator_client_t() {
+    /* This is declared in the `.cc` file because we need to be able to see the full
+    definition of `write_queue_entry_t` in the destructor. */
+}
 
 void remote_replicator_client_t::on_write_async(
         signal_t *interruptor,
         const write_t &write,
         state_timestamp_t timestamp,
-        order_token_t order_token)
+        order_token_t order_token,
+        const mailbox_t<void()>::address_t &ack_addr)
         THROWS_NOTHING {
     wait_interruptible(&registered_, interruptor);
     write_queue_entrance_enforcer_->wait_all_before(timestamp.pred(), interruptor);
     write_queue_semaphore_.co_lock_interruptible(interruptor);
-    write_queue_.push(write_queue_entry_t(write, timestamp, order_token));
+    write_queue_->push(write_queue_entry_t(write, timestamp, order_token));
     write_queue_entrance_enforcer_->complete(timestamp);
+    send(mailbox_manager_, ack_addr);
 }
 
 void remote_replicator_client_t::perform_enqueued_write(
@@ -194,7 +211,7 @@ void remote_replicator_client_t::perform_enqueued_write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     write_queue_semaphore_.unlock();
-    if (write_queue_.size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
+    if (write_queue_->size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
@@ -214,7 +231,7 @@ void remote_replicator_client_t::on_write_sync(
         state_timestamp_t timestamp,
         order_token_t order_token,
         write_durability_t durability,
-        mailbox_addr_t<void(write_response_t)> ack_addr)
+        const mailbox_t<void(write_response_t)>::address_t &ack_addr)
         THROWS_NOTHING {
     /* We aren't inserting into the queue ourselves, so there's no need to wait on
     `write_queue_entrance_enforcer_`. But a call to `on_write_async()` could
@@ -233,14 +250,10 @@ void remote_replicator_client_t::on_read(
         signal_t *interruptor,
         const read_t &read,
         state_timestamp_t min_timestamp,
-        mailbox_addr_t<void(read_response_t)> ack_addr)
+        const mailbox_t<void(read_response_t)>::address_t &ack_addr)
         THROWS_NOTHING {
     read_response_t response;
     replica_->do_read(read, min_timestamp, interruptor, &response);
     send(mailbox_manager_, ack_addr, response);
 }
-
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
-    remote_replicator_client_t::write_queue_entry_t,
-    write, timestamp, order_token);
 

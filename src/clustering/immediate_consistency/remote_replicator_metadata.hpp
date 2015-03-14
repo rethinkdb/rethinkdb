@@ -22,15 +22,16 @@ public:
         remote_replicator_client_intro_t
         )> intro_mailbox_t;
     typedef mailbox_t<void(
-        write_t, state_timestamp_t, order_token_t
+        write_t, state_timestamp_t, order_token_t,
+        mailbox_t<void()>::address_t
         )> write_async_mailbox_t;
     typedef mailbox_t<void(
         write_t, state_timestamp_t, order_token_t, write_durability_t,
-        mailbox_addr_t<void(write_response_t)>
+        mailbox_t<void(write_response_t)>::address_t
         )> write_sync_mailbox_t;
     typedef mailbox_t<void(
         read_t, state_timestamp_t,
-        mailbox_addr_t<void(read_response_t)>
+        mailbox_t<void(read_response_t)>::address_t
         )> read_mailbox_t;
 
     server_id_t server_id;

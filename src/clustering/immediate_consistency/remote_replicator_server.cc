@@ -68,9 +68,14 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
         const write_t &write,
         state_timestamp_t timestamp,
         order_token_t order_token,
-        UNUSED signal_t *interruptor) {
+        signal_t *interruptor) {
+    cond_t got_ack;
+    mailbox_t<void()> ack_mailbox(
+        parent->mailbox_manager,
+        [&](signal_t *) { got_ack.pulse(); });
     send(parent->mailbox_manager, client_bcard.write_async_mailbox,
-        write, timestamp, order_token);
+        write, timestamp, order_token, ack_mailbox.get_address());
+    wait_interruptible(&got_ack, interruptor);
 }
 
 void remote_replicator_server_t::proxy_replica_t::on_ready(signal_t *) {

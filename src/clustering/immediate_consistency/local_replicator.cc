@@ -94,24 +94,11 @@ void local_replicator_t::do_write_async(
         const write_t &write,
         state_timestamp_t timestamp,
         order_token_t order_token,
-        UNUSED signal_t *interruptor) {
-    coro_t::spawn_sometime(std::bind(
-        &local_replicator_t::background_write, this,
-        write, timestamp, order_token, drainer.lock()));
+        signal_t *interruptor) {
+    write_response_t dummy;
+    replica.do_write(
+        write, timestamp, order_token, write_durability_t::SOFT,
+        interruptor, &dummy);
 }
 
-void local_replicator_t::background_write(
-        const write_t &write,
-        state_timestamp_t timestamp,
-        order_token_t order_token,
-        auto_drainer_t::lock_t keepalive) {
-    try {
-        write_response_t dummy;
-        replica.do_write(
-            write, timestamp, order_token, write_durability_t::SOFT,
-            keepalive.get_drain_signal(), &dummy);
-    } catch (const interrupted_exc_t &) {
-        /* ignore */
-    }
-}
 
