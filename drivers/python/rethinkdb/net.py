@@ -88,55 +88,44 @@ class Cursor(object):
         self.responses.append(Response(self.query.token, \
             json.dumps({'t': pResponse.RUNTIME_ERROR, 'r': [message], 'b': []})))
 
-    def _it(self):
+    def _get_next(self, timeout):
         while True:
             if len(self.responses) == 0 and not self.conn.is_open():
                 raise RqlRuntimeError("Connection is closed.", self.query.term, [])
             if len(self.responses) == 0 and not self.end_flag:
-                self.conn._continue_cursor(self)
+                self.conn._continue_cursor(self, timeout)
             if len(self.responses) == 1 and not self.end_flag:
                 self.conn._async_continue_cursor(self)
 
             if len(self.responses) == 0 and self.end_flag:
-                break
+                raise StopIteration()
 
             self.conn._check_error_response(self.responses[0], self.query.term)
-            if self.responses[0].type not in [pResponse.SUCCESS_PARTIAL,
-                                              pResponse.SUCCESS_SEQUENCE]:
+            if self.responses[0].type not in (pResponse.SUCCESS_PARTIAL,
+                                              pResponse.SUCCESS_SEQUENCE):
                 raise RqlDriverError("Unexpected response type received for cursor.")
 
-            response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
-            if len(response_data) == 0:
+            if len(self.responses[0].data) == 0:
                 del self.responses[0]
             else:
-                for i in xrange(len(response_data)):
-                    if i == len(response_data) - 1:
-                        del self.responses[0]
-                    yield response_data[i]
+                return recursively_convert_pseudotypes(self.responses[0].data.pop(0), self.opts)
+
+    def _it(self):
+        while True:
+            yield self._get_next(None)
 
     def __iter__(self):
         return self
 
-    @staticmethod
-    def _wait_to_timeout(wait):
+    def next(self, wait=True):
         if isinstance(wait, bool):
-            return None if wait else 0
-        elif isinstance(wait, numbers.Real):
-            if wait >= 0:
-                return wait
+            timeout = None if wait else 0
+        elif isinstance(wait, numbers.Real) and wait >= 0:
+            timeout = wait
+        else:
+            raise RqlDriverError("Invalid wait timeout '%s'" % str(wait))
 
-        raise RqlDriverError("Invalid wait timeout '%s'" % str(wait))
-
-    def next(self, **kwargs):
-        timeout = self._wait_to_timeout(kwargs.get('wait', True))
-
-        if len(self.responses) == 0:
-            if not self.end_flag:
-                self.conn._handle_cursor_response(self.conn._read_response(self.query.token, timeout))
-                if len(self.responses) == 0:
-                    raise RqlDriverError("Internal error, missing cursor response.")
-
-        return next(self.it)
+        return self._get_next(timeout)
 
     def __next__(self):
         return next(self.it)
@@ -348,9 +337,9 @@ class Connection(object):
             cursor.outstanding_requests == 0):
             del self._cursor_cache[response.token]
 
-    def _continue_cursor(self, cursor):
+    def _continue_cursor(self, cursor, timeout):
         self._async_continue_cursor(cursor)
-        self._handle_cursor_response(self._read_response(cursor.query.token))
+        self._handle_cursor_response(self._read_response(cursor.query.token, timeout))
 
     def _async_continue_cursor(self, cursor):
         if cursor.outstanding_requests != 0:
