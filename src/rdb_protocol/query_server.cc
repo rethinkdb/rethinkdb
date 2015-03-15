@@ -27,14 +27,14 @@ int rdb_query_server_t::get_port() const {
 
 // Predeclaration for run, only used here
 namespace ql {
-    void run(const ql::query_id_t &query_id,
+    void run(ql::query_id_t &&query_id,
              protob_t<Query> q,
              Response *response_out,
              ql::query_cache_t *query_cache,
              signal_t *interruptor);
 }
 
-void rdb_query_server_t::run_query(const ql::query_id_t &query_id,
+void rdb_query_server_t::run_query(ql::query_id_t &&query_id,
                                    const ql::protob_t<Query> &query,
                                    Response *response_out,
                                    ql::query_cache_t *query_cache,
@@ -45,7 +45,7 @@ void rdb_query_server_t::run_query(const ql::query_id_t &query_id,
         scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active); // TODO: make this correct for parallelized queries
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
-        ql::run(query_id, query, response_out, query_cache, interruptor);
+        ql::run(std::move(query_id), query, response_out, query_cache, interruptor);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {

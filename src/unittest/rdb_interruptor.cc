@@ -253,7 +253,7 @@ class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
 public:
     static const std::string stop_query_message;
 
-    void run_query(UNUSED const ql::query_id_t &query_id,
+    void run_query(UNUSED ql::query_id_t &&query_id,
                    const ql::protob_t<Query> &query,
                    Response *res,
                    UNUSED ql::query_cache_t *query_cache,
