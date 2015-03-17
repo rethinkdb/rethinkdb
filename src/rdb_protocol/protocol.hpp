@@ -44,9 +44,6 @@ class Term;
 class Datum;
 class Backtrace;
 
-
-namespace unittest { struct make_sindex_read_t; }
-
 enum class profile_bool_t {
     PROFILE,
     DONT_PROFILE
@@ -70,15 +67,6 @@ enum class point_delete_result_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
-
-enum class sindex_rename_result_t {
-    OLD_NAME_DOESNT_EXIST,
-    NEW_NAME_EXISTS,
-    SUCCESS
-};
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        sindex_rename_result_t, int8_t,
-        sindex_rename_result_t::OLD_NAME_DOESNT_EXIST, sindex_rename_result_t::SUCCESS);
 
 #define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
     void serialize_protobuf(write_message_t *wm, const pb_t &p); \
@@ -124,14 +112,6 @@ struct backfill_atom_t {
 };
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
-enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
-enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
-        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_geo_bool_t, int8_t,
-        sindex_geo_bool_t::REGULAR, sindex_geo_bool_t::GEO);
-
 namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(
@@ -140,26 +120,7 @@ void bring_sindexes_up_to_date(
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-struct single_sindex_status_t {
-    single_sindex_status_t()
-        : blocks_processed(0),
-          blocks_total(0), ready(true), outdated(false),
-          geo(sindex_geo_bool_t::REGULAR), multi(sindex_multi_bool_t::SINGLE)
-    { }
-    single_sindex_status_t(size_t _blocks_processed, size_t _blocks_total, bool _ready)
-        : blocks_processed(_blocks_processed),
-          blocks_total(_blocks_total), ready(_ready) { }
-    size_t blocks_processed, blocks_total;
-    bool ready;
-    bool outdated;
-    sindex_geo_bool_t geo;
-    sindex_multi_bool_t multi;
-    std::string func;
-};
-
 } // namespace rdb_protocol
-
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
 struct point_read_response_t {
     ql::datum_t data;
@@ -226,19 +187,6 @@ struct distribution_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
 
-struct sindex_list_response_t {
-    sindex_list_response_t() { }
-    std::vector<std::string> sindexes;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_list_response_t);
-
-struct sindex_status_response_t {
-    sindex_status_response_t()
-    { }
-    std::map<std::string, rdb_protocol::single_sindex_status_t> statuses;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
-
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
     std::set<uuid_u> server_uuids;
@@ -293,8 +241,6 @@ struct read_response_t {
                            changefeed_stamp_response_t,
                            changefeed_point_stamp_response_t,
                            distribution_read_response_t,
-                           sindex_list_response_t,
-                           sindex_status_response_t,
                            dummy_read_response_t> variant_t;
     variant_t response;
     profile::event_log_t event_log;
@@ -463,21 +409,6 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
 
-struct sindex_list_t {
-    sindex_list_t() { }
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_list_t);
-
-struct sindex_status_t {
-    sindex_status_t() { }
-    explicit sindex_status_t(const std::set<std::string> &_sindexes)
-        : sindexes(_sindexes), region(region_t::universe())
-    { }
-    std::set<std::string> sindexes;
-    region_t region;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
-
 struct changefeed_subscribe_t {
     changefeed_subscribe_t() { }
     explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
@@ -539,8 +470,6 @@ struct read_t {
                            changefeed_limit_subscribe_t,
                            changefeed_point_stamp_t,
                            distribution_read_t,
-                           sindex_list_t,
-                           sindex_status_t,
                            dummy_read_t> variant_t;
     variant_t read;
     profile_bool_t profile;
@@ -564,9 +493,6 @@ struct read_t {
     // We use snapshotting for queries that acquire-and-hold large portions of the
     // table, so that they don't block writes.
     bool use_snapshot() const THROWS_NOTHING;
-
-    // Returns true if this read should be sent to every replica.
-    bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
@@ -589,24 +515,6 @@ struct point_delete_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_delete_response_t);
 
-// TODO we're reusing the enums from row writes and reads to avoid name
-// shadowing. Nothing really wrong with this but maybe they could have a
-// more generic name.
-struct sindex_create_response_t {
-    bool success;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_create_response_t);
-
-struct sindex_drop_response_t {
-    bool success;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_drop_response_t);
-
-struct sindex_rename_response_t {
-    sindex_rename_result_t result;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
-
 struct sync_response_t {
     // sync always succeeds
 };
@@ -625,9 +533,6 @@ struct write_response_t {
                    // batched_replace_response_t is also for batched_insert
                    point_write_response_t,
                    point_delete_response_t,
-                   sindex_create_response_t,
-                   sindex_drop_response_t,
-                   sindex_rename_response_t,
                    sync_response_t,
                    dummy_write_response_t> response;
 
@@ -721,53 +626,6 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(point_delete_t);
 
-class sindex_create_t {
-public:
-    sindex_create_t() { }
-    sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
-                    sindex_multi_bool_t _multi, sindex_geo_bool_t _geo)
-        : id(_id), mapping(_mapping), region(region_t::universe()),
-          multi(_multi), geo(_geo)
-    { }
-
-    std::string id;
-    ql::map_wire_func_t mapping;
-    region_t region;
-    sindex_multi_bool_t multi;
-    sindex_geo_bool_t geo;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_create_t);
-
-class sindex_drop_t {
-public:
-    sindex_drop_t() { }
-    explicit sindex_drop_t(const std::string &_id)
-        : id(_id), region(region_t::universe())
-    { }
-
-    std::string id;
-    region_t region;
-};
-RDB_DECLARE_SERIALIZABLE(sindex_drop_t);
-
-class sindex_rename_t {
-public:
-    sindex_rename_t() { }
-    sindex_rename_t(const std::string &_old_name,
-                    const std::string &_new_name,
-                    bool _overwrite) :
-        old_name(_old_name),
-        new_name(_new_name),
-        overwrite(_overwrite),
-        region(region_t::universe()) { }
-
-    std::string old_name;
-    std::string new_name;
-    bool overwrite;
-    region_t region;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_t);
-
 class sync_t {
 public:
     sync_t()
@@ -792,9 +650,6 @@ struct write_t {
                            batched_insert_t,
                            point_write_t,
                            point_delete_t,
-                           sindex_create_t,
-                           sindex_drop_t,
-                           sindex_rename_t,
                            sync_t,
                            dummy_write_t> variant_t;
     variant_t write;
@@ -870,15 +725,8 @@ struct backfill_chunk_t {
         explicit key_value_pairs_t(std::vector<backfill_atom_t> &&_backfill_atoms)
             : backfill_atoms(std::move(_backfill_atoms)) { }
     };
-    struct sindexes_t {
-        std::map<std::string, secondary_index_t> sindexes;
 
-        sindexes_t() { }
-        explicit sindexes_t(const std::map<std::string, secondary_index_t> &_sindexes)
-            : sindexes(_sindexes) { }
-    };
-
-    typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t, sindexes_t> value_t;
+    typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> value_t;
 
     backfill_chunk_t() { }
     explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
@@ -893,16 +741,11 @@ struct backfill_chunk_t {
     static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
         return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
     }
-
-    static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
-        return backfill_chunk_t(sindexes_t(sindexes));
-    }
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_range_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::sindexes_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t);
 
 

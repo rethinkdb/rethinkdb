@@ -278,6 +278,67 @@ bool artificial_reql_cluster_interface_t::db_rebalance(
     return next->db_rebalance(db, interruptor, result_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::sindex_create(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const sindex_config_t &config,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't create secondary "
+            "indexes on the tables in it.", database.c_str());
+        return false;
+    }
+    return next->sindex_create(db, table, name, config, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_drop(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+            name.c_str(), db->name.c_str(), table.c_str());
+        return false;
+    }
+    return next->sindex_drop(db, table, name, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_rename(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const std::string &new_name,
+        bool overwrite,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+            name.c_str(), db->name.c_str(), table.c_str());
+        return false;
+    }
+    return next->sindex_rename(
+        db, table, name, new_name, overwrite, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_list(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        signal_t *interruptor,
+        std::string *error_out,
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    if (db->name == database) {
+        configs_and_statuses_out->clear();
+        return true;
+    }
+    return next->sindex_list(
+        db, table, interruptor, error_out, configs_and_statuses_out);
+}
+
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
         boost::shared_ptr< semilattice_readwrite_view_t<

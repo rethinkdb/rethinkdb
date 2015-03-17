@@ -289,56 +289,6 @@ datum_t table_t::batched_insert(
     return std::move(result).to_datum();
 }
 
-MUST_USE bool table_t::sindex_create(env_t *env,
-                                     const std::string &id,
-                                     counted_t<const func_t> index_func,
-                                     sindex_multi_bool_t multi,
-                                     sindex_geo_bool_t geo) {
-    index_func->assert_deterministic("Index functions must be deterministic.");
-    return tbl->sindex_create(env, id, index_func, multi, geo);
-}
-
-MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    return tbl->sindex_drop(env, id);
-}
-
-MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
-                                                       const std::string &old_name,
-                                                       const std::string &new_name,
-                                                       bool overwrite) {
-    return tbl->sindex_rename(env, old_name, new_name, overwrite);
-}
-
-datum_t table_t::sindex_list(env_t *env) {
-    std::vector<std::string> sindexes = tbl->sindex_list(env, use_outdated);
-    std::vector<datum_t> array;
-    array.reserve(sindexes.size());
-    for (std::vector<std::string>::const_iterator it = sindexes.begin();
-         it != sindexes.end(); ++it) {
-        array.push_back(datum_t(datum_string_t(*it)));
-    }
-    return datum_t(std::move(array), env->limits());
-}
-
-datum_t table_t::sindex_status(env_t *env,
-        std::set<std::string> sindexes) {
-    std::map<std::string, datum_t> statuses = tbl->sindex_status(env, sindexes);
-    std::vector<datum_t> array;
-    for (auto it = statuses.begin(); it != statuses.end(); ++it) {
-        r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
-        sindexes.erase(it->first);
-        datum_object_builder_t status(it->second);
-        datum_string_t index_name(it->first);
-        status.overwrite("index", datum_t(std::move(index_name)));
-        array.push_back(std::move(status).to_datum());
-    }
-    rcheck(sindexes.empty(), base_exc_t::GENERIC,
-           strprintf("Index `%s` was not found on table `%s`.",
-                     sindexes.begin()->c_str(),
-                     display_name().c_str()));
-    return datum_t(std::move(array), env->limits());
-}
-
 MUST_USE bool table_t::sync(env_t *env) {
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.

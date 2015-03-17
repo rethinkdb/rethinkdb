@@ -980,6 +980,139 @@ bool real_reql_cluster_interface_t::db_rebalance(
 #endif
 }
 
+bool real_reql_cluster_interface_t::sindex_change_internal(
+        const counted_t<const ql::db_t> &db,
+        const name_string_t &table_name,
+        const std::function<bool(std::map<std::string, sindex_config_t> *)> &cb,
+        signal_t *interruptor,
+        std::string *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
+    namespace_id_t table_id;
+    if (!find_table(db, table_name, &table_id, nullptr, error_out)) {
+        return false;
+    }
+    table_config_and_shards_t config;
+    if (!table_meta_client->get_config(table_id, interruptor, &config)) {
+        *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`. "
+            "The secondary indexes were not changed.",
+            db->name.c_str(), table_name.c_str());
+        return false;
+    }
+    if (!cb(&config.config.sindexes)) {
+        return false;
+    }
+    if (!table_meta_client->set_config(table_id, config, interruptor)) {
+        *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`. "
+            "The secondary indexes may or may not have been changed.",
+            db->name.c_str(), table_name.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool real_reql_cluster_interface_t::sindex_create(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const sindex_config_t &config,
+        signal_t *interruptor,
+        std::string *error_out) {
+    return sindex_change_internal(
+        db, table,
+        [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            if (map->count(name) == 1) {
+                *error_out = strprintf("Index `%s` already exists on table `%s.%s`.",
+                    name.c_str(), db->name.c_str(), table.c_str());
+                return false;
+            }
+            map->insert(std::make_pair(name, config));
+            return true;
+        },
+        interruptor, error_out);
+}
+
+bool real_reql_cluster_interface_t::sindex_drop(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        signal_t *interruptor,
+        std::string *error_out) {
+    return sindex_change_internal(
+        db, table,
+        [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            if (map->count(name) == 0) {
+                *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+                    name.c_str(), db->name.c_str(), table.c_str());
+                return false;
+            }
+            map->erase(name);
+            return true;
+        },
+        interruptor, error_out);
+}
+
+bool real_reql_cluster_interface_t::sindex_rename(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const std::string &new_name,
+        bool overwrite,
+        signal_t *interruptor,
+        std::string *error_out) {
+    return sindex_change_internal(
+        db, table,
+        [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            if (map->count(name) == 0) {
+                *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+                    name.c_str(), db->name.c_str(), table.c_str());
+                return false;
+            }
+            if (map->count(new_name) == 1) {
+                if (overwrite) {
+                    map->erase(new_name);
+                } else {
+                    *error_out = strprintf("Index `%s` already exists on table `%s.%s`.",
+                        new_name.c_str(), db->name.c_str(), table.c_str());
+                    return false;
+                }
+            }
+            sindex_config_t config = map->at(name);
+            map->erase(name);
+            map->insert(std::make_pair(new_name, config));
+            return true;
+        },
+        interruptor, error_out);
+}
+
+bool real_reql_cluster_interface_t::sindex_list(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table_name,
+        signal_t *interruptor,
+        std::string *error_out,
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t ct_interruptor(interruptor,
+        server_config_client->home_thread());
+    on_thread_t thread_switcher(server_config_client->home_thread());
+    namespace_id_t table_id;
+    if (!find_table(db, table_name, &table_id, nullptr, error_out)) {
+        return false;
+    }
+    if (!table_meta_client->get_status(
+            table_id, &ct_interruptor, configs_and_statuses_out)) {
+        *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`.",
+            db->name.c_str(), table_name.c_str());
+        return false;
+    }
+    return true;
+}
+
 bool real_reql_cluster_interface_t::find_table(
         const counted_t<const ql::db_t> &db,
         const name_string_t &name,

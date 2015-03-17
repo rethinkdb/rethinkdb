@@ -6,6 +6,8 @@
 #include "protocol_api.hpp"
 #include "region/region.hpp"
 
+class store_t;
+
 /* Changing this number would break backwards compatibility in the disk format. */
 #define CPU_SHARDING_FACTOR 8
 
@@ -26,8 +28,15 @@ thread. */
 class multistore_ptr_t : public home_thread_mixin_t {
 public:
     virtual ~multistore_ptr_t() { }
+
     virtual branch_history_manager_t *get_branch_history_manager() = 0;
+
     virtual store_view_t *get_cpu_sharded_store(size_t i) = 0;
+
+    /* The `sindex_manager_t` uses this interface to get at the underlying `store_t`s so
+    it can create and destroy sindexes on them. The `table_contract` code should never
+    use it, and some unit tests will return `nullptr` from here. */
+    virtual store_t *get_underlying_store(size_t i) = 0;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_ */

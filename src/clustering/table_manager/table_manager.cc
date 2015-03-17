@@ -46,6 +46,16 @@ table_manager_t::table_manager_t(
         mailbox_manager,
         contract_executor.get_acks(),
         contract_ack_minidir_directory.get_values()),
+    sindex_manager(
+        multistore_ptr,
+        raft.get_raft()->get_committed_state()->subview(
+            [](const raft_member_t<table_raft_state_t>::state_and_config_t &sc)
+                    -> table_config_t {
+                return sc.state.config.config;
+            })),
+    get_status_mailbox(
+        mailbox_manager,
+        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2)),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -70,6 +80,7 @@ table_manager_t::table_manager_t(
         bcard.raft_member_id = member_id;
         bcard.raft_business_card = raft.get_business_card();
         bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
+        bcard.get_status_mailbox = get_status_mailbox.get_address();
         bcard.server_id = _server_id;
         table_manager_bcard.set_value_no_equals(bcard);
     }
@@ -139,6 +150,16 @@ void table_manager_t::write_persistent_state(
     outer_ps.member_id = member_id;
     outer_ps.raft_state = inner_ps;
     persistence_interface->update_table(table_id, outer_ps, interruptor);
+}
+
+void table_manager_t::on_get_status(
+        signal_t *interruptor,
+        const mailbox_t<void(
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            )>::address_t &reply_addr) {
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > res =
+        sindex_manager.get_status(interruptor);
+    send(mailbox_manager, reply_addr, res);
 }
 
 void table_manager_t::on_table_directory_change(

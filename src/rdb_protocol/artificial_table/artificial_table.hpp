@@ -72,16 +72,6 @@ public:
     bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability);
 
-    bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
-        sindex_geo_bool_t geo);
-    bool sindex_drop(ql::env_t *env, const std::string &id);
-    sindex_rename_result_t sindex_rename(ql::env_t *env,
-        const std::string &old_name, const std::string &new_name, bool overwrite);
-    std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated);
-    std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
-        const std::set<std::string> &sindexes);
-
 private:
     /* `do_single_update()` can throw `interrupted_exc_t`, but it shouldn't throw query
     language exceptions; if `function()` throws a query language exception, then it will

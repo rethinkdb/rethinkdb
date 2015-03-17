@@ -40,10 +40,44 @@ class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
-enum class sindex_rename_result_t;
 
-enum class sindex_multi_bool_t;
-enum class sindex_geo_bool_t;
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
+        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_geo_bool_t, int8_t,
+        sindex_geo_bool_t::REGULAR, sindex_geo_bool_t::GEO);
+
+class sindex_config_t {
+public:
+    sindex_config_t() { }
+    sindex_config_t(const ql::map_wire_func_t &_func, reql_version_t _func_version,
+            sindex_multi_bool_t _multi, sindex_geo_bool_t _geo) :
+        func(_func), func_version(_func_version), multi(_multi), geo(_geo) { }
+
+    bool operator==(const sindex_config_t &o) const;
+    bool operator!=(const sindex_config_t &o) const {
+        return !(*this == o);
+    }
+
+    ql::map_wire_func_t func;
+    reql_version_t func_version;
+    sindex_multi_bool_t multi;
+    sindex_geo_bool_t geo;
+};
+RDB_DECLARE_SERIALIZABLE(sindex_config_t);
+
+class sindex_status_t {
+public:
+    sindex_status_t() :
+        blocks_processed(0), blocks_total(0), ready(true), outdated(false) { }
+    void accum(const sindex_status_t &other);
+    size_t blocks_processed, blocks_total;
+    bool ready;
+    bool outdated;
+};
+RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 
 namespace ql {
 class configured_limits_t;
@@ -129,16 +163,6 @@ public:
         durability_requirement_t durability) = 0;
     virtual bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability) = 0;
-
-    virtual bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
-        sindex_geo_bool_t geo) = 0;
-    virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
-    virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
-        const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
-    virtual std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated) = 0;
-    virtual std::map<std::string, ql::datum_t> sindex_status(
-        ql::env_t *env, const std::set<std::string> &sindexes) = 0;
 
     /* This must be public */
     virtual ~base_table_t() { }
@@ -252,6 +276,35 @@ public:
             signal_t *interruptor,
             ql::datum_t *result_out,
             std::string *error_out) = 0;
+
+    virtual bool sindex_create(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor,
+            std::string *error_out) = 0;
+    virtual bool sindex_drop(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            signal_t *interruptor,
+            std::string *error_out) = 0;
+    virtual bool sindex_rename(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const std::string &new_name,
+            bool overwrite,
+            signal_t *interruptor,
+            std::string *error_out) = 0;
+    virtual bool sindex_list(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            std::string *error_out,
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                *configs_and_statuses_out) = 0;
 
 protected:
     virtual ~reql_cluster_interface_t() { }   // silence compiler warnings
