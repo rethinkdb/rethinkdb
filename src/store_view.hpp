@@ -78,12 +78,11 @@ public:
 
     /* Expresses the changes that have happened since `start_point` as a
     series of `backfill_chunk_t` objects.
-    [Precondition] start_point.get_domain() <= view->get_region()
+    [Precondition] region_is_superset(view->get_region(), start_point.get_domain())
     [Side-effect] `should_backfill` must be called exactly once
-    [Return value] Value equal to the value returned by should_backfill
     [May block]
     */
-    virtual bool send_backfill(
+    virtual void send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
