@@ -92,17 +92,18 @@ enum class pop_type_t { RANGE, POINT };
 class maybe_squashing_queue_t {
 public:
     virtual ~maybe_squashing_queue_t() { }
-    virtual void add(store_key_t key, change_val_t change_val) = 0;
+    virtual void add(change_val_t change_val) = 0;
     virtual size_t size() const = 0;
     virtual void clear() = 0;
     virtual change_val_t pop() = 0;
 };
 
 class squashing_queue_t : public maybe_squashing_queue_t {
-    virtual void add(store_key_t key, change_val_t change_val) {
-        auto it = queue.find(key);
+    virtual void add(change_val_t change_val) {
+        auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
-            auto pair = std::make_pair(std::move(key), std::move(change_val));
+            auto pair = std::make_pair(std::move(change_val.pkey),
+                                       std::move(change_val));
             it = queue.insert(std::move(pair)).first;
         } else {
             change_val.old_val = std::move(it->second.old_val);
@@ -132,7 +133,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
-    virtual void add(store_key_t, change_val_t change_val) {
+    virtual void add(change_val_t change_val) {
         queue.push_back(std::move(change_val));
     }
     virtual size_t size() const {
@@ -1063,6 +1064,7 @@ public:
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
+    std::vector<datum_t> pop_needed_changes(active_state_t active_state);
 protected:
     explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1108,11 +1110,12 @@ public:
         boost::optional<indexed_datum_t> new_val,
         const configured_limits_t &limits) {
         if (update_stamp(uuid, stamp)) {
-            queue->add(pkey, change_val_t(std::make_pair(uuid, stamp),
-                                          pkey,
-                                          old_val,
-                                          new_val,
-                                          DEBUG_ONLY(sindex)));
+            queue->add(change_val_t(
+                std::make_pair(uuid, stamp),
+                pkey,
+                old_val,
+                new_val,
+                DEBUG_ONLY(sindex)));
             if (queue->size() > limits.array_size_limit()) {
                 skipped += queue->size();
                 queue->clear();
@@ -1380,8 +1383,12 @@ public:
         // `subscriber` should only be `NULL` in the unit tests.
         if (subscriber != NULL) {
             if (subscriber->read_row(pkey, env->interruptor, &d, &err)) {
-                queue->add(store_key_t(pkey.print_primary()), datum_t(),
-                           d.has() ? d : datum_t::null());
+                queue->add(change_val_t(
+                    std::make_pair(nil_uuid(), 0),
+                    store_key_t(pkey.print_primary()),
+                    boost::none,
+                    indexed_datum_t(d.has() ? d : datum_t::null(), datum_t()),
+                    DEBUG_ONLY(boost::none)));
             } else {
                 rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
             }
@@ -1410,10 +1417,10 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(pkey, change_val_t(
+            queue->add(change_val_t(
                resp->stamp,
                store_key_t(pkey.print_primary()),
-               indexed_datum_t{resp->initial_val, datum_t()},
+               indexed_datum_t(resp->initial_val, datum_t()),
                boost::none,
                DEBUG_ONLY(boost::none)));
         }
@@ -1429,13 +1436,16 @@ public:
         return false;
     }
 
+    virtual change_val_t pop_change_val() {
+        return queue->pop();
+    }
     virtual datum_t pop_el() {
         if (state != sent_state && include_states) {
             sent_state = state;
             return state_datum(state);
         }
         state = state_t::READY; // We only pop one initial value.
-        return queue->pop();
+        return change_val_to_change(pop_change_val());
     }
     virtual bool has_el() {
         return (include_states && state != sent_state) || queue->size() != 0;
@@ -1533,12 +1543,15 @@ public:
         return new_stamp >= it->second;
     }
 
+    virtual change_val_t pop_change_val() {
+        return queue->pop();
+    }
     virtual datum_t pop_el() {
         if (state != sent_state && include_states) {
             sent_state = state;
             return state_datum(state);
         }
-        return queue->pop();
+        return change_val_to_change(pop_change_val());
     }
     virtual bool has_el() {
         return (include_states && state != sent_state) || queue->size() != 0;
