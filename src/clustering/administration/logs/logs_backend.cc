@@ -70,60 +70,13 @@ bool logs_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
-    std::map<server_id_t, log_server_business_card_t> servers;
-    directory->read_all(
-        [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
-            servers.insert(std::make_pair(value->server_id, value->log_mailbox));
-        });
-
-    boost::optional<std::string> error;
-    pmap(servers.begin(), servers.end(),
-        [&](const std::pair<server_id_t, log_server_business_card_t> &server) {
-            ql::datum_t server_datum;
-            name_string_t server_name;
-            if (!convert_server_id_to_datum(server.first, identifier_format,
-                    server_config_client, &server_datum, &server_name)) {
-                /* The server was permanently removed. Don't display its log messages. */
-                return;
-            }
-            std::vector<log_message_t> messages;
-            try {
-                struct timespec min_time = { 0, 0 };
-                struct timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
-                messages = fetch_log_file(
-                    mailbox_manager,
-                    server.second,
-                    entries_per_server,
-                    min_time,
-                    max_time,
-                    interruptor);
-            } catch (const interrupted_exc_t &) {
-                /* We'll deal with it outside the `pmap()` */
-                return;
-            } catch (const resource_lost_exc_t &) {
-                /* The server disconnected. Ignore it. */
-                return;
-            } catch (const std::runtime_error &e) {
-                /* We'll deal with it outside the `pmap()` */
-                error = strprintf("Problem with reading log file on server `%s`: %s",
-                    server_name.c_str(), e.what());
-                return;
-            }
-            for (const log_message_t &m : messages) {
-                rows_out->push_back(convert_log_message_to_datum(
-                    m, server.first, server_datum));
-            }
-        });
-
-    /* We can't throw exceptions or `return false` from within the `pmap()`, so we have
-    to do it here instead. */
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    } else if (static_cast<bool>(error)) {
-        *error_out = *error;
-        return false;
-    }
-    return true;
+    return read_all_rows_raw(
+        [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
+            rows_out->push_back(convert_log_message_to_datum(msg, si, sd));
+        },
+        interruptor,
+        error_out);
+                
 }
 
 bool logs_artificial_table_backend_t::read_row(
@@ -278,11 +231,10 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
     static const int poll_interval_ms = 1000;
 
     try {
-        timespec last_timestamp;
-
-        /* First, fetch the initial value of `last_timestamp`. The reason this is in a
-        loop is so that we keep retrying if something goes wrong: the log file is empty,
-        we can't read it for some reason, etc. */
+        /* First, fetch the initial value of the latest timestamp in the log. The reason
+        this is in a loop is so that we keep retrying if something goes wrong: the log
+        file is empty, we can't read it for some reason, etc. */
+        timespec initial_latest_timestamp;
         while (true) {
             if (!check_disconnected(peer)) {
                 /* The peer is disconnected, so this instance of `run()` is going to
@@ -327,9 +279,12 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
             }
 
             guarantee(messages.size() == 1, "We asked for at most 1 log message.");
-            last_timestamp = messages[0].timestamp;
+            initial_latest_timestamp = messages[0].timestamp;
             break;
         }
+
+        map_insertion_sentry_t<server_id_t, timespec> last_timestamp(
+            &last_timestamps, server_id, initial_latest_timestamp);
 
         /* Now that we've fetched the initial timestamp, we can let the call to
         `.changes()` return */
@@ -351,7 +306,7 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
             std::vector<log_message_t> messages;
             try {
                 /* We choose `min_time` so as to exclude the last message from before */
-                timespec min_time = last_timestamp;
+                timespec min_time = *last_timestamp.get_value();
                 add_to_timespec(&min_time, 1);
                 timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
                 messages = fetch_log_file(
@@ -383,7 +338,17 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                     return;
                 }
 
+                new_mutex_acq_t mutex_acq(&mutex, keepalive.get_drain_signal());
+
                 for (auto it = messages.rbegin(); it != messages.rend(); ++it) {
+                    /* It's possible that `get_initial_values()` has changed
+                    `last_timestamp` since we started fetching the log file. We need to
+                    filter out any entries that started after `last_timestamp`. */
+                    if (it->timestamp <= *last_timestamp.get_value()) {
+                        continue;
+                    }
+                    *last_timestamp.get_value() = it->timestamp;
+
                     ql::datum_t row = convert_log_message_to_datum(
                         *it, server_id, server_datum);
                     store_key_t key(
@@ -391,12 +356,7 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                             it->timestamp,
                             server_id
                         ).print_primary());
-                    send_all_change(key, ql::datum_t(), row);
-
-                    /* The log messages should be in chronological order, so we could
-                    just take the timestamp of the last one in the list. But this
-                    gives slightly better behavior if they aren't in order. */
-                    last_timestamp = std::max(last_timestamp, it->timestamp);
+                    send_all_change(&mutex_acq, key, ql::datum_t(), row);
                 }
             }
 
@@ -425,6 +385,89 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
         peers_handled.erase(peer);
     }
     return still_connected;
+}
+
+bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
+        new_mutex_acq_t *proof,
+        std::vector<ql::datum_t> *initial_values_out,
+        signal_t *interruptor) {
+    std::string dummy_error;
+    return parent->read_all_rows_raw(
+        [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
+            ql::datum_t row = convert_log_message_to_datum(msg, si, sd);
+            initial_values_out->push_back(row);
+            auto it = last_timestamps.find(si);
+            if (it != last_timestamps.end() && it->second < msg.timestamp) {
+                it->second = msg.timestamp;
+                store_key_t key(
+                    convert_log_key_to_datum(msg.timestamp, si).print_primary());
+                send_all_change(proof, key, ql::datum_t(), row);
+            }
+        },
+        interruptor,
+        &dummy_error);
+}
+
+bool logs_artificial_table_backend_t::read_all_rows_raw(
+        const std::function<void(
+            const log_message_t &msg,
+            const server_id_t &server_id,
+            const ql::datum_t &server_datum)> &callback,
+        signal_t *interruptor,
+        std::string *error_out) {
+    std::map<server_id_t, log_server_business_card_t> servers;
+    directory->read_all(
+        [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
+            servers.insert(std::make_pair(value->server_id, value->log_mailbox));
+        });
+
+    boost::optional<std::string> error;
+    pmap(servers.begin(), servers.end(),
+        [&](const std::pair<server_id_t, log_server_business_card_t> &server) {
+            ql::datum_t server_datum;
+            name_string_t server_name;
+            if (!convert_server_id_to_datum(server.first, identifier_format,
+                    server_config_client, &server_datum, &server_name)) {
+                /* The server was permanently removed. Don't display its log messages. */
+                return;
+            }
+            std::vector<log_message_t> messages;
+            try {
+                struct timespec min_time = { 0, 0 };
+                struct timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
+                messages = fetch_log_file(
+                    mailbox_manager,
+                    server.second,
+                    entries_per_server,
+                    min_time,
+                    max_time,
+                    interruptor);
+            } catch (const interrupted_exc_t &) {
+                /* We'll deal with it outside the `pmap()` */
+                return;
+            } catch (const resource_lost_exc_t &) {
+                /* The server disconnected. Ignore it. */
+                return;
+            } catch (const std::runtime_error &e) {
+                /* We'll deal with it outside the `pmap()` */
+                error = strprintf("Problem with reading log file on server `%s`: %s",
+                    server_name.c_str(), e.what());
+                return;
+            }
+            for (const log_message_t &m : messages) {
+                callback(m, server.first, server_datum);
+            }
+        });
+
+    /* We can't throw exceptions or `return false` from within the `pmap()`, so we have
+    to do it here instead. */
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    } else if (static_cast<bool>(error)) {
+        *error_out = *error;
+        return false;
+    }
+    return true;
 }
 
 scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>

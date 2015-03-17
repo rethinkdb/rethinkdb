@@ -72,36 +72,18 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
     parent->set_notifications(true);
     try {
         while (true) {
-            /* Copy the dirtiness flags into local variables and reset them. Resetting
-            them now is important because it means that notifications that arrive while
-            we're processing the current batch will be queued up instead of ignored. */
-            std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty_keys;
-            dirtiness_t local_dirtiness = dirtiness_t::none_or_some;
-            std::swap(dirty_keys, local_dirty_keys);
-            std::swap(dirtiness, local_dirtiness);
-
-            guarantee(local_dirtiness != dirtiness_t::none_or_some ||
-                !local_dirty_keys.empty(),
+            guarantee(dirtiness != dirtiness_t::none_or_some || !dirty_keys.empty(),
                 "If nothing is dirty, we shouldn't have gotten here");
 
-            bool error = false;
-            if (local_dirtiness != dirtiness_t::none_or_some) {
-                if (!diff_all(local_dirtiness == dirtiness_t::all_stop,
-                              keepalive.get_drain_signal())) {
-                    error = true;
-                } else {
-                    ready.pulse_if_not_already_pulsed();
-                }
-            } else {
-                for (const auto &key : local_dirty_keys) {
-                    if (!diff_one(key, keepalive.get_drain_signal())) {
-                        error = true;
-                        break;
-                    }
-                }
+            bool success;
+            {
+                new_mutex_acq_t mutex_acq(&mutex);
+                success = diff_dirty(&mutex_acq, keepalive.get_drain_signal());
             }
-
-            if (error) {
+                
+            if (success) {
+                ready.pulse_if_not_already_pulsed();
+            } else {
                 /* Kick off any subscribers since we got an error. */
                 send_all_stop();
                 /* Ensure that we try again the next time around the loop. */
@@ -125,8 +107,30 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
     parent->set_notifications(false);
 }
 
+bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_dirty(
+        new_mutex_acq_t *proof, signal_t *interruptor) {
+    /* Copy the dirtiness flags into local variables and reset them. Resetting them now
+    is important because it means that notifications that arrive while we're processing
+    the current batch will be queued up instead of ignored. */
+    std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty_keys;
+    dirtiness_t local_dirtiness = dirtiness_t::none_or_some;
+    std::swap(dirty_keys, local_dirty_keys);
+    std::swap(dirtiness, local_dirtiness);
+
+    if (local_dirtiness != dirtiness_t::none_or_some) {
+        return diff_all(local_dirtiness == dirtiness_t::all_stop, proof, interruptor);
+    } else {
+        for (const auto &key : local_dirty_keys) {
+            if (!diff_one(key, proof, interruptor)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
-        const ql::datum_t &key, signal_t *interruptor) {
+        const ql::datum_t &key, new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Fetch new value from backend */
     ql::datum_t new_val;
     std::string error;
@@ -153,13 +157,13 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
     }
     /* Send notification if it actually changed */
     if (new_val.has() != old_val.has() || (new_val.has() && new_val != old_val)) {
-        send_all_change(store_key_t(key.print_primary()), old_val, new_val);
+        send_all_change(proof, store_key_t(key.print_primary()), old_val, new_val);
     }
     return true;
 }
 
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_all(
-        bool is_break, signal_t *interruptor) {
+        bool is_break, new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Fetch the new values of everything */
     std::map<store_key_t, ql::datum_t> new_values;
     if (!get_values(interruptor, &new_values)) {
@@ -175,18 +179,19 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_all(
         while (old_it != old_values.end() || new_it != new_values.end()) {
             if (old_it == old_values.end() ||
                     (new_it != new_values.end() && new_it->first < old_it->first)) {
-                send_all_change(new_it->first, ql::datum_t(), new_it->second);
+                send_all_change(proof, new_it->first, ql::datum_t(), new_it->second);
                 ++new_it;
             } else if (new_it == new_values.end() ||
                     (old_it != old_values.end() && old_it->first < new_it->first)) {
-                send_all_change(old_it->first, old_it->second, ql::datum_t());
+                send_all_change(proof, old_it->first, old_it->second, ql::datum_t());
                 ++old_it;
             } else {
                 guarantee(old_it != old_values.end());
                 guarantee(new_it != new_values.end());
                 guarantee(old_it->first == new_it->first);
                 if (old_it->second != new_it->second) {
-                    send_all_change(old_it->first, old_it->second, new_it->second);
+                    send_all_change(
+                        proof, old_it->first, old_it->second, new_it->second);
                 }
                 ++old_it;
                 ++new_it;
@@ -231,6 +236,24 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
         store_key_t key2(key.print_primary());
         auto pair = out->insert(std::make_pair(key2, doc));
         guarantee(pair.second);
+    }
+    return true;
+}
+
+bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_initial_values(
+        new_mutex_acq_t *proof,
+        std::vector<ql::datum_t> *out,
+        signal_t *interruptor) {
+    proof->guarantee_is_holding(&mutex);
+
+    /* This is necessary to make sure that the initial values are up-to-date. */
+    if (!diff_dirty(proof, interruptor)) {
+        return false;
+    }
+
+    out->clear();
+    for (const auto &pair : old_values) {
+        out->push_back(pair.second);
     }
     return true;
 }
