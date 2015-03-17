@@ -1,0 +1,5 @@
+include_rules = [
+  "-disallowed",
+  "+allowed",
+  "-third_party/explicitly_disallowed",
+]

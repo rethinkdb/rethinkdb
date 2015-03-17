@@ -42,6 +42,7 @@ pkg_environment () {
     if [[ -d "$install_dir/lib" ]]; then
         echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\""
         echo "export LD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${LD_LIBRARY_PATH:+:}\${LD_LIBRARY_PATH:-}\""
+        echo "export DYLD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${DYLD_LIBRARY_PATH:+:}\${DYLD_LIBRARY_PATH:-}\""
     fi
     test -d "$install_dir/bin" && echo "export PATH=\"$(niceabspath "$install_dir/bin"):\$PATH\"" || :
     local pcdir="$install_dir/lib/pkgconfig"

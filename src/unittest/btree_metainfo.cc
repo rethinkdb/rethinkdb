@@ -3,7 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
-#include "btree/slice.hpp"
+#include "btree/reql_specific.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "containers/binary_blob.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -67,10 +67,10 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
     {
         txn_t txn(&cache_conn, write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        buf_write_t sb_write(&superblock);
-        btree_slice_t::init_superblock(&superblock,
-                                       std::vector<char>(), binary_blob_t());
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock,
+                                            std::vector<char>(), binary_blob_t());
     }
 
     std::map<std::string, std::string> mirror;
@@ -82,15 +82,15 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
     for (int i = 0; i < 1000; i++) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
-        buf_lock_t *sb_buf = superblock->get();
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
 
         int op = random() % 100;
         if (op == 0) {
-            clear_superblock_metainfo(sb_buf);
+            clear_superblock_metainfo(superblock.get());
             mirror.clear();
             if (print_log_messages) {
                 puts("clear");
@@ -101,8 +101,8 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
             }
             std::string key = random_existing_key(mirror);
             std::vector<char> value_out;
-            bool found = get_superblock_metainfo(sb_buf, string_to_vector(key),
-                                                 &value_out);
+            bool found = get_superblock_metainfo(
+                superblock.get(), string_to_vector(key), &value_out);
             EXPECT_TRUE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -117,8 +117,8 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                 continue;
             }
             std::vector<char> value_out;
-            const bool found = get_superblock_metainfo(sb_buf, string_to_vector(key),
-                                                       &value_out);
+            const bool found = get_superblock_metainfo(
+                superblock.get(), string_to_vector(key), &value_out);
             EXPECT_FALSE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -133,7 +133,7 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
             }
             std::string key = random_existing_key(mirror);
             std::string value = random_string();
-            set_superblock_metainfo(sb_buf, string_to_vector(key),
+            set_superblock_metainfo(superblock.get(), string_to_vector(key),
                                     string_to_blob(value));
             mirror[key] = value;
             if (print_log_messages) {
@@ -145,7 +145,7 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                 continue;
             }
             std::string value = random_string();
-            set_superblock_metainfo(sb_buf, string_to_vector(key),
+            set_superblock_metainfo(superblock.get(), string_to_vector(key),
                                     string_to_blob(value));
             mirror[key] = value;
             if (print_log_messages) {
@@ -156,14 +156,14 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                 continue;
             }
             std::string key = random_existing_key(mirror);
-            delete_superblock_metainfo(sb_buf, string_to_vector(key));
+            delete_superblock_metainfo(superblock.get(), string_to_vector(key));
             mirror.erase(key);
             if (print_log_messages) {
                 printf("delete '%s'\n", key.c_str());
             }
         } else {
             std::vector<std::pair<std::vector<char>, std::vector<char> > > pairs;
-            get_superblock_metainfo(sb_buf, &pairs);
+            get_superblock_metainfo(superblock.get(), &pairs);
             std::map<std::string, std::string> mirror_copy = mirror;
             if (print_log_messages) {
                 puts("scan...");

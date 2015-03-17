@@ -40,7 +40,7 @@ void test_encoding(const std::string &encoding, bool expected) {
     }
 
     http_req_t req = http_req_encoding(encoding);
-    http_res_t res(HTTP_OK);
+    http_res_t res(http_status_code_t::OK);
     res.set_body("application/text", body);
 
     EXPECT_EQ(expected, maybe_gzip_response(req, &res)) << "Incorrect handling of encoding '" + encoding + "'";

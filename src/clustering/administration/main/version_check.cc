@@ -1,13 +1,13 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/main/version_check.hpp"
 
-#include <map>
 #include <math.h>
 
-#include "logger.hpp"
+#include <map>
 
 #include "clustering/administration/metadata.hpp"
 #include "extproc/http_runner.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/env.hpp"
 
 namespace ql {

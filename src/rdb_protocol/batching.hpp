@@ -36,6 +36,8 @@ enum class batch_type_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     batch_type_t, int8_t, batch_type_t::NORMAL, batch_type_t::SINDEX_CONSTANT);
 
+enum ignore_latency_t { NO, YES };
+
 class batcher_t {
 public:
     bool note_el(const datum_t &t) {
@@ -45,7 +47,8 @@ public:
         size_left -= serialized_size<cluster_version_t::CLUSTER>(t);
         return should_send_batch();
     }
-    bool should_send_batch() const;
+    bool should_send_batch(
+        ignore_latency_t ignore_latency = ignore_latency_t::NO) const;
     batcher_t(batcher_t &&other) :
         batch_type(std::move(other.batch_type)),
         seen_one_el(std::move(other.seen_one_el)),

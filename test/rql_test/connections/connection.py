@@ -591,7 +591,7 @@ class TestSuccessAtomFeed(TestWithConnection):
         t1.index_create('a', lambda x: x['a']).run(c)
         t1.index_wait('a').run(c)
 
-        self.assertEqual(p.Response.ResponseType.SUCCESS_ATOM_FEED,
+        self.assertEqual(p.Response.ResponseType.SUCCESS_PARTIAL,
                          t1.get(0).changes().run(c).responses[0].type)
 
 

@@ -1,4 +1,4 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB
 
 module 'TablesView', ->
     class @DatabasesContainer extends Backbone.View
@@ -10,7 +10,6 @@ module 'TablesView', ->
 
         events:
             'click .add_database': 'add_database'
-            'click .add_table': 'add_table'
             'click .remove-tables': 'delete_tables'
             'click .checkbox-container': 'update_delete_tables_button'
             'click .close': 'remove_parent_alert'
@@ -31,9 +30,6 @@ module 'TablesView', ->
         add_database: =>
             @add_database_dialog.render()
 
-        add_table: =>
-            @add_table_dialog.render()
-
         delete_tables: (event) =>
             # Make sure the button isn't disabled, and pass the list of table ids selected
             if not $(event.currentTarget).is ':disabled'
@@ -50,22 +46,13 @@ module 'TablesView', ->
             element = $(event.target).parent()
             element.slideUp 'fast', -> element.remove()
 
-        display_add_table_button: (display) =>
-            if display?
-                @display = display
-
-            if display is false
-                @$('.add_table').prop 'disabled', not @display
-            else
-                @$('.add_table').prop 'disabled', not @display
-
         update_delete_tables_button: =>
             if @$('.checkbox-table:checked').length > 0
                 @$('.remove-tables').prop 'disabled', false
             else
                 @$('.remove-tables').prop 'disabled', true
 
-        initialize: =>        
+        initialize: =>
             if not window.view_data_backup.tables_view_databases?
                 window.view_data_backup.tables_view_databases = new Databases
                 @loading = true
@@ -98,9 +85,6 @@ module 'TablesView', ->
             @fetch_data()
 
             @add_database_dialog = new Modals.AddDatabaseModal @databases
-            @add_table_dialog = new Modals.AddTableModal
-                databases: @databases
-                container: @
             @remove_tables_dialog = new Modals.RemoveTableModal
                 collection: @databases
 
@@ -122,7 +106,6 @@ module 'TablesView', ->
         remove: =>
             driver.stop_timer @timer
             @add_database_dialog.remove()
-            @add_table_dialog.remove()
             @remove_tables_dialog.remove()
             super()
 
@@ -146,12 +129,8 @@ module 'TablesView', ->
 
             if @container.loading
                 @$el.html @template.loading_databases()
-                @container.display_add_table_button false
             else if @collection.length is 0
                 @$el.html @template.no_databases()
-                @container.display_add_table_button false
-            else
-                @container.display_add_table_button true
 
             @listenTo @collection, 'add', (database) =>
                 new_view = new TablesView.DatabaseView
@@ -177,7 +156,6 @@ module 'TablesView', ->
 
                 if @databases_view.length is 1
                     @$('.no-databases').remove()
-                    @container.display_add_table_button true
 
             @listenTo @collection, 'remove', (database) =>
                 for view, position in @databases_view
@@ -189,10 +167,8 @@ module 'TablesView', ->
 
                 if @collection.length is 0
                     @$el.html @template.no_databases()
-                    @container.display_add_table_button false
 
         render: =>
-            @container.display_add_table_button()
             @
 
         remove: =>
@@ -208,14 +184,23 @@ module 'TablesView', ->
             empty: Handlebars.templates['empty_list-template']
 
         events:
-           'click button.remove-database': 'remove_database'
+            'click button.add-table': 'add_table'
+            'click button.delete-database': 'delete_database'
 
-        remove_database: =>
-            if @remove_database_dialog?
-                @remove_database_dialog.remove()
-            @remove_database_dialog = new Modals.RemoveDatabaseModal
-            @remove_database_dialog.render @model
+        delete_database: =>
+            if @delete_database_dialog?
+                @delete_database_dialog.remove()
+            @delete_database_dialog = new Modals.DeleteDatabaseModal
+            @delete_database_dialog.render @model
 
+        add_table: =>
+            if @add_table_dialog?
+                @add_table_dialog.remove()
+            @add_table_dialog = new Modals.AddTableModal
+                db_id: @model.get('id')
+                db_name: @model.get('name')
+                tables: @model.get('tables')
+            @add_table_dialog.render()
 
         initialize: =>
             @$el.html @template.main @model.toJSON()
@@ -287,8 +272,10 @@ module 'TablesView', ->
             @stopListening()
             for view in @tables_views
                 view.remove()
-            if @remove_database_dialog?
-                @remove_database_dialog.remove()
+            if @delete_database_dialog?
+                @delete_database_dialog.remove()
+            if @add_table_dialog?
+                @add_table_dialog.remove()
             super()
 
     class @TableView extends Backbone.View

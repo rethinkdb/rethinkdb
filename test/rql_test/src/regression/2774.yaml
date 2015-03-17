@@ -66,6 +66,9 @@ tests:
                       {'id':26,'idx':str_trunc1},
                       {'id':27,'idx':str_trunc2}]
 
+    - def:
+         cd: expected = r.range(tbl.count()).coerce_to('array')
+
     - cd: tbl.insert(trows)['inserted']
       js: tbl.insert(trows)('inserted')
       ot: 28
@@ -76,8 +79,24 @@ tests:
     - cd: tbl.index_wait('idx').pluck('index', 'ready')
       ot: [{'index':'idx','ready':true}]
 
-    - rb: tbl.order_by({:index => 'idx'}).map{|row| row['id']}.coerce_to('array')
-      js: tbl.order_by({index:'idx'}).map(r.row('id')).coerce_to('array')
-      py: tbl.order_by(index='idx').map(r.row['id']).coerce_to('array')
-      ot: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
+    - rb: tbl.order_by({:index => 'idx'}).map{|row| row['id']}.coerce_to('array').eq(expected)
+      js: tbl.order_by({index:'idx'}).map(r.row('id')).coerce_to('array').eq(expected)
+      py: tbl.order_by(index='idx').map(r.row['id']).coerce_to('array').eq(expected)
+      ot: true
+
+    # Test minval and maxval
+    - rb: tbl.order_by(:index => 'idx').between(r.minval, r.maxval).map{|x| x['id']}.coerce_to('array').eq(expected)
+      js: tbl.order_by({index:'idx'}).between(r.minval, r.maxval).map(r.row('id')).coerce_to('array').eq(expected)
+      py: tbl.order_by(index='idx').between(r.minval, r.maxval).map(r.row['id']).coerce_to('array').eq(expected)
+      ot: true
+
+    - py: tbl.order_by(index='idx').between([1,2,3,4,5,6,7,4],[1,2,3,4,5,6,8]).map(r.row['id']).coerce_to('array')
+      js: tbl.order_by({index:'idx'}).between([1,2,3,4,5,6,7,4],[1,2,3,4,5,6,8]).map(r.row('id')).coerce_to('array')
+      rb: tbl.order_by(:index => 'idx').between([1,2,3,4,5,6,7,4],[1,2,3,4,5,6,8]).map{|x| x['id']}.coerce_to('array')
+      ot: [2,3,4]
+
+    - py: tbl.order_by(index='idx').between([1,2,3,4,5,6,7,4,r.minval],[1,2,3,4,5,6,7,4,r.maxval]).map(r.row['id']).coerce_to('array')
+      js: tbl.order_by({index:'idx'}).between([1,2,3,4,5,6,7,4,r.minval],[1,2,3,4,5,6,7,4,r.maxval]).map(r.row('id')).coerce_to('array')
+      rb: tbl.order_by(:index => 'idx').between([1,2,3,4,5,6,7,4,r.minval],[1,2,3,4,5,6,7,4,r.maxval]).map{|x| x['id']}.coerce_to('array')
+      ot: [3]
 

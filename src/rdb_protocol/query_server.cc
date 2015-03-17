@@ -13,12 +13,9 @@
 rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                                        int port,
                                        rdb_context_t *_rdb_ctx) :
-    server(_rdb_ctx, local_addresses, port, this, _rdb_ctx->auth_metadata),
+    server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec),
     rdb_ctx(_rdb_ctx),
-    thread_counters(0)
-{
-
-}
+    thread_counters(0) { }
 
 http_app_t *rdb_query_server_t::get_http_app() {
     return &server;
@@ -37,21 +34,15 @@ namespace ql {
              signal_t *interruptor);
 }
 
-bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
+void rdb_query_server_t::run_query(const ql::query_id_t &query_id,
                                    const ql::protob_t<Query> &query,
                                    Response *response_out,
                                    ql::query_cache_t *query_cache,
                                    signal_t *interruptor) {
     guarantee(query_cache != NULL);
     guarantee(interruptor != NULL);
-    response_out->set_token(query->token());
-
-    ql::datum_t noreply = static_optarg("noreply", query);
-    bool response_needed = !(noreply.has() &&
-         noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-         noreply.as_bool());
     try {
-        scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active);
+        scoped_perfmon_counter_t client_active(&rdb_ctx->stats.clients_active); // TODO: make this correct for parallelized queries
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(query_id, query, response_out, query_cache, interruptor);
@@ -59,9 +50,8 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
-    } catch (const interrupted_exc_t &e) {
-        ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       "Query interrupted.  Did you shut down the server?");
+    } catch (const interrupted_exc_t &ex) {
+        throw; // Interruptions should be handled by our caller, who can provide context
 #ifdef NDEBUG // In debug mode we crash, in release we send an error.
     } catch (const std::exception &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
@@ -71,13 +61,4 @@ bool rdb_query_server_t::run_query(const ql::query_id_t &query_id,
 
     rdb_ctx->stats.queries_per_sec.record();
     ++rdb_ctx->stats.queries_total;
-    return response_needed;
 }
-
-void rdb_query_server_t::unparseable_query(int64_t token,
-                                           Response *response_out,
-                                           const std::string &info) {
-    response_out->set_token(token);
-    ql::fill_error(response_out, Response::CLIENT_ERROR, info);
-}
-

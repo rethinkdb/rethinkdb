@@ -1,11 +1,6 @@
 desc: Tests RQL control flow structures
-table_variable_name: tbl
+table_variable_name: tbl, tbl2
 tests:
-
-    # Setup a second table
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-      def: tbl2 = r.db('test').table('test2')
 
     ## FunCall
 
@@ -278,10 +273,4 @@ tests:
 
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: partial({'tables_created':1})
-
-    # Cleanup
-    - cd: r.db('test').table_drop('test2')
-      ot: partial({'tables_dropped':1})
-
     - cd: r.db('test').table_drop('nested_table')
-      ot: partial({'tables_dropped':1})

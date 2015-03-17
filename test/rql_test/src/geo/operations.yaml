@@ -31,17 +31,18 @@ tests:
     py: someDist.mul(1.0/1852.0).eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='nm'))
     rb: someDist.mul(1.0/1852.0).eq(r.distance(r.point(-122, 37), r.point(-123, 37), :unit=>'nm'))
     ot: true
-  - js: someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), {geo_system:'WGS84'}))
+  - js: someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), {'geo_system':'WGS84'}))
     py: someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), geo_system='WGS84'))
     rb: someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), :geo_system=>'WGS84'))
     ot: true
   # Mearth is a small planet, just 1/10th of earth's size.
-  - js: someDist.div(10).eq(r.distance(r.point(-122, 37), r.point(-123, 37), {geo_system:{'a':637813.7, 'f':(1.0/298.257223563)}}))
+  - js: someDist.div(10).eq(r.distance(r.point(-122, 37), r.point(-123, 37), {'geo_system':{'a':637813.7, 'f':(1.0/298.257223563)}}))
     py: someDist.div(10).eq(r.distance(r.point(-122, 37), r.point(-123, 37), geo_system={'a':637813.7, 'f':(1.0/298.257223563)}))
     rb: someDist.div(10).eq(r.distance(r.point(-122, 37), r.point(-123, 37), :geo_system=>{'a':637813.7, 'f':(1.0/298.257223563)}))
     ot: true
   - py: r.distance(r.point(-122, 37), r.point(-123, 37), geo_system='unit_sphere').coerce_to('STRING')
     rb: r.distance(r.point(-122, 37), r.point(-123, 37), :geo_system=>'unit_sphere').coerce_to('STRING')
+    js: r.distance(r.point(-122, 37), r.point(-123, 37), {'geo_system':'unit_sphere'}).coerce_to('STRING')
     ot: ("0.01393875509649327056")
   - cd: r.distance(r.point(0, 0), r.point(0, 0)).coerce_to('STRING')
     ot: ("0")

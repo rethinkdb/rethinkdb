@@ -17,7 +17,7 @@ void nap(int64_t ms) THROWS_NOTHING {
     }
 }
 
-void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void nap(int64_t ms, const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     signal_timer_t timer;
     timer.start(ms);
     wait_interruptible(&timer, interruptor);
@@ -26,6 +26,9 @@ void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 // signal_timer_t
 
 signal_timer_t::signal_timer_t() : timer(NULL) { }
+signal_timer_t::signal_timer_t(int64_t ms) : timer(NULL) {
+    start(ms);
+}
 
 signal_timer_t::~signal_timer_t() {
     if (timer != NULL) {

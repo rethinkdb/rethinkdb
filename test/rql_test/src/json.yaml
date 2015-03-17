@@ -37,6 +37,18 @@ tests:
     - cd: r.json(text).to_json_string()
       ot: sorted
 
+    - cd: r.expr(r.minval).to_json_string()
+      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+
+    - cd: r.expr(r.maxval).to_json_string()
+      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+
+    - cd: r.expr(r.minval).coerce_to('string')
+      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+
+    - cd: r.expr(r.maxval).coerce_to('string')
+      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+
     - cd: r.time(2014,9,11, 'Z')
       runopts:
         time_format: "'raw'"
@@ -52,11 +64,9 @@ tests:
       ot: ('{"$reql_type$":"GEOMETRY","coordinates":[0,0],"type":"Point"}')
 
     - def:
-        cd: s = "\x66\x6f\x6f"
+        rb: s = "\x66\x6f\x6f".force_encoding('BINARY')
         py: s = b'\x66\x6f\x6f'
-    - def:
-        rb: s.force_encoding('BINARY')
-        js: s = Buffer(s, 'binary')
+        js: s = Buffer("\x66\x6f\x6f", 'binary')
     - cd: r.binary(s)
       ot: (s)
 

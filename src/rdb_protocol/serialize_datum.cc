@@ -30,7 +30,9 @@ enum class datum_serialized_type_t {
     R_BINARY = 9,
     BUF_R_ARRAY = 10,
     BUF_R_OBJECT = 11,
-    UNINITIALIZED = 12
+    UNINITIALIZED = 12,
+    MINVAL = 13,
+    MAXVAL = 14,
 };
 
 // Objects and arrays use different word sizes for storing offsets,
@@ -53,7 +55,7 @@ struct size_tree_node_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
-                                      datum_serialized_type_t::UNINITIALIZED);
+                                      datum_serialized_type_t::MAXVAL);
 
 serialization_result_t datum_serialize(write_message_t *wm,
                                        datum_serialized_type_t type) {
@@ -64,6 +66,13 @@ serialization_result_t datum_serialize(write_message_t *wm,
 MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
                                             datum_serialized_type_t *type) {
     return deserialize<cluster_version_t::LATEST_OVERALL>(s, type);
+}
+
+// Really what we need here is a monad :/
+inline serialization_result_t operator |(const serialization_result_t &first,
+                                         const serialization_result_t &second) {
+    return static_cast<serialization_result_t>(static_cast<int>(first) |
+                                               static_cast<int>(second));
 }
 
 /* Forward declarations */
@@ -448,6 +457,7 @@ size_t datum_serialized_size(const datum_t &datum,
     // the type prefix should ever change.
     size_t sz = 1; // 1 byte for the type
     switch (datum.get_type()) {
+    case datum_t::MINVAL: break; // No data aside from the type
     case datum_t::R_ARRAY: {
         sz += datum_array_serialized_size(datum, check_errors, child_sizes_out);
     } break;
@@ -457,7 +467,7 @@ size_t datum_serialized_size(const datum_t &datum,
     case datum_t::R_BOOL: {
         sz += serialize_universal_size_t<bool>::value;
     } break;
-    case datum_t::R_NULL: break;
+    case datum_t::R_NULL: break; // No data aside from the type
     case datum_t::R_NUM: {
         double d = datum.as_num();
         int64_t i;
@@ -473,6 +483,7 @@ size_t datum_serialized_size(const datum_t &datum,
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum.as_str());
     } break;
+    case datum_t::MAXVAL: break; // No data aside from the type
     case datum_t::UNINITIALIZED: break;
     default:
         unreachable();
@@ -491,10 +502,15 @@ serialization_result_t datum_serialize(
     serialization_result_t res = serialization_result_t::SUCCESS;
 
     switch (datum.get_type()) {
+    case datum_t::MINVAL: {
+        res = res | serialization_result_t::EXTREMA_PRESENT;
+        res = res | datum_serialize(wm, datum_serialized_type_t::MINVAL);
+    } break;
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
-        if (datum.arr_size() > 100000)
+        if (datum.arr_size() > 100000) {
             res = res | serialization_result_t::ARRAY_TOO_BIG;
+        }
         res = res | datum_array_serialize(wm, datum, check_errors, precomputed_size);
     } break;
     case datum_t::R_BINARY: {
@@ -539,6 +555,10 @@ serialization_result_t datum_serialize(
         const datum_string_t &value = datum.as_str();
         res = res | datum_serialize(wm, value);
     } break;
+    case datum_t::MAXVAL: {
+        res = res | serialization_result_t::EXTREMA_PRESENT;
+        res = res | datum_serialize(wm, datum_serialized_type_t::MAXVAL);
+    } break;
     case datum_t::UNINITIALIZED: {
         res = res | datum_serialize(wm, datum_serialized_type_t::UNINITIALIZED);
     } break;
@@ -575,6 +595,13 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
     }
 
     switch (type) {
+    case datum_serialized_type_t::MINVAL: {
+        try {
+            *datum = datum_t::minval();
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
     case datum_serialized_type_t::R_ARRAY: {
         std::vector<datum_t> value;
         res = datum_deserialize(s, &value);
@@ -711,6 +738,13 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
+    case datum_serialized_type_t::MAXVAL: {
+        try {
+            *datum = datum_t::maxval();
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
     case datum_serialized_type_t::UNINITIALIZED: {
         *datum = datum_t();
     } break;
@@ -758,6 +792,8 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
     case datum_serialized_type_t::R_OBJECT: // fallthru
     case datum_serialized_type_t::INT_NEGATIVE: // fallthru
     case datum_serialized_type_t::INT_POSITIVE: // fallthru
+    case datum_serialized_type_t::MINVAL: // fallthru
+    case datum_serialized_type_t::MAXVAL: // fallthru
     case datum_serialized_type_t::UNINITIALIZED: {
         buffer_read_stream_t data_read_stream(buf.get() + at_offset,
                                               buf.get_safety_boundary() - at_offset);

@@ -1,6 +1,7 @@
 set -ex
 
 # install applications and libraries
+export DEBIAN_FRONTEND=noninteractive
 source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
 wget -O- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
 aptitude -y update

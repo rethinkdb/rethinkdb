@@ -99,7 +99,7 @@ public:
 
         DISABLE_COPYING(ref_t);
     };
-    
+
     // const iteration for the jobs table
     typedef std::map<int64_t, scoped_ptr_t<entry_t> >::const_iterator const_iterator;
     const_iterator begin() const;
@@ -121,7 +121,7 @@ public:
     void noreply_wait(const query_id_t &query_id,
                       int64_t token,
                       signal_t *interruptor);
-    
+
 private:
     struct entry_t {
         entry_t(protob_t<Query> original_query,

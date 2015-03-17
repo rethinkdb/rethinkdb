@@ -1,7 +1,9 @@
 desc: Regression tests for issue #1133, which concerns circular references in the drivers.
 
 tests:
- - def: a = {}; b = {'a':a}; a['b'] = b;
+ - def: a = {}
+ - def: b = {'a':a}
+ - def: a['b'] = b
 
  - cd: r.expr(a)
    ot:

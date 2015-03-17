@@ -344,22 +344,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     return obj
 
 json_read_chunk_size = 32 * 1024
-json_max_buffer_size = 16 * 1024 * 1024
-
-def read_json_single_object(json_data, file_in, callback):
-    decoder = json.JSONDecoder()
-    while True:
-        try:
-            (obj, offset) = decoder.raw_decode(json_data)
-            json_data = json_data[offset:]
-            callback(obj)
-            break
-        except ValueError:
-            before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
-            if before_len == len(json_data):
-                raise
-    return json_data
+json_max_buffer_size = 128 * 1024 * 1024
 
 def read_json_array(json_data, file_in, callback, progress_info,
                     json_array=True):
@@ -389,12 +374,13 @@ def read_json_array(json_data, file_in, callback, progress_info,
 
         except (ValueError, IndexError):
             before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
+            to_read = max(json_read_chunk_size, before_len)
+            json_data += file_in.read(min(to_read, json_max_buffer_size - before_len))
             if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
             elif (not json_array) and before_len == len(json_data):
                 break  # End of JSON
-            elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
+            elif before_len == len(json_data) or len(json_data) >= json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
 
@@ -778,7 +764,9 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    rdb_call_wrapper(conn_fn, "version check", check_version)
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
@@ -828,7 +816,9 @@ def import_file(options):
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    rdb_call_wrapper(conn_fn, "version check", check_version)
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory

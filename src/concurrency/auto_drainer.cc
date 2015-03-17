@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/interruptor.hpp"
 
 #include "arch/runtime/coroutines.hpp"
 
@@ -17,10 +18,13 @@ auto_drainer_t::~auto_drainer_t() {
 auto_drainer_t::lock_t::lock_t() : parent(NULL) {
 }
 
-auto_drainer_t::lock_t::lock_t(auto_drainer_t *p) : parent(p) {
+auto_drainer_t::lock_t::lock_t(auto_drainer_t *p, throw_if_draining_t thr) : parent(p) {
     guarantee(parent != NULL);
-    guarantee(!parent->draining.is_pulsed(), "New processes should not acquire "
-        "a draining `auto_drainer_t`.");
+    if (thr == throw_if_draining_t::YES && parent->is_draining()) {
+        throw interrupted_exc_t();
+    }
+    guarantee(!parent->is_draining(),
+              "New processes should not acquire a draining `auto_drainer_t`.");
     parent->incref();
 }
 

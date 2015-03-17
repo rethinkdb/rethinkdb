@@ -119,9 +119,7 @@ message Response {
                                // the same token as this response, you will get
                                // more of the sequence.  Keep sending [CONTINUE]
                                // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED      = 5; // Like [SUCCESS_PARTIAL] but for feeds.
         WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
-        SUCCESS_ATOM_FEED = 6; // Like [SUCCESS_FEED] but a singleton.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -136,6 +134,31 @@ message Response {
                             // than numbers.
     }
     optional ResponseType type = 1;
+
+    // ResponseNotes are used to provide information about the query
+    // response that may be useful for people writing drivers or ORMs.
+    // Currently all the notes we send indicate that a stream has certain
+    // special properties.
+    enum ResponseNote {
+        // The stream is a changefeed stream (e.g. `r.table('test').changes()`).
+        SEQUENCE_FEED = 1;
+        // The stream is a point changefeed stream
+        // (e.g. `r.table('test').get(0).changes()`).
+        ATOM_FEED = 2;
+        // The stream is an order_by_limit changefeed stream
+        // (e.g. `r.table('test').order_by(index: 'id').limit(5).changes()`).
+        ORDER_BY_LIMIT_FEED = 3;
+        // The stream is a union of multiple changefeed types that can't be
+        // collapsed to a single type
+        // (e.g. `r.table('test').changes().union(r.table('test').get(0).changes())`).
+        UNIONED_FEED = 4;
+        // The stream is a changefeed stream and includes notes on what state
+        // the changefeed stream is in (e.g. objects of the form `{state:
+        // 'initializing'}`).
+        INCLUDES_STATES = 5;
+    }
+    repeated ResponseNote notes = 6;
+
     optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
@@ -365,7 +388,9 @@ message Term {
         // Half-open by default, but the openness of either side can be
         // changed by passing 'closed' or 'open for `right_bound` or
         // `left_bound`.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
+        BETWEEN_DEPRECATED = 36; // Deprecated version of between, which allows `null` to specify unboundedness
+                                 // With the newer version, clients should use `r.minval` and `r.maxval` for unboundedness
+        BETWEEN   = 182; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
                         // The arity of the function should be
@@ -710,6 +735,10 @@ message Term {
         FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
         GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
         POLYGON_SUB = 171;       // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+
+        // Constants for specifying key ranges
+        MINVAL = 180;
+        MAXVAL = 181;
     }
     optional TermType type = 1;
 

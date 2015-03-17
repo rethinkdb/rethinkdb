@@ -3,7 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
-#include "btree/slice.hpp"
+#include "btree/reql_specific.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
@@ -38,10 +38,10 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         txn_t txn(&cache_conn, write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        buf_write_t sb_write(&superblock);
-        btree_slice_t::init_superblock(&superblock,
-                                       std::vector<char>(), binary_blob_t());
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock,
+                                            std::vector<char>(), binary_blob_t());
     }
 
     order_source_t order_source;
@@ -51,10 +51,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
@@ -76,10 +77,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
@@ -90,10 +92,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::distant_past,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 repli_timestamp_t::distant_past,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
@@ -204,7 +207,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     &token, &txn, &super_block,
                     &dummy_interruptor);
 
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
@@ -235,7 +238,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> main_sb;
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             store.acquire_superblock_for_read(
