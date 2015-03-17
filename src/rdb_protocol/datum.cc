@@ -505,49 +505,6 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
     }
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits,
-                 reql_version_t reql_version) {
-    switch (json->type) {
-    case cJSON_False: {
-        return datum_t::boolean(false);
-    } break;
-    case cJSON_True: {
-        return datum_t::boolean(true);
-    } break;
-    case cJSON_NULL: {
-        return datum_t::null();
-    } break;
-    case cJSON_Number: {
-        return datum_t(json->valuedouble);
-    } break;
-    case cJSON_String: {
-        fail_if_invalid(reql_version, json->valuestring);
-        return datum_t(json->valuestring);
-    } break;
-    case cJSON_Array: {
-        std::vector<datum_t> array;
-        json_array_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits, reql_version));
-        }
-        return datum_t(std::move(array), limits);
-    } break;
-    case cJSON_Object: {
-        datum_object_builder_t builder;
-        json_object_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            fail_if_invalid(reql_version, item->string);
-            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
-            rcheck_datum(!dup, base_exc_t::GENERIC,
-                         strprintf("Duplicate key `%s` in JSON.", item->string));
-        }
-        const std::set<std::string> pts = { pseudo::literal_string };
-        return std::move(builder).to_datum(pts);
-    } break;
-    default: unreachable();
-    }
-}
-
 
 void check_str_validity(const char *bytes, size_t count) {
     const char *pos = static_cast<const char *>(memchr(bytes, 0, count));
@@ -1740,8 +1697,9 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
     } break;
     case Datum::R_JSON: {
         fail_if_invalid(reql_version, d->r_str());
-        scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits, reql_version);
+        rapidjson::Document json;
+        json.Parse(d->r_str().c_str());
+        return to_datum(json, limits, reql_version);
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);

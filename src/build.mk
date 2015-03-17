@@ -93,6 +93,9 @@ RT_CXXFLAGS += "-D__STDC_LIMIT_MACROS"
 RT_CXXFLAGS += "-D__STDC_FORMAT_MACROS"
 RT_CXXFLAGS += -Wall -Wextra
 
+# Enable RapidJSON std::string functions
+RT_CXXFLAGS += "-DRAPIDJSON_HAS_STDSTRING"
+
 # Force 64-bit off_t size on Linux -- also, sizeof(off_t) will be
 # checked by a compile-time assertion.
 ifeq ($(OS),Linux)

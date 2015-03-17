@@ -193,13 +193,12 @@ void extract(const Value *, const Value &json, Query *q) {
     }
 }
 
-bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
+bool parse_json_pb(Query *q, int64_t token, char *str) THROWS_NOTHING {
     try {
         q->Clear();
         q->set_token(token);
         Document json;
-        // TODO! Use Insitu parsing
-        json.Parse(str);
+        json.ParseInsitu(str);
         // TODO: We should return not just `false`, but the error message
         if (json.HasParseError()) {
             return false;
@@ -239,10 +238,9 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
             const Datum *d = &r.response(i);
             if (d->type() == Datum::R_JSON) {
                 // Just put the raw JSON onto the buffer
-                char *out = buffer.Push(d->r_str().length());
-                memcpy(out, d->r_str().data(), d->r_str().length());
+                writer.RawJson(d->r_str());
             } else if (d->type() == Datum::R_STR) {
-                writer.String(d->r_str().data(), d->r_str().length());
+                writer.String(d->r_str());
             } else {
                 unreachable();
             }
@@ -260,7 +258,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
                     writer.Uint(f->pos());
                     break;
                 case Frame::OPT:
-                    writer.String(f->opt().c_str());
+                    writer.String(f->opt());
                     break;
                 default:
                     unreachable();
@@ -273,10 +271,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
             writer.Key("p", 1);
             const Datum *d = &r.profile();
             guarantee(d->type() == Datum::R_JSON);
-            // TODO! This is pretty stupid
-            Document profile;
-            profile.Parse(d->r_str().c_str());
-            profile.Accept(writer);
+            writer.RawJson(d->r_str());
         }
 
         writer.EndObject();

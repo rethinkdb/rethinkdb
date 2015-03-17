@@ -169,7 +169,9 @@ public:
             conn->read(data.data(), size, interruptor);
             data[size] = 0; // Null terminate the string, which the json parser requires
 
-            if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
+            if (!json_shim::parse_json_pb(query_out->get(),
+                                          token,
+                                          data.data())) {
                 Response error_response;
                 error_response.set_token(token);
                 ql::fill_error(&error_response, Response::CLIENT_ERROR,
@@ -626,8 +628,13 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
+    // Copy the body into a mutable buffer so we can move it into parse_json_pb.
+    std::vector<char> body_buf(req.body.size() + 1);
+    memcpy(body_buf.data(), req.body.data(), req.body.size());
+    body_buf[req.body.size()] = '\0';
+
     // Parse the token out from the start of the request
-    const char *data = req.body.c_str();
+    char *data = body_buf.data();
     token = *reinterpret_cast<const int64_t *>(data);
     data += sizeof(token);
 

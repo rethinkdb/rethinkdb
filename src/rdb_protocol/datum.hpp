@@ -469,8 +469,6 @@ private:
 };
 
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
-// TODO! Remove
-datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 datum_t to_datum(
     const rapidjson::Value &json,
     const configured_limits_t &,

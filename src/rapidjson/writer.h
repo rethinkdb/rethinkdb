@@ -46,7 +46,7 @@ RAPIDJSON_NAMESPACE_BEGIN
 
     User may programmatically calls the functions of a writer to generate JSON text.
 
-    On the other side, a writer can also be passed to objects that generates events, 
+    On the other side, a writer can also be passed to objects that generates events,
 
     for example Reader::Parse() and Document::Accept().
 
@@ -67,7 +67,7 @@ public:
         \param levelDepth Initial capacity of stack.
     */
     explicit
-    Writer(OutputStream& os, StackAllocator* stackAllocator = 0, size_t levelDepth = kDefaultLevelDepth) : 
+    Writer(OutputStream& os, StackAllocator* stackAllocator = 0, size_t levelDepth = kDefaultLevelDepth) :
         os_(&os), level_stack_(stackAllocator, levelDepth * sizeof(Level)), hasRoot_(false) {}
 
     explicit
@@ -135,6 +135,14 @@ public:
     bool String(const std::basic_string<Ch>& str) {
       return String(str.data(), SizeType(str.size()));
     }
+
+    // RethinkDB addition: Inject a raw JSON string
+    bool RawJson(const std::basic_string<Ch>& raw) {
+        for (const Ch &c : raw) {
+            os_->Put(c);
+        }
+        return true;
+    }
 #endif
 
     bool StartObject() {
@@ -144,7 +152,7 @@ public:
     }
 
     bool Key(const Ch* str, SizeType length, bool copy = false) { return String(str, length, copy); }
-	
+
     bool EndObject(SizeType memberCount = 0) {
         (void)memberCount;
         RAPIDJSON_ASSERT(level_stack_.GetSize() >= sizeof(Level));
@@ -292,7 +300,7 @@ protected:
                     os_->Put(hexDigits[(trail >> 12) & 15]);
                     os_->Put(hexDigits[(trail >>  8) & 15]);
                     os_->Put(hexDigits[(trail >>  4) & 15]);
-                    os_->Put(hexDigits[(trail      ) & 15]);                    
+                    os_->Put(hexDigits[(trail      ) & 15]);
                 }
                 else
                     return false;   // invalid code point
@@ -325,7 +333,7 @@ protected:
         if (level_stack_.GetSize() != 0) { // this value is not at root
             Level* level = level_stack_.template Top<Level>();
             if (level->valueCount > 0) {
-                if (level->inArray) 
+                if (level->inArray)
                     os_->Put(','); // add comma if it is not the first element in array
                 else  // in object
                     os_->Put((level->valueCount % 2 == 0) ? ',' : ':');

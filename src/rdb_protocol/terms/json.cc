@@ -14,18 +14,26 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const datum_string_t &data = args->arg(env, 0)->as_str();
-        // TODO! Can we avoid this copy?
-        std::string std_data = data.to_std();
+        const datum_string_t data = args->arg(env, 0)->as_str();
+
+        // Copy the string into a null-terminated c-string that we can write to,
+        // so we can use RapidJSON in-situ parsing (and at least avoid some additional
+        // copying).
+        std::vector<char> str_buf(data.size() + 1);
+        memcpy(str_buf.data(), data.data(), data.size());
+        str_buf[data.size()] = '\0';
+
         rapidjson::Document json;
-        json.Parse(std_data.c_str());
+        // Note: Insitu will cause some parts of `json` to directly point into
+        // `str_buf`. `str_buf`'s life time must be at least as long as `json`'s.
+        json.ParseInsitu(str_buf.data());
 
         // TODO! Fetch the actual parsing error from rapidjson
         rcheck(!json.HasParseError(), base_exc_t::GENERIC,
                strprintf("Failed to parse \"%s\" as JSON.",
                  (data.size() > 40
-                  ? (std_data.substr(0, 37) + "...").c_str()
-                  : std_data.c_str())));
+                  ? (data.to_std().substr(0, 37) + "...").c_str()
+                  : data.to_std().c_str())));
         return new_val(to_datum(json, env->env->limits(),
                                 env->env->reql_version()));
     }

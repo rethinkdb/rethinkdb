@@ -11,7 +11,8 @@ template<class T>
 class scoped_array_t;
 
 namespace json_shim {
-MUST_USE bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING;
+// `str` must be a null-terminated C-string. It might get modified in unspecified ways.
+MUST_USE bool parse_json_pb(Query *q, int64_t token, char *str) THROWS_NOTHING;
 // `write_json_pb()` appends the encoded response onto out, leaving any existing
 // data intact.
 void write_json_pb(const Response &r, std::string *out) THROWS_NOTHING;
