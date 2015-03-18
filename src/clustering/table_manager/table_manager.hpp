@@ -49,7 +49,7 @@ private:
     /* `leader_t` hosts the `contract_coordinator_t`. */
     class leader_t {
     public:
-        leader_t(table_manager_t *_parent);
+        explicit leader_t(table_manager_t *_parent);
         ~leader_t();
 
     private:

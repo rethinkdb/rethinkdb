@@ -10,8 +10,6 @@
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-const char *const sindex_blob_prefix = "$reql_index_function$";
-
 namespace ql {
 class datum_range_t;
 namespace changefeed {

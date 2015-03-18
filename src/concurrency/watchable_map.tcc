@@ -40,7 +40,7 @@ void watchable_map_t<key_t, value_t>::run_key_until_satisfied(
     key_subs_t subs(this, key,
         [&](const value_t *new_value) {
             if (fun(new_value)) {
-                ok.pulse();
+                ok.pulse_if_not_already_pulsed();
             }
         }, true);
     wait_interruptible(&ok, interruptor);

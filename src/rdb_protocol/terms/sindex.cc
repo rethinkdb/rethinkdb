@@ -17,6 +17,8 @@ namespace ql {
 `sindex_status()`. `sindex_config_from_string()` parses that string when it's passed to
 `sindex_create()`. */
 
+const char *const sindex_blob_prefix = "$reql_index_function$";
+
 datum_string_t sindex_config_to_string(const sindex_config_t &config) {
     sindex_reql_version_info_t version;
     version.original_reql_version = config.func_version;

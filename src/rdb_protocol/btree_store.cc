@@ -84,6 +84,8 @@ store_t::store_t(serializer_t *serializer,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
+                 /* TODO: We should track outdated indexes by looking at the Raft state,
+                 not by looking at the `store_t`. */
                  scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
     : store_view_t(region_t::universe()),
