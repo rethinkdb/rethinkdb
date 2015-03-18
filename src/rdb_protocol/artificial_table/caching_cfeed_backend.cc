@@ -72,8 +72,12 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_initial_
         signal_t *interruptor) {
     proof->guarantee_is_holding(&mutex);
 
-    /* This is necessary to make sure that the initial values are up-to-date. */
+    /* Calling `diff_dirty()` is necessary to make sure that the initial values are
+    up-to-date. */
     if (!diff_dirty(proof, interruptor)) {
+        /* Something went wrong when we were retrieving the current values from the
+        table. Returning `false` will cause the user to get an error message instead of
+        being able to open a changefeed. */
         return false;
     }
 
