@@ -522,12 +522,19 @@ public:
     artificial_t();
     virtual ~artificial_t();
 
+    /* Rules for synchronization between `subscribe()` and `send_all()`:
+    - `send_all()` must never be called during a call to `subscribe()`
+    - The stream of changes to `send_all()` must not squash the state represented by
+        `initial_values` */
+
     counted_t<datum_stream_t> subscribe(
         env_t *env,
         bool include_states,
         const keyspec_t::spec_t &spec,
-        artificial_table_backend_t *subscriber,
+        const std::string &primary_key_name,
+        const std::vector<datum_t> &initial_values,
         const protob_t<const Backtrace> &bt);
+
     void send_all(const msg_t &msg);
 
     /* `can_be_removed()` returns `true` if there are no changefeeds currently using the
