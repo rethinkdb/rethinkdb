@@ -373,11 +373,13 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
     env_t *env;
 };
 
+// RSI: handle `return_initial: false` for point and limit cfeeds.
+// RSI: handle `union`
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1),
-                    optargspec_t({"squash", "include_states"})) { }
+                    optargspec_t({"squash", "return_initial", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
