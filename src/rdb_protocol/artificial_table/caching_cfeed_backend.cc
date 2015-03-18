@@ -49,13 +49,13 @@ void caching_cfeed_artificial_table_backend_t::notify_break() {
 
 caching_cfeed_artificial_table_backend_t::caching_machinery_t::caching_machinery_t(
             caching_cfeed_artificial_table_backend_t *_parent) :
-        parent(_parent),
         /* Set `dirtiness` to force us to load initial values. Either `dirtiness_t::all`
         or `dirtiness_t::all_stop` would work equally well here since we don't have any
         subscribers yet, but `all_stop` saves us a few CPU cycles by not diffing the old
         values against the new ones. */
         dirtiness(dirtiness_t::all_stop),
-        waker(nullptr) {
+        waker(nullptr),
+        parent(_parent) {
     guarantee(parent->caching_machinery == nullptr);
     parent->caching_machinery = this;
     coro_t::spawn_sometime(std::bind(&caching_machinery_t::run, this, drainer.lock()));
@@ -64,6 +64,24 @@ caching_cfeed_artificial_table_backend_t::caching_machinery_t::caching_machinery
 caching_cfeed_artificial_table_backend_t::caching_machinery_t::~caching_machinery_t() {
     guarantee(parent->caching_machinery == this);
     parent->caching_machinery = nullptr;
+}
+
+bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_initial_values(
+        const new_mutex_acq_t *proof,
+        std::vector<ql::datum_t> *out,
+        signal_t *interruptor) {
+    proof->guarantee_is_holding(&mutex);
+
+    /* This is necessary to make sure that the initial values are up-to-date. */
+    if (!diff_dirty(proof, interruptor)) {
+        return false;
+    }
+
+    out->clear();
+    for (const auto &pair : old_values) {
+        out->push_back(pair.second);
+    }
+    return true;
 }
 
 void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
@@ -108,7 +126,7 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
 }
 
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_dirty(
-        new_mutex_acq_t *proof, signal_t *interruptor) {
+        const new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Copy the dirtiness flags into local variables and reset them. Resetting them now
     is important because it means that notifications that arrive while we're processing
     the current batch will be queued up instead of ignored. */
@@ -130,7 +148,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_dirty(
 }
 
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
-        const ql::datum_t &key, new_mutex_acq_t *proof, signal_t *interruptor) {
+        const ql::datum_t &key, const new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Fetch new value from backend */
     ql::datum_t new_val;
     std::string error;
@@ -163,7 +181,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
 }
 
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_all(
-        bool is_break, new_mutex_acq_t *proof, signal_t *interruptor) {
+        bool is_break, const new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Fetch the new values of everything */
     std::map<store_key_t, ql::datum_t> new_values;
     if (!get_values(interruptor, &new_values)) {
@@ -236,24 +254,6 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
         store_key_t key2(key.print_primary());
         auto pair = out->insert(std::make_pair(key2, doc));
         guarantee(pair.second);
-    }
-    return true;
-}
-
-bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_initial_values(
-        new_mutex_acq_t *proof,
-        std::vector<ql::datum_t> *out,
-        signal_t *interruptor) {
-    proof->guarantee_is_holding(&mutex);
-
-    /* This is necessary to make sure that the initial values are up-to-date. */
-    if (!diff_dirty(proof, interruptor)) {
-        return false;
-    }
-
-    out->clear();
-    for (const auto &pair : old_values) {
-        out->push_back(pair.second);
     }
     return true;
 }

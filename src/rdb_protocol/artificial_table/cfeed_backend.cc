@@ -7,7 +7,7 @@
 static const int machinery_expiration_secs = 60;
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
-        new_mutex_acq_t *proof,
+        const new_mutex_acq_t *proof,
         const store_key_t &key,
         const ql::datum_t &old_val,
         const ql::datum_t &new_val) {

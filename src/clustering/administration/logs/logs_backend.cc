@@ -388,7 +388,7 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
 }
 
 bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
-        new_mutex_acq_t *proof,
+        const new_mutex_acq_t *proof,
         std::vector<ql::datum_t> *initial_values_out,
         signal_t *interruptor) {
     std::string dummy_error;

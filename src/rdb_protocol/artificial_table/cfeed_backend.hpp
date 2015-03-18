@@ -37,7 +37,7 @@ protected:
     protected:
         /* Subclasses can use these to send notifications */
         void send_all_change(
-            new_mutex_acq_t *proof,
+            const new_mutex_acq_t *proof,
             const store_key_t &key,
             const ql::datum_t &old_val,
             const ql::datum_t &new_val);
@@ -49,7 +49,7 @@ protected:
         the state is not squashed, it may generate calls to `send_all_change()`. It
         returns `false` if something goes wrong. */
         virtual bool get_initial_values(
-            new_mutex_acq_t *proof,
+            const new_mutex_acq_t *proof,
             std::vector<ql::datum_t> *initial_values_out,
             signal_t *interruptor) = 0;
 

@@ -48,26 +48,14 @@ private:
 
         explicit caching_machinery_t(caching_cfeed_artificial_table_backend_t *parent);
         ~caching_machinery_t();
-        void run(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
-        bool diff_dirty(new_mutex_acq_t *proof, signal_t *interruptor);
-        bool diff_one(const ql::datum_t &key, new_mutex_acq_t *proof,
-            signal_t *interruptor);
-        bool diff_all(bool is_break, new_mutex_acq_t *proof, signal_t *interruptor);
-        bool get_values(signal_t *interruptor, std::map<store_key_t, ql::datum_t> *out);
 
         bool get_initial_values(
-            new_mutex_acq_t *proof,
+            const new_mutex_acq_t *proof,
             std::vector<ql::datum_t> *out,
             signal_t *interruptor);
 
-        caching_cfeed_artificial_table_backend_t *parent;
-
         /* Pulsed when all of the initial values have been fetched. */
         cond_t ready;
-
-        /* `old_values` stores the last known value of every key. This is used to fill in
-        the `old_val` field on changefeed changes. */
-        std::map<store_key_t, ql::datum_t> old_values;
 
         /* If `dirtiness` is `none_or_some`, then either none of the keys are dirty, or
         a finite set of specific keys are dirty (stored in `dirty_keys`). If it's `all`,
@@ -83,6 +71,21 @@ private:
         /* If `waker` is non-null, it should be pulsed whenever something becomes dirty.
         */
         cond_t *waker;
+
+    private:
+        void run(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
+        bool diff_dirty(const new_mutex_acq_t *proof, signal_t *interruptor);
+        bool diff_one(const ql::datum_t &key, const new_mutex_acq_t *proof,
+            signal_t *interruptor);
+        bool diff_all(bool is_break, const new_mutex_acq_t *proof,
+            signal_t *interruptor);
+        bool get_values(signal_t *interruptor, std::map<store_key_t, ql::datum_t> *out);
+
+        caching_cfeed_artificial_table_backend_t *parent;
+
+        /* `old_values` stores the last known value of every key. This is used to fill in
+        the `old_val` field on changefeed changes. */
+        std::map<store_key_t, ql::datum_t> old_values;
 
         auto_drainer_t drainer;
     };

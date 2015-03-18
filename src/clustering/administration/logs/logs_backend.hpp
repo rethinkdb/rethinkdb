@@ -81,7 +81,7 @@ private:
         /* Called by `cfeed_artificial_table_backend_t` to fetch the initial values for a
         new changefeed */
         bool get_initial_values(
-            new_mutex_acq_t *proof,
+            const new_mutex_acq_t *proof,
             std::vector<ql::datum_t> *initial_values_out,
             signal_t *interruptor);
 
