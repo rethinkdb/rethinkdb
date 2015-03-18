@@ -1346,19 +1346,16 @@ public:
     virtual void start_artificial(env_t *, const uuid_u &,
                                   const std::string &primary_key_name,
                                   const std::vector<datum_t> &initial_values) {
-        // `values` should only be empty in the unit tests.
-        if (!initial_values.empty()) {
-            datum_t initial = datum_t::null();
-            /* Linear search is slow, but in practice there are few enough values that
-            it's OK. */
-            for (const datum_t &d : initial_values) {
-                if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
-                    initial = d;
-                    break;
-                }
+        datum_t initial = datum_t::null();
+        /* Linear search is slow, but in practice there are few enough values that
+        it's OK. */
+        for (const datum_t &d : initial_values) {
+            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
+                initial = d;
+                break;
             }
-            queue->add(store_key_t(pkey.print_primary()), datum_t(), initial);
         }
+        queue->add(store_key_t(pkey.print_primary()), datum_t(), initial);
         started = true;
     }
     virtual void start_real(env_t *env,

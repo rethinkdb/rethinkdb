@@ -834,14 +834,14 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
         p10 = pair.second.point_10->next_batch(&env, bs);
         rng = pair.second.range->next_batch(&env, bs);
         if (i == 0) {
-            guarantee(p0.size() == 1);
+            guarantee(p0.size() == 2);
         } else {
-            guarantee(p0.size() == 0);
+            guarantee(p0.size() == 1);
         }
         if (i <= 10) {
-            guarantee(p10.size() == 1);
+            guarantee(p10.size() == 2);
         } else {
-            guarantee(p10.size() == 0);
+            guarantee(p10.size() == 1);
         }
         if (i <= 10) {
             guarantee(rng.size() == 10 - i);
