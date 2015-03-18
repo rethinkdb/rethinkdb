@@ -17,4 +17,6 @@ rethinkdb = r
 # set the _r attribute to net.Connection
 Connection._r = r
 
+version = "1.16.0-0"
+
 __all__ = ['r', 'rethinkdb'] + errors.__all__
