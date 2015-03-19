@@ -1415,6 +1415,10 @@ class WebSocketConnection extends Connection
     # one.
     DEFAULT_PROTOCOL: 'ws'
 
+
+    # We define the default ping interval in case the user doesn't specify one.
+    DEFAULT_PING_INTERVAL: 37*1000
+
     # A static method used by `r.connect` to decide which kind of
     # connection to create in a given environment. Here we check if
     # XHRs are defined. If not, we aren't in the browser and shouldn't
@@ -1439,6 +1443,8 @@ class WebSocketConnection extends Connection
         # also allowed to be), then use the default protocol, which is
         # 'ws'
         protocol = if host.protocol is 'wss' then 'wss' else @DEFAULT_PROTOCOL
+
+        ping_interval = host.ping_interval or @DEFAULT_PING_INTERVAL
 
         # Next we construct an XHR with the path to the reql query
         # endpoint on the http server.
@@ -1520,7 +1526,16 @@ class WebSocketConnection extends Connection
                         # just giving it as a callback directly so
                         # that it gets bound to the correct
                         # `this`.
-                        @socket.onmessage = (e) => @_data(new Buffer(new Uint8Array(e.data)))
+                        @socket.onmessage = (e) =>
+                          if e.data != 'pong'
+                            @_data(new Buffer(new Uint8Array(e.data)))
+
+                        if ping_interval > 0
+                          @ping = setInterval =>
+                            @socket.send('ping')
+                          , ping_interval
+                        else
+                          @ping = null
 
                         # Notify listeners we've connected
                         # successfully. Notably, the Connection
@@ -1546,6 +1561,9 @@ class WebSocketConnection extends Connection
     # throws out any data for unconsumed cursors etc and invalidates
     # this connection id.
     cancel: ->
+        if @ping
+          clearInterval @ping
+
         @socket.close()
         super()
 
