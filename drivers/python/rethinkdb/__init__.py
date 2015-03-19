@@ -17,6 +17,11 @@ rethinkdb = r
 # set the _r attribute to net.Connection
 Connection._r = r
 
-__version__ = "1.16.0-0"
+__version__ = None  # required for initial installation
+
+try:
+    __version__ = get_distribution(__project__).version
+except DistributionNotFound:
+    pass
 
 __all__ = ['r', 'rethinkdb'] + errors.__all__
