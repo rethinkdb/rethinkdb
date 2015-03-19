@@ -63,8 +63,8 @@ class MainContainer extends Backbone.View
 
     fetch_data: (server_uuid) =>
         query = r.expr
-            tables: r.db(system_db).table('table_config').merge({id: r.row("id")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
-            servers: r.db(system_db).table('server_config').merge({id: r.row("id")}).pluck('name', 'id').coerceTo("ARRAY")
+            tables: r.db(system_db).table('table_config').merge((row) -> id: row("id")).pluck('db', 'name', 'id').coerceTo("ARRAY")
+            servers: r.db(system_db).table('server_config').merge((row) -> id: row("id")).pluck('name', 'id').coerceTo("ARRAY")
             issues: driver.queries.issues_with_ids()
             num_issues: r.db(system_db).table('current_issues').count()
             num_servers: r.db(system_db).table('server_config').count()
