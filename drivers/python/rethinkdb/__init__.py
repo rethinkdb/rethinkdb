@@ -5,7 +5,9 @@ from .query import *
 from .errors import *
 from .ast import *
 from . import docs
+from pkg_resources import get_distribution, DistributionNotFound
 
+ 
 class r(__builtins__['object']): # defends against re-importing obscuring object
     pass
 
@@ -20,7 +22,7 @@ Connection._r = r
 __version__ = None
 
 try:
-    __version__ = get_distribution(__project__).version
+    __version__ = get_distribution('rethinkdb').version
 except DistributionNotFound:
     pass
 
