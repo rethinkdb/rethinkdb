@@ -17,12 +17,12 @@ ALL_WEB_ASSETS := $(BUILD_ROOT_DIR)/web-assets
 
 $(BUILD_ROOT_DIR)/web-assets: $(WEB_ASSETS_SRC_FILES) $(JS_BUILD_DIR)/rethinkdb.js | $(GULP_BIN_DEP)
 	$P GULP
-	$(GULP) build --cwd $(TOP)/admin $(if $(filter $(VERBOSE),0), --silent)
+	$(GULP) build --cwd $(TOP)/admin $(if $(filter $(VERBOSE),0), --silent) --version $(RETHINKDB_VERSION) $(if $(filter $(NO_UGLIFY),0), --uglify)
 	touch $@
 
 .PHONY: web-assets-watch
 web-assets-watch:
-	$(GULP) --cwd $(TOP)/admin
+	$(GULP) --cwd $(TOP)/admin --version $(RETHINKDB_VERSION)
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
 

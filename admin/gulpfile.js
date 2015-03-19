@@ -2,21 +2,21 @@
 var gulp = require('gulp'),
     lessc = require('gulp-less'),
     gutil = require('gulp-util'),
+    replace = require('gulp-replace'),
+    rename = require('gulp-rename'),
+    newer = require('gulp-newer'),
+    less = require('gulp-less'),
     browserify = require('browserify'),
     uberWatchify = require('uber-watchify'),
     File = require('vinyl'),
     vinylSource = require('vinyl-source-stream'),
     buffer = require('vinyl-buffer'),
-    concat = require('gulp-concat'),
-    replace = require('gulp-replace'),
-    rename = require('gulp-rename'),
-    newer = require('gulp-newer'),
     del = require('del'),
     fs = require('fs'),
     path = require('path'),
     argv = require('yargs').argv,
-    less = require('gulp-less'),
     coffeeify = require('coffeeify'),
+    uglify = require('uglifyify'),
     hbsfy = require('hbsfy');
 
 var ROOT_DIR = path.resolve(__dirname, '..'),
@@ -46,7 +46,7 @@ function error() {
     process.exit(1);
 }
 
-var info = process.argv.indexOf('--silent') > -1 ? function(){ } : gutil.log;
+var info = argv.silent ? function(){} : gutil.log;
 
 gulp.task('default', ['build', 'watch']);
 
@@ -114,8 +114,8 @@ function createBundler(watch) {
   // This is the browserify bundler, used by both the build and watch
   // tasks. Only one should be created, and re-used so that it can
   // cache build results when rebuilding on file changes
-  return uberWatchify(browserify({
-      entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
+  var retval = uberWatchify(browserify({
+    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
     cache: uberWatchify.getCache(BROWSERIFY_CACHE_FILE),
     extensions: ['.coffee', '.hbs'],
     packageCache: {},
@@ -134,7 +134,13 @@ function createBundler(watch) {
     // convert coffee files first
     .transform(coffeeify)
     // convert handlebars files & insert handlebars runtime
-    .transform(hbsfy)
+    .transform(hbsfy);
+
+  if(argv.uglify) {
+    retval.transform({global: true}, uglify);
+  }
+
+  return retval
     .add(VERSION_FILE, {expose: 'rethinkdb-version'})
     .add(DRIVER_BUILD_DIR+'/rethinkdb.js',
          {expose: 'rethinkdb'})
