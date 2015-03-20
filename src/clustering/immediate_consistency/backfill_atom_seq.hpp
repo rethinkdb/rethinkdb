@@ -20,6 +20,17 @@ public:
     key_range_t::right_bound_t get_right_key() const { return right_key; }
     size_t get_mem_size() const { return mem_size; }
 
+    region_t get_region() const {
+        if (left_key == right_key) {
+            return region_t::empty();
+        } else {
+            key_range_t kr;
+            kr.left = left_key.key;
+            kr.right = right_key;
+            return region_t(beg_hash, end_hash, kr);
+        }
+    }
+
     /* Appends an atom to the end of the seq. Atoms must be appended in lexicographical
     order. */
     void push_back(atom_t &&atom) {
@@ -35,6 +46,15 @@ public:
     void push_back_nothing(const key_range_t::right_bound_t &bound) {
         guarantee(bound >= right_key);
         right_key = bound;
+    }
+
+    /* Concatenates two `backfill_atom_seq_t`s. They must be adjacent. */
+    void concat(backfill_atom_seq_t &&other) {
+        guarantee(beg_hash == other.beg_hash && end_hash == other.end_hash);
+        guarantee(right_key == other.left_key);
+        right_key = other.right_key;
+        mem_size += other.mem_size;
+        atoms.splice(atoms.end(), std::move(other.atoms));
     }
 
 private:

@@ -120,7 +120,9 @@ void backfillee_t::on_atoms(
         const fifo_enforcer_write_token_t &fifo_token,
         const session_id_t &session,
         const region_map_t<version_t> &version,
-        const std::deque<backfill_atom_t> &chunk) {
+        const backfill_atom_seq_t<backfill_atom_t> &chunk) {
+    rassert(version.get_domain() == chunk.get_region());
+
     /* Find the session that this chunk is a part of */
     session_info_t *session = current_session;
     if (session == nullptr) {
@@ -156,23 +158,18 @@ void backfillee_t::on_atoms(
         return;
     }
 
-    region_t region_done = version.get_domain().inner;
-    guarantee(region_done.beg == store->get_region().beg);
-    guarantee(region_done.end == store->get_region().end);
-    guarantee(region_done.inner.left == range_to_backfill.left);
-    guarantee(region_done.inner.right <= range_to_backfill.right);
+    guarantee(threshold == chunk.get_left_key());
 
     if (session->callback->on_progress(version)) {
         /* Tell the backfiller that the chunk was accepted. This has two purposes: it
         lets the backfiller forget the pre-atoms for that range, and it tells the
         backfiller that it's OK to send more atoms. */
-        size_t chunk_size = 0;
-        for (const backfill_atom_t &atom : chunk) {
-            chunk_size += atom.size();
-        }
         send(mailbox_manager, intro.ack_atoms_mailbox,
-            fifo_source.enter_write(), session_id, region_done, chunk_size);
+            fifo_source.enter_write(), session_id, chunk.get_right_key(),
+            chunk.get_mem_size());
 
+        threshold = chunk.get_right_key();
+        
         if (range_done.inner == range_to_backfill) {
             /* This was the last chunk. We're done with the backfill. */
             range_to_backfill = key_range_t::empty();
