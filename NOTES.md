@@ -6,7 +6,7 @@ This is a release candidate for the upcoming RethinkDB 2.0 release.
 It is not for production use. It might still have bugs. If you decide
 to test it, please [back up all][backup-docs] your data first.
 
-Please report any bugs you find on github
+Please report any bugs you find on GitHub
 (http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing
 list (https://groups.google.com/forum/#!forum/rethinkdb).
 
