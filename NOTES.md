@@ -1,4 +1,4 @@
-# Release 2.0.0-RC1 (Musashi)
+# Release 2.0.0-RC1
 
 Released on 2015-03-23
 
@@ -6,10 +6,13 @@ This is a release candidate for the upcoming RethinkDB 2.0 release.
 It is not for production use. It might still have bugs. If you decide
 to test it, please [back up all][backup-docs] your data first.
 
+Please report any bugs you find on github
+(http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing
+list (https://groups.google.com/forum/#!forum/rethinkdb).
+
 Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
 * Improved support for asynchronous queries
-* Added a new feature called `tables` which can be used to store JSON documents
 
 Read the [blog post][2.0-RC1-blog] for more details.
 
@@ -17,7 +20,8 @@ Read the [blog post][2.0-RC1-blog] for more details.
 
 ## Compatibility ##
 
-This release may not be compatible with RethinkDB 2.0.
+Data files accessed with this release candidate might be incompatible
+with the final version of RethinkDB 2.0.
 
 ### Handling of negative zero in indexes ###
 
@@ -37,8 +41,8 @@ the `rethinkdb index-rebuild` utility.  If any of your documents have
 negative zero values in their primary keys, those documents will
 become partially inaccessible in RethinkDB 2.0. You will need to
 re-import the affected tables using the `rethinkdb dump` and
-`rethinkdb restore` commands. See [Back up your data][backup-docs] for
-more information.
+`rethinkdb restore` commands. See the article "[Back up your
+data][backup-docs]" for more information.
 
 If you are unsure if any of your documents are affected, you can run
 `python -m rethinkdb._negative_zero_check` after upgrading both the
@@ -64,7 +68,7 @@ rethinkdb._negative_zero_check --help` for additional options.
   All exceptions including `RqlDriverError` now inherit from the
   `RqlError` type.  `RqlRuntimeError`, `RqlCompileError` and
   `RqlClientError` additionally inherit from the new `RqlQueryError`
-  type.
+  type
 
 ## New Features ##
 
@@ -73,60 +77,60 @@ rethinkdb._negative_zero_check --help` for additional options.
   * `between` no longer accepts `null` as a bound. The new `r.minval` and `r.maxval` can be used instead (#1023)
   * Added support for getting the state of a changefeed using the new `include_states` optarg to `changes` (#3709)
 * Drivers
-  * Added support for non-blocking `cursor.get` (#3529)
-  * Added support for parallel query execution on a single connection (#3754)
+  * Added support for non-blocking `cursor.next` (#3529)
+  * Added support for executing multiple queries in parallel on a single connection (#3754)
   * Consolidated the return types and use the new `ResponseNotes` field to convey extra information (#3715)
 * Python driver
-  * Add an optional script that warns for documents with negative zero as a primary key (#3637)
+  * Added an optional script that warns for documents with negative zero in a primary key (#3637)
 
 ## Improvements ##
 
 * Server
   * Report open cursors as a single entry in the jobs table (#3662)
-  * No longer send timestamps between servers in `batchspec_t` (#2671)
-  * No longer perform some expensive checks in release mode (#3656)
+  * Timestamps are no longer sent between servers in `batchspec_t` (#2671)
+  * Some expensive changefeed checks are no longer performed in release mode (#3656)
   * Include the remote port number in the heartbeat timeout message (#2891)
   * Improved the ordering and throttling of reads and writes (#1606)
-  * Limit the default number of documents per batch to reduce latency (#3806)
+  * Limit the number of documents per write batch to reduce the impact of large writes on other queries (#3806)
   * Execute multiple queries in parallel on a single connection (#3296)
   * Improved the performance of sending responses (#3744)
+  * Immediately send back an empty first batch when the result is a changefeed (#3852)
 * Web UI
-  * Added a modifiable query limit (#3910)
-  * Add an "add table" button to each database (#3522)
+  * Added a configurable limit for the results per page in the Data Explorer (#3910)
+  * Added an "add table" button to each database (#3522)
 * ReQL
   * `table.rebalance` with insufficient data is no longer an error (#3679)
   * Renamed `indexes_of` to `offsets_of` to avoid confusion with secondary indexes (#3265)
   * Removed `any` and `all` in favor of `or` and `and` (#1581)
-  * Immediately return an empty first batch when the result is a changefeed (#3852)
-  * No longer include trivial changes from `return_changes` (#3697)
-  * Reduce the size of profiles (#3218)
-  * No longer squash changefeeds by default (#3904)
+  * Trivial changes are filtered out from `return_changes` (#3697)
+  * Reduced the size of profiles (#3218)
+  * Changefeeds are no longer squashed by default (#3904)
 * JavaScript driver
   * Added an upper bound to the bluebird dependency (#3823)
 * Ruby driver
   * Added a `timeout` option to `r.connect` (#1666)
   * Improved the code style (#3900, #3901, #3906)
-  * Allow strings as keys in the config options (#3905)
+  * Strings are now allowed as keys in the config options (#3905)
 * Build
-  * Upgraded to a more recent version of V8 and drop support for out-of-tree V8 (#3472)
+  * Upgraded to a more recent version of V8 and dropped support for out-of-tree V8 (#3472)
   * Added support for building with Python 3 (#3731)
 * Packaging
   * Got rid of the outdated bash completion script (#719)
   * Allow installing RethinkDB in 32-bit OS X on a 64-bit processor (#1595)
 * Tests
-  * Increase the number of retries in the `RDBBtree` tests to avoid false positives (#3805)
+  * Increased the number of retries in the `RDBBtree` tests to avoid false positives (#3805)
 
 ## Bug Fixes ##
 
 * Server
   * Fixed a race condition that could be caused by concurrent queries (#3766)
-  * No longer count deleted servers and tables during version check (#3692)
+  * Deleted servers and tables are no longer counted during version checks (#3692)
   * Made JSON parsing more strict (#3810)
   * Fixed a bug that could cause the server to crash when killed (#3792)
-  * No longer allow renaming a database to "rethinkdb" (#3858)
+  * Databases can no longer be renamed to "rethinkdb" (#3858)
   * Return an initial value for point changefeeds on system tables (#3723)
-  * Improve the handling of negative zero (#3637)
-  * Correctly abort `order_by.limit` changefeeds when a table because unavailable (#3932)
+  * Improved the handling of negative zero (#3637)
+  * Correctly abort `order_by.limit` changefeeds when a table become unavailable (#3932)
   * Do not unlink files early to avoid crashing in virtual environments (#3791)
 * ReQL
   * Fixed the behavior of point changefeeds on system tables (#3944)
