@@ -13,48 +13,64 @@ public:
     /* The backfillee sends the backfiller a `backfiller_bcard_t::intro_1_t` to start the
     backfill. The backfiller responds with a `backfiller_bcard_t::intro_2_t`. */
 
-    typedef mailbox_t<void(
-        fifo_enforcer_write_token_t,
-        std::deque<backfill_pre_chunk_t>,
-        region_map_t<state_timestamp_t>
-        )> pre_chunk_mailbox_t;
-
-    typedef mailbox_t<void(
-        fifo_enforcer_write_token_t,
-        std::deque<backfill_chunk_t>,
-        region_map_t<version_t>
-        )> chunk_mailbox_t;
+    typedef uuid_u session_id_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         key_range_t,
-        region_map_t<state_timestamp_t>,
-        chunk_mailbox_t::address_t
-        )> start_mailbox_t;
+        std::deque<backfill_pre_chunk_t>,
+        )> pre_atoms_mailbox_t;
 
     typedef mailbox_t<void(
-        fifo_enforcer_write_token_t
+        fifo_enforcer_write_token_t,
+        session_id_t,
+        key_range_t
+        )> go_mailbox_t;
+
+    typedef mailbox_t<void(
+        fifo_enforcer_write_token_t,
+        session_id_t
         )> stop_mailbox_t;
 
     typedef mailbox_t<void(
-        fifo_enforcer_write_token_t
-        )> continue_mailbox_t;
+        fifo_enforcer_write_token_t,
+        session_id_t,
+        key_range_t,
+        size_t
+        )> ack_atoms_mailbox_t;
 
     class intro_2_t {
     public:
-        pre_chunk_mailbox_t::address_t pre_chunk_mailbox;
-        start_mailbox_t::address_t start_mailbox;
+        region_map_t<state_timestamp_t> common_version;
+        pre_atoms_mailbox_t::address_t pre_atoms_mailbox;
+        go_mailbox_t::address_t go_mailbox;
         stop_mailbox_t::address_t stop_mailbox;
-        continue_mailbox_t::address_t continue_mailbox;
+        ack_atoms_mailbox_t::address_t ack_atoms_mailbox;
     };
+
+    typedef mailbox_t<void(
+        fifo_enforcer_write_token_t,
+        session_id_t,
+        region_map_t<version_t>,
+        std::deque<backfill_chunk_t>
+        )> atoms_mailbox_t;
+
+    typedef mailbox_t<void(
+        fifo_enforcer_write_token_t,
+        size_t
+        )> ack_pre_atoms_mailbox_t;
 
     class intro_1_t {
     public:
-        mailbox_t<void(intro2_t)>::address_t intro_mailbox;
+        region_map_t<version_t> initial_version;
+        branch_history_t initial_version_history;
+        mailbox_t<void(intro_2_t)>::address_t intro_mailbox;
+        ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
+        atoms_mailbox_t atoms_mailbox;
     };
 
     region_t region;
-    registrar_business_card_t<intro1_t> registrar;
+    registrar_business_card_t<intro_1_t> registrar;
 };
 
 RDB_DECLARE_SERIALIZABLE(backfiller_bcard_t);

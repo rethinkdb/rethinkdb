@@ -54,39 +54,57 @@ public:
     bool go(callback_t *callback, signal_t *interruptor);
 
 private:
-    /* `on_chunk()` is the mailbox callback for a mailbox that `go()` constructs.
-    `fifo_token`, `data`, and `version` are mailbox message parts; `callback`,
-    `callback_mutex`, `stop_cond`, and `callback_returned_false_out` are set by `go()`.
-    */
-    void on_chunk(
+    class session_info_t {
+    public:
+        callback_t *callback;
+        bool callback_returned_false;
+        backfiller_bcard_t::session_id_t session_id;
+        cond_t stop;
+        new_mutex_t mutex;
+        auto_drainer_t drainer;
+    };
+
+    void on_ack_pre_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
-        const std::deque<backfill_chunk_t> &data,
+        size_t chunk_size);
+
+    void on_atoms(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &fifo_token,
+        const session_id_t &session_id,
         const region_map_t<version_t> &version,
-        callback_t *callback,
-        new_mutex_t *callback_mutex,
-        cond_t *stop_cond,
-        bool *callback_returned_false_out);
+        const std::deque<backfill_chunk_t> &chunk);
 
     void send_pre_chunks(
-        signal_t *interruptor);
+        auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *const mailbox_manager;
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
 
-    /* This is the timestamps of the common ancestor of the current store state and the
-    `backfiller_t`'s store state at the time that the `backfillee_t` is created. */
-    region_map_t<state_timestamp_t> common_ancestor;
+    /* `range_to_backfill` is the sub-range of the store's region that we still own.
+    Whenever `callback->on_progress()` approves a chunk of data, we shrink
+    `range_to_backfill`. When we finish the backfill it will be empty. */
+    key_range_t range_to_backfill;
 
-    key_range_t to_backfill;
-    key_range_t to_send_pre_chunks;
+    session_info_t *current_session;
 
     fifo_source_t fifo_source;
     fifo_sink_t fifo_sink;
 
+    /* `pre_atom_throttler` limits how many pre-atoms we send to the backfiller.
+    `pre_atom_throttler_acq` always holds `pre_atom_throttler`, but its `count` changes
+    to reflect how much capacity is currently owned by the other server. */
+    new_semaphore_t pre_atom_throttler;
+    new_semaphore_acq_t pre_atom_throttler_acq;
+
+    backfiller_bcard_t::intro_2_t intro;
+
+    auto_drainer_t drainer;
+    backfiller_bcard_t::ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
+    backfiller_bcard_t::atoms_mailbox_t atoms_mailbox;
     scoped_ptr_t<registrant_t<backfiller_bcard_t::intro_1_t> > registrant;
-    backfiller_bcard_t::intro2_t intro;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_ */

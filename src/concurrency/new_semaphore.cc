@@ -109,3 +109,17 @@ void new_semaphore_acq_t::change_count(int64_t new_count) {
     // haven't acquired it yet, or other waiters, if we have reduced current_).
     semaphore_->pulse_waiters();
 }
+
+void new_semaphore_acq_t::transfer_in(new_semaphore_acq_t &&other) {
+    guarantee(other.semaphore_ != nullptr);
+    guarantee(other.cond_.is_pulsed());
+    if (semaphore_ != nullptr) {
+        guarantee(semaphore_ == other.semaphore_);
+        guarantee(cond.is_pulsed());
+        change_count(count_ + other.count_);
+        other.reset();
+    } else {
+        *this = std::move(other);
+    }
+}
+

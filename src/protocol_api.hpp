@@ -85,65 +85,6 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-
-#ifndef NDEBUG
-// Checks that the metainfo has a certain value, or certain kind of value.
-class metainfo_checker_callback_t {
-public:
-    virtual void check_metainfo(const region_map_t<binary_blob_t>& metainfo,
-                                const region_t& domain) const = 0;
-protected:
-    metainfo_checker_callback_t() { }
-    virtual ~metainfo_checker_callback_t() { }
-private:
-    DISABLE_COPYING(metainfo_checker_callback_t);
-};
-
-
-struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-
-    trivial_metainfo_checker_callback_t() { }
-    void check_metainfo(UNUSED const region_map_t<binary_blob_t>& metainfo, UNUSED const region_t& region) const {
-        /* do nothing */
-    }
-
-private:
-    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
-};
-
-class metainfo_checker_t {
-public:
-    metainfo_checker_t(const metainfo_checker_callback_t *callback,
-                       const region_t& region) : callback_(callback), region_(region) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo) const {
-        callback_->check_metainfo(metainfo, region_);
-    }
-    const region_t& get_domain() const { return region_; }
-    const metainfo_checker_t mask(const region_t& region) const {
-        return metainfo_checker_t(callback_, region_intersection(region, region_));
-    }
-
-private:
-    const metainfo_checker_callback_t *const callback_;
-    const region_t region_;
-
-    // This _is_ copyable because of mask, but all copies' lifetimes
-    // are limited by that of callback_.
-};
-
-#endif  // NDEBUG
-
-/* {read,write}_token_t hold the lock held when getting in line for the
-   superblock. */
-struct read_token_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
-};
-
-struct write_token_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
-};
-
 // Specifies the desired behavior for insert operations, upon discovering a
 // conflict.
 //  - conflict_behavior_t::ERROR: Signal an error upon conflicts.
