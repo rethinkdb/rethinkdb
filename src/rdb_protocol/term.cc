@@ -257,10 +257,7 @@ void run(query_id_t &&query_id,
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_STOP: {
-            maybe_release_query_id(std::move(query_id), q);
-            scoped_ptr_t<query_cache_t::ref_t> query_ref =
-                query_cache->get(token, use_json, interruptor);
-            query_ref->terminate();
+            query_cache->terminate_query(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } break;
         case Query_QueryType_NOREPLY_WAIT: {
