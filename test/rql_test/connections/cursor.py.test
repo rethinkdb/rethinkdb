@@ -128,7 +128,7 @@ class TestCursor(unittest.TestCase):
         self.cur = r.db(dbName).table(tableName).run(self.conn)
 
     def test_type(self):
-        self.assertEqual(type(self.cur), r.Cursor)
+        self.assertTrue(isinstance(self.cur, r.Cursor))
 
     def test_count(self):
         i = 0
@@ -170,7 +170,7 @@ class TestCursorWait(unittest.TestCase):
                 else:
                     cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
-            except socket.timeout:
+            except r.RqlTimeoutError:
                 cursor_timeouts[cursor_index] += 1
 
         # We need to get ahead of pre-fetching for this to get the error we want
@@ -217,10 +217,10 @@ class TestChangefeedWait(unittest.TestCase):
             r.db(dbName).table_create(tableName).run(conn)
 
         changes = r.db(dbName).table(tableName).changes().run(conn)
-        self.assertRaises(socket.timeout, changes.next, wait=0)
-        self.assertRaises(socket.timeout, changes.next, wait=0.2)
-        self.assertRaises(socket.timeout, changes.next, wait=1)
-        self.assertRaises(socket.timeout, changes.next, wait=5)
+        self.assertRaises(r.RqlTimeoutError, changes.next, wait=0)
+        self.assertRaises(r.RqlTimeoutError, changes.next, wait=0.2)
+        self.assertRaises(r.RqlTimeoutError, changes.next, wait=1)
+        self.assertRaises(r.RqlTimeoutError, changes.next, wait=5)
         res = r.db(dbName).table(tableName).insert({}).run(conn)
         self.assertEqual(res['inserted'], 1)
         res = changes.next(wait=1)
