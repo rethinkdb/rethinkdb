@@ -1,7 +1,11 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-__all__ = ['RqlError', 'RqlClientError', 'RqlCompileError', 'RqlRuntimeError',
-           'RqlDriverError']
+__all__ = ['RqlError',
+           'RqlClientError',
+           'RqlCompileError',
+           'RqlRuntimeError',
+           'RqlDriverError',
+           'RqlTimeoutError']
 
 import sys
 
@@ -23,10 +27,19 @@ try:
 except AttributeError:
     dict_items = lambda d: d.items()
 
-
 class RqlError(Exception):
-    def __init__(self, message, term, frames):
+    def __init__(self, message):
         self.message = message
+
+    def __str__(self):
+        return convertForPrint(self.message)
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(" + repr(self.message) + ")"
+
+class RqlQueryError(RqlError):
+    def __init__(self, message, term, frames):
+        RqlError.__init__(self, message)
         self.frames = frames
         self.query_printer = QueryPrinter(term, self.frames)
 
@@ -35,31 +48,29 @@ class RqlError(Exception):
                                " in:\n" + self.query_printer.print_query() +
                                '\n' + self.query_printer.print_carrots())
 
-    def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.message) + ")"
 
-
-class RqlClientError(RqlError):
+class RqlClientError(RqlQueryError):
     pass
 
 
-class RqlCompileError(RqlError):
+class RqlCompileError(RqlQueryError):
     pass
 
 
-class RqlRuntimeError(RqlError):
+class RqlRuntimeError(RqlQueryError):
     def __str__(self):
         return convertForPrint(self.message + " in:\n" +
                                self.query_printer.print_query() + '\n' +
                                self.query_printer.print_carrots())
 
 
-class RqlDriverError(Exception):
-    def __init__(self, message):
-        self.message = message
+class RqlDriverError(RqlError):
+    pass
 
-    def __str__(self):
-        return convertForPrint(self.message)
+
+class RqlTimeoutError(RqlError):
+    def __init__(self):
+        RqlError.__init__(self, 'Operation timed out.')
 
 
 class QueryPrinter(object):
