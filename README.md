@@ -1,6 +1,8 @@
 [RethinkDB](http://www.rethinkdb.com)
 =================
 
+[![Join the chat at https://gitter.im/rethinkdb/rethinkdb](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/rethinkdb/rethinkdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 RethinkDB is an open-source distributed database. It has an intuitive
 query language, automatically parallelized queries, and simple
 administration.
