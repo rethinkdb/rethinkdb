@@ -466,13 +466,6 @@ void save_exception(std::exception_ptr *err,
     }
 }
 
-bool should_reply(const ql::protob_t<Query> &query) {
-    ql::datum_t noreply = static_optarg("noreply", query);
-    return !(noreply.has() &&
-             noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-             noreply.as_bool());
-}
-
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
@@ -523,7 +516,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             save_exception(&err, &err_str, &abort, [&]() {
                     handler->run_query(std::move(query_id), query_pb, &response,
                                        query_cache, &cb_interruptor);
-                    if (should_reply(query_pb)) {
+                    if (!ql::is_noreply(query_pb)) {
                         response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                         protocol_t::send_response(response, handler,
@@ -532,7 +525,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                     }
                 });
 
-            if (!replied && should_reply(query_pb)) {
+            if (!replied && !ql::is_noreply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
                         make_error_response(drain_signal->is_pulsed(), *conn,
                                             err_str, &response);
@@ -567,7 +560,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
 
     // Respond to any queries still in the run queue
     for (auto const &pair : query_list) {
-        if (should_reply(pair.second)) {
+        if (!ql::is_noreply(pair.second)) {
             Response response;
             save_exception(&err, &err_str, &abort, [&]() {
                     make_error_response(drain_signal->is_pulsed(), *conn,
@@ -644,7 +637,7 @@ void query_server_t::handle(const http_req_t &req,
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            if (!should_reply(query)) {
+            if (ql::is_noreply(query)) {
                 *result = http_res_t(http_status_code_t::BAD_REQUEST,
                                      "application/text",
                                      "noreply queries are not supported over HTTP\n");
