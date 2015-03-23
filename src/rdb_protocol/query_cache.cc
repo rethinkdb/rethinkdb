@@ -320,9 +320,14 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
 
     // Note that `SUCCESS_SEQUENCE` is possible for feeds if you call `.limit`
     // after the feed.
-    res->set_type(entry->stream->is_exhausted()
-                  ? Response::SUCCESS_SEQUENCE
-                  : Response::SUCCESS_PARTIAL);
+    if (entry->stream->is_exhausted() || is_noreply(entry->original_query)) {
+        guarantee(entry->state == entry_t::state_t::STREAM);
+        entry->state = entry_t::state_t::DONE;
+        res->set_type(Response::SUCCESS_SEQUENCE);
+    } else {
+        res->set_type(Response::SUCCESS_PARTIAL);
+    }
+
     switch (entry->stream->cfeed_type()) {
     case feed_type_t::not_feed:
         // If we don't have a feed, then a 0-size response means there's no more

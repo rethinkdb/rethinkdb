@@ -208,11 +208,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
 // purpose of noreply_wait.
 void maybe_release_query_id(query_id_t &&id,
                             const protob_t<Query> &query) {
-    ql::datum_t noreply = static_optarg("noreply", query);
-    bool keep_query_id = noreply.has() &&
-                         noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-                         noreply.as_bool();
-    if (!keep_query_id) {
+    if (!is_noreply(query)) {
         query_id_t destroyer(std::move(id));
     }
 }
