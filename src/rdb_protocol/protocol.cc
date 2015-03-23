@@ -640,6 +640,7 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
         guarantee(resp);
         resps.push_back(resp);
     }
+    unshard_stamps(resps, out);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_point_stamp_t &) {
