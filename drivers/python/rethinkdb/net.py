@@ -171,6 +171,20 @@ class Cursor(object):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
+    def __str__(self):
+        val_str = ', '.join(map(repr, self.items[:10]))
+        if len(self.items) > 10 or self.error is None:
+            val_str += ', ...'
+
+        if self.error is None:
+            err_str = 'streaming'
+        elif isinstance(self.error, StopIteration):
+            err_str = 'done streaming'
+        else:
+            err_str = 'error: %s' % repr(self.error)
+
+        return "%s (%s):\n[%s]" % (object.__str__(self), err_str, val_str)
+
     def __iter__(self):
         return self
 
