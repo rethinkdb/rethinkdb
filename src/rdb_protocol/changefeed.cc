@@ -2073,11 +2073,11 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     }
 }
 
-class stream_t : public eager_datum_stream_t {
+class subscription_stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
-        : eager_datum_stream_t(std::forward<Args...>(args...)),
+    subscription_stream_t(scoped_ptr_t<subscription_t> &&_sub, Args &&... args)
+        : eager_datum_stream_t(std::forward<Args>(args)...),
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
@@ -2091,14 +2091,48 @@ public:
                base_exc_t::GENERIC,
                "Cannot call a terminal (`reduce`, `count`, etc.) on an "
                "infinite stream (such as a changefeed).");
+        return next_stream_batch(env, bs);
+    }
+protected:
+    scoped_ptr_t<subscription_t> sub;
+private:
+    virtual std::vector<datum_t>next_stream_batch(
+        env_t *env, const batchspec_t &bs) = 0;
+};
+
+class stream_t : public subscription_stream_t {
+public:
+    template<class... Args>
+    stream_t(Args &&... args)
+        : subscription_stream_t(std::forward<Args>(args)...) { }
+private:
+    std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         batcher_t batcher = bs.to_batcher();
         return sub->get_els(&batcher,
                             env->return_empty_normal_batches,
                             env->interruptor);
     }
-private:
-    scoped_ptr_t<subscription_t> sub;
 };
+
+// RSI: pick up here, use pop_needed_changes
+class splice_stream_t : public subscription_stream_t {
+public:
+    template<class... Args>
+    splice_stream_t(counted_t<datum_stream_t> _src, Args &&... args)
+        : subscription_stream_t(std::forward<Args>(args)...),
+          src(std::move(_src)) {
+        r_sanity_check(src.has());
+    }
+private:
+    std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
+        batcher_t batcher = bs.to_batcher();
+        return sub->get_els(&batcher,
+                            env->return_empty_normal_batches,
+                            env->interruptor);
+    }
+    counted_t<datum_stream_t> src;
+};
+
 
 subscription_t::subscription_t(
     feed_t *_feed, const datum_t &_squash, bool _include_states)
@@ -2235,7 +2269,6 @@ bool discard(const store_key_t &pkey,
 
 }
 
-// RSI: pick up here, actually use it.
 std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_state) {
     std::vector<datum_t> ret;
     while (has_el()) {
@@ -2586,6 +2619,7 @@ scoped_ptr_t<subscription_t> new_sub(
 
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
+    counted_t<datum_stream_t> maybe_src,
     const datum_t &squash,
     bool include_states,
     const namespace_id_t &uuid,
@@ -2628,7 +2662,11 @@ counted_t<datum_stream_t> client_t::new_stream(
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
-        return make_counted<stream_t>(std::move(sub), bt);
+        if (maybe_src) {
+            return make_counted<splice_stream_t>(maybe_src, std::move(sub), bt);
+        } else {
+            return make_counted<stream_t>(std::move(sub), bt);
+        }
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",

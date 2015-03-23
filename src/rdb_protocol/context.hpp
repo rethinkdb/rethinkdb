@@ -95,6 +95,7 @@ public:
         bool use_outdated) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
+        counted_t<ql::datum_stream_t> maybe_src,
         const ql::datum_t &squash,
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,

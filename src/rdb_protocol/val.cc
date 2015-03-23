@@ -34,6 +34,7 @@ public:
         const datum_t &squash, bool include_states) {
         return tbl->tbl->read_changes(
             env,
+            counted_t<datum_stream_t>(), // RSI: fix
             squash,
             include_states,
             changefeed::keyspec_t::point_t{key},
@@ -84,6 +85,7 @@ public:
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
             env,
+            counted_t<datum_stream_t>(), // RSI: fix
             squash,
             include_states,
             std::move(spec),

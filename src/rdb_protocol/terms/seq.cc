@@ -400,6 +400,10 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
+        bool return_initial = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_initial")) {
+            return_initial = v->as_bool();
+        }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
@@ -413,6 +417,7 @@ private:
                 streams.push_back(
                     keyspec.table->read_changes(
                         env->env,
+                        return_initial ? seq : counted_t<datum_stream_t>(),
                         squash,
                         include_states,
                         std::move(keyspec.spec),

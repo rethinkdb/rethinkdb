@@ -186,6 +186,7 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
+        counted_t<datum_stream_t> maybe_src,
         const datum_t &squash,
         bool include_states,
         const namespace_id_t &table,
