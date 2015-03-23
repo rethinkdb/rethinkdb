@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+# Copyright 2014-2015 RethinkDB, all rights reserved.
+
+import itertools, squash_base
+
+class SquashTrueIdEmpty(squash_base.SquashBase):
+    def setUp(self):
+        super(SquashTrueIdEmpty, self).setUp(
+            True,
+            'id',
+            itertools.count(),
+            0,
+            10,
+            False)
+
+class SquashTrueIdHalfFull(squash_base.SquashBase):
+    def setUp(self):
+        super(SquashTrueIdHalfFull, self).setUp(
+            True,
+            'id',
+            itertools.count(),
+            5,
+            10,
+            False)
+
+class SquashTrueIdSingleHashShard(squash_base.SquashBase):
+    def setUp(self):
+        super(SquashTrueIdSingleHashShard, self).setUp(
+            True,
+            'id',
+            itertools.count(),
+            10,
+            2,
+            False)
+
+class SquashTrueIdMultipleHashShards(squash_base.SquashBase):
+    def setUp(self):
+        super(SquashTrueIdMultipleHashShards, self).setUp(
+            True,
+            'id',
+            itertools.count(),
+            20,
+            2,
+            False)
+
+# ===== main
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()
