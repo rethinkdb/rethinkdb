@@ -5,7 +5,8 @@ __all__ = ['RqlError',
            'RqlCompileError',
            'RqlRuntimeError',
            'RqlDriverError',
-           'RqlTimeoutError']
+           'RqlTimeoutError',
+           'RqlCursorEmpty']
 
 import sys
 
@@ -71,6 +72,11 @@ class RqlDriverError(RqlError):
 class RqlTimeoutError(RqlError):
     def __init__(self):
         RqlError.__init__(self, 'Operation timed out.')
+
+
+class RqlCursorEmpty(RqlQueryError):
+    def __init__(self, term):
+        RqlQueryError.__init__(self, 'Cursor is empty.', term, [])
 
 
 class QueryPrinter(object):

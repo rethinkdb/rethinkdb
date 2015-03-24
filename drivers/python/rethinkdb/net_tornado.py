@@ -49,33 +49,31 @@ class TornadoCursor(Cursor):
         self.new_response.set_result(True)
         self.new_response = Future()
 
+    # Convenience function so users know when they've hit the end of the cursor
+    # without having to catch an exception
+    @gen.coroutine
+    def fetch_next(self, wait=True):
+        timeout = Cursor._wait_to_timeout(wait)
+        deadline = None if timeout is None else self.conn._io_loop.time() + timeout
+        while len(self.items) == 0 and self.error is None:
+            self._maybe_fetch_batch()
+            yield with_absolute_timeout(deadline, self.new_response)
+        raise gen.Return(len(self.items) != 0)
+
+    def _empty_error(self):
+        # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
+        # with Tornado's gen.coroutine and is the equivalent of gen.Return(None).
+        return RqlCursorEmpty(self.query.term)
+
+    @gen.coroutine
     def _get_next(self, timeout):
-        result_future = Future()
-        if timeout is not None:
-            self.conn._io_loop.add_timeout(self.conn._io_loop.time() + timeout,
-                TornadoCursor._timeout_future, result_future)
-
-        self._maybe_fetch_batch()
-        self._try_next(result_future)
-        return result_future
-
-    @staticmethod
-    def _timeout_future(result_future):
-        # Only try to fill the result if it hasn't been responded to already
-        if result_future.running():
-            result_future.set_exception(RqlTimeoutError())
-
-    def _try_next(self, result_future):
-        # Only try to fill the result if it hasn't been responded to already
-        if result_future.running():
-            if len(self.items) == 0:
-                if self.error is not None:
-                    result_future.set_exception(self.error)
-                else:
-                    self.conn._io_loop.add_future(self.new_response,
-                        lambda future: self._try_next(result_future))
-            else:
-                result_future.set_result(convert_pseudo(self.items.pop(0), self.query))
+        deadline = None if timeout is None else self.conn._io_loop.time() + timeout
+        while len(self.items) == 0:
+            self._maybe_fetch_batch()
+            if self.error is not None:
+                raise self.error
+            yield with_absolute_timeout(deadline, self.new_response)
+        raise gen.Return(convert_pseudo(self.items.pop(0), self.query))
 
 
 class ConnectionInstance(object):

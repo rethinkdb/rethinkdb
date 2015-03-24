@@ -121,12 +121,14 @@ class Response(object):
 #         occurred yet
 #     Exception - an error has occurred in the cursor and should be raised
 #         to the user once all results in `items` have been returned.  This
-#         will be a StopIteration exception if the cursor completed successfully.
+#         will be a RqlCursorEmpty exception if the cursor completed successfully.
 #
-# A class that derives from this should implement the following function:
+# A class that derives from this should implement the following functions:
 #     def _get_next(self, timeout):
-# where `timeout` is the maximum amount of time (in seconds) to wait for the
-# next result in the cursor before raising a RqlTimeoutError.
+#         where `timeout` is the maximum amount of time (in seconds) to wait for the
+#         next result in the cursor before raising a RqlTimeoutError.
+#     def _empty_error(self):
+#         which returns the appropriate error to be raised when the cursor is empty
 class Cursor(object):
     def __init__(self, conn_instance, query):
         self.conn = conn_instance
@@ -135,25 +137,27 @@ class Cursor(object):
         self.outstanding_requests = 1
         self.threshold = 0
         self.error = None
-        self.it = iter(self._it())
 
         self.conn._cursor_cache[self.query.token] = self
 
     def close(self):
         if self.error is None:
-            self.error = StopIteration()
+            self.error = self._empty_error()
             if self.conn.is_open():
                 self.outstanding_requests += 1
                 self.conn._parent._stop(self)
 
-    def next(self, wait=True):
+    @staticmethod
+    def _wait_to_timeout(wait):
         if isinstance(wait, bool):
-            timeout = None if wait else 0
+            return None if wait else 0
         elif isinstance(wait, numbers.Real) and wait >= 0:
-            timeout = wait
+            return wait
         else:
             raise RqlDriverError("Invalid wait timeout '%s'" % str(wait))
-        return self._get_next(timeout)
+
+    def next(self, wait=True):
+        return self._get_next(Cursor._wait_to_timeout(wait))
 
     def _extend(self, res):
         self.outstanding_requests -= 1
@@ -163,7 +167,7 @@ class Cursor(object):
                 self.items.extend(res.data)
             elif res.type == pResponse.SUCCESS_SEQUENCE:
                 self.items.extend(res.data)
-                self.error = StopIteration()
+                self.error = self._empty_error()
             else:
                 self.error = res.make_error(self.query)
         self._maybe_fetch_batch()
@@ -178,18 +182,12 @@ class Cursor(object):
 
         if self.error is None:
             err_str = 'streaming'
-        elif isinstance(self.error, StopIteration):
+        elif isinstance(self.error, RqlCursorEmpty):
             err_str = 'done streaming'
         else:
             err_str = 'error: %s' % repr(self.error)
 
         return "%s (%s):\n[%s]" % (object.__str__(self), err_str, val_str)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.it)
 
     def _error(self, message):
         # Set an error and extend with a dummy response to trigger any waiters
@@ -199,10 +197,6 @@ class Cursor(object):
                 '{"t":%d,"r":[]}' % pResponse.SUCCESS_SEQUENCE)
             self._extend(dummy_response)
 
-    def _it(self):
-        while True:
-            yield self._get_next(None)
-
     def _maybe_fetch_batch(self):
         if self.error is None and \
            len(self.items) <= self.threshold and \
@@ -211,11 +205,25 @@ class Cursor(object):
             self.conn._parent._continue(self)
 
 
+class DefaultCursorEmpty(RqlCursorEmpty, StopIteration):
+    def __init__(self, term):
+        RqlCursorEmpty.__init__(self, term)
+
+
 class DefaultCursor(Cursor):
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self._get_next(None)
+
+    def _empty_error(self):
+        return DefaultCursorEmpty(self.query.term)
+
     def _get_next(self, timeout):
         deadline = None if timeout is None else time.time() + timeout
-        self._maybe_fetch_batch()
         while len(self.items) == 0:
+            self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
             self.conn._read_response(self.query.token, deadline)
