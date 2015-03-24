@@ -2114,6 +2114,11 @@ private:
     }
 };
 
+struct stamped_range_t {
+    key_range_t range;
+    std::map<uuid_u, uint64_t> stamps;
+}
+
 // RSI: pick up here, use pop_needed_changes
 class splice_stream_t : public subscription_stream_t {
 public:
@@ -2125,17 +2130,104 @@ public:
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
-        std::vector<datum_t> batch = src->next_batch(env, bs);
-        if (!src->is_exhausted()) {
-            batch = src->next_batch(env, bs);
-            if (!batch) src.reset();
+        std::vector<datum_t> ret;
+        batcher_t batcher = bs.to_batcher();
+        while (sub->has_el() && !batcher.should_send_batch()) {
+            change_val_t change_val = sub->pop_change_val();
+            if (discard(change_val.pkey, change_val.source_stamp,
+                        change_val.old_val, active_state)) {
+                change_val.old_val = boost::none;
+            }
+            if (discard(change_val.pkey, change_val.source_stamp,
+                        change_val.new_val, active_state)) {
+                change_val.new_val = boost::none;
+            }
+            if (change_val.old_val || change_val.new_val) {
+                datum_t el = change_val_to_change(std::move(change_val));
+                batcher.note_el(el);
+                ret.push_back(std::move(el));
+            }
+        }
+        remove_outdated_ranges();
+        if (!src->is_exhausted() && !batcher.should_send_batch()) {
+            std::vector<datum_t> batch = src->next_batch(env, bs);
+            update_ranges(src);
+            std::move(batch.begin(), batch.end(), std::back_inserter(ret));
+        }
+        return std::move(ret);
+    }
+
+    const store_key_t &get_right_fencepost() {
+        return ranges.size() == 0
+            ? left_fencepost
+            : ranges.back().range.right_bound.key;
+    }
+    bool discard(const store_key_t &pkey,
+                 const std::pair<uuid_u, uint64_t> &source_stamp,
+                 const indexed_datum_t &val) {
+        store_key_t key;
+        if (val.index.has()) {
+            key = store_key_t(
+                val.index.print_secondary(
+                    src->get_skey_version(),
+                    pkey,
+                    // RSI: multi-indexes
+                    boost::none));
         } else {
-            batcher_t batcher = bs.to_batcher();
-            return sub->get_els(&batcher,
-                                env->return_empty_normal_batches,
-                                env->interruptor);
+            key = pkey;
+        }
+
+        if (key < left_fencepost) return false;
+        if (key >= get_right_fencepost()) return true;
+
+        if (unread_range.contains(val.index)) return true;
+        // `ranges` should be extremely small
+        for (const auto &range : ranges) {
+            if (range.range.contains(val.index)) {
+                auto it = range.stamps.find(source_stamp.first);
+                if (it == range.stamps.end()) return true;
+                return source_stamp.second < it->second;
+            }
+        }
+        // If we get here then there's a gap in the ranges.
+        r_sanity_check(false);
+    }
+    // RSI: coalescing
+    void add_range(stamped_range_t &&range) {
+        // Safe because we never generate `store_key_t::max()`.
+        if (range.range.right_bound.unbounded) {
+            range.range.right_bound.unbounded = false;
+            range.range.right_bound.key = store_key_t::max();
+        }
+        ranges.push_back(std::move(range));
+        // It's theoretically possible that this assert could fail, but it's
+        // infinitely more likely that we're failing to remove outdated ranges
+        // for some reason.
+        rassert(ranges.size() < 100);
+    }
+    void update_ranges(counted_t<datum_stream_t> src) {
+        r_sanity_check(src.has());
+        add_range(src->stamped_last_read_range())
+        unread_range = src->active_range();
+    }
+    bool outdated(const stamped_range_t &range) {
+        for (const auto &pair : range) {
+            auto it = latest_stamps.find(pair.first);
+            if (it == latest_stamps.end()) return false;
+            if (it->second < stamp.second) return false;
+        }
+        return true;
+    }
+    void remove_outdated_ranges() {
+        while (ranges.size() > 0 && outdated(ranges.front())) {
+            left_fencepost = ranges.front().range.right_bound.key;
+            ranges.pop_front();
         }
     }
+
+    store_key_t left_fencepost;
+    std::deque<stamped_range_t> ranges;
+    std::map<uuid_u, uint64_t> latest_stamps;
     counted_t<datum_stream_t> src;
 };
 
