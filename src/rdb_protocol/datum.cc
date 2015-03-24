@@ -2135,18 +2135,20 @@ datum_range_t datum_range_t::universe() {
 bool datum_range_t::contains(reql_version_t reql_version,
                              datum_t val) const {
     r_sanity_check(left_bound.has() && right_bound.has());
-    return (left_bound.compare_lt(reql_version, val) ||
-            (left_bound == val && left_bound_type == key_range_t::closed)) &&
-           (right_bound.compare_gt(reql_version, val) ||
-            (right_bound == val && right_bound_type == key_range_t::closed));
+
+    int left_cmp = left_bound.cmp(reql_version, val);
+    int right_cmp = right_bound.cmp(reql_version, val);
+    return (left_cmp < 0 || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
+           (right_cmp > 0 || (right_cmp == 0 && right_bound_type == key_range_t::closed));
 }
 
 bool datum_range_t::is_empty(reql_version_t reql_version) const {
     r_sanity_check(left_bound.has() && right_bound.has());
-    return (left_bound.compare_gt(reql_version, right_bound) ||
+
+    int cmp = left_bound.cmp(reql_version, right_bound);
+    return (cmp > 0 ||
             ((left_bound_type == key_range_t::open ||
-              right_bound_type == key_range_t::open) &&
-             left_bound == right_bound));
+              right_bound_type == key_range_t::open) && cmp == 0));
 }
 
 bool datum_range_t::is_universe() const {
