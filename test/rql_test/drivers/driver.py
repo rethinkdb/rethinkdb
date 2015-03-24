@@ -388,6 +388,9 @@ class PyTestDriver:
                 self.scope[testopts['variable']] = result
                 if exp_val is None:
                     return
+
+            if 'noreply_wait' in testopts and testopts['noreply_wait']:
+                conn.noreply_wait()
         
         except Exception as err:
             result = err
@@ -396,13 +399,13 @@ class PyTestDriver:
         
         if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (repr(result), str(result)))
+                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (str(result), str(result)))
             elif not eq(exp_val, **compOptions)(result):
-                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
             else:
                 passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
-            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
         else:
             passed_count += 1
 
@@ -432,12 +435,12 @@ def setup_table(table_variable_name, table_name, db_name='test'):
     def _teardown_table(table_name, db_name):
         '''Used for tables that get created for this test'''
         res = r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
-        assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, str(res))
     
     def _clean_table(table_name, db_name):
         '''Used for pre-existing tables'''
         res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
-        assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, str(res))
         r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
     
     if len(required_external_tables) > 0:
@@ -453,7 +456,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         if table_name in r.db(db_name).table_list().run(driver.cpp_conn):
             r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
         res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
-        assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, str(res))
         r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
         
         print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
@@ -481,7 +484,7 @@ def partial(expected):
     elif hasattr(expected, '__iter__'):
         return Bag(expected, partial=True)
     else:
-        raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
+        raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, str(expected)))
 
 def fetch(cursor, limit=None):
     '''Pull items from a cursor'''
@@ -490,7 +493,7 @@ def fetch(cursor, limit=None):
             limit = int(limit)
             assert limit > 0
         except Exception:
-            "On fetch limit must be None or > 0, got: %s" % repr(limit)
+            "On fetch limit must be None or > 0, got: %s" % str(limit)
     result = []
     for i, value in enumerate(cursor, start=1):
         result.append(value)
