@@ -2,10 +2,16 @@
 
 from setuptools import setup
 
+try:
+    execfile('rethinkdb/version.py')
+except NameError:
+    exec(open('rethinkdb/version.py').read())
+
 setup(
     name="rethinkdb",
     zip_safe=True,
-    version="1.16.0-0",
+    #version="1.16.0-0",
+    version=version,
     description="This package provides the Python driver library for the RethinkDB database server.",
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",

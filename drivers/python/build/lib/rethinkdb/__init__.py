@@ -5,12 +5,9 @@ from .query import *
 from .errors import *
 from .ast import *
 from . import docs
-from .version import version
+from pkg_resources import get_distribution, DistributionNotFound
 
-
-# The __builtins__ here defends against re-importing something
-# obscuring `object`.
-class r(__builtins__['object']):
+class r(__builtins__['object']): # defends against re-importing obscuring object
     pass
 
 for module in (net, query, ast, errors):
@@ -21,6 +18,11 @@ rethinkdb = r
 # set the _r attribute to net.Connection
 Connection._r = r
 
-__version__ = version
+__version__ = None
+
+try:
+    __version__ = get_distribution('rethinkdb').version
+except DistributionNotFound:
+    pass
 
 __all__ = ['r', 'rethinkdb'] + errors.__all__

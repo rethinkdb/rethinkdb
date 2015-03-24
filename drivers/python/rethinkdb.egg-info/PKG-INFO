@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: rethinkdb
+Version: 1.16.0-0
+Summary: This package provides the Python driver library for the RethinkDB database server.
+Home-page: http://rethinkdb.com
+Author: RethinkDB Inc.
+Author-email: bugs@rethinkdb.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
