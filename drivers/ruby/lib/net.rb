@@ -562,7 +562,9 @@ module RethinkDB
       begin
         res = nil
         @listener_mutex.safe_synchronize {
-          raise RqlRuntimeError, "Connection is closed." if !@waiters.has_key?(token)
+          if !@waiters.has_key?(token) && !@data.has_key?(token)
+            raise RqlRuntimeError, "Connection is closed."
+          end
           res = @data.delete(token)
           if res.nil?
             @waiters[token].wait(@listener_mutex, timeout)
