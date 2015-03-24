@@ -31,6 +31,54 @@ public:
         }
     }
 
+    typename std::list<atom_t>::const_iterator begin() const { return atoms.begin(); }
+    typename std::list<atom_t>::const_iterator end() const { return atoms.end(); }
+    bool empty() const { return atoms.empty(); }
+    const atom_t &front() const { return atoms.front(); }
+
+    /* Deletes the leftmost atom in the seq. */
+    void pop_front() {
+        left_key = atoms.front().get_region().inner.right;
+        mem_size -= atoms.front().get_mem_size();
+        atoms.pop_front();
+    }
+
+    /* Transfers the atom at the left end of this seq to the right end of the other seq.
+    */
+    void pop_front_into(backfill_atom_seq_t *other) {
+        guarantee(beg_hash == other->beg_hash && end_hash == other->end_hash);
+        guarantee(get_left_key() == other->get_right_key());
+        size_t atom_size = atoms.front().get_mem_size();
+        left_key = atoms.front().get_region().inner.right;
+        other.right_key = left_key;
+        mem_size -= atom_size;
+        other.mem_size += atom_size;
+        other->atoms.splice(other->atoms.end(), atoms, atoms.begin());
+    }
+
+    /* Deletes the part of the seq that is to the left of the key. If a single backfill
+    atom spans the key, that atom will be split. */
+    void delete_to_key(const key_range_t::right_bound_t &cut) {
+        guarantee(cut >= get_left_key());
+        guarantee(cut <= get_right_key());
+        while (!atoms.empty()) {
+            region_t reg = atoms.begin().get_region();
+            if (reg.inner.right <= cut) {
+                mem_size -= atoms.front().get_mem_size();
+                atoms.pop_front();
+            } else if (key_range_t::right_bound_t(reg.inner.left) >= cut) {
+                break;
+            } else {
+                reg.left = cut.key;
+                mem_size -= atoms.front().get_mem_size();
+                atoms.front() = atoms.front().mask(reg);
+                mem_size += atoms.front().get_mem_size();
+                break;
+            }
+        }
+        left_key = cut;
+    }
+
     /* Appends an atom to the end of the seq. Atoms must be appended in lexicographical
     order. */
     void push_back(atom_t &&atom) {

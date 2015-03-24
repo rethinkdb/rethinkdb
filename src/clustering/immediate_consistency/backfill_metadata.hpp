@@ -23,20 +23,18 @@ public:
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t,
-        store_key_t
+        session_id_t
         )> go_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t,
-        store_key_t
+        session_id_t
         )> stop_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         session_id_t,
-        key_range_t,
+        key_range_t::right_bound_t,
         size_t
         )> ack_atoms_mailbox_t;
 

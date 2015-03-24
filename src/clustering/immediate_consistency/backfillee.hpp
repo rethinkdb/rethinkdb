@@ -83,8 +83,8 @@ private:
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
 
-    /* `threshold` is the point that we've completely backfilled up to. */
-    key_range_t::right_bound_t threshold;
+    /* `completed_threshold` is the point that we've completely backfilled up to. */
+    key_range_t::right_bound_t completed_threshold;
 
     session_info_t *current_session;
 

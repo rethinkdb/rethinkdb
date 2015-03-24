@@ -52,8 +52,6 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
-
 namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
@@ -1189,8 +1187,4 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_write_t, region);
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     write_t, write, durability_requirement, profile, limits);
 
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(backfill_chunk_t::delete_key_t, key, recency);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t::delete_range_t, range);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t, backfill_atoms);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t, val);
 

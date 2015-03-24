@@ -10,7 +10,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -477,87 +476,6 @@ void rdb_set(const store_key_t &key,
     }
     response_out->result =
         (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
-}
-
-class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
-public:
-    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
-                                     const key_range_t &kr,
-                                     btree_slice_t *slice) :
-        cb_(cb), kr_(kr), slice_(slice) { }
-
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.is_superset(range));
-        cb_->on_delete_range(range, interruptor);
-    }
-
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        cb_->on_deletion(key, recency, interruptor);
-    }
-
-    void on_pairs(buf_parent_t leaf_node,
-                  const std::vector<repli_timestamp_t> &recencies,
-                  const std::vector<const btree_key_t *> &keys,
-                  const std::vector<const void *> &vals,
-                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
-        std::vector<backfill_atom_t> chunk_atoms;
-        chunk_atoms.reserve(keys.size());
-        size_t current_chunk_size = 0;
-
-        for (size_t i = 0; i < keys.size(); ++i) {
-            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
-            const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
-
-            backfill_atom_t atom;
-            atom.key.assign(keys[i]->size, keys[i]->contents);
-            atom.value = get_data(value, leaf_node);
-            atom.recency = recencies[i];
-            chunk_atoms.push_back(atom);
-            current_chunk_size += static_cast<size_t>(atom.key.size())
-                + serialized_size<cluster_version_t::CLUSTER>(atom.value);
-
-            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
-                // To avoid flooding the receiving node with overly large chunks
-                // (which could easily make it run out of memory in extreme
-                // cases), pass on what we have got so far. Then continue
-                // with the remaining values.
-                slice_->stats.pm_keys_read.record(chunk_atoms.size());
-                slice_->stats.pm_total_keys_read += chunk_atoms.size();
-                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-                chunk_atoms = std::vector<backfill_atom_t>();
-                chunk_atoms.reserve(keys.size() - (i+1));
-                current_chunk_size = 0;
-            }
-        }
-        if (!chunk_atoms.empty()) {
-            // Pass on the final chunk
-            slice_->stats.pm_keys_read.record(chunk_atoms.size());
-            slice_->stats.pm_total_keys_read += chunk_atoms.size();
-            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-        }
-    }
-
-    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        cb_->on_sindexes(sindexes, interruptor);
-    }
-
-    rdb_backfill_callback_t *cb_;
-    key_range_t kr_;
-    btree_slice_t *slice_;
-};
-
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
-                  repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-                  refcount_superblock_t *superblock,
-                  buf_lock_t *sindex_block,
-                  parallel_traversal_progress_t *p, signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
-                               superblock, sindex_block, p, interruptor);
 }
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,

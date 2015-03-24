@@ -35,40 +35,43 @@ private:
     private:
         class session_t {
         public:
-            session_t(client_t *, const backfiller_bcard_t::session_id_t &,
-                const key_range_t &);
-            void discard_pre_atoms(const key_range_t &range);
-            backfiller_bcard_t::session_id_t session_id;
+            session_t(
+                client_t *_parent,
+                const backfiller_bcard_t::session_id_t &_session_id,
+                const key_range_t::right_bound_t &_);
+            void on_ack_atoms(size_t size);
+            const backfiller_bcard_t::session_id_t session_id;
+            scoped_ptr_t<cond_t> pulse_when_pre_atoms_arrive;
 
         private:
             void run(auto_drainer_t::lock_t keepalive);
             client_t *parent;
-            key_range_t session_range;
+            key_range_t::right_bound_t threshold;
             new_semaphore_t atom_throttler;
             new_semaphore_acq_t atom_throttler_acq;
-            std::list<backfill_pre_atom_t> pre_atoms_consumed;
+            backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms_consumed;
             auto_drainer_t drainer;
         };
 
         void on_pre_atoms(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const key_range_t &range,
-            const std::deque<backfill_pre_atom_t> &atoms);
+            const backfill_atom_seq_t<backfill_pre_atom_t> &chunk);
         void on_go(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
             const session_id_t &session_id,
-            const key_range_t &range);
+            const key_range_t::right_bound_t &threshold);
         void on_stop(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const session_id_t &session_id);
+            const session_id_t &session_id,
+            const key_range_t::right_bound_t &threshold);
         void on_ack_atoms(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
             const session_id_t &session_id,
-            const key_range_t &range,
+            const key_range_t::right_bound_t &threshold,
             size_t size);
 
         backfiller_t *const parent;
@@ -76,10 +79,9 @@ private:
         region_t const full_region;
         region_map_t<state_timestamp_t> common_version;
 
-        std::list<backfill_pre_atom_t> pre_atom_queue;
-        key_range_t pre_atom_range;
-        cond_t *pre_atom_waiter;
+        backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms_past, pre_atoms_future;
 
+        key_range_t::right_bound_t acked_threshold;
         scoped_ptr_t<session_t> current_session;
 
         fifo_source_t fifo_source;

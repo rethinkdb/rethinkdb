@@ -223,101 +223,6 @@ void store_t::write(
     protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
-// TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
-bool store_t::send_backfill(
-        const region_map_t<state_timestamp_t> &start_point,
-        send_backfill_callback_t *send_backfill_cb,
-        traversal_progress_combiner_t *progress,
-        read_token_t *token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
-
-    buf_lock_t sindex_block(superblock->expose_buf(), superblock->get_sindex_block_id(),
-                            access_t::read);
-
-    region_map_t<binary_blob_t> unmasked_metainfo;
-    get_metainfo_internal(superblock->get(), &unmasked_metainfo);
-    region_map_t<binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
-    if (send_backfill_cb->should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, progress, interruptor);
-        return true;
-    }
-    return false;
-}
-
-void store_t::throttle_backfill_chunk(signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    // Warning: No re-ordering is allowed during throttling!
-
-    // As long as our secondary index post construction is implemented using a
-    // secondary index mod queue, it doesn't make sense from a performance point
-    // of view to run secondary index post construction and backfilling at the same
-    // time. We pause backfilling while any index post construction is going on on
-    // this store by acquiring a read lock on `backfill_postcon_lock`.
-    rwlock_in_line_t lock_acq(&backfill_postcon_lock, access_t::read);
-    wait_any_t waiter(lock_acq.read_signal(), interruptor);
-    waiter.wait_lazily_ordered();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-}
-
-struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) const {
-        return del.recency;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) const {
-        return repli_timestamp_t::distant_past;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) const {
-        repli_timestamp_t most_recent = repli_timestamp_t::distant_past;
-        rassert(!kv.backfill_atoms.empty());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
-        }
-        return most_recent;
-    }
-};
-
-void store_t::receive_backfill(
-        const backfill_chunk_t &chunk,
-        write_token_t *token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> real_superblock;
-    const int expected_change_count = 1; // TODO: this is not correct
-
-    // We use HARD durability because we want backfilling to be throttled if we
-    // receive data faster than it can be written to disk. Otherwise we might
-    // exhaust the cache's dirty page limit and bring down the whole table.
-    // Other than that, the hard durability guarantee is not actually
-    // needed here.
-    acquire_superblock_for_write(boost::apply_visitor(backfill_chunk_timestamp_t(),
-                                                      chunk.val),
-                                 expected_change_count,
-                                 write_durability_t::HARD,
-                                 token,
-                                 &txn,
-                                 &real_superblock,
-                                 interruptor);
-
-    scoped_ptr_t<real_superblock_t> superblock(real_superblock.release());
-    protocol_receive_backfill(std::move(superblock),
-                              interruptor,
-                              chunk);
-}
-
 void store_t::reset_data(
         const binary_blob_t &zero_metainfo,
         const region_t &subregion,
@@ -1388,22 +1293,6 @@ void store_t::acquire_superblock_for_read(
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
         general_cache_conn.get(), cache_snapshotted, sb_out, txn_out);
-}
-
-void store_t::acquire_superblock_for_backfill(
-        read_token_t *token,
-        scoped_ptr_t<txn_t> *txn_out,
-        scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
-    wait_interruptible(token->main_read_token.get(), interruptor);
-
-    get_btree_superblock_and_txn_for_backfilling(general_cache_conn.get(),
-                                                 btree->get_backfill_account(),
-                                                 sb_out, txn_out);
 }
 
 void store_t::acquire_superblock_for_write(
