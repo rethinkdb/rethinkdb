@@ -2112,6 +2112,7 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
 
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+
 datum_range_t::datum_range_t(
     datum_t _left_bound, key_range_t::bound_t _left_bound_type,
     datum_t _right_bound, key_range_t::bound_t _right_bound_type)
@@ -2119,22 +2120,16 @@ datum_range_t::datum_range_t(
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) {
     r_sanity_check(left_bound.has() && right_bound.has());
 }
+
 datum_range_t::datum_range_t(datum_t val)
     : left_bound(val), right_bound(val),
       left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) {
     r_sanity_check(val.has());
 }
 
-datum_range_t datum_range_t::universe()  {
+datum_range_t datum_range_t::universe() {
     return datum_range_t(datum_t::minval(), key_range_t::open,
                          datum_t::maxval(), key_range_t::open);
-}
-bool datum_range_t::is_universe() const {
-    r_sanity_check(left_bound.has() && right_bound.has());
-    return left_bound.get_type() == datum_t::type_t::MINVAL &&
-           left_bound_type == key_range_t::open &&
-           right_bound.get_type() == datum_t::type_t::MAXVAL &&
-           right_bound_type == key_range_t::open;
 }
 
 bool datum_range_t::contains(reql_version_t reql_version,
@@ -2144,6 +2139,22 @@ bool datum_range_t::contains(reql_version_t reql_version,
             (left_bound == val && left_bound_type == key_range_t::closed)) &&
            (right_bound.compare_gt(reql_version, val) ||
             (right_bound == val && right_bound_type == key_range_t::closed));
+}
+
+bool datum_range_t::is_empty(reql_version_t reql_version) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+    return (left_bound.compare_gt(reql_version, right_bound) ||
+            ((left_bound_type == key_range_t::open ||
+              right_bound_type == key_range_t::open) &&
+             left_bound == right_bound));
+}
+
+bool datum_range_t::is_universe() const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+    return left_bound.get_type() == datum_t::type_t::MINVAL &&
+           left_bound_type == key_range_t::open &&
+           right_bound.get_type() == datum_t::type_t::MAXVAL &&
+           right_bound_type == key_range_t::open;
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {

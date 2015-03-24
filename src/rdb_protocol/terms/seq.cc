@@ -495,18 +495,6 @@ private:
         datum_t lb = check_bound(args->arg(env, 1), datum_t::type_t::MINVAL);
         datum_t rb = check_bound(args->arg(env, 2), datum_t::type_t::MAXVAL);
 
-        if (lb.has() && rb.has()) {
-            // This reql_version will always be LATEST, because this function is not
-            // deterministic, but whatever.
-            if (lb.compare_gt(env->env->reql_version(), rb) ||
-                ((left_open || right_open) && lb == rb)) {
-                counted_t<datum_stream_t> ds
-                    =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
-                                                          backtrace());
-                return new_val(make_counted<selection_t>(tbl_slice->get_tbl(), ds));
-            }
-        }
-
         scoped_ptr_t<val_t> sindex = args->optarg(env, "index");
         std::string idx;
         if (sindex.has()) {
@@ -516,6 +504,8 @@ private:
             idx = old_idx ? *old_idx : tbl_slice->get_tbl()->get_pkey();
         }
         return new_val(
+            // `table_slice_t` can handle emtpy / invalid `datum_range_t`'s, checking is
+            // done there.
             tbl_slice->with_bounds(
                 idx,
                 datum_range_t(
