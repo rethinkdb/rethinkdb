@@ -1064,7 +1064,6 @@ public:
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
-    std::vector<datum_t> pop_needed_changes(active_state_t active_state);
 protected:
     explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1083,6 +1082,7 @@ protected:
     // Whether we're in the middle of one logical batch (only matters for squashing).
     bool mid_batch;
 private:
+    friend class splice_stream_t;
     const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
@@ -2117,7 +2117,7 @@ private:
 struct stamped_range_t {
     key_range_t range;
     std::map<uuid_u, uint64_t> stamps;
-}
+};
 
 // RSI: pick up here, use pop_needed_changes
 class splice_stream_t : public subscription_stream_t {
@@ -2133,17 +2133,15 @@ private:
         std::vector<datum_t> ret;
         batcher_t batcher = bs.to_batcher();
         while (sub->has_el() && !batcher.should_send_batch()) {
-            change_val_t change_val = sub->pop_change_val();
-            if (discard(change_val.pkey, change_val.source_stamp,
-                        change_val.old_val, active_state)) {
-                change_val.old_val = boost::none;
+            change_val_t cv = sub->pop_change_val();
+            if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
+                cv.old_val = boost::none;
             }
-            if (discard(change_val.pkey, change_val.source_stamp,
-                        change_val.new_val, active_state)) {
-                change_val.new_val = boost::none;
+            if (cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val)) {
+                cv.new_val = boost::none;
             }
-            if (change_val.old_val || change_val.new_val) {
-                datum_t el = change_val_to_change(std::move(change_val));
+            if (cv.old_val || cv.new_val) {
+                datum_t el = change_val_to_change(std::move(cv));
                 batcher.note_el(el);
                 ret.push_back(std::move(el));
             }
@@ -2158,9 +2156,7 @@ private:
     }
 
     const store_key_t &get_right_fencepost() {
-        return ranges.size() == 0
-            ? left_fencepost
-            : ranges.back().range.right_bound.key;
+        return ranges.size() == 0 ? left_fencepost : ranges.back().range.right.key;
     }
     bool discard(const store_key_t &pkey,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
@@ -2195,9 +2191,9 @@ private:
     // RSI: coalescing
     void add_range(stamped_range_t &&range) {
         // Safe because we never generate `store_key_t::max()`.
-        if (range.range.right_bound.unbounded) {
-            range.range.right_bound.unbounded = false;
-            range.range.right_bound.key = store_key_t::max();
+        if (range.range.right.unbounded) {
+            range.range.right.unbounded = false;
+            range.range.right.key = store_key_t::max();
         }
         ranges.push_back(std::move(range));
         // It's theoretically possible that this assert could fail, but it's
@@ -2208,7 +2204,6 @@ private:
     void update_ranges(counted_t<datum_stream_t> src) {
         r_sanity_check(src.has());
         add_range(src->stamped_last_read_range())
-        unread_range = src->active_range();
     }
     bool outdated(const stamped_range_t &range) {
         for (const auto &pair : range) {
@@ -2220,7 +2215,7 @@ private:
     }
     void remove_outdated_ranges() {
         while (ranges.size() > 0 && outdated(ranges.front())) {
-            left_fencepost = ranges.front().range.right_bound.key;
+            left_fencepost = ranges.front().range.right.key;
             ranges.pop_front();
         }
     }
@@ -2331,61 +2326,6 @@ subscription_t::get_els(batcher_t *batcher,
         return ret;
     }
     r_sanity_check(ret.size() != 0);
-    return ret;
-}
-
-bool discard(const store_key_t &pkey,
-             const std::pair<uuid_u, uint64_t> &source_stamp,
-             const boost::optional<indexed_datum_t> &val,
-             const active_state_t &active_state) {
-    if (!val) return false;
-    guarantee(!!active_state.skey_version == val->index.has());
-    // This is safe because const references extend the lifetime of temporary objects.
-    const store_key_t &key = active_state.skey_version
-        // RSI: use the correct tag number to make multi-indexes work.
-        ? store_key_t(
-            val->index.print_secondary(*active_state.skey_version, pkey, boost::none))
-        : pkey;
-    if (active_state.active_range.contains_key(key)) {
-        return true;
-    } else if (key < active_state.last_read_start) {
-        return false;
-    } else {
-        auto it = active_state.shard_stamps.find(source_stamp.first);
-        if (it == active_state.shard_stamps.end()) {
-            // If we haven't seen the stamps for this `store_t`, we've yet to
-            // read from it.
-            return true;
-        } else {
-            // Discard changes from before the read.  Note that this has to be
-            // `<`; if `source_stamp.second == it->second` we shouldn't discard
-            // the change.
-            return source_stamp.second < it->second;
-        }
-    }
-
-}
-
-std::vector<datum_t> subscription_t::pop_needed_changes(active_state_t active_state) {
-    std::vector<datum_t> ret;
-    while (has_el()) {
-        change_val_t change_val = pop_change_val();
-        // In debug mode, make sure we're receiving changes for the right index.
-        rassert(active_state.sindex
-                ? (change_val.sindex && *active_state.sindex == *change_val.sindex)
-                : !change_val.sindex);
-        if (discard(change_val.pkey, change_val.source_stamp,
-                    change_val.old_val, active_state)) {
-            change_val.old_val = boost::none;
-        }
-        if (discard(change_val.pkey, change_val.source_stamp,
-                    change_val.new_val, active_state)) {
-            change_val.new_val = boost::none;
-        }
-        if (change_val.old_val || change_val.new_val) {
-            ret.push_back(change_val_to_change(std::move(change_val)));
-        }
-    }
     return ret;
 }
 
