@@ -2125,14 +2125,19 @@ public:
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
-        batcher_t batcher = bs.to_batcher();
-        return sub->get_els(&batcher,
-                            env->return_empty_normal_batches,
-                            env->interruptor);
+        std::vector<datum_t> batch = src->next_batch(env, bs);
+        if (!src->is_exhausted()) {
+            batch = src->next_batch(env, bs);
+            if (!batch) src.reset();
+        } else {
+            batcher_t batcher = bs.to_batcher();
+            return sub->get_els(&batcher,
+                                env->return_empty_normal_batches,
+                                env->interruptor);
+        }
     }
     counted_t<datum_stream_t> src;
 };
-
 
 subscription_t::subscription_t(
     feed_t *_feed, const datum_t &_squash, bool _include_states)
