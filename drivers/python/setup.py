@@ -4,10 +4,7 @@ from setuptools import setup
 
 version_path = 'rethinkdb/version.py'
 
-try:
-    execfile(version_path)
-except NameError:
-    exec(open(version_path).read())
+exec(open(version_path).read())
 
 setup(
     name="rethinkdb",
