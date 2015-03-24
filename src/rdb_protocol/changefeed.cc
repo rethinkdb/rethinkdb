@@ -2114,11 +2114,6 @@ private:
     }
 };
 
-struct stamped_range_t {
-    key_range_t range;
-    std::map<uuid_u, uint64_t> stamps;
-};
-
 // RSI: pick up here, use pop_needed_changes
 class splice_stream_t : public subscription_stream_t {
 public:
@@ -2155,9 +2150,6 @@ private:
         return std::move(ret);
     }
 
-    const store_key_t &get_right_fencepost() {
-        return ranges.size() == 0 ? left_fencepost : ranges.back().range.right.key;
-    }
     bool discard(const store_key_t &pkey,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
@@ -2173,56 +2165,67 @@ private:
             key = pkey;
         }
 
-        if (key < left_fencepost) return false;
-        if (key >= get_right_fencepost()) return true;
-
-        if (unread_range.contains(val.index)) return true;
+        // Default construct if we have a new shard uuid.
+        stamped_range_t *stamped_range = &stamped_ranges[source_stamp.first];
+        stamped_range->latest_change_stamp = source_stamp.second;
+        if (key < stamped_range->left_fencepost) return false;
+        if (key >= stamped_range->get_right_fencepost()) return true;
         // `ranges` should be extremely small
-        for (const auto &range : ranges) {
-            if (range.range.contains(val.index)) {
-                auto it = range.stamps.find(source_stamp.first);
-                if (it == range.stamps.end()) return true;
-                return source_stamp.second < it->second;
+        for (const auto &pair : stamped_range->ranges) {
+            if (pair.first.contains(val.index)) {
+                return source_stamp.second < pair.second;
             }
         }
         // If we get here then there's a gap in the ranges.
         r_sanity_check(false);
     }
-    // RSI: coalescing
-    void add_range(stamped_range_t &&range) {
+    void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
         // Safe because we never generate `store_key_t::max()`.
-        if (range.range.right.unbounded) {
-            range.range.right.unbounded = false;
-            range.range.right.key = store_key_t::max();
+        if (range.right.unbounded) {
+            range.right.unbounded = false;
+            range.right.key = store_key_t::max();
         }
-        ranges.push_back(std::move(range));
-        // It's theoretically possible that this assert could fail, but it's
-        // infinitely more likely that we're failing to remove outdated ranges
-        // for some reason.
-        rassert(ranges.size() < 100);
+        // Default construct if we have a new shard uuid.
+        stamped_range_t *stamped_range = &stamped_ranges[uuid];
+        if (stamped_range->ranges.size() == 0) {
+            stamped_range->left_fencepost = range.left;
+            stamped_range->ranges.push_back(std::move(range));
+        } else if (stamped_range->ranges.back().second == stamp) {
+            stamped_ranges->ranges.back().first.right = range.right;
+        } else {
+            stamped_range->ranges.push_back(std::move(range));
+        }
     }
     void update_ranges(counted_t<datum_stream_t> src) {
         r_sanity_check(src.has());
-        add_range(src->stamped_last_read_range())
-    }
-    bool outdated(const stamped_range_t &range) {
-        for (const auto &pair : range) {
-            auto it = latest_stamps.find(pair.first);
-            if (it == latest_stamps.end()) return false;
-            if (it->second < stamp.second) return false;
+        key_range_t range = src->last_read_range();
+        std::map<uuid_u, uint64_t> last_read_stamps;
+        for (const auto &pair : last_read_stamps) {
+            add_range(last_read_stamps.first, last_read_stamps.second, range);
         }
-        return true;
     }
     void remove_outdated_ranges() {
-        while (ranges.size() > 0 && outdated(ranges.front())) {
-            left_fencepost = ranges.front().range.right.key;
-            ranges.pop_front();
+        for (auto &&stamped_range : stamped_ranges_t) {
+            auto *ranges = &stamped_range.ranges;
+            while (ranges->size() > 0 && ranges->front().second <= latest_change_stamp) {
+                stamped_range.left_fencepost = ranges->front().first.right.key;
+                ranges.pop_front();
+            }
         }
     }
 
-    store_key_t left_fencepost;
-    std::deque<stamped_range_t> ranges;
-    std::map<uuid_u, uint64_t> latest_stamps;
+    struct stamped_range_t {
+        stamped_range_t()
+            : latest_change_stamp(0),
+              left_fencepost(store_key_t::min()) { }
+        const store_key_t &get_right_fencepost() {
+            return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
+        }
+        uint64_t latest_change_stamp;
+        store_key_t left_fencepost;
+        std::deque<std::pair<key_range_t, uint64_t> > ranges;
+    };
+    std::map<uuid_u, stamped_range_t> stamped_ranges;
     counted_t<datum_stream_t> src;
 };
 
