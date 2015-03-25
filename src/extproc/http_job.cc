@@ -13,6 +13,7 @@
 #include "extproc/extproc_job.hpp"
 #include "http/http_parser.hpp"
 #include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 #include "rdb_protocol/env.hpp"
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
@@ -865,8 +866,9 @@ void json_to_datum(const std::string &json,
     if (!doc.HasParseError()) {
         res_out->body = ql::to_datum(doc, limits, reql_version);
     } else {
-        // TODO! Get actual RapidJSON parsing error
-        res_out->error.assign("failed to parse JSON response");
+        res_out->error.assign(
+            strprintf("failed to parse JSON response (%s)",
+                      rapidjson::GetParseError_En(doc.GetParseError())));
         if (attach_json == attach_json_to_error_t::YES) {
             res_out->body = ql::datum_t(datum_string_t(json));
         }

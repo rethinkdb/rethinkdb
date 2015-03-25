@@ -3,6 +3,7 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
 #include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -28,12 +29,12 @@ public:
         // `str_buf`. `str_buf`'s life time must be at least as long as `json`'s.
         json.ParseInsitu(str_buf.data());
 
-        // TODO! Fetch the actual parsing error from rapidjson
         rcheck(!json.HasParseError(), base_exc_t::GENERIC,
-               strprintf("Failed to parse \"%s\" as JSON.",
-                 (data.size() > 40
-                  ? (data.to_std().substr(0, 37) + "...").c_str()
-                  : data.to_std().c_str())));
+               strprintf("Failed to parse \"%s\" as JSON (%s).",
+                   (data.size() > 40
+                    ? (data.to_std().substr(0, 37) + "...").c_str()
+                    : data.to_std().c_str()),
+                   rapidjson::GetParseError_En(json.GetParseError())));
         return new_val(to_datum(json, env->env->limits(),
                                 env->env->reql_version()));
     }
