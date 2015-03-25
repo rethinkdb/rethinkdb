@@ -25,6 +25,7 @@
 #ifndef RAPIDJSON_DTOA_
 #define RAPIDJSON_DTOA_
 
+#include <cmath> // RethinkDB: for std::signbit
 #include "itoa.h" // GetDigitsLut()
 #include "diyfp.h"
 
@@ -81,7 +82,7 @@ inline void DigitGen(const DiyFp& W, const DiyFp& Mp, uint64_t delta, char* buff
             case  3: d = p1 /        100; p1 %=        100; break;
             case  2: d = p1 /         10; p1 %=         10; break;
             case  1: d = p1;              p1 =           0; break;
-            default: 
+            default:
 #if defined(_MSC_VER)
                 __assume(0);
 #elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
@@ -199,10 +200,15 @@ inline char* Prettify(char* buffer, int length, int k) {
 
 inline char* dtoa(double value, char* buffer) {
     if (value == 0) {
-        buffer[0] = '0';
-        buffer[1] = '.';
-        buffer[2] = '0';
-        return &buffer[3];
+        // RethinkDB fix: Handle -0
+        size_t i = 0;
+        if (std::signbit(value)) {
+            buffer[i++] = '-';
+        }
+        buffer[i++] = '0';
+        buffer[i++] = '.';
+        buffer[i++] = '0';
+        return &buffer[i];
     }
     else {
         if (value < 0) {

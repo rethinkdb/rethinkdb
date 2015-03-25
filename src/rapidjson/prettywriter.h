@@ -48,7 +48,7 @@ public:
         \param allocator User supplied allocator. If it is null, it will create a private one.
         \param levelDepth Initial capacity of stack.
     */
-    PrettyWriter(OutputStream& os, StackAllocator* allocator = 0, size_t levelDepth = Base::kDefaultLevelDepth) : 
+    PrettyWriter(OutputStream& os, StackAllocator* allocator = 0, size_t levelDepth = Base::kDefaultLevelDepth) :
         Base(os, allocator, levelDepth), indentChar_(' '), indentCharCount_(4) {}
 
     //! Set custom indentation.
@@ -95,7 +95,7 @@ public:
     }
 
     bool Key(const Ch* str, SizeType length, bool copy = false) { return String(str, length, copy); }
-	
+
     bool EndObject(SizeType memberCount = 0) {
         (void)memberCount;
         RAPIDJSON_ASSERT(Base::level_stack_.GetSize() >= sizeof(typename Base::Level));
@@ -169,7 +169,10 @@ protected:
                     }
                     else {
                         Base::os_->Put(':');
-                        Base::os_->Put(' ');
+                        // Modified for RethinkDB: Use a tab instead of space for
+                        // cJSON compatibility (saves us from having to update
+                        // lots of tests)
+                        Base::os_->Put('\t');
                     }
                 }
                 else
