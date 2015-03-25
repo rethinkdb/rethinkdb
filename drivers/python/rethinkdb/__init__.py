@@ -1,16 +1,14 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
+# Define this before importing so nothing can overwrite 'object'
+class r(object):
+    pass
+
 from .net import *
 from .query import *
 from .errors import *
 from .ast import *
 from . import docs
-
-
-# The __builtins__ here defends against re-importing something
-# obscuring `object`.
-class r(__builtins__['object']):
-    pass
 
 for module in (net, query, ast, errors):
     for functionName in module.__all__:
