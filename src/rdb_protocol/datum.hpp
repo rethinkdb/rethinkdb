@@ -290,7 +290,9 @@ public:
                   const configured_limits_t &limits,
                   std::set<std::string> *conditions) const;
 
-    void write_json(rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
+    // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
+    // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
+    template <class json_writer_t> void write_json(json_writer_t *writer) const;
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 

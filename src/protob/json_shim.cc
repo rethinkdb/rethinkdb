@@ -271,7 +271,6 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
             writer.Key("p", 1);
             const Datum *d = &r.profile();
             guarantee(d->type() == Datum::R_JSON);
-            writer.RawJson(":");
             writer.RawJson(d->r_str());
         }
 

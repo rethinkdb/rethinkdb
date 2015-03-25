@@ -14,6 +14,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -586,10 +587,11 @@ std::string datum_t::get_type_name(name_for_sorting_t for_sorting) const {
 std::string datum_t::print() const {
     if (has()) {
         rapidjson::StringBuffer buffer;
-        // TODO: Use rapidjson::PrettyWriter (it's annoying because writer
-        //   is not a virtual type so we would need to templatize write_json()
-        //   or provide a virtual wrapper object around a writer or something).
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+        // Change indentation character to tab for compatibility with cJSON
+        // (it doesn't actually matter, but many of our tests are currently
+        //  assuming this format)
+        writer.SetIndent('\t', 1);
         write_json(&writer);
         return std::string(buffer.GetString());
     } else {
@@ -1384,7 +1386,8 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(datum_string_t(key), throw_bool);
 }
 
-void datum_t::write_json(rapidjson::Writer<rapidjson::StringBuffer> *writer) const {
+template <class json_writer_t>
+void datum_t::write_json(json_writer_t *writer) const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to JSON.");
     case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to JSON.");
@@ -1415,6 +1418,12 @@ void datum_t::write_json(rapidjson::Writer<rapidjson::StringBuffer> *writer) con
     default: unreachable();
     }
 }
+
+// Explicit instantiation
+template void datum_t::write_json(
+    rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
+template void datum_t::write_json(
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
 
 // TODO: make BINARY, STR, and OBJECT convertible to sequence?
 counted_t<datum_stream_t>

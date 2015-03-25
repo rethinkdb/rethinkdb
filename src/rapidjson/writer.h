@@ -138,6 +138,7 @@ public:
 
     // RethinkDB addition: Inject a raw JSON string
     bool RawJson(const std::basic_string<Ch>& raw) {
+        Prefix(kStringType); // The type doesn't matter here
         for (const Ch &c : raw) {
             os_->Put(c);
         }
