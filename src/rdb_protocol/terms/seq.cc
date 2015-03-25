@@ -376,13 +376,14 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t({"squash"})) { }
+        : op_term_t(env, term, argspec_t(1),
+                    optargspec_t({"squash", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
-        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
+        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
         if (squash.get_type() == datum_t::type_t::R_NUM) {
             rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::GENERIC,
                           "Expected BOOL or a positive NUMBER but found "
@@ -391,6 +392,11 @@ private:
             rfail_target(sval, base_exc_t::GENERIC,
                          "Expected BOOL or NUMBER but found %s.",
                          squash.get_type_name().c_str());
+        }
+
+        bool include_states = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
+            include_states = v->as_bool();
         }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -406,6 +412,7 @@ private:
                     keyspec.table->read_changes(
                         env->env,
                         squash,
+                        include_states,
                         std::move(keyspec.spec),
                         backtrace(),
                         keyspec.table_name));
@@ -420,7 +427,8 @@ private:
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
-                env->env, v->as_single_selection()->read_changes(squash));
+                env->env,
+                v->as_single_selection()->read_changes(squash, include_states));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,

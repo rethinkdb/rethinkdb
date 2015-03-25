@@ -73,9 +73,7 @@ public:
     class ref_t {
     public:
         ~ref_t();
-
         void fill_response(Response *res);
-        void terminate();
     private:
         friend class query_cache_t;
         ref_t(query_cache_t *_query_cache,
@@ -99,11 +97,14 @@ public:
 
         DISABLE_COPYING(ref_t);
     };
-    
+
     // const iteration for the jobs table
     typedef std::map<int64_t, scoped_ptr_t<entry_t> >::const_iterator const_iterator;
     const_iterator begin() const;
     const_iterator end() const;
+
+    // Interrupt a query by token
+    void terminate_query(int64_t token);
 
     // Helper function used by the jobs table
     ip_and_port_t get_client_addr_port() const { return client_addr_port; }
@@ -121,7 +122,7 @@ public:
     void noreply_wait(const query_id_t &query_id,
                       int64_t token,
                       signal_t *interruptor);
-    
+
 private:
     struct entry_t {
         entry_t(protob_t<Query> original_query,
@@ -156,6 +157,7 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
+    void terminate_internal(entry_t *entry);
     static void async_destroy_entry(entry_t *entry);
 
     rdb_context_t *const rdb_ctx;

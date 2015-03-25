@@ -780,16 +780,21 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
                           env,
+                          false,
                           keyspec_t::point_t{ql::datum_t(0.0)},
-                          NULL,
+                          "id",
+                          std::vector<ql::datum_t>(),
                           bt)),
               point_10(a->subscribe(
                            env,
+                           false,
                            keyspec_t::point_t{ql::datum_t(10.0)},
-                           NULL,
+                           "id",
+                           std::vector<ql::datum_t>(),
                            bt)),
               range(a->subscribe(
                         env,
+                        false,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
@@ -799,7 +804,8 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                               key_range_t::closed,
                               ql::datum_t(10.0),
                               key_range_t::open)},
-                        NULL,
+                        "id",
+                        std::vector<ql::datum_t>(),
                         bt)) { }
         ql::protob_t<const Backtrace> bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
@@ -828,14 +834,14 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
         p10 = pair.second.point_10->next_batch(&env, bs);
         rng = pair.second.range->next_batch(&env, bs);
         if (i == 0) {
-            guarantee(p0.size() == 1);
+            guarantee(p0.size() == 2);
         } else {
-            guarantee(p0.size() == 0);
+            guarantee(p0.size() == 1);
         }
         if (i <= 10) {
-            guarantee(p10.size() == 1);
+            guarantee(p10.size() == 2);
         } else {
-            guarantee(p10.size() == 0);
+            guarantee(p10.size() == 1);
         }
         if (i <= 10) {
             guarantee(rng.size() == 10 - i);

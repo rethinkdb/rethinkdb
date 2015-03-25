@@ -7,7 +7,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, json, traceback, csv
-import multiprocessing, subprocess, re, ctypes
+import multiprocessing, subprocess, re, ctypes, numbers
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
@@ -29,7 +29,8 @@ except ImportError:
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
-      [--format (csv | json)] [--fields FIELD,FIELD...] [--clients NUM]"
+      [--format (csv | json)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
+      [--clients NUM]"
 
 def print_export_help():
     print(info)
@@ -49,6 +50,9 @@ def print_export_help():
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
     print("                                   to 3)")
     print("")
+    print("Export in CSV format:")
+    print("  --delimiter CHARACTER            character to be used as field delimiter, or '\\t' for tab")
+    print("")
     print("EXAMPLES:")
     print("rethinkdb export -c mnemosyne:39500")
     print("  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500.")
@@ -59,8 +63,9 @@ def print_export_help():
     print("rethinkdb export -c hades -e test.subscribers -a hunter2")
     print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
     print("")
-    print("rethinkdb export --format csv -e test.history --fields time,message")
-    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'.")
+    print("rethinkdb export --format csv -e test.history --fields time,message --delimiter ';'")
+    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message',")
+    print("  using a semicolon as field delimiter (rather than a comma).")
     print("")
     print("rethinkdb export --fields id,value -e test.data")
     print("  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'.")
@@ -73,6 +78,7 @@ def parse_options():
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
@@ -121,6 +127,23 @@ def parse_options():
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
+
+    if options.delimiter is None:
+        res["delimiter"] = ","
+
+    else:
+
+        if options.format != "csv":
+            raise RuntimeError("Error: --delimiter option is only valid for CSV file formats")
+
+        if len(options.delimiter) == 1:
+            res["delimiter"] = options.delimiter
+
+        elif options.delimiter == "\\t":
+            res["delimiter"] = "\t"
+
+        else:
+            raise RuntimeError("Error: Must specify only one character for the --delimiter option")
 
     # Get number of clients
     if options.clients < 1:
@@ -239,11 +262,11 @@ def json_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def csv_writer(filename, fields, task_queue, error_queue):
+def csv_writer(filename, fields, delimiter, task_queue, error_queue):
     try:
         with open(filename, "w") as out:
-            out_writer = csv.writer(out)
-            out_writer.writerow([s.encode('utf-8') for s in fields])
+            out_writer = csv.writer(out, delimiter=delimiter)
+            out_writer.writerow(fields)
 
             while True:
                 item = task_queue.get()
@@ -255,9 +278,11 @@ def csv_writer(filename, fields, task_queue, error_queue):
                 for field in fields:
                     if field not in row:
                         info.append(None)
-                    elif isinstance(row[field], (int, long, float, complex)):
-                        info.append(str(row[field]).encode('utf-8'))
-                    elif isinstance(row[field], (str, unicode)):
+                    elif isinstance(row[field], numbers.Number):
+                        info.append(str(row[field]))
+                    elif isinstance(row[field], str):
+                        info.append(row[field])
+                    elif isinstance(row[field], unicode):
                         info.append(row[field].encode('utf-8'))
                     else:
                         info.append(json.dumps(row[field]))
@@ -266,7 +291,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def launch_writer(format, directory, db, table, fields, task_queue, error_queue):
+def launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue):
     if format == "json":
         filename = directory + "/%s/%s.json" % (db, table)
         return multiprocessing.Process(target=json_writer,
@@ -274,16 +299,16 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
     elif format == "csv":
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
-                                       args=(filename, fields, task_queue, error_queue))
+                                       args=(filename, fields, delimiter, task_queue, error_queue))
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
 def get_table_size(progress, conn, db, table, progress_info):
     table_size = r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
-    progress_info[1].value = table_size
+    progress_info[1].value = int(table_size)
     progress_info[0].value = 0
 
-def export_table(host, port, auth_key, db, table, directory, fields, format,
+def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
                  error_queue, progress_info, sindex_counter, stream_semaphore, exit_event):
     writer = None
 
@@ -297,7 +322,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format,
 
         with stream_semaphore:
             task_queue = SimpleQueue()
-            writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
+            writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
             writer.start()
 
             rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
@@ -361,6 +386,7 @@ def run_clients(options, db_table_set):
                                                            db, table,
                                                            options["directory_partial"],
                                                            options["fields"],
+                                                           options["delimiter"],
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
@@ -416,7 +442,9 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "version check", check_version)
+        # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+        # if the user has a database named 'rethinkdb'
+        rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
         del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 

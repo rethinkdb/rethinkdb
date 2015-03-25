@@ -6,7 +6,9 @@ src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$ve
 
 pkg_fetch () {
     pkg_fetch_archive
-    find "$src_dir"/third_party/icu/* -maxdepth 0 -not -name 'icu.gyp*' -print0 | xargs -0 rm -rf
+    if [[ "$CROSS_COMPILING" != 1 ]]; then
+        find "$src_dir"/third_party/icu/* -maxdepth 0 -not -name 'icu.gyp*' -print0 | xargs -0 rm -rf
+    fi
 }
 
 pkg_install-include () {
@@ -25,15 +27,17 @@ pkg_install () {
         export LDFLAGS="-stdlib=libc++ -lc++ ${LDFLAGS:-}"
         export GYP_DEFINES='clang=1 mac_deployment_target=10.7'
     fi
+    arch_gypflags=
+    raspberry_pi_gypflags='-Darm_version=6 -Darm_fpu=vfpv2'
     host=$($CXX -dumpmachine)
     case ${host%%-*} in
         i?86)   arch=ia32 ;;
         x86_64) arch=x64 ;;
-        arm*)   arch=arm ;;
+        arm*)   arch=arm; arch_gypflags=$raspberry_pi_gypflags ;;
         *)      arch=native ;;
     esac
     mode=release
-    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS='-Duse_system_icu=1 -Dwerror=' V=1
+    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Duse_system_icu=1 -Dwerror= $arch_gypflags" V=1
     for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
         name=`basename $lib`
         cp $lib "$install_dir/lib/${name/.$arch/}"

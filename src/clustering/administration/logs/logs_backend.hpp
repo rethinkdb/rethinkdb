@@ -78,8 +78,16 @@ private:
         directory; if so, removes the entry from `peers_handled` and returns `false`. */
         bool check_disconnected(const peer_id_t &peer);
 
+        /* Called by `cfeed_artificial_table_backend_t` to fetch the initial values for a
+        new changefeed */
+        bool get_initial_values(
+            const new_mutex_acq_t *proof,
+            std::vector<ql::datum_t> *initial_values_out,
+            signal_t *interruptor);
+
         logs_artificial_table_backend_t *parent;
         std::set<peer_id_t> peers_handled;
+        std::map<server_id_t, timespec> last_timestamps;
 
         /* `all_starters_done` is pulsed when we've fetched logs from every peer that was
         connected to the `cfeed_machinery_t` when it was first created. When the
@@ -98,6 +106,14 @@ private:
         auto_drainer_t drainer;
         watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t dir_subs;
     };
+
+    bool read_all_rows_raw(
+        const std::function<void(
+            const log_message_t &msg,
+            const server_id_t &server_id,
+            const ql::datum_t &server_datum)> &callback,
+        signal_t *interruptor,
+        std::string *error_out);
 
     scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>
         construct_changefeed_machinery(signal_t *interruptor);

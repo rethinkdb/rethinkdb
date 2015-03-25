@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import os, random, re, subprocess, sys, tempfile, time, unittest
+import os, random, re, socket, subprocess, sys, tempfile, time, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
 
@@ -128,7 +128,7 @@ class TestCursor(unittest.TestCase):
         self.cur = r.db(dbName).table(tableName).run(self.conn)
 
     def test_type(self):
-        self.assertEqual(type(self.cur), r.Cursor)
+        self.assertTrue(isinstance(self.cur, r.Cursor))
 
     def test_count(self):
         i = 0
@@ -168,15 +168,9 @@ class TestCursorWait(unittest.TestCase):
                 if wait_time is None: # Special case to use the default
                     cursors[cursor_index].next()
                 else:
-                    # To avoid complete deadlock with 0 wait, occasionally allow more data through
-                    if (wait_time == False or wait_time == 0) and random.random() > 0.99:
-                        cursors[cursor_index].next(wait=0.0001)
-                    else:
-                        cursors[cursor_index].next(wait=wait_time)
+                    cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
-            except r.RqlDriverError as e:
-                if e.message != 'Timed out waiting for cursor response.':
-                    raise
+            except r.RqlTimeoutError:
                 cursor_timeouts[cursor_index] += 1
 
         # We need to get ahead of pre-fetching for this to get the error we want
@@ -213,6 +207,24 @@ class TestCursorWait(unittest.TestCase):
         reads, timeouts = self.do_test(None)
         self.assertEqual(timeouts, 0, "Got timeouts using default (infinite) wait.")
 
+class TestChangefeedWait(unittest.TestCase):
+    def test_wait(self):
+        # - ensure a clean table
+        conn = r.connect(host=serverHost, port=serverPort)
+        if dbName not in r.db_list().run(conn):
+            r.db_create(dbName).run(conn)
+        if tableName not in r.db(dbName).table_list().run(conn):
+            r.db(dbName).table_create(tableName).run(conn)
+
+        changes = r.db(dbName).table(tableName).changes().run(conn)
+        self.assertRaises(socket.timeout, changes.next, wait=0)
+        self.assertRaises(socket.timeout, changes.next, wait=0.2)
+        self.assertRaises(socket.timeout, changes.next, wait=1)
+        self.assertRaises(socket.timeout, changes.next, wait=5)
+        res = r.db(dbName).table(tableName).insert({}).run(conn)
+        self.assertEqual(res['inserted'], 1)
+        res = changes.next(wait=1)
+
 if __name__ == '__main__':
     print("Testing cursor for %d rows" % TestCursor.num_rows)
     suite = unittest.TestSuite()
@@ -220,6 +232,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestCursor))
     suite.addTest(loader.loadTestsFromTestCase(TestRangeCursor))
     suite.addTest(loader.loadTestsFromTestCase(TestCursorWait))
+    suite.addTest(loader.loadTestsFromTestCase(TestChangefeedWait))
 
     if not unittest.TextTestRunner(verbosity=2).run(suite):
         sys.exit(1)

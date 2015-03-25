@@ -9,7 +9,7 @@
 #include "arch/io/disk/accounting.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "config/args.hpp"
-#include "containers/bitset.hpp"
+#include "math.hpp"
 #include "perfmon/perfmon.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case

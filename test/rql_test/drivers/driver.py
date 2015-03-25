@@ -129,6 +129,9 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
+    
+    # note: This only works for dicts, arrays, numbers, Nones, and strings. Anything else might as well be random.
+
     def __init__(self, lst, partial=False, **kwargs):
         self.lst = sorted(lst, key=lambda x: repr(x))
         self.partial = partial == True
@@ -318,7 +321,7 @@ class PyTestDriver:
     def define(self, expr, variable):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
-            exec compile('%s = %s' % (variable, expr), '<string>', 'single') in self.scope # handle things like: a['b'] = b
+            exec(compile('%s = %s' % (variable, expr), '<string>', 'single'), self.scope) # handle things like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
     

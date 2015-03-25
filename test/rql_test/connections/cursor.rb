@@ -88,9 +88,6 @@ def get_next(cursor, wait_time)
         case wait_time
         when nil
             cursor.next()
-        when false, 0
-            # To avoid complete deadlock with 0 wait, occasionally allow more data through
-            if rand() <= 0.99 then cursor.next(wait_time) else cursor.next(0.0001) end
         else
             cursor.next(wait_time)
         end
@@ -156,6 +153,37 @@ def test_cursor_default_wait(conn)
     expect_eq(timeouts, 0, "get timeouts using zero (false) wait.")
 end
 
+def test_changefeed_wait(conn)
+    db = 'cursor_rb'
+    table = 'changefeed_wait'
+    if not r.db_list().run(conn).include? db
+        r.db_create(db).run(conn)
+    end
+    if not r.db(db).table_list().run(conn).include? table
+        r.db(db).table_create(table).run(conn)
+    end
+
+    changes = r.db(db).table(table).changes().run(conn)
+
+    timeout = nil
+    read_cursor = -> {
+        changes.next(timeout)
+    }
+
+    timeout = 0
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 0.2
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 1
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 5
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+
+    res = r.db(db).table(table).insert({}).run(conn)
+    expect_eq(res['inserted'], 1)
+    res = changes.next(wait=1)
+end
+
 $tests = {
     :test_cursor_after_connection_close => method(:test_cursor_after_connection_close),
     :test_cursor_after_cursor_close => method(:test_cursor_after_cursor_close),
@@ -168,6 +196,7 @@ $tests = {
     :test_cursor_long_wait => method(:test_cursor_long_wait),
     :test_cursor_infinite_wait => method(:test_cursor_infinite_wait),
     :test_cursor_default_wait => method(:test_cursor_default_wait),
+    :test_changefeed_wait => method(:test_changefeed_wait),
 }
 
 $tests.each do |name, m|
