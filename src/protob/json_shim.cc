@@ -250,7 +250,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
         writer.Key("n", 1);
         writer.StartArray();
         for (int i = 0; i < r.notes_size(); ++i) {
-            writer.WriteInt(r.notes(i));
+            writer.Int(r.notes(i));
         }
         writer.EndArray();
 
