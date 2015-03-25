@@ -52,9 +52,9 @@ public:
         datum_t d = v->as_datum();
         r_sanity_check(d.has());
         rapidjson::StringBuffer buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
         d.write_json(&writer);
-        return new_val(datum_t(datum_string_t(buffer.GetString())));
+        return new_val(datum_t(datum_string_t(buffer.GetSize(), buffer.GetString())));
     }
 
     virtual const char *name() const { return "to_json_string"; }

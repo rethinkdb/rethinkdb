@@ -14,7 +14,7 @@ tests:
       ot: '"foo"'
 
     - cd: r.json("[1,2")
-      ot: err("RqlRuntimeError", 'Failed to parse "[1,2" as JSON.', [0])
+      ot: err("RqlRuntimeError", 'Failed to parse "[1,2" as JSON (Missing a comma or \']\' after an array element.).', [0])
 
     - cd: r.json("[1,2,3]").to_json_string()
       ot: ('[1,2,3]')
