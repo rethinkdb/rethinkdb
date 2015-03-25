@@ -150,6 +150,7 @@ void encode_base64_ptype(
     const std::string encoded_data = encode_base64(data);
     writer->Key(data_key);
     writer->String(encoded_data.data(), encoded_data.size());
+    writer->EndObject();
 }
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string

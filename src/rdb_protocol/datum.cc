@@ -1394,7 +1394,18 @@ void datum_t::write_json(json_writer_t *writer) const {
     case R_NULL: writer->Null(); break;
     case R_BINARY: pseudo::encode_base64_ptype(as_binary(), writer); break;
     case R_BOOL: writer->Bool(as_bool()); break;
-    case R_NUM: writer->Double(as_num()); break;
+    case R_NUM: {
+        const double d = as_num();
+        // Always print -0.0 as a double since integers cannot represent -0.
+        // Otherwise check if the number is an integer and print it as such.
+        int64_t i;
+        if (!(d == 0.0 && std::signbit(d))
+            && number_as_integer(d, &i)) {
+            writer->Int64(i);
+        } else {
+            writer->Double(d);
+        }
+    } break;
     case R_STR: writer->String(as_str().data(), as_str().size()); break;
     case R_ARRAY: {
         writer->StartArray();
