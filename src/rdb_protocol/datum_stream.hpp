@@ -49,8 +49,7 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 }
 
 struct active_state_t {
-    key_range_t active_range;
-    store_key_t last_read_start;
+    key_range_t last_read;
     std::map<uuid_u, uint64_t> shard_stamps;
     boost::optional<skey_version_t> skey_version; // none for pkey
     DEBUG_ONLY(boost::optional<std::string> sindex;)

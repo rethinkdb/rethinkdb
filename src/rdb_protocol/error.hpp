@@ -156,6 +156,10 @@ private:
         rcheck_toplevel(false, type, strprintf(args));   \
         unreachable();                                   \
     } while (0)
+#define r_sanity_fail() do {                        \
+        r_sanity_check(false);                      \
+        unreachable();                              \
+    } while (0)
 
 
 class datum_t;

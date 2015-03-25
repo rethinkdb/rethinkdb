@@ -2114,12 +2114,13 @@ private:
     }
 };
 
-// RSI: pick up here, use pop_needed_changes
+// RSI: pick up here
 class splice_stream_t : public subscription_stream_t {
 public:
     template<class... Args>
     splice_stream_t(counted_t<datum_stream_t> _src, Args &&... args)
         : subscription_stream_t(std::forward<Args>(args)...),
+          read_once(false),
           src(std::move(_src)) {
         r_sanity_check(src.has());
     }
@@ -2127,24 +2128,33 @@ private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         std::vector<datum_t> ret;
         batcher_t batcher = bs.to_batcher();
-        while (sub->has_el() && !batcher.should_send_batch()) {
-            change_val_t cv = sub->pop_change_val();
-            if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
-                cv.old_val = boost::none;
+        if (!read_once) {
+            while (sub->has_el() && !batcher.should_send_batch()) {
+                change_val_t cv = sub->pop_change_val();
+                if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
+                    cv.old_val = boost::none;
+                }
+                if (cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val)) {
+                    cv.new_val = boost::none;
+                }
+                if (cv.old_val || cv.new_val) {
+                    datum_t el = change_val_to_change(std::move(cv));
+                    batcher.note_el(el);
+                    ret.push_back(std::move(el));
+                }
             }
-            if (cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val)) {
-                cv.new_val = boost::none;
-            }
-            if (cv.old_val || cv.new_val) {
-                datum_t el = change_val_to_change(std::move(cv));
-                batcher.note_el(el);
-                ret.push_back(std::move(el));
-            }
+            remove_outdated_ranges();
         }
-        remove_outdated_ranges();
         if (!src->is_exhausted() && !batcher.should_send_batch()) {
             std::vector<datum_t> batch = src->next_batch(env, bs);
-            update_ranges(src);
+            // We have to do a little song and dance to make sure we've read at
+            // least once before deciding whether or not to discard changes,
+            // because otherwise we don't know the `skey_version`.  We can
+            // remove this hack once we're no longer backwards-compatible with
+            // pre-1.16 (I think?) skey versions.
+            update_ranges();
+            r_sanity_check(active_state);
+            read_once = true;
             std::move(batch.begin(), batch.end(), std::back_inserter(ret));
         }
         return std::move(ret);
@@ -2156,11 +2166,8 @@ private:
         store_key_t key;
         if (val.index.has()) {
             key = store_key_t(
-                val.index.print_secondary(
-                    src->get_skey_version(),
-                    pkey,
-                    // RSI: multi-indexes
-                    boost::none));
+                // RSI: multi-indexes
+                val.index.print_secondary(skey_version(), pkey, boost::none));
         } else {
             key = pkey;
         }
@@ -2172,12 +2179,12 @@ private:
         if (key >= stamped_range->get_right_fencepost()) return true;
         // `ranges` should be extremely small
         for (const auto &pair : stamped_range->ranges) {
-            if (pair.first.contains(val.index)) {
+            if (pair.first.contains_key(key)) {
                 return source_stamp.second < pair.second;
             }
         }
         // If we get here then there's a gap in the ranges.
-        r_sanity_check(false);
+        r_sanity_fail();
     }
     void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
         // Safe because we never generate `store_key_t::max()`.
@@ -2189,29 +2196,43 @@ private:
         stamped_range_t *stamped_range = &stamped_ranges[uuid];
         if (stamped_range->ranges.size() == 0) {
             stamped_range->left_fencepost = range.left;
-            stamped_range->ranges.push_back(std::move(range));
+            stamped_range->ranges.push_back(std::make_pair(std::move(range), stamp));
         } else if (stamped_range->ranges.back().second == stamp) {
-            stamped_ranges->ranges.back().first.right = range.right;
+            stamped_range->ranges.back().first.right = range.right;
         } else {
-            stamped_range->ranges.push_back(std::move(range));
+            stamped_range->ranges.push_back(std::make_pair(std::move(range), stamp));
         }
     }
-    void update_ranges(counted_t<datum_stream_t> src) {
-        r_sanity_check(src.has());
-        key_range_t range = src->last_read_range();
-        std::map<uuid_u, uint64_t> last_read_stamps;
-        for (const auto &pair : last_read_stamps) {
-            add_range(last_read_stamps.first, last_read_stamps.second, range);
+    void update_ranges() {
+        active_state = src->get_active_state();
+        key_range_t range = last_read_range();
+        for (const auto &pair : last_read_stamps()) {
+            add_range(pair.first, pair.second, range);
         }
     }
     void remove_outdated_ranges() {
-        for (auto &&stamped_range : stamped_ranges_t) {
-            auto *ranges = &stamped_range.ranges;
-            while (ranges->size() > 0 && ranges->front().second <= latest_change_stamp) {
-                stamped_range.left_fencepost = ranges->front().first.right.key;
-                ranges.pop_front();
+        for (auto &&pair : stamped_ranges) {
+            auto *ranges = &pair.second.ranges;
+            while (ranges->size() > 0
+                   && ranges->front().second <= pair.second.latest_change_stamp) {
+                pair.second.left_fencepost = ranges->front().first.right.key;
+                ranges->pop_front();
             }
         }
+    }
+
+    const key_range_t &last_read_range() {
+        r_sanity_check(active_state);
+        return active_state->last_read;
+    }
+    const std::map<uuid_u, uint64_t> &last_read_stamps() {
+        r_sanity_check(active_state);
+        return active_state->shard_stamps;
+    }
+    const skey_version_t &skey_version() {
+        r_sanity_check(active_state);
+        r_sanity_check(active_state->skey_version);
+        return *(active_state->skey_version);
     }
 
     struct stamped_range_t {
@@ -2225,8 +2246,11 @@ private:
         store_key_t left_fencepost;
         std::deque<std::pair<key_range_t, uint64_t> > ranges;
     };
-    std::map<uuid_u, stamped_range_t> stamped_ranges;
+
+    bool read_once;
     counted_t<datum_stream_t> src;
+    boost::optional<active_state_t> active_state;
+    std::map<uuid_u, stamped_range_t> stamped_ranges;
 };
 
 subscription_t::subscription_t(
