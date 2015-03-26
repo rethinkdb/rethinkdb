@@ -1,3 +1,26 @@
+# Release 1.16.3 (Stand By Me)
+
+Released on 2015-03-26
+
+Bug fix update.
+
+* Fixed a bug that could cause a crash when reading from a secondary index in some rare circumstances (#3976)
+* Fixed a bug that could cause a connection to hang indefinitely on OS X (#3954)
+* Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
+* Heartbeat timeout messages now include the remote port number (#2891)
+* Python driver: patched to work in PyPy (#3969)
+* Python driver: fixed an "Unterminated string" error during `rethinkdb restore` (#3859)
+* JavaScript driver: fixed a bug that caused `cursor.each` to fail with an exception (#3826)
+* JavaScript driver: fixed a bug that caused connection errors to be discarded (#3733)
+* Ruby driver: fixed a bug that caused failures when using JRuby (#3795)
+
+## Contributors ##
+
+* Sherzod Kuchkarov (@tundrax)
+* Elian Gidoni (@eliangidoni)
+
+--
+
 # Release 1.16.2 (Stand By Me)
 
 Released on 2015-02-16
