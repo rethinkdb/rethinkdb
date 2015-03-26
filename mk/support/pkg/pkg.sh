@@ -134,7 +134,7 @@ pkg_install () {
         error "cannot install package, it has not been fetched"
     fi
     pkg_copy_src_to_build
-    pkg_configure
+    pkg_configure ${configure_flags:-}
     pkg_make install
 }
 
@@ -295,6 +295,11 @@ shift
 # Load the package
 load_pkg "$1"
 shift
+
+# Trace commands
+if [[ "${TRACE:-}" = 1 ]]; then
+    set -x
+fi
 
 # Prepare the environment
 pkg_depends_env

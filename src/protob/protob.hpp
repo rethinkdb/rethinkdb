@@ -78,7 +78,7 @@ class query_handler_t {
 public:
     virtual ~query_handler_t() { }
 
-    virtual void run_query(const ql::query_id_t &query_id,
+    virtual void run_query(ql::query_id_t &&query_id,
                            const ql::protob_t<Query> &query,
                            Response *response_out,
                            ql::query_cache_t *query_cache,

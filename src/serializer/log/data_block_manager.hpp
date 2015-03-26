@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "arch/types.hpp"
-#include "containers/bitset.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"

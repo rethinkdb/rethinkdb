@@ -1034,7 +1034,8 @@ public:
             return_empty_normal_batches_t return_empty_normal_batches,
             const signal_t *interruptor);
     virtual void start_artificial(env_t *, const uuid_u &,
-                                  artificial_table_backend_t *) = 0;
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
@@ -1123,8 +1124,9 @@ public:
         const auto_drainer_t::lock_t &lock,
         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
+    void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const auto_drainer_t::lock_t &lock,
-                  const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1162,6 +1164,7 @@ private:
                             const std::vector<int> &sub_threads,
                             int i);
     void each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i);
+    void each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i);
 
     std::map<store_key_t, std::vector<std::set<point_sub_t *> > > point_subs;
     rwlock_t point_subs_lock;
@@ -1342,19 +1345,19 @@ public:
     }
     feed_type_t cfeed_type() const final { return feed_type_t::point; }
 
-    virtual void start_artificial(env_t *env, const uuid_u &,
-                                  artificial_table_backend_t *subscriber) {
-        std::string err;
-        datum_t d;
-        // `subscriber` should only be `NULL` in the unit tests.
-        if (subscriber != NULL) {
-            if (subscriber->read_row(pkey, env->interruptor, &d, &err)) {
-                queue->add(store_key_t(pkey.print_primary()), datum_t(),
-                           d.has() ? d : datum_t::null());
-            } else {
-                rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
+    virtual void start_artificial(env_t *, const uuid_u &,
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) {
+        datum_t initial = datum_t::null();
+        /* Linear search is slow, but in practice there are few enough values that
+        it's OK. */
+        for (const datum_t &d : initial_values) {
+            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
+                initial = d;
+                break;
             }
         }
+        queue->add(store_key_t(pkey.print_primary()), datum_t(), initial);
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1428,7 +1431,8 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
     virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
-                                  artificial_table_backend_t *) {
+                                  const std::string &,
+                                  const std::vector<datum_t> &) {
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
@@ -1635,7 +1639,8 @@ public:
     }
 
     NORETURN virtual void start_artificial(env_t *, const uuid_u &,
-                                           artificial_table_backend_t *) {
+                                           const std::string &,
+                                           const std::vector<datum_t> &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -1951,7 +1956,7 @@ public:
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
         feed->each_sub(*lock,
-                       std::bind(&flat_sub_t::stop,
+                       std::bind(&subscription_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -2101,11 +2106,6 @@ subscription_t::get_els(batcher_t *batcher,
                 throw e;
             }
             r_sanity_check(cond == NULL);
-            if (!has_el()) {
-                // If we don't have an element, it must be because we squashed
-                // changes down to nothing, got an error, or skipped some rows.
-                r_sanity_check(squash || exc || skipped != 0);
-            }
             apply_queued_changes();
         }
     }
@@ -2357,10 +2357,31 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
     }
 }
 
+void feed_t::each_limit_sub(
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    pmap(get_num_threads(),
+         std::bind(&feed_t::each_limit_sub_cb,
+                   this,
+                   std::cref(f),
+                   ph::_1));
+}
+
+void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
+    on_thread_t th((threadnum_t(i)));
+    for (auto const &pair : limit_subs) {
+        for (limit_sub_t *sub : pair.second[i]) {
+            f(sub);
+        }
+    }
+}
+
 void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
-                      const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     each_range_sub(lock, f);
     each_point_sub(f);
+    each_limit_sub(f);
 }
 
 void feed_t::on_point_sub(
@@ -2554,7 +2575,8 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
     bool include_states,
     const keyspec_t::spec_t &spec,
-    artificial_table_backend_t *subscriber,
+    const std::string &primary_key_name,
+    const std::vector<datum_t> &initial_values,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
     // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
@@ -2564,7 +2586,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
-    sub->start_artificial(env, uuid, subscriber);
+    sub->start_artificial(env, uuid, primary_key_name, initial_values);
     return make_counted<stream_t>(std::move(sub), bt);
 }
 

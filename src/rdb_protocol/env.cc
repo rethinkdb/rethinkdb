@@ -21,7 +21,7 @@ const size_t LRU_CACHE_SIZE = 1000;
 
 namespace ql {
 
-datum_t static_optarg(const std::string &key, protob_t<Query> q) {
+datum_t static_optarg(const std::string &key, const protob_t<const Query> q) {
     // need to parse these to figure out what user wants; resulting
     // bootstrap problem is a headache.  Just use default.
     const configured_limits_t limits;
@@ -33,6 +33,13 @@ datum_t static_optarg(const std::string &key, protob_t<Query> q) {
     }
 
     return datum_t();
+}
+
+bool is_noreply(const protob_t<const Query> &q) {
+    ql::datum_t noreply = static_optarg("noreply", q);
+    return noreply.has() &&
+           noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
+           noreply.as_bool();
 }
 
 wire_func_t construct_optarg_wire_func(const Term &val) {

@@ -30,7 +30,9 @@ class AsyncChangefeed(object):
     def run(self, query):
         try:
             for x in eval(query).changes().run(self.conn):
-                self.changes.append(x)
+                # Throw away initial values
+                if "old_val" in x:
+                    self.changes.append(x)
         except Exception, e:
             self.err = sys.exc_info()
     def check(self):

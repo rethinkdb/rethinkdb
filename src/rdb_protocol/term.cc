@@ -203,7 +203,17 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     unreachable();
 }
 
-void run(const query_id_t &query_id,
+// If the query wants a reply, we can release the query id, which is
+// only used for tracking the ordering of noreply queries for the
+// purpose of noreply_wait.
+void maybe_release_query_id(query_id_t &&id,
+                            const protob_t<Query> &query) {
+    if (!is_noreply(query)) {
+        query_id_t destroyer(std::move(id));
+    }
+}
+
+void run(query_id_t &&query_id,
          protob_t<Query> q,
          Response *res,
          query_cache_t *query_cache,
@@ -231,19 +241,19 @@ void run(const query_id_t &query_id,
     try {
         switch (q->type()) {
         case Query_QueryType_START: {
+            maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->create(token, q, use_json, interruptor);
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_CONTINUE: {
+            maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->get(token, use_json, interruptor);
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_STOP: {
-            scoped_ptr_t<query_cache_t::ref_t> query_ref =
-                query_cache->get(token, use_json, interruptor);
-            query_ref->terminate();
+            query_cache->terminate_query(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } break;
         case Query_QueryType_NOREPLY_WAIT: {

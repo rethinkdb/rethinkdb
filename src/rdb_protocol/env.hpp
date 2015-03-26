@@ -31,7 +31,9 @@ class term_t;
 
 /* If and optarg with the given key is present and is of type DATUM it will be
  * returned. Otherwise an empty datum_t will be returned. */
-datum_t static_optarg(const std::string &key, protob_t<Query> q);
+datum_t static_optarg(const std::string &key, const protob_t<const Query> q);
+
+bool is_noreply(const protob_t<const Query> &q);
 
 std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q);
 
