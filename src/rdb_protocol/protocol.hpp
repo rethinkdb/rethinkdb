@@ -342,10 +342,8 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 struct changefeed_stamp_t {
     changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(
-        ql::changefeed::client_t::addr_t _addr)
-        : addr(std::move(_addr)),
-          region(region_t::universe()) { }
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;
 };

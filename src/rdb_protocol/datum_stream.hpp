@@ -689,6 +689,7 @@ public:
         return reader->add_stamp(std::move(stamp));
     }
     virtual boost::optional<active_state_t> get_active_state() const {
+        debugf("foo\n");
         return reader->get_active_state();
     }
 

@@ -39,6 +39,7 @@ bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
 }
 
 boost::optional<active_state_t> rget_response_reader_t::get_active_state() const {
+    debugf("%d %d %zu\n", (bool)stamp, (bool)active_range, shard_stamps.size());
     if (!stamp || !active_range || shard_stamps.size() == 0) return boost::none;
     return active_state_t{
         key_range_t(key_range_t::closed, last_read_start,
@@ -182,9 +183,9 @@ void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 std::vector<rget_item_t>
 rget_reader_t::do_range_read(env_t *env, const read_t &read) {
-    rget_read_response_t res = do_read(env, read);
     auto *rr = boost::get<rget_read_t>(&read.read);
     r_sanity_check(rr);
+    rget_read_response_t res = do_read(env, read);
 
     key_range_t rng;
     if (rr->sindex) {
@@ -199,8 +200,8 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
         rng = rr->region.inner;
     }
 
+    r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
     if (stamp) {
-        r_sanity_check(rr->stamp);
         r_sanity_check(res.stamp_response);
         for (const auto &pair : (*res.stamp_response).stamps) {
             // It's OK to blow away old values.

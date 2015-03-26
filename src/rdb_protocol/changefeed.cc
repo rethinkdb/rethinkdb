@@ -2727,6 +2727,9 @@ counted_t<datum_stream_t> client_t::new_stream(
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
         if (maybe_src) {
+            bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
+            rcheck_datum(stamped, base_exc_t::GENERIC,
+                         "Cannot call `return_initial` on an unstampable stream.");
             return make_counted<splice_stream_t>(maybe_src, std::move(sub), bt);
         } else {
             return make_counted<stream_t>(std::move(sub), bt);
