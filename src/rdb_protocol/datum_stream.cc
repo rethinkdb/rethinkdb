@@ -39,13 +39,16 @@ bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
 }
 
 boost::optional<active_state_t> rget_response_reader_t::get_active_state() const {
-    debugf("%d %d %zu\n", (bool)stamp, (bool)active_range, shard_stamps.size());
     if (!stamp || !active_range || shard_stamps.size() == 0) return boost::none;
+    boost::optional<skey_version_t> ver;
+    if (readgen->sindex_name()) {
+        ver = datum_t::extract_all(key_to_unescaped_str(last_read_start)).skey_version;
+    }
     return active_state_t{
         key_range_t(key_range_t::closed, last_read_start,
                     key_range_t::open, active_range->left),
         shard_stamps,
-        datum_t::extract_all(key_to_unescaped_str(last_read_start)).skey_version,
+        ver,
         DEBUG_ONLY(readgen->sindex_name())};
 }
 
