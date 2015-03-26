@@ -42,7 +42,7 @@ pkg_shrinkwrap () {
 }
 
 pkg_install () {
-    full_npm_package=${full_npm_package:-package-$npm_package}
+    full_npm_package=${full_npm_package:-packed-$npm_package}
     rm -rf "$install_dir" || : 2>/dev/null
     mkdir -p "$install_dir/node_modules"
     local pkg
