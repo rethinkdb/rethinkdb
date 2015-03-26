@@ -5,8 +5,9 @@ Released on 2015-03-26
 Bug fix update.
 
 * Fixed a bug that could cause a crash when reading from a secondary index in some rare circumstances (#3976)
+* Fixed a bug that could cause a connection to hang indefinitely on OS X (#3954)
 * Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
-* Include the remote port number in the heartbeat timeout message (#2891)
+* Heartbeat timeout messages now include the remote port number (#2891)
 * Python driver: patched to work in PyPy (#3969)
 * Python driver: fixed an "Unterminated string" error during `rethinkdb restore` (#3859)
 * JavaScript driver: fixed a bug that caused `cursor.each` to fail with an exception (#3826)
