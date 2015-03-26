@@ -18,8 +18,8 @@
   "homepage": "https://github.com/rethinkdb/rethinkdb",
   "dependencies": {
     "bluebird": "^2.3.2",
-    "coffeeify": "^1.0.0",
     "browserify": "^9.0.3",
+    "coffeeify": "^1.0.0",
     "del": "^1.1.1",
     "gulp": "^3.8.11",
     "gulp-changed": "^1.1.1",
@@ -29,6 +29,7 @@
     "gulp-replace": "^0.5.3",
     "gulp-sourcemaps": "^1.4.0",
     "gulp-util": "^3.0.4",
+    "handlebars": "^3.0.1",
     "hbsfy": "^2.2.1",
     "less": "^2.4.0",
     "uber-watchify": "^2.3.2",
