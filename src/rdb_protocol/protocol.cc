@@ -764,7 +764,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         results[i] = &resp->result;
         if (q.stamp) {
             guarantee(resp->stamp_response);
-            stamp_resps.push_back(&*resp->stamp_response);
+            stamp_resps[i] = &*resp->stamp_response;
         }
     }
     out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
@@ -1267,8 +1267,8 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
     ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
-RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(rget_read_response_t,
-                                    result, skey_version, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
+    rget_read_response_t, stamp_response, result, skey_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_list_response_t, sindexes);
@@ -1290,9 +1290,9 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_ran
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        rget_read_t,
-        region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(rget_read_t,
+                                    stamp, region, optargs, table_name, batchspec,
+                                    transforms, terminal, sindex, sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);
