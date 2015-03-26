@@ -5,9 +5,20 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "store_view.hpp"
 
+/* Sometimes we'll receive the same write as part of our stream of writes from the
+dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need
+to be sure that we don't apply the write twice. `backfill_end_timestamps_t` tracks which
+writes were received as part of the backfill and filters the writes from the dispatcher
+accordingly. This is tricky because sometimes a write will affect multiple keys, and
+we'll only get half of it as part of the backfill; in this case, we still need to apply
+the other half of the write we got from the dispatcher. */
 class remote_replicator_client_t::backfill_end_timestamps_t {
 public:
     backfill_end_timestamps_t() : region(region_t::empty()) { }
+
+    /* `region_map` should be the timestamps of the store as of when the backfill
+    completed. It assumes that the backfill timestamps increase as keys increase in
+    lexicographical order. */
     backfill_end_timestamps_t(const region_map_t<state_timestamp_t> &region_map) {
         region = region_map->get_domain();
         std::vector<std::pair<store_key_t, state_timestamp_t> > temp;
@@ -26,17 +37,29 @@ public:
         }
         max_timestamp = steps.back().second;
     }
+
+    /* If a write's timestamp is greater than `get_max_timestamp()`, there's no need for
+    it to pass through `clip_write()`. */
     state_timestamp_t get_max_timestamp() const {
         return max_timestamp;
     }
+
+    /* `clip_write()` checks if a write should be applied or not. If a write should not
+    be applied, it returns `false`. If a write should be wholly or partially applied, it
+    returns `true` and may alter `*w`. */
     bool clip_write(write_t *w, state_timestamp_t ts) const {
         rassert(region_is_superset(region, w->get_region()));
         if (ts > max_timestamp) {
             /* Shortcut for the simple case */
-            return;
+            return true;
         }
         region_t clip_region = w->get_region();
         for (const auto &step : steps) {
+            if (key_range_t::right_bound_t(step.first) > clip_region.right) {
+                /* The write should be applied without modification, but if it had
+                affected keys further to the right, that wouldn't have been the case. */
+                return true;
+            }
             if (step.second >= ts) {
                 clip_region.right = key_range_t::right_bound_t(step.first);
                 break;
@@ -49,6 +72,9 @@ public:
         *w = std::move(clipped);
         return true;
     }
+
+    /* `combine` concatenates two `backfill_end_timestamps_t`s that cover adjacent
+    regions. */
     void combine(backfill_end_timestamps_t &&next) {
         if (region.is_empty()) {
             *this = std::move(next);
@@ -57,6 +83,7 @@ public:
             guarantee(region.inner.right ==
                 key_range_t::right_bound_t(next.region.inner.left));
             region.inner.right = next.region.inner.right;
+            guarantee(steps.back().second <= next.steps.front().second);
             steps.insert(
                 steps.end(),
                 std::make_move_iterator(next.steps.begin()),
@@ -64,6 +91,7 @@ public:
             max_timestamp = std::max(max_timestamp, next.max_timestamp);
         }
     }
+
 private:
     region_t region;
     state_timestamp_t max_timestamp;
@@ -87,7 +115,9 @@ remote_replicator_client_t::remote_replicator_client_t(
     mailbox_manager_(mailbox_manager),
     store_(store),
     branch_id_(branch_id),
-    queue_(nullptr),
+
+    queue_fun_(nullptr),
+
     write_async_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_write_async, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
@@ -132,12 +162,16 @@ remote_replicator_client_t::remote_replicator_client_t(
     backfillee_t backfillee(mailbox_manager, branch_history_manager, store,
         replica_bcard.backfiller, interruptor);
 
+    /* We acquire `rwlock_` to lock out writes while we're writing to `region_*_`,
+    `queue_fun_`, and `replica_`, and for the last stage of draining the queue. */
     scoped_ptr_t<rwlock_acq_t> rwlock_acq(
-        new rwlock_acq_t(&lock_regions, access_t::write, interruptor));
+        new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
+        
     while (region_streaming_.inner.right != store->get_region().inner.right) {
         /* Previously we were streaming some sub-range and discarding the rest. Here we
         leave the streaming region as it was but we start queueing the region we were
         previously discarding. */
+        guarantee(region_queueing_.inner.is_empty());
         region_queueing_ = region_discarding_;
         region_discarding_.inner = key_range_t::empty();
         std::queue<queue_entry_t> queue;
@@ -184,10 +218,16 @@ remote_replicator_client_t::remote_replicator_client_t(
         } callback { this, key_range_t::right_bound_t(region_queueing_.inner.left) };
         backfillee.go(&callback, interruptor);
 
-        rwlock_acq.init(new rwlock_acq_t(&lock_regions, access_t::write, interruptor));
+        /* Wait until we've queued writes at least up to the latest point where the
+        backfill left us. This ensures that it will be safe to ignore
+        `backfill_end_timestamps` once we finish when draining the queue. */
+        timestamp_enforcer_.wait_all_before(
+            callback.backfill_end_timestamps.get_max_timestamp(), interruptor);
+
+        rwlock_acq.init(new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
 
         /* Shrink the queueing region to only contain the region that we just backfilled,
-        so we discard any changes to the right of that */
+        and make anything to the right of that be the discarding region */
         region_queueing_.inner.right = callback.right_bound;
         if (region_queueing_.inner.right.unbounded) {
             region_discarding_ = region_t::empty();
@@ -195,85 +235,182 @@ remote_replicator_client_t::remote_replicator_client_t(
             region_discarding_.inner.left = region_queueing_.inner.right.key;
             region_discarding_.inner.right = store->get_region().inner.right;
         }
+
+        /* As writes continue to come in, don't ack them immediately; instead put the
+        ack conds into `acq_queue`. */
         std::queue<cond_t *> ack_queue;
+        double acks_to_release = 0;
         queue_fun = [&](queue_entry_t &&entry, cond_t *ack) {
             queue.push(std::move(entry));
-            ack_queue.push(ack);
+            if (acks_to_release >= 1) {
+                acks_to_release -= 1;
+                ack->pulse();
+            } else {
+                ack_queue.push(ack);
+            }
         };
 
         rwlock_acq.reset();
 
-        /* Wait until we've received writes at least up to the latest point where the
-        backfill left us. This ensures that we'll be able to safely ignore
-        `backfill_end_timestamps` once we finish when draining the queue. */
-        timestamp_enforcer_.wait_all_before(
-            callback.backfill_end_timestamps.get_max_timestamp(), interruptor);
+        /* Drain the queue. */
+        drain_stream_queue(
+            store, branch_id, region_queueing_,
+            &queue,
+            callback.backfill_end_timestamps,
+            /* This function will be called whenever the queue becomes empty. If the
+            queue is still empty when it returns, then `drain_stream_queue()` will
+            return. */
+            [&rwlock_acq](signal_t *interruptor) {
+                /* When the queue first becomes empty, we acquire the lock. But while
+                we're waiting for the lock, it's possible that more entries will be
+                pushed onto the queue, so this might be called a second time. */
+                if (!rwlock_acq.has()) {
+                    rwlock_acq.reset(
+                        new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
+                }
+            },
+            /* This function will be called whenever an entry from the stream queue has
+            been written to the store */
+            [&](signal_t *) {
+                /* As we drain the main queue, we also pop entries off of `ack_queue`,
+                but we pop fewer entries off of `ack_queue` than off of the main queue.
+                This slows down the pace of incoming writes from the primary so that we
+                can be sure that the queue will eventually drain. */
+                acks_to_release += 0.5;
+                if (acks_to_release >= 1 && !ack_queue.empty()) {
+                    acks_to_release -= 1;
+                    ack_queue.pop()->pulse();
+                }
+            },
+            interruptor);
+        guarantee(rwlock_acq.has());
+        guarantee(queue.empty());
 
-        /* Drain the queue. When the queue is empty, acquire the lock again, and then
-        drain any further queue entries that were added while we were waiting on the
-        lock. */
-        auto_drainer_t queue_drainer;
-        new_semaphore_t drain_semaphore(64);
-        bool have_lock = false;
-        while (true) {
-            if (!queue.empty()) {
-                new_semaphore_acq_t sem_acq(&drain_semaphore, interruptor);
-                queue_entry_t entry = queue.pop();
-                callback.backfill_end_timestamps.clip_write(
-                    &entry.write, entry.timestamp);
-                write_token_t token;
-                store->new_write_token(&token);
-                coro_t::spawn_sometime(std::bind(
-                    [this, interruptor](queue_entry_t &&entry2, new_semaphore_acq_t &&,
-                            auto_drainer_t::lock_t) {
-                        try {
-#ifndef NDEBUG
-                            equality_metainfo_checker_callback_t checker_cb(
-                                binary_blob_t(version_t(branch_id_, timestamp.pred())));
-                            metainfo_checker_t checker(&checker_cb, region_queueing_);
-#endif
-                            write_response_t dummy_response;
-                            store_->write(
-                                DEBUG_ONLY(checker,)
-                                region_map_t<binary_blob_t>(
-                                    region_queueing_,
-                                    binary_blob_t(version_t(branch_id, timestamp)),
-                                subwrite_streaming,
-                                &dummy_response,
-                                write_durability_t::SOFT,
-                                timestamp,
-                                order_token,
-                                &write_token,
-                                interruptor);
-                        } catch (const interrupted_exc_t &) {
-                            /* ignore */
-                        }
-                    }, std::move(entry), std::move(sem_acq), queue_drainer.lock()));
-            }
-            if (queue.empty() && !have_lock) {
-                rwlock_acq.init(new rwlock_acq_t(
-                    &lock_regions, access_t::write, interruptor));
-                have_lock = true;
-            }
-            if (queue.empty() && have_lock) {
-                break;
-            }
+        /* Now that the queue has completely drained, we're going to go back to allowing
+        async writes to run without any throttling. So we should release any remaining
+        writes that are waiting in `ack_queue`. */
+        while (!ack_queue.empty()) {
+            ack_queue.pop()->pulse();
         }
 
         /* Make the region that was previously used for queueing instead be used for
-        streaming */
+        streaming. We needed to completely drain the queue before making this transfer
+        because there's no synchronization between streaming writes and queueing writes,
+        so we can't move the region boundary until we're sure that all the writes in the
+        queue have finished. */
         region_streaming_.inner.right = region_queueing_.inner.right;
         region_queueing_.inner = key_range_t::empty();
-        backfill_end_timestamps_.combine(callback.backfill_end_timestamps);
     }
 
+#ifndef NDEBUG
+    {
+        /* Sanity check that the store's metainfo is all on the correct branch and all at
+        the correct timestamp */
+        region_map_t<binary_blob_t> metainfo_blob;
+        read_token_t read_token;
+        store->new_read_token(&read_token);
+        store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
+            &read_token, interruptor, &metainfo_blob);
+        for (const auto &pair : to_version_map(metainfo_blob)) {
+            rassert(pair.second == version_t(branch_id,
+                timestamp_enforcer_.get_latest_all_before_completed()));
+        }
+    }
+#endif
+
+    /* Now we're completely up-to-date and synchronized with the primary, it's time to
+    create a `replica_t`. */
     replica_.reset(new replica_t(mailbox_manager_, store_, branch_history_manager,
         branch_id, timestamp_enforcer_.get_latest_all_before_completed()));
 
     rwlock_acq.reset();
 
-    /* Tell the primary that it's OK to send us reads and synchronous writes */
+    /* Now that we're completely up-to-date, tell the primary that it's OK to send us
+    reads and synchronous writes */
     send(mailbox_manager, intro.ready_mailbox);
+}
+
+void remote_replicator_client_t::drain_stream_queue(
+        store_view_t *store,
+        const branch_id_t &branch_id,
+        const region_t &region,
+        std::queue<queue_entry_t> *queue,
+        const backfill_end_timestamps_t &bets,
+        const std::function<void(signal_t *)> &on_queue_empty,
+        const std::function<void(signal_t *)> &on_finished_one_entry,
+        signal_t *interruptor) {
+    auto_drainer_t drainer;
+    new_semaphore_t semaphore(64);
+    while (true) {
+        /* If the queue is empty, notify our caller and give them a chance to put more
+        things on the queue. If they don't, then we're done. */
+        if (queue->empty()) {
+            on_queue_empty(interruptor);
+            if (queue->empty()) {
+                break;
+            }
+        }
+
+        /* Acquire the semaphore to limit how many coroutines we spawn concurrently. */
+        new_semaphore_acq_t sem_acq(&semaphore, interruptor);
+
+        queue_entry_t entry = queue->pop();
+        bets.clip_write(&entry.write, entry.timestamp);
+
+        /* Acquire a write token here rather than in the coroutine so that we can be sure
+        the writes will acquire tokens in the correct order. */
+        write_token_t token;
+        store->new_write_token(&token);
+
+        /* The reason for this strange `std::bind(<lambda>)` construction is that we want
+        to pass a bunch of things to the coroutine by move. */
+        coro_t::spawn_sometime(std::bind(
+            [&store, &interruptor, &on_finished_one_entry](
+                    queue_entry_t &&entry_2,
+                    write_token_t &&write_token_2,
+                    new_semaphore_acq_t &&,
+                    auto_drainer_t::lock_t) {
+            try {
+                /* Note that we don't block on the `auto_drainer_t::lock_t`'s drain
+                signal. This way, `drain_stream_queue()` won't return until either all of
+                the writes have been applied or the interruptor is pulsed. */
+#ifndef NDEBUG
+                equality_metainfo_checker_callback_t checker_cb(
+                    binary_blob_t(version_t(branch_id, timestamp.pred())));
+                metainfo_checker_t checker(&checker_cb, region);
+#endif
+                write_response_t dummy_response;
+                store->write(
+                    DEBUG_ONLY(checker,)
+                    region_map_t<binary_blob_t>(
+                        region, binary_blob_t(version_t(branch_id, timestamp))),
+                    entry_2.write,
+                    &dummy_response,
+                    write_durability_t::SOFT,
+                    entry_2.timestamp,
+                    order_token_t::ignore,
+                    &write_token_2,
+                    interruptor);
+
+                /* Notify the caller that we finished applying one write. The caller uses
+                this to control how fast it adds writes to the queue, to be sure the
+                queue will eventually drain. */
+                on_finished_one_entry(interruptor);
+
+            } catch (const interrupted_exc_t &) {
+                /* ignore */
+            }
+        }, std::move(entry), std::move(write_token) std::move(sem_acq), drainer.lock()));
+    }
+
+    /* Block until all of the coroutines are finished */
+    drainer.drain();
+
+    /* It's possible that some of the coroutines aborted early because the interruptor
+    was pulsed, so we need to check it here. */
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 void remote_replicator_client_t::on_write_async(
@@ -286,9 +423,11 @@ void remote_replicator_client_t::on_write_async(
     wait_interruptible(&registered_, interruptor);
     timestamp_enforcer_->wait_all_before(timestamp, interruptor);
 
-    rwlock_acq_t rwlock_acq(&lock_regions, access_t::read, interruptor);
+    rwlock_acq_t rwlock_acq(&rwlock_, access_t::read, interruptor);
 
     if (replica_.has()) {
+        /* Once the constructor is done, all writes will take this branch; it's the
+        common case. */
         timestamp_enforcer_->complete(timestamp);
         rwlock_acq.reset();
 
@@ -297,15 +436,12 @@ void remote_replicator_client_t::on_write_async(
             interruptor, &dummy_response);
 
     } else {
-        queue_entry_t queue_entry;
-        bool have_subwrite_queueing = write.shard(region_queueing, &queue_entry.write);
-        cond_t queue_throttler;
-        if (have_subwrite_queueing) {
-            guarantee(queue_fun_ != nullptr);
-            queue_entry.timestamp = timestamp;
-            queue_entry.order_token = order_token;
-            (*queue_fun)(std::move(queue_entry), &queue_unthrottled);
-        }
+        /* This branch is taken during the initial backfill. We need to break the write
+        into three subwrites; the subwrite that applies to `region_streaming_`, the part
+        that applies to `region_queueing_`, and the subwrite that applies to
+        `region_discarding_`. We'll apply the first subwrite to the store immediately;
+        pass the second subwrite to `queue_fun_`; and discard the third subwrite. Some of
+        the subwrites may be empty. */
 
         write_t subwrite_streaming;
         bool have_subwrite_streaming =
@@ -314,14 +450,25 @@ void remote_replicator_client_t::on_write_async(
         region_t region_streaming;
         if (have_subwrite_streaming) {
             store_->new_write_token(&write_token);
+            /* Make a local copy of `region_streaming_` because it might change once we
+            release `rwlock_acq`. */
             region_streaming = region_streaming_;
         }
 
-        rwlock_acq.reset();
+        queue_entry_t queue_entry;
+        bool have_subwrite_queueing = write.shard(region_queueing, &queue_entry.write);
+        cond_t queue_throttler;
+        if (have_subwrite_queueing) {
+            guarantee(queue_fun_ != nullptr);
+            queue_entry.timestamp = timestamp;
+            queue_entry.order_token = order_token;
+            (*queue_fun)(std::move(queue_entry), &queue_throttler);
+        }
+
         timestamp_enforcer_->complete(timestamp);
+        rwlock_acq.reset();
 
         if (have_subwrite_streaming) {
-            region_t region_streaming = region_streaming_;
 #ifndef NDEBUG
             equality_metainfo_checker_callback_t checker_cb(
                 binary_blob_t(version_t(branch_id_, timestamp.pred())));
@@ -343,6 +490,11 @@ void remote_replicator_client_t::on_write_async(
         }
 
         if (have_subwrite_queueing) {
+            /* Wait until the queueing logic pulses our `queue_throttler`. The dispatcher
+            will limit the number of outstanding writes to us at any given time; so if we
+            delay acking this write, that will limit the rate at which the dispatcher
+            sends us new writes. The constructor uses this to ensure that new writes
+            enter the queue more slowly than writes are being removed from the queue. */
             wait_interruptible(&queue_throttler, interruptor);
         }
     }
@@ -358,6 +510,11 @@ void remote_replicator_client_t::on_write_sync(
         write_durability_t durability,
         const mailbox_t<void(write_response_t)>::address_t &ack_addr)
         THROWS_NOTHING {
+    /* The current implementation of the dispatcher will never send us an async write
+    once it's started sending sync writes, but we don't want to rely on that detail, so
+    we pass sync writes through the timestamp enforcer too. */
+    timestamp_enforcer_->complete(timestamp);
+
     write_response_t response;
     replica_->do_write(
         write, timestamp, order_token, durability,

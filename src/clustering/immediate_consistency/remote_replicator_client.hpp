@@ -55,8 +55,6 @@ public:
 
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    ~remote_replicator_client_t();
-
 private:
     class queue_entry_t {
     public:
@@ -66,6 +64,22 @@ private:
     };
     typedef std::function<void(queue_entry_t &&, cond_t *)> queue_function_t;
 
+    /* `drain_stream_queue()` is a helper function for the constructor. It applies the
+    queue entries in `queue` to `store`. When the queue is empty, it calls
+    `on_queue_empty()`; if the queue is still empty after `on_queue_empty()` returns,
+    then `drain_stream_queue()` returns. */
+    static void drain_stream_queue(
+            store_view_t *store,
+            const branch_id_t &branch_id,
+            const region_t &region,
+            std::queue<queue_entry_t> *queue,
+            const backfill_end_timestamps_t &bets,
+            const std::function<void(signal_t *)> &on_queue_empty,
+            const std::function<void(signal_t *)> &on_finished_one_entry,
+            signal_t *interruptor);
+
+    /* `on_write_async()`, `on_write_sync()`, and `on_read()` are mailbox callbacks for
+    `write_async_mailbox_`, `write_sync_mailbox_`, and `read_mailbox_`. */
     void on_write_async(
             signal_t *interruptor,
             write_t &&write,
@@ -73,7 +87,6 @@ private:
             order_token_t order_token,
             const mailbox_t<void()>::address_t &ack_addr)
         THROWS_NOTHING;
-
     void on_write_sync(
             signal_t *interruptor,
             const write_t &write,
@@ -82,7 +95,6 @@ private:
             write_durability_t durability,
             const mailbox_t<void(write_response_t)>::address_t &ack_addr)
         THROWS_NOTHING;
-
     void on_read(
             signal_t *interruptor,
             const read_t &read,
@@ -94,18 +106,36 @@ private:
     store_view_t *const store_;
     branch_id_t const branch_id_;
 
-    cond_t registered_;
-
+    /* `timestamp_enforcer_` is used to order writes as they arrive. `replica_` will do
+    its own ordering of writes, so `timestamp_enforcer_` is only important during the
+    constructor before `replica_` has been created. */
     scoped_ptr_t<timestamp_enforcer_t> timestamp_enforcer_;
+
+    /* `region_*_` and `queue_fun_` are only used during the constructor. Specifically,
+    the constructor uses them to control what `on_write_async()` does with writes that
+    arrive during the backfill. See `on_write_async()` for more information. */
     region_t region_streaming_, region_queueing_, region_discarding_;
     queue_function_t *queue_fun_;
 
+    /* `replica_` is created at the end of the constructor, once the backfill is over. */
     scoped_ptr_t<replica_t> replica_;
+
+    /* Read access to `rwlock_` is required when reading `region_*_`, `queue_fun_`,
+    or `replica_`, or when calling `timestamp_enforcer_->complete()`. Write access to
+    `rwlock_` is required when writing to `region_*_`, `queue_fun_`, or `replica_`. */
+    rwlock_t rwlock_;
+
+    /* `registered` is pulsed once we've gotten the initial message from the
+    `remote_replicator_server_t`. `timestamp_enforcer_` won't be initialized until
+    `registered_` is pulsed. */
+    cond_t registered_;
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
     remote_replicator_client_bcard_t::write_sync_mailbox_t write_sync_mailbox_;
     remote_replicator_client_bcard_t::read_mailbox_t read_mailbox_;
 
+    /* We use `registrant_` to subscribe to a stream of reads and writes from the
+    dispatcher via the `remote_replicator_server_t`. */
     scoped_ptr_t<registrant_t<remote_replicator_client_bcard_t> > registrant_;
 };
 
