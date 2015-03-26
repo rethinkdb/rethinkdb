@@ -71,7 +71,7 @@ backfillee_t::backfillee_t(
         std::bind(&backfillee_t::send_pre_atoms, this, drainer.lock()));
 }
 
-bool backfillee_t::go(callback_t *callback, signal_t *interruptor) {
+void backfillee_t::go(callback_t *callback, signal_t *interruptor) {
     guarantee(current_session == nullptr);
     session_info_t info;
     info.callback = callback;
@@ -84,14 +84,8 @@ bool backfillee_t::go(callback_t *callback, signal_t *interruptor) {
 
     wait_interruptible(&info.stop, interruptor);
 
-    if (info.callback_returned_false) {
-        send(mailbox_manager, intro.stop_mailbox,
-            fifo_source.enter_write(), info.session_id);
-        return false;
-    } else {
-        guarantee(range_to_backfill.is_empty());
-        return true;
-    }
+    send(mailbox_manager, intro.stop_mailbox,
+        fifo_source.enter_write(), info.session_id);
 }
 
 void backfillee_t::on_ack_pre_atoms(
@@ -166,14 +160,17 @@ void backfillee_t::on_atoms(
     right. */
     wait_interruptible(mutex_in_line->acq_signal(), interruptor);
 
-    if (session->callback_returned_false) {
-        /* Ensure that we don't call `on_progress()` again if it returned `false` */
+    if (session->stop.is_pulsed()) {
+        /* Ensure that we don't call `on_progress()` again if it returned `STOP_*` */
         return;
     }
 
     guarantee(completed_threshold == chunk.get_left_key());
 
-    if (session->callback->on_progress(version)) {
+    store_view_t::backfill_continue_t cont = session->callback->on_progress(version);
+
+    if (cont == store_view_t::backfill_continue_t::CONTINUE ||
+            cont == store_view_t::backfill_continue_t::STOP_AFTER) {
         /* Tell the backfiller that the chunk was accepted. This has two purposes: it
         lets the backfiller forget the pre-atoms for that range, and it tells the
         backfiller that it's OK to send more atoms. */
@@ -181,13 +178,12 @@ void backfillee_t::on_atoms(
             fifo_source.enter_write(), session_id, chunk.get_right_key(),
             chunk.get_mem_size());
         completed_threshold = chunk.get_right_key();
-        if (completed_threshold == store->get_region().inner.right) {
-            /* This was the last chunk. We're done with the backfill. */
-            session->stop.pulse();
-        }
-    } else {
-        /* End the session prematurely */
-        session->callback_returned_false = true;
+    }
+
+    if (cont == store_view_t::backfill_continue_t::STOP_AFTER ||
+            cont == store_view_t::backfill_t::STOP_BEFORE ||
+            completed_threshold == store->get_region().inner.right) {
+        /* We finished the backfill or we were interrupted. */
         session->stop.pulse();
     }
 }
@@ -212,11 +208,11 @@ void backfillee_t::send_pre_atoms(auto_drainer_t::lock_t keepalive) {
             class callback_t : public store_view_t::send_backfill_pre_callback_t {
             public:
                 bool on_pre_atom(backfill_pre_atom_t &&atom) {
+                    chunks.push_back(std::move_atom);
                     if (chunk.get_mem_size() < PRE_ATOM_CHUNK_SIZE) {
-                        chunk.push_back(std::move(atom));
-                        return true;
+                        return store_view_t::backfill_continue_t::CONTINUE;
                     } else {
-                        return false;
+                        return store_view_t::backfill_continue_t::STOP_AFTER;
                     }
                 }
                 void on_done_range(const key_range_t::right_bound_t &threshold) {

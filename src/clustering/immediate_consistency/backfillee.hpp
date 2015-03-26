@@ -20,25 +20,24 @@ change the `backfillee_t`'s minimum version during the backfill. Here are the de
     that the other server had at the time that `go()` was called.
 - Whenever the backfill finishes processing a range of keys, it calls `on_progress()` on
     the callback, with a `region_t` representing that range.
-- If `on_progress()` returns `true`, then all keys in that region are "released" by
-    the `backfillee_t`, meaning that it will not write to that region, and other things
-    are now allowed to write to that region.
-- If `on_progress()` returns `false`, then the backfiller retains ownership of that
-    region of keys, and `go()` returns `false`.
-- The caller can call `go()` again to resume the backfill. The effect of this is to reset
-    the minimum state that the backfill is guaranteed to go to; any keys backfilled
-    during the new call to `go()` are guaranteed to be at least as up-to-date as the
-    other server's state when the new call to `go()` happens. This also applies to keys
-    that were covered by the call to `on_progress()` that returned `false`.
-- If the `backfillee_t` reaches the end of the store's region and the last call to
-    `on_progress()` returns `true`, then `go()` returns `true`.
+- If `on_progress()` returns `CONTINUE` or `STOP_AFTER`, then all keys in that region are
+    "released" by the `backfillee_t`, meaning that it will not write to that region, and
+    other things are now allowed to write to that region. If `on_progress()` returns
+    `STOP_BEFORE`, then the backfiller retains ownership of that region of keys.
+- The backfill continues until `on_progress()` returns `STOP_*` or the backfill is
+    completed. If the backfill is aborted early with `STOP_*`, the caller can call `go()`
+    again to resume the backfill. The effect of this is to reset the minimum state that
+    the backfill is guaranteed to go to; any keys backfilled during the new call to
+    `go()` are guaranteed to be at least as up-to-date as the other server's state when
+    the new call to `go()` happens.
 */
 
 class backfillee_t : public home_thread_mixin_debug_only_t {
 public:
     class callback_t {
     public:
-        virtual bool on_progress(const region_map_t<version_t> &chunk) = 0;
+        virtual store_view_t::backfill_continue_t on_progress(
+            const region_map_t<version_t> &chunk) = 0;
     };
 
     /* `backfillee_t()` blocks while it establishes a connection with the `backfiller_t`
@@ -51,7 +50,7 @@ public:
         signal_t *interruptor);
 
     /* Pulsing `interruptor` invalidates the `backfillee_t`. */
-    bool go(callback_t *callback, signal_t *interruptor);
+    void go(callback_t *callback, signal_t *interruptor);
 
 private:
     class session_info_t {

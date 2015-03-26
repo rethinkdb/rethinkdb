@@ -270,26 +270,6 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
-#ifndef NDEBUG
-struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-    explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
-        : value_(expected_value) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
-        region_map_t<binary_blob_t> masked = metainfo.mask(region);
-
-        for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
-            rassert(it->second == value_);
-        }
-    }
-
-private:
-    const binary_blob_t value_;
-
-    DISABLE_COPYING(equality_metainfo_checker_callback_t);
-};
-#endif
-
 }  // namespace unittest
 
 #endif  // UNITTEST_CLUSTERING_UTILS_HPP_

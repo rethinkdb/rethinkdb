@@ -117,11 +117,11 @@ void backfiller_t::client_t::session_t::run(auto_drainer_t::lock_t keepalive) {
             public:
                 callback_t(session_t *_parent) : parent(_parent) { }
                 bool on_atom(backfill_atom_t &&atom) {
+                    chunk.push_back(std::move(atom));
                     if (chunk.get_mem_size() < ATOM_CHUNK_SIZE) {
-                        chunk.push_back(std::move(atom));
-                        return true;
+                        return store_view_t::backfill_continue_t::CONTINUE;
                     } else {
-                        return false;
+                        return store_view_t::backfill_continue_t::STOP_AFTER;
                     }
                 }
                 void on_done_range(const region_map_t<binary_blob_t> &mi) {

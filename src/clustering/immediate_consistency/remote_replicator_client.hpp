@@ -21,31 +21,27 @@ There is one `remote_replicator_client_t` on each secondary replica server of ea
 
 class remote_replicator_client_t {
 private:
-    class write_queue_entry_t;
+    class backfill_end_timestamps_t;
 
 public:
     /* Here's how the backfill works:
 
     1. We sign up for a stream of writes from the `remote_replicator_server_t`. Initially
         we store the writes in `write_queue_`.
-    2. We receive a backfill from the `replica_t`. We ensure that the `replica_t` is on
+    2. We start backfilling from the `replica_t`. We ensure that the `replica_t` is on
         the same branch as the `remote_replicator_server_t`, and that the backfill's end
         timestamp is greater than or equal to the stream's begin timestamp.
-    3. When the backfill finishes, we start performing the writes in the write queue.
-    4. When the write queue has been drained, we are ready.
-
-    While the backfill is ongoing, we allow writes to enter the write queue as fast as
-    they arrive. But when we're trying to drain the write queue, we limit the rate using
-    `write_queue_semaphore_` to make sure the queue drains. We control the flow earlier
-    in the pipeline by waiting to respond to `on_write_async()` calls from the
-    `primary_dispatcher_t`.
+    3. When `write_queue_` reaches a certain size, we stop the backfill. We perform all
+        the queued writes that affect the region that we backfilled, and discard all
+        others.
+    4. Go back to step 1, except that incoming writes that apply to the region that was
+        backfilled are performed immediately instead of being queued.
+    5. Repeat steps 1-4 until the whole region has been backfilled.
 
     The `remote_replicator_client_t` constructor blocks until this entire process is
     complete. */
 
     remote_replicator_client_t(
-        const base_path_t &base_path,
-        io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
@@ -57,28 +53,26 @@ public:
         store_view_t *store,
         branch_history_manager_t *branch_history_manager,
 
-        perfmon_collection_t *backfill_stats_parent,
-        order_source_t *order_source,
-        signal_t *interruptor,
-        double *backfill_progress_out   /* can be null */
-        ) THROWS_ONLY(interrupted_exc_t);
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     ~remote_replicator_client_t();
 
 private:
+    class queue_entry_t {
+    public:
+        write_t write;
+        state_timestamp_t timestamp;
+        order_token_t order_token;
+    };
+    typedef std::function<void(queue_entry_t &&, cond_t *)> queue_function_t;
+
     void on_write_async(
             signal_t *interruptor,
-            const write_t &write,
+            write_t &&write,
             state_timestamp_t timestamp,
             order_token_t order_token,
             const mailbox_t<void()>::address_t &ack_addr)
         THROWS_NOTHING;
-
-    void perform_enqueued_write(
-            const write_queue_entry_t &serialized_write,
-            state_timestamp_t backfill_end_timestamp,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
 
     void on_write_sync(
             signal_t *interruptor,
@@ -98,35 +92,15 @@ private:
 
     mailbox_manager_t *const mailbox_manager_;
     store_view_t *const store_;
-
-    // This uuid exists solely as a temporary used to be passed to
-    // uuid_to_str for perfmon_collection initialization and the
-    // backfill queue file name
-    const uuid_u uuid_;
-
-    perfmon_collection_t perfmon_collection_;
-    perfmon_membership_t perfmon_collection_membership_;
-
-    scoped_ptr_t<replica_t> replica_;
+    branch_id_t const branch_id_;
 
     cond_t registered_;
 
-    /* `write_queue_` is in a `scoped_ptr_t` because it needs to be able to see the full
-    definition of `write_queue_entry_t`. The others are in `scoped_ptr_t` because they
-    can't be initialized at the beginning of the constructor, and must be initialized
-    later instead. */
-    scoped_ptr_t<timestamp_enforcer_t> write_queue_entrance_enforcer_;
-    scoped_ptr_t<disk_backed_queue_wrapper_t<write_queue_entry_t> > write_queue_;
-    scoped_ptr_t<std_function_callback_t<write_queue_entry_t> >
-        write_queue_coro_pool_callback_;
-    adjustable_semaphore_t write_queue_semaphore_;
-    cond_t write_queue_has_drained_;
+    scoped_ptr_t<timestamp_enforcer_t> timestamp_enforcer_;
+    region_t region_streaming_, region_queueing_, region_discarding_;
+    queue_function_t *queue_fun_;
 
-    /* Destroying `write_queue_coro_pool` will stop any invocations of
-    `perform_enqueued_write()`. We mustn't access any member variables defined
-    below `write_queue_coro_pool` from within `perform_enqueued_write()`,
-    because their destructors might have been called. */
-    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool_;
+    scoped_ptr_t<replica_t> replica_;
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
     remote_replicator_client_bcard_t::write_sync_mailbox_t write_sync_mailbox_;

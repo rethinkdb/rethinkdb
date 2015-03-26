@@ -17,7 +17,6 @@ private:
     DISABLE_COPYING(metainfo_checker_callback_t);
 };
 
-
 struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t {
 
     trivial_metainfo_checker_callback_t() { }
@@ -27,6 +26,24 @@ struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t 
 
 private:
     DISABLE_COPYING(trivial_metainfo_checker_callback_t);
+};
+
+struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t {
+    explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
+        : value_(expected_value) { }
+
+    void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
+        region_map_t<binary_blob_t> masked = metainfo.mask(region);
+
+        for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
+            rassert(it->second == value_);
+        }
+    }
+
+private:
+    const binary_blob_t value_;
+
+    DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
 
 class metainfo_checker_t {
@@ -124,17 +141,25 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
+    /* Return values for callbacks that process backfill chunks. `CONTINUE` means to keep
+    doing the backfill. `STOP_AFTER` means that the current chunk will be completed, but
+    no further chunks should be processed. `STOP_BEFORE` means that the current chunk
+    should be discarded and no further chunks should be processed. */
+    enum class backfill_continue_t { CONTINUE, STOP_AFTER, STOP_BEFORE };
+
     /* `send_backfill_pre()` expresses the keys that have changed since `start_point` as
     a series of `backfill_pre_atom_t` objects, ignoring the values of the changed keys.
-    It passes the atoms to `callback`, aborting if `callback` returns `false`. */
+    It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `STOP_*`. */
     class send_backfill_pre_callback_t {
     public:
         /* For each range, `on_pre_atom()` will be called zero or more times, and then
-        `on_done_range()` will be called. The atoms will be processed in lexicographical
-        order. If `on_pre_atom()` returns false, then `on_done_range()` will still be
-        called one last time for any atoms prior to the one where `on_pre_atom()`
-        returned false. */
-        virtual bool on_pre_atom(backfill_pre_atom_t &&atom) = 0;
+        `on_done_range()` will be called. The atoms and ranges will be processed in
+        lexicographical ordeer. If `on_pre_atom()` returns `STOP_*`, then there will be
+        one last call to `on_done_range()` covering any calls to `on_pre_atom()` up to
+        that point that were not covered by an earlier call to `on_done_range()`. The
+        last atom will be included if the return value was `STOP_AFTER` but not if it was
+        `STOP_BEFORE`. */
+        virtual backfill_continue_t on_pre_atom(backfill_pre_atom_t &&atom) = 0;
         virtual void on_done_range(const key_range_t::right_bound_t &threshold) = 0;
     };
     virtual bool send_backfill_pre(
@@ -145,23 +170,19 @@ public:
     /* `send_backfill()` consumes a sequence of `backfill_pre_atom_t`s and it produces a
     sequence of `backfill_atom_t`s. The `backfill_atom_t`s will include values for
     everything that is listed in the `backfill_pre_atom_t`s and also for everything that
-    changed since `start_point`. It passes the atoms to `callback`, aborting if
-    `callback` returns `false`. It also includes the value of the metainfo with each
-    group of atoms. */
+    changed since `start_point`. It passes the atoms and their associated metainfo to
+    `callback`. */
     class send_backfill_callback_t {
     public:
-        /* For each range, `on_atom()` will be called zero or more times, and then
-        `on_done_range()` will be called; its parameter will be the metainfo for the
-        atoms that were just provided for this range. The ranges will be processed in
-        lexicographical order and will be contiguous. If `on_atom()` returns `false`,
-        then `on_done_range()` will still be called one last time. */
-        virtual bool on_atom(backfill_atom_t &&atom) = 0;
+        /* This works the same way as `on_pre_atom()` and `on_done_range()` in
+        `send_backfill_pre_callback_t`. */
+        virtual backfill_continue_t on_atom(backfill_atom_t &&atom) = 0;
         virtual void on_done_range(const region_map_t<binary_blob_t> &metainfo) = 0;
 
         /* `next_pre_atom()` should set `*pre_atom_out` to the next pre atom which starts
         earlier than `threshold`, or `nullptr` if there are no more pre atoms in that
         range. It should return `false` if the next pre atom is not available yet; this
-        has the same effect as returning `false` from `on_atom()`. */
+        has the same effect as returning `STOP_*` from `on_atom()`. */
         virtual bool next_pre_atom(
             const key_range_t::right_bound_t &threshold,
             backfill_pre_atom_t const **next_out) = 0;
