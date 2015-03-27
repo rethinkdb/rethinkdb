@@ -25,29 +25,30 @@ bool is_valid(const char *, const char *, reason_t *);
 bool is_valid(const datum_string_t &, reason_t *);
 
 template <class Iterator>
-Iterator && next_codepoint(const Iterator &start, const Iterator &end) {
+Iterator next_codepoint(Iterator &&start, Iterator &&end) {
     reason_t reason;
     char32_t codepoint;
-    return next_codepoint(start, end, &codepoint, &reason);
+    return next_codepoint(std::forward<Iterator>(start),
+                          std::forward<Iterator>(end), &codepoint, &reason);
 }
 
 template <class Iterator>
-Iterator && next_codepoint(const Iterator &start, const Iterator &end,
-                          reason_t *reason) {
+Iterator next_codepoint(Iterator &&start, Iterator &&end, reason_t *reason) {
     char32_t codepoint;
-    return next_codepoint(start, end, &codepoint, reason);
+    return next_codepoint(std::forward<Iterator>(start),
+                          std::forward<Iterator>(end), &codepoint, reason);
 }
 
 template <class Iterator>
-Iterator && next_codepoint(const Iterator &start, const Iterator &end,
-                          char32_t *codepoint) {
+Iterator next_codepoint(Iterator &&start, Iterator &&end, char32_t *codepoint) {
     reason_t reason;
-    return next_codepoint(start, end, codepoint, &reason);
+    return next_codepoint(std::forward<Iterator>(start),
+                          std::forward<Iterator>(end), codepoint, &reason);
 }
 
 template <class Iterator>
-Iterator && next_codepoint(const Iterator &start, const Iterator &end,
-                          char32_t *codepoint, reason_t *reason);
+Iterator next_codepoint(Iterator &&start, Iterator &&end, char32_t *codepoint,
+                        reason_t *reason);
 
 template <class Iterator>
 class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
@@ -60,8 +61,8 @@ class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
 public:
     iterator_t() : start(), position(start), end(position), seen_end(true) {}
     iterator_t(iterator_t<Iterator> &&it)
-        : start(it.start), position(it.position), end(it.end), last_seen(it.last_seen),
-          reason(it.reason), seen_end(it.seen_end) {}
+        : start(it.start), position(it.position), end(it.end),
+          last_seen(it.last_seen), reason(it.reason), seen_end(it.seen_end) {}
     iterator_t(const iterator_t<Iterator> &it)
         : start(it.start), position(it.position), end(it.end), last_seen(it.last_seen),
           reason(it.reason), seen_end(it.seen_end) {}
@@ -80,7 +81,7 @@ public:
         advance();
         return *this;
     }
-    iterator_t<Iterator> && operator ++(int) {
+    iterator_t<Iterator> &&operator++(int) {
         iterator_t it(*this);
         advance();
         return std::move(it);

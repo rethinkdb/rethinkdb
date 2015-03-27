@@ -2,11 +2,29 @@
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <re2/re2.h>
+#include <unicode/uchar.h>
+#include <unicode/utypes.h>
 
+#include <algorithm>
+
+#include "parsing/utf8.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
+
+// Combining characters in Unicode have a character class starting with M. There
+// are three types, which affect layout; we don't distinguish between them here.
+static bool is_combining_character(char32_t c) {
+    return (U_GET_GC_MASK(c) & U_GC_M_MASK);
+}
+
+// ICU provides several different whitespace functions.  We use
+// `u_isUWhiteSpace` which is the Unicode White_Space property.  It is highly
+// unlikely that the details will matter.
+static bool is_whitespace_character(char32_t c) {
+    return (U_GET_GC_MASK(c) & U_GC_M_MASK);
+}
 
 class match_term_t : public op_term_t {
 public:
@@ -78,7 +96,42 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
-const char *const splitchars = " \t\n\r\x0B\x0C";
+template <typename It>
+It find_utf8_pred(It &&start, It &&end, std::function<bool(char32_t)> &&fn) {
+    It pos(start);
+    char32_t codepoint;
+    utf8::reason_t reason;
+    while (pos != end) {
+        It next = utf8::next_codepoint(std::forward<It>(pos),
+                                       std::forward<It>(end), &codepoint,
+                                       &reason);
+        if (fn(codepoint)) {
+            break;
+        }
+        pos = next;
+    }
+    return pos;
+}
+template <typename It> It find_space(It &&start, It &&end) {
+    return find_utf8_pred(std::forward<It>(start), std::forward<It>(end), is_whitespace_character);
+}
+template <typename It>
+It find_non_space(It &&start, It &&end) {
+    return find_utf8_pred(
+        std::forward<It>(start), std::forward<It>(end),
+        [](char32_t ch) { return !is_whitespace_character(ch); });
+}
+template <typename It>
+It find_non_combining(It &&start, It &&end) {
+    return find_utf8_pred(
+        std::forward<It>(start), std::forward<It>(end),
+        [](char32_t ch) { return !is_combining_character(ch); });
+}
+template <typename It>
+void push_datum(std::vector<datum_t> *res, It &&begin, It &&end) {
+    res->push_back(datum_t(datum_string_t(
+        std::string(std::forward<It>(begin), std::forward<It>(end)))));
+}
 
 class split_term_t : public op_term_t {
 public:
@@ -95,6 +148,7 @@ private:
                 delim = d.as_str().to_std();
             }
         }
+        const bool is_delim_empty = (delim && delim->size() == 0);
 
         int64_t n = -1; // -1 means unlimited
         if (args->num_args() > 2) {
@@ -106,29 +160,37 @@ private:
         }
         size_t maxnum = (n < 0 ? std::numeric_limits<decltype(maxnum)>::max() : n);
 
-        // This logic is extremely finicky so as to mimick the behavior of
-        // Python's `split` in edge cases.
         std::vector<datum_t> res;
-        size_t last = 0;
-        while (last != std::string::npos) {
-            size_t next = res.size() == maxnum
-                ? std::string::npos
-                : (delim
-                   ? (delim->size() == 0 ? last + 1 : s.find(*delim, last))
-                   : s.find_first_of(splitchars, last));
-            std::string tmp;
-            if (next == std::string::npos) {
-                size_t start = delim ? last : s.find_first_not_of(splitchars, last);
-                tmp = start == std::string::npos ? "" : s.substr(start);
+        std::string::const_iterator current = s.cbegin();
+        std::string::const_iterator end = s.cend();
+        while (current != end) {
+            if (res.size() == maxnum) {
+                auto it = delim ? current : find_non_space(current, end);
+                if (it != s.end()) {
+                    push_datum(&res, it, end);
+                }
+                current = s.end();
+            } else if (is_delim_empty) {
+                auto ch = utf8::next_codepoint(current, end);
+                auto with_combining = find_non_combining(ch, end);
+                // empty delimiters are special; need to push even empty
+                // strings.
+                push_datum(&res, current, with_combining);
+                current = with_combining;
+            } else if (delim) {
+                auto next_delim = std::search(current, end,
+                                              delim->begin(), delim->end());
+                if (current != next_delim) {
+                    push_datum(&res, current, next_delim);
+                }
+                current = next_delim == end ? end : next_delim + delim->size();
             } else {
-                tmp = s.substr(last, next - last);
+                auto it = find_space(current, end);
+                if (current != it) {
+                    push_datum(&res, current, it);
+                }
+                current = find_non_space(it, end);
             }
-            if ((delim && delim->size() != 0) || tmp.size() != 0) {
-                res.push_back(datum_t(datum_string_t(tmp)));
-            }
-            last = (next == std::string::npos || next >= s.size())
-                ? std::string::npos
-                : next + (delim ? delim->size() : 1);
         }
 
         return new_val(datum_t(std::move(res), env->env->limits()));
