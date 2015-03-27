@@ -57,7 +57,9 @@ class TornadoCursor(Cursor):
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
             yield with_absolute_timeout(deadline, self.new_response)
-        raise gen.Return(len(self.items) != 0)
+        # If there is a (non-empty) error to be received, we return True, so the
+        # user will receive it on the next `next` call.
+        raise gen.Return(!isinstance(self.error, RqlCursorEmpty))
 
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
