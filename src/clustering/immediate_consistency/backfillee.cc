@@ -22,7 +22,9 @@ backfillee_t::backfillee_t(
     completed_threshold(store->get_region().inner.left),
     pre_atom_throttler(PRE_ATOM_PIPELINE_SIZE),
     ack_pre_atoms_mailbox(mailbox_manager,
-        std::bind(&backfillee::on_ack_pre_atoms, this, ph::_1, ph::_2, ph::_3));
+        std::bind(&backfillee_t::on_ack_pre_atoms, this, ph::_1, ph::_2, ph::_3)),
+    atoms_mailbox(mailbox_manager,
+        std::bind(&backfillee_t::on_atoms, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
 {
     guarantee(region_is_superset(backfiller.region, store->get_region()));
     guarantee(store->get_region().beg == backfiller.region.beg);
@@ -59,11 +61,7 @@ backfillee_t::backfillee_t(
     /* Send the `intro_1_t` to the backfiller and wait for it to send back the
     `intro_2_t` */
     registrant.init(new registrant_t<backfiller_bcard_t::intro_1_t>(
-        mailbox_manager,
-        backfiller.registrar,
-        backfillee_bcard_t {
-            intro_mailbox.get_address()
-        }));
+        mailbox_manager, backfiller.registrar, our_intro));
     wait_interruptible(&got_intro, interruptor);
 
     /* Spawn the coroutine that will stream pre-atoms to the backfiller. */
@@ -91,7 +89,7 @@ void backfillee_t::go(callback_t *callback, signal_t *interruptor) {
 void backfillee_t::on_ack_pre_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
-        size_t pre_atoms_size) [
+        size_t pre_atoms_size) {
     /* Ordering of these messages is actually irrelevant; we just pass through the fifo
     sink for consistency */
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
@@ -99,12 +97,12 @@ void backfillee_t::on_ack_pre_atoms(
 
     /* Shrink `pre_atom_throttler_acq` so that `send_pre_atoms()` can acquire the
     semaphore again. */
-    guarantee(pre_atoms_size <= pre_atom_throttler_acq.count());
-    if (pre_atoms_size == pre_atom_throttler_acq.count()) {
-        /* It's illegal to `set_count(0)`, so we need to do this instead */
+    guarantee(static_cast<int64_t>(pre_atoms_size) <= pre_atom_throttler_acq.count());
+    if (static_cast<int64_t>(pre_atoms_size) == pre_atom_throttler_acq.count()) {
+        /* It's illegal to `change_count(0)`, so we need to do this instead */
         pre_atom_throttler_acq.reset();
     } else {
-        pre_atom_throttler_acq.set_count(
+        pre_atom_throttler_acq.change_count(
             pre_atom_throttler_acq.count() - pre_atoms_size);
     }
 }
@@ -112,20 +110,20 @@ void backfillee_t::on_ack_pre_atoms(
 void backfillee_t::on_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
-        const session_id_t &session,
+        const backfiller_bcard_t::session_id_t &session_id,
         const region_map_t<version_t> &version,
         const backfill_atom_seq_t<backfill_atom_t> &chunk) {
     rassert(version.get_domain() == chunk.get_region());
 
     /* Find the session that this chunk is a part of */
     session_info_t *session = current_session;
-    if (session == nullptr) {
+    if (session == nullptr || session->session_id != session_id) {
         /* The session was aborted */
         return;
     }
     auto_drainer_t::lock_t keepalive = session->drainer.lock();
 
-    /* Get into line for the underlying store and the session callback mutex */
+    /* Get into line for the mutex */
     write_token_t write_token;
     object_buffer_t<new_mutex_in_line_t> mutex_in_line;
     {
@@ -138,7 +136,7 @@ void backfillee_t::on_atoms(
     /* Actually record the data in the underlying store */
     class callback_t : public store_view_t::receive_backfill_callback_t {
     public:
-        callback_t(backfill_atom_seq_t<backfill_atom_t> *a) :
+        callback_t(backfill_atom_seq_t<backfill_atom_t> const *a) :
             atoms(a), it(atoms->begin()) { }
         void next_atom(backfill_atom_t const **next_out) {
             *next_out = (it != atoms->end()) ? &*it : nullptr;
@@ -146,9 +144,9 @@ void backfillee_t::on_atoms(
         void release_atom() {
             ++it;
         }
-        backfill_atom_seq_t<backfill_atom_t> *atoms;
+        backfill_atom_seq_t<backfill_atom_t> const *atoms;
         std::list<backfill_atom_t>::const_iterator it;
-    } callback(;
+    } callback(&chunk);
     store->receive_backfill(
         from_version_map(version),
         &callback,

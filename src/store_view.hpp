@@ -161,11 +161,14 @@ public:
         `STOP_BEFORE`. */
         virtual backfill_continue_t on_pre_atom(backfill_pre_atom_t &&atom) = 0;
         virtual void on_done_range(const key_range_t::right_bound_t &threshold) = 0;
+    protected:
+        virtual ~send_backfill_pre_callback_t() { }
     };
-    virtual bool send_backfill_pre(
+    virtual void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            backfill_pre_callback_t *callback,
-            signal_t *interruptor) = 0;
+            send_backfill_pre_callback_t *callback,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* `send_backfill()` consumes a sequence of `backfill_pre_atom_t`s and it produces a
     sequence of `backfill_atom_t`s. The `backfill_atom_t`s will include values for
@@ -192,8 +195,10 @@ public:
         calls to `release_pre_atom`. A pre atom will always be released before
         `on_atom()` is called for any atom that is to the right of the pre atom. */
         virtual void release_pre_atom() = 0;
+    protected:
+        virtual ~send_backfill_callback_t() { }
     };
-    virtual bool send_backfill(
+    virtual void send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *callback,
             signal_t *interruptor)
@@ -205,6 +210,8 @@ public:
     public:
         virtual void next_atom(backfill_atom_t const **next_out) = 0;
         virtual void release_atom();
+    protected:
+        virtual ~receive_backfill_callback_t() { }
     };
     virtual void receive_backfill(
             const region_map_t<binary_blob_t> &new_metainfo,

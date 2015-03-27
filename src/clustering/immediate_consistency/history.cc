@@ -12,6 +12,11 @@ region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_m
         blob_map, &binary_blob_t::get<version_t>);
 }
 
+region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &vers_map) {
+    return region_map_transform<version_t, binary_blob_t>(
+        vers_map, &binary_blob_t::make<version_t>);
+}
+
 /* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(branch_birth_certificate_t,
                         region, initial_timestamp, origin);

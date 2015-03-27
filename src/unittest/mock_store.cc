@@ -222,100 +222,38 @@ void mock_store_t::write(
     }
 }
 
-bool mock_store_t::send_backfill(
+void mock_store_t::send_backfill_pre(
         const region_map_t<state_timestamp_t> &start_point,
-        send_backfill_callback_t *send_backfill_cb,
-        traversal_progress_combiner_t *progress,
-        read_token_t *token,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-    {
-        scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
-        progress->add_constituent(&progress_owner);
-    }
+        send_backfill_pre_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)start_point;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
+}
 
-    rassert(region_is_superset(get_region(), start_point.get_domain()));
-
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
-
-    wait_interruptible(token->main_read_token.get(), interruptor);
-
-    region_map_t<binary_blob_t> masked_metainfo
-        = metainfo_.mask(start_point.get_domain());
-    if (send_backfill_cb->should_backfill(masked_metainfo)) {
-        /* Make a copy so we can sleep and still have the correct semantics */
-        std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > snapshot = table_;
-
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
-        }
-
-        token->main_read_token.reset();
-
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
-        }
-
-        for (auto r_it = start_point.begin(); r_it != start_point.end(); ++r_it) {
-            repli_timestamp_t start_timestamp = r_it->second.to_repli_timestamp();
-            hash_region_t<key_range_t> region = r_it->first;
-
-            for (auto it = snapshot.lower_bound(region.inner.left);
-                 it != snapshot.end() && region.inner.contains_key(it->first);
-                 ++it) {
-                if (region_contains_key(region, it->first)) {
-                    if (start_timestamp < it->second.first) {
-                        typedef backfill_chunk_t chunk_t;
-                        chunk_t::key_value_pairs_t pairs;
-                        pairs.backfill_atoms.push_back(
-                                backfill_atom_t(it->first,
-                                                                      it->second.second,
-                                                                      it->second.first));
-                        chunk_t chunk(pairs);
-                        send_backfill_cb->send_chunk(chunk, interruptor);
-                    }
-                    if (rng_.randint(2) == 0) {
-                        nap(rng_.randint(10), interruptor);
-                    }
-                }
-            }
-        }
-
-        return true;
-    } else {
-        return false;
-    }
+void mock_store_t::send_backfill(
+        const region_map_t<state_timestamp_t> &start_point,
+        send_backfill_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)start_point;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
 }
 
 void mock_store_t::receive_backfill(
-        const backfill_chunk_t &chunk,
-        write_token_t *token,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
-
-    typedef backfill_chunk_t chunk_t;
-    const chunk_t::key_value_pairs_t *pairs = boost::get<chunk_t::key_value_pairs_t>(&chunk.val);
-    guarantee(pairs != NULL);
-    guarantee(pairs->backfill_atoms.size() == 1);
-
-    backfill_atom_t atom = pairs->backfill_atoms[0];
-
-    rassert(region_contains_key(get_region(), atom.key));
-
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
-    }
-
-    table_[atom.key] = std::make_pair(atom.recency, atom.value);
-
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
-    }
+        const region_map_t<binary_blob_t> &new_metainfo,
+        receive_backfill_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)new_metainfo;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
 }
-
-void mock_store_t::throttle_backfill_chunk(UNUSED signal_t *signal)
-        THROWS_ONLY(interrupted_exc_t) { }
 
 void mock_store_t::reset_data(
         const binary_blob_t &zero_version,

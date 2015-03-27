@@ -32,7 +32,8 @@ private:
     public:
         proxy_replica_t(
             remote_replicator_server_t *parent,
-            const remote_replicator_client_bcard_t &client_bcard);
+            const remote_replicator_client_bcard_t &client_bcard,
+            signal_t *interruptor);
 
         void do_read(
             const read_t &read,

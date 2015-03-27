@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_HPP_
 
+#include "rdb_protocol/protocol.hpp"
+
 /* A `backfill_atom_seq_t` contains all of the `backfill_{pre_}atom_t`s in some range of
 the key-space. */
 
@@ -50,9 +52,9 @@ public:
         guarantee(get_left_key() == other->get_right_key());
         size_t atom_size = atoms.front().get_mem_size();
         left_key = atoms.front().get_region().inner.right;
-        other.right_key = left_key;
+        other->right_key = left_key;
         mem_size -= atom_size;
-        other.mem_size += atom_size;
+        other->mem_size += atom_size;
         other->atoms.splice(other->atoms.end(), atoms, atoms.begin());
     }
 
@@ -69,7 +71,7 @@ public:
             } else if (key_range_t::right_bound_t(reg.inner.left) >= cut) {
                 break;
             } else {
-                reg.left = cut.key;
+                reg.inner.left = cut.key;
                 mem_size -= atoms.front().get_mem_size();
                 atoms.front() = atoms.front().mask(reg);
                 mem_size += atoms.front().get_mem_size();

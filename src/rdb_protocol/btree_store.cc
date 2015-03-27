@@ -223,6 +223,39 @@ void store_t::write(
     protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
+void store_t::send_backfill_pre(
+        const region_map_t<state_timestamp_t> &start_point,
+        send_backfill_pre_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)start_point;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
+}
+
+void store_t::send_backfill(
+        const region_map_t<state_timestamp_t> &start_point,
+        send_backfill_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)start_point;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
+}
+
+void store_t::receive_backfill(
+        const region_map_t<binary_blob_t> &new_metainfo,
+        receive_backfill_callback_t *callback,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    (void)new_metainfo;
+    (void)callback;
+    (void)interruptor;
+    crash("not implemented");
+}
+
 void store_t::reset_data(
         const binary_blob_t &zero_metainfo,
         const region_t &subregion,

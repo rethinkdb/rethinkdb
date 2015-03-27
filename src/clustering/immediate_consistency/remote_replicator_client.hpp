@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_
 
+#include <queue>
+
 #include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/immediate_consistency/replica.hpp"

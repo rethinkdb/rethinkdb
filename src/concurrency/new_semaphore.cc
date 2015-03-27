@@ -115,11 +115,11 @@ void new_semaphore_acq_t::transfer_in(new_semaphore_acq_t &&other) {
     guarantee(other.cond_.is_pulsed());
     if (semaphore_ != nullptr) {
         guarantee(semaphore_ == other.semaphore_);
-        guarantee(cond.is_pulsed());
+        guarantee(cond_.is_pulsed());
         change_count(count_ + other.count_);
         other.reset();
     } else {
-        *this = std::move(other);
+        new_semaphore_acq_t(std::move(other));
     }
 }
 

@@ -61,6 +61,7 @@ inline void debug_print(printf_buffer_t *buf, const version_t& v) {
 }
 
 region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map);
+region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &version_map);
 
 /* The state of the database at the time that the `broadcaster_t` was created and the
 sequence of writes that pass through a `broadcaster_t` are collectively referred to as a

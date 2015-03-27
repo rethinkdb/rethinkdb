@@ -64,22 +64,21 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(
+    void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_t *token,
+            send_backfill_pre_callback_t *callback,
             signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
+            THROWS_ONLY(interrupted_exc_t);
+    void send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *callback,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
     void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_t *token,
+            const region_map_t<binary_blob_t> &new_metainfo,
+            receive_backfill_callback_t *callback,
             signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void throttle_backfill_chunk(signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const binary_blob_t &zero_version,

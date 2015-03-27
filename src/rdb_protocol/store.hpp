@@ -139,11 +139,12 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill_pre(
+    void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            backfill_pre_callback_t *callback,
-            signal_t *interruptor);
-    bool send_backfill(
+            send_backfill_pre_callback_t *callback,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+    void send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *callback,
             signal_t *interruptor)

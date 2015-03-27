@@ -2,9 +2,12 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_
 
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "rpc/connectivity/peer_id.hpp"
+#include "store_view.hpp"
 
 /* `backfillee_t` is responsible for replicating data from a `backfiller_t` on some other
 server to this server. Its interface is a bit complicated because the
@@ -38,6 +41,8 @@ public:
     public:
         virtual store_view_t::backfill_continue_t on_progress(
             const region_map_t<version_t> &chunk) = 0;
+    protected:
+        virtual ~callback_t() { }
     };
 
     /* `backfillee_t()` blocks while it establishes a connection with the `backfiller_t`
@@ -71,11 +76,11 @@ private:
     void on_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
-        const session_id_t &session_id,
+        const backfiller_bcard_t::session_id_t &session_id,
         const region_map_t<version_t> &version,
-        const std::deque<backfill_chunk_t> &chunk);
+        const backfill_atom_seq_t<backfill_atom_t> &chunk);
 
-    void send_pre_chunks(
+    void send_pre_atoms(
         auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *const mailbox_manager;
@@ -87,8 +92,8 @@ private:
 
     session_info_t *current_session;
 
-    fifo_source_t fifo_source;
-    fifo_sink_t fifo_sink;
+    fifo_enforcer_source_t fifo_source;
+    fifo_enforcer_sink_t fifo_sink;
 
     /* `pre_atom_throttler` limits how many pre-atoms we send to the backfiller.
     `pre_atom_throttler_acq` always holds `pre_atom_throttler`, but its `count` changes

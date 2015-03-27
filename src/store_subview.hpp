@@ -99,7 +99,8 @@ public:
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token,
+            interruptor);
     }
 
     void write(
@@ -117,35 +118,38 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response,
+            durability, timestamp, order_token, token, interruptor);
     }
 
-    bool send_backfill(
+    void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *p,
-            read_token_t *token,
+            send_backfill_pre_callback_t *callback,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
-
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
+        store_view->send_backfill_pre(start_point, callback, interruptor);
     }
 
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_t *token,
+    void send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *callback,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token, interruptor);
+        rassert(region_is_superset(get_region(), start_point.get_domain()));
+        store_view->send_backfill(start_point, callback, interruptor);
     }
 
-    void throttle_backfill_chunk(signal_t *interruptor)
+    void receive_backfill(
+            const region_map_t<binary_blob_t> &new_metainfo,
+            receive_backfill_callback_t *callback,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->throttle_backfill_chunk(interruptor);
+        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+        store_view->receive_backfill(new_metainfo, callback, interruptor);
     }
 
     void reset_data(
@@ -156,7 +160,6 @@ public:
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
-
         store_view->reset_data(zero_version, subregion, durability, interruptor);
     }
 

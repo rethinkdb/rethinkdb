@@ -137,8 +137,6 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             /* Backfill and start streaming from the primary. */
             remote_replicator_client_t remote_replicator_client(
-                context->base_path,
-                context->io_backender,
                 context->backfill_throttler,
                 context->mailbox_manager,
                 context->server_id,
@@ -147,11 +145,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 primary_bcard.assert_get_value().replica,
                 store,
                 context->branch_history_manager,
-                perfmon_collection,
-                &order_source,
-                &stop_signal_on_store_thread,
-                /* RSI(raft): Hook up backfill progress again */
-                nullptr);
+                &stop_signal_on_store_thread);
 
             on_thread_t thread_switcher_t(home_thread());
 

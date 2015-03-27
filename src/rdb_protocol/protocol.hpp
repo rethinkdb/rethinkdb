@@ -705,7 +705,7 @@ public:
     class range_t {
     public:
         key_range_t keys;
-        std::vector<one_t> content;
+        std::vector<key_t> content;
     };
     typedef boost::variant<key_t, range_t> value_t;
     value_t value;

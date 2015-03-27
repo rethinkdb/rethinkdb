@@ -29,17 +29,17 @@ backfiller_t::client_t::client_t(
     intro(_intro),
     full_region(intro.initial_version.get_domain()),
     pre_atoms_past(full_region.beg, full_region.end,
-        key_range_t::right_bound_t(full_region.left)),
+        key_range_t::right_bound_t(full_region.inner.left)),
     pre_atoms_future(full_region.beg, full_region.end,
-        key_range_t::right_bound_t(full_region.left)),
-    acked_threshold(full_region.left),
-    pre_atoms_mailbox(mailbox_manager,
+        key_range_t::right_bound_t(full_region.inner.left)),
+    acked_threshold(full_region.inner.left),
+    pre_atoms_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_pre_atoms, this, ph::_1, ph::_2, ph::_3)),
-    go_mailbox(mailbox_manager,
+    go_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_go, this, ph::_1, ph::_2, ph::_3, ph::_4)),
-    stop_mailbox(mailbox_manager,
+    stop_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_stop, this, ph::_1, ph::_2, ph::_3, ph::_4)),
-    ack_atoms_mailbox(mailbox_manager,
+    ack_atoms_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_ack_atoms, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
 {
     /* Compute the common ancestor of our version and the backfillee's version */
@@ -48,7 +48,7 @@ backfiller_t::client_t::client_t(
         read_token_t read_token;
         parent->store->new_read_token(&read_token);
         parent->store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
-            &read_token, interruptor, &initial_state_blob);
+            &read_token, interruptor, &our_version_blob);
         region_map_t<version_t> our_version = to_version_map(our_version_blob);
 
         branch_history_combiner_t combined_history(
@@ -57,14 +57,16 @@ backfiller_t::client_t::client_t(
 
         std::vector<std::pair<region_t, state_timestamp_t> > common_pairs;
         for (const auto &pair1 : our_version) {
-            for (const auto &pair2 : intro.initial_version.mask(pair1.region)) {
+            for (const auto &pair2 : intro.initial_version.mask(pair1.first)) {
                 for (const auto &pair3 : version_find_common(&combined_history,
                         pair1.second, pair2.second, pair2.first)) {
-                    common_pairs.push_back(pair3.first, pair3.second.timestamp);
+                    common_pairs.push_back(
+                        std::make_pair(pair3.first, pair3.second.timestamp));
                 }
             }
         }
-        common_version = region_map_t<state_timestamp_t>(common_pairs);
+        common_version = region_map_t<state_timestamp_t>(
+            common_pairs.begin(), common_pairs.end());
     }
 
     backfiller_bcard_t::intro_2_t our_intro;
@@ -73,7 +75,7 @@ backfiller_t::client_t::client_t(
     our_intro.go_mailbox = go_mailbox.get_address();
     our_intro.stop_mailbox = stop_mailbox.get_address();
     our_intro.ack_atoms_mailbox = ack_atoms_mailbox.get_address();
-    send(mailbox_manager, intro.intro_mailbox, our_intro);
+    send(parent->mailbox_manager, intro.intro_mailbox, our_intro);
 }
 
 backfiller_t::client_t::session_t::session_t(
@@ -88,12 +90,12 @@ backfiller_t::client_t::session_t::session_t(
 
 void backfiller_t::client_t::session_t::on_ack_atoms(size_t mem_size) {
     /* Shrink `atom_throttler_acq` so that `run()` can acquire the semaphore again. */
-    guarantee(mem_size <= atom_throttler_acq.count());
-    if (mem_size == atom_throttler_acq.count()) {
-        /* It's illegal to `set_count(0)`, so we need to do this instead */
+    guarantee(static_cast<int64_t>(mem_size) <= atom_throttler_acq.count());
+    if (static_cast<int64_t>(mem_size) == atom_throttler_acq.count()) {
+        /* It's illegal to `change_count(0)`, so we need to do this instead */
         atom_throttler_acq.reset();
     } else {
-        atom_throttler_acq.set_count(atom_throttler_acq.count() - mem_size);
+        atom_throttler_acq.change_count(atom_throttler_acq.count() - mem_size);
     }
 }
 
@@ -165,7 +167,7 @@ void backfiller_t::client_t::session_t::run(auto_drainer_t::lock_t keepalive) {
 
             /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal to
             `ATOM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
-            sem_acq.set_count(callback.chunk.get_mem_size());
+            sem_acq.change_count(callback.chunk.get_mem_size());
             info.atom_throttler_acq.transfer_in(std::move(sem_acq));
 
             /* Send the chunk over the network */

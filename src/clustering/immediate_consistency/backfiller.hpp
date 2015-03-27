@@ -5,8 +5,10 @@
 #include <map>
 #include <utility>
 
+#include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "store_view.hpp"
 
 /* `backfiller_t` is responsible for copying the given store's state to other servers via
 `backfillee_t`.
@@ -30,7 +32,7 @@ public:
 private:
     class client_t {
     public:
-        client_t(backfiller_t *, const backfiller_bcard_t::intro_1_t &intro);
+        client_t(backfiller_t *, const backfiller_bcard_t::intro_1_t &intro, signal_t *);
 
     private:
         class session_t {
@@ -60,17 +62,17 @@ private:
         void on_go(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const session_id_t &session_id,
+            const backfiller_bcard_t::session_id_t &session_id,
             const key_range_t::right_bound_t &threshold);
         void on_stop(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const session_id_t &session_id,
+            const backfiller_bcard_t::session_id_t &session_id,
             const key_range_t::right_bound_t &threshold);
         void on_ack_atoms(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const session_id_t &session_id,
+            const backfiller_bcard_t::session_id_t &session_id,
             const key_range_t::right_bound_t &threshold,
             size_t size);
 
@@ -84,13 +86,13 @@ private:
         key_range_t::right_bound_t acked_threshold;
         scoped_ptr_t<session_t> current_session;
 
-        fifo_source_t fifo_source;
-        fifo_sink_t fifo_sink;
+        fifo_enforcer_source_t fifo_source;
+        fifo_enforcer_sink_t fifo_sink;
 
         backfiller_bcard_t::pre_atoms_mailbox_t pre_atoms_mailbox;
         backfiller_bcard_t::go_mailbox_t go_mailbox;
         backfiller_bcard_t::stop_mailbox_t stop_mailbox;
-        backfiller_bdard_t::ack_atoms_mailbox_t ack_atoms_mailbox;
+        backfiller_bcard_t::ack_atoms_mailbox_t ack_atoms_mailbox;
     };
 
     mailbox_manager_t *const mailbox_manager;
