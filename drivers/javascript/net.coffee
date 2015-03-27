@@ -465,9 +465,8 @@ class Connection extends events.EventEmitter
                     else
                         cb new err.RqlDriverError "Unknown response type"
         else
-            # Throw an error if we get a response with a token not
-            # found in `@outstandingCallbacks`
-            @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
+            # We just ignore tokens we don't have a record of. This is
+            # what the other drivers do as well.
 
     # #### Connection close method
     #
