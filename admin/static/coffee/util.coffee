@@ -357,11 +357,11 @@ json_to_node = do ->
         else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
             return template.span
                 classname: 'jt_date'
-                value: Utils.date_to_string(value)
+                value: date_to_string(value)
         else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
             return template.span
                 classname: 'jt_bin'
-                value: Utils.binary_to_string(value)
+                value: binary_to_string(value)
 
         else if value_type is 'object'
             sub_keys = []

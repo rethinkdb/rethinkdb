@@ -22,7 +22,7 @@ $(BUILD_ROOT_DIR)/web-assets: $(WEB_ASSETS_SRC_FILES) $(JS_BUILD_DIR)/rethinkdb.
 
 .PHONY: web-assets-watch
 web-assets-watch:
-	$(GULP) --cwd $(TOP)/admin --version $(RETHINKDB_VERSION)
+	$(GULP) watch --cwd $(TOP)/admin --version $(RETHINKDB_VERSION)
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
 
